@@ -1,0 +1,40 @@
+robot:
+  robot_specifications:
+    - footprint:
+        footprint_specifications:
+          radius: 0.1
+          points:
+            []
+    - initial_pose:
+        x: 0
+        y: 0
+        theta: 0
+    - laser:
+        laser_specifications:
+          max_angle: 2.6179938
+          min_angle: -2.6179938
+          max_range: 5
+          min_range: 0
+          num_rays: 640
+          frequency: 30
+          frame_id: laser_0
+          pose:
+            x: 0
+            y: 0
+            theta: 0
+          noise:
+            noise_specifications:
+              noise_mean: 0
+              noise_std: 0
+    - bumper:
+        bumper_specifications:
+          frequency: 20.0
+          frame_id: bumpers
+          contact_angle: 6.28318
+          radius: 0.2
+          pose:
+            x: 0.0
+            y: 0.0
+#            x: 0.175
+#            y: 0.0
+            theta: 0.0

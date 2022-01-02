@@ -1,0 +1,72 @@
+The premise behind gaps is that there is are obstacles in the world that
+must be avoided by staying {\em within} the gap region and only leaving
+by moving across the gap curve.
+The gap region is known to be collision-free due to line-of-sight
+visibility to all points inside of it and to a non-trivial connected
+region on the other side of it.  Based on the construction of $\rgpSet$,
+there exists a set of local goals on the other side of the gap (relative
+to the robot position) that are line-of-sight visible from any point
+within the gap region.  
+
+Let the line-of-sight visible local goal point be $\xLG$ as determined
+from the chosen gap $\gap^* \in \rgpSet$.  The attractive potential is 
+\begin{equation} \label{eq:dpot}
+  \attPot(x) = \dist(x, \xLG) + \distHinge(x, \gap^*),
+\end{equation}
+where the first distance is to the local goal point and the second is
+the hinge distance to the gap curve. The hinge distance is the signed
+distance clipped to zero out negative values (a composition of the
+Heaviside and signed distance functions). In this case negative
+distances to the gap lie on the other side of the gap. Thus, the hinge
+distance is positive on the robot side of the gap and  vanishes on the
+other side of the gap.  These potentials attract the robot to the gap
+curve then through to the local goal.  
+%Rather than use the gradient for the flow, we will follow the normalized gradient.
+
+Rather than impose an obstacle avoiding potential, which could
+create a fixed point in the resulting vector field, a purely rotational
+vector field is created 
+\begin{equation} \label{eq:gcirc}
+  \small \rotVF(x) = 
+     \J e^{-\dist_\theta(x, \pLeft)/\bandGA}  
+      \frac{\pLeft  - x}{||\pLeft  - x||} \\
+     - \J e^{-\dist_\theta(x, \pRight)/\bandGA} 
+       \frac{\pRight - x}{||\pRight - x||},
+\end{equation}
+where $\J = R(-\pi/2)$ is skew-symmetric, and $\dist_\theta(\cdot,
+\cdot)$ is the angular distance. $\pLeft$ and $\pRight$ are
+points of the left and right sides of the gaps. The vector fields are two
+rotational fields anchored at the left and right gap points.  Figure
+\ref{figGapGrad} shows an example circulation vector field. 
+
+\begin{figure}[t]
+  \vspace*{0.06in}
+  \centering
+  \begin{tikzpicture}[inner sep=0pt, outer sep=0pt]
+    %\node [anchor= south west] (empty) at (0.05, 0.2)
+    %{{\includegraphics[width=0.25\columnwidth]{figures/gapfield_empty.jpg}}};
+    %\node [anchor=south west] (circulation) at (0.05 + 0.248\columnwidth, 0.2)
+
+    \node [anchor=south west] (circulation) at (0, 0)
+    {{\includegraphics[width=0.3\columnwidth]{../figures/gapfield_rotation.jpg}}};
+    \node [anchor=south west,xshift=12pt] (attractor) at (circulation.south east)
+    {{\includegraphics[width=0.3\columnwidth]{../figures/gapfield_goalatt.jpg}}};
+    \node [anchor=south west,xshift=12pt] (combined) at (attractor.south east)
+    {{\includegraphics[width=0.3\columnwidth]{../figures/gapfield_total.jpg}}};
+
+    \node at ($(circulation.east)!0.5!(attractor.west)$) {+};
+    \node at ($(attractor.east)!0.5!(combined.west)$) {=};
+    %\node[anchor=mid,yshift=0pt] at (empty.south) {\scriptsize gap scenario};
+    \node[anchor=mid,yshift=0pt,fill=white] at (circulation.south)
+      {\scriptsize circulation};
+    \node[anchor=mid,yshift=0pt,fill=white] at (attractor.south)
+      {\scriptsize attractor};
+    \node[anchor=mid,yshift=0pt,fill=white] at (combined.south)
+      {\scriptsize combined};
+  \end{tikzpicture}
+  \caption{Gap gradient field construction. Red triangle is robot location,
+  blue circles are gap curve endpoints,
+  and green circle is goal point.  \label{figGapGrad}}
+  \vspace*{-0.75em}
+\end{figure}
+

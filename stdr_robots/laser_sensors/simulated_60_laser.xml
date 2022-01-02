@@ -1,0 +1,15 @@
+<laser>
+  <laser_specifications>
+    <max_angle>0.5235988</max_angle>
+    <min_angle>-0.5235988</min_angle>
+    <max_range>5.0</max_range>
+    <min_range>0.0</min_range>
+    <num_rays>640</num_rays>
+    <frequency>60</frequency>
+    <pose>
+      <x>0</x>
+      <y>0</y>
+      <theta>0</theta>
+    </pose>
+  </laser_specifications>
+</laser>

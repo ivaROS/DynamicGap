@@ -1,0 +1,49 @@
+Proving that passage through the gap for the robot must happen involves
+showing that the boundary of the gap navigation region points inwards
+along the robot-to-gap-endpoint edges (or simply {\em gap sides}) and
+that there is no fixed point interior to the region.  The only
+reasonable flow for any point in the region is to exit via the gap
+curve, e.g., {\em gap passage}. 
+
+Along the gap edges, the gradients of \eqref{eq:dpot} either point
+inwards or parallel to it, never out by virtue of gap convexity, the
+location of the local goal relative to the gap, and by definition of the
+gap region. Thus, what must be shown is that the
+circulation components also point inwards. On the gap edge, one
+circulation term has $\dist_\theta$ vanishing; the circulation is purely
+perpendicular and inward pointing. Let this vector be $e_\perp$. Let the
+other circulation term contribute the vector $f_\phi$. It satisfies
+\begin{equation}
+  (e_\perp + f_\phi)\cdot e_\perp = (1 - \cos(\pi - \phi)) \ge 0,
+  \ \text{for some}\ \phi > 0,
+\end{equation}
+which means that $\rotVF(\cdot)$ restricted to gap edges is inward
+pointing.  The only outward flow can be on the gap curve.
+
+A similar argument as above applies to show that the interior gap region
+points have a non-trivial outward pointing flow, which means that there
+cannot be a fixed point for $\Dv$ interior to the gap region. 
+Define $e_\rho(x)$ to be the radially directed outward vector for a
+point $x \in \gap$. The following properties hold:
+\begin{equation}
+  e_\rho(x) \cdot \rotVF(x) \ge 0, \quad \text{and} \quad
+  e_\rho(x) \cdot \hat \nabla \attPot(x) > 0
+\end{equation}
+by virtue of the gap angular extent $\alpha_g$ being $90^\circ$; this
+angle is the polar space angular difference between the two gap points
+relative to the robot reference frame. 
+Since the definition of $\hat \nabla$ is that it computes the gradient in
+\eqref{eq:dpot} then makes it unit length when non-zero, the gradients
+should not vanish.  Furthermore, as the vector field interior to the gap
+region always has positive outward pointing contributions
+(and therefore no vanishing gradients), there can be no fixed points. 
+Positivity implies that any initial point in $\gap^*$ will flow out
+through the gap curve, see vector field in Figure \ref{figGapGrad}.  All
+planar trajectories starting in the polar triangle defined by $\gap^*$ and
+the robot location. and following the constructed vector field are
+guaranteed to exit the gap region through the {\em gap curve}, to be
+attracted to the local goal, and to be non-colliding. 
+
+The potential gap algorithm generates the trajectory $\traj$ by starting
+at the current robot position and following the flow field until passage
+through the gap to the local goal point.

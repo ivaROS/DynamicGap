@@ -1,0 +1,134 @@
+\documentclass[11pt, letter]{article}
+\usepackage{amssymb}
+\usepackage[ruled, vlined]{algorithm2e}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmin}{arg\,min} 
+
+\newcommand{\ev}{\mathbf{e}}
+\newcommand{\qv}{\mathbf{q}}
+\newcommand{\pv}{\mathbf{p}}
+
+\begin{document}
+    \begin{algorithm}[h]
+        \caption{Gap Simplification}
+        \SetAlgoLined
+        \KwIn{$\mathcal{G}, c_a, c_d$}
+        \KwResult{Set of Reduced Gaps}
+        $\mathcal{G}' \leftarrow \varnothing$\;
+        $s \leftarrow$ True\;
+        \For{$G \in \mathcal{G}$} {
+            \eIf{$s$ \textbf{and} $g$ is Swept \textbf{and} $g$ is Left }{
+                $s =$ False\;
+                $\mathcal{G}' \leftarrow \mathcal{G}' + G$\;
+            } {
+                \eIf{$s$ \textbf{or} $g$ is Left}{
+                    $\mathcal{G}' \leftarrow \mathcal{G}' + G$\;
+                }{
+                    \eIf{$g$ is Swept}{
+                        \eIf{$\mathcal{G}'_{\text{end}}$ is Left Radial \textbf{and} $|G.l_l - \mathcal{G}'_{\text{end}}.l_r| < c_d$}{
+                            Merge $G$ with $\mathcal{G}'_{\text{end}}$\;
+                        }{
+                            $\mathcal{G}' \leftarrow \mathcal{G}' + G$\;
+                        }
+                    }{
+                        $i \leftarrow -1$\;
+                        \For{$j \leftarrow Reversed(range(\mathcal{G}'.size))$}{
+                            $G' \leftarrow \mathcal{G}'[j]$\;
+                            $\Delta \theta = |G'.\theta_l - \mathcal{G}'_{\text{end}}.\theta_r|,$
+                            $\Delta r = |G'.l_l - \mathcal{G}'_{\text{end}}.l_r|$\;
+                            \lIf{$\Delta \theta < c_a$ \textbf{and} $\Delta r < c_d$}
+                            {$i \leftarrow j$}
+                        }
+                        \eIf{$i \neq -1$}{
+                            Erase $\mathcal{G}'$ between $i$ and end\;
+                            Merge $G$ with $\mathcal{G}'_{\text{end}}$\;
+                        }{
+                            $\mathcal{G}' \leftarrow \mathcal{G}' + G$\;
+                        }
+                    }
+                }
+            }
+        }
+        \KwRet{$\mathcal{G}'$}
+    \end{algorithm}
+    \pagebreak
+    \textbf{Radial Gap Conversion}
+
+    Given a radial gap $G$ left over from Gap Simplification, and the two terminal 
+    points are known with polar coordiante $\zeta_l, \zeta_r$ in egoframe.
+    Convert polar coordiante to coordiante $p_l, p_r$.
+    Compose $g_l, g_r \in SE(2)$ with identity rotation component, and translation
+    component equals respective coordinate points. 
+
+    Given $\eta = \arctan(\epsilon^2, \epsilon^1) \Rightarrow \mathbb{J} = R(\eta) \in \mathfrak{se}(2)$.
+    Note that for anchored centre of rotation on the left, $\eta$ need to be taken
+    its negative value.
+    Make $T$ be the $SE(3)$ element with $\mathbb{J}$ as its rotation component
+    and zero translation.
+    For the case where rotation is centered around the right gap point:
+    \begin{equation} \label{eqn:rotPt}
+        g = g_r \circ T \circ g_r^{-1} \circ g_l
+    \end{equation}
+    The translation component of $g$ denotes the location of rotated point,
+    convert to new polar coordinate with $r_g, \theta_g$. 
+    Find corresponding scan index 
+    \begin{equation*}
+        i_g = n \frac{\theta_g}{2\pi} + n_{\text{offset}}
+    \end{equation*}
+    where $n$ is the number of scan points in $\mathcal{L}$.
+
+    Similarly, retrieve the index ($i_r$) for anchor of rotation, then do
+    linear search for the following
+    \begin{equation*}
+        j = \argmin_{k\in[i_g, i_r]} d(\zeta_k, \zeta_r)
+    \end{equation*}
+
+    Then for the found $\zeta_j$, find $r_{\text{arc}} = d(\zeta_j, \zeta_r)$.
+    Normalize the translation component of $g_r^{-1} \circ g_l$ to this length,
+    and recompute equation \ref{eqn:rotPt} to get the true rotated gap point
+    taken the possible additional scan inbetween.
+
+    \pagebreak
+    \textbf{Radial Extension}
+    Given a radial gap $G$ left over from Gap Simplification, and the two terminal 
+    points are known with polar coordiante $\zeta_l, \zeta_r$ in egoframe.
+    Convert polar coordiante to coordiante $p_l, p_r$. The minimum safe distance
+    be $s$. Define \texttt{pol2car()} and \texttt{car2pol()} converts $(x,y)$
+    and $(r, \theta)$ back and forth. 
+
+    \begin{equation*}
+        \begin{split}
+            \ev_l & = \pv_l / ||\pv_L||, \ev_r / ||\pv_r||\\
+            \ev_b & = (\ev_l + \ev_r), \ev_b /= ||\ev_b||\\
+            \qv_b & = -s \ev_b\\
+        \end{split}
+    \end{equation*}
+    We can now shift back the frame using $\qv_b$ and conduct operations.
+    \begin{equation*}
+        \begin{split}
+            qLp & = \pv_l - \qv_b, qRp = \pv_r - \qv_b\\
+            pLp & = \texttt{car2pol}(qLp), pRp = \texttt{car2pol}(qRp)\\
+            \phi_b & = (pRp - pLp)_{\theta}\\
+            \pv_b & = \texttt{car2pol}(-\qv_b)\\
+            \theta_l & = \pv_{b,\theta} - \arccos(\ev_l \cdot \ev_r) / 4, 
+            \theta_r =   \pv_{b,\theta} + \arccos(\ev_l \cdot \ev_r) / 4, 
+        \end{split}
+    \end{equation*}
+
+    Now define function
+    \begin{equation*}
+        \texttt{pTheta}(\theta, \phi, pRp, pLp) = 
+        pLp (\theta - pRp_\theta) / \phi + pRp (pLp_\theta - \theta) / \phi
+    \end{equation*}
+
+    Apply function \texttt{pTheta} over $\theta_{l/r}$ and $\phi_b, pLp, pRp$
+    to get polar coordiantes $pLn, pRn$ in shifted frame.
+    
+    \begin{equation*}
+        p_{L/R} = \texttt{car2pol}(\texttt{pol2car}(p\{L/R\}n) + \qv_b)
+    \end{equation*}
+
+    $p_{L/R}$ are the radial extended gap points in polar coordinates in the
+    original robot frame.
+    
+\end{document}

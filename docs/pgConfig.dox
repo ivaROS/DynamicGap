@@ -1,0 +1,6 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~min_resoln" : \b [int] Radius of egocircle min: 1, default: 50, max: 512
+

@@ -1,0 +1,95 @@
+<launch>
+  <arg name="use_recovery_behaviors" default="true"/>
+  <arg name="robot_namespace"/>
+  <arg name="rbtx" default="$(optenv GM_PARAM_RBT_X 1)"/>
+  <arg name="rbty" default="$(optenv GM_PARAM_RBT_Y 2)"/>
+
+  <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
+
+  <arg name="vel_topic" default="/robot0/cmd_vel"/>
+  <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
+  <arg name="projection_operator" default="false"/>
+
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+      <param name="base_frame_id" value="robot0"/>
+      <param name="odom_frame_id" value="map_static"/>
+      <remap from="/scan" to="/robot0/laser_0"/>
+  </node>
+
+  <arg name="fov" default="$(optenv GM_PARAM_RBT_FOV 60)"/>
+
+  <arg name="robot_file" default="holonomic_robot_second_order_$(arg fov)_bumper.xml"/>
+
+  <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
+  <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
+  <arg name="planning_inflated" default="$(optenv GM_PARAM_PLANNING_INFLATED false)"/>
+  <arg name="far_feasible" default="$(optenv GM_PARAM_FAR_FEASIBLE true)"/>
+  <arg name="full_fov" default="$(optenv GM_PARAM_FULL_FOV false)"/>
+  <arg name="inf_ratio" value="1.2" unless="$(arg planning_inflated)"/>
+  <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
+
+
+  <arg name="debug" default="false"/>
+
+  <arg name="debug_prefix" value="" unless="$(arg debug)"/> <!-- valgrind - -tool=callgrind -->
+  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
+
+  <!-- xterm -e gdb -ex run - -args -->
+  
+  
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+  
+  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/$(arg robot_file) $(arg rbtx) $(arg rbty) 0" />
+
+  <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="screen" clear_params="true" launch-prefix="$(arg debug_prefix)">
+      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>
+      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
+      <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
+      <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
+
+      <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="DynamicGapPlanner"/>
+      <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
+
+      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
+
+      <param name="controller_frequency" value="$(arg controller_freq)" />
+      <param name="planner_frequency" value="$(arg global_planning_freq)"/>
+
+      <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
+
+      <remap from="cmd_vel" to="$(arg vel_topic)"/>
+      <remap from="/odom" to="/robot0/odom"/>
+      
+      <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
+      <param name="DynamicGapPlanner/odom_frame_id" value="map_static"/>
+      <param name="DynamicGapPlanner/robot_frame_id" value="robot0"/>
+      <param name="DynamicGapPlanner/sensor_frame_id" value="robot0_laser_0"/>
+
+      <param name="DynamicGapPlanner/holonomic" value="$(arg holonomic)"/>
+      <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
+      <param name="DynamicGapPlanner/planning_inflated" value="$(arg planning_inflated)"/>
+      <param name="DynamicGapPlanner/inf_ratio" value="$(arg inf_ratio)"/>
+      <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
+      <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
+
+
+      <!-- <param name="PotentialGapPlanner/v_lin_x_const" value="0.0"/>
+      <param name="PotentialGapPlanner/v_lin_y_const" value="0.0"/>
+      <param name="PotentialGapPlanner/k_drive_x" value="5.5"/>
+      <param name="PotentialGapPlanner/k_drive_y" value="5.5"/>
+      <param name="PotentialGapPlanner/planning_inflated" value="true"/> -->
+
+      <!-- Approach-specific parameters/remappings/etc -->
+      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
+      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_params_holonomic.yaml" command="load"/>
+
+      <!-- Disable the local costmap observation sources if they will not be used -->
+      <!--<param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>-->
+  </node>
+
+
+
+
+
+</launch>
