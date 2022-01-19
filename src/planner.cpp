@@ -332,10 +332,11 @@ namespace dynamic_gap
         try {
             for (size_t i = 0; i < manip_set.size(); i++)
             {
-                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal());
-                gapManip->convertAxialGap(manip_set.at(i));
-                gapManip->radialExtendGap(manip_set.at(i));
-                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal());
+                std::cout << "MANIPULATING GAP " << i << std::endl;
+                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
+                gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
+                gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
+                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // set local goal
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");

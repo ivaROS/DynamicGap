@@ -15,7 +15,7 @@ namespace dynamic_gap {
 
         x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-
+        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
         
@@ -72,6 +72,7 @@ namespace dynamic_gap {
             gap.goal.y = localgoal.pose.position.y;
             gap.goal.set = true;
             gap.goal.goalwithin = true;
+            std::cout << "gap goal set to: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             return;
         }
 
@@ -79,6 +80,8 @@ namespace dynamic_gap {
         gap.goal.x = goal_pt(0);
         gap.goal.y = goal_pt(1);
         gap.goal.set = true;
+
+        std::cout << "gap goal set to: " << gap.goal.x << ", " << gap.goal.y << std::endl;
 
     }
 
@@ -118,17 +121,21 @@ namespace dynamic_gap {
         int lidx = gap.LIdx();
         int ridx = gap.RIdx();
         if (!msg) return; 
+        // is this truthful to non-convex situations?
+        // msg is from egocircle
         double angular_size = (ridx - lidx) * (msg.get()->angle_increment);
-
+        std::cout << "lidx: " << lidx << ", ridx: " << ridx << std::endl;
+        std::cout << "angular size: " << angular_size << std::endl;
         if (angular_size < cfg_->gap_manip.reduction_threshold){
             return;
         }
 
         // the desired size for the reduced gap?
+        // target is pi
         int gap_size = cfg_->gap_manip.reduction_target / msg.get()->angle_increment;
         int l_biased_r = lidx + gap_size;
         int r_biased_l = ridx - gap_size;
-
+        std::cout << "l_biased_r: " << l_biased_r << ", r_biased_l: " << r_biased_l << std::endl;
         double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         int goal_idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
 
@@ -149,10 +156,14 @@ namespace dynamic_gap {
             new_r = goal_idx + acceptable_dist;
         }
 
+ 
         float ldist = gap.LDist();
         float rdist = gap.RDist();
         float new_ldist = float(new_l - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
         float new_rdist = float(new_r - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
+        std::cout << "new_l: " << new_l << ", new_r: " << new_r << std::endl;
+        //std::cout << "new_l dist: " << new_ldist + cfg_->gap_viz.viz_jitter << ", new_r dist: " << new_rdist + cfg_->gap_viz.viz_jitter << std::endl;
+        std::cout << "new angular size: " << (new_r - new_l) * (msg.get()->angle_increment) << std::endl;
         gap.convex.convex_lidx = new_l;
         gap.convex.convex_ridx = new_r;
         gap.convex.convex_ldist = new_ldist + cfg_->gap_viz.viz_jitter;

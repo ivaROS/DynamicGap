@@ -103,7 +103,10 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
-
+        std::cout << "starting trajectory generation" << std::endl;
+        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
+        
         /*
         if (model_one[0] == left_model_state[0]) {
             std::cout << "no flip " << std::endl;
@@ -148,7 +151,7 @@ namespace dynamic_gap{
         */
 
         if (selectedGap.mode.convex) {
-            std::cout << "convex, subtracting: " << - selectedGap.qB(0) << ", " << - selectedGap.qB(1) << std::endl;
+            // std::cout << "convex, subtracting: " << - selectedGap.qB(0) << ", " << - selectedGap.qB(1) << std::endl;
             x = {- selectedGap.qB(0) - 1e-6, 
                  - selectedGap.qB(1) + 1e-6,
                  curr_vel.linear.x,
@@ -172,14 +175,14 @@ namespace dynamic_gap{
 
         }
         
-        std::cout << "starting polar field" << std::endl;
-        std::cout << "coefs: " << coefs << std::endl;
-        std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
-        std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        std::cout << "left gap point: " << x1*coefs << ", " << y1*coefs << " right gap point: " << x2*coefs << ", " << y2*coefs << std::endl;
+        // std::cout << "<<<<<<<<<<<<<<<<<<<<starting polar field>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+        // std::cout << "coefs: " << coefs << std::endl;
+        // std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
+        //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        //std::cout << "left gap point: " << x1*coefs << ", " << y1*coefs << " right gap point: " << x2*coefs << ", " << y2*coefs << std::endl;
         //std::cout << "p1/goal dot: " << selectedGap.goal.x*coefs*x1*coefs + selectedGap.goal.y*coefs*y1*coefs << std::endl;
         //std::cout << "p2/goal dot: " << selectedGap.goal.x*coefs*x2*coefs + selectedGap.goal.y*coefs*y2*coefs << std::endl;
-        
+        /*
         polar_gap_field inte(x1 * coefs, x2 * coefs,
                             y1 * coefs, y2 * coefs,
                             selectedGap.goal.x * coefs,
@@ -188,7 +191,7 @@ namespace dynamic_gap{
                             selectedGap.getRightObs(),
                             selectedGap.isAxial(),
                             cfg_->gap_manip.sigma);
-        
+        */
         
         double orig_beta_left = atan2(left_model_state(1), left_model_state(2));
         double orig_beta_right = atan2(right_model_state(1), right_model_state(2));
@@ -205,19 +208,19 @@ namespace dynamic_gap{
                             orig_beta_left,
                             orig_beta_right);
         
-        //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
+        // std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
         //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
         //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
         //std::cout << "starting clf cbf" << std::endl;
         //std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
         //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
-        std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
+        //std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
+        //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
         //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
         
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            inte, x, 0.0,
+            clf_cbf_dyn, x, 0.0,
             cfg_->traj.integrate_maxt,
             cfg_->traj.integrate_stept, corder);
 

@@ -180,18 +180,7 @@ namespace dynamic_gap {
         Eigen::Vector2d p2;
         Eigen::Vector2d goal_pt;
         clf_cbf(double x1, double x2, double y1, double y2, bool axial, double gx, double gy, double K_des, double cbf_param, double r_min, double K_acc, double orig_beta_left, double orig_beta_right)
-        : x1(x1), x2(x2), y1(y1), y2(y2), _axial(axial), gx(gx), gy(gy), K_des(K_des), cbf_param(cbf_param), r_min(r_min), K_acc(K_acc), orig_beta_left(orig_beta_left), orig_beta_right(orig_beta_right) {
-            if (atan2(y1, x1) > atan2(y2, x2)) {
-                std::swap(y1, y2);
-                std::swap(x1, x2);
-            }
-            p1(0) = x1;
-            p1(1) = y1;
-            p2(0) = x2;
-            p2(1) = y2;
-            goal_pt(0) = gx;
-            goal_pt(1) = gy;
-        }
+        : x1(x1), x2(x2), y1(y1), y2(y2), _axial(axial), gx(gx), gy(gy), K_des(K_des), cbf_param(cbf_param), r_min(r_min), K_acc(K_acc), orig_beta_left(orig_beta_left), orig_beta_right(orig_beta_right) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -312,7 +301,7 @@ namespace dynamic_gap {
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
-            // std::cout << "x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            //std::cout << "x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
             // state:
             // [rbt_x, rbt_y, rbt_v_x, rbt_v_y,
             //  1 / r_left, sin(beta_left), cos(beta_left), rdot_left / r_left, betadot_left
@@ -323,28 +312,43 @@ namespace dynamic_gap {
             //std::cout << "pass pts: " << pass_pts << ", pass goal: " << pass_goal << std::endl;
             //std::cout << "r_min: " << r_min << " cbf_param: " << cbf_param << "K_des: " << K_des << std::endl; 
             double V = pow(gx - x[0], 2) + pow(gy - x[1], 2);
-            // std::cout << "V: " << V << std::endl;
             bool pass_gap;
             Eigen::Vector2d rbt(x[0], x[1]);
+
+            if (atan2(y1, x1) > atan2(y2, x2)) {
+                std::swap(y1, y2);
+                std::swap(x1, x2);
+            }
+
+            p1(0) = x1;
+            p1(1) = y1;
+            p2(0) = x2;
+            p2(1) = y2;
+            goal_pt(0) = gx;
+            goal_pt(1) = gy;
 
             if (_axial) {
                 pass_gap = (rbt.norm() > std::min(p1.norm(), p2.norm()) + 0.18 && rbt.norm() > goal_pt.norm());
             } else {
                 pass_gap = (rbt.norm() > std::max(p1.norm(), p2.norm()) + 0.18 && rbt.norm() > goal_pt.norm());
             }
+            //std::cout << "V: " << V << ", past gap: " << pass_gap << std::endl;
 
             Eigen::Vector2d v_des(0.0, 0.0);
+            // If V sufficiently large and robot has not passed gap, set desired velocity
             if (V > 0.1 && !pass_gap) {
                 v_des(0) = -K_des*(x[0] - gx);
                 v_des(1) = -K_des*(x[1] - gy);
             }
 
+            // set desired acceleration based on desired velocity
             Eigen::Vector2d a_des(0.0, 0.0);
             a_des(0) = -K_acc*(x[2] - v_des(0));
             a_des(1) = -K_acc*(x[3] - v_des(1));
             
-            // std::cout << "a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
+            //std::cout << "v_des: " << v_des(0) << ", " << v_des(1) << ". a_des: " << a_des(0) << ", " << a_des(1) <<std::endl;
             
+            // set left/right models
             Eigen::VectorXd y_left(5);
             y_left << x[4], x[5], x[6], x[7], x[8];
             Eigen::VectorXd y_right(5);
@@ -352,10 +356,12 @@ namespace dynamic_gap {
 
             //std::cout << "modifying polar to cartesian" << std::endl;
             // the x_left and x_right returned here are in world frame
+
+            // obtain cartesian/rbt frame info from models
             Eigen::Vector4d x_left = mod_pol_to_cart(y_left);
             Eigen::Vector4d x_right = mod_pol_to_cart(y_right);
-            // std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
-            // std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
+            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
+            //std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
             
             Eigen::Vector2d left_rel_pos_rbt_frame(x_left(0), x_left(1));
             Eigen::Vector2d left_rel_vel_rbt_frame(x_left(2), x_left(3));
@@ -372,27 +378,28 @@ namespace dynamic_gap {
             double h_dyn_right = cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
             Eigen::Vector2d d_h_dyn_left_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
             Eigen::Vector2d d_h_dyn_right_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
-            // std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << std::endl;
-            // std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << std::endl;
+            //std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << std::endl;
+            //std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << std::endl;
 
             // going to remove gap point/goal point dot. May be removing dangerous situations
             // && left_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) > 0  && left_rel_pos_rbt_frame.dot(left_rel_vel_rbt_frame) < 0
             // && right_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) > 0 && right_rel_pos_rbt_frame.dot(right_rel_vel_rbt_frame) < 0
             // seeing if h_l < h_r AND if left gap point and goal dot pointed in same direction
             // if they are pointing in opposite directions, ignore CBF
-            bool invalid_left = atan2(y_left(1), y_left(2)) < 0 && left_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) < 0;
-            bool invalid_right = atan2(y_right(1), y_right(2)) > 0 && right_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) < 0;
-            if (h_dyn_left < h_dyn_right && !invalid_left) {
+            //bool invalid_left = atan2(y_left(1), y_left(2)) < 0 && left_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) < 0;
+            //bool invalid_right = atan2(y_right(1), y_right(2)) > 0 && right_rel_pos_rbt_frame.dot(goal_rel_pos_rbt_frame) < 0;
+
+            if (h_dyn_left < h_dyn_right) {
                 h_dyn = h_dyn_left;
                 d_h_dyn_dx = d_h_dyn_left_dx;
-            } else if (h_dyn_right < h_dyn_left && !invalid_right) {
+            } else if (h_dyn_right < h_dyn_left) {
                 h_dyn = h_dyn_right;
                 d_h_dyn_dx = d_h_dyn_right_dx;
             }
 
             // calculate Psi
             double Psi = a_des.dot(d_h_dyn_dx) + cbf_param * h_dyn;
-            // std::cout << "Psi is " << Psi << " with cbf param: " << cbf_param << std::endl;
+            //std::cout << "Psi is " << Psi << std::endl;
             Eigen::Vector2d a_actual(0.0, 0.0);
 
             // calculate actual control input
@@ -407,12 +414,13 @@ namespace dynamic_gap {
                 a_actual = a_des;
             }
 
-            // std::cout << "a_actual: " << a_actual(0) << ", " << a_actual(1) << std::endl;
+            //std::cout << "a_actual: " << a_actual(0) << ", " << a_actual(1) << std::endl;
+            //std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
             // check to see if robot has passed gap
 
             // std::cout << "updating derivatives" << std::endl;
             
-            Eigen::Vector2d result(0, 0);
+            // Eigen::Vector2d result(0, 0);
             /*
 
 
@@ -435,14 +443,14 @@ namespace dynamic_gap {
                 result = act_limit * result / result.norm();
             }
             */
-            result = a_actual;
+            // result = a_actual;
 
             // std::cout << "result: " << result(0) << ", " << result(1) << std::endl;
 
             // calculate acceleration
             // these need to be in world frame?
-            double a_x_rbt = result(0); //-K_acc*(x[2] - result(0));
-            double a_y_rbt = result(1); //-K_acc*(x[3] - result(1));
+            double a_x_rbt = a_actual(0); //-K_acc*(x[2] - result(0));
+            double a_y_rbt = a_actual(1); //-K_acc*(x[3] - result(1));
             
             /*
             geometry_msgs::Vector3Stamped rbt_accel_rbt_frame;
