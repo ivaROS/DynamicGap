@@ -98,7 +98,13 @@ namespace dynamic_gap{
 
         this_marker.colors = color_value->second;
         double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
-        this_marker.scale.x = thickness;
+        if (g.goal.goalwithin) {
+            // GO TO GOAL ACTIVATED
+            this_marker.scale.x = 3*thickness;
+        } else {
+            // CLF CBF ACTIVATED
+            this_marker.scale.x = thickness;
+        }
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
         bool finNamespace = (ns.compare("fin") == 0);

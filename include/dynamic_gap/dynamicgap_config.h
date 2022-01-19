@@ -38,6 +38,7 @@ namespace dynamic_gap {
                 double cbf_param;
                 double cbf_r_min;
                 double K_des;
+                double K_acc;
             } gap_manip;
 
             struct ControlParams {
@@ -133,6 +134,7 @@ namespace dynamic_gap {
             gap_manip.cbf_param = 1.0;
             gap_manip.cbf_r_min = 1.0;
             gap_manip.K_des = 1.0;
+            gap_manip.K_acc = 3.0;
             
             control.k_drive_x = 3.5;
             control.k_drive_y = 3.5;

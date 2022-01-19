@@ -25,14 +25,25 @@ namespace dynamic_gap {
 			// this is still true, I just don't know how to handle indexing right now
             // populating the coordinates of the gap points (in rbt frame) to compute distances
 			//std::cout << "adding left points" << std::endl;
-            points[count][0] = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-            points[count][1] = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-            // std::cout << "left point: " << points[count][0] << ", " << points[count][1] << std::endl;
-			count++;
-			//std::cout << "adding right points" << std::endl;
-            points[count][0] = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-            points[count][1] = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-			// std::cout << "right point: " << points[count][0] << ", " << points[count][1] << std::endl;
+			//std::cout << "convex l dist: " << g.convex.convex_ldist << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.convex_lidx << std::endl;
+			//std::cout << "convex r dist: " << g.convex.convex_rdist << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.convex_ridx << std::endl;
+			if (isnan(g.convex.convex_ldist)) {
+				// rarely, a gap will be sent into association with NaN left and right points. This breaks the asscn. so I am just
+				// setting this point to 100/100 and -100/-100
+				points[count][0] = 100;
+				points[count][1] = 100;
+				count++;
+				points[count][0] = -100;
+				points[count][1] = -100;
+			} else {
+				points[count][0] = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+            	points[count][1] = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+				count++;
+				points[count][0] = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+            	points[count][1] = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+			}
+			//std::cout << "left point: " << points[count][0] << ", " << points[count][1] << std::endl;
+            //std::cout << "right point: " << points[count][0] << ", " << points[count][1] << std::endl;
 			count++;
         }
 		return points;
@@ -42,13 +53,13 @@ namespace dynamic_gap {
 	std::vector<int> GapAssociator::associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps) {
         int M = previous_gaps.size();
         int N = observed_gaps.size();
-		// std::cout << "obtaining gap points for previous" << std::endl;
+		//std::cout << "obtaining gap points for previous" << std::endl;
         std::vector< std::vector<float>> previous_gap_points = obtainGapPoints(previous_gaps);
-		// std::cout << "obtaining gap points for observed" << std::endl;
+		//std::cout << "obtaining gap points for observed" << std::endl;
         std::vector< std::vector<float>> observed_gap_points = obtainGapPoints(observed_gaps);
         std::vector<int> associations = {};
         int count = 0;
-		std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
+		//std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
         // initialize distance matrix
         vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
@@ -64,9 +75,9 @@ namespace dynamic_gap {
                 }
                 //std::cout << "accum: " << accum << std::endl;
                 distMatrix[i][j] = sqrt(accum);
-                std::cout << distMatrix[i][j] << ", ";
+                //std::cout << distMatrix[i][j] << ", ";
             }
-			std::cout << "" << std::endl;
+			//std::cout << "" << std::endl;
         }
 
 
@@ -74,31 +85,33 @@ namespace dynamic_gap {
 		// NEW ASSIGNMENT OBTAINED
 		// std::cout << "obtaining new assignment" << std::endl;
         if (distMatrix.size() > 0 && distMatrix[0].size() > 0) {
-			std::cout << "solving" << std::endl;
+			//std::cout << "solving" << std::endl;
             double cost = Solve(distMatrix, associations);
-			std::cout << "done solving" << std::endl;
+			//std::cout << "done solving" << std::endl;
         }
 
-		std::cout << "associations" << std::endl;
-
+		//std::cout << "associations" << std::endl;
+		/*
 		for (int i = 0; i < associations.size(); i++) {
 			std::cout << "(" << i << ", " << associations[i] << "), ";
 		}
 		std::cout << "" << std::endl;
-
+		*/
 		// ASSOCIATING MODELS
 		for (int i = 0; i < associations.size(); i++) {
 			//std::cout << "i " << i << std::endl;
 			// the values in associations are indexes for observed gaps
 			int previous_gap_idx = associations[i];
 			std::vector<int> pair{i, previous_gap_idx};
+			/*
 			std::cout << "pair " << pair[0] << ", " << pair[1] << std::endl;
 			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0))) {
 				std::cout << "distance: " << distMatrix[pair[0]][pair[1]] << std::endl;
 			}
+			*/
 			// if current gap pt has valid association and association is under distance threshold
 			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0)) && distMatrix[pair[0]][pair[1]] < assoc_thresh) {
-				std::cout << "associating" << std::endl;	
+				//std::cout << "associating" << std::endl;	
 				//std::cout << "distance under threshold" << std::endl;
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
@@ -122,15 +135,15 @@ namespace dynamic_gap {
 					}
 				} 
 			} else {
-				std::cout << "rejected" << std::endl;
+				// std::cout << "rejected" << std::endl;
 			}
 		}
 		
-		std::cout << "in gap associator" << std::endl;
-		for (auto & g : observed_gaps) {
+		// std::cout << "in gap associator" << std::endl;
+		//for (auto & g : observed_gaps) {
 			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
 			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
-		}
+		//}
 		
         return associations;
     }

@@ -15,28 +15,30 @@ namespace dynamic_gap {
     class MP_model {
         private:
             int n;
-            Matrix<float, 3, 5> H; // observation matrix
-            Matrix3f R; // measurement noise matrix
-            Matrix<float, 5, 5> Q; // covariance noise matrix
-            Matrix<float, 5, 5> dQ; // discretized covariance noise matrix
+            Matrix<double, 3, 5> H; // observation matrix
+            Matrix3d R; // measurement noise matrix
+            Matrix<double, 5, 5> Q; // covariance noise matrix
+            Matrix<double, 5, 5> dQ; // discretized covariance noise matrix
 
-            Matrix<float, 5, 1> y; // modified polar coordinates state
-            Matrix<float, 5, 5> P; // covariance matrix
-            Matrix<float, 5, 3> G; // kalman gain
+            Matrix<double, 3, 3> tmp_mat; //  place holder for inverse
 
-            float t0;
-            float t;
-            float T;
+            Matrix<double, 5, 1> y; // modified polar coordinates state
+            Matrix<double, 5, 5> P; // covariance matrix
+            Matrix<double, 5, 3> G; // kalman gain
+
+            double t0;
+            double t;
+            double T;
 
             //float acc_t0;
             //float acc_t;
             //float acc_T;
 
-            Matrix<float, 1, 2> a;
+            Matrix<double, 1, 2> a;
             // Matrix<float, 3, 1> y_tilde;
 
-            Matrix<float, 5, 5> A;
-            Matrix<float, 5, 5> Ad;
+            Matrix<double, 5, 5> A;
+            Matrix<double, 5, 5> Ad;
             //ros::Subscriber acc_sub;
             //Matrix<float, 1, 2> previous_twist;
 
@@ -47,11 +49,11 @@ namespace dynamic_gap {
 
             //void cmd_velCB(const geometry_msgs::Twist::ConstPtr&); // imu callback to get acceleration
 
-            Matrix<float, 5, 1> get_state();
+            Matrix<double, 5, 1> get_state();
             void integrate();
             void linearize();
             void discretizeQ();
 
-            void kf_update_loop(Matrix<float, 3, 1> y_tilde, Matrix<float, 1, 2> a_rbt);
+            void kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> a_rbt);
     };
 }

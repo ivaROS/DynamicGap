@@ -15,6 +15,7 @@ namespace dynamic_gap{
     }
 
     std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int idx) {
+        // get egocircle measurement
         auto egocircle = *msg_.get();
         std::vector<double> dist(egocircle.ranges.size());
 
@@ -27,24 +28,31 @@ namespace dynamic_gap{
         }
 
 
-
+        // iterating through egocircle
         for (int i = 1; i < dist.size(); i++) {
+            // current distance/idx
             float l1 = egocircle.ranges.at(i);
             float t1 = float(i) * egocircle.angle_increment + egocircle.angle_min;
+            // prior distance/idx
             float l2 = egocircle.ranges.at(i - 1);
             float t2 = float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
+            
+            // if current distance is big, set dist to big
             if (l1 > 2.9) {
                 dist.at(i) = 10;
             } else {
+                // get distance between two indices
                 dist.at(i) = polDist(l1, t1, l2, t2);
             } 
         }
 
         dist.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, egocircle.ranges.at(511), float(511) * egocircle.angle_increment + egocircle.angle_min);
 
+        // searching forward for big enough distances
         auto result_fwd = std::find_if(dist.begin() + idx, dist.end(), 
             std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
 
+        // searching backward for big enough distances
         auto res_rev = std::find_if(dist.rbegin() + (dist.size() - idx), dist.rend(),
             std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
         
@@ -53,9 +61,11 @@ namespace dynamic_gap{
             return std::vector<geometry_msgs::Point>(0);
         }
 
+        // get index for big enough distance
         int idx_fwd = std::distance(dist.begin(), std::prev(result_fwd));
         int idx_rev = std::distance(res_rev, dist.rend());
 
+        // are indices valid
         int min_idx_range = 0;
         int max_idx_range = int(egocircle.ranges.size() - 1);
         if (idx_fwd < min_idx_range || idx_fwd > max_idx_range || idx_rev < min_idx_range || idx_rev > max_idx_range) {

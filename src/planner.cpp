@@ -108,13 +108,17 @@ namespace dynamic_gap
         rbt_accel_rbt_frame.vector.x = msg->linear_acceleration.x;
         rbt_accel_rbt_frame.vector.y = msg->linear_acceleration.y;
 
-        geometry_msgs::Vector3Stamped rbt_accel_odom_frame;
-        geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.robot_frame_id, ros::Time(0));
+        //geometry_msgs::Vector3Stamped rbt_accel_odom_frame;
+        //geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.robot_frame_id, ros::Time(0));
 		// transform acceleration to world frame
-        tf2::doTransform(rbt_accel_rbt_frame, rbt_accel_odom_frame, robot_pose_odom_trans);
+        //tf2::doTransform(rbt_accel_rbt_frame, rbt_accel_odom_frame, robot_pose_odom_trans);
        
-        a[0] = rbt_accel_odom_frame.vector.x;
-        a[1] = rbt_accel_odom_frame.vector.y;
+        
+        //a[0] = rbt_accel_odom_frame.vector.x;
+        //a[1] = rbt_accel_odom_frame.vector.y;
+                
+        a[0] = rbt_accel_rbt_frame.vector.x;
+        a[1] = rbt_accel_rbt_frame.vector.y;
     }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
@@ -184,17 +188,20 @@ namespace dynamic_gap
         // std::cout << "cfg.odom_frame_id: " << cfg.odom_frame_id << std::endl;
         // std::cout << "cfg.robot_frame_id: " << cfg.robot_frame_id << std::endl;
 
-		geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.robot_frame_id, ros::Time(0));
+		//geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.robot_frame_id, ros::Time(0));
 		
-		geometry_msgs::Vector3Stamped gap_pt_vector_odom_frame;
-		tf2::doTransform(gap_pt_vector_rbt_frame, gap_pt_vector_odom_frame, robot_pose_odom_trans);
-        std::cout << "gap_pt_vector_odom_frame" << std::endl;
-        std::cout << gap_pt_vector_odom_frame.vector.x << ", " << gap_pt_vector_odom_frame.vector.y << std::endl;
+		//geometry_msgs::Vector3Stamped gap_pt_vector_odom_frame;
+		//tf2::doTransform(gap_pt_vector_rbt_frame, gap_pt_vector_odom_frame, robot_pose_odom_trans);
+        //std::cout << "gap_pt_vector_odom_frame" << std::endl;
+        //std::cout << gap_pt_vector_odom_frame.vector.x << ", " << gap_pt_vector_odom_frame.vector.y << std::endl;
 
-		float beta_tilde = std::atan2(-gap_pt_vector_odom_frame.vector.x, gap_pt_vector_odom_frame.vector.y);
-		float norm = std::sqrt(std::pow(gap_pt_vector_odom_frame.vector.x, 2) + pow(gap_pt_vector_odom_frame.vector.y, 2));
+        // PREVIOUSLY, using ODOM FRAME HERE:
+		//float beta_tilde = std::atan2(-gap_pt_vector_odom_frame.vector.x, gap_pt_vector_odom_frame.vector.y);
+		//float norm = std::sqrt(std::pow(gap_pt_vector_odom_frame.vector.x, 2) + pow(gap_pt_vector_odom_frame.vector.y, 2));
+        double beta_tilde = std::atan2(-gap_pt_vector_rbt_frame.vector.x, gap_pt_vector_rbt_frame.vector.y);
+		double norm = std::sqrt(std::pow(gap_pt_vector_rbt_frame.vector.x, 2) + pow(gap_pt_vector_rbt_frame.vector.y, 2));
 		
-		Matrix<float, 3, 1> y_tilde;
+		Matrix<double, 3, 1> y_tilde;
 		y_tilde << 1.0 / norm, 
 				   std::sin(beta_tilde),
 				   std::cos(beta_tilde);
@@ -214,6 +221,12 @@ namespace dynamic_gap
 		for (int i = 0; i < 2*observed_gaps.size(); i++) {
             update_model(i, observed_gaps);
 		}
+        /*
+        for (auto & g : observed_gaps) {
+			std::cout << "g left: " << g.left_model->get_state() << std::endl;
+			std::cout << "g right: " << g.right_model->get_state() << std::endl;
+		}
+        */
     }
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
@@ -341,10 +354,11 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
         try {
             for (size_t i = 0; i < vec.size(); i++) {
-                auto tmp = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel, rbt2odom, odom2rbt);
+                auto tmp = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
                 tmp = gapTrajSyn->forwardPassTrajectory(tmp);
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(tmp);
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(tmp, cam2odom);
+                // ROS_WARN_STREAM("ret_traj(" << i << "): size " << ret_traj.at(i).poses.size());
             }
         } catch (...) {
             ROS_FATAL_STREAM("initialTrajGen");
@@ -357,7 +371,7 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> score) {
-        ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << prr.size());
+        // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << prr.size());
         if (prr.size() == 0) {
             ROS_WARN_STREAM("No traj synthesized");
             return geometry_msgs::PoseArray();
@@ -373,6 +387,7 @@ namespace dynamic_gap
         try {
             if (omp_get_dynamic()) omp_set_dynamic(0);
             for (size_t i = 0; i < result_score.size(); i++) {
+                // ROS_WARN_STREAM("prr(" << i << "): size " << prr.at(i).poses.size());
                 int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
@@ -410,6 +425,7 @@ namespace dynamic_gap
 
             if (curr_traj.poses.size() == 0) {
                 if (incom_subscore == -std::numeric_limits<double>::infinity()) {
+                    ROS_WARN_STREAM("Incoming score of negative infinity");
                     auto empty_traj = geometry_msgs::PoseArray();
                     setCurrentTraj(empty_traj);
                     return empty_traj;
@@ -555,6 +571,7 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
+        // double begin_time = ros::Time::now().toSec();
         updateTF();
 
         auto gap_set = gapManipulate();
@@ -572,7 +589,7 @@ namespace dynamic_gap
         auto picked_traj = pickTraj(traj_set, score_set);
 
         auto final_traj = compareToOldTraj(picked_traj);
-        
+        // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
         return final_traj;
     }
 

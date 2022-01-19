@@ -11,6 +11,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_gap/mp_model.h>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <limits>
 #include <sstream>
 
@@ -18,34 +19,34 @@ using namespace Eigen;
 
 namespace dynamic_gap {
     MP_model::MP_model(std::string frame) {
-        std::string robot_name = frame.substr(0, frame.length() - 8);
+        // std::string robot_name = frame.substr(0, frame.length() - 8);
         // std::cout << "robot_name " << robot_name << std::endl;
-        H << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f, 0.0f;
-        R << 0.00001f, 0.0f, 0.0f,
-            0.0f, 0.00001f, 0.0f,
-            0.0f, 0.0f, 0.00001f;
-        Q << 0.005f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.005f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.005f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.005f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f, 0.005f;
-        y << 1.0f, 
-                1.0f, 
-                0.0f, 
-                0.0f, 
-                0.0f;
+        H << 1.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0, 0.0;
+        R << 0.00001, 0.0, 0.0,
+            0.0, 0.00001, 0.0,
+            0.0, 0.0, 0.00001;
+        Q << 0.005, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.005, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.005, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.005, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.005;
+        y << 1.0, 
+                1.0, 
+                0.0, 
+                0.0, 
+                0.0;
         P << 10.0e-6, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
                 0.0, 0.0, 0.0, 10.0e-4, 0.0,
                 0.0, 0.0, 0.0, 0.0, 10.0e-3;
-        G << 1.0f, 1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f;
+        G << 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0;
 
         t0 = ros::Time::now().toSec();
         t = ros::Time::now().toSec();
@@ -55,7 +56,7 @@ namespace dynamic_gap {
         acc_t = ros::Time::now().toSec();
         acc_T = t- t0;
         */
-        a << 0.0f, 0.0f;
+        a << 0.0, 0.0;
 
         A << 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -99,12 +100,13 @@ namespace dynamic_gap {
 
     void MP_model::integrate() {
         t = ros::Time::now().toSec();
-        T = 0.01; // t - t0;
-        // std::cout << "t: " << t << ", " << "T: " << T << std::endl;
-        float a_r = a[1]*y[2] - a[0]*y[1];
-        float a_beta = -a[0]*y[2] - a[1]*y[1];
-        // std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
-        Matrix<float, 1, 5> new_y;
+        T = t - t0; // 0.01
+        //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
+        //std::cout << "T: " << T << std::endl;
+        double a_r = a[1]*y[2] - a[0]*y[1];
+        double a_beta = -a[0]*y[2] - a[1]*y[1];
+        //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
+        Matrix<double, 1, 5> new_y;
         new_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         // discrete euler update of state
         new_y[0] = y[0] + (-y[3]*y[0])*T;
@@ -116,8 +118,8 @@ namespace dynamic_gap {
     }
 
     void MP_model::linearize() {
-        float a_r = a[1]*y[2] - a[0]*y[1];
-        float a_beta = -a[0]*y[2] - a[1]*y[1];
+        double a_r = a[1]*y[2] - a[0]*y[1];
+        double a_beta = -a[0]*y[2] - a[1]*y[1];
 
         A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
         A(1) = 0.0, 0.0, y[4], 0.0, y[2];
@@ -136,22 +138,22 @@ namespace dynamic_gap {
     void MP_model::discretizeQ() {
         dQ = Q * T;
 
-        Matrix<float, 5, 5> M2 = 0.5 * T * ((A * dQ).transpose() + A * dQ);
-        Matrix<float, 5, 5> M3 = 0.3333 * T * T * (A * dQ).transpose();
+        Matrix<double, 5, 5> M2 = 0.5 * T * ((A * dQ).transpose() + A * dQ);
+        Matrix<double, 5, 5> M3 = 0.3333 * T * T * (A * dQ).transpose();
 
         dQ = dQ + M2 + M3;
         // std::cout << "dQ: " << dQ << std::endl;
     }
 
-    void MP_model::kf_update_loop(Matrix<float, 3, 1> y_tilde, Matrix<float, 1, 2> a_odom) {
+    void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> a_odom) {
         // acceleration comes in in world frame
         a = a_odom;
-        std::cout << "y at start" << std::endl;
-        std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        std::cout << "y_tilde" << std::endl; 
-        std::cout << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
-        std::cout << "acceleration" << std::endl;
-        std::cout << a[0] << ", " << a[1] << std::endl;
+        //std::cout << "y at start" << std::endl;
+        //std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        //std::cout << "y_tilde" << std::endl; 
+        //std::cout << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
+        //std::cout << "acceleration" << std::endl;
+        //std::cout << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
@@ -165,22 +167,23 @@ namespace dynamic_gap {
         P = Ad * P * Ad.transpose() + dQ;
         //std::cout << "P after estimate: " << P << std::endl;
         //std::cout<< "updating Kalman gain" << std::endl;
-        Matrix3f tmp_mat;
+
         tmp_mat = H*P*H.transpose() + R;
+        Matrix<double,3,3> stupid_mat = tmp_mat.inverse();
         //std::cout << "tmp mat: " << tmp_mat << std::endl;
-        G = P * H.transpose() * tmp_mat.inverse();
+        G = P * H.transpose() * stupid_mat;
         //std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         y = y + G*(y_tilde - H*y);
-        std::cout << "y after update" << std::endl;
-        std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        //std::cout << "y after update" << std::endl;
+        //std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout<< "updating covariance matrix" << std::endl;
-        P = (MatrixXf::Identity(5,5) - G*H)*P;
+        P = (MatrixXd::Identity(5,5) - G*H)*P;
         //std::cout << "P after update: " << P << std::endl;
         t0 = t;
     }
 
-    Matrix<float, 5, 1> MP_model::get_state() {
+    Matrix<double, 5, 1> MP_model::get_state() {
         return y;
     }
 }

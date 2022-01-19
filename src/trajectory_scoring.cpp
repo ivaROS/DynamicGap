@@ -33,7 +33,7 @@ namespace dynamic_gap {
         boost::mutex::scoped_lock planlock(gplan_mutex);
         boost::mutex::scoped_lock egolock(egocircle_mutex);
         if (gaps.size() < 1) {
-            ROS_WARN_STREAM("Observed num of gap: 0");
+            //ROS_WARN_STREAM("Observed num of gap: 0");
             return std::vector<double>(0);
         }
 
@@ -130,7 +130,10 @@ namespace dynamic_gap {
     }
 
     double TrajectoryArbiter::chapterScore(double d) {
-        if (d < r_inscr * cfg_->traj.inf_ratio) return -std::numeric_limits<double>::infinity();
+        if (d < r_inscr * cfg_->traj.inf_ratio) {
+            // ROS_WARN_STREAM("pose too close to obstacle, returning -inf");
+            return -std::numeric_limits<double>::infinity();
+        }
         if (d > rmax) return 0;
         return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio));
     }

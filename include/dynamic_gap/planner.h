@@ -141,7 +141,7 @@ namespace dynamic_gap
 
         geometry_msgs::Twist previous_cmd_vel;
         geometry_msgs::Twist current_cmd_vel;
-        Matrix<float, 1, 2> a;
+        Matrix<double, 1, 2> a;
 
     public:
         Planner();

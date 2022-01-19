@@ -1,4 +1,4 @@
-image: sector_stereo_world.pgm
+image: sector_world.pgm
 resolution: 0.050000
 origin: [-10.217199, -10.117600, 0.000000]
 negate: 0

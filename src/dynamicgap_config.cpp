@@ -31,6 +31,7 @@ namespace dynamic_gap {
         nh.param("cbf_param", gap_manip.cbf_param, gap_manip.cbf_param);
         nh.param("cbf_r_min", gap_manip.cbf_r_min, gap_manip.cbf_r_min);
         nh.param("K_des", gap_manip.K_des, gap_manip.K_des);
+        nh.param("K_acc", gap_manip.K_acc, gap_manip.K_acc);
 
         // Control Params
         nh.param("k_drive_x",control.k_drive_x, control.k_drive_x);

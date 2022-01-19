@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <boost/numeric/odeint.hpp>
-
+#include <ros/console.h>
 // #include <traj_generator.h>
 // #include <turtlebot_trajectory_generator/near_identity.h>
 #include <geometry_msgs/PoseArray.h>
@@ -38,7 +38,7 @@ namespace dynamic_gap {
             TrajectoryGenerator& operator=(TrajectoryGenerator & other) {cfg_ = other.cfg_;};
             TrajectoryGenerator(const TrajectoryGenerator &t) {cfg_ = t.cfg_;};
 
-            virtual geometry_msgs::PoseArray generateTrajectory(dynamic_gap::Gap, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel, geometry_msgs::TransformStamped rbt2odom, geometry_msgs::TransformStamped odom2rbt) = 0;
+            virtual geometry_msgs::PoseArray generateTrajectory(dynamic_gap::Gap, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel) = 0;
             virtual std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>) = 0;
         protected:
             const DynamicGapConfig* cfg_;
@@ -48,7 +48,7 @@ namespace dynamic_gap {
         using TrajectoryGenerator::TrajectoryGenerator;
         public:
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
-            geometry_msgs::PoseArray generateTrajectory(dynamic_gap::Gap, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel, geometry_msgs::TransformStamped rbt2odom, geometry_msgs::TransformStamped odom2rbt);
+            geometry_msgs::PoseArray generateTrajectory(dynamic_gap::Gap, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel);
             std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
             geometry_msgs::PoseArray forwardPassTrajectory(geometry_msgs::PoseArray);
