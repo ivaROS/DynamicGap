@@ -27,6 +27,9 @@ namespace dynamic_gap {
         void mergeGapsOneGo(boost::shared_ptr<sensor_msgs::LaserScan const>,
         std::vector<dynamic_gap::Gap>&);
 
+        void bisectNonConvexGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
+        std::vector<dynamic_gap::Gap> & observed_gaps);
+
         void setMergeThreshold(float);
         void setIdxThreshold(int);
 

@@ -103,9 +103,22 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
+        double gap_angle = (selectedGap._right_idx - selectedGap._left_idx) * M_PI / selectedGap.half_scan;
+
         std::cout << "starting trajectory generation" << std::endl;
         std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
+        double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
+        double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
+        std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
+        std::cout << "gap angle: " << gap_angle << std::endl;
+
+        
+        double p1_goal_dot = x1*selectedGap.goal.x + y1*selectedGap.goal.y;
+        double p2_goal_dot = x2*selectedGap.goal.x + y2*selectedGap.goal.y;
+        if (p1_goal_dot < 0 && p2_goal_dot < 0) {
+            std::cout << "coming in, both dots are negative" << std::endl;
+        }
         
         /*
         if (model_one[0] == left_model_state[0]) {
@@ -119,8 +132,12 @@ namespace dynamic_gap{
             return posearr;
         }
 
-        double gap_angle = (selectedGap._right_idx - selectedGap._left_idx) * M_PI / selectedGap.half_scan;
-
+        
+        if (-estimated_left_closure > gap_angle || estimated_right_closure > gap_angle) {
+            std::cout << "rejected, deemed unsafe" << std::endl;
+            return posearr;
+        }
+        
         /*
         if (selectedGap.goal.goalwithin) {
             
@@ -210,12 +227,12 @@ namespace dynamic_gap{
         
         // std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
         //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-        //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+        // std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
         //std::cout << "starting clf cbf" << std::endl;
         //std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
         //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        //std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
+        // std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
         //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
         //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
         

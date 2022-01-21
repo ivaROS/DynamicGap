@@ -136,6 +136,8 @@ namespace dynamic_gap
             finder->hybridScanGap(msg, observed_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("raw"));
             finder->mergeGapsOneGo(msg, observed_gaps);
+            std::cout << "STARTING BISECT" << std::endl;
+            finder->bisectNonConvexGap(msg, observed_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
@@ -575,10 +577,13 @@ namespace dynamic_gap
         // double begin_time = ros::Time::now().toSec();
         updateTF();
 
+        std::cout << "running gap manipulate" << std::endl;
         auto gap_set = gapManipulate();
 
+        // std::cout << "associating" << std::endl;
         association = gapassociator->associateGaps(gap_set, previous_gaps);
         
+        // std::cout << "updating models" << std::endl;
         update_models(gap_set);
 
         previous_gaps = gap_set;
