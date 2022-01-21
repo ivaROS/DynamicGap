@@ -400,6 +400,7 @@ namespace dynamic_gap
                 int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
+                std::cout << "returning score of " << result_score.at(i) << std::endl;
             }
         } catch (...) {
             ROS_FATAL_STREAM("pickTraj");

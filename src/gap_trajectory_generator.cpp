@@ -110,6 +110,9 @@ namespace dynamic_gap{
         //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
         //std::cout << "gap angle: " << gap_angle << std::endl;
 
+        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
+        
         
         double p1_goal_dot = x1*selectedGap.goal.x + y1*selectedGap.goal.y;
         double p2_goal_dot = x2*selectedGap.goal.x + y2*selectedGap.goal.y;
@@ -132,6 +135,9 @@ namespace dynamic_gap{
         
         if (-estimated_left_closure > gap_angle || estimated_right_closure > gap_angle) {
             std::cout << "rejected, deemed unsafe" << std::endl;
+            std::cout << "gap angle: " << gap_angle << std::endl;
+            std::cout << "estimated left closure: " << estimated_left_closure << std::endl;
+            std::cout << "estimated right closure: " << estimated_right_closure << std::endl;
             return posearr;
         }
         
@@ -240,16 +246,13 @@ namespace dynamic_gap{
         //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
         
         std::cout << "starting trajectory generation" << std::endl;
-        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
-        
+        double start_end_dist = std::sqrt(pow(selectedGap.goal.x - x[0], 2) + pow(selectedGap.goal.y - x[1], 2));
+        std::cout << "distance from start to goal: " << start_end_dist << std::endl;
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,
             cfg_->traj.integrate_maxt,
             cfg_->traj.integrate_stept, corder);
 
-        //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
-        //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         //ROS_WARN_STREAM("CLF CBF");
         //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
         if (selectedGap.mode.convex) {
@@ -258,7 +261,9 @@ namespace dynamic_gap{
                 p.position.y += selectedGap.qB(1);
             }
         }
-
+        std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
+        std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
+        
         return posearr;
     }
 

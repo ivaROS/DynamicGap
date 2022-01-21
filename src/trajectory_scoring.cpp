@@ -58,7 +58,7 @@ namespace dynamic_gap {
 
         return cost;
     }
-
+    /*
     // Again, in rbt frame
     std::vector<double> TrajectoryArbiter::scoreTrajectories (
         std::vector<geometry_msgs::PoseArray> sample_traj) {
@@ -66,6 +66,7 @@ namespace dynamic_gap {
         
         return std::vector<double>(sample_traj.size());
     }
+    */
 
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj) {
         // Requires LOCAL FRAME
@@ -76,13 +77,21 @@ namespace dynamic_gap {
             cost_val.at(i) = scorePose(traj.poses.at(i));
         }
 
+        // cumulative cost of poses
         auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
 
+        // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
         {
-            auto terminal_cost = 10 * terminalGoalCost(*std::prev(traj.poses.end()));
-            if (terminal_cost < 1 && total_val > -10) return std::vector<double>(traj.poses.size(), 100);
-            // Should be safe
+            // obtain terminalGoalCost, scale by w1
+            double w1 = 10;
+            auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
+            // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
+            if (terminal_cost < 1 && total_val > -10) {
+                std::cout << "returning really good trajectory" << std::endl;
+                return std::vector<double>(traj.poses.size(), 100);
+            }
+            // Should be safe, subtract terminal pose cost from first pose cost
             cost_val.at(0) -= terminal_cost;
         }
         
@@ -107,10 +116,12 @@ namespace dynamic_gap {
         boost::mutex::scoped_lock lock(egocircle_mutex);
         sensor_msgs::LaserScan stored_scan = *msg.get();
 
+        // obtain orientation and idx of pose
         double pose_ori = std::atan2(pose.position.y + 1e-3, pose.position.x + 1e-3);
         int center_idx = (int) std::round((pose_ori + M_PI) / msg.get()->angle_increment);
         
         int scan_size = (int) stored_scan.ranges.size();
+        // dist is size of scan
         std::vector<double> dist(scan_size);
 
         // This size **should** be ensured
@@ -118,6 +129,8 @@ namespace dynamic_gap {
             ROS_FATAL_STREAM("Scan range incorrect scorePose");
         }
 
+        // iterate through ranges and obtain the distance from the egocircle point and the pose
+        // Meant to find where is really small
         for (int i = 0; i < dist.size(); i++) {
             float this_dist = stored_scan.ranges.at(i);
             this_dist = this_dist == 3 ? this_dist + cfg_->traj.rmax : this_dist;
@@ -130,11 +143,14 @@ namespace dynamic_gap {
     }
 
     double TrajectoryArbiter::chapterScore(double d) {
+        // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         if (d < r_inscr * cfg_->traj.inf_ratio) {
             // ROS_WARN_STREAM("pose too close to obstacle, returning -inf");
             return -std::numeric_limits<double>::infinity();
         }
+        // if distance is essentially infinity, return 0
         if (d > rmax) return 0;
+
         return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio));
     }
 

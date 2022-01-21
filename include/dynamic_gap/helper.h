@@ -295,7 +295,7 @@ namespace dynamic_gap {
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
             // std::cout << "t: " << t << std::endl;
-            std::cout << "x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            // std::cout << "x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
             // state:
             // [rbt_x, rbt_y, rbt_v_x, rbt_v_y,
             //  1 / r_left, sin(beta_left), cos(beta_left), rdot_left / r_left, betadot_left
