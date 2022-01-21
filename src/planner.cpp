@@ -136,8 +136,8 @@ namespace dynamic_gap
             finder->hybridScanGap(msg, observed_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("raw"));
             finder->mergeGapsOneGo(msg, observed_gaps);
-            std::cout << "STARTING BISECT" << std::endl;
-            finder->bisectNonConvexGap(msg, observed_gaps);
+            //std::cout << "STARTING BISECT" << std::endl;
+            //finder->bisectNonConvexGap(msg, observed_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
@@ -171,6 +171,7 @@ namespace dynamic_gap
         // UPDATING MODELS
         //std::cout << "obtaining gap g" << std::endl;
 		geometry_msgs::Vector3Stamped gap_pt_vector_rbt_frame;
+        geometry_msgs::Vector3Stamped range_vector_rbt_frame;
         gap_pt_vector_rbt_frame.header.frame_id = cfg.robot_frame_id;
 		dynamic_gap::Gap g = observed_gaps[int(std::floor(i / 2.0))];
         //std::cout << "obtaining gap pt vector" << std::endl;
@@ -182,8 +183,12 @@ namespace dynamic_gap
 			gap_pt_vector_rbt_frame.vector.x = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
 			gap_pt_vector_rbt_frame.vector.y = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
 		}
-        // std::cout << "gap_pt_vector_rbt_frame: " << gap_pt_vector_rbt_frame << std::endl;
-		// how to get measurements?
+
+        range_vector_rbt_frame.vector.x = gap_pt_vector_rbt_frame.vector.x - rbt_in_cam.pose.position.x;
+        range_vector_rbt_frame.vector.y = gap_pt_vector_rbt_frame.vector.y - rbt_in_cam.pose.position.y;
+        //std::cout << "gap_pt_vector_rbt_frame: " << gap_pt_vector_rbt_frame.vector.x << ", " << gap_pt_vector_rbt_frame.vector.y << std::endl;
+		//std::cout << "rbt in cam pose: " << rbt_in_cam.pose.position.x << ", " << rbt_in_cam.pose.position.x << std::endl;
+        // how to get measurements?
 		
 		// get gap vector, transform to world coordinates?
         // TODO: make sure gap is in robot  frame?
@@ -200,8 +205,8 @@ namespace dynamic_gap
         // PREVIOUSLY, using ODOM FRAME HERE:
 		//float beta_tilde = std::atan2(-gap_pt_vector_odom_frame.vector.x, gap_pt_vector_odom_frame.vector.y);
 		//float norm = std::sqrt(std::pow(gap_pt_vector_odom_frame.vector.x, 2) + pow(gap_pt_vector_odom_frame.vector.y, 2));
-        double beta_tilde = std::atan2(-gap_pt_vector_rbt_frame.vector.x, gap_pt_vector_rbt_frame.vector.y);
-		double norm = std::sqrt(std::pow(gap_pt_vector_rbt_frame.vector.x, 2) + pow(gap_pt_vector_rbt_frame.vector.y, 2));
+        double beta_tilde = std::atan2(-range_vector_rbt_frame.vector.x, range_vector_rbt_frame.vector.y);
+		double norm = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
 		
 		Matrix<double, 3, 1> y_tilde;
 		y_tilde << 1.0 / norm, 
@@ -334,7 +339,7 @@ namespace dynamic_gap
         try {
             for (size_t i = 0; i < manip_set.size(); i++)
             {
-                std::cout << "MANIPULATING GAP " << i << std::endl;
+                // std::cout << "MANIPULATING GAP " << i << std::endl;
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
@@ -357,6 +362,7 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
         try {
             for (size_t i = 0; i < vec.size(); i++) {
+                // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
                 auto tmp = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
                 tmp = gapTrajSyn->forwardPassTrajectory(tmp);
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(tmp);

@@ -105,13 +105,10 @@ namespace dynamic_gap{
 
         double gap_angle = (selectedGap._right_idx - selectedGap._left_idx) * M_PI / selectedGap.half_scan;
 
-        std::cout << "starting trajectory generation" << std::endl;
-        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
         double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
-        std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
-        std::cout << "gap angle: " << gap_angle << std::endl;
+        //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
+        //std::cout << "gap angle: " << gap_angle << std::endl;
 
         
         double p1_goal_dot = x1*selectedGap.goal.x + y1*selectedGap.goal.y;
@@ -168,7 +165,6 @@ namespace dynamic_gap{
         */
 
         if (selectedGap.mode.convex) {
-            // std::cout << "convex, subtracting: " << - selectedGap.qB(0) << ", " << - selectedGap.qB(1) << std::endl;
             x = {- selectedGap.qB(0) - 1e-6, 
                  - selectedGap.qB(1) + 1e-6,
                  curr_vel.linear.x,
@@ -187,11 +183,17 @@ namespace dynamic_gap{
             x2 -= selectedGap.qB(0);
             y1 -= selectedGap.qB(1);
             y2 -= selectedGap.qB(1);
+            //std::cout << "convex, rbt start is actually: " << x[0] << ", " << x[1] << std::endl;
+            //std::cout << "x1, y1 actually: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
             selectedGap.goal.x -= selectedGap.qB(0);
             selectedGap.goal.y -= selectedGap.qB(1);
+            //std::cout << "goal actually: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
 
         }
         
+        // models seemingly do not account for robot position. Need to subtract.
+
+
         // std::cout << "<<<<<<<<<<<<<<<<<<<<starting polar field>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
         // std::cout << "coefs: " << coefs << std::endl;
         // std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
@@ -199,6 +201,7 @@ namespace dynamic_gap{
         //std::cout << "left gap point: " << x1*coefs << ", " << y1*coefs << " right gap point: " << x2*coefs << ", " << y2*coefs << std::endl;
         //std::cout << "p1/goal dot: " << selectedGap.goal.x*coefs*x1*coefs + selectedGap.goal.y*coefs*y1*coefs << std::endl;
         //std::cout << "p2/goal dot: " << selectedGap.goal.x*coefs*x2*coefs + selectedGap.goal.y*coefs*y2*coefs << std::endl;
+        
         /*
         polar_gap_field inte(x1 * coefs, x2 * coefs,
                             y1 * coefs, y2 * coefs,
@@ -235,6 +238,10 @@ namespace dynamic_gap{
         // std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
         //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
         //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
+        
+        std::cout << "starting trajectory generation" << std::endl;
+        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,

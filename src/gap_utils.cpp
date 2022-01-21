@@ -18,19 +18,8 @@ namespace dynamic_gap {
 
         for (int i = 0; i < (int) observed_gaps.size(); i++)
         {
-            bool needToBisect = false; 
-            if (observed_gaps.size() == 1) {
-                // if only one gap, just check if gap is nonconvex
-                needToBisect = observed_gaps.at(i).RIdx() - observed_gaps.at(i).LIdx() > half_scan;
-            } else if (i < observed_gaps.size() - 1) {
-                // possibly true at certain idx
-                std::cout << "checking bisect of: (" << observed_gaps.at(i).LIdx() << ", " << observed_gaps.at(i).RIdx() << ") and (" << observed_gaps.at(i+1).LIdx() << ", " << observed_gaps.at(i+1).RIdx() << ")" << std::endl; 
-                needToBisect = observed_gaps.at(i+1).LIdx() - observed_gaps.at(i).RIdx() > half_scan;
-            } else {
-                // need to check wrap around case
-                std::cout << "checking bisect of: (" << observed_gaps.at(i).LIdx() << ", " << observed_gaps.at(i).RIdx() << ") and (" << observed_gaps.at(0).LIdx() << ", " << observed_gaps.at(0).RIdx() << ")" << std::endl; 
-                needToBisect = 2*half_scan - observed_gaps.at(i).RIdx() + observed_gaps.at(0).LIdx() > half_scan;
-            }
+            std::cout << "checking bisect of single: (" << observed_gaps.at(i).LIdx() << ", " << observed_gaps.at(i).RIdx() << std::endl;
+            bool needToBisect = observed_gaps.at(i).RIdx() - observed_gaps.at(i).LIdx() > half_scan;
             if (needToBisect) {
                 dynamic_gap::Gap gap = observed_gaps.at(i);
                 auto half_num_scan = gap.half_scan;
@@ -50,18 +39,13 @@ namespace dynamic_gap {
                 // std::cout << "l_idx: " << l_idx << ", r_idx:" << r_idx << std::endl;
                 double l_dist = gap.LDist();
                 double r_dist = gap.RDist();
-                int real_idx =  2*half_num_scan - (r_idx - l_idx);
                 int mid_idx;
 
-                if (l_idx > half_num_scan && r_idx > half_num_scan) {
-                    // both on left side
-                    mid_idx = std::floor(std::min(l_idx, r_idx) - half_num_scan);
-                } else if (l_idx < half_num_scan && r_idx < half_num_scan) {
-                    // both on right side
-                    mid_idx = std::floor(std::max(l_idx, r_idx) + half_num_scan);
-                } else {
+                if (l_idx < half_num_scan && r_idx > half_num_scan) {
                     // straddling
                     mid_idx = std::floor(l_idx + r_idx) / 2;
+                } else {
+                    mid_idx = half_num_scan*2 - std::floor(l_idx + r_idx) / 2;
                 }
                 //std::cout << "mid_idx: " << mid_idx << std::endl;
                 
@@ -71,67 +55,34 @@ namespace dynamic_gap {
                 
                 // straddling
                 // have to initialize to get models
-                if (l_idx < half_num_scan && r_idx > half_num_scan) {
-                    // make first gap
-                    dynamic_gap::Gap first_gap(frame, l_idx, l_dist, gap.half_scan);
-                    // std::cout << "creating first gap" << std::endl;
-                    first_gap.addRightInformation(mid_idx, new_dist);
-                    first_gap.setMinSafeDist(min_dist);
-                    // make second gap
-                    // std::cout << "creating second gap" << std::endl;
-                    dynamic_gap::Gap second_gap(frame, mid_idx + 1, next_new_dist, gap.half_scan);
-                    second_gap.addRightInformation(r_idx, r_dist);
-                    second_gap.setMinSafeDist(min_dist);
-                    
-                    observed_gaps.at(i) = first_gap;
-                    observed_gaps.push_back(second_gap);
-                    float first_x1,first_y1,first_x2,first_y2;
-                    first_x1 = (first_gap.convex.convex_ldist) * cos(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                    first_y1 = (first_gap.convex.convex_ldist) * sin(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
+                // make first gap
+                dynamic_gap::Gap first_gap(frame, l_idx, l_dist, gap.half_scan);
+                // std::cout << "creating first gap" << std::endl;
+                first_gap.addRightInformation(mid_idx, new_dist);
+                first_gap.setMinSafeDist(min_dist);
+                // make second gap
+                // std::cout << "creating second gap" << std::endl;
+                dynamic_gap::Gap second_gap(frame, mid_idx + 1, next_new_dist, gap.half_scan);
+                second_gap.addRightInformation(r_idx, r_dist);
+                second_gap.setMinSafeDist(min_dist);
+                
+                observed_gaps.at(i) = first_gap;
+                observed_gaps.push_back(second_gap);
+                float first_x1,first_y1,first_x2,first_y2;
+                first_x1 = (first_gap.convex.convex_ldist) * cos(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
+                first_y1 = (first_gap.convex.convex_ldist) * sin(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
 
-                    first_x2 = (first_gap.convex.convex_rdist) * cos(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    first_y2 = (first_gap.convex.convex_rdist) * sin(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    std::cout << "first bisector: (" << first_x1 << ", " << first_y1 << "), (" << first_x2 << ", " << first_y2 << ")" << std::endl;
-                    
-                    float second_x1,second_y1,second_x2,second_y2;
-                    second_x1 = (second_gap.convex.convex_ldist) * cos(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                    second_y1 = (second_gap.convex.convex_ldist) * sin(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
+                first_x2 = (first_gap.convex.convex_rdist) * cos(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
+                first_y2 = (first_gap.convex.convex_rdist) * sin(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
+                std::cout << "first bisector: (" << first_x1 << ", " << first_y1 << "), (" << first_x2 << ", " << first_y2 << ")" << std::endl;
+                
+                float second_x1,second_y1,second_x2,second_y2;
+                second_x1 = (second_gap.convex.convex_ldist) * cos(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
+                second_y1 = (second_gap.convex.convex_ldist) * sin(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
 
-                    second_x2 = (second_gap.convex.convex_rdist) * cos(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    second_y2 = (second_gap.convex.convex_rdist) * sin(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    std::cout << "second bisector: (" << second_x1 << ", " << second_y1 << "), (" << second_x2 << ", " << second_y2 << ")" << std::endl;
-                    
-                } else {
-                    // make first gap
-                    // std::cout << "creating first gap" << std::endl;
-                    dynamic_gap::Gap first_gap(frame, r_idx, r_dist, gap.half_scan);
-                    first_gap.addRightInformation(mid_idx, new_dist);
-                    first_gap.setMinSafeDist(min_dist);
-                    // make second gap
-                    //std::cout << "creating second gap" << std::endl;
-                    dynamic_gap::Gap second_gap(frame, mid_idx + 1, next_new_dist, gap.half_scan);
-                    second_gap.addRightInformation(l_idx, l_dist);
-                    second_gap.setMinSafeDist(min_dist);
-
-                    observed_gaps.at(i) = first_gap;
-                    observed_gaps.push_back(second_gap);
-                    float first_x1,first_y1,first_x2,first_y2;
-                    first_x1 = (first_gap.convex.convex_ldist) * cos(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                    first_y1 = (first_gap.convex.convex_ldist) * sin(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-                    first_x2 = (first_gap.convex.convex_rdist) * cos(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    first_y2 = (first_gap.convex.convex_rdist) * sin(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    std::cout << "first bisector: (" << first_x1 << ", " << first_y1 << "), (" << first_x2 << ", " << first_y2 << ")" << std::endl;
-                    
-                    float second_x1,second_y1,second_x2,second_y2;
-                    second_x1 = (second_gap.convex.convex_ldist) * cos(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                    second_y1 = (second_gap.convex.convex_ldist) * sin(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-                    second_x2 = (second_gap.convex.convex_rdist) * cos(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    second_y2 = (second_gap.convex.convex_rdist) * sin(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                    std::cout << "second bisector: (" << second_x1 << ", " << second_y1 << "), (" << second_x2 << ", " << second_y2 << ")" << std::endl;
-                    
-                }
+                second_x2 = (second_gap.convex.convex_rdist) * cos(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
+                second_y2 = (second_gap.convex.convex_rdist) * sin(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
+                std::cout << "second bisector: (" << second_x1 << ", " << second_y1 << "), (" << second_x2 << ", " << second_y2 << ")" << std::endl;
 
 
                 // std::cout << "adding new gaps" << std::endl;
