@@ -175,8 +175,10 @@ namespace dynamic_gap {
         double forwards_gap;
         Eigen::Vector2d p1;
         Eigen::Vector2d p2;
-        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist)
-        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist) {}
+        double gap_angle;
+        double T_h;
+        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double gap_angle, double T_h)
+        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), gap_angle(gap_angle), T_h(T_h) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -215,9 +217,9 @@ namespace dynamic_gap {
             return h_left;
         }
 
-        Eigen::Vector2d cbf_partials_left(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame) {
+        Eigen::Vector4d cbf_partials_left(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame) {
             // current design: h_left = r*betadot
-            Eigen::Vector2d d_h_left_dx(0.0, 0.0);
+            Eigen::Vector4d d_h_left_dx(0.0, 0.0, 0.0, 0.0);
             double r = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
             double r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
             // partials wrt r_ox, r_oy, v_ox, v_oy:
@@ -237,18 +239,45 @@ namespace dynamic_gap {
             return h_right;
         }
 
-        Eigen::Vector2d cbf_partials_right(const state_type &x, Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
+        Eigen::Vector4d cbf_partials_right(const state_type &x, Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
             // current design: h_right = -r * betadot
-            Eigen::Vector2d d_h_right_dx(0.0, 0.0);
+            Eigen::Vector4d d_h_right_dx(0.0, 0.0, 0.0, 0.0);
             
             double r = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
             double r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
             // derivative with respect to r_ox, r_oy, v_ox, v_oy
+            
             d_h_right_dx(0) =  right_rel_vel_rbt_frame(1)/r - right_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r,3);
             d_h_right_dx(1) = -right_rel_vel_rbt_frame(0)/r - right_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r,3);
             d_h_right_dx(2) = -right_rel_pos_rbt_frame(1) / r;
             d_h_right_dx(3) = right_rel_pos_rbt_frame(0) / r;
             return d_h_right_dx;
+        }
+
+        double time_to_pass_CBF(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame,
+                                                     Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
+            double r_left = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
+            double r_right = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
+            double left_r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
+            double right_r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
+            double cbf = gap_angle + T_h*(left_r_v_cross_prod/pow(r_left,2) - right_r_v_cross_prod/pow(r_right,2));
+            return cbf;
+        }
+
+        Eigen::Vector4d time_to_pass_CBF_partials(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame,
+                                                              Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
+            Eigen::Vector4d d_h_dx(0.0, 0.0, 0.0, 0.0);         
+            double r_left = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
+            double r_right = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
+            double left_r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
+            double right_r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
+            d_h_dx(0) = T_h*(-left_rel_vel_rbt_frame(1)/pow(r_left, 2) + right_rel_vel_rbt_frame(1)/pow(r_right, 2) + (2*left_rel_pos_rbt_frame(0)*left_r_v_cross_prod)/pow(r_left,4) + (-2*right_rel_pos_rbt_frame(0)*right_r_v_cross_prod)/pow(r_right, 4));
+            d_h_dx(1) = T_h*(left_rel_vel_rbt_frame(0)/pow(r_left, 2) - right_rel_vel_rbt_frame(0)/pow(r_right, 2) +  (2*left_rel_pos_rbt_frame(1)*left_r_v_cross_prod)/pow(r_left,4) + (-2*right_rel_pos_rbt_frame(1)*right_r_v_cross_prod)/pow(r_right, 4));
+            d_h_dx(2) = T_h*(left_rel_pos_rbt_frame(1)/pow(r_left, 2) - right_rel_pos_rbt_frame(1)/pow(r_right, 2));
+            d_h_dx(3) = T_h*(-left_rel_pos_rbt_frame(0)/pow(r_left, 2) + right_rel_pos_rbt_frame(0)/pow(r_right, 2));
+
+            return d_h_dx;
+                               
         }
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
@@ -352,18 +381,23 @@ namespace dynamic_gap {
             std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
             
             double h_dyn = 0.0;
-            Eigen::Vector2d d_h_dyn_dx(0.0, 0.0);
+            Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
             // calculate left and right CBF values
+            /*
             double h_dyn_left = cbf_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
             double h_dyn_right = cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
             std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << std::endl;
             std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << std::endl;
-
+            */
+            
             // check for convexity of gap
             std::cout << "gap angle: " << gap_angle << std::endl;
             if (0 < gap_angle && gap_angle < M_PI) {
+                h_dyn = time_to_pass_CBF(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
+                d_h_dyn_dx = time_to_pass_CBF_partials(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
+                /*
                 if (h_dyn_left < h_dyn_right) {
                     h_dyn = h_dyn_left;
                     d_h_dyn_dx = d_h_dyn_left_dx;
@@ -371,6 +405,7 @@ namespace dynamic_gap {
                     h_dyn = h_dyn_right;
                     d_h_dyn_dx = d_h_dyn_right_dx;
                 }
+                */
             }
 
             // calculate Psi
@@ -381,7 +416,7 @@ namespace dynamic_gap {
             
             if (Psi < 0.0 && V > 0.1) {
                 // std::cout << "adding CBF" << std::endl;
-                Eigen::Vector2d Lg_h = d_h_dyn_dx; // Lie derivative of h wrt x
+                Eigen::Vector2d Lg_h(d_h_dyn_dx[2], d_h_dyn_dx[3]); // Lie derivative of h wrt x
                 a_actual = a_des + -(Lg_h * Psi) / (Lg_h.dot(Lg_h));
             } else {
                 //std::cout << "not adding CBF" << std::endl;

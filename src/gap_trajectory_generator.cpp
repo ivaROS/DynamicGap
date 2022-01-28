@@ -203,7 +203,9 @@ namespace dynamic_gap{
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
                             cfg_->gap_manip.K_acc,
-                            local_goal_dist);
+                            local_goal_dist,
+                            gap_angle,
+                            cfg_->traj.integrate_maxt);
         
         // or if model is invalid?
         bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
@@ -214,6 +216,8 @@ namespace dynamic_gap{
         }
         
         double gap_passage_threshold = 1.0;
+        double init_cbf_val = gap_angle + (left_model_state[4] - right_model_state[4])*cfg_->traj.integrate_maxt;
+        std::cout << "initial cbf value: " << init_cbf_val << std::endl;
         if (time_to_pass > 0 && time_to_pass < gap_passage_threshold) {
             std::cout << "rejected, deemed unsafe" << std::endl;
             std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);

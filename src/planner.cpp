@@ -66,6 +66,8 @@ namespace dynamic_gap
 
         previous_cmd_vel = geometry_msgs::Twist();
         current_cmd_vel = geometry_msgs::Twist();
+
+        a << 0.0, 0.0;
         return true;
     }
 
@@ -117,7 +119,7 @@ namespace dynamic_gap
         
         //a[0] = rbt_accel_odom_frame.vector.x;
         //a[1] = rbt_accel_odom_frame.vector.y;
-                
+        // std::cout << "in robot IMU cb: " << rbt_accel_rbt_frame.vector.x << ", " << rbt_accel_rbt_frame.vector.y << std::endl;
         a[0] = rbt_accel_rbt_frame.vector.x;
         a[1] = rbt_accel_rbt_frame.vector.y;
     }
