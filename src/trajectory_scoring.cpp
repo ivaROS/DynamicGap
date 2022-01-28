@@ -88,7 +88,7 @@ namespace dynamic_gap {
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 1 && total_val > -10) {
-                std::cout << "returning really good trajectory" << std::endl;
+                // std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
@@ -145,7 +145,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::chapterScore(double d) {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         if (d < r_inscr * cfg_->traj.inf_ratio) {
-            // ROS_WARN_STREAM("pose too close to obstacle, returning -inf");
+            std::cout << "pose too close to obstacle, returning -inf" << std::endl;
             return -std::numeric_limits<double>::infinity();
         }
         // if distance is essentially infinity, return 0

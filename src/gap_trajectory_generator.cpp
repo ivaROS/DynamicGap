@@ -1,13 +1,15 @@
 #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
-    geometry_msgs::PoseArray GapTrajGenerator::generateTrajectory(dynamic_gap::Gap selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
         // return geometry_msgs::PoseArray();
         geometry_msgs::PoseArray posearr;
+        std::vector<double> left_betadots;
+        std::vector<double> right_betadots;
         posearr.header.stamp = ros::Time::now();
         
         double coefs = cfg_->traj.scale;
-        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs);
+        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, left_betadots, right_betadots);
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
         // flipping it here because the values appear to be wrong in the integration
@@ -24,59 +26,73 @@ namespace dynamic_gap{
         double angle_goal = atan2(-selectedGap.goal.x*coefs, selectedGap.goal.y*coefs);
         // if all three are positive or negative
         //std::cout << "angle_one: " << angle_one << ", angle_two: " << angle_two << ", angle_goal: " << angle_goal << std::endl;
+        std::cout << "picking gap sides" << std::endl;
+        // seems to only do 2,7,9
         if ((angle_one > 0 && angle_two > 0 && angle_goal > 0) ||
             (angle_one < 0 && angle_two < 0 && angle_goal < 0)) {
             if (angle_one > angle_two) {
+                std::cout << "1" << std::endl;
                 left_model_state = model_one;
                 right_model_state = model_two;
             } else {
+                std::cout << "2" << std::endl;
                 left_model_state = model_two;
                 right_model_state = model_one;
             }
-        } else if ((angle_one > 0 && angle_two > 0) ||
-                   (angle_one < 0 && angle_two < 0)) {
+        } else if ((angle_one > 0 && angle_two > 0) || (angle_one < 0 && angle_two < 0)) {
             if (angle_one > angle_two) {
+                std::cout << "3" << std::endl;
                 right_model_state = model_one;
                 left_model_state = model_two;
             } else {
+                std::cout << "4" << std::endl;
                 right_model_state = model_two;
                 left_model_state = model_one;
             }
         } else if (angle_one > 0 && angle_goal > 0 && angle_two < 0) {
             if (angle_goal < angle_one) {
+                std::cout << "5" << std::endl;
                 left_model_state = model_one;
                 right_model_state = model_two;
             } else {
+                std::cout << "6" << std::endl;
                 left_model_state = model_two;
                 right_model_state = model_one;
             }
         } else if (angle_two > 0 && angle_goal > 0 && angle_one < 0) {
             if (angle_goal < angle_two) {
+                std::cout << "7" << std::endl;
                 left_model_state = model_two;
                 right_model_state = model_one;
             } else {
+                std::cout << "8" << std::endl;
                 left_model_state = model_one;
                 right_model_state = model_two;
             }
         } else if (angle_one < 0 && angle_goal < 0 && angle_two > 0) {
             if (angle_goal > angle_one) {
+                std::cout << "9" << std::endl;
                 right_model_state = model_one;
                 left_model_state = model_two;
             } else {
+                std::cout << "10" << std::endl;
                 left_model_state = model_one;
                 right_model_state = model_two;
             }
         } else if (angle_two < 0 && angle_goal < 0 && angle_one > 0) {
             if (angle_goal > angle_two) {
+                std::cout << "11" << std::endl;
                 right_model_state = model_two;
                 left_model_state = model_one;
             } else {
+                std::cout << "12" << std::endl;
                 left_model_state = model_two;
                 right_model_state = model_one;
             }
         }
 
-        
+        double beta_local_goal; 
+        beta_local_goal = atan2(-selectedGap.goal.x*coefs, selectedGap.goal.y*coefs);
         // curr_pose is in sensor frame
         // gaps are in robot frame?
         // curr_vel is in robot frame
@@ -93,7 +109,9 @@ namespace dynamic_gap{
                         right_model_state[1],
                         right_model_state[2],
                         right_model_state[3],
-                        right_model_state[4]}; 
+                        right_model_state[4],
+                        sin(beta_local_goal),
+                        cos(beta_local_goal)}; 
         
         // get gap points in cartesian
         float x1, x2, y1, y2;
@@ -103,74 +121,32 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
-        double gap_angle = (selectedGap._right_idx - selectedGap._left_idx) * M_PI / selectedGap.half_scan;
 
-        double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
-        double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
+        // need to double check this
+        // I'm pretty sure this is not right
+        Eigen::Vector2d left_model_unit_vect(-left_model_state[1], left_model_state[2]);
+        Eigen::Vector2d right_model_unit_vect(-right_model_state[1], right_model_state[2]);
+        double dot = left_model_unit_vect.dot(right_model_unit_vect);
+        double det = left_model_unit_vect(0)*right_model_unit_vect(1) - right_model_unit_vect(0)*left_model_unit_vect(1);
+
+        double gap_angle = -atan2(det, dot);
+        double closing_rate = right_model_state[4] - left_model_state[4];
+        double time_to_pass = gap_angle / closing_rate;
+        std::cout << "prior to traj gen, gap angle: " << gap_angle << ", closing rate: " << closing_rate << ", time to pass: " << time_to_pass << std::endl;
+        //double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
+        //double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
         //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
         //std::cout << "gap angle: " << gap_angle << std::endl;
 
-        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
+        //std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        //std::cout << "starting at: " << curr_pose.pose.position.x << ", " << curr_pose.pose.position.y << std::endl;
+        //std::cout << "initial local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         
-        
-        double p1_goal_dot = x1*selectedGap.goal.x + y1*selectedGap.goal.y;
-        double p2_goal_dot = x2*selectedGap.goal.x + y2*selectedGap.goal.y;
-        if (p1_goal_dot < 0 && p2_goal_dot < 0) {
-            std::cout << "coming in, both dots are negative" << std::endl;
-        }
-        
-        /*
-        if (model_one[0] == left_model_state[0]) {
-            std::cout << "no flip " << std::endl;
-        } else {
-            std::cout << "flipped" << std::endl;
-        }
-        */
-        if (selectedGap.goal.discard) {
-            //std::cout << "discarding gap" << std::endl;
-            return posearr;
-        }
-
-        
-        if (-estimated_left_closure > gap_angle || estimated_right_closure > gap_angle) {
-            std::cout << "rejected, deemed unsafe" << std::endl;
-            std::cout << "gap angle: " << gap_angle << std::endl;
-            std::cout << "estimated left closure: " << estimated_left_closure << std::endl;
-            std::cout << "estimated right closure: " << estimated_right_closure << std::endl;
-            return posearr;
-        }
-        
-        /*
-        if (selectedGap.goal.goalwithin) {
-            
-            std::cout << "starting go to goal" << std::endl;
-            //ROS_WARN_STREAM("Goal to Goal");
-            // std::cout << "gap angle: " << gap_angle << std::endl;
-            std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
-            std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
-            std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-            std::cout << "p1/goal dot: " << selectedGap.goal.x*coefs*x1*coefs + selectedGap.goal.y*coefs*y1*coefs << std::endl;
-            std::cout << "p2/goal dot: " << selectedGap.goal.x*coefs*x2*coefs + selectedGap.goal.y*coefs*y2*coefs << std::endl;
-            //std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
-            //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
-            //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
-            
-            g2g inte_g2g(
-                selectedGap.goal.x * coefs,
-                selectedGap.goal.y * coefs);
-            // here, inte_g2g are the dynamics,  corder is observer?
-            // system, state, start_time, end_time, dt, observer
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            inte_g2g, x, 0.0,
-            cfg_->traj.integrate_maxt,
-            cfg_->traj.integrate_stept,
-            corder);
-            return posearr;
-        }
-        */
-
         if (selectedGap.mode.convex) {
+            std::cout << "convex" << std::endl;
+            selectedGap.goal.x -= selectedGap.qB(0);
+            selectedGap.goal.y -= selectedGap.qB(1);
+            beta_local_goal = atan2(-selectedGap.goal.x, selectedGap.goal.y);
             x = {- selectedGap.qB(0) - 1e-6, 
                  - selectedGap.qB(1) + 1e-6,
                  curr_vel.linear.x,
@@ -184,17 +160,14 @@ namespace dynamic_gap{
                  right_model_state[1],
                  right_model_state[2],
                  right_model_state[3],
-                 right_model_state[4]};
+                 right_model_state[4],
+                 sin(beta_local_goal),
+                 cos(beta_local_goal)};
             x1 -= selectedGap.qB(0);
             x2 -= selectedGap.qB(0);
             y1 -= selectedGap.qB(1);
             y2 -= selectedGap.qB(1);
-            //std::cout << "convex, rbt start is actually: " << x[0] << ", " << x[1] << std::endl;
             //std::cout << "x1, y1 actually: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-            selectedGap.goal.x -= selectedGap.qB(0);
-            selectedGap.goal.y -= selectedGap.qB(1);
-            //std::cout << "goal actually: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-
         }
         
         // models seemingly do not account for robot position. Need to subtract.
@@ -218,23 +191,36 @@ namespace dynamic_gap{
                             selectedGap.isAxial(),
                             cfg_->gap_manip.sigma);
         */
-        
-        double orig_beta_left = atan2(left_model_state(1), left_model_state(2));
-        double orig_beta_right = atan2(right_model_state(1), right_model_state(2));
-        
-        clf_cbf clf_cbf_dyn(x1 * coefs, x2 * coefs,
-                            y1 * coefs, y2 * coefs,
-                            selectedGap.isAxial(),
-                            selectedGap.goal.x * coefs,
-                            selectedGap.goal.y * coefs,
+        double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
+        std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
+        std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
+        std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
+        std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
+            
+        // std::cout << "starting goal beta: " << atan2(x[14], x[15]) << std::endl;'
+        // std::cout << "attempt to represent goal in polar: " << -local_goal_dist*sin(x[14]) << ", " << local_goal_dist*cos(x[14]) << std::endl;
+        clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
-                            cfg_->gap_manip.cbf_r_min,
                             cfg_->gap_manip.K_acc,
-                            orig_beta_left,
-                            orig_beta_right);
+                            local_goal_dist);
         
-        // std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
+        // or if model is invalid?
+        bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
+        if (selectedGap.goal.discard || invalid_models) {
+            std::cout << "discarding gap" << std::endl;
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+            return return_tuple;
+        }
+        
+        double gap_passage_threshold = 1.0;
+        if (time_to_pass > 0 && time_to_pass < gap_passage_threshold) {
+            std::cout << "rejected, deemed unsafe" << std::endl;
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+            return return_tuple;
+        }
+        
+        
         //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
         // std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
@@ -245,9 +231,8 @@ namespace dynamic_gap{
         //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
         //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
         
-        std::cout << "starting trajectory generation" << std::endl;
-        double start_end_dist = std::sqrt(pow(selectedGap.goal.x - x[0], 2) + pow(selectedGap.goal.y - x[1], 2));
-        std::cout << "distance from start to goal: " << start_end_dist << std::endl;
+        //std::cout << "starting trajectory generation" << std::endl;
+        //std::cout << "distance from start to goal: " << local_goal_dist << std::endl;
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,
             cfg_->traj.integrate_maxt,
@@ -261,10 +246,11 @@ namespace dynamic_gap{
                 p.position.y += selectedGap.qB(1);
             }
         }
-        std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
-        std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
+        //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
+        //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
-        return posearr;
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+        return return_tuple;
     }
 
     [[deprecated("Use single trajectory generation")]]
@@ -295,8 +281,11 @@ namespace dynamic_gap{
         return retarr;
     }
 
-    geometry_msgs::PoseArray GapTrajGenerator::forwardPassTrajectory(geometry_msgs::PoseArray pose_arr)
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple)
     {
+        geometry_msgs::PoseArray pose_arr = std::get<0>(return_tuple);
+        std::vector<double> betadot_lefts = std::get<1>(return_tuple);
+        std::vector<double> betadot_rights = std::get<2>(return_tuple);
         Eigen::Quaternionf q;
         geometry_msgs::Pose old_pose;
         old_pose.position.x = 0;
@@ -320,15 +309,20 @@ namespace dynamic_gap{
         }
         */
         std::vector<geometry_msgs::Pose> shortened;
+        std::vector<double> shortened_betadot_lefts;
+        std::vector<double> shortened_betadot_rights;
         shortened.push_back(old_pose);
-        for (auto pose : pose_arr.poses)
-        {
+        for (int i = 1; i < pose_arr.poses.size(); i++) {
+            auto pose = pose_arr.poses[i];
             dx = pose.position.x - shortened.back().position.x;
             dy = pose.position.y - shortened.back().position.y;
             result = sqrt(pow(dx, 2) + pow(dy, 2));
             if (result > 0.05) {
                 //ROS_WARN_STREAM("result kept at " << result);
                 shortened.push_back(pose);
+                shortened_betadot_lefts.push_back(betadot_lefts[i]);
+                shortened_betadot_rights.push_back(betadot_rights[i]);
+
             } else {
                 //ROS_WARN_STREAM("result cut at " << result);
             }
@@ -355,7 +349,8 @@ namespace dynamic_gap{
         }
         pose_arr.poses.pop_back();
 
-        return pose_arr;
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> shortened_tuple(pose_arr, shortened_betadot_lefts, shortened_betadot_rights);
+        return shortened_tuple;
     }
 
 }

@@ -5,6 +5,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <numeric>
 
 namespace dynamic_gap
 {   
@@ -362,11 +363,21 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
         try {
             for (size_t i = 0; i < vec.size(); i++) {
+                std::cout << "generate traj for gap: " << i << std::endl;
                 // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
-                auto tmp = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
-                tmp = gapTrajSyn->forwardPassTrajectory(tmp);
-                ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(tmp);
-                ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(tmp, cam2odom);
+                std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple;
+                return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
+                return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
+                std::cout << "finished generating trajectory" << std::endl;
+                std::vector<double> betadot_lefts = std::get<1>(return_tuple);
+                std::cout << "obtained betadot lefts" << std::endl;
+                std::vector<double> betadot_rights = std::get<2>(return_tuple);
+                std::cout << "obtained betadot rights" << std::endl;
+                double sum_betadot_left = std::accumulate(betadot_lefts.begin(), betadot_lefts.end(), 0.0);
+                double sum_betadot_right = std::accumulate(betadot_rights.begin(), betadot_rights.end(), 0.0);
+                std::cout << "summed left betadots: " << sum_betadot_left << ", summed right betadots: " << sum_betadot_right << std::endl;
+                ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple));
+                ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 // ROS_WARN_STREAM("ret_traj(" << i << "): size " << ret_traj.at(i).poses.size());
             }
         } catch (...) {
@@ -400,7 +411,8 @@ namespace dynamic_gap
                 int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
-                std::cout << "returning score of " << result_score.at(i) << std::endl;
+                // std::cout << "returning score of " << result_score.at(i) << std::endl;
+                std::cout << "assigning gap " << i << "'s trajectory a score of " << result_score.at(i) << std::endl;
             }
         } catch (...) {
             ROS_FATAL_STREAM("pickTraj");
@@ -584,7 +596,7 @@ namespace dynamic_gap
         // double begin_time = ros::Time::now().toSec();
         updateTF();
 
-        std::cout << "running gap manipulate" << std::endl;
+        //  std::cout << "running gap manipulate" << std::endl;
         auto gap_set = gapManipulate();
 
         // std::cout << "associating" << std::endl;

@@ -148,10 +148,8 @@ namespace dynamic_gap {
     void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> a_odom) {
         // acceleration comes in in world frame
         a = a_odom;
-        //std::cout << "y at start" << std::endl;
-        //std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        //std::cout << "y_tilde" << std::endl; 
-        //std::cout << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
+        std::cout << "y at start: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
         //std::cout << "acceleration" << std::endl;
         //std::cout << a[0] << ", " << a[1] << std::endl;
         
@@ -169,14 +167,12 @@ namespace dynamic_gap {
         //std::cout<< "updating Kalman gain" << std::endl;
 
         tmp_mat = H*P*H.transpose() + R;
-        Matrix<double,3,3> stupid_mat = tmp_mat.inverse();
-        //std::cout << "tmp mat: " << tmp_mat << std::endl;
-        G = P * H.transpose() * stupid_mat;
+        Matrix<double,3,3> inverted_tmp_mat = tmp_mat.inverse();
+        G = P * H.transpose() * inverted_tmp_mat;
         //std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         y = y + G*(y_tilde - H*y);
-        //std::cout << "y after update" << std::endl;
-        //std::cout << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        std::cout << "y after update" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
         //std::cout << "P after update: " << P << std::endl;

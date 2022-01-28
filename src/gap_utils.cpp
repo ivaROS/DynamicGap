@@ -8,7 +8,7 @@ namespace dynamic_gap {
     GapUtils::GapUtils(const DynamicGapConfig& cfg) {
         cfg_ = & cfg;
     }
-
+    
     void GapUtils::bisectNonConvexGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap> & observed_gaps) {
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();

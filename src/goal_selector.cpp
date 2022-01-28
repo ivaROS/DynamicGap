@@ -33,20 +33,23 @@ namespace dynamic_gap {
 
         boost::mutex::scoped_lock glock(goal_select_mutex);
         boost::mutex::scoped_lock llock(lscan_mutex);
-        // getting snippet of global trajectory in robot frame
+        // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
         auto local_gplan = getRelevantGlobalPlan(map2rbt);
         if (local_gplan.size() < 1) return;
 
 
-        // finding first place where we are visible/obstructed 
+        // finding first place in global plan where we are visible/obstructed 
         auto result_rev = std::find_if(local_gplan.rbegin(), local_gplan.rend(), 
             std::bind1st(std::mem_fun(&GoalSelector::VisibleOrPossiblyObstructed), this));
+
+
         // finding first place where we are not visible?
         auto result_fwd = std::find_if(local_gplan.begin(), local_gplan.end(), 
             std::bind1st(std::mem_fun(&GoalSelector::NoTVisibleOrPossiblyObstructed), this));
 
         if (cfg_->planning.far_feasible) {
             // if we have gotten all the way to the end of the snippet, set that as the local goal
+            // if whole snippet is not visible/ possibly obstructed?
             if (result_rev == local_gplan.rend()) result_rev = std::prev(result_rev); 
             local_goal = *result_rev;
         } else {
@@ -114,11 +117,13 @@ namespace dynamic_gap {
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         threshold = (double) *std::max_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
 
-        // Find closest pose to robot
+        // Find closest pose to robot to start the global plan snippet
         auto start_pose = std::min_element(distance.begin(), distance.end());
+
         // find_if returns iterator for which predicate is true within range (start_pose, distance.end()). You would
         // imagine that as distance goes on, the distances get greater.
         // bind1st: binds "this" object to the isNotWithin function?
+
         // end_pose is the first point within distance that lies beyond the robot scan.
         auto end_pose = std::find_if(start_pose, distance.end(),
             std::bind1st(std::mem_fun(&GoalSelector::isNotWithin), this));

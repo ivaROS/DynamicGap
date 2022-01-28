@@ -43,7 +43,7 @@ namespace dynamic_gap {
 
         // no chance it can be non-convex here
         if (thetalr < thetalf || small_gap) {
-            std::cout << "setting goal to middle of two" << std::endl;
+            // std::cout << "setting goal to middle of two" << std::endl;
             //gap.goal.x = (x1 + x2) / 2;
             //gap.goal.y = (y1 + y2) / 2;
             if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
@@ -61,7 +61,7 @@ namespace dynamic_gap {
             gap.goal.x = mid_dist*std::cos(mid_theta);
             gap.goal.y = mid_dist*std::sin(mid_theta);
             gap.goal.discard = thetalr < thetalf;
-            std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            // std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.set = true;
             return;
         }
@@ -97,9 +97,9 @@ namespace dynamic_gap {
         //std::cout << "left idx: " << gap.convex.convex_lidx << std::endl;
         //std::cout << "right idx: " << gap.convex.convex_ridx << std::endl;
         if (checkGoalVisibility(localgoal)) {
-            std::cout << "goal is visible" << std::endl;
+            //std::cout << "goal is visible" << std::endl;
             if (!(gap.convex.convex_lidx < localgoal_idx && localgoal_idx < gap.convex.convex_ridx)) {
-                std::cout << "goal outside gap, forcing to middle" << std::endl;
+                //std::cout << "goal outside gap, forcing to middle" << std::endl;
                 // get avg of l/r dist, avg of l/r indices, just place goal there
                 if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
                     mid_idx = std::floor((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2);
@@ -118,19 +118,19 @@ namespace dynamic_gap {
                 //std::cout << "mid_idx: " << mid_idx << ", mid_theta: " << mid_theta << std::endl;
                 //std::cout << "setting new goal: " << mid_dist*std::cos(mid_theta) << ", " << mid_dist*std::sin(mid_theta) << std::endl;
             } else {
-                std::cout << "setting gap to local goal" << std::endl;
+                //std::cout << "setting gap to local goal" << std::endl;
                 gap.goal.x = localgoal.pose.position.x;
                 gap.goal.y = localgoal.pose.position.y;
                 gap.goal.set = true;
                 gap.goal.goalwithin = true;
             }   
-            std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            //std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             return;
         }
 
-        std::cout << "goal is not visible" << std::endl;
+        //std::cout << "goal is not visible" << std::endl;
         if (!(gap.convex.convex_lidx < localgoal_idx < gap.convex.convex_ridx)) {
-            std::cout << "goal outside gap" << std::endl;
+            //std::cout << "goal outside gap" << std::endl;
             // get avg of l/r dist, avg of l/r indices, just place goal there
             if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
                 mid_idx = std::floor((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2);
@@ -149,13 +149,13 @@ namespace dynamic_gap {
             //std::cout << "mid_idx: " << mid_idx << ", mid_theta: " << mid_theta << std::endl;
             //std::cout << "setting new goal: " << mid_dist*cos(mid_theta) << ", " << mid_dist*sin(mid_theta) << std::endl;
         } else {
-            std::cout << "setting gap to goal pt" << std::endl;
+            //std::cout << "setting gap to goal pt" << std::endl;
             gap.goal.x = goal_pt(0);
             gap.goal.y = goal_pt(1);
             //std::cout << "normal goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.set = true;
         }
-        std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        //std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
         return;
     }
 
@@ -198,8 +198,8 @@ namespace dynamic_gap {
         // is this truthful to non-convex situations?
         // msg is from egocircle
         double angular_size = (ridx - lidx) * (msg.get()->angle_increment);
-        std::cout << "lidx: " << lidx << ", ridx: " << ridx << std::endl;
-        std::cout << "angular size: " << angular_size << std::endl;
+        // std::cout << "lidx: " << lidx << ", ridx: " << ridx << std::endl;
+        // std::cout << "angular size: " << angular_size << std::endl;
 
         // also pi
         if (angular_size < cfg_->gap_manip.reduction_threshold){
@@ -237,9 +237,9 @@ namespace dynamic_gap {
         float rdist = gap.RDist();
         float new_ldist = float(new_l - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
         float new_rdist = float(new_r - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
-        std::cout << "new_l: " << new_l << ", new_r: " << new_r << std::endl;
+        //std::cout << "new_l: " << new_l << ", new_r: " << new_r << std::endl;
         // std::cout << "new_l dist: " << new_ldist + cfg_->gap_viz.viz_jitter << ", new_r dist: " << new_rdist + cfg_->gap_viz.viz_jitter << std::endl;
-        std::cout << "new angular size: " << (new_r - new_l) * (msg.get()->angle_increment) << std::endl;
+        //std::cout << "new angular size: " << (new_r - new_l) * (msg.get()->angle_increment) << std::endl;
         gap.convex.convex_lidx = new_l;
         gap.convex.convex_ridx = new_r;
         gap.convex.convex_ldist = new_ldist + cfg_->gap_viz.viz_jitter;
