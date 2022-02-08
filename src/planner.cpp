@@ -137,12 +137,14 @@ namespace dynamic_gap
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
             // getting raw gaps
-            finder->hybridScanGap(msg, observed_gaps);
-            gapvisualizer->drawGaps(observed_gaps, std::string("raw"));
-            // getting simplified gaps
-            finder->mergeGapsOneGo(msg, observed_gaps);
-            //std::cout << "STARTING BISECT" << std::endl;
-            //finder->bisectNonConvexGap(msg, observed_gaps);
+            // need to keep track of previous raw gaps and current raw gaps
+            //previous_raw_gaps = raw_gaps;
+            finder->hybridScanGap(msg, raw_gaps);
+            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
+            //raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps);
+            //update_models(raw_gaps);
+
+            observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {

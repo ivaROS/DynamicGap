@@ -79,6 +79,8 @@ namespace dynamic_gap
         ros::Subscriber rbt_accel_sub;
 
         std::vector<int> association;
+        std::vector<int> raw_association;
+
 
         // Goals and stuff
         // double goal_orientation;
@@ -87,8 +89,10 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped final_goal_odom;
 
         // Gaps:
+        std::vector<dynamic_gap::Gap> raw_gaps;
         std::vector<dynamic_gap::Gap> observed_gaps;
         std::vector<dynamic_gap::Gap> previous_gaps;
+        std::vector<dynamic_gap::Gap> previous_raw_gaps;
         std::vector<dynamic_gap::Gap> merged_gaps;
         std::vector<dynamic_gap::Gap> selected_gap_set;
         std::vector<dynamic_gap::Gap> ftg_gaps;

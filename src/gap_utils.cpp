@@ -8,89 +8,6 @@ namespace dynamic_gap {
     GapUtils::GapUtils(const DynamicGapConfig& cfg) {
         cfg_ = & cfg;
     }
-    /*
-    void GapUtils::bisectNonConvexGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-        std::vector<dynamic_gap::Gap> & observed_gaps) {
-        sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        std::string frame = stored_scan_msgs.header.frame_id;
-        float half_scan = float(stored_scan_msgs.ranges.size() / 2);
-        auto min_dist = *std::min_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
-
-        for (int i = 0; i < (int) observed_gaps.size(); i++)
-        {
-            std::cout << "checking bisect of single: (" << observed_gaps.at(i).LIdx() << ", " << observed_gaps.at(i).RIdx() << std::endl;
-            bool needToBisect = observed_gaps.at(i).RIdx() - observed_gaps.at(i).LIdx() > half_scan;
-            if (needToBisect) {
-                dynamic_gap::Gap gap = observed_gaps.at(i);
-                auto half_num_scan = gap.half_scan;
-                float x1, x2, y1, y2;
-                x1 = (gap.convex.convex_ldist) * cos(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
-                y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-                x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-                y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-                std::cout << "bisecting x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-                Eigen::Vector2f pl(x1, y1);
-                Eigen::Vector2f pr(x2, y2);
-
-                // this means that the idces of gap say it's convex, but the local goal is put on non-convex side, making it non-convex.
-                double l_idx = gap.LIdx();
-                double r_idx = gap.RIdx();
-                // std::cout << "l_idx: " << l_idx << ", r_idx:" << r_idx << std::endl;
-                double l_dist = gap.LDist();
-                double r_dist = gap.RDist();
-                int mid_idx;
-
-                if (l_idx < half_num_scan && r_idx > half_num_scan) {
-                    // straddling
-                    mid_idx = std::floor(l_idx + r_idx) / 2;
-                } else {
-                    mid_idx = half_num_scan*2 - std::floor(l_idx + r_idx) / 2;
-                }
-                //std::cout << "mid_idx: " << mid_idx << std::endl;
-                
-                double new_dist = stored_scan_msgs.ranges.at(mid_idx);
-                double next_new_dist = stored_scan_msgs.ranges.at(mid_idx + 1);
-                //std::cout << "new_dist: " << new_dist << ", next_new_dist: " << next_new_dist << std::endl;
-                
-                // straddling
-                // have to initialize to get models
-                // make first gap
-                dynamic_gap::Gap first_gap(frame, l_idx, l_dist, gap.half_scan);
-                // std::cout << "creating first gap" << std::endl;
-                first_gap.addRightInformation(mid_idx, new_dist);
-                first_gap.setMinSafeDist(min_dist);
-                // make second gap
-                // std::cout << "creating second gap" << std::endl;
-                dynamic_gap::Gap second_gap(frame, mid_idx + 1, next_new_dist, gap.half_scan);
-                second_gap.addRightInformation(r_idx, r_dist);
-                second_gap.setMinSafeDist(min_dist);
-                
-                observed_gaps.at(i) = first_gap;
-                observed_gaps.push_back(second_gap);
-                float first_x1,first_y1,first_x2,first_y2;
-                first_x1 = (first_gap.convex.convex_ldist) * cos(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                first_y1 = (first_gap.convex.convex_ldist) * sin(-((float) half_num_scan - first_gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-                first_x2 = (first_gap.convex.convex_rdist) * cos(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                first_y2 = (first_gap.convex.convex_rdist) * sin(-((float) half_num_scan - first_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                std::cout << "first bisector: (" << first_x1 << ", " << first_y1 << "), (" << first_x2 << ", " << first_y2 << ")" << std::endl;
-                
-                float second_x1,second_y1,second_x2,second_y2;
-                second_x1 = (second_gap.convex.convex_ldist) * cos(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
-                second_y1 = (second_gap.convex.convex_ldist) * sin(-((float) half_num_scan - second_gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-                second_x2 = (second_gap.convex.convex_rdist) * cos(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                second_y2 = (second_gap.convex.convex_rdist) * sin(-((float) half_num_scan - second_gap.convex.convex_ridx) / half_num_scan * M_PI);
-                std::cout << "second bisector: (" << second_x1 << ", " << second_y1 << "), (" << second_x2 << ", " << second_y2 << ")" << std::endl;
-
-
-                // std::cout << "adding new gaps" << std::endl;
-                return;
-            }
-        }
-    }
-    */
 
     void GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap> & observed_gaps)
@@ -195,7 +112,7 @@ namespace dynamic_gap {
         }
     }
 
-    void GapUtils::mergeGapsOneGo(
+    std::vector<dynamic_gap::Gap> GapUtils::mergeGapsOneGo(
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap>& raw_gaps)
     {
@@ -282,7 +199,7 @@ namespace dynamic_gap {
         }
 
         raw_gaps.clear();
-        raw_gaps = simplified_gaps;
+        return simplified_gaps;
 
     }
 }
