@@ -25,10 +25,15 @@ namespace dynamic_gap {
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
 
-            void setGapWaypoint(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
+            void setValidSliceWaypoint(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
             void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
             void convertAxialGap(dynamic_gap::Gap&);
             void radialExtendGap(dynamic_gap::Gap&);
+            bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
+            void feasibilityCheck(std::vector<dynamic_gap::Gap>&);
+            void determineLeftRightModels(Matrix<double, 5, 1>&, Matrix<double, 5, 1>&, dynamic_gap::Gap&, Eigen::Vector2f);
+            void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
+
         private:
             boost::shared_ptr<sensor_msgs::LaserScan const> msg;
             const DynamicGapConfig* cfg_;

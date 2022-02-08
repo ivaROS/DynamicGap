@@ -80,6 +80,8 @@ namespace dynamic_gap {
         // cumulative cost of poses
         auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
 
+        std::cout << "pose-wise cost: " << total_val << std::endl;
+
         // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
         {
@@ -88,13 +90,18 @@ namespace dynamic_gap {
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 1 && total_val > -10) {
-                // std::cout << "returning really good trajectory" << std::endl;
+                std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
+            std::cout << "terminal cost: " << -terminal_cost << std::endl;
             cost_val.at(0) -= terminal_cost;
         }
-        
+
+        // cumulative cost of poses
+        auto after_terminal_total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
+
+        // std::cout << "after terminal total cost: " << after_terminal_total_val << std::endl;
         return cost_val;
     }
 
@@ -106,7 +113,9 @@ namespace dynamic_gap {
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
+    // if we wanted to incorporate how egocircle can change, 
     double TrajectoryArbiter::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) {
+        // ego circle point in local frame, pose in local frame
         float x = dist * std::cos(theta);
         float y = dist * std::sin(theta);
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
@@ -145,7 +154,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::chapterScore(double d) {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         if (d < r_inscr * cfg_->traj.inf_ratio) {
-            std::cout << "pose too close to obstacle, returning -inf" << std::endl;
+            // sum of betadot leftsstd::cout << "pose too close to obstacle, returning -inf" << std::endl;
             return -std::numeric_limits<double>::infinity();
         }
         // if distance is essentially infinity, return 0

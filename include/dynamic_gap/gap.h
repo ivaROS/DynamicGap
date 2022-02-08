@@ -247,6 +247,7 @@ namespace dynamic_gap
             bool goal_within = false;
             bool goal_dir_within = false;
             float life_time = 1.0;
+            double gap_lifespan = 0.0;
             bool agc = false;
 
             int _left_idx = 0;
@@ -275,6 +276,11 @@ namespace dynamic_gap
             bool right_obs = true;
             bool _axial = false;
             bool left_type = false;
+
+            int swept_convex_lidx = 0;
+            int swept_convex_ridx = 0;
+            float swept_convex_ldist = 3;
+            float swept_convex_rdist = 3;
 
             struct converted {
                 int convex_lidx = 0;

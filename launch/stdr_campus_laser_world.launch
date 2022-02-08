@@ -18,6 +18,7 @@
 
 	<node pkg="tf" type="static_transform_publisher" name="world2kmap" args="0 0 0 0 0 0  world known_map 20" />
 
+	<!-- need to re-call this? -->
 	<node type="stdr_server_node" pkg="stdr_server" name="stdr_server" output="screen" args="$(arg stdr_map)"/>
 
 	<node pkg="tf" type="static_transform_publisher" name="world2map" args="0 0 0 0 0 0  world map 20" />

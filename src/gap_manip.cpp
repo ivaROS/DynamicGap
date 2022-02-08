@@ -7,8 +7,8 @@ namespace dynamic_gap {
         num_of_scan = (int)(msg.get()->ranges.size());
     }
 
-    void GapManipulator::setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal){
-        // std::cout << "setting gap waypoint" << std::endl;
+    bool GapManipulator::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) {
+        bool feasible;
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
         int mid_idx;
@@ -17,19 +17,313 @@ namespace dynamic_gap {
 
         x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-        // std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+       
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
+        Eigen::Vector2f pg = (pl + pr) / 2.0;
+        // I don't think this is guaranteed
+        Matrix<double, 5, 1> left_model_state;
+        Matrix<double, 5, 1> right_model_state;
+        determineLeftRightModels(left_model_state, right_model_state, gap, pg);
+        //std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
+        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
+        // TODO: make sure that this is always less than 180, make sure convex
         
-        // if agc. then the shorter side need to be further in
+        double gap_angle;
+        if (right_ori > left_ori) {
+            gap_angle = right_ori - left_ori;
+        } else {
+            gap_angle = left_ori - right_ori;
+        }
+        
+        //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
+        //std::cout << "left ori: " << left_ori << ", right ori: " << right_ori << ", gap angle: " << gap_angle << std::endl;
+
+        //std::cout << " gap convex l_idx: " << gap.convex.convex_lidx << ", gap convex r_idx: " << gap.convex.convex_ridx << std::endl;
+
+        // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
+        //std::cout << "y_left: " << left_model_state(0) << ", " << left_model_state(1) << ", " << left_model_state(2) << ", " << left_model_state(3) << ", " << left_model_state(4) << std::endl;
+        //std::cout << "y_right: " << right_model_state(0) << ", " << right_model_state(1) << ", " << right_model_state(2) << ", " << right_model_state(3) << ", " << right_model_state(4) << std::endl; 
+        
+        double nom_rbt_vel = 0.25;
+        double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
+
+        // FEASIBILITY CHECK
+        if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {
+            // CATEGORY 1: TRANSLATING       
+            //std::cout << "gap is translating" << std::endl;
+            if (left_model_state[4] - right_model_state[4] > 0) {
+                //std::cout << "gap is expanding on the whole, is feasible" << std::endl;
+                gap.gap_lifespan = cfg_->traj.integrate_maxt;
+                feasible = true;
+            } else {
+                gap.gap_lifespan = gap_angle / (right_model_state[4] - left_model_state[4]);  
+                if (gap.gap_lifespan > T_rbt2arc) {
+                    //std::cout << "gap lifespan longer than Trbt2arc, feasible" << std::endl;
+                    feasible = true;
+                } else {
+                    //std::cout << "gap lifespan shorter than Trbt2arc, not feasible" << std::endl;
+                    feasible = false;
+                }
+            }
+        } else if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
+            // CATEGORY 2: CLOSING
+            gap.gap_lifespan = gap_angle / (right_model_state[4] - left_model_state[4]);
+            //std::cout << "gap is closing" << std::endl;
+            if (gap.gap_lifespan > T_rbt2arc) {
+                //std::cout << "gap lifespan longer than Trbt2arc, feasible" << std::endl;
+                feasible = true;
+            } else {
+                //std::cout << "gap lifespan shorter than Trbt2arc, not feasible" << std::endl;
+                feasible = false;
+            }
+        } else {
+            // CATEGORY 3: STATIC/EXPANDING
+            //std::cout << "gap is static or expanding, feasible" << std::endl;
+            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            feasible = true;
+        }
+
+        return feasible;
+    }
+    
+    void GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set) {
+        bool gap_i_feasible;
+        int num_gaps = manip_set.size();
+        for (size_t i = 0; i < num_gaps; i++) {
+            // std::cout << "gap " << i << " feasibility check" << std::endl;
+            gap_i_feasible = indivGapFeasibilityCheck(manip_set.at(i));
+            if (!gap_i_feasible) {
+                manip_set.erase(manip_set.begin() + i);
+                num_gaps = manip_set.size();
+                i--;
+            }
+        }
+    }
+    
+    void GapManipulator::determineLeftRightModels(Matrix<double, 5, 1>& left_model_state, Matrix<double, 5, 1>& right_model_state, dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg) {
+        Matrix<double, 5, 1> model_one = selectedGap.left_model->get_state();
+        //std::cout << "nominal left model: " << model_one[0] << ", " << model_one[1] << ", " << model_one[2] << std::endl;
+        Matrix<double, 5, 1> model_two = selectedGap.right_model->get_state();
+        //std::cout << "nominal right model: " << model_two[0] << ", " << model_two[1] << ", " << model_two[2] << std::endl;
+        
+        // are these the correct angles to check?
+        double angle_one = atan2(model_one[1], model_one[2]);
+        double angle_two = atan2(model_two[1], model_two[2]);
+        double angle_goal = atan2(-pg[0], pg[1]);
+        // if all three are positive or negative
+        //std::cout << "angle_one: " << angle_one << ", angle_two: " << angle_two << ", angle_goal: " << angle_goal << std::endl;
+        //std::cout << "picking gap sides" << std::endl;
+        // seems to only do 2,7,9
+        if ((angle_one > 0 && angle_two > 0 && angle_goal > 0) ||
+            (angle_one < 0 && angle_two < 0 && angle_goal < 0)) {
+            if (angle_one > angle_two) {
+                //std::cout << "1" << std::endl;
+                left_model_state = model_one;
+                right_model_state = model_two;
+            } else {
+                //std::cout << "2" << std::endl;
+                left_model_state = model_two;
+                right_model_state = model_one;
+            }
+        } else if ((angle_one > 0 && angle_two > 0) || (angle_one < 0 && angle_two < 0)) {
+            if (angle_one > angle_two) {
+                //std::cout << "3" << std::endl;
+                right_model_state = model_one;
+                left_model_state = model_two;
+            } else {
+                //std::cout << "4" << std::endl;
+                right_model_state = model_two;
+                left_model_state = model_one;
+            }
+        } else if (angle_one > 0 && angle_goal > 0 && angle_two < 0) {
+            if (angle_goal < angle_one) {
+                //std::cout << "5" << std::endl;
+                left_model_state = model_one;
+                right_model_state = model_two;
+            } else {
+                //std::cout << "6" << std::endl;
+                left_model_state = model_two;
+                right_model_state = model_one;
+            }
+        } else if (angle_two > 0 && angle_goal > 0 && angle_one < 0) {
+            if (angle_goal < angle_two) {
+                //std::cout << "7" << std::endl;
+                left_model_state = model_two;
+                right_model_state = model_one;
+            } else {
+                //std::cout << "8" << std::endl;
+                left_model_state = model_one;
+                right_model_state = model_two;
+            }
+        } else if (angle_one < 0 && angle_goal < 0 && angle_two > 0) {
+            if (angle_goal > angle_one) {
+                //std::cout << "9" << std::endl;
+                right_model_state = model_one;
+                left_model_state = model_two;
+            } else {
+                //std::cout << "10" << std::endl;
+                left_model_state = model_one;
+                right_model_state = model_two;
+            }
+        } else if (angle_two < 0 && angle_goal < 0 && angle_one > 0) {
+            if (angle_goal > angle_two) {
+                //std::cout << "11" << std::endl;
+                right_model_state = model_two;
+                left_model_state = model_one;
+            } else {
+                //std::cout << "12" << std::endl;
+                left_model_state = model_two;
+                right_model_state = model_one;
+            }
+        }
+        return;
+    }
+
+    void GapManipulator::setGapGoal(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
+        std::cout << "in setGapGoal" << std::endl;
+        auto half_num_scan = gap.half_scan;
+        float x1, x2, y1, y2;
+        int mid_idx;
+        x1 = (gap.convex.convex_ldist) * cos(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
+        y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
+
+        x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
+        y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
+       
+        Eigen::Vector2f pl(x1, y1);
+        Eigen::Vector2f pr(x2, y2);
+        Eigen::Vector2f pg = (pl + pr) / 2.0;
+
+        // LEFT AND RIGHT ORI USE THE LIDAR INDEX L/R WHICH IS FLIPPED FROM MODEL L/R
+        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
+        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
+        
+        double nom_rbt_vel = 0.25; // 1/2 of max vel?
+        double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
+
+        // I don't think this is guaranteed
+        Matrix<double, 5, 1> left_model_state;
+        Matrix<double, 5, 1> right_model_state;
+        determineLeftRightModels(left_model_state, right_model_state, gap, pg);
+
+        double swept_left_ori = 0.0;
+        double swept_right_ori = 0.0;
+        
+        // FEASIBILITY CHECK
+        // NOTE: left/right model states are flipped from left/right indices
+        if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {
+            // CATEGORY 1: TRANSLATING       
+            std::cout << "gap is translating" << std::endl;
+            // FLIPPING GOING ON HERE
+            double left_swept = right_model_state[4]*T_rbt2arc; // in radians
+            double right_swept = left_model_state[4]*T_rbt2arc; // in radians
+            swept_left_ori = left_ori + left_swept;
+            swept_right_ori = right_ori + right_swept;
+            int swept_left_idx = (swept_left_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+            int swept_right_idx = (swept_right_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+            //std::cout << "original swept left idx: " << swept_left_idx << ", original swept right idx: " << swept_right_idx << std::endl;
+            //std::cout << "convex lidx: " << gap.convex.convex_lidx << ", convex ridx: " << gap.convex.convex_ridx << std::endl;
+            int count = 0;
+            while (swept_left_idx > gap.convex.convex_ridx || swept_right_idx < gap.convex.convex_lidx) {
+                // if swept left idx crosses original right idx or swept right idx crosses left idx: no valid slice
+                // std::cout << "no valid slice, halving time" << std::endl;
+                T_rbt2arc = T_rbt2arc/2.0;
+                left_swept = right_model_state[4]*T_rbt2arc;
+                right_swept = left_model_state[4]*T_rbt2arc;
+                swept_left_ori = left_ori + left_swept;
+                swept_right_ori = right_ori + right_swept;
+                swept_left_idx = (swept_left_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+                swept_right_idx = (swept_right_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+                // std::cout << "swept left idx: " << swept_left_idx << ", swept right idx: " << swept_right_idx << std::endl;
+                count += 1;
+                if (count > 5) {
+                    break;
+                }
+            }
+            // if valid slice exists, put goal in there
+            gap.swept_convex_ldist = gap.convex.convex_ldist;
+            gap.swept_convex_rdist = gap.convex.convex_rdist;
+            gap.swept_convex_lidx = std::max(swept_left_idx, gap.convex.convex_lidx); // taking max to keep within gap at T=0
+            gap.swept_convex_ridx = std::min(swept_right_idx, gap.convex.convex_ridx); // taking min to keep within gap at T=0
+        } else if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
+            // CATEGORY 2: CLOSING
+            std::cout << "gap is closing" << std::endl;
+            // FLIPPING GOING ON HERE
+            double left_swept = right_model_state[4]*T_rbt2arc; // in radians
+            double right_swept = left_model_state[4]*T_rbt2arc; // in radians
+            swept_left_ori = left_ori + left_swept;
+            swept_right_ori = right_ori + right_swept;
+            int swept_left_idx = (swept_left_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+            int swept_right_idx = (swept_right_ori - msg.get()->angle_min) / msg.get()->angle_increment;
+            // set valid gap between these
+            gap.swept_convex_ldist = gap.convex.convex_ldist;
+            gap.swept_convex_rdist = gap.convex.convex_rdist;
+            gap.swept_convex_lidx = swept_left_idx;
+            gap.swept_convex_ridx = swept_right_idx;
+        } else {
+            // CATEGORY 3: STATIC/EXPANDING
+            std::cout << "gap is static or expanding" << std::endl;
+            gap.swept_convex_ldist = gap.convex.convex_ldist;
+            gap.swept_convex_rdist = gap.convex.convex_rdist;
+            gap.swept_convex_lidx = gap.convex.convex_lidx;
+            gap.swept_convex_ridx = gap.convex.convex_ridx;
+        }
+
+        // do we need wrapping?
+        while (gap.swept_convex_lidx < 0) {
+            gap.swept_convex_lidx += 2*gap.half_scan;
+        }
+        while (gap.swept_convex_lidx > 512) {
+            gap.swept_convex_lidx -= 2*gap.half_scan;
+        }
+        while (gap.swept_convex_ridx < 0) {
+            gap.swept_convex_ridx += 2*gap.half_scan;
+        }
+        while (gap.swept_convex_ridx > 512) {
+            gap.swept_convex_ridx -= 2*gap.half_scan;
+        }
+
+        std::cout << "FINAL" << std::endl;
+        std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << ", left ori: " << left_ori << ", right ori: " << right_ori << std::endl;
+        std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << ", swept left ori: " << swept_left_ori << ", swept right ori: " << swept_right_ori << std::endl;
+
+        setValidSliceWaypoint(gap, localgoal);
+    }
+    
+    // at this point, all gaps are feasible
+    void GapManipulator::setValidSliceWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal){
+        // std::cout << "in setValidSliceWaypoint" << std::endl;
+        auto half_num_scan = gap.half_scan;
+        float x1, x2, y1, y2;
+        int mid_idx;
+        x1 = (gap.swept_convex_ldist) * cos(-((float) half_num_scan - gap.swept_convex_lidx) / half_num_scan * M_PI);
+        y1 = (gap.swept_convex_ldist) * sin(-((float) half_num_scan - gap.swept_convex_lidx) / half_num_scan * M_PI);
+
+        x2 = (gap.swept_convex_rdist) * cos(-((float) half_num_scan - gap.swept_convex_ridx) / half_num_scan * M_PI);
+        y2 = (gap.swept_convex_rdist) * sin(-((float) half_num_scan - gap.swept_convex_ridx) / half_num_scan * M_PI);
+       
+        Eigen::Vector2f pl(x1, y1);
+        Eigen::Vector2f pr(x2, y2);
+        // I don't think this is guaranteed
+        auto left_ori = gap.swept_convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
+        auto right_ori = gap.swept_convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
+        // TODO: make sure that this is always less than 180, make sure convex
+        double gap_angle = right_ori - left_ori;
+
+        //double closing_rate = right_model_state[4] - left_model_state[4];
+        //double time_to_pass = gap_angle / closing_rate;
+        //std::cout << "time to pass: " time_to_pass << ", rbt time to arc: " << rbt_time_to_arc << std::endl;
+        
+        // need to check if gap is feasible. If not, just set gap goal to 0
+        
+        // if agc (AXIAL GAP CONVERSION). then the shorter side need to be further in
         auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
         auto thetalf = car2pol(lf)(1);
         auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
         auto thetalr = car2pol(lr)(1);
         
-        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
-        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
-
         // Second condition: if angle smaller than M_PI / 3
         // Check if arc length < 3 robot width
         bool gap_size_check = right_ori - left_ori < M_PI;
@@ -43,119 +337,78 @@ namespace dynamic_gap {
 
         // no chance it can be non-convex here
         if (thetalr < thetalf || small_gap) {
-            // std::cout << "setting goal to middle of two" << std::endl;
-            //gap.goal.x = (x1 + x2) / 2;
-            //gap.goal.y = (y1 + y2) / 2;
-            if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
-                mid_idx = std::floor((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2);
-            } else {
-                int left_rem = 2*half_num_scan - gap.convex.convex_lidx;
-                if (left_rem < gap.convex.convex_ridx) {
-                    mid_idx = std::floor((left_rem + gap.convex.convex_ridx)/2);
-                } else {
-                    mid_idx = 2*half_num_scan - std::floor((left_rem + gap.convex.convex_ridx)/2);
-                }
-            }
-            double mid_dist = (gap.convex.convex_ldist + gap.convex.convex_rdist) / 2; //msg.get()->ranges.at(mid_idx);
-            double mid_theta = (mid_idx / half_num_scan)* M_PI - M_PI;
-            gap.goal.x = mid_dist*std::cos(mid_theta);
-            gap.goal.y = mid_dist*std::sin(mid_theta);
+            gap.goal.x = (x1 + x2) / 2;
+            gap.goal.y = (y1 + y2) / 2;
+            std::cout << "first case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.discard = thetalr < thetalf;
-            // std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.set = true;
+            return;
+        }
+
+        // if localgoal is within gap, just put it there
+        if (checkGoalVisibility(localgoal)) {
+            gap.goal.x = localgoal.pose.position.x;
+            gap.goal.y = localgoal.pose.position.y;
+            std::cout << "second case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            gap.goal.set = true;
+            gap.goal.goalwithin = true;
             return;
         }
         
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+        // confined_theta: confining this value to within angular space of gap, bias it to be closer to local goal
         float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
-        float confined_r = (gap.convex.convex_rdist - gap.convex.convex_ldist) * (confined_theta - thetalf) / (thetalr - thetalf)
-            + gap.convex.convex_ldist;
+        // like convex combination, interpolating from l_dist to r_dist 
+        float confined_r = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (confined_theta - thetalf) / (thetalr - thetalf)
+            + gap.swept_convex_ldist;
         float xg = confined_r * cos(confined_theta);
         float yg = confined_r * sin(confined_theta);
+        // anchor is then on arc of gap, within angular space
         Eigen::Vector2f anchor(xg, yg);
+
+        double anchor_orientation = std::atan2(yg, xg);
+        double anchor_idx = std::floor(anchor_orientation*half_num_scan/M_PI + half_num_scan);
+        std::cout << "anchor idx: " << anchor_idx << ", anchor: " << xg << ", " << yg << std::endl;
         Eigen::Matrix2f r_negpi2;
             r_negpi2 << 0,1,-1,0;
         auto offset = r_negpi2 * (pr - pl);
+        // goal point is offset so that it's slightly beyond gap, biases it to be more in the middle of the gap
         auto goal_pt = offset * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + anchor;
 
-        float r1 = gap.convex.convex_ldist;
-        float r2 = gap.convex.convex_rdist;
-        double r_close = (double) std::min(r1, r2);
-        double goal_dist = sqrt(
-            pow(localgoal.pose.position.y, 2) + 
-            pow(localgoal.pose.position.x, 2)
-        );
+        gap.goal.x = goal_pt(0);
+        gap.goal.y = goal_pt(1);
+        gap.goal.set = true;
 
-        double p1_goal_dot = x1*localgoal.pose.position.x + y1*localgoal.pose.position.y;
-        double p2_goal_dot = x2*localgoal.pose.position.x + y2*localgoal.pose.position.y;
 
-        double localgoal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
-        //std::cout << "starting trajectory generation" << std::endl;
-        //std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        //std::cout << "local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
-        //std::cout << "localgoal idx: " << localgoal_idx << std::endl;
-        //std::cout << "left idx: " << gap.convex.convex_lidx << std::endl;
-        //std::cout << "right idx: " << gap.convex.convex_ridx << std::endl;
-        if (checkGoalVisibility(localgoal)) {
-            //std::cout << "goal is visible" << std::endl;
-            if (!(gap.convex.convex_lidx < localgoal_idx && localgoal_idx < gap.convex.convex_ridx)) {
-                //std::cout << "goal outside gap, forcing to middle" << std::endl;
-                // get avg of l/r dist, avg of l/r indices, just place goal there
-                if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
-                    mid_idx = std::floor((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2);
-                } else {
-                    int left_rem = 2*half_num_scan - gap.convex.convex_lidx;
-                    if (left_rem < gap.convex.convex_ridx) {
-                        mid_idx = std::floor((left_rem + gap.convex.convex_ridx)/2);
-                    } else {
-                        mid_idx = 2*half_num_scan - std::floor((left_rem + gap.convex.convex_ridx)/2);
-                    }
+        // THIRD CASE WILL PUSH IT OUT. anchor is always fine. offset pushes it out. maybe bound to edges of valid slice
+        double gap_goal_orientation = std::atan2(gap.goal.y, gap.goal.x);
+        double gap_goal_idx = std::floor(gap_goal_orientation*half_num_scan/M_PI + half_num_scan);
+        std::cout << "gap goal idx: " << gap_goal_idx << std::endl;
+
+        if (gap.swept_convex_lidx < gap.swept_convex_rdist) {
+            if (!(gap.swept_convex_lidx <= gap_goal_idx && gap_goal_idx <= gap.swept_convex_ridx)) {
+                std::cout << "gap goal outside gap" << std::endl;
+                gap.goal.x = anchor(0);
+                gap.goal.y = anchor(1);
+            }
+        } else {
+            if (gap_goal_idx <= 2*gap.half_scan) {
+                if (!(gap.swept_convex_lidx <= gap_goal_idx && gap_goal_idx <= (gap.swept_convex_ridx + 2*gap.half_scan))) {
+                    std::cout << "gap goal outside gap" << std::endl;
+                    gap.goal.x = anchor(0);
+                    gap.goal.y = anchor(1);
                 }
-                double mid_dist = (gap.convex.convex_ldist + gap.convex.convex_rdist) / 2;
-                double mid_theta = (mid_idx / half_num_scan)* M_PI - M_PI;
-                gap.goal.x = mid_dist*std::cos(mid_theta);
-                gap.goal.y = mid_dist*std::sin(mid_theta);
-                //std::cout << "mid_idx: " << mid_idx << ", mid_theta: " << mid_theta << std::endl;
-                //std::cout << "setting new goal: " << mid_dist*std::cos(mid_theta) << ", " << mid_dist*std::sin(mid_theta) << std::endl;
             } else {
-                //std::cout << "setting gap to local goal" << std::endl;
-                gap.goal.x = localgoal.pose.position.x;
-                gap.goal.y = localgoal.pose.position.y;
-                gap.goal.set = true;
-                gap.goal.goalwithin = true;
-            }   
-            //std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            return;
-        }
-
-        //std::cout << "goal is not visible" << std::endl;
-        if (!(gap.convex.convex_lidx < localgoal_idx < gap.convex.convex_ridx)) {
-            //std::cout << "goal outside gap" << std::endl;
-            // get avg of l/r dist, avg of l/r indices, just place goal there
-            if (gap.convex.convex_ridx > gap.convex.convex_lidx) {
-                mid_idx = std::floor((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2);
-            } else {
-                int left_rem = 2*half_num_scan - gap.convex.convex_lidx;
-                if (left_rem < gap.convex.convex_ridx) {
-                    mid_idx = std::floor((left_rem + gap.convex.convex_ridx)/2);
-                } else {
-                    mid_idx = 2*half_num_scan - std::floor((left_rem + gap.convex.convex_ridx)/2);
+                if (!(gap.swept_convex_lidx <= (gap_goal_idx + 2*gap.half_scan) && (gap_goal_idx + 2*gap.half_scan) <= (gap.swept_convex_ridx + 2*gap.half_scan))) {
+                    std::cout << "gap goal outside gap" << std::endl;
+                    gap.goal.x = anchor(0);
+                    gap.goal.y = anchor(1);
                 }
             }
-            double mid_dist = (gap.convex.convex_ldist + gap.convex.convex_rdist) / 2;
-            double mid_theta = (mid_idx / half_num_scan)* M_PI - M_PI;
-            gap.goal.x = mid_dist*std::cos(mid_theta);
-            gap.goal.y = mid_dist*std::sin(mid_theta);
-            //std::cout << "mid_idx: " << mid_idx << ", mid_theta: " << mid_theta << std::endl;
-            //std::cout << "setting new goal: " << mid_dist*cos(mid_theta) << ", " << mid_dist*sin(mid_theta) << std::endl;
-        } else {
-            //std::cout << "setting gap to goal pt" << std::endl;
-            gap.goal.x = goal_pt(0);
-            gap.goal.y = goal_pt(1);
-            //std::cout << "normal goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            gap.goal.set = true;
+
         }
-        //std::cout << "gap goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        std::cout << "third case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        // need to check again if gap goals being placed outside gaps
         return;
     }
 

@@ -136,8 +136,10 @@ namespace dynamic_gap
 
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
+            // getting raw gaps
             finder->hybridScanGap(msg, observed_gaps);
             gapvisualizer->drawGaps(observed_gaps, std::string("raw"));
+            // getting simplified gaps
             finder->mergeGapsOneGo(msg, observed_gaps);
             //std::cout << "STARTING BISECT" << std::endl;
             //finder->bisectNonConvexGap(msg, observed_gaps);
@@ -346,13 +348,11 @@ namespace dynamic_gap
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
-                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // set local goal
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
         }
 
-        goalvisualizer->drawGapGoals(manip_set);
         gapvisualizer->drawManipGaps(manip_set);
         return manip_set;
     }
@@ -370,18 +370,29 @@ namespace dynamic_gap
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple;
                 return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
                 return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
-                std::cout << "finished generating trajectory" << std::endl;
+                //std::cout << "finished generating trajectory" << std::endl;
                 std::vector<double> betadot_lefts = std::get<1>(return_tuple);
-                std::cout << "obtained betadot lefts" << std::endl;
+                //std::cout << "obtained betadot lefts" << std::endl;
                 std::vector<double> betadot_rights = std::get<2>(return_tuple);
-                std::cout << "obtained betadot rights" << std::endl;
-                double sum_betadot_left = std::accumulate(betadot_lefts.begin(), betadot_lefts.end(), 0.0);
-                double sum_betadot_right = std::accumulate(betadot_rights.begin(), betadot_rights.end(), 0.0);
-                std::cout << "summed left betadots: " << sum_betadot_left << ", summed right betadots: " << sum_betadot_right << std::endl;
+                //std::cout << "obtained betadot rights" << std::endl;
+                std::cout << "getting max's and min's" << std::endl;
+                if (betadot_lefts.size() > 0) { 
+                    auto min_betadot_left = std::min_element(betadot_lefts.begin(), betadot_lefts.end());
+                    auto max_betadot_left = std::max_element(betadot_lefts.begin(), betadot_lefts.end());
+                    auto min_betadot_right = std::min_element(betadot_rights.begin(), betadot_rights.end());
+                    auto max_betadot_right = std::max_element(betadot_rights.begin(), betadot_rights.end());
+                    std::cout << "getting sums" << std::endl;
+                    double sum_betadot_left = std::accumulate(betadot_lefts.begin(), betadot_lefts.end(), 0.0);
+                    double sum_betadot_right = std::accumulate(betadot_rights.begin(), betadot_rights.end(), 0.0);
+                    std::cout << "sum of betadot lefts: " << sum_betadot_left << ", sum of betadot rights: " << sum_betadot_right << std::endl;
+                    std::cout << "first left betadot: " << *betadot_lefts.begin() << ", first right betadot: " << *betadot_rights.begin() << std::endl;
+                    std::cout << "last left betadot: " << *betadot_lefts.end() << ", last right betadot: " << *betadot_rights.end() << std::endl;
+                    std::cout << "minimum left betadots: " << *min_betadot_left << ", maximum left betadots: " << *max_betadot_left << std::endl;
+                    std::cout << "minimum right betadots: " << *min_betadot_right << ", maximum right betadots: " << *max_betadot_right << std::endl;
+                }
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple));
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
-                // ROS_WARN_STREAM("ret_traj(" << i << "): size " << ret_traj.at(i).poses.size());
-            }
+                }
         } catch (...) {
             ROS_FATAL_STREAM("initialTrajGen");
         }
@@ -413,8 +424,7 @@ namespace dynamic_gap
                 int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
-                // std::cout << "returning score of " << result_score.at(i) << std::endl;
-                std::cout << "assigning gap " << i << "'s trajectory a score of " << result_score.at(i) << std::endl;
+                std::cout << "for gap " << i << ", returning score of " << result_score.at(i) << std::endl;
             }
         } catch (...) {
             ROS_FATAL_STREAM("pickTraj");
@@ -485,6 +495,7 @@ namespace dynamic_gap
             trajvisualizer->pubAllScore(viz_traj, ret_traj_scores);
 
             ROS_DEBUG_STREAM("Curr Score: " << curr_subscore << ", incom Score:" << incom_subscore);
+
 
             if (curr_subscore == -std::numeric_limits<double>::infinity() && incom_subscore == -std::numeric_limits<double>::infinity()) {
                 ROS_WARN_STREAM("Both Failed");
@@ -606,6 +617,16 @@ namespace dynamic_gap
         
         // std::cout << "updating models" << std::endl;
         update_models(gap_set);
+
+        //std::cout << "gap set size before feasibility check: " << gap_set.size() << std::endl;
+        gapManip->feasibilityCheck(gap_set);
+        // std::cout << "gap set size after feasibility check: " << gap_set.size() << std::endl;
+
+        for (size_t i = 0; i < gap_set.size(); i++) {
+            // gapManip->setValidSliceWaypoint(gap_set.at(i), goalselector->rbtFrameLocalGoal()); // set local goal
+            gapManip->setGapGoal(gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
+        }
+        goalvisualizer->drawGapGoals(gap_set);
 
         previous_gaps = gap_set;
 

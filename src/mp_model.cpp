@@ -34,9 +34,9 @@ namespace dynamic_gap {
             0.0, 0.0, 0.0, 0.0, 0.005;
         y << 1.0, 
                 1.0, 
-                0.0, 
-                0.0, 
-                0.0;
+                1.0, 
+                1.0, 
+                1.0;
         P << 10.0e-6, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
@@ -151,7 +151,7 @@ namespace dynamic_gap {
         //std::cout << "y at start: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        std::cout << a[0] << ", " << a[1] << std::endl;
+        // std::cout << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();

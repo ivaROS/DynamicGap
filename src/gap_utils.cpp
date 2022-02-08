@@ -8,7 +8,7 @@ namespace dynamic_gap {
     GapUtils::GapUtils(const DynamicGapConfig& cfg) {
         cfg_ = & cfg;
     }
-    
+    /*
     void GapUtils::bisectNonConvexGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap> & observed_gaps) {
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
@@ -90,6 +90,7 @@ namespace dynamic_gap {
             }
         }
     }
+    */
 
     void GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap> & observed_gaps)
@@ -196,14 +197,14 @@ namespace dynamic_gap {
 
     void GapUtils::mergeGapsOneGo(
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-        std::vector<dynamic_gap::Gap>& observed_gaps)
+        std::vector<dynamic_gap::Gap>& raw_gaps)
     {
         // int left_idx = -1;
         // int right_idx = -1;
         // float right_dist = 3;
         // float left_dist = 3; // TODO: Make this reconfigurable
-        int observed_size = (int) observed_gaps.size();
-        std::vector<dynamic_gap::Gap> second_gap;
+        int observed_size = (int) raw_gaps.size();
+        std::vector<dynamic_gap::Gap> simplified_gaps;
 
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         // Termination Condition
@@ -213,72 +214,75 @@ namespace dynamic_gap {
         bool last_type_left = true;
         int left_counter = 0;
         bool changed = true;
-        for (int i = 0; i < (int) observed_gaps.size(); i++)
+
+        for (int i = 0; i < (int) raw_gaps.size(); i++)
         {
-            if (mark_to_start && observed_gaps.at(i).isAxial() && observed_gaps.at(i).isLeftType())
+            // axial means swept gap
+            if (mark_to_start && raw_gaps.at(i).isAxial() && raw_gaps.at(i).isLeftType())
             {
                 // Wait until the first mergable gap aka swept left type gap
                 mark_to_start = false;
-                second_gap.push_back(observed_gaps[i]);
+                simplified_gaps.push_back(raw_gaps[i]);
             } else {
                 if (!mark_to_start)
                 {
-                    if (observed_gaps.at(i).isAxial())
+                    if (raw_gaps.at(i).isAxial())
                     {
-                        if (observed_gaps.at(i).isLeftType())
+                        if (raw_gaps.at(i).isLeftType())
                         {
-                            second_gap.push_back(observed_gaps[i]);
+                            simplified_gaps.push_back(raw_gaps[i]);
                         }
                         else
                         {
-                            float curr_rdist = observed_gaps[i].RDist();
+                            float curr_rdist = raw_gaps[i].RDist();
                             int erase_counter = 0;
                             int last_mergable = -1;
 
                             float coefs = cfg_->planning.planning_inflated ? 0 : 2;
-                            for (int j = (int) (second_gap.size() - 1); j >= 0; j--)
+                            for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
                             {
-                                int start_idx = std::min(second_gap[j].RIdx(), observed_gaps[i].LIdx());
-                                int end_idx = std::max(second_gap[j].RIdx(), observed_gaps[i].LIdx());
+                                int start_idx = std::min(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
+                                int end_idx = std::max(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
                                 auto farside_iter = std::min_element(stored_scan_msgs.ranges.begin() + start_idx, stored_scan_msgs.ranges.begin() + end_idx);
-                                bool second_test = curr_rdist <= (*farside_iter - coefs * cfg_->rbt.r_inscr) && second_gap[j].LDist() <= (*farside_iter - coefs * cfg_->rbt.r_inscr);
-                                bool dist_diff = second_gap[j].isLeftType() || !second_gap[j].isAxial();
-                                bool idx_diff = observed_gaps[i].RIdx() - second_gap[j].LIdx() < cfg_->gap_manip.max_idx_diff;
+                                bool second_test = curr_rdist <= (*farside_iter - coefs * cfg_->rbt.r_inscr) && simplified_gaps[j].LDist() <= (*farside_iter - coefs * cfg_->rbt.r_inscr);
+                                bool dist_diff = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isAxial();
+                                bool idx_diff = raw_gaps[i].RIdx() - simplified_gaps[j].LIdx() < cfg_->gap_manip.max_idx_diff;
                                 if (second_test && dist_diff && idx_diff) {
                                     last_mergable = j;
                                 } 
                             }
 
                             if (last_mergable != -1) {
-                                second_gap.erase(second_gap.begin() + last_mergable + 1, second_gap.end());
-                                second_gap.back().addRightInformation(observed_gaps[i].RIdx(), observed_gaps[i].RDist());
+                                simplified_gaps.erase(simplified_gaps.begin() + last_mergable + 1, simplified_gaps.end());
+                                simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                             } else {
-                                second_gap.push_back(observed_gaps.at(i));
+                                simplified_gaps.push_back(raw_gaps.at(i));
                             }
                         }
                     }
                     else
                     {
                         // If not axial gap, 
-                        float curr_rdist = observed_gaps.at(i).RDist();
-                        if (std::abs(curr_rdist - second_gap.back().LDist()) < 0.2 && second_gap.back().isAxial() && second_gap.back().isLeftType())
+                        float curr_rdist = raw_gaps.at(i).RDist();
+                        if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isLeftType())
                         {
-                            second_gap.back().addRightInformation(observed_gaps[i].RIdx(), observed_gaps[i].RDist());
+                            simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                         } else {
-                            second_gap.push_back(observed_gaps[i]);
+                            simplified_gaps.push_back(raw_gaps[i]);
                         }
                     }
                 }
                 else
                 {
                     // A swept gap solely on its own
-                    second_gap.push_back(observed_gaps[i]);
+                    simplified_gaps.push_back(raw_gaps[i]);
                 }
             }
-            last_type_left = observed_gaps[i].isLeftType();
+            last_type_left = raw_gaps[i].isLeftType();
         }
-        observed_gaps.clear();
-        observed_gaps = second_gap;
+
+        raw_gaps.clear();
+        raw_gaps = simplified_gaps;
 
     }
 }
