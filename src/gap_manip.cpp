@@ -236,7 +236,7 @@ namespace dynamic_gap {
                 swept_right_ori = right_ori + right_swept;
                 swept_left_idx = (swept_left_ori - msg.get()->angle_min) / msg.get()->angle_increment;
                 swept_right_idx = (swept_right_ori - msg.get()->angle_min) / msg.get()->angle_increment;
-                // std::cout << "swept left idx: " << swept_left_idx << ", swept right idx: " << swept_right_idx << std::endl;
+                std::cout << "raw swept left idx: " << swept_left_idx << ", raw swept right idx: " << swept_right_idx << std::endl;
                 count += 1;
                 if (count > 5) {
                     break;
@@ -286,15 +286,15 @@ namespace dynamic_gap {
         }
 
         std::cout << "FINAL" << std::endl;
-        std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << ", left ori: " << left_ori << ", right ori: " << right_ori << std::endl;
-        std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << ", swept left ori: " << swept_left_ori << ", swept right ori: " << swept_right_ori << std::endl;
+        std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
+        std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << std::endl;
 
         setValidSliceWaypoint(gap, localgoal);
     }
     
     // at this point, all gaps are feasible
     void GapManipulator::setValidSliceWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal){
-        // std::cout << "in setValidSliceWaypoint" << std::endl;
+        std::cout << "in setValidSliceWaypoint" << std::endl;
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
         int mid_idx;
@@ -306,6 +306,8 @@ namespace dynamic_gap {
        
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
+        std::cout << "local goal: " << localgoal.pose.position.x << ", " << localgoal.pose.position.y << std::endl;
+        std::cout << "x1: " << x1 << ", y1: " << y1 << ". x2: " << x2 << ", y2: " << y2 << std::endl;
         // I don't think this is guaranteed
         auto left_ori = gap.swept_convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.swept_convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
@@ -336,11 +338,14 @@ namespace dynamic_gap {
         }
 
         // no chance it can be non-convex here
-        if (thetalr < thetalf || small_gap) {
+        std::cout << "thetalr: " << thetalr << ", thetalf: " << thetalf << std::endl;
+        // taking out thetalr < thetalf ||
+        if ( small_gap) {
             gap.goal.x = (x1 + x2) / 2;
             gap.goal.y = (y1 + y2) / 2;
             std::cout << "first case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.discard = thetalr < thetalf;
+            std::cout << "setting discard to " << (thetalr < thetalf) << std::endl;
             gap.goal.set = true;
             return;
         }
@@ -356,6 +361,7 @@ namespace dynamic_gap {
         }
         
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+        std::cout << "goal orientation: " << goal_orientation << std::endl;
         // confined_theta: confining this value to within angular space of gap, bias it to be closer to local goal
         float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
         // like convex combination, interpolating from l_dist to r_dist 

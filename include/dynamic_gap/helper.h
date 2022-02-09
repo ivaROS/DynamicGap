@@ -436,7 +436,6 @@ namespace dynamic_gap {
                     h_dyn = h_dyn_right;
                     d_h_dyn_dx = d_h_dyn_right_dx;
                 }
-                
             }
 
             //std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;

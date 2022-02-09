@@ -1,0 +1,97 @@
+<launch>
+  <arg name="use_recovery_behaviors" default="true"/>
+  <arg name="robot_namespace"/>
+  <arg name="robot_radius"/>
+  <arg name="rbtx" default="$(optenv GM_PARAM_RBT_X 1)"/>
+  <arg name="rbty" default="$(optenv GM_PARAM_RBT_Y 2)"/>
+
+  <arg name="fov" default="$(optenv GM_PARAM_RBT_FOV 60)"/>
+
+  <arg name="robot_file" default="holonomic_robot_second_order_$(arg fov)_bumper.xml"/>
+
+  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/$(arg robot_file) $(arg rbtx) $(arg rbty) 0" />
+  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="screen" args="$(arg robot_namespace) $(arg robot_radius)" />	
+
+  <arg name="egocircle" default="false"/>
+  
+  <arg name="converter" default="false" if="$(arg egocircle)"/>
+  <arg name="converter" default="true" unless="$(arg egocircle)"/>
+  
+  <arg name="simple_exploration" default="false"/>
+
+  <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
+  
+  <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
+
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle" if="$(arg egocircle)"/>
+  
+  <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
+  <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
+
+  <arg name="debug" default="false"/>
+
+  <arg name="debug_prefix" value="" unless="$(arg debug)"/> <!-- valgrind - -tool=callgrind -->
+  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
+
+  <!-- xterm -e gdb -ex run - -args -->
+  
+  
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true" launch-prefix="$(arg debug_prefix)">
+      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>
+      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
+      <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
+      <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
+
+      <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="TebLocalPlannerROS"/>
+      <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
+
+      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
+
+      <param name="controller_frequency" value="$(arg controller_freq)" />
+      <param name="planner_frequency" value="$(arg global_planning_freq)"/>
+
+      <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
+      <remap from="cmd_vel" to="$(arg vel_topic)"/>
+
+      <!-- Approach-specific parameters/remappings/etc -->
+      <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+
+      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
+
+      <!-- Not sure if I should add these. Where do they even come from> -->
+      <param name="DynamicGapPlanner/robot_frame_id" value="$(arg robot_namespace)"/>
+      <param name="DynamicGapPlanner/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
+
+
+      <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" if="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/include_dynamic_obstacles" value="true"/>
+      <param name="TebLocalPlannerROS/gap_h_signature" value="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/gap_exploration" value="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/egocircle_feasibility" value="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/simple_exploration" value="$(arg simple_exploration)"/>
+      <param name="TebLocalPlannerROS/weight_gap" value="0"/>
+      <param name="TebLocalPlannerROS/gap_boundary_exponent" value="2" unless="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/feasibility_check_no_tebs" value="1" if="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/gap_theta_start" value="3.15"/>
+
+      <!-- remapping for obstacles -->
+      <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
+      <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
+
+      <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
+      <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
+
+      <!-- Disable the local costmap observation sources if they will not be used -->
+      <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
+  </node>
+
+
+
+
+
+</launch>

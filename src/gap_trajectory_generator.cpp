@@ -51,6 +51,18 @@ namespace dynamic_gap{
                         sin(beta_local_goal),
                         cos(beta_local_goal)}; 
         
+        auto left_ori = std::atan2(left_model_state[1], left_model_state[2]);
+        auto right_ori = std::atan2(right_model_state[1], right_model_state[2]);
+        std::cout << "left ori: " << left_ori << "< right ori: " << right_ori << std::endl;
+        
+        std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
+        if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {
+            std::cout << "starting a translating trajectory" << std::endl;
+        } else if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
+            std::cout << "starting a closing trajectory" << std::endl;
+        } else {
+            std::cout << "starting an expanding trajectory" << std::endl;
+        }
         // if expanding: just do CLF
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
             g2g inte_g2g(
@@ -135,14 +147,10 @@ namespace dynamic_gap{
         std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
         std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
         std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
-        std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
             
         double nom_rbt_vel = 0.25;
         double T_rbt2arc = std::max(selectedGap.convex.convex_ldist, selectedGap.convex.convex_rdist) / nom_rbt_vel;
 
-        auto left_ori = std::atan2(left_model_state[1], left_model_state[2]);
-        auto right_ori = std::atan2(right_model_state[1], right_model_state[2]);
-        std::cout << "left ori: " << left_ori << "< right ori: " << right_ori << std::endl;
         // TODO: make sure that this is always less than 180, make sure convex (BROKEN)
         double gap_angle;
         if (right_ori > left_ori) {
@@ -151,10 +159,6 @@ namespace dynamic_gap{
             gap_angle = left_ori - right_ori;
         }        
         // std::cout << "gap angle: " << gap_angle << std::endl;
-
-        if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
-            std::cout << "starting a closing trajectory" << std::endl;
-        }
         
         clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
