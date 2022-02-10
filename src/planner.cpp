@@ -377,20 +377,20 @@ namespace dynamic_gap
                 //std::cout << "obtained betadot lefts" << std::endl;
                 std::vector<double> betadot_rights = std::get<2>(return_tuple);
                 //std::cout << "obtained betadot rights" << std::endl;
-                std::cout << "getting max's and min's" << std::endl;
+                // std::cout << "getting max's and min's" << std::endl;
                 if (betadot_lefts.size() > 0) { 
                     auto min_betadot_left = std::min_element(betadot_lefts.begin(), betadot_lefts.end());
                     auto max_betadot_left = std::max_element(betadot_lefts.begin(), betadot_lefts.end());
                     auto min_betadot_right = std::min_element(betadot_rights.begin(), betadot_rights.end());
                     auto max_betadot_right = std::max_element(betadot_rights.begin(), betadot_rights.end());
-                    std::cout << "getting sums" << std::endl;
+                    // std::cout << "getting sums" << std::endl;
                     double sum_betadot_left = std::accumulate(betadot_lefts.begin(), betadot_lefts.end(), 0.0);
                     double sum_betadot_right = std::accumulate(betadot_rights.begin(), betadot_rights.end(), 0.0);
-                    std::cout << "sum of betadot lefts: " << sum_betadot_left << ", sum of betadot rights: " << sum_betadot_right << std::endl;
-                    std::cout << "first left betadot: " << *betadot_lefts.begin() << ", first right betadot: " << *betadot_rights.begin() << std::endl;
-                    std::cout << "last left betadot: " << *betadot_lefts.end() << ", last right betadot: " << *betadot_rights.end() << std::endl;
-                    std::cout << "minimum left betadots: " << *min_betadot_left << ", maximum left betadots: " << *max_betadot_left << std::endl;
-                    std::cout << "minimum right betadots: " << *min_betadot_right << ", maximum right betadots: " << *max_betadot_right << std::endl;
+                    // std::cout << "sum of betadot lefts: " << sum_betadot_left << ", sum of betadot rights: " << sum_betadot_right << std::endl;
+                    //std::cout << "first left betadot: " << *betadot_lefts.begin() << ", first right betadot: " << *betadot_rights.begin() << std::endl;
+                    //std::cout << "last left betadot: " << *betadot_lefts.end() << ", last right betadot: " << *betadot_rights.end() << std::endl;
+                    //std::cout << "minimum left betadots: " << *min_betadot_left << ", maximum left betadots: " << *max_betadot_left << std::endl;
+                    //std::cout << "minimum right betadots: " << *min_betadot_right << ", maximum right betadots: " << *max_betadot_right << std::endl;
                 }
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple));
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);

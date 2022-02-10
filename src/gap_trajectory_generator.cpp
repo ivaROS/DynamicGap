@@ -25,7 +25,7 @@ namespace dynamic_gap{
         double angle_one = atan2(model_one[1], model_one[2]);
         double angle_two = atan2(model_two[1], model_two[2]);
         double angle_goal = atan2(-selectedGap.goal.x*coefs, selectedGap.goal.y*coefs);
-        std::cout << "picking gap sides" << std::endl;
+        // std::cout << "picking gap sides" << std::endl;
         // seems to only do 2,7,9
         determineLeftRightModels(left_model_state, right_model_state, selectedGap, angle_goal);
 
@@ -53,9 +53,10 @@ namespace dynamic_gap{
         
         auto left_ori = std::atan2(left_model_state[1], left_model_state[2]);
         auto right_ori = std::atan2(right_model_state[1], right_model_state[2]);
-        std::cout << "left ori: " << left_ori << "< right ori: " << right_ori << std::endl;
+        // std::cout << "left ori: " << left_ori << "< right ori: " << right_ori << std::endl;
         
-        std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
+        // std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
+        /*
         if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {
             std::cout << "starting a translating trajectory" << std::endl;
         } else if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
@@ -63,6 +64,7 @@ namespace dynamic_gap{
         } else {
             std::cout << "starting an expanding trajectory" << std::endl;
         }
+        */
         // if expanding: just do CLF
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
             g2g inte_g2g(
@@ -97,7 +99,7 @@ namespace dynamic_gap{
         //std::cout << "initial local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         
         if (selectedGap.mode.convex) {
-            std::cout << "convex" << std::endl;
+            // std::cout << "convex" << std::endl;
             selectedGap.goal.x -= selectedGap.qB(0);
             selectedGap.goal.y -= selectedGap.qB(1);
             beta_local_goal = atan2(-selectedGap.goal.x, selectedGap.goal.y);

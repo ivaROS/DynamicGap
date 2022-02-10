@@ -340,12 +340,12 @@ namespace dynamic_gap {
         // no chance it can be non-convex here
         std::cout << "thetalr: " << thetalr << ", thetalf: " << thetalf << std::endl;
         // taking out thetalr < thetalf ||
-        if ( small_gap) {
+        if (small_gap) {
             gap.goal.x = (x1 + x2) / 2;
             gap.goal.y = (y1 + y2) / 2;
             std::cout << "first case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            gap.goal.discard = thetalr < thetalf;
-            std::cout << "setting discard to " << (thetalr < thetalf) << std::endl;
+            // gap.goal.discard = thetalr < thetalf;
+            // std::cout << "setting discard to " << (thetalr < thetalf) << std::endl;
             gap.goal.set = true;
             return;
         }
@@ -363,10 +363,19 @@ namespace dynamic_gap {
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         std::cout << "goal orientation: " << goal_orientation << std::endl;
         // confined_theta: confining this value to within angular space of gap, bias it to be closer to local goal
-        float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
+        // potential problem: can local goal be within angular space of gap here?
+        float confined_theta; // = std::min(thetalr, std::max(thetalf, goal_orientation));
+        float lr_ang_diff = std::abs(thetalr - goal_orientation);
+        float lf_ang_diff = std::abs(thetalf - goal_orientation);
+        if (lr_ang_diff < lf_ang_diff) {
+            confined_theta = thetalr;
+        } else {
+            confined_theta = thetalf;
+        }
+
         // like convex combination, interpolating from l_dist to r_dist 
-        float confined_r = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (confined_theta - thetalf) / (thetalr - thetalf)
-            + gap.swept_convex_ldist;
+        float confined_r = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (confined_theta - thetalf) / (thetalr - thetalf) + gap.swept_convex_ldist;
+
         float xg = confined_r * cos(confined_theta);
         float yg = confined_r * sin(confined_theta);
         // anchor is then on arc of gap, within angular space
