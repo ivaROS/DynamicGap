@@ -83,7 +83,7 @@
       <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_params_holonomic.yaml" command="load"/>
 
       <!-- remapping for obstacles -->
-      <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
+      <!-- <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" /> -->
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
