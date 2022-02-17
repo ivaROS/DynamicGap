@@ -23,7 +23,11 @@
   
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
-  <node name="egocircle_node" pkg="egocircle" type="ego_circle" if="$(arg egocircle)"/>
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle" if="$(arg egocircle)">
+      <param name="base_frame_id" value="$(arg robot_namespace)"/>
+      <param name="odom_frame_id" value="map_static"/>
+      <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
+  </node>
   
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
@@ -48,24 +52,19 @@
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
 
-      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
-
-      <param name="controller_frequency" value="$(arg controller_freq)" />
-      <param name="planner_frequency" value="$(arg global_planning_freq)"/>
-
-      <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
-      <remap from="cmd_vel" to="$(arg vel_topic)"/>
+      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
 
       <!-- Approach-specific parameters/remappings/etc -->
       <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
 
-      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
-      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
+      <param name="controller_frequency" value="$(arg controller_freq)" />
+      <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <!-- Not sure if I should add these. Where do they even come from> -->
-      <param name="DynamicGapPlanner/robot_frame_id" value="$(arg robot_namespace)"/>
-      <param name="DynamicGapPlanner/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
+      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
+      <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
+      <remap from="cmd_vel" to="$(arg vel_topic)"/>
 
       <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" if="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
@@ -79,6 +78,13 @@
       <param name="TebLocalPlannerROS/feasibility_check_no_tebs" value="1" if="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/gap_theta_start" value="3.15"/>
 
+      <!-- Disable the local costmap observation sources if they will not be used -->
+      <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
+
+      <!-- Not sure if I should add these. Where do they even come from> -->
+      <param name="TebLocalPlannerROS/robot_frame_id" value="$(arg robot_namespace)"/>
+      <param name="TebLocalPlannerROS/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
+
       <!-- remapping for obstacles -->
       <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
@@ -86,12 +92,6 @@
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
-      <!-- Disable the local costmap observation sources if they will not be used -->
-      <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
   </node>
-
-
-
-
 
 </launch>

@@ -71,14 +71,23 @@ namespace dynamic_gap {
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj) {
         // Requires LOCAL FRAME
         // Should be no racing condition
+        //geometry_msgs::PoseArray traj = std::get<0>(return_tuple);
+        //std::vector<double> left_ranges = std::get<1>(return_tuple);
+        //std::vector<double> right_ranges = std::get<2>(return_tuple);
+
+
         std::vector<double> cost_val(traj.poses.size());
 
         for (int i = 0; i < cost_val.size(); i++) {
             cost_val.at(i) = scorePose(traj.poses.at(i));
+            // do we add here?
+            // cost_val.at(i) += scoreGapRanges(left_ranges.at(i), right_ranges.at(i));
         }
 
         // cumulative cost of poses
         auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
+
+        // cumulative cost of ranges of gap
 
         std::cout << "pose-wise cost: " << total_val << std::endl;
 
@@ -97,11 +106,7 @@ namespace dynamic_gap {
             std::cout << "terminal cost: " << -terminal_cost << std::endl;
             cost_val.at(0) -= terminal_cost;
         }
-
-        // cumulative cost of poses
-        auto after_terminal_total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
-
-        // std::cout << "after terminal total cost: " << after_terminal_total_val << std::endl;
+        
         return cost_val;
     }
 
@@ -119,6 +124,17 @@ namespace dynamic_gap {
         float x = dist * std::cos(theta);
         float y = dist * std::sin(theta);
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
+    }
+
+    double TrajectoryArbiter::scoreGapRanges(double left_range, double right_range) {
+        double range = std::min(left_range, right_range);
+        if (range < r_inscr * cfg_->traj.inf_ratio) {
+            return -std::numeric_limits<double>::infinity();
+        }
+        // if distance is essentially infinity, return 0
+        if (range > rmax) return 0;
+
+        return cobs * std::exp(- w * (range - r_inscr * cfg_->traj.inf_ratio));
     }
 
     double TrajectoryArbiter::scorePose(geometry_msgs::Pose pose) {

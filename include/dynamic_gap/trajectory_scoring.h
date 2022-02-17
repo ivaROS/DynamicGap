@@ -42,8 +42,8 @@ namespace dynamic_gap{
         // Full Scoring
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
-        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj);
-        
+        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray);
+
         private:
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> msg;
@@ -52,6 +52,7 @@ namespace dynamic_gap{
             boost::mutex gap_mutex, gplan_mutex, egocircle_mutex;
 
             double scorePose(geometry_msgs::Pose pose);
+            double scoreGapRanges(double left_range, double right_range);
             int searchIdx(geometry_msgs::Pose pose);
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
             double chapterScore(double d);

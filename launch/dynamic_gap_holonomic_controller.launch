@@ -56,6 +56,11 @@
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
 
+      <!-- Approach-specific parameters/remappings/etc -->
+      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
+      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_params_holonomic.yaml" command="load"/>
+
+
       <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
       <param name="controller_frequency" value="$(arg controller_freq)" />
@@ -78,17 +83,12 @@
       <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
       <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
 
-      <!-- Approach-specific parameters/remappings/etc -->
-      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
-      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_params_holonomic.yaml" command="load"/>
-
       <!-- remapping for obstacles -->
       <!-- <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" /> -->
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
-
 
       <!-- Disable the local costmap observation sources if they will not be used -->
       <!--<param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>-->

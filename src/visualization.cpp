@@ -98,13 +98,7 @@ namespace dynamic_gap{
 
         this_marker.colors = color_value->second;
         double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
-        if (g.goal.goalwithin) {
-            // GO TO GOAL ACTIVATED
-            this_marker.scale.x = 3*thickness;
-        } else {
-            // CLF CBF ACTIVATED
-            this_marker.scale.x = thickness;
-        }
+        this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
         bool finNamespace = (ns.compare("fin") == 0);
@@ -137,10 +131,16 @@ namespace dynamic_gap{
             this_marker.points = lines;
             this_marker.id = id++;
             this_marker.lifetime = ros::Duration(g.life_time);
+            if (i == 0 || i == (num_gaps - 2)) {
+                this_marker.scale.x = 10*thickness;
+            } else {
+                this_marker.scale.x = thickness;
+            }
             vis_arr.markers.push_back(this_marker);
         }
 
         // close the last
+        this_marker.scale.x = 10*thickness;
         lines.clear();
         linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
         linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
@@ -193,8 +193,9 @@ namespace dynamic_gap{
             ns = "fin_agc";
         }
         
-        int num_gaps = (g.convex.convex_ridx - g.convex.convex_lidx) / cfg_->gap_viz.min_resoln + 1;
-        float dist_step = (g.convex.convex_rdist - g.convex.convex_ldist) / num_gaps;
+        // num gaps really means segments within a gap
+        int num_segments = (g.convex.convex_ridx - g.convex.convex_lidx) / cfg_->gap_viz.min_resoln + 1;
+        float dist_step = (g.convex.convex_rdist - g.convex.convex_ldist) / num_segments;
         int sub_gap_lidx = g.convex.convex_lidx + viz_offset;
         float sub_gap_ldist = g.convex.convex_ldist;
 
@@ -213,7 +214,7 @@ namespace dynamic_gap{
 
         this_marker.colors = color_value->second;
         double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
-        this_marker.scale.x = thickness;
+        this_marker.scale.x = 10*thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
 
@@ -228,7 +229,23 @@ namespace dynamic_gap{
 
         this_marker.lifetime = ros::Duration(0.25);
 
-        for (int i = 0; i < num_gaps - 1; i++)
+        /*
+        // publish left and right points of gap
+        lines.clear();
+        linel.x = (g.convex.convex_ldist + viz_jitter) * cos(-( (float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+        linel.y = (g.convex.convex_ldist + viz_jitter) * sin(-( (float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+        lines.push_back(linel);
+        liner.x = (g.convex.convex_rdist + viz_jitter) * cos(-( (float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+        liner.y = (g.convex.convex_rdist + viz_jitter) * sin(-( (float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+        lines.push_back(liner);
+        this_marker.points = lines;
+        this_marker.id = id++;
+        vis_arr.markers.push_back(this_marker);
+
+        this_marker.scale.x = thickness;
+        */
+
+        for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
             linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);

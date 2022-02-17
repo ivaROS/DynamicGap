@@ -4,12 +4,12 @@ namespace dynamic_gap{
     std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
         // return geometry_msgs::PoseArray();
         geometry_msgs::PoseArray posearr;
-        std::vector<double> left_betadots;
-        std::vector<double> right_betadots;
+        std::vector<double> left_ranges;
+        std::vector<double> right_ranges;
         posearr.header.stamp = ros::Time::now();
         
         double coefs = cfg_->traj.scale;
-        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, left_betadots, right_betadots);
+        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, left_ranges, right_ranges);
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
         std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
@@ -77,7 +77,7 @@ namespace dynamic_gap{
             cfg_->traj.integrate_maxt,
             cfg_->traj.integrate_stept,
             corder);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
             return return_tuple;
         }
         
@@ -176,13 +176,13 @@ namespace dynamic_gap{
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard) {
             std::cout << "discarding gap" << std::endl;
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
             return return_tuple;
         }
         
         
-        //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-        // std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+        std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
+        std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
         //std::cout << "starting clf cbf" << std::endl;
         //std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
@@ -209,7 +209,7 @@ namespace dynamic_gap{
         //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
-        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_betadots, right_betadots);
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
         return return_tuple;
     }
 
@@ -322,8 +322,8 @@ namespace dynamic_gap{
     std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple)
     {
         geometry_msgs::PoseArray pose_arr = std::get<0>(return_tuple);
-        std::vector<double> betadot_lefts = std::get<1>(return_tuple);
-        std::vector<double> betadot_rights = std::get<2>(return_tuple);
+        std::vector<double> left_ranges = std::get<1>(return_tuple);
+        std::vector<double> right_ranges = std::get<2>(return_tuple);
         Eigen::Quaternionf q;
         geometry_msgs::Pose old_pose;
         old_pose.position.x = 0;
@@ -347,8 +347,8 @@ namespace dynamic_gap{
         }
         */
         std::vector<geometry_msgs::Pose> shortened;
-        std::vector<double> shortened_betadot_lefts;
-        std::vector<double> shortened_betadot_rights;
+        std::vector<double> shortened_left_ranges;
+        std::vector<double> shortened_right_ranges;
         shortened.push_back(old_pose);
         for (int i = 1; i < pose_arr.poses.size(); i++) {
             auto pose = pose_arr.poses[i];
@@ -358,14 +358,14 @@ namespace dynamic_gap{
             if (result > 0.05) {
                 //ROS_WARN_STREAM("result kept at " << result);
                 shortened.push_back(pose);
-                shortened_betadot_lefts.push_back(betadot_lefts[i]);
-                shortened_betadot_rights.push_back(betadot_rights[i]);
+                shortened_left_ranges.push_back(left_ranges[i]);
+                shortened_right_ranges.push_back(right_ranges[i]);
 
             } else {
                 //ROS_WARN_STREAM("result cut at " << result);
             }
         }
-        std::cout << "leaving at : " << shortened.size() << std::endl;
+        // std::cout << "leaving at : " << shortened.size() << std::endl;
         pose_arr.poses = shortened;
 
         // Fix rotation
@@ -387,7 +387,7 @@ namespace dynamic_gap{
         }
         pose_arr.poses.pop_back();
 
-        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> shortened_tuple(pose_arr, shortened_betadot_lefts, shortened_betadot_rights);
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> shortened_tuple(pose_arr, shortened_left_ranges, shortened_right_ranges);
         return shortened_tuple;
     }
 

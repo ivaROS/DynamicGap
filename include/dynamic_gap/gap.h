@@ -25,6 +25,19 @@ namespace dynamic_gap
                 right_model = new dynamic_gap::MP_model(frame);
             };
 
+            Gap(const dynamic_gap::Gap& gap) {
+                convex.convex_lidx = gap.convex.convex_lidx;
+                convex.convex_ridx = gap.convex.convex_ridx;
+                convex.convex_ldist = gap.convex.convex_ldist;
+                convex.convex_rdist = gap.convex.convex_rdist;
+
+                left_model = gap.left_model;
+                right_model = gap.right_model;
+                // set indices and distances
+                // copy models
+                // copy some sort of gap index to check against alter
+            }
+
             ~Gap() {};
 
             void setLIdx(int lidx)
@@ -244,6 +257,7 @@ namespace dynamic_gap
                 return sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (cos(float(_right_idx - _left_idx) / float(half_scan) * M_PI)));
             }
             
+            bool no_valid_slice = false;
             bool goal_within = false;
             bool goal_dir_within = false;
             float life_time = 1.0;

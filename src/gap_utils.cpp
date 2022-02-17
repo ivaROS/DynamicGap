@@ -9,11 +9,11 @@ namespace dynamic_gap {
         cfg_ = & cfg;
     }
 
-    void GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-        std::vector<dynamic_gap::Gap> & observed_gaps)
+    std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser)
     {
         // clear gaps
-        observed_gaps.clear();
+        std::vector<dynamic_gap::Gap> new_raw_gaps;
+        // observed_gaps.clear();
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         // get half scan value
         float half_scan = float(stored_scan_msgs.ranges.size() / 2);
@@ -52,7 +52,7 @@ namespace dynamic_gap {
                     detected_gap.setMinSafeDist(min_dist);
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) observed_gaps.push_back(detected_gap);
+                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) new_raw_gaps.push_back(detected_gap);
                 }
                 
             }
@@ -70,7 +70,7 @@ namespace dynamic_gap {
                     detected_gap.setMinSafeDist(min_dist);
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) observed_gaps.push_back(detected_gap);
+                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) new_raw_gaps.push_back(detected_gap);
                 }
                 else // previously not marked a gap, not marking the gap
                 {
@@ -88,28 +88,29 @@ namespace dynamic_gap {
             dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, half_scan);
             detected_gap.addRightInformation(int(stored_scan_msgs.ranges.size() - 1), *(stored_scan_msgs.ranges.end() - 1));
             detected_gap.setMinSafeDist(min_dist);
-            if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr) observed_gaps.push_back(detected_gap);
+            if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr) new_raw_gaps.push_back(detected_gap);
         }
         
         // Bridge the last gap around
-        if (observed_gaps.size() > 1)
+        if (new_raw_gaps.size() > 1)
         {
-            if (observed_gaps[0].LIdx() == 0 && observed_gaps[observed_gaps.size() - 1].RIdx() == stored_scan_msgs.ranges.size() - 1) // Magic number?
+            if (new_raw_gaps[0].LIdx() == 0 && new_raw_gaps[new_raw_gaps.size() - 1].RIdx() == stored_scan_msgs.ranges.size() - 1) // Magic number?
             {
                 // Both ends
-                float start_side_dist = observed_gaps[0].RDist();
-                float end_side_dist = observed_gaps[observed_gaps.size() - 1].LDist();
-                int start_side_idx = observed_gaps[0].RIdx();
-                int end_side_idx = observed_gaps[observed_gaps.size() - 1].LIdx();
+                float start_side_dist = new_raw_gaps[0].RDist();
+                float end_side_dist = new_raw_gaps[new_raw_gaps.size() - 1].LDist();
+                int start_side_idx = new_raw_gaps[0].RIdx();
+                int end_side_idx = new_raw_gaps[new_raw_gaps.size() - 1].LIdx();
 
                 int total_size = 511 - end_side_idx + start_side_idx;
                 float result = (end_side_dist - start_side_dist) * (float (start_side_idx) / float (total_size)) + start_side_dist;
-                observed_gaps[0].setLeftObs();
-                observed_gaps[observed_gaps.size() - 1].setRightObs();
-                observed_gaps[observed_gaps.size() - 1].addRightInformation(511, result);
-                observed_gaps[0].setLDist(result);
+                new_raw_gaps[0].setLeftObs();
+                new_raw_gaps[new_raw_gaps.size() - 1].setRightObs();
+                new_raw_gaps[new_raw_gaps.size() - 1].addRightInformation(511, result);
+                new_raw_gaps[0].setLDist(result);
             }
         }
+        return new_raw_gaps;
     }
 
     std::vector<dynamic_gap::Gap> GapUtils::mergeGapsOneGo(

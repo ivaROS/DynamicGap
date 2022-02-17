@@ -318,9 +318,10 @@ namespace dynamic_gap {
 
             // synthesize desired control
             // double begin_time = ros::Time::now().toSec();
-
+            
             double gx = -local_goal_dist*x[14];
             double gy = local_goal_dist*x[15];
+
             Eigen::Vector2d rel_goal(gx - x[0], gy - x[1]);
 
             // set left/right models
@@ -341,7 +342,7 @@ namespace dynamic_gap {
             Eigen::Vector2d goal_rel_pos_rbt_frame(gx, gy);
 
             double V = pow(rel_goal[0], 2) + pow(rel_goal[1], 2);
-            //std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
+            // std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
             bool pass_gap = false;
             Eigen::Vector2d rbt(x[0], x[1]);
 
@@ -358,9 +359,6 @@ namespace dynamic_gap {
             } else {
                 pass_gap = (rbt.norm() > std::max(p1.norm(), p2.norm()) + 0.18 || rbt.norm() > goal_pt.norm());
             }
-
-            double beta_left = atan2(y_left[1], y_left[2]);
-            double beta_right = atan2(y_right[1], y_right[2]);
 
             //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
             //std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
@@ -381,6 +379,9 @@ namespace dynamic_gap {
                 gap_angle += 2*M_PI;
             }
 
+            double beta_left = atan2(y_left[1], y_left[2]);
+            double beta_right = atan2(y_right[1], y_right[2]);
+
             //std::cout << "gap angle: " << gap_angle << std::endl;
             bool closed_gap = false;
             // Now, we ONLY look at the convex gaps and see if they have closed. If a non-convex gap has closed, it happened behind us and we do not care
@@ -394,7 +395,7 @@ namespace dynamic_gap {
             // how to tell if gap has closed
             // add piece for closed gap?
             if (pass_gap || closed_gap) {
-                //std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
+                // std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0;
                 dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0;
                 dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0; dxdt[14] = 0; dxdt[15] = 0;
@@ -511,11 +512,11 @@ namespace dynamic_gap {
         geometry_msgs::PoseArray& _posearr;
         std::string _frame_id;
         double _coefs;
-        std::vector<double>& _left_betadots;
-        std::vector<double>& _right_betadots;
+        std::vector<double>& _left_ranges;
+        std::vector<double>& _right_ranges;
 
-        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, double coefs, std::vector<double>& left_betadots, std::vector<double>& right_betadots)
-        : _posearr(posearr), _frame_id(frame_id), _coefs(coefs), _left_betadots(left_betadots), _right_betadots(right_betadots) {}
+        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, double coefs, std::vector<double>& left_ranges, std::vector<double>& right_ranges)
+        : _posearr(posearr), _frame_id(frame_id), _coefs(coefs), _left_ranges(left_ranges), _right_ranges(right_ranges) {}
 
         void operator()( const state_type &x , double t )
         {
@@ -531,8 +532,8 @@ namespace dynamic_gap {
             pose.pose.orientation.w = 1;
             _posearr.poses.push_back(pose.pose);
 
-            _left_betadots.push_back(x[8]);
-            _right_betadots.push_back(x[13]);
+            _left_ranges.push_back(1.0 / x[4]);
+            _right_ranges.push_back(1.0 / x[9]);
         }
     };
 
