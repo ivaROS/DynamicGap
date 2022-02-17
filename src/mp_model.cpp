@@ -18,7 +18,7 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model(std::string frame) {
+    MP_model::MP_model() {
         // std::string robot_name = frame.substr(0, frame.length() - 8);
         // std::cout << "robot_name " << robot_name << std::endl;
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -82,6 +82,35 @@ namespace dynamic_gap {
         // acc_sub = n.subscribe(robot_name + "/cmd_vel", 100, &MP_model::cmd_velCB, this);
     }
 
+    MP_model::MP_model(const dynamic_gap::MP_model& model) {
+        // std::string robot_name = frame.substr(0, frame.length() - 8);
+        // std::cout << "robot_name " << robot_name << std::endl;
+        H = model.H;
+        R = model.R;
+        Q = model.Q;
+        y = model.y;
+        P = model.P;
+        G = model.G;
+
+        t0 = model.t0;
+        t = model.t;
+        dt = model.dt;
+        /*
+        acc_t0 = ros::Time::now().toSec();
+        acc_t = ros::Time::now().toSec();
+        acc_T = t- t0;
+        */
+        a = model.a;
+        v_ego = model.v_ego;
+
+        A = model.A;
+        Ad = model.Ad;
+        dQ = model.dQ;
+
+        frozen_y = model.frozen_y;
+
+    }
+
     MP_model::~MP_model() {}
 
     /*
@@ -120,6 +149,7 @@ namespace dynamic_gap {
     void MP_model::frozen_state_propagate(double dt) {
         Matrix<double, 1, 5> new_frozen_y;     
         new_frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
+        std::cout << "frozen_y at start: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
@@ -127,6 +157,7 @@ namespace dynamic_gap {
         new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
         new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
+        std::cout << "frozen_y at end: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
     }
 
 
@@ -159,19 +190,19 @@ namespace dynamic_gap {
         A(3) = -a_r, y[0]*a[0], -y[0]*a[1], -2*y[3], 2*y[4];
         A(4) = -a_beta, y[0]*a[1], y[0]*a[0], -2*y[4], -2*y[3];
 
-        Ad(0) = 1.0 - y[3]*T, 0.0, 0.0, -y[0]*T, 0.0;
-        Ad(1) = 0.0, 1.0, y[4]*T, 0.0, y[2]*T;
-        Ad(2) = 0.0, -y[4]*T, 1.0, 0.0, -y[1]*T;
-        Ad(3) = -a_r*T, y[0]*a[0]*T, -y[0]*a[1]*T, 1 - 2*y[3]*T, 2*y[4]*T;
-        Ad(4) = -a_beta*T, y[0]*a[0]*T, y[0]*a[0]*T, -2*y[4]*T, 1 - 2*y[3]*T;
+        Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
+        Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
+        Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
+        Ad(3) = -a_r*dt, y[0]*a[0]*dt, -y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
+        Ad(4) = -a_beta*dt, y[0]*a[0]*dt, y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
         // std::cout << "Ad: " << Ad << std::endl;
     }
 
     void MP_model::discretizeQ() {
-        dQ = Q * T;
+        dQ = Q * dt;
 
-        Matrix<double, 5, 5> M2 = 0.5 * T * ((A * dQ).transpose() + A * dQ);
-        Matrix<double, 5, 5> M3 = 0.3333 * T * T * (A * dQ).transpose();
+        Matrix<double, 5, 5> M2 = 0.5 * dt * ((A * dQ).transpose() + A * dQ);
+        Matrix<double, 5, 5> M3 = 0.3333 * dt * dt * (A * dQ).transpose();
 
         dQ = dQ + M2 + M3;
         // std::cout << "dQ: " << dQ << std::endl;

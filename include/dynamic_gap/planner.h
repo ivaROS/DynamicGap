@@ -232,7 +232,7 @@ namespace dynamic_gap
          * 
          *
          */
-        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>, std::vector<geometry_msgs::PoseArray>&);
+        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>&, std::vector<geometry_msgs::PoseArray>&);
 
         /**
          * Callback function to config object

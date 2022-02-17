@@ -79,6 +79,7 @@ namespace dynamic_gap {
                 feasible = true;
             } else {
                 gap.gap_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
+                std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
                 if (gap.gap_lifespan > T_rbt2arc) {
                     std::cout << "gap lifespan longer than Trbt2arc, is feasible" << std::endl;
                     feasible = true;
@@ -89,7 +90,8 @@ namespace dynamic_gap {
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
             // CATEGORY 2: STATIC/CLOSING
-            gap.gap_lifespan = gap_angle / (right_betadot_check - left_betadot_check);
+            gap.gap_lifespan = gap_angle / abs(right_betadot_check - left_betadot_check);
+            std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
             std::cout << "closing gap" << std::endl;
             if (gap.gap_lifespan > T_rbt2arc) {
                 std::cout << "gap lifespan longer than Trbt2arc, is feasible" << std::endl;

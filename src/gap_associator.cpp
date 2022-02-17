@@ -64,7 +64,7 @@ namespace dynamic_gap {
         vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
-		//std::cout << "populating distance matrix" << std::endl;
+		std::cout << "populating distance matrix" << std::endl;
         for (int i = 0; i < distMatrix.size(); i++) {
             for (int j = 0; j < distMatrix[i].size(); j++) {
                 double accum = 0;
@@ -75,9 +75,9 @@ namespace dynamic_gap {
                 }
                 //std::cout << "accum: " << accum << std::endl;
                 distMatrix[i][j] = sqrt(accum);
-                //std::cout << distMatrix[i][j] << ", ";
+                std::cout << distMatrix[i][j] << ", ";
             }
-			//std::cout << "" << std::endl;
+			std::cout << "" << std::endl;
         }
 
 
@@ -144,7 +144,11 @@ namespace dynamic_gap {
 			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
 			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
 		//}
-		
+		std::cout << "associations" << std::endl;
+		for (int i = 0; i < associations.size(); i++) {
+			std::cout << "(" << i << ", " << associations[i] << "), ";
+		}
+		std::cout << "" << std::endl;
         return associations;
     }
 	

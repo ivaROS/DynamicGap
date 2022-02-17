@@ -360,7 +360,7 @@ namespace dynamic_gap
     }
 
     // std::vector<geometry_msgs::PoseArray> 
-    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap> vec, std::vector<geometry_msgs::PoseArray>& res) {
+    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<geometry_msgs::PoseArray> ret_traj(vec.size());
         std::vector<std::vector<double>> ret_traj_scores(vec.size());
@@ -369,6 +369,7 @@ namespace dynamic_gap
             for (size_t i = 0; i < vec.size(); i++) {
                 std::cout << "generate traj for gap: " << i << std::endl;
                 // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
+                std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple;
                 return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_cmd_vel);
                 return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
@@ -621,6 +622,12 @@ namespace dynamic_gap
         log_vel_comp.set_capacity(cfg.planning.halt_size);
     }
 
+    bool compareBearing(dynamic_gap::MP_model* model_one, dynamic_gap::MP_model* model_two) {
+        Matrix<double, 5, 1> state_one = model_one->get_state();
+        Matrix<double, 5, 1> state_two = model_two->get_state();
+        return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
+    }
+
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         // double begin_time = ros::Time::now().toSec();
         updateTF();
@@ -634,7 +641,7 @@ namespace dynamic_gap
         
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         update_models(gap_set);
-
+        /*
         // Desired:
         std::cout << "UPDATING RAW GAPS" << std::endl;
         raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps);
@@ -643,24 +650,39 @@ namespace dynamic_gap
         // sort raw_gaps according to bearing?
 
         // future_raw_gaps = copy(raw_gaps)
-        std::vector<dynamic_gap::Gap> future_raw_gaps;
+        std::cout << "PUSHING RAW MODELS BACK" << std::endl;
+        std::vector<dynamic_gap::MP_model *> raw_models;
         for (auto gap : raw_gaps) {
-            dynamic_gap::Gap copy_gap(gap);
-            future_raw_gaps.push_back(copy_gap);
-        }
-
-        // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
-        for (auto gap : future_raw_gaps) {
-            gap.left_model->freeze_robot_vel();
-            gap.right_model->freeze_robot_vel();
+            // dynamic_gap::Gap copy_gap(gap);
+            raw_models.push_back(gap.left_model);
+            raw_models.push_back(gap.right_model);
         }
         
-        for (auto gap : future_raw_gaps) {
-            for (double dt = 0.01; dt < 5.0; dt += 0.01) {
-                gap.left_model->frozen_state_propagate(dt);
-                gap.right_model->frozen_state_propagate(dt);
-            }
+        // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
+        for (auto & model : raw_models) {
+            model->freeze_robot_vel();
         }
+        
+        // propagate gaps as though robot is frozen at current time, so we can see from this state how the gaps evolve
+        for (double dt = 0.01; dt < 5.0; dt += 0.01) {
+            for (auto & model : raw_models) {
+                model->frozen_state_propagate(dt);
+            }
+
+            sort(raw_models.begin(), raw_models.end(), compareBearing);
+
+
+            // sort models by beta?
+
+            // hybrid scan gap to get new raw gaps
+
+                // mergeOneGo like usual
+
+                // gapManip like usual
+
+                //let's just see what happens here
+        }
+        */
 
         /*
         for (i = 0 to 5 seconds)
@@ -684,14 +706,18 @@ namespace dynamic_gap
             gapManip->setGapGoal(gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
         }
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
-        goalvisualizer->drawGapGoals(gap_set);
+        for (size_t i = 0; i < gap_set.size(); i++) {
+            std::cout << "goal " << i << ": " << gap_set.at(i).goal.x << ", " << gap_set.at(i).goal.y << std::endl;
+        }
 
-        previous_gaps = gap_set;
-        previous_raw_gaps = raw_gaps;
+        goalvisualizer->drawGapGoals(gap_set);
 
         std::vector<geometry_msgs::PoseArray> traj_set;
         
         std::cout << "STARTING INITIAL TRAJ GEN/SCORING" << std::endl;
+        for (size_t i = 0; i < gap_set.size(); i++) {
+            std::cout << "goal " << i << ": " << gap_set.at(i).goal.x << ", " << gap_set.at(i).goal.y << std::endl;
+        }
         auto score_set = initialTrajGen(gap_set, traj_set);
         std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
         std::cout << "STARTING PICK TRAJ" << std::endl;
@@ -700,6 +726,10 @@ namespace dynamic_gap
         std::cout << "STARTING COMPARE TO OLD TRAJ" << std::endl;
         auto final_traj = compareToOldTraj(picked_traj);
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
+
+        previous_gaps = gap_set;
+        previous_raw_gaps = raw_gaps;
+
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
         return final_traj;
     }

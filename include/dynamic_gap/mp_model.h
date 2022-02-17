@@ -45,7 +45,8 @@ namespace dynamic_gap {
             //Matrix<float, 1, 2> previous_twist;
 
         public:
-            MP_model(std::string frame);
+            MP_model();
+            MP_model(const dynamic_gap::MP_model&);
 
             ~MP_model();
 

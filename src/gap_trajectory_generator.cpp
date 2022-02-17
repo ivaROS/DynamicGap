@@ -1,7 +1,7 @@
 #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
-    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
         // return geometry_msgs::PoseArray();
         geometry_msgs::PoseArray posearr;
         std::vector<double> left_ranges;
