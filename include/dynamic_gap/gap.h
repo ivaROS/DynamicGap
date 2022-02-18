@@ -24,7 +24,7 @@ namespace dynamic_gap
                 left_model = new dynamic_gap::MP_model();
                 right_model = new dynamic_gap::MP_model();
             };
-
+            /*
             Gap(const dynamic_gap::Gap& gap) {
                 convex.convex_lidx = gap.convex.convex_lidx;
                 convex.convex_ridx = gap.convex.convex_ridx;
@@ -37,6 +37,7 @@ namespace dynamic_gap
                 // copy models
                 // copy some sort of gap index to check against alter
             }
+            */
 
             ~Gap() {};
 

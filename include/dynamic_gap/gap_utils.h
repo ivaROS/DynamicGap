@@ -22,8 +22,8 @@ namespace dynamic_gap {
 
         GapUtils(const GapUtils &t) {cfg_ = t.cfg_;};
 
-        std::vector<dynamic_gap::Gap> hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const>);
-
+        std::vector<dynamic_gap::Gap> hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser);
+    
         std::vector<dynamic_gap::Gap> mergeGapsOneGo(boost::shared_ptr<sensor_msgs::LaserScan const>,
         std::vector<dynamic_gap::Gap>&);
 

@@ -59,7 +59,7 @@ namespace dynamic_gap {
         std::vector< std::vector<float>> observed_gap_points = obtainGapPoints(observed_gaps);
         std::vector<int> associations = {};
         int count = 0;
-		//std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
+		std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
         // initialize distance matrix
         vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
@@ -89,14 +89,13 @@ namespace dynamic_gap {
             double cost = Solve(distMatrix, associations);
 			//std::cout << "done solving" << std::endl;
         }
-
-		//std::cout << "associations" << std::endl;
-		/*
+		
+		std::cout << "associations" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			std::cout << "(" << i << ", " << associations[i] << "), ";
 		}
 		std::cout << "" << std::endl;
-		*/
+
 		// ASSOCIATING MODELS
 		for (int i = 0; i < associations.size(); i++) {
 			//std::cout << "i " << i << std::endl;
@@ -115,27 +114,27 @@ namespace dynamic_gap {
 				//std::cout << "distance under threshold" << std::endl;
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
-						// std::cout << "assocating curr left to prev left" << std::endl;
-						// std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
+						std::cout << "assocating curr left to prev left" << std::endl;
+						std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
 					} else { // prev right
-						// std::cout << "assocating curr left to prev right" << std::endl;
-						// std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
+						std::cout << "assocating curr left to prev right" << std::endl;
+						std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
-						// std::cout << "assocating curr right to prev left" << std::endl;
-						// std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
+						std::cout << "assocating curr right to prev left" << std::endl;
+						std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
 					} else { // prev right
-						// std::cout << "assocating curr right to prev right" << std::endl;
-						// std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
+						std::cout << "assocating curr right to prev right" << std::endl;
+						std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
 				} 
 			} else {
-				// std::cout << "rejected" << std::endl;
+				std::cout << "rejected" << std::endl;
 			}
 		}
 		
@@ -144,11 +143,7 @@ namespace dynamic_gap {
 			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
 			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
 		//}
-		std::cout << "associations" << std::endl;
-		for (int i = 0; i < associations.size(); i++) {
-			std::cout << "(" << i << ", " << associations[i] << "), ";
-		}
-		std::cout << "" << std::endl;
+
         return associations;
     }
 	

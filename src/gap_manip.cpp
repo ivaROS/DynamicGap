@@ -25,13 +25,31 @@ namespace dynamic_gap {
         // I don't think this is guaranteed
         dynamic_gap::MP_model* left_model;
         dynamic_gap::MP_model* right_model;
-        determineLeftRightModels(&left_model, &right_model, gap, pg);
+        std::vector<double> model_vect = determineLeftRightModels(gap, pg);
+        std::cout << "model_vect: " << model_vect[0] << ", " << model_vect[1] << std::endl;
+        if (model_vect[0] == 0.0) {
+            left_model = gap.left_model;
+            right_model = gap.right_model;
+        } else {
+            left_model = gap.right_model;
+            right_model = gap.left_model;
+        }
         std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
+
+
         // TODO: make sure that this is always less than 180, make sure convex
         Matrix<double, 5, 1> left_model_state = left_model->get_state();
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
+        
+
+        left_model->freeze_robot_vel();
+        right_model->freeze_robot_vel();
+
+        Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
+        Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
+        /*
         Eigen::Vector4d left_cartesian_state = left_model->get_cartesian_state();
         Eigen::Vector4d right_cartesian_state = right_model->get_cartesian_state();
         Matrix<double, 2, 1> v_ego = left_model->get_v_ego();
@@ -46,13 +64,15 @@ namespace dynamic_gap {
         double gap_phys_betadot_right = (right_cartesian_state[0]*gap_target_right_vel[1] - right_cartesian_state[1]*gap_target_right_vel[0])*(pow(right_model_state[0],2));
         std::cout << "gap_phys_betadot_left: " << gap_phys_betadot_left << std::endl;
         std::cout << "gap_phys_betadot_right: " << gap_phys_betadot_right << std::endl;
-
+        */
         double gap_angle;
         if (right_ori > left_ori) {
             gap_angle = right_ori - left_ori;
         } else {
             gap_angle = left_ori - right_ori;
         }
+        double left_betadot_check = frozen_left_model_state[4];
+        double right_betadot_check = frozen_right_model_state[4];
         
         //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
         //std::cout << "left ori: " << left_ori << ", right ori: " << right_ori << ", gap angle: " << gap_angle << std::endl;
@@ -62,13 +82,12 @@ namespace dynamic_gap {
         // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
         std::cout << "y_left: " << left_model_state(0) << ", " << left_model_state(1) << ", " << left_model_state(2) << ", " << left_model_state(3) << ", " << left_model_state(4) << std::endl;
         std::cout << "y_right: " << right_model_state(0) << ", " << right_model_state(1) << ", " << right_model_state(2) << ", " << right_model_state(3) << ", " << right_model_state(4) << std::endl; 
-        std::cout << "corrected betadot left: " << gap_phys_betadot_left << ", corrected betadot right: " << gap_phys_betadot_right << std::endl;
+        std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
+        std::cout << "corrected betadot left: " << frozen_left_model_state[4] << ", corrected betadot right: " << frozen_right_model_state[4] << std::endl;
 
         double nom_rbt_vel = 0.25;
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
 
-        double left_betadot_check = gap_phys_betadot_left;
-        double right_betadot_check = gap_phys_betadot_right;
         // FEASIBILITY CHECK
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
             // CATEGORY 1: TRANSLATING       
@@ -78,7 +97,8 @@ namespace dynamic_gap {
                 gap.gap_lifespan = cfg_->traj.integrate_maxt;
                 feasible = true;
             } else {
-                gap.gap_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
+                double default_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
+                gap.gap_lifespan = default_lifespan;
                 std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
                 if (gap.gap_lifespan > T_rbt2arc) {
                     std::cout << "gap lifespan longer than Trbt2arc, is feasible" << std::endl;
@@ -125,7 +145,8 @@ namespace dynamic_gap {
         }
     }
     
-    void GapManipulator::determineLeftRightModels(dynamic_gap::MP_model** left_model, dynamic_gap::MP_model** right_model, dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg) {
+    // returns: [0/1, 0/1] where 0 corresponds to gap left model and 1 corresponds to gap right model
+    std::vector<double> GapManipulator::determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg) {
         Matrix<double, 5, 1> model_one = selectedGap.left_model->get_state();
         //std::cout << "nominal left model: " << model_one[0] << ", " << model_one[1] << ", " << model_one[2] << std::endl;
         Matrix<double, 5, 1> model_two = selectedGap.right_model->get_state();
@@ -139,69 +160,94 @@ namespace dynamic_gap {
         std::cout << "angle_one: " << angle_one << ", angle_two: " << angle_two << ", angle_goal: " << angle_goal << std::endl;
         //std::cout << "picking gap sides" << std::endl;
         // seems to only do 2,7,9
+        std::vector<double> return_vect{0.0, 0.0};
         if ((angle_one > 0 && angle_two > 0 && angle_goal > 0) ||
             (angle_one < 0 && angle_two < 0 && angle_goal < 0)) {
             if (angle_one > angle_two) {
-                std::cout << "1" << std::endl;
-                *left_model = selectedGap.left_model;
-                *right_model = selectedGap.right_model;
+                //std::cout << "1" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             } else {
-                std::cout << "2" << std::endl;
-                *left_model = selectedGap.right_model;
-                *right_model = selectedGap.left_model;
+                //std::cout << "2" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             }
         } else if ((angle_one > 0 && angle_two > 0) || (angle_one < 0 && angle_two < 0)) {
             if (angle_one > angle_two) {
-                std::cout << "3" << std::endl;
-                *right_model = selectedGap.left_model;
-                *left_model = selectedGap.right_model;
+                //std::cout << "3" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             } else {
-                std::cout << "4" << std::endl;
-                *right_model = selectedGap.right_model;
-                *left_model = selectedGap.left_model;
+                //std::cout << "4" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             }
         } else if (angle_one > 0 && angle_goal > 0 && angle_two < 0) {
             if (angle_goal < angle_one) {
-                std::cout << "5" << std::endl;
-                *left_model = selectedGap.left_model;
-                *right_model = selectedGap.right_model;
+                //std::cout << "5" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             } else {
-                std::cout << "6" << std::endl;
-                *left_model = selectedGap.right_model;
-                *right_model = selectedGap.left_model;
+                //std::cout << "6" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             }
         } else if (angle_two > 0 && angle_goal > 0 && angle_one < 0) {
             if (angle_goal < angle_two) {
-                std::cout << "7" << std::endl;
-                *left_model = selectedGap.right_model;
-                *right_model = selectedGap.left_model;
+                //std::cout << "7" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             } else {
-                std::cout << "8" << std::endl;
-                *left_model = selectedGap.left_model;
-                *right_model = selectedGap.right_model;
+                //std::cout << "8" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             }
         } else if (angle_one < 0 && angle_goal < 0 && angle_two > 0) {
             if (angle_goal > angle_one) {
-                std::cout << "9" << std::endl;
-                *right_model = selectedGap.left_model;
-                *left_model = selectedGap.right_model;
+                //std::cout << "9" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             } else {
-                std::cout << "10" << std::endl;
-                *left_model = selectedGap.left_model;
-                *right_model = selectedGap.right_model;
+                //std::cout << "10" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             }
         } else if (angle_two < 0 && angle_goal < 0 && angle_one > 0) {
             if (angle_goal > angle_two) {
-                std::cout << "11" << std::endl;
-                *right_model = selectedGap.right_model;
-                *left_model = selectedGap.left_model;
+                //std::cout << "11" << std::endl;
+                //left_state = model_one;
+                //right_state = model_two;
+                return_vect[0] = 0.0;
+                return_vect[1] = 1.0;
             } else {
-                std::cout << "12" << std::endl;
-                *left_model = selectedGap.right_model;
-                *right_model = selectedGap.left_model;
+                //std::cout << "12" << std::endl;
+                //left_state = model_two;
+                //right_state = model_one;
+                return_vect[0] = 1.0;
+                return_vect[1] = 0.0;
             }
         }
-        return;
+        return return_vect;
     }
 
     void GapManipulator::setGapGoal(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
@@ -229,14 +275,20 @@ namespace dynamic_gap {
         // I don't think this is guaranteed
         dynamic_gap::MP_model* left_model;
         dynamic_gap::MP_model* right_model;
-        determineLeftRightModels(&left_model, &right_model, gap, pg);
-
+        std::vector<double> model_vect = determineLeftRightModels(gap, pg);
+        if (model_vect[0] == 0.0) {
+            left_model = gap.left_model;
+            right_model = gap.right_model;
+        } else {
+            left_model = gap.right_model;
+            right_model = gap.left_model;
+        }
+        Matrix<double, 5, 1> left_model_state = left_model->get_state();
+        Matrix<double, 5, 1> right_model_state = right_model->get_state();
+        
         double swept_left_ori = 0.0;
         double swept_right_ori = 0.0;
         
-        Matrix<double, 1, 5> left_model_state = left_model->get_state();
-        Matrix<double, 1, 5> right_model_state = right_model->get_state();
-
         // FEASIBILITY CHECK
         // NOTE: left/right model states are flipped from left/right indices
         if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {

@@ -31,7 +31,7 @@ namespace dynamic_gap {
             void radialExtendGap(dynamic_gap::Gap&);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
             void feasibilityCheck(std::vector<dynamic_gap::Gap>&);
-            void determineLeftRightModels(dynamic_gap::MP_model**, dynamic_gap::MP_model**, dynamic_gap::Gap&, Eigen::Vector2f);
+            std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
 

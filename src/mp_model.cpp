@@ -135,6 +135,7 @@ namespace dynamic_gap {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
         std::cout << "original MP state: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
@@ -149,7 +150,7 @@ namespace dynamic_gap {
     void MP_model::frozen_state_propagate(double dt) {
         Matrix<double, 1, 5> new_frozen_y;     
         new_frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
-        std::cout << "frozen_y at start: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
+        // std::cout << "frozen_y at start: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
@@ -157,7 +158,7 @@ namespace dynamic_gap {
         new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
         new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
-        std::cout << "frozen_y at end: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
+        // std::cout << "frozen_y at end: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
     }
 
 
@@ -215,7 +216,7 @@ namespace dynamic_gap {
         std::cout << "y at start: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        // std::cout << a[0] << ", " << a[1] << std::endl;
+        std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
@@ -257,6 +258,10 @@ namespace dynamic_gap {
 
     Matrix<double, 5, 1> MP_model::get_state() {
         return y;
+    }
+
+    Matrix<double, 5, 1> MP_model::get_frozen_state() {
+        return frozen_y;
     }
 
     Matrix<double, 2, 1> MP_model::get_v_ego() {

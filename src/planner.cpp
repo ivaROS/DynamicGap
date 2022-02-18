@@ -138,8 +138,11 @@ namespace dynamic_gap
             boost::mutex::scoped_lock gapset(gapset_mutex);
             // getting raw gaps
             // need to keep track of previous raw gaps and current raw gaps
-            //previous_raw_gaps = raw_gaps;
+            // std::cout << "starting hybrid scan gap" << std::endl;
             raw_gaps = finder->hybridScanGap(msg);
+            // std::cout << "finished hybrid scan gap" << std::endl;
+            // std::cout << "raw_gaps size: " << raw_gaps.size() << std::endl;
+
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
 
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
@@ -635,36 +638,36 @@ namespace dynamic_gap
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
         auto gap_set = gapManipulate();
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
-
-        // std::cout << "associating" << std::endl;
-        association = gapassociator->associateGaps(gap_set, previous_gaps);
         
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
+        association = gapassociator->associateGaps(gap_set, previous_gaps);
         update_models(gap_set);
-        /*
+        
         // Desired:
         std::cout << "UPDATING RAW GAPS" << std::endl;
         raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps);
         update_models(raw_gaps);
 
         // sort raw_gaps according to bearing?
-
+        
         // future_raw_gaps = copy(raw_gaps)
         std::cout << "PUSHING RAW MODELS BACK" << std::endl;
         std::vector<dynamic_gap::MP_model *> raw_models;
         for (auto gap : raw_gaps) {
-            // dynamic_gap::Gap copy_gap(gap);
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
         }
         
         // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
+        std::cout << "FREEZING RAW MODELS" << std::endl;
         for (auto & model : raw_models) {
             model->freeze_robot_vel();
         }
         
+        std::cout << "PROPAGATING RAW MODELS" << std::endl;
         // propagate gaps as though robot is frozen at current time, so we can see from this state how the gaps evolve
         for (double dt = 0.01; dt < 5.0; dt += 0.01) {
+            
             for (auto & model : raw_models) {
                 model->frozen_state_propagate(dt);
             }
@@ -682,7 +685,13 @@ namespace dynamic_gap
 
                 //let's just see what happens here
         }
-        */
+
+        std::cout << "RAW MODELS AFTER PROPAGATIONS" << std::endl;
+        for (auto & model : raw_models) {
+            Matrix<double, 1, 5> final_model = model->get_frozen_state();
+            std::cout << "model: " << final_model[0] << ", " << final_model[1] << ", " << final_model[2] << ", " << final_model[3] << ", " << final_model[4] << std::endl;
+        }
+        
 
         /*
         for (i = 0 to 5 seconds)
