@@ -21,8 +21,8 @@ namespace dynamic_gap
             // colon used here is an initialization list. helpful for const variables.
             Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
             {
-                left_model = new dynamic_gap::MP_model();
-                right_model = new dynamic_gap::MP_model();
+                left_model = new dynamic_gap::MP_model("left");
+                right_model = new dynamic_gap::MP_model("right");
             };
             /*
             Gap(const dynamic_gap::Gap& gap) {

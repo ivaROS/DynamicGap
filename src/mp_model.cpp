@@ -18,7 +18,7 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model() {
+    MP_model::MP_model(std::string _side) {
         // std::string robot_name = frame.substr(0, frame.length() - 8);
         // std::cout << "robot_name " << robot_name << std::endl;
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -77,6 +77,7 @@ namespace dynamic_gap {
 
 
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
+        side = _side;
         //ros::NodeHandle n;
         // std::cout << "topic name: " << robot_name + "/cmd_vel" << std::endl;
         // acc_sub = n.subscribe(robot_name + "/cmd_vel", 100, &MP_model::cmd_velCB, this);
@@ -266,6 +267,14 @@ namespace dynamic_gap {
 
     Matrix<double, 2, 1> MP_model::get_v_ego() {
         return v_ego;
+    }
+
+    void MP_model::set_side(std::string _side) {
+        side = _side;
+    }
+    
+    std::string MP_model::get_side() {
+        return side;
     }
 }
 

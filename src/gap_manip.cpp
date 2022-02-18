@@ -87,7 +87,7 @@ namespace dynamic_gap {
 
         double nom_rbt_vel = 0.25;
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
-
+        std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
         // FEASIBILITY CHECK
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
             // CATEGORY 1: TRANSLATING       
@@ -130,19 +130,22 @@ namespace dynamic_gap {
         return feasible;
     }
     
-    void GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set) {
+    std::vector<dynamic_gap::Gap> GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set) {
         bool gap_i_feasible;
         int num_gaps = manip_set.size();
+        std::vector<dynamic_gap::Gap> feasible_gap_set;
         for (size_t i = 0; i < num_gaps; i++) {
             std::cout << "feasiblity check for gap " << i << std::endl;
             gap_i_feasible = indivGapFeasibilityCheck(manip_set.at(i));
-            if (!gap_i_feasible) {
-                std::cout << "deleting gap" << std::endl;
-                manip_set.erase(manip_set.begin() + i);
-                num_gaps = manip_set.size();
-                i--;
+            if (gap_i_feasible) {
+                feasible_gap_set.insert(feasible_gap_set.begin(), manip_set.at(i));
+                //std::cout << "deleting gap" << std::endl;
+                //manip_set.erase(manip_set.begin() + i);
+                //num_gaps = manip_set.size();
+                //i--;
             }
         }
+        return feasible_gap_set;
     }
     
     // returns: [0/1, 0/1] where 0 corresponds to gap left model and 1 corresponds to gap right model

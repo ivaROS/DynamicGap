@@ -114,24 +114,26 @@ namespace dynamic_gap {
 				//std::cout << "distance under threshold" << std::endl;
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
-						std::cout << "assocating curr left to prev left" << std::endl;
-						std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
+						//std::cout << "assocating curr left to prev left" << std::endl;
+						//std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
-					} else { // prev right
-						std::cout << "assocating curr left to prev right" << std::endl;
-						std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
+					} else { // prev right;
+						//std::cout << "assocating curr left to prev right" << std::endl;
+						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
+					observed_gaps[int(std::floor(pair[0] / 2.0))].left_model->set_side("left");
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
-						std::cout << "assocating curr right to prev left" << std::endl;
-						std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
+						//std::cout << "assocating curr right to prev left" << std::endl;
+						//std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
 					} else { // prev right
-						std::cout << "assocating curr right to prev right" << std::endl;
-						std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
+						//std::cout << "assocating curr right to prev right" << std::endl;
+						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
+					observed_gaps[int(std::floor(pair[0] / 2.0))].right_model->set_side("right");
 				} 
 			} else {
 				std::cout << "rejected" << std::endl;

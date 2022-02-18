@@ -290,6 +290,7 @@ namespace dynamic_gap
     
         void update_model(int i, std::vector<dynamic_gap::Gap>& observed_gaps);
         void update_models(std::vector<dynamic_gap::Gap>& observed_gaps);
+        std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
     };
 }
 

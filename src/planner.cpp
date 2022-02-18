@@ -631,29 +631,36 @@ namespace dynamic_gap
         return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
     }
 
+    std::vector<dynamic_gap::Gap> Planner::get_curr_raw_gaps() {
+        return raw_gaps;
+    }
+
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         // double begin_time = ros::Time::now().toSec();
         updateTF();
 
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
         auto gap_set = gapManipulate();
+        // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
         
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         association = gapassociator->associateGaps(gap_set, previous_gaps);
         update_models(gap_set);
         
+
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
         // Desired:
         std::cout << "UPDATING RAW GAPS" << std::endl;
-        raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps);
-        update_models(raw_gaps);
+        raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps);
+        update_models(curr_raw_gaps);
 
         // sort raw_gaps according to bearing?
         
         // future_raw_gaps = copy(raw_gaps)
         std::cout << "PUSHING RAW MODELS BACK" << std::endl;
         std::vector<dynamic_gap::MP_model *> raw_models;
-        for (auto gap : raw_gaps) {
+        for (auto gap : curr_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
         }
@@ -665,14 +672,53 @@ namespace dynamic_gap
         }
         
         std::cout << "PROPAGATING RAW MODELS" << std::endl;
+        std::cout << "RAW MODELS BEFORE PROPAGATION" << std::endl;
+        for (auto & model : raw_models) {
+            Matrix<double, 1, 5> final_model = model->get_frozen_state();
+            std::cout << "model. r: " << final_model[0] << ", beta: " << std::atan2(final_model[1], final_model[2]) << ", rdot/r: " << final_model[3] << ", betadot: " << final_model[4] << ", side: " << model->get_side() << std::endl;
+        }
         // propagate gaps as though robot is frozen at current time, so we can see from this state how the gaps evolve
-        for (double dt = 0.01; dt < 5.0; dt += 0.01) {
-            
+        for (double dt = 0.01; dt < 0.05; dt += 0.01) {
+            std::cout << "dt: " << dt << std::endl;
             for (auto & model : raw_models) {
                 model->frozen_state_propagate(dt);
             }
 
             sort(raw_models.begin(), raw_models.end(), compareBearing);
+
+            std::vector<dynamic_gap::MP_model *> revised_raw_models;
+            bool searching_for_left = true;
+            dynamic_gap::MP_model * current_right;
+            for (int i = 0; i < raw_models.size(); i++) {
+                dynamic_gap::MP_model * model = raw_models[i];
+                Matrix<double, 5, 1> model_state = model->get_frozen_state();
+                std::cout << "model. r: " << model_state[0] << ", beta: " << std::atan2(model_state[1], model_state[2]) << ", rdot/r: " << model_state[3] << ", betadot: " << model_state[4] << ", side: " << model->get_side() << std::endl;
+                if (searching_for_left) {
+                    if (model->get_side() == "left") {
+                        searching_for_left = false;
+                        current_right = model;
+                        continue;
+                    } else {
+                       continue;
+                    }   
+                }
+
+                if (model->get_side() == "right") {
+                    // need to check gap characteristics
+                    // add new raw gap if it adheres to criteria
+                    Matrix<double, 5, 1> right_state = current_right->get_frozen_state();
+                    std::cout << "possible gap: " << std::atan2(model_state[1], model_state[2]) << " to " << std::atan2(right_state[1], right_state[2]) << std::endl;
+                    // if a gap is built, iterate to next right
+                    searching_for_left = true;
+                } else {
+                    // is it a better left?
+                }
+
+
+                // start from a left point
+                // iterate until hit a left pt
+                // go to next right
+            }
 
 
             // sort models by beta?
@@ -686,10 +732,10 @@ namespace dynamic_gap
                 //let's just see what happens here
         }
 
-        std::cout << "RAW MODELS AFTER PROPAGATIONS" << std::endl;
+        std::cout << "RAW MODELS AFTER PROPAGATION" << std::endl;
         for (auto & model : raw_models) {
             Matrix<double, 1, 5> final_model = model->get_frozen_state();
-            std::cout << "model: " << final_model[0] << ", " << final_model[1] << ", " << final_model[2] << ", " << final_model[3] << ", " << final_model[4] << std::endl;
+            std::cout << "model. r: " << final_model[0] << ", beta: " << std::atan2(final_model[1], final_model[2]) << ", rdot/r: " << final_model[3] << ", betadot: " << final_model[4] << ", side: " << model->get_side() << std::endl;
         }
         
 
@@ -704,30 +750,28 @@ namespace dynamic_gap
 
         //std::cout << "gap set size before feasibility check: " << gap_set.size() << std::endl;
         std::cout << "STARTING GAP FEASIBILITY CHECK" << std::endl;
-        gapManip->feasibilityCheck(gap_set);
+        // gap_set gets changed here
+        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(gap_set);
         std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
         // std::cout << "gap set size after feasibility check: " << gap_set.size() << std::endl;
 
         std::cout << "STARTING SET GAP GOAL" << std::endl;
-        for (size_t i = 0; i < gap_set.size(); i++) {
-            // gapManip->setValidSliceWaypoint(gap_set.at(i), goalselector->rbtFrameLocalGoal()); // set local goal
+        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
             std::cout << "setting goal for gap: " << i << std::endl;
-            gapManip->setGapGoal(gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
+            gapManip->setGapGoal(feasible_gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
         }
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
-        for (size_t i = 0; i < gap_set.size(); i++) {
-            std::cout << "goal " << i << ": " << gap_set.at(i).goal.x << ", " << gap_set.at(i).goal.y << std::endl;
+        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
+            std::cout << "goal " << i << ": " << feasible_gap_set.at(i).goal.x << ", " << feasible_gap_set.at(i).goal.y << std::endl;
         }
 
-        goalvisualizer->drawGapGoals(gap_set);
+        goalvisualizer->drawGapGoals(feasible_gap_set);
 
         std::vector<geometry_msgs::PoseArray> traj_set;
         
         std::cout << "STARTING INITIAL TRAJ GEN/SCORING" << std::endl;
-        for (size_t i = 0; i < gap_set.size(); i++) {
-            std::cout << "goal " << i << ": " << gap_set.at(i).goal.x << ", " << gap_set.at(i).goal.y << std::endl;
-        }
-        auto score_set = initialTrajGen(gap_set, traj_set);
+
+        auto score_set = initialTrajGen(feasible_gap_set, traj_set);
         std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
         std::cout << "STARTING PICK TRAJ" << std::endl;
         auto picked_traj = pickTraj(traj_set, score_set);
@@ -737,7 +781,9 @@ namespace dynamic_gap
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
 
         previous_gaps = gap_set;
-        previous_raw_gaps = raw_gaps;
+
+        // possibly bad because raw_gaps changing at every call back, but models only being set in here
+        previous_raw_gaps = curr_raw_gaps;
 
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
         return final_traj;

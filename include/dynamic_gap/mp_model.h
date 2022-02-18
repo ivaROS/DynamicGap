@@ -41,11 +41,13 @@ namespace dynamic_gap {
 
             Matrix<double, 5, 5> A;
             Matrix<double, 5, 5> Ad;
+
+            std::string side;
             //ros::Subscriber acc_sub;
             //Matrix<float, 1, 2> previous_twist;
 
         public:
-            MP_model();
+            MP_model(std::string);
             MP_model(const dynamic_gap::MP_model&);
 
             ~MP_model();
@@ -63,5 +65,8 @@ namespace dynamic_gap {
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
             void kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> a_ego, Matrix<double, 1, 2> v_ego);
+            void set_side(std::string _side);
+            std::string get_side();
+
     };
 }
