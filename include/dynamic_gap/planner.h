@@ -147,6 +147,15 @@ namespace dynamic_gap
         geometry_msgs::Twist current_cmd_vel;
         Matrix<double, 1, 2> a;
 
+        std::string frame;
+        double angle_increment;
+        double angle_min;
+        double half_scan;
+        double min_safe_dist;
+
+        int init_val;
+        int * model_idx;
+
     public:
         Planner();
 
@@ -226,7 +235,7 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate();
+        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps);
 
         /**
          * 
@@ -291,6 +300,7 @@ namespace dynamic_gap
         void update_model(int i, std::vector<dynamic_gap::Gap>& observed_gaps);
         void update_models(std::vector<dynamic_gap::Gap>& observed_gaps);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
+        std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
     };
 }
 

@@ -18,7 +18,7 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model(std::string _side) {
+    MP_model::MP_model(std::string _side, int _index) {
         // std::string robot_name = frame.substr(0, frame.length() - 8);
         // std::cout << "robot_name " << robot_name << std::endl;
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -78,11 +78,13 @@ namespace dynamic_gap {
 
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         side = _side;
+        index = _index;
         //ros::NodeHandle n;
         // std::cout << "topic name: " << robot_name + "/cmd_vel" << std::endl;
         // acc_sub = n.subscribe(robot_name + "/cmd_vel", 100, &MP_model::cmd_velCB, this);
     }
 
+    /*
     MP_model::MP_model(const dynamic_gap::MP_model& model) {
         // std::string robot_name = frame.substr(0, frame.length() - 8);
         // std::cout << "robot_name " << robot_name << std::endl;
@@ -96,11 +98,11 @@ namespace dynamic_gap {
         t0 = model.t0;
         t = model.t;
         dt = model.dt;
-        /*
+        
         acc_t0 = ros::Time::now().toSec();
         acc_t = ros::Time::now().toSec();
         acc_T = t- t0;
-        */
+        
         a = model.a;
         v_ego = model.v_ego;
 
@@ -111,6 +113,7 @@ namespace dynamic_gap {
         frozen_y = model.frozen_y;
 
     }
+    */
 
     MP_model::~MP_model() {}
 
@@ -276,6 +279,11 @@ namespace dynamic_gap {
     std::string MP_model::get_side() {
         return side;
     }
+
+    int MP_model::get_index() {
+        return index;
+    }
+
 }
 
 /*

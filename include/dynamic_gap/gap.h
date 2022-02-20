@@ -19,11 +19,16 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
+            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256, int *index = 0) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan), _index(*index)
             {
-                left_model = new dynamic_gap::MP_model("left");
-                right_model = new dynamic_gap::MP_model("right");
+                // std::cout << "initializing gap with index: " << index << std::endl;
+                // std::cout << "class member variable _index: " << _index << std::endl;
+                left_model = new dynamic_gap::MP_model("left", *index);
+                *index += 1;
+                right_model = new dynamic_gap::MP_model("right", *index);
+                *index += 1;
             };
+
             /*
             Gap(const dynamic_gap::Gap& gap) {
                 convex.convex_lidx = gap.convex.convex_lidx;
@@ -41,6 +46,14 @@ namespace dynamic_gap
 
             ~Gap() {};
 
+            void setLeftModel(dynamic_gap::MP_model * _left_model) {
+                left_model = _left_model;
+            }
+
+            void setRightModel(dynamic_gap::MP_model * _right_model) {
+                right_model = _right_model;
+            }
+            
             void setLIdx(int lidx)
             {
                 _left_idx = lidx;
@@ -319,6 +332,7 @@ namespace dynamic_gap
 
             MP_model *left_model;
             MP_model *right_model;
+            int _index;
         // private:
     };
 }

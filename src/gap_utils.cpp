@@ -9,7 +9,7 @@ namespace dynamic_gap {
         cfg_ = & cfg;
     }
 
-    std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser)
+    std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, int * model_idx)
     {
         // clear gaps
         std::vector<dynamic_gap::Gap> raw_gaps;
@@ -46,7 +46,9 @@ namespace dynamic_gap {
                 if (scan_dist < max_scan_dist && last_scan < max_scan_dist) 
                 {
                     // initializing a radial gap
-                    dynamic_gap::Gap detected_gap(frame, it - 1, last_scan, true, half_scan);
+                    std::cout << "A. before constructor, model_idx: " << model_idx << std::endl;
+                    dynamic_gap::Gap detected_gap(frame, it - 1, last_scan, true, half_scan, model_idx);
+                    // model_idx += 2;
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
@@ -64,7 +66,9 @@ namespace dynamic_gap {
                 if (prev_lgap)
                 {
                     prev_lgap = false;
-                    dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, half_scan);
+                    // std::cout << "B. before constructor, model_idx: " << model_idx << std::endl;
+                    dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, false, half_scan, model_idx);
+                    // model_idx += 2;
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
@@ -84,7 +88,9 @@ namespace dynamic_gap {
         // Catch the last gap
         if (prev_lgap) 
         {
-            dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, half_scan);
+            // std::cout << "C. before constructor, model_idx: " << model_idx << std::endl;
+            dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, false, half_scan, model_idx);
+            // model_idx += 2;
             detected_gap.addRightInformation(int(stored_scan_msgs.ranges.size() - 1), *(stored_scan_msgs.ranges.end() - 1));
             detected_gap.setMinSafeDist(min_dist);
             if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr) raw_gaps.push_back(detected_gap);
