@@ -68,7 +68,7 @@ namespace dynamic_gap {
     }
     */
 
-    std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj) {
+    std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps) {
         // Requires LOCAL FRAME
         // Should be no racing condition
         //geometry_msgs::PoseArray traj = std::get<0>(return_tuple);

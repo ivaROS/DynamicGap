@@ -24,6 +24,7 @@ namespace dynamic_gap {
 
             Matrix<double, 5, 1> y; // modified polar coordinates state
             Matrix<double, 5, 1> frozen_y; // for simulating situation where robot is not moving
+            Matrix<double, 4, 1> frozen_x;
             Matrix<double, 5, 5> P; // covariance matrix
             Matrix<double, 5, 3> G; // kalman gain
 

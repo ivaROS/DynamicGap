@@ -140,6 +140,7 @@ namespace dynamic_gap
         boost::mutex gapset_mutex;
 
         geometry_msgs::PoseArray curr_executing_traj;
+        std::vector<double> curr_executing_time_arr;
 
         boost::circular_buffer<double> log_vel_comp;
 
@@ -241,7 +242,7 @@ namespace dynamic_gap
          * 
          *
          */
-        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>&, std::vector<geometry_msgs::PoseArray>&);
+        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<std::vector<double>>& res_time_traj);
 
         /**
          * Callback function to config object
@@ -256,20 +257,23 @@ namespace dynamic_gap
          * @param Vector of corresponding trajectory scores
          * @return the best trajectory
          */
-        geometry_msgs::PoseArray pickTraj(std::vector<geometry_msgs::PoseArray>, std::vector<std::vector<double>>);
+        int pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> score);
 
         /**
          * Compare to the old trajectory and pick the best one
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray);
+        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr);
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function
          */
         void setCurrentTraj(geometry_msgs::PoseArray);        
         geometry_msgs::PoseArray getCurrentTraj();
+
+        void setCurrentTimeArr(std::vector<double>);
+        std::vector<double> getCurrentTimeArr();
 
         /**
          * Conglomeration of getting a plan Trajectory
@@ -299,8 +303,8 @@ namespace dynamic_gap
     
         void update_model(int i, std::vector<dynamic_gap::Gap>& observed_gaps);
         void update_models(std::vector<dynamic_gap::Gap>& observed_gaps);
-        std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
-        std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
+        std::vector<dynamic_gap::Gap>& get_curr_raw_gaps();
+        std::vector<dynamic_gap::Gap>& get_curr_observed_gaps();
     };
 }
 

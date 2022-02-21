@@ -58,13 +58,12 @@ namespace dynamic_gap {
 		//std::cout << "obtaining gap points for observed" << std::endl;
         std::vector< std::vector<float>> observed_gap_points = obtainGapPoints(observed_gaps);
         std::vector<int> associations = {};
-        int count = 0;
-		std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
+		//std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
         // initialize distance matrix
         vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
-		std::cout << "populating distance matrix" << std::endl;
+		//std::cout << "populating distance matrix" << std::endl;
         for (int i = 0; i < distMatrix.size(); i++) {
             for (int j = 0; j < distMatrix[i].size(); j++) {
                 double accum = 0;
@@ -75,9 +74,9 @@ namespace dynamic_gap {
                 }
                 //std::cout << "accum: " << accum << std::endl;
                 distMatrix[i][j] = sqrt(accum);
-                std::cout << distMatrix[i][j] << ", ";
+                //std::cout << distMatrix[i][j] << ", ";
             }
-			std::cout << "" << std::endl;
+			//std::cout << "" << std::endl;
         }
 
 
@@ -90,11 +89,11 @@ namespace dynamic_gap {
 			//std::cout << "done solving" << std::endl;
         }
 		
-		std::cout << "associations" << std::endl;
-		for (int i = 0; i < associations.size(); i++) {
-			std::cout << "(" << i << ", " << associations[i] << "), ";
-		}
-		std::cout << "" << std::endl;
+		//std::cout << "associations" << std::endl;
+		//for (int i = 0; i < associations.size(); i++) {
+		//	std::cout << "(" << i << ", " << associations[i] << "), ";
+		//}
+		//std::cout << "" << std::endl;
 
 		// ASSOCIATING MODELS
 		for (int i = 0; i < associations.size(); i++) {
@@ -122,7 +121,7 @@ namespace dynamic_gap {
 						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
-					observed_gaps[int(std::floor(pair[0] / 2.0))].left_model->set_side("left");
+					//observed_gaps[int(std::floor(pair[0] / 2.0))].left_model->set_side("left");
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
 						//std::cout << "assocating curr right to prev left" << std::endl;
@@ -133,7 +132,7 @@ namespace dynamic_gap {
 						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
-					observed_gaps[int(std::floor(pair[0] / 2.0))].right_model->set_side("right");
+					//observed_gaps[int(std::floor(pair[0] / 2.0))].right_model->set_side("right");
 				} 
 			} else {
 				std::cout << "rejected" << std::endl;

@@ -512,11 +512,10 @@ namespace dynamic_gap {
         geometry_msgs::PoseArray& _posearr;
         std::string _frame_id;
         double _coefs;
-        std::vector<double>& _left_ranges;
-        std::vector<double>& _right_ranges;
+        std::vector<double>& _timearr;
 
-        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, double coefs, std::vector<double>& left_ranges, std::vector<double>& right_ranges)
-        : _posearr(posearr), _frame_id(frame_id), _coefs(coefs), _left_ranges(left_ranges), _right_ranges(right_ranges) {}
+        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, double coefs, std::vector<double>& timearr)
+        : _posearr(posearr), _frame_id(frame_id), _coefs(coefs), _timearr(timearr) {}
 
         void operator()( const state_type &x , double t )
         {
@@ -532,8 +531,7 @@ namespace dynamic_gap {
             pose.pose.orientation.w = 1;
             _posearr.poses.push_back(pose.pose);
 
-            _left_ranges.push_back(1.0 / x[4]);
-            _right_ranges.push_back(1.0 / x[9]);
+            _timearr.push_back(t);
         }
     };
 

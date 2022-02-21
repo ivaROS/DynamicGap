@@ -42,7 +42,7 @@ namespace dynamic_gap{
         // Full Scoring
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
-        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray);
+        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
 
         private:
             const DynamicGapConfig* cfg_;

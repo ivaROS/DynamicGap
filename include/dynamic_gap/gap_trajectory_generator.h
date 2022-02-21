@@ -38,7 +38,7 @@ namespace dynamic_gap {
             TrajectoryGenerator& operator=(TrajectoryGenerator & other) {cfg_ = other.cfg_;};
             TrajectoryGenerator(const TrajectoryGenerator &t) {cfg_ = t.cfg_;};
 
-            virtual std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel) = 0;
+            virtual std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel) = 0;
             virtual std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>) = 0;
         protected:
             const DynamicGapConfig* cfg_;
@@ -48,10 +48,10 @@ namespace dynamic_gap {
         using TrajectoryGenerator::TrajectoryGenerator;
         public:
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel);
             std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>>);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>>);
             void determineLeftRightModels(Matrix<double, 5, 1>&, Matrix<double, 5, 1>&, dynamic_gap::Gap&, double);
 
         private: 

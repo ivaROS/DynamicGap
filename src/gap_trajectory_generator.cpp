@@ -1,15 +1,14 @@
 #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
-    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
         // return geometry_msgs::PoseArray();
         geometry_msgs::PoseArray posearr;
-        std::vector<double> left_ranges;
-        std::vector<double> right_ranges;
+        std::vector<double> timearr;
         posearr.header.stamp = ros::Time::now();
         
         double coefs = cfg_->traj.scale;
-        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, left_ranges, right_ranges);
+        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
         std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
@@ -77,7 +76,7 @@ namespace dynamic_gap{
             cfg_->traj.integrate_maxt,
             cfg_->traj.integrate_stept,
             corder);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
             return return_tuple;
         }
         
@@ -176,7 +175,7 @@ namespace dynamic_gap{
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard) {
             std::cout << "discarding gap" << std::endl;
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
             return return_tuple;
         }
         
@@ -209,7 +208,7 @@ namespace dynamic_gap{
         //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
-        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple(posearr, left_ranges, right_ranges);
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
         return return_tuple;
     }
 
@@ -319,11 +318,10 @@ namespace dynamic_gap{
         return retarr;
     }
 
-    std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> GapTrajGenerator::forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> return_tuple)
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple)
     {
         geometry_msgs::PoseArray pose_arr = std::get<0>(return_tuple);
-        std::vector<double> left_ranges = std::get<1>(return_tuple);
-        std::vector<double> right_ranges = std::get<2>(return_tuple);
+        std::vector<double> time_arr = std::get<1>(return_tuple);
         Eigen::Quaternionf q;
         geometry_msgs::Pose old_pose;
         old_pose.position.x = 0;
@@ -347,9 +345,9 @@ namespace dynamic_gap{
         }
         */
         std::vector<geometry_msgs::Pose> shortened;
-        std::vector<double> shortened_left_ranges;
-        std::vector<double> shortened_right_ranges;
+        std::vector<double> shortened_time_arr;
         shortened.push_back(old_pose);
+        shortened_time_arr.push_back(0.0);
         for (int i = 1; i < pose_arr.poses.size(); i++) {
             auto pose = pose_arr.poses[i];
             dx = pose.position.x - shortened.back().position.x;
@@ -358,8 +356,7 @@ namespace dynamic_gap{
             if (result > 0.05) {
                 //ROS_WARN_STREAM("result kept at " << result);
                 shortened.push_back(pose);
-                shortened_left_ranges.push_back(left_ranges[i]);
-                shortened_right_ranges.push_back(right_ranges[i]);
+                shortened_time_arr.push_back(time_arr[i]);
 
             } else {
                 //ROS_WARN_STREAM("result cut at " << result);
@@ -386,8 +383,9 @@ namespace dynamic_gap{
             pose_arr.poses[idx - 1].orientation.w = q.w();
         }
         pose_arr.poses.pop_back();
+        shortened_time_arr.pop_back();
 
-        std::tuple<geometry_msgs::PoseArray, std::vector<double>, std::vector<double>> shortened_tuple(pose_arr, shortened_left_ranges, shortened_right_ranges);
+        std::tuple<geometry_msgs::PoseArray, std::vector<double>> shortened_tuple(pose_arr, shortened_time_arr);
         return shortened_tuple;
     }
 

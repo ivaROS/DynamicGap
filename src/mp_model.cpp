@@ -77,6 +77,7 @@ namespace dynamic_gap {
 
 
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
+        frozen_x << 0.0, 0.0, 0.0, 0.0;
         side = _side;
         index = _index;
         //ros::NodeHandle n;
@@ -138,7 +139,7 @@ namespace dynamic_gap {
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
-        std::cout << "original MP state: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
         std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         // update cartesian
         cartesian_state[2] += v_ego[0];
@@ -146,9 +147,10 @@ namespace dynamic_gap {
         // recalculate polar
         double new_rdot_over_r = (cartesian_state[0]*cartesian_state[2] + cartesian_state[1]*cartesian_state[3]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
         double new_betadot = (cartesian_state[0]*cartesian_state[3] - cartesian_state[1]*cartesian_state[2]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
+        frozen_x << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
         frozen_y << y(0), y(1), y(2), new_rdot_over_r, new_betadot;
-        std::cout << "modified cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
-        std::cout << "modified MP state: " << frozen_y[0] << ", " << frozen_y[1] << ", " << frozen_y[2] << ", " << frozen_y[3] << ", " << frozen_y[4] << std::endl;
+        std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+        std::cout << "modified MP state. r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
 
     void MP_model::frozen_state_propagate(double dt) {
@@ -217,10 +219,10 @@ namespace dynamic_gap {
         // acceleration comes in wrt robot frame
         a = -_a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
         v_ego = _v_ego;
-        std::cout << "y at start: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
+        //std::cout << "y at start: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        //std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
+        //std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
@@ -242,7 +244,7 @@ namespace dynamic_gap {
         //std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         y = y + G*(y_tilde - H*y);
-        std::cout << "y after update" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        //std::cout << "y after update" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
         //std::cout << "P after update: " << P << std::endl;
