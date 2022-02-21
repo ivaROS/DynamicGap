@@ -470,7 +470,11 @@ namespace dynamic_gap
         auto curr_traj = getCurrentTraj();
         auto curr_time_arr = getCurrentTimeArr();
 
+
         try {
+
+            std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
+            std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             // Both Args are in Odom frame
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
@@ -486,11 +490,14 @@ namespace dynamic_gap
                     std::cout << "curr traj 0, incoming infinity" << std::endl;
                     ROS_WARN_STREAM("Incoming score of negative infinity");
                     auto empty_traj = geometry_msgs::PoseArray();
+                    std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
+                    setCurrentTimeArr(empty_time_arr);
                     return empty_traj;
                 } else {
                     std::cout << "curr traj 0, incoming finite" << std::endl;
                     setCurrentTraj(incoming);
+                    setCurrentTimeArr(time_arr);
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
                     return incoming;
@@ -508,6 +515,7 @@ namespace dynamic_gap
                 std::cout << "old traj short" << std::endl;
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
+                setCurrentTimeArr(time_arr);
                 return incoming;
             }
             auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, current_raw_gaps);
@@ -533,7 +541,9 @@ namespace dynamic_gap
                 std::cout << "both infinity" << std::endl;
                 ROS_WARN_STREAM("Both Failed");
                 auto empty_traj = geometry_msgs::PoseArray();
+                std::vector<double> empty_time_arr;
                 setCurrentTraj(empty_traj);
+                setCurrentTimeArr(empty_time_arr);
                 return empty_traj;
             }
 
@@ -541,6 +551,7 @@ namespace dynamic_gap
                 std::cout << "swapping trajectory" << std::endl;
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << counts);
                 setCurrentTraj(incoming);
+                setCurrentTimeArr(time_arr);
                 trajectory_pub.publish(incoming);
                 return incoming;
             }
@@ -669,11 +680,13 @@ namespace dynamic_gap
         updateTF();
 
         std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
+        /*
         std::cout << "MODELS IN CURRENT RAW GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : curr_raw_gaps) {
             std::cout << "left index: " << gap.left_model->get_index() << std::endl;
             std::cout << "right index: " << gap.right_model->get_index() << std::endl;
         }
+        */
 
         std::cout << "UPDATING RAW GAPS" << std::endl;
         raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps);
@@ -681,8 +694,10 @@ namespace dynamic_gap
         
         std::cout << "MODELS IN CURRENT RAW GAPS AFTER ASSOCIATION" << std::endl;
         for (auto & gap : curr_raw_gaps) {
-            std::cout << "left index: " << gap.left_model->get_index() << std::endl;
-            std::cout << "right index: " << gap.right_model->get_index() << std::endl;
+            Matrix<double, 5, 1> left_model_state = gap.left_model->get_state();
+            Matrix<double, 5, 1> right_model_state = gap.right_model->get_state();
+            std::cout << "left model. 1/r: " << left_model_state[0] << ", beta: " << std::atan2(left_model_state[1], left_model_state[2]) << ", rdot/r: " << left_model_state[3] << ", betadot: " << left_model_state[4] << ", index: " << gap.left_model->get_index() << std::endl;
+            std::cout << "right model. 1/r: " << right_model_state[0] << ", beta: " << std::atan2(right_model_state[1], right_model_state[2]) << ", rdot/r: " << right_model_state[3] << ", betadot: " << right_model_state[4] << ", index: " << gap.right_model->get_index() << std::endl;
         }
 
         std::vector<dynamic_gap::Gap> curr_observed_gaps = finder->mergeGapsOneGo(sharedPtr_laser, curr_raw_gaps);
@@ -692,32 +707,37 @@ namespace dynamic_gap
         // need to make sure these raw gaps are the ones that the simplified gaps are built from
         // Desired:
 
+        /*
         std::cout << "MODELS IN CURRENT OBSERVED GAPS" << std::endl;
         for (auto & gap : curr_observed_gaps) {
             std::cout << "left index: " << gap.left_model->get_index() << std::endl;
             std::cout << "right index: " << gap.right_model->get_index() << std::endl;
         }
-
+        */
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
         auto gap_set = gapManipulate(curr_observed_gaps);
         // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
         
+        /*
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {
             std::cout << "left index: " << gap.left_model->get_index() << std::endl;
             std::cout << "right index: " << gap.right_model->get_index() << std::endl;
         }
+        */
 
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         association = gapassociator->associateGaps(gap_set, previous_gaps);
         update_models(gap_set);
         
+        /*
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS AFTER ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {
             std::cout << "left index: " << gap.left_model->get_index() << std::endl;
             std::cout << "right index: " << gap.right_model->get_index() << std::endl;
         }
+        */
         
 
         
@@ -756,11 +776,12 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> revised_raw_gaps;
         std::vector<dynamic_gap::Gap> revised_simplified_gaps;
         // propagate gaps as though robot is frozen at current time, so we can see from this state how the gaps evolve
-        for (double dt = 0.01; dt < 0.05; dt += 0.01) {
+        double delta = 0.01;
+        for (double dt = 0.01; dt < 0.05; dt += delta) {
             std::cout << "dt: " << dt << std::endl;
             revised_raw_gaps.clear();
             for (auto & model : raw_models) {
-                model->frozen_state_propagate(dt);
+                model->frozen_state_propagate(delta);
             }
 
             // std::cout << "sorting" << std::endl;

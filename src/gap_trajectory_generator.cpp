@@ -93,7 +93,7 @@ namespace dynamic_gap{
         //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
         //std::cout << "gap angle: " << gap_angle << std::endl;
 
-        //std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         //std::cout << "starting at: " << curr_pose.pose.position.x << ", " << curr_pose.pose.position.y << std::endl;
         //std::cout << "initial local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         

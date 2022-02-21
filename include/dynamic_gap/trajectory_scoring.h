@@ -57,6 +57,9 @@ namespace dynamic_gap{
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
             double chapterScore(double d);
             double terminalGoalCost(geometry_msgs::Pose pose);
+            double dynamicScorePose(geometry_msgs::Pose pose, double range, double beta);
+            double dynamicDist2Pose(geometry_msgs::Pose pose, double range, double beta);
+
 
             int search_idx = -1;
 
