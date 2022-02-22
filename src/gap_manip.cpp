@@ -655,6 +655,10 @@ namespace dynamic_gap {
         gap.convex.convex_rdist = new_rdist + cfg_->gap_viz.viz_jitter;
         gap.life_time = 50;
         gap.mode.reduced = true;
+
+        std::cout << "gap reduced to: " << std::endl;
+        std::cout << "indices: " << gap.convex.convex_lidx << ", " << gap.convex.convex_ridx << std::endl;
+
         return;
     }
 
@@ -774,8 +778,7 @@ namespace dynamic_gap {
         x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
         y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
 
-        std::cout << "after axial gap conversion, gap is: " << std::endl;
-        std::cout << "gap visualized as: (" << x1 << ", " << y1 << ") , (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "gap converted to: (" << x1 << ", " << y1 << ") , (" << x2 << ", " << y2 << ")" << std::endl;
         std::cout << "indices: " << gap.convex.convex_lidx << ", " << gap.convex.convex_ridx << std::endl;
 
         if (left && gap.convex.convex_ridx < gap.convex.convex_lidx) {
@@ -857,7 +860,7 @@ namespace dynamic_gap {
         x2 = (selected_gap.convex.convex_rdist) * cos(-((float) half_num_scan - selected_gap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selected_gap.convex.convex_rdist) * sin(-((float) half_num_scan - selected_gap.convex.convex_ridx) / half_num_scan * M_PI);
 
-        std::cout << "gap visualized as: (" << x1 << ", " << y1 << ") , (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "gap extended to: (" << x1 << ", " << y1 << ") , (" << x2 << ", " << y2 << ")" << std::endl;
         std::cout << "indices: " << selected_gap.convex.convex_lidx << ", " << selected_gap.convex.convex_ridx << std::endl;
 
         selected_gap.qB = qB;

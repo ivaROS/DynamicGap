@@ -23,6 +23,7 @@ namespace dynamic_gap {
             Matrix<double, 3, 3> tmp_mat; //  place holder for inverse
 
             Matrix<double, 5, 1> y; // modified polar coordinates state
+            Matrix<double, 4, 1> x; // cartesian state
             Matrix<double, 5, 1> frozen_y; // for simulating situation where robot is not moving
             Matrix<double, 4, 1> frozen_x;
             Matrix<double, 5, 5> P; // covariance matrix
@@ -59,6 +60,8 @@ namespace dynamic_gap {
             Matrix<double, 5, 1> get_state();
             Matrix<double, 5, 1> get_frozen_state();
             Eigen::Vector4d get_cartesian_state();
+            Eigen::Vector4d get_frozen_cartesian_state();
+
             Matrix<double, 2, 1> get_v_ego();
             void integrate();
             void linearize();

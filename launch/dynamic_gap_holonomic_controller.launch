@@ -2,15 +2,6 @@
   <arg name="use_recovery_behaviors" default="true"/>
   <arg name="robot_namespace"/>
   <arg name="robot_radius"/>
-  <arg name="rbtx" default="$(optenv GM_PARAM_RBT_X 1)"/>
-  <arg name="rbty" default="$(optenv GM_PARAM_RBT_Y 2)"/>
-
-  <arg name="fov" default="$(optenv GM_PARAM_RBT_FOV 60)"/>
-
-  <arg name="robot_file" default="holonomic_robot_second_order_$(arg fov)_bumper.xml"/>
-
-  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/$(arg robot_file) $(arg rbtx) $(arg rbty) 0" />
-
 
   <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="screen" args="$(arg robot_namespace) $(arg robot_radius)" />	
 

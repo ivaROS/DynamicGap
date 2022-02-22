@@ -156,7 +156,7 @@ namespace dynamic_gap {
     void MP_model::frozen_state_propagate(double dt) {
         Matrix<double, 1, 5> new_frozen_y;     
         new_frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
-        std::cout << "frozen_y stepping from 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << " to ";
+        // std::cout << "frozen_y stepping from 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << " to ";
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
@@ -164,7 +164,7 @@ namespace dynamic_gap {
         new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
         new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
-        std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
+        // std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
 
 
@@ -261,6 +261,18 @@ namespace dynamic_gap {
         x(3) = (1 / y(0)) * (y(3) * y(2) - y(4)*y(1));
         return x;
     }
+
+    Eigen::Vector4d MP_model::get_frozen_cartesian_state() {
+        // x state:
+        // [r_x, r_y, v_x, v_y]
+        Eigen::Vector4d frozen_x(0.0, 0.0, 0.0, 0.0);
+        frozen_x(0) = -(1 / frozen_y(0)) * frozen_y(1);
+        frozen_x(1) = (1 / frozen_y(0)) * frozen_y(2);
+        frozen_x(2) = (1 / frozen_y(0)) * (-frozen_y(3) * frozen_y(1) - frozen_y(4)*frozen_y(2));
+        frozen_x(3) = (1 / frozen_y(0)) * (frozen_y(3) * frozen_y(2) - frozen_y(4)*frozen_y(1));
+        return frozen_x;
+    }
+
 
     Matrix<double, 5, 1> MP_model::get_state() {
         return y;

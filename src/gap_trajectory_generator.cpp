@@ -65,6 +65,17 @@ namespace dynamic_gap{
         }
         */
         // if expanding: just do CLF
+
+        // get gap points in cartesian
+        float x1, x2, y1, y2;
+        float half_num_scan = selectedGap.half_scan;
+        x1 = (selectedGap.convex.convex_ldist) * cos(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
+        y1 = (selectedGap.convex.convex_ldist) * sin(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
+        x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
+        y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
+
+        std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
             g2g inte_g2g(
                 selectedGap.goal.x * coefs,
@@ -80,20 +91,11 @@ namespace dynamic_gap{
             return return_tuple;
         }
         
-        // get gap points in cartesian
-        float x1, x2, y1, y2;
-        float half_num_scan = selectedGap.half_scan;
-        x1 = (selectedGap.convex.convex_ldist) * cos(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-        y1 = (selectedGap.convex.convex_ldist) * sin(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-        x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-        y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-
         //double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
         //double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
         //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
         //std::cout << "gap angle: " << gap_angle << std::endl;
 
-        std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         //std::cout << "starting at: " << curr_pose.pose.position.x << ", " << curr_pose.pose.position.y << std::endl;
         //std::cout << "initial local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
         

@@ -46,7 +46,7 @@ namespace dynamic_gap {
                 if (scan_dist < max_scan_dist && last_scan < max_scan_dist) 
                 {
                     // initializing a radial gap
-                    std::cout << "A. before constructor, model_idx: " << model_idx << std::endl;
+                    // std::cout << "A. before constructor, model_idx: " << model_idx << std::endl;
                     dynamic_gap::Gap detected_gap(frame, it - 1, last_scan, true, half_scan, model_idx);
                     // model_idx += 2;
                     detected_gap.addRightInformation(it, scan_dist);

@@ -359,7 +359,7 @@ namespace dynamic_gap
         try {
             for (size_t i = 0; i < manip_set.size(); i++)
             {
-                // std::cout << "MANIPULATING GAP " << i << std::endl;
+                std::cout << "MANIPULATING GAP " << i << std::endl;
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
@@ -407,6 +407,7 @@ namespace dynamic_gap
                     //std::cout << "minimum left betadots: " << *min_betadot_left << ", maximum left betadots: " << *max_betadot_left << std::endl;
                     //std::cout << "minimum right betadots: " << *min_betadot_right << ", maximum right betadots: " << *max_betadot_right << std::endl;
                 //}
+                std::cout << "scoring ith trajectory" << std::endl;
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), current_raw_gaps);
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
@@ -475,10 +476,14 @@ namespace dynamic_gap
 
             std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
             std::cout << "current time length: " << curr_time_arr.size() << std::endl;
+            std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
+            std::cout << "incoming time length: " << time_arr.size() << std::endl;
+
             // Both Args are in Odom frame
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
             // why do we have to rescore here?
+            std::cout << "scoring incoming trajectory" << std::endl;
             auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, current_raw_gaps);
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
 
@@ -518,13 +523,26 @@ namespace dynamic_gap
                 setCurrentTimeArr(time_arr);
                 return incoming;
             }
-            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, current_raw_gaps);
-            counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
-            auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
-            incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
+            counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
+            std::cout << "counts: " << counts << std::endl;
 
+            incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
             std::cout << "incoming subscore: " << incom_subscore << std::endl;
+
+            std::cout << "scoring reduced current trajectory" << std::endl;
+            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, current_raw_gaps);
+            auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
             std::cout << "current subscore: " << curr_subscore << std::endl;
+
+            /*
+            if (*std::min_element(curr_score.begin(), curr_score.end()) == -std::numeric_limits<double>::infinity()) {
+                std::cout << "old traj on collision course" << std::endl;
+                ROS_WARN_STREAM("Old Traj on collision course");
+                setCurrentTraj(incoming);
+                setCurrentTimeArr(time_arr);
+                return incoming;
+            }
+            */
 
             std::vector<std::vector<double>> ret_traj_scores(2);
             ret_traj_scores.at(0) = incom_score;
@@ -547,9 +565,9 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            if (incom_subscore > curr_subscore + counts) {
+            if (incom_subscore > curr_subscore) {
                 std::cout << "swapping trajectory" << std::endl;
-                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << counts);
+                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
                 trajectory_pub.publish(incoming);
