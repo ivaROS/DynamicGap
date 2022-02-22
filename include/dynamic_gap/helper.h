@@ -313,7 +313,6 @@ namespace dynamic_gap {
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
             // std::cout << "t: " << t << std::endl;
-            //std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
             // state:
 
             // synthesize desired control
@@ -321,6 +320,7 @@ namespace dynamic_gap {
             
             double gx = -local_goal_dist*x[14];
             double gy = local_goal_dist*x[15];
+
 
             Eigen::Vector2d rel_goal(gx - x[0], gy - x[1]);
 
@@ -342,7 +342,6 @@ namespace dynamic_gap {
             Eigen::Vector2d goal_rel_pos_rbt_frame(gx, gy);
 
             double V = pow(rel_goal[0], 2) + pow(rel_goal[1], 2);
-            // std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
             bool pass_gap = false;
             Eigen::Vector2d rbt(x[0], x[1]);
 
@@ -360,10 +359,6 @@ namespace dynamic_gap {
                 pass_gap = (rbt.norm() > std::max(p1.norm(), p2.norm()) + 0.18 || rbt.norm() > goal_pt.norm());
             }
 
-            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
-            //std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
-            //std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
-            
             // WRONG
             // need to know what side the gap points START on
             // then we can know if it's crossed over
@@ -395,12 +390,26 @@ namespace dynamic_gap {
             // how to tell if gap has closed
             // add piece for closed gap?
             if (pass_gap || closed_gap) {
-                // std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
+                //std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0;
                 dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0;
                 dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0; dxdt[14] = 0; dxdt[15] = 0;
                 return;
             }
+
+            //std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            //std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
+
+            /*
+            if (rel_goal[0]*x[2] + rel_goal[1]*x[3] < 0) {
+                std::cout << "dot between goal pos and velocity is negative" << std::endl;
+            }
+            */
+            
+            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
+            //std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
+            //std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
+            
 
             Eigen::Vector2d v_des(0.0, 0.0);
             // If V sufficiently large, set desired velocity
@@ -500,7 +509,7 @@ namespace dynamic_gap {
             }
             //std::cout << "length: " << ros::Time::now().toSec() - begin_time << std::endl;
             // std::cout << "done" << std::endl;
-            // std::cout << "~~~~~~~~~~~~" << std::endl;
+            //std::cout << "~~~~~~~~~~~~" << std::endl;
             return;
         }
     };

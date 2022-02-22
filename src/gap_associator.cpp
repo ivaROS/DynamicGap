@@ -89,11 +89,11 @@ namespace dynamic_gap {
 			//std::cout << "done solving" << std::endl;
         }
 		
-		//std::cout << "associations" << std::endl;
-		//for (int i = 0; i < associations.size(); i++) {
-		//	std::cout << "(" << i << ", " << associations[i] << "), ";
-		//}
-		//std::cout << "" << std::endl;
+		std::cout << "associations" << std::endl;
+		for (int i = 0; i < associations.size(); i++) {
+			std::cout << "(" << i << ", " << associations[i] << "), with a cost of: " << distMatrix[i][associations[i]] << ", ";
+		}
+		std::cout << "" << std::endl;
 
 		// ASSOCIATING MODELS
 		for (int i = 0; i < associations.size(); i++) {

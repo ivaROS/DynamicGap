@@ -565,9 +565,9 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            if (incom_subscore > curr_subscore) {
+            if (incom_subscore > curr_subscore + counts) {
                 std::cout << "swapping trajectory" << std::endl;
-                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore);
+                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << counts);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
                 trajectory_pub.publish(incoming);

@@ -85,6 +85,7 @@ namespace dynamic_gap {
         std::vector<double> test_cost_val(traj.poses.size());
         std::vector<double> cost_val(traj.poses.size());
 
+    
         // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
         for (auto & model : raw_models) {
             model->freeze_robot_vel();

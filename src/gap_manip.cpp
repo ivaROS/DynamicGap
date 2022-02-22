@@ -44,13 +44,17 @@ namespace dynamic_gap {
         // TODO: make sure that this is always less than 180, make sure convex
         Matrix<double, 5, 1> left_model_state = left_model->get_state();
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
-        
+        Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
+        Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
+       
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
-
+        Matrix<double, 4, 1> frozen_left_cart_model_state = left_model->get_frozen_cartesian_state();
+        Matrix<double, 4, 1> frozen_right_cart_model_state = right_model->get_frozen_cartesian_state();
+       
         /*
         Eigen::Vector4d left_cartesian_state = left_model->get_cartesian_state();
         Eigen::Vector4d right_cartesian_state = right_model->get_cartesian_state();
@@ -85,16 +89,21 @@ namespace dynamic_gap {
         //std::cout << " gap convex l_idx: " << gap.convex.convex_lidx << ", gap convex r_idx: " << gap.convex.convex_ridx << std::endl;
 
         // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
-        std::cout << "y_left: " << left_model_state(0) << ", " << left_model_state(1) << ", " << left_model_state(2) << ", " << left_model_state(3) << ", " << left_model_state(4) << std::endl;
-        std::cout << "y_right: " << right_model_state(0) << ", " << right_model_state(1) << ", " << right_model_state(2) << ", " << right_model_state(3) << ", " << right_model_state(4) << std::endl; 
+        std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
+        std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
         std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
+        
+        std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
+        std::cout << "right cartesian model: " << frozen_right_cart_model_state(0) << ", " << frozen_right_cart_model_state(1) << ", " << frozen_right_cart_model_state(2) << ", " << frozen_right_cart_model_state(3) << std::endl; 
         std::cout << "corrected betadot left: " << frozen_left_model_state[4] << ", corrected betadot right: " << frozen_right_model_state[4] << std::endl;
 
         // FEASIBILITY CHECK
-        std::cout << "frozen feasibility check: " << std::endl;
-        frozen_feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
-        std::cout << "feasibility check: " << std::endl;
+        std::cout << "default feasibility check: " << std::endl;
         feasible = feasibilityCheckHelper(gap, left_betadot_check, right_betadot_check, gap_angle);
+
+        std::cout << "frozen feasibility check: " << std::endl;
+        feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
+        
         return feasible;
     }
 
@@ -319,11 +328,12 @@ namespace dynamic_gap {
         double frozen_right_betadot_check = frozen_right_model_state[4];
 
         // FEASIBILITY CHECK
+        std::cout << "swept values for default model" << std::endl;
+        setSweptValues(gap, left_betadot_check, right_betadot_check, left_ori, right_ori);
+
         std::cout << "swept values for frozen model" << std::endl;
         setSweptValues(gap, frozen_left_betadot_check, frozen_right_betadot_check, left_ori, right_ori);
 
-        std::cout << "swept values for default model" << std::endl;
-        setSweptValues(gap, left_betadot_check, right_betadot_check, left_ori, right_ori);
         // NOTE: left/right model states are flipped from left/right indices
         // left and right MODELS are from robot's POV, left/right orientation come from laser scan order
 

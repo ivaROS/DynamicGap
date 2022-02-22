@@ -11,7 +11,6 @@ namespace dynamic_gap{
         write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
-        std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
         // flipping it here because the values appear to be wrong in the integration
         Matrix<double, 5, 1> left_model_state;
         Matrix<double, 5, 1> right_model_state;
@@ -74,9 +73,13 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
+        std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
         std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-
+        std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
+        std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+        
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
+            std::cout << "gap deemed expanding, go to goal trajectory generated" << std::endl;
             g2g inte_g2g(
                 selectedGap.goal.x * coefs,
                 selectedGap.goal.y * coefs,
@@ -163,6 +166,7 @@ namespace dynamic_gap{
         }        
         // std::cout << "gap angle: " << gap_angle << std::endl;
         
+        std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
         clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
@@ -181,10 +185,7 @@ namespace dynamic_gap{
             return return_tuple;
         }
         
-        
-        std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-        std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
-        
+
         //std::cout << "starting clf cbf" << std::endl;
         //std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
         //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
