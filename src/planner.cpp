@@ -366,6 +366,8 @@ namespace dynamic_gap
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
+                manip_set.at(i).left_model->initialize();
+                manip_set.at(i).right_model->initialize();
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
@@ -706,6 +708,7 @@ namespace dynamic_gap
         updateTF();
 
         std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
+        
         /*
         std::cout << "MODELS IN CURRENT RAW GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : curr_raw_gaps) {
@@ -741,16 +744,29 @@ namespace dynamic_gap
         // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
         
-        /*
+        
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {
-            std::cout << "left index: " << gap.left_model->get_index() << std::endl;
-            std::cout << "right index: " << gap.right_model->get_index() << std::endl;
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
         }
-        */
 
-        std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
+        std::cout << "MODELS IN PREVIOUS SIMPLIFIED GAPS BEFORE ASSOCIATION" << std::endl;
+        for (auto & gap : previous_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
+
+
+        
+
         association = gapassociator->associateGaps(gap_set, previous_gaps);
+        std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS AFTER ASSOCIATION" << std::endl;
+        for (auto & gap : gap_set) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
+        std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         update_models(gap_set);
         
         /*

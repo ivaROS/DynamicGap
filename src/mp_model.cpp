@@ -19,6 +19,14 @@ using namespace Eigen;
 
 namespace dynamic_gap {
     MP_model::MP_model(std::string _side, int _index) {
+        side = _side;
+        index = _index;
+        initialize();
+    }
+
+    MP_model::~MP_model() {}
+
+    void MP_model::initialize() {
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0, 0.0,
@@ -52,11 +60,6 @@ namespace dynamic_gap {
         t0 = ros::Time::now().toSec();
         t = ros::Time::now().toSec();
         dt = t - t0;
-        /*
-        acc_t0 = ros::Time::now().toSec();
-        acc_t = ros::Time::now().toSec();
-        acc_T = t- t0;
-        */
         a << 0.0, 0.0;
         v_ego << 0.0, 0.0;
 
@@ -79,12 +82,7 @@ namespace dynamic_gap {
 
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         frozen_x << 0.0, 0.0, 0.0, 0.0;
-        side = _side;
-        index = _index;
     }
-
-    MP_model::~MP_model() {}
-
 
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
@@ -122,36 +120,37 @@ namespace dynamic_gap {
         t = ros::Time::now().toSec();
         dt = t - t0; // 0.01
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
-        //std::cout << "T: " << T << std::endl;
-        double a_r = a[1]*y[2] - a[0]*y[1];
-        double a_beta = a[0]*y[2] + a[1]*y[1];
+        std::cout << "dt: " << dt << std::endl;
+        double a_r = - a[0]*y[1] + a[1]*y[2];
+        double a_beta = -a[0]*y[2] - a[1]*y[1];
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
         Matrix<double, 1, 5> new_y;
         new_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         // discrete euler update of state
+        // 1/r, sin(beta), cos(beta), rdot/r, betadot 
         new_y[0] = y[0] + (-y[3]*y[0])*dt;
         new_y[1] = y[1] + y[2]*y[4]*dt;
         new_y[2] = y[2] + (-y[1]*y[4])*dt;
-        new_y[3] = y[3] + (y[4]*y[4] - y[3]*y[3] - y[0]* a_r) * dt;
-        new_y[4] = y[4] + (-2 * y[3]*y[4] - y[0]*a_beta)*dt;
+        new_y[3] = y[3] + (y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt;
+        new_y[4] = y[4] + (-2 * y[3]*y[4] + y[0]*a_beta)*dt;
         y = new_y; // is this ok? do we need a deep copy?
     }
 
     void MP_model::linearize() {
-        double a_r = a[1]*y[2] - a[0]*y[1];
-        double a_beta = a[0]*y[2] + a[1]*y[1];
+        double a_r = - a[0]*y[1] + a[1]*y[2];
+        double a_beta = -a[0]*y[2] - a[1]*y[1];
 
         A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
         A(1) = 0.0, 0.0, y[4], 0.0, y[2];
         A(2) = 0.0, -y[4], 0.0, 0.0, -y[1];
-        A(3) = -a_r, y[0]*a[0], -y[0]*a[1], -2*y[3], 2*y[4];
-        A(4) = -a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
+        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], 2*y[4];
+        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
 
         Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
         Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
         Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
-        Ad(3) = -a_r*dt, y[0]*a[0]*dt, -y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
-        Ad(4) = -a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
+        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
+        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
         // std::cout << "Ad: " << Ad << std::endl;
     }
 
@@ -167,18 +166,22 @@ namespace dynamic_gap {
 
     void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> _a_ego, Matrix<double, 1, 2> _v_ego) {
         // acceleration comes in wrt robot frame
-        a = -_a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
+        a = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
         v_ego = _v_ego;
         Eigen::Vector4d cart_state = get_cartesian_state();
+        std::cout << "MP state at start:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         std::cout << "cartesian state at start: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
+        // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
         std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
         cart_state = get_cartesian_state();
+        std::cout << "MP state after integrating:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         std::cout << "cartesian state after integrating : " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        std::cout << "observation: " << (1.0 / y_tilde[0])*-y_tilde[1] << ", " << (1.0 / y_tilde[0])*y_tilde[2] << std::endl;
+        std::cout << "MP observation: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
+        std::cout << "cartesian observation: " << (1.0 / y_tilde[0])*-y_tilde[1] << ", " << (1.0 / y_tilde[0])*y_tilde[2] << std::endl;
 
         //std::cout << "y after integration" << y << std::endl;
         //std::cout<< "linearizing" << std::endl;
@@ -202,10 +205,10 @@ namespace dynamic_gap {
         Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
         std::cout << "actual update to y: " << y_update_mat << std::endl;
         y = y + y_update_mat;
-       //  std::cout << "y after update" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         cart_state = get_cartesian_state();
         std::cout << "cartesian state after update: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        
+        std::cout << "MP state after update:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
         std::cout << "P after update: " << P << std::endl;

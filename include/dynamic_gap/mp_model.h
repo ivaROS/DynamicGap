@@ -52,6 +52,8 @@ namespace dynamic_gap {
         public:
 
             MP_model(std::string, int);
+            
+            void initialize();
 
             ~MP_model();
 
