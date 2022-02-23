@@ -19,29 +19,30 @@ using namespace Eigen;
 
 namespace dynamic_gap {
     MP_model::MP_model(std::string _side, int _index) {
-        // std::string robot_name = frame.substr(0, frame.length() - 8);
-        // std::cout << "robot_name " << robot_name << std::endl;
+        // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0, 0.0;
-        R << 0.00001, 0.0, 0.0,
-            0.0, 0.00001, 0.0,
-            0.0, 0.0, 0.00001;
-        Q << 0.005, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.005, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.005, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.005, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.005;
+             0.0, 1.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0, 0.0;
+        // MEASUREMENT NOISE
+        R << 0.01, 0.0, 0.0,
+             0.0, 0.01, 0.0,
+             0.0, 0.0, 0.01;
+        // PROCESS NOISE
+        Q << 0.1, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.1, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.1, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.1, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.1;
         y << 0.33333, 
                 0.0, 
-                0.0, 
+                1.0, 
                 0.0, 
                 0.0;
-        P << 10.0e-6, 0.0, 0.0, 0.0, 0.0,
+        P << 10.0e-4, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
-                0.0, 0.0, 0.0, 10.0e-4, 0.0,
-                0.0, 0.0, 0.0, 0.0, 10.0e-3;
+                0.0, 0.0, 0.0, 10, 0.0,
+                0.0, 0.0, 0.0, 0.0, 10;
         G << 1.0, 1.0, 1.0,
                 1.0, 1.0, 1.0,
                 1.0, 1.0, 1.0,
@@ -80,61 +81,10 @@ namespace dynamic_gap {
         frozen_x << 0.0, 0.0, 0.0, 0.0;
         side = _side;
         index = _index;
-        //ros::NodeHandle n;
-        // std::cout << "topic name: " << robot_name + "/cmd_vel" << std::endl;
-        // acc_sub = n.subscribe(robot_name + "/cmd_vel", 100, &MP_model::cmd_velCB, this);
     }
-
-    /*
-    MP_model::MP_model(const dynamic_gap::MP_model& model) {
-        // std::string robot_name = frame.substr(0, frame.length() - 8);
-        // std::cout << "robot_name " << robot_name << std::endl;
-        H = model.H;
-        R = model.R;
-        Q = model.Q;
-        y = model.y;
-        P = model.P;
-        G = model.G;
-
-        t0 = model.t0;
-        t = model.t;
-        dt = model.dt;
-        
-        acc_t0 = ros::Time::now().toSec();
-        acc_t = ros::Time::now().toSec();
-        acc_T = t- t0;
-        
-        a = model.a;
-        v_ego = model.v_ego;
-
-        A = model.A;
-        Ad = model.Ad;
-        dQ = model.dQ;
-
-        frozen_y = model.frozen_y;
-
-    }
-    */
 
     MP_model::~MP_model() {}
 
-    /*
-    void MP_model::cmd_velCB(const geometry_msgs::Twist::ConstPtr& msg) {
-        acc_t = ros::Time::now().toSec();
-        acc_T = 0.01; // acc_t - acc_t0;
-        // std::cout << "msg linear x: " << msg->linear.x << " msg linear y: " << msg->linear.y << std::endl;
-        //std::cout << "previous_twist[0]: " << previous_twist[0] << " previous_twist[1]: " << previous_twist[1] << std::endl;
-        a[0] = (msg->linear.x - previous_twist[0]) / acc_T;
-        a[1] = (msg->linear.y - previous_twist[1]) / acc_T;
-        //std::cout << "in imuCB: " << a[0] << ", " << a[1] << std::endl;
-        //std::cout << "acc_t: " << acc_t << ", acc_t0: " << acc_t0 << " acc_T: " << acc_T << std::endl;
-        previous_twist[0] = msg->linear.x;
-        previous_twist[1] = msg->linear.y;
-        acc_t0 = acc_t;
-        //a[0] = msg->linear_acceleration.x;
-        //a[1] = msg->linear_acceleration.y;
-    }
-    */
 
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
@@ -174,7 +124,7 @@ namespace dynamic_gap {
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
         //std::cout << "T: " << T << std::endl;
         double a_r = a[1]*y[2] - a[0]*y[1];
-        double a_beta = -a[0]*y[2] - a[1]*y[1];
+        double a_beta = a[0]*y[2] + a[1]*y[1];
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
         Matrix<double, 1, 5> new_y;
         new_y << 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -189,19 +139,19 @@ namespace dynamic_gap {
 
     void MP_model::linearize() {
         double a_r = a[1]*y[2] - a[0]*y[1];
-        double a_beta = -a[0]*y[2] - a[1]*y[1];
+        double a_beta = a[0]*y[2] + a[1]*y[1];
 
         A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
         A(1) = 0.0, 0.0, y[4], 0.0, y[2];
         A(2) = 0.0, -y[4], 0.0, 0.0, -y[1];
         A(3) = -a_r, y[0]*a[0], -y[0]*a[1], -2*y[3], 2*y[4];
-        A(4) = -a_beta, y[0]*a[1], y[0]*a[0], -2*y[4], -2*y[3];
+        A(4) = -a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
 
         Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
         Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
         Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
         Ad(3) = -a_r*dt, y[0]*a[0]*dt, -y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
-        Ad(4) = -a_beta*dt, y[0]*a[0]*dt, y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
+        Ad(4) = -a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
         // std::cout << "Ad: " << Ad << std::endl;
     }
 
@@ -222,7 +172,7 @@ namespace dynamic_gap {
         Eigen::Vector4d cart_state = get_cartesian_state();
         std::cout << "cartesian state at start: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        //std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
+        std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
@@ -242,19 +192,23 @@ namespace dynamic_gap {
         //std::cout<< "updating Kalman gain" << std::endl;
 
         tmp_mat = H*P*H.transpose() + R;
+        Matrix<double,5,3> P_H_prod = P * H.transpose();
+        std::cout << "P_H_prod: " << P_H_prod << std::endl;
         Matrix<double,3,3> inverted_tmp_mat = tmp_mat.inverse();
-        //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
-        G = P * H.transpose() * inverted_tmp_mat;
-        //std::cout << "G after update: " << G << std::endl;
+        std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
+        G = P_H_prod * inverted_tmp_mat;
+        std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
-        y = y + G*(y_tilde - H*y);
+        Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
+        std::cout << "actual update to y: " << y_update_mat << std::endl;
+        y = y + y_update_mat;
        //  std::cout << "y after update" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         cart_state = get_cartesian_state();
         std::cout << "cartesian state after update: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
-        //std::cout << "P after update: " << P << std::endl;
+        std::cout << "P after update: " << P << std::endl;
         t0 = t;
     }
 
@@ -280,6 +234,13 @@ namespace dynamic_gap {
         return frozen_x;
     }
 
+    void MP_model::set_init_state(double r, double beta) {
+        y << 1.0 / r, 
+                std::sin(beta), 
+                std::cos(beta), 
+                0.0, 
+                0.0;
+    }
 
     Matrix<double, 5, 1> MP_model::get_state() {
         return y;
@@ -306,28 +267,3 @@ namespace dynamic_gap {
     }
 
 }
-
-/*
-int main(int argc, char **argv) {
-    ros::init(argc, argv, "mp_kf");
-
-    ros::NodeHandle n;
-
-    MP_model model = MP_model();
-
-    std:: cout << "in mp kf main" << std::endl;
-
-    ros::Subscriber imu_sub = n.subscribe("/imu", 100, &MP_model::imuCB, &model);
-    ros::Rate loop_rate(10);
-
-    while (ros::ok()) {
-
-        ros::spinOnce();
-
-        loop_rate.sleep();
-    }
-
-
-    return 0;
-}
-*/

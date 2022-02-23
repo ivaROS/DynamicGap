@@ -70,6 +70,7 @@ namespace dynamic_gap
         a << 0.0, 0.0;
         init_val = 0;
         model_idx = &init_val;
+        prev_traj_switch_time = ros::Time::now().toSec();
         return true;
     }
 
@@ -152,11 +153,12 @@ namespace dynamic_gap
             // std::cout << "finished hybrid scan gap" << std::endl;
             // std::cout << "raw_gaps size: " << raw_gaps.size() << std::endl;
 
-            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
+            //gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
+            observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
+            //gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
 
             // do we need to merge every time?
             //observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-            //gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
             ROS_FATAL_STREAM("mergeGapsOneGo");
@@ -247,6 +249,7 @@ namespace dynamic_gap
         for (int i = 0; i < 2*observed_gaps.size(); i++) {
             // std::cout << "update gap model: " << i << std::endl;
             update_model(i, observed_gaps);
+            std::cout << "" << std::endl;
 		}
         /*
         for (auto & g : observed_gaps) {
@@ -368,7 +371,8 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("gapManipulate");
         }
 
-        gapvisualizer->drawManipGaps(manip_set);
+        gapvisualizer->drawGaps(manip_set, std::string("fin"));
+        //gapvisualizer->drawManipGaps(manip_set);
         return manip_set;
     }
 
@@ -473,7 +477,7 @@ namespace dynamic_gap
 
 
         try {
-
+            double curr_time = ros::Time::now().toSec();
             std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
             std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
@@ -505,6 +509,7 @@ namespace dynamic_gap
                     setCurrentTimeArr(time_arr);
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
+                    prev_traj_switch_time = curr_time;
                     return incoming;
                 }
             } 
@@ -521,6 +526,7 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
+                prev_traj_switch_time = curr_time;
                 return incoming;
             }
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
@@ -565,12 +571,14 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            if (incom_subscore > curr_subscore + counts) {
+            double oscillation_pen = counts * std::exp(-(curr_time - prev_traj_switch_time)/2.0);
+            if (incom_subscore > (curr_subscore + oscillation_pen)) {
                 std::cout << "swapping trajectory" << std::endl;
-                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << counts);
+                ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
                 trajectory_pub.publish(incoming);
+                prev_traj_switch_time = curr_time;
                 return incoming;
             }
 
@@ -718,10 +726,6 @@ namespace dynamic_gap
             std::cout << "right model. 1/r: " << right_model_state[0] << ", beta: " << std::atan2(right_model_state[1], right_model_state[2]) << ", rdot/r: " << right_model_state[3] << ", betadot: " << right_model_state[4] << ", index: " << gap.right_model->get_index() << std::endl;
         }
 
-        std::vector<dynamic_gap::Gap> curr_observed_gaps = finder->mergeGapsOneGo(sharedPtr_laser, curr_raw_gaps);
-        gapvisualizer->drawGaps(curr_observed_gaps, std::string("fin"));
-        // std::vector<dynamic_gap::Gap> curr_observed_gaps = get_curr_observed_gaps();
-
         // need to make sure these raw gaps are the ones that the simplified gaps are built from
         // Desired:
 
@@ -733,7 +737,7 @@ namespace dynamic_gap
         }
         */
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
-        auto gap_set = gapManipulate(curr_observed_gaps);
+        auto gap_set = gapManipulate(observed_gaps);
         // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
         

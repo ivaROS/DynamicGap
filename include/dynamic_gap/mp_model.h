@@ -57,6 +57,7 @@ namespace dynamic_gap {
 
             //void cmd_velCB(const geometry_msgs::Twist::ConstPtr&); // imu callback to get acceleration
 
+            void set_init_state(double r, double beta);
             Matrix<double, 5, 1> get_state();
             Matrix<double, 5, 1> get_frozen_state();
             Eigen::Vector4d get_cartesian_state();

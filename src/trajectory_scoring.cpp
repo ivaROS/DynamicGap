@@ -145,7 +145,7 @@ namespace dynamic_gap {
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
-        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0)) / cost_val.size();
+        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
         // auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
 
         // cumulative cost of ranges of gap

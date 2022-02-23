@@ -23,6 +23,7 @@ namespace dynamic_gap
             {
                 // std::cout << "initializing gap with index: " << index << std::endl;
                 // std::cout << "class member variable _index: " << _index << std::endl;
+                // ADD Y INITIALIZATIONS HERE?
                 left_model = new dynamic_gap::MP_model("left", *index);
                 *index += 1;
                 right_model = new dynamic_gap::MP_model("right", *index);
