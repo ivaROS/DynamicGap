@@ -19,15 +19,15 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256, int *index = 0) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan), _index(*index)
+            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
             {
                 // std::cout << "initializing gap with index: " << index << std::endl;
                 // std::cout << "class member variable _index: " << _index << std::endl;
                 // ADD Y INITIALIZATIONS HERE?
-                left_model = new dynamic_gap::MP_model("left", *index);
-                *index += 1;
-                right_model = new dynamic_gap::MP_model("right", *index);
-                *index += 1;
+                //left_model = new dynamic_gap::MP_model("left", *index);
+                //*index += 1;
+                //right_model = new dynamic_gap::MP_model("right", *index);
+                //*index += 1;
             };
 
             /*
@@ -275,7 +275,7 @@ namespace dynamic_gap
             bool no_valid_slice = false;
             bool goal_within = false;
             bool goal_dir_within = false;
-            float life_time = 1.0;
+            float life_time = 0.0;
             double gap_lifespan = 0.0;
             bool agc = false;
 

@@ -125,8 +125,8 @@ namespace dynamic_gap {
             }
             prior_dt = dt;
             cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            //std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
-            //std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
+            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
+            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
 
         }
 

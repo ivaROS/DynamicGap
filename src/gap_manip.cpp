@@ -110,7 +110,7 @@ namespace dynamic_gap {
     bool GapManipulator::feasibilityCheckHelper(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double gap_angle) {
         bool feasible;
 
-        double nom_rbt_vel = 0.25;
+        double nom_rbt_vel = 0.15;
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
         std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
 
@@ -363,7 +363,7 @@ namespace dynamic_gap {
         double swept_left_ori = 0.0;
         double swept_right_ori = 0.0;
 
-        double nom_rbt_vel = 0.25; // 1/2 of max vel?
+        double nom_rbt_vel = 0.15; // 1/2 of max vel?
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
 
         std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
@@ -663,7 +663,7 @@ namespace dynamic_gap {
         gap.convex.convex_ridx = new_r;
         gap.convex.convex_ldist = new_ldist + cfg_->gap_viz.viz_jitter;
         gap.convex.convex_rdist = new_rdist + cfg_->gap_viz.viz_jitter;
-        gap.life_time = 50;
+        gap.life_time = 0.0;
         gap.mode.reduced = true;
 
         std::cout << "gap reduced to: " << std::endl;

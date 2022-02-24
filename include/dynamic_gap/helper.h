@@ -176,8 +176,8 @@ namespace dynamic_gap {
         double gap_angle;
         double T_h;
         double betadot_L_0, betadot_R_0;
-        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double gap_angle, double T_h, double betadot_L_0, double betadot_R_0)
-        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), gap_angle(gap_angle), T_h(T_h), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0) {}
+        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double betadot_L_0, double betadot_R_0)
+        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -397,8 +397,8 @@ namespace dynamic_gap {
                 return;
             }
 
-            std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-            std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
+            // std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            // std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
 
             /*
             if (rel_goal[0]*x[2] + rel_goal[1]*x[3] < 0) {
@@ -406,9 +406,9 @@ namespace dynamic_gap {
             }
             */
             
-            std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
-            std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
-            std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
+            // std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
+            // std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
+            // std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
             
 
             Eigen::Vector2d v_des(0.0, 0.0);
@@ -420,7 +420,8 @@ namespace dynamic_gap {
 
             // set desired acceleration based on desired velocity
             Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
-            std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
+            // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
+            
             
             double h_dyn = 0.0;
             Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
@@ -430,8 +431,8 @@ namespace dynamic_gap {
             double h_dyn_right = cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
-            std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
-            std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
+            // std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
+            // std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
             
             
             // check for convexity of gap
@@ -448,7 +449,7 @@ namespace dynamic_gap {
                 }
             }
 
-            std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
+            // std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
             // calculate Psi
             Eigen::Vector4d d_x_dt(dxdt[0], dxdt[1], a_des[0], a_des[1]);
             double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
@@ -464,7 +465,7 @@ namespace dynamic_gap {
                 a_actual = a_des;
             }
 
-            std::cout << "a_actual: " << a_actual(0) << ", " << a_actual(1) << std::endl;
+            // std::cout << "a_actual: " << a_actual(0) << ", " << a_actual(1) << std::endl;
             
             double a_x_rbt = a_actual(0); // -K_acc*(x[2] - result(0)); // 
             double a_y_rbt = a_actual(1); // -K_acc*(x[3] - result(1)); // 
@@ -497,13 +498,13 @@ namespace dynamic_gap {
             double goal_left_distance = sqrt(pow(rel_goal[0] - x_left[0], 2) + pow(rel_goal[1] - x_left[1], 2));
             double goal_right_distance = sqrt(pow(rel_goal[0] - x_right[0], 2) + pow(rel_goal[1] - x_right[1], 2));
             // should not just compare thetas here, need to compare distances I think
-            if (goal_left_distance < goal_gap_pt_thresh && x[8] < 0) {
+            if (V > 0.1 && goal_left_distance < goal_gap_pt_thresh && x[8] < 0) {
                 //std::cout << "adjusting goal from left" << std::endl;
                 //std::cout << "goal left distance" << goal_left_distance << std::endl;
                 //std::cout << "left beta: " << std::atan2(x[5], x[6]) << ", local goal beta: " << std::atan2(x[14], x[15]) << std::endl;
                 dxdt[14] = x[15] * x[8];
                 dxdt[15] = -x[14] * x[8];
-            } else if (goal_right_distance < goal_gap_pt_thresh && x[13] > 0) {
+            } else if (V > 0.1 && goal_right_distance < goal_gap_pt_thresh && x[13] > 0) {
                 //std::cout << "adjusting goal from right" << std::endl;
                 //std::cout << "goal right distance" << goal_right_distance << std::endl;
                 //std::cout << "right beta: " << std::atan2(x[10], x[11]) << ", local goal beta: " << std::atan2(x[14], x[15]) << std::endl;
@@ -512,7 +513,7 @@ namespace dynamic_gap {
             }
             //std::cout << "length: " << ros::Time::now().toSec() - begin_time << std::endl;
             // std::cout << "done" << std::endl;
-            std::cout << "~~~~~~~~~~~~" << std::endl;
+            // std::cout << "~~~~~~~~~~~~" << std::endl;
             return;
         }
     };

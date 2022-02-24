@@ -302,10 +302,10 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
-        void update_model(int i, std::vector<dynamic_gap::Gap>& observed_gaps);
-        void update_models(std::vector<dynamic_gap::Gap>& observed_gaps);
-        std::vector<dynamic_gap::Gap>& get_curr_raw_gaps();
-        std::vector<dynamic_gap::Gap>& get_curr_observed_gaps();
+        void update_model(int i, std::vector<dynamic_gap::Gap>&);
+        void update_models(std::vector<dynamic_gap::Gap>&);
+        std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
+        std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
     };
 }
 

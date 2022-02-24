@@ -46,18 +46,16 @@ namespace dynamic_gap {
 
             std::string side;
             int index;
-            //ros::Subscriber acc_sub;
-            //Matrix<float, 1, 2> previous_twist;
+
 
         public:
 
-            MP_model(std::string, int);
+            MP_model(std::string, int, double, double);
             
-            void initialize();
+            void initialize(double, double);
 
             ~MP_model();
 
-            //void cmd_velCB(const geometry_msgs::Twist::ConstPtr&); // imu callback to get acceleration
 
             void set_init_state(double r, double beta);
             Matrix<double, 5, 1> get_state();

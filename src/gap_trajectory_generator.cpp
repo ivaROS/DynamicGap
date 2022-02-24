@@ -154,9 +154,6 @@ namespace dynamic_gap{
         std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
         std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
             
-        double nom_rbt_vel = 0.25;
-        double T_rbt2arc = std::max(selectedGap.convex.convex_ldist, selectedGap.convex.convex_rdist) / nom_rbt_vel;
-
         // TODO: make sure that this is always less than 180, make sure convex (BROKEN)
         double gap_angle;
         if (right_ori > left_ori) {
@@ -172,8 +169,6 @@ namespace dynamic_gap{
                             cfg_->gap_manip.cbf_param,
                             cfg_->gap_manip.K_acc,
                             local_goal_dist,
-                            gap_angle,
-                            T_rbt2arc,
                             x[8],
                             x[13]);
         

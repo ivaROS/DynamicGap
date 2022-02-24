@@ -18,39 +18,39 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model(std::string _side, int _index) {
+    MP_model::MP_model(std::string _side, int _index, double init_r, double init_beta) {
         side = _side;
         index = _index;
-        initialize();
+        initialize(init_r, init_beta);
     }
 
     MP_model::~MP_model() {}
 
-    void MP_model::initialize() {
+    void MP_model::initialize(double init_r, double init_beta) {
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0, 0.0;
         // MEASUREMENT NOISE
-        R << 0.01, 0.0, 0.0,
-             0.0, 0.01, 0.0,
-             0.0, 0.0, 0.01;
+        R << 0.0001, 0.0, 0.0,
+             0.0, 0.0001, 0.0,
+             0.0, 0.0, 0.0001;
         // PROCESS NOISE
-        Q << 0.1, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.1, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.1, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.1, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.1;
-        y << 0.33333, 
-                0.0, 
-                1.0, 
+        Q << 0.001, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.001, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.001, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.001, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.001;
+        y << 1.0 / init_r, 
+                std::sin(init_beta), 
+                std::cos(init_beta), 
                 0.0, 
                 0.0;
         P << 10.0e-4, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
-                0.0, 0.0, 0.0, 10, 0.0,
-                0.0, 0.0, 0.0, 0.0, 10;
+                0.0, 0.0, 0.0, 10.0e-2, 0.0,
+                0.0, 0.0, 0.0, 0.0, 10.0e-2;
         G << 1.0, 1.0, 1.0,
                 1.0, 1.0, 1.0,
                 1.0, 1.0, 1.0,
@@ -161,7 +161,7 @@ namespace dynamic_gap {
         Matrix<double, 5, 5> M3 = 0.3333 * dt * dt * (A * dQ).transpose();
 
         dQ = dQ + M2 + M3;
-        // std::cout << "dQ: " << dQ << std::endl;
+        std::cout << "dQ: " << dQ << std::endl;
     }
 
     void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> _a_ego, Matrix<double, 1, 2> _v_ego) {
@@ -200,10 +200,10 @@ namespace dynamic_gap {
         Matrix<double,3,3> inverted_tmp_mat = tmp_mat.inverse();
         //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
         G = P_H_prod * inverted_tmp_mat;
-        //std::cout << "G after update: " << G << std::endl;
+        std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
-        //std::cout << "actual update to y: " << y_update_mat << std::endl;
+        std::cout << "actual update to y: " << y_update_mat << std::endl;
         y = y + y_update_mat;
         cart_state = get_cartesian_state();
         std::cout << "MP state after update:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
@@ -211,7 +211,7 @@ namespace dynamic_gap {
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
-        //std::cout << "P after update: " << P << std::endl;
+        std::cout << "P after update: " << P << std::endl;
         t0 = t;
     }
 

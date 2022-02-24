@@ -227,7 +227,7 @@ namespace dynamic_gap{
         int id = (int) vis_arr.markers.size();
         // ROS_INFO_STREAM("ID: "<< id);
 
-        this_marker.lifetime = ros::Duration(0.25);
+        this_marker.lifetime = ros::Duration(0.0);
 
         for (int i = 0; i < num_segments - 1; i++)
         {
@@ -429,7 +429,7 @@ namespace dynamic_gap{
         lg_marker.color.r = 1;
         lg_marker.color.g = 1;
         lg_marker.color.b = 1;
-        lg_marker.lifetime = ros::Duration(0.25);
+        lg_marker.lifetime = ros::Duration(0.0);
 
 
         ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
@@ -476,7 +476,7 @@ namespace dynamic_gap{
         lg_marker.color.a = 1;
         lg_marker.color.r = 0.5;
         lg_marker.color.g = 0.5;
-        lg_marker.lifetime = ros::Duration(0.25);
+        lg_marker.lifetime = ros::Duration(0.0);
 
         for (auto & arr : prr) {
             for (auto pose : arr.poses) {
@@ -546,7 +546,7 @@ namespace dynamic_gap{
         lg_marker.scale.y = 0.1;
         lg_marker.scale.z = 0.1;
         lg_marker.color = gapwp_color;
-        lg_marker.lifetime = ros::Duration(0.5);
+        lg_marker.lifetime = ros::Duration(0.0);
         vis_arr.markers.push_back(lg_marker);
 
     }
