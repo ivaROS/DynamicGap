@@ -88,7 +88,7 @@ namespace dynamic_gap {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         //std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
         //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
-        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        // std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
@@ -109,8 +109,8 @@ namespace dynamic_gap {
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
         new_frozen_y[2] = frozen_y[2] + (-frozen_y[1]*frozen_y[4])*dt;
-        new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
-        new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
+        new_frozen_y[3] = frozen_y[3] + (-frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
+        new_frozen_y[4] = frozen_y[4] + (2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
         // std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
@@ -131,8 +131,8 @@ namespace dynamic_gap {
         new_y[0] = y[0] + (-y[3]*y[0])*dt;
         new_y[1] = y[1] + y[2]*y[4]*dt;
         new_y[2] = y[2] + (-y[1]*y[4])*dt;
-        new_y[3] = y[3] + (y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt;
-        new_y[4] = y[4] + (-2 * y[3]*y[4] + y[0]*a_beta)*dt;
+        new_y[3] = y[3] + (-y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt;
+        new_y[4] = y[4] + (2 * y[3]*y[4] + y[0]*a_beta)*dt;
         y = new_y; // is this ok? do we need a deep copy?
     }
 
@@ -143,14 +143,14 @@ namespace dynamic_gap {
         A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
         A(1) = 0.0, 0.0, y[4], 0.0, y[2];
         A(2) = 0.0, -y[4], 0.0, 0.0, -y[1];
-        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], 2*y[4];
-        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
+        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], -2*y[4];
+        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], 2*y[4], 2*y[3];
 
         Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
         Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
         Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
-        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
-        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
+        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, -2*y[4]*dt;
+        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, 2*y[4]*dt, 1 + 2*y[3]*dt;
         // std::cout << "Ad: " << Ad << std::endl;
     }
 
@@ -196,22 +196,22 @@ namespace dynamic_gap {
 
         tmp_mat = H*P*H.transpose() + R;
         Matrix<double,5,3> P_H_prod = P * H.transpose();
-        std::cout << "P_H_prod: " << P_H_prod << std::endl;
+        //std::cout << "P_H_prod: " << P_H_prod << std::endl;
         Matrix<double,3,3> inverted_tmp_mat = tmp_mat.inverse();
-        std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
+        //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
         G = P_H_prod * inverted_tmp_mat;
-        std::cout << "G after update: " << G << std::endl;
+        //std::cout << "G after update: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
-        std::cout << "actual update to y: " << y_update_mat << std::endl;
+        //std::cout << "actual update to y: " << y_update_mat << std::endl;
         y = y + y_update_mat;
         cart_state = get_cartesian_state();
-        std::cout << "cartesian state after update: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         std::cout << "MP state after update:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        std::cout << "cartesian state after update: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
-        std::cout << "P after update: " << P << std::endl;
+        //std::cout << "P after update: " << P << std::endl;
         t0 = t;
     }
 

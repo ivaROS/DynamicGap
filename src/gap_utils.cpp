@@ -121,7 +121,7 @@ namespace dynamic_gap {
 
     std::vector<dynamic_gap::Gap> GapUtils::mergeGapsOneGo(
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-        std::vector<dynamic_gap::Gap> raw_gaps)
+        std::vector<dynamic_gap::Gap>& raw_gaps)
     {
         // int left_idx = -1;
         // int right_idx = -1;

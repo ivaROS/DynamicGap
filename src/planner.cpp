@@ -187,14 +187,15 @@ namespace dynamic_gap
 
     }
     
-    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& observed_gaps) {
+    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps) {
         // UPDATING MODELS
         //std::cout << "obtaining gap g" << std::endl;
 		geometry_msgs::Vector3Stamped gap_pt_vector_rbt_frame;
         geometry_msgs::Vector3Stamped range_vector_rbt_frame;
         gap_pt_vector_rbt_frame.header.frame_id = cfg.robot_frame_id;
-		dynamic_gap::Gap g = observed_gaps[int(std::floor(i / 2.0))];
+		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
         //std::cout << "obtaining gap pt vector" << std::endl;
+        // convex is for simplified gaps, straight ldist is for raw gaps, may need separate one for both
 		// THIS VECTOR IS IN THE ROBOT FRAME
 		if (i % 2 == 0) {
 			gap_pt_vector_rbt_frame.vector.x = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
@@ -245,18 +246,12 @@ namespace dynamic_gap
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    void Planner::update_models(std::vector<dynamic_gap::Gap>& observed_gaps) {
-        for (int i = 0; i < 2*observed_gaps.size(); i++) {
+    void Planner::update_models(std::vector<dynamic_gap::Gap>& _observed_gaps) {
+        for (int i = 0; i < 2*_observed_gaps.size(); i++) {
             // std::cout << "update gap model: " << i << std::endl;
-            update_model(i, observed_gaps);
+            update_model(i, _observed_gaps);
             std::cout << "" << std::endl;
 		}
-        /*
-        for (auto & g : observed_gaps) {
-			std::cout << "g left: " << g.left_model->get_state() << std::endl;
-			std::cout << "g right: " << g.right_model->get_state() << std::endl;
-		}
-        */
     }
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
@@ -707,6 +702,7 @@ namespace dynamic_gap
         // double begin_time = ros::Time::now().toSec();
         updateTF();
 
+    
         std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
         
         /*
@@ -716,22 +712,45 @@ namespace dynamic_gap
             std::cout << "right index: " << gap.right_model->get_index() << std::endl;
         }
         */
+        std::cout << "MODELS IN CURRENT RAW GAPS BEFORE RAW GAP ASSOCIATION" << std::endl;
+        for (auto & gap : curr_raw_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
 
-        std::cout << "UPDATING RAW GAPS" << std::endl;
-        raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps);
-        update_models(curr_raw_gaps);
-        
-        std::cout << "MODELS IN CURRENT RAW GAPS AFTER ASSOCIATION" << std::endl;
+        std::cout << "MODELS IN PREVIOUS_GAPS BEFORE RAW GAP ASSOCIATION" << std::endl;
+        for (auto & gap : previous_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
+
+        /*
+        //std::cout << "UPDATING RAW GAPS" << std::endl;
+        //raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps);
+        std::cout << "MODELS IN PREVIOUS_GAPS AFTER RAW GAP ASSOCIATION" << std::endl;
+        for (auto & gap : previous_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
+
+        std::cout << "MODELS IN CURRENT RAW GAPS AFTER RAW GAP ASSOCIATION" << std::endl;
         for (auto & gap : curr_raw_gaps) {
             Matrix<double, 5, 1> left_model_state = gap.left_model->get_state();
             Matrix<double, 5, 1> right_model_state = gap.right_model->get_state();
-            std::cout << "left model. 1/r: " << left_model_state[0] << ", beta: " << std::atan2(left_model_state[1], left_model_state[2]) << ", rdot/r: " << left_model_state[3] << ", betadot: " << left_model_state[4] << ", index: " << gap.left_model->get_index() << std::endl;
-            std::cout << "right model. 1/r: " << right_model_state[0] << ", beta: " << std::atan2(right_model_state[1], right_model_state[2]) << ", rdot/r: " << right_model_state[3] << ", betadot: " << right_model_state[4] << ", index: " << gap.right_model->get_index() << std::endl;
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
+        update_models(curr_raw_gaps);
+
+        std::cout << "MODELS IN PREVIOUS_GAPS AFTER CURR RAW GAP UPDATE" << std::endl;
+        for (auto & gap : previous_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
         }
 
         // need to make sure these raw gaps are the ones that the simplified gaps are built from
         // Desired:
-
+        */
         /*
         std::cout << "MODELS IN CURRENT OBSERVED GAPS" << std::endl;
         for (auto & gap : curr_observed_gaps) {
@@ -744,21 +763,17 @@ namespace dynamic_gap
         // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
         
-        
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {
             std::cout << "left model: " << gap.left_model->get_state() << std::endl;
             std::cout << "right model: " << gap.right_model->get_state() << std::endl;
         }
 
-        std::cout << "MODELS IN PREVIOUS SIMPLIFIED GAPS BEFORE ASSOCIATION" << std::endl;
+        std::cout << "MODELS IN PREVIOUS_GAPS BEFORE ASSOCIATION" << std::endl;
         for (auto & gap : previous_gaps) {
             std::cout << "left model: " << gap.left_model->get_state() << std::endl;
             std::cout << "right model: " << gap.right_model->get_state() << std::endl;
         }
-
-
-        
 
         association = gapassociator->associateGaps(gap_set, previous_gaps);
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS AFTER ASSOCIATION" << std::endl;
@@ -960,9 +975,14 @@ namespace dynamic_gap
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
 
         previous_gaps = gap_set;
+        std::cout << "SETTING GAP_SET EQUAL TO PREVIOUS_GAPS " << std::endl;
+        for (auto & gap : previous_gaps) {
+            std::cout << "left model: " << gap.left_model->get_state() << std::endl;
+            std::cout << "right model: " << gap.right_model->get_state() << std::endl;
+        }
 
         // possibly bad because raw_gaps changing at every call back, but models only being set in here
-        previous_raw_gaps = curr_raw_gaps;
+        // previous_raw_gaps = curr_raw_gaps;
 
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
         return final_traj;

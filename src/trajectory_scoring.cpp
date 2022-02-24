@@ -102,7 +102,7 @@ namespace dynamic_gap {
         double min_dist = 0.0;
         double min_beta = 0.0;
         double min_range = 0.0;
-        std::cout << "DYNAMIC SCORING" << std::endl;
+        //std::cout << "DYNAMIC SCORING" << std::endl;
         for (int i = 0; i < cost_val.size(); i++) {
             double min_dist = std::numeric_limits<double>::infinity();
             double min_beta = 0.0;
@@ -125,12 +125,12 @@ namespace dynamic_gap {
             }
             prior_dt = dt;
             cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
-            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
+            //std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
+            //std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
 
         }
 
-        std::cout << "------" << std::endl;
+        //std::cout << "------" << std::endl;
         
         /*
         for (int i = 0; i < cost_val.size(); i++) {
