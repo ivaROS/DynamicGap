@@ -127,8 +127,8 @@ namespace dynamic_gap {
             gap_manip.epsilon2 = 0.18;
             gap_manip.sigma = 1;
             gap_manip.rot_ratio = 1.5;
-            gap_manip.reduction_threshold = M_PI / 2;
-            gap_manip.reduction_target = M_PI / 4;
+            gap_manip.reduction_threshold = M_PI;
+            gap_manip.reduction_target = M_PI;
             gap_manip.radial_extend = true;
             gap_manip.axial_convert = true;
             gap_manip.cbf_param = 1.0;

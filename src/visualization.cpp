@@ -194,7 +194,7 @@ namespace dynamic_gap{
         }
         
         // num gaps really means segments within a gap
-        int num_segments = (g.convex.convex_ridx - g.convex.convex_lidx) / cfg_->gap_viz.min_resoln + 1;
+        int num_segments = std::abs(g.convex.convex_ridx - g.convex.convex_lidx) / cfg_->gap_viz.min_resoln + 1;
         float dist_step = (g.convex.convex_rdist - g.convex.convex_ldist) / num_segments;
         int sub_gap_lidx = g.convex.convex_lidx + viz_offset;
         float sub_gap_ldist = g.convex.convex_ldist;
@@ -220,21 +220,21 @@ namespace dynamic_gap{
 
         geometry_msgs::Point linel;
         geometry_msgs::Point liner;
-        liner.z = 0.1;
-        linel.z = 0.1;
+        liner.z = 0.5;
+        linel.z = 0.5;
         std::vector<geometry_msgs::Point> lines;
 
         int id = (int) vis_arr.markers.size();
         // ROS_INFO_STREAM("ID: "<< id);
 
-        this_marker.lifetime = ros::Duration(0.0);
+        this_marker.lifetime = ros::Duration(0.25);
 
         for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
             linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            sub_gap_lidx += cfg_->gap_viz.min_resoln;
+            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(g.half_scan * 2);
             sub_gap_ldist += dist_step;
             liner.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             liner.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
@@ -243,9 +243,15 @@ namespace dynamic_gap{
 
             this_marker.points = lines;
             this_marker.id = id++;
+            if (i == 0 || i == (num_segments - 2)) {
+                this_marker.scale.x = 10*thickness;
+            } else {
+                this_marker.scale.x = thickness;
+            }
             vis_arr.markers.push_back(this_marker);
         }
 
+        // this_marker.scale.x = 10*thickness;
         // close the last
         lines.clear();
         linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
@@ -254,11 +260,12 @@ namespace dynamic_gap{
         liner.y = (g.convex.convex_rdist + viz_jitter) * sin(-( (float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
         lines.push_back(linel);
         lines.push_back(liner);
+        this_marker.scale.x = thickness;
         this_marker.points = lines;
         this_marker.id = id++;
-        this_marker.lifetime = ros::Duration(g.life_time);
+        this_marker.lifetime = ros::Duration(0.25);
         vis_arr.markers.push_back(this_marker);
-
+        
         // MAX: removing just for visualizing
         /*
         if (g.mode.convex) {
@@ -429,7 +436,7 @@ namespace dynamic_gap{
         lg_marker.color.r = 1;
         lg_marker.color.g = 1;
         lg_marker.color.b = 1;
-        lg_marker.lifetime = ros::Duration(0.0);
+        lg_marker.lifetime = ros::Duration(0.25);
 
 
         ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
@@ -476,7 +483,7 @@ namespace dynamic_gap{
         lg_marker.color.a = 1;
         lg_marker.color.r = 0.5;
         lg_marker.color.g = 0.5;
-        lg_marker.lifetime = ros::Duration(0.0);
+        lg_marker.lifetime = ros::Duration(0.25);
 
         for (auto & arr : prr) {
             for (auto pose : arr.poses) {
@@ -546,7 +553,7 @@ namespace dynamic_gap{
         lg_marker.scale.y = 0.1;
         lg_marker.scale.z = 0.1;
         lg_marker.color = gapwp_color;
-        lg_marker.lifetime = ros::Duration(0.0);
+        lg_marker.lifetime = ros::Duration(0.5);
         vis_arr.markers.push_back(lg_marker);
 
     }
