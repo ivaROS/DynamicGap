@@ -71,6 +71,7 @@ namespace dynamic_gap
         init_val = 0;
         model_idx = &init_val;
         prev_traj_switch_time = ros::Time::now().toSec();
+        init_time = ros::Time::now().toSec(); 
         return true;
     }
 
@@ -669,9 +670,9 @@ namespace dynamic_gap
         }
 
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, stored_scan_msgs, rbt_in_cam_lc);
-        //geometry_msgs::Twist cmd_vel;
-        //cmd_vel.linear.x = 0.25;
+        //auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, stored_scan_msgs, rbt_in_cam_lc);
+        geometry_msgs::Twist cmd_vel;
+        cmd_vel.linear.x = 0.25*std::sin(0.01*(ros::Time::now().toSec() - init_time));
         return cmd_vel;
     }
 

@@ -32,15 +32,22 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0, 0.0;
         // MEASUREMENT NOISE
-        R << 0.0001, 0.0, 0.0,
-             0.0, 0.0001, 0.0,
-             0.0, 0.0, 0.0001;
+        R << 0.0000001, 0.0, 0.0,
+             0.0, 0.0000001, 0.0,
+             0.0, 0.0, 0.0000001;
         // PROCESS NOISE
-        Q << 0.001, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.001, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.001, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.001, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.001;
+        /*
+        Q << 0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
+            0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
+            0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
+            0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
+            0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001;
+        */
+        Q << 0.0000001, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0000001, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0000001, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0000001, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0000001;
         y << 1.0 / init_r, 
                 std::sin(init_beta), 
                 std::cos(init_beta), 
@@ -109,8 +116,8 @@ namespace dynamic_gap {
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
         new_frozen_y[2] = frozen_y[2] + (-frozen_y[1]*frozen_y[4])*dt;
-        new_frozen_y[3] = frozen_y[3] + (-frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
-        new_frozen_y[4] = frozen_y[4] + (2 * frozen_y[3]*frozen_y[4])*dt;
+        new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
+        new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
         // std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
@@ -131,8 +138,8 @@ namespace dynamic_gap {
         new_y[0] = y[0] + (-y[3]*y[0])*dt;
         new_y[1] = y[1] + y[2]*y[4]*dt;
         new_y[2] = y[2] + (-y[1]*y[4])*dt;
-        new_y[3] = y[3] + (-y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt;
-        new_y[4] = y[4] + (2 * y[3]*y[4] + y[0]*a_beta)*dt;
+        new_y[3] = y[3] + (y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt;
+        new_y[4] = y[4] + (-2 * y[3]*y[4] + y[0]*a_beta)*dt;
         y = new_y; // is this ok? do we need a deep copy?
     }
 
@@ -143,14 +150,14 @@ namespace dynamic_gap {
         A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
         A(1) = 0.0, 0.0, y[4], 0.0, y[2];
         A(2) = 0.0, -y[4], 0.0, 0.0, -y[1];
-        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], -2*y[4];
-        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], 2*y[4], 2*y[3];
+        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], 2*y[4];
+        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
 
         Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
         Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
         Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
-        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, -2*y[4]*dt;
-        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, 2*y[4]*dt, 1 + 2*y[3]*dt;
+        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
+        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
         // std::cout << "Ad: " << Ad << std::endl;
     }
 
@@ -161,7 +168,7 @@ namespace dynamic_gap {
         Matrix<double, 5, 5> M3 = 0.3333 * dt * dt * (A * dQ).transpose();
 
         dQ = dQ + M2 + M3;
-        std::cout << "dQ: " << dQ << std::endl;
+        // std::cout << "dQ: " << dQ << std::endl;
     }
 
     void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> _a_ego, Matrix<double, 1, 2> _v_ego) {
@@ -233,7 +240,7 @@ namespace dynamic_gap {
         frozen_x(0) = -(1 / frozen_y(0)) * frozen_y(1);
         frozen_x(1) = (1 / frozen_y(0)) * frozen_y(2);
         frozen_x(2) = (1 / frozen_y(0)) * (-frozen_y(3) * frozen_y(1) - frozen_y(4)*frozen_y(2));
-        frozen_x(3) = (1 / frozen_y(0)) * (frozen_y(3) * frozen_y(2) - frozen_y(4)*frozen_y(1));
+        frozen_x(3) = (1 / frozen_y(0)) * ( -frozen_y(4)*frozen_y(1) + frozen_y(3) * frozen_y(2));
         return frozen_x;
     }
 

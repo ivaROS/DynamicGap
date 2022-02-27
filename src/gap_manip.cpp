@@ -47,6 +47,7 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
         Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
        
+        /*
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
@@ -54,7 +55,7 @@ namespace dynamic_gap {
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
         Matrix<double, 4, 1> frozen_left_cart_model_state = left_model->get_frozen_cartesian_state();
         Matrix<double, 4, 1> frozen_right_cart_model_state = right_model->get_frozen_cartesian_state();
-       
+        */
         /*
         Eigen::Vector4d left_cartesian_state = left_model->get_cartesian_state();
         Eigen::Vector4d right_cartesian_state = right_model->get_cartesian_state();
@@ -80,8 +81,8 @@ namespace dynamic_gap {
 
         double left_betadot_check = left_model_state[4];
         double right_betadot_check = right_model_state[4];
-        double frozen_left_betadot_check = frozen_left_model_state[4];
-        double frozen_right_betadot_check = frozen_right_model_state[4];
+        //double frozen_left_betadot_check = frozen_left_model_state[4];
+        //double frozen_right_betadot_check = frozen_right_model_state[4];
 
         //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
         //std::cout << "left ori: " << left_ori << ", right ori: " << right_ori << ", gap angle: " << gap_angle << std::endl;
@@ -93,16 +94,16 @@ namespace dynamic_gap {
         std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
         std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
         
-        std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
-        std::cout << "right cartesian model: " << frozen_right_cart_model_state(0) << ", " << frozen_right_cart_model_state(1) << ", " << frozen_right_cart_model_state(2) << ", " << frozen_right_cart_model_state(3) << std::endl; 
-        std::cout << "corrected betadot left: " << frozen_left_model_state[4] << ", corrected betadot right: " << frozen_right_model_state[4] << std::endl;
+        //std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
+        //std::cout << "right cartesian model: " << frozen_right_cart_model_state(0) << ", " << frozen_right_cart_model_state(1) << ", " << frozen_right_cart_model_state(2) << ", " << frozen_right_cart_model_state(3) << std::endl; 
+        //std::cout << "frozen betadot left: " << frozen_left_model_state[4] << ", frozen betadot right: " << frozen_right_model_state[4] << std::endl;
 
         // FEASIBILITY CHECK
         std::cout << "default feasibility check: " << std::endl;
         feasible = feasibilityCheckHelper(gap, left_betadot_check, right_betadot_check, gap_angle);
 
-        std::cout << "frozen feasibility check: " << std::endl;
-        feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
+        //std::cout << "frozen feasibility check: " << std::endl;
+        //feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
         
         return feasible;
     }
@@ -316,23 +317,25 @@ namespace dynamic_gap {
         Matrix<double, 5, 1> left_model_state = left_model->get_state();
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
         
+        /*
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
         
-        double left_betadot_check = left_model_state[4];
-        double right_betadot_check = right_model_state[4];
         double frozen_left_betadot_check = frozen_left_model_state[4];
         double frozen_right_betadot_check = frozen_right_model_state[4];
+        */
 
+        double left_betadot_check = left_model_state[4];
+        double right_betadot_check = right_model_state[4];
         // FEASIBILITY CHECK
         std::cout << "swept values for default model" << std::endl;
         setSweptValues(gap, left_betadot_check, right_betadot_check, left_ori, right_ori);
 
-        std::cout << "swept values for frozen model" << std::endl;
-        setSweptValues(gap, frozen_left_betadot_check, frozen_right_betadot_check, left_ori, right_ori);
+        //std::cout << "swept values for frozen model" << std::endl;
+        //setSweptValues(gap, frozen_left_betadot_check, frozen_right_betadot_check, left_ori, right_ori);
 
         // NOTE: left/right model states are flipped from left/right indices
         // left and right MODELS are from robot's POV, left/right orientation come from laser scan order

@@ -157,6 +157,7 @@ namespace dynamic_gap
         int init_val;
         int * model_idx;
         double prev_traj_switch_time;
+        double init_time;
 
     public:
         Planner();

@@ -481,14 +481,14 @@ namespace dynamic_gap {
             dxdt[4] = - x[7] * x[4]; // 1 / r_left
             dxdt[5] = x[6] * x[8]; // sin(beta_left)
             dxdt[6] = -x[5] * x[8]; // cos(beta_left)
-            dxdt[7] = - x[8]*x[8] - x[7]*x[7] + x[4]* (- a_x_rel * x[5] + a_y_rel * x[6]); // rdot_left / r_left
-            dxdt[8] = 2 * x[7] * x[8] + x[4] * (-a_x_rel*x[6] - a_y_rel*x[5]); // betadot_left
+            dxdt[7] = x[8]*x[8] - x[7]*x[7] + x[4]* (- a_x_rel * x[5] + a_y_rel * x[6]); // rdot_left / r_left
+            dxdt[8] = - 2 * x[7] * x[8] + x[4] * (-a_x_rel*x[6] - a_y_rel*x[5]); // betadot_left
 
             dxdt[9] = - x[12] * x[9]; // 1 / r_right
             dxdt[10] = x[11] * x[13]; // sin(beta_right)
             dxdt[11] = - x[10] * x[13]; // cos(beta_right)
-            dxdt[12] = -x[13]*x[13] - x[12]*x[12] + x[9] * (- a_x_rel*x[10] + a_y_rel * x[11]); // rdot_right / r_right
-            dxdt[13] = 2 * x[12] * x[13] + x[9] * (-a_x_rel * x[11] - a_y_rel * x[10]); // betadot_right
+            dxdt[12] = x[13]*x[13] - x[12]*x[12] + x[9] * (- a_x_rel*x[10] + a_y_rel * x[11]); // rdot_right / r_right
+            dxdt[13] = - 2 * x[12] * x[13] + x[9] * (-a_x_rel * x[11] - a_y_rel * x[10]); // betadot_right
 
             dxdt[14] = 0;
             dxdt[15] = 0;
