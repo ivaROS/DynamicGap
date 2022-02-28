@@ -73,13 +73,13 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
-        std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-        std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-        std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+        //std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
+        //std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
+        //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
-            std::cout << "gap deemed expanding, go to goal trajectory generated" << std::endl;
+            //std::cout << "gap deemed expanding, go to goal trajectory generated" << std::endl;
             g2g inte_g2g(
                 selectedGap.goal.x * coefs,
                 selectedGap.goal.y * coefs,
@@ -150,9 +150,9 @@ namespace dynamic_gap{
         */
 
         double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
-        std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
-        std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
-        std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
+        //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
+        //std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
+        //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
             
         // TODO: make sure that this is always less than 180, make sure convex (BROKEN)
         double gap_angle;
@@ -163,7 +163,7 @@ namespace dynamic_gap{
         }        
         // std::cout << "gap angle: " << gap_angle << std::endl;
         
-        std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
+        //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
         clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
@@ -175,7 +175,7 @@ namespace dynamic_gap{
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard) {
-            std::cout << "discarding gap" << std::endl;
+            //std::cout << "discarding gap" << std::endl;
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
             return return_tuple;
         }

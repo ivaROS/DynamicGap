@@ -670,9 +670,9 @@ namespace dynamic_gap
         }
 
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        //auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, stored_scan_msgs, rbt_in_cam_lc);
-        geometry_msgs::Twist cmd_vel;
-        cmd_vel.linear.x = 0.25*std::sin(0.01*(ros::Time::now().toSec() - init_time));
+        auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, stored_scan_msgs, rbt_in_cam_lc);
+        //geometry_msgs::Twist cmd_vel;
+        //cmd_vel.linear.x = 0.25*std::sin(0.01*(ros::Time::now().toSec() - init_time));
         return cmd_vel;
     }
 
@@ -732,6 +732,7 @@ namespace dynamic_gap
             std::cout << "right model: " << right_model_state[0] << ", " << right_model_state[1] << ", " << right_model_state[2] << ", " << right_model_state[3] << ", " << right_model_state[4] << std::endl;
         }
         */
+        std::cout << "RAW GAP ASSOCIATION AND UPDATING" << std::endl;
         raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps, model_idx, "raw");
         update_models(curr_raw_gaps);
 

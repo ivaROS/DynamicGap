@@ -19,7 +19,7 @@
 
 
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
-  <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
+  <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 10)"/>
   <arg name="planning_inflated" default="$(optenv GM_PARAM_PLANNING_INFLATED false)"/>
   <arg name="far_feasible" default="$(optenv GM_PARAM_FAR_FEASIBLE true)"/>
   <arg name="full_fov" default="$(optenv GM_PARAM_FULL_FOV false)"/>

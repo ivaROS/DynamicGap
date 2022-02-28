@@ -32,9 +32,9 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0, 0.0;
         // MEASUREMENT NOISE
-        R << 0.0000001, 0.0, 0.0,
-             0.0, 0.0000001, 0.0,
-             0.0, 0.0, 0.0000001;
+        R << 0.001, 0.0, 0.0,
+             0.0, 0.001, 0.0,
+             0.0, 0.0, 0.001;
         // PROCESS NOISE
         /*
         Q << 0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
@@ -43,11 +43,11 @@ namespace dynamic_gap {
             0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
             0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001;
         */
-        Q << 0.0000001, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0000001, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0000001, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0000001, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.0000001;
+        Q << 0.01, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.01, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.01, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.01, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.01;
         y << 1.0 / init_r, 
                 std::sin(init_beta), 
                 std::cos(init_beta), 
@@ -90,7 +90,8 @@ namespace dynamic_gap {
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         frozen_x << 0.0, 0.0, 0.0, 0.0;
     }
-
+    
+    
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         //std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
@@ -121,7 +122,7 @@ namespace dynamic_gap {
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
         // std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
-
+    
 
     void MP_model::integrate() {
         t = ros::Time::now().toSec();
@@ -146,19 +147,21 @@ namespace dynamic_gap {
     void MP_model::linearize() {
         double a_r = - a[0]*y[1] + a[1]*y[2];
         double a_beta = -a[0]*y[2] - a[1]*y[1];
+        //std::cout << "a_r: " << a_r << std::endl;
+        //std::cout << "a_beta: " << a_beta << std::endl;
+        //std::cout << "y in linearize: " << y << std::endl;
+        A << -y[3], 0.0, 0.0, -y[0], 0.0,
+                 0.0, 0.0, y[4], 0.0, y[2],
+                 0.0, -y[4], 0.0, 0.0, -y[1],
+                 a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], 2*y[4],
+                 a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
 
-        A(0) = -y[3], 0.0, 0.0, -y[0], 0.0;
-        A(1) = 0.0, 0.0, y[4], 0.0, y[2];
-        A(2) = 0.0, -y[4], 0.0, 0.0, -y[1];
-        A(3) = a_r, -y[0]*a[0], y[0]*a[1], -2*y[3], 2*y[4];
-        A(4) = a_beta, -y[0]*a[1], -y[0]*a[0], -2*y[4], -2*y[3];
-
-        Ad(0) = 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0;
-        Ad(1) = 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt;
-        Ad(2) = 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt;
-        Ad(3) = a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt;
-        Ad(4) = a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
-        // std::cout << "Ad: " << Ad << std::endl;
+        Ad << 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0,
+                 0.0, 1.0, y[4]*dt, 0.0, y[2]*dt,
+                 0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt,
+                 a_r*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt,
+                 a_beta*dt, -y[0]*a[1]*dt, -y[0]*a[0]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
+        // std::cout << "Ad in linearize: " << Ad << std::endl;
     }
 
     void MP_model::discretizeQ() {
@@ -168,7 +171,6 @@ namespace dynamic_gap {
         Matrix<double, 5, 5> M3 = 0.3333 * dt * dt * (A * dQ).transpose();
 
         dQ = dQ + M2 + M3;
-        // std::cout << "dQ: " << dQ << std::endl;
     }
 
     void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> _a_ego, Matrix<double, 1, 2> _v_ego) {
@@ -181,6 +183,8 @@ namespace dynamic_gap {
         //std::cout << "acceleration" << std::endl;
         // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
         std::cout << "acceleration: " << a[0] << ", " << a[1] << std::endl;
+
+        std::cout << "velocity: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
@@ -197,20 +201,35 @@ namespace dynamic_gap {
         discretizeQ();
 
         //std::cout<< "estimating covariance matrix" << std::endl;
-        P = Ad * P * Ad.transpose() + dQ;
-        //std::cout << "P after estimate: " << P << std::endl;
+        //std::cout << "Ad: " << Ad << std::endl;
+        //std::cout << "initial P: " << P << std::endl;
+        Matrix<double, 5, 5> Ad_transpose = Ad.transpose();
+        //std::cout << "Ad_transpose: " << Ad_transpose << std::endl;
+        //std::cout << "dQ: " << dQ << std::endl;
+
+        Matrix<double, 5, 5> new_P = Ad * P * Ad_transpose + dQ;
+        //std::cout << "new_P: " << new_P << std::endl;
+        P = new_P;
+        //std::cout << "P: " << P << std::endl;
+
         //std::cout<< "updating Kalman gain" << std::endl;
 
-        tmp_mat = H*P*H.transpose() + R;
-        Matrix<double,5,3> P_H_prod = P * H.transpose();
-        //std::cout << "P_H_prod: " << P_H_prod << std::endl;
+        //std::cout << "H: " << H << std::endl;
+        Matrix<double, 5, 3> H_transpose = H.transpose();
+        //std::cout << "H_transpose: " << H_transpose << std::endl;
+        //std::cout << "R: " << R << std::endl;
+        tmp_mat = H*P*H_transpose + R;
+        //std::cout << "tmp_mat: " << tmp_mat << std::endl;
         Matrix<double,3,3> inverted_tmp_mat = tmp_mat.inverse();
+        //std::cout << "tmp_mat inverse: " << inverted_tmp_mat << std::endl;
+        Matrix<double,5,3> P_H_prod = P * H_transpose;
+        //std::cout << "P_H_prod: " << P_H_prod << std::endl;
         //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
         G = P_H_prod * inverted_tmp_mat;
-        std::cout << "G after update: " << G << std::endl;
+        //std::cout << "G: " << G << std::endl;
         //std::cout<< "updating state" << std::endl;
         Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
-        std::cout << "actual update to y: " << y_update_mat << std::endl;
+        //std::cout << "actual update to y: " << y_update_mat << std::endl;
         y = y + y_update_mat;
         cart_state = get_cartesian_state();
         std::cout << "MP state after update:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;

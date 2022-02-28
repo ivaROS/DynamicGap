@@ -85,7 +85,7 @@ namespace dynamic_gap {
         std::vector<double> test_cost_val(traj.poses.size());
         std::vector<double> cost_val(traj.poses.size());
 
-    
+        
         // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
         for (auto & model : raw_models) {
             model->freeze_robot_vel();
@@ -125,13 +125,13 @@ namespace dynamic_gap {
             }
             prior_dt = dt;
             cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
-            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
+            // std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
+            // std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
 
         }
 
         //std::cout << "------" << std::endl;
-        
+    
         /*
         for (int i = 0; i < cost_val.size(); i++) {
             std::cout << "regular range at " << i << ": ";
@@ -139,8 +139,8 @@ namespace dynamic_gap {
             
             // do we add here?
             // cost_val.at(i) += scoreGapRanges(left_ranges.at(i), right_ranges.at(i));
-        }
         */
+        
         
 
         // cumulative cost of poses
@@ -150,7 +150,7 @@ namespace dynamic_gap {
 
         // cumulative cost of ranges of gap
 
-        std::cout << "pose-wise cost: " << total_val << std::endl;
+        // std::cout << "pose-wise cost: " << total_val << std::endl;
         // std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
         // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
@@ -160,11 +160,11 @@ namespace dynamic_gap {
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 1 && total_val >= 0) {
-                std::cout << "returning really good trajectory" << std::endl;
+                // std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
-            std::cout << "terminal cost: " << -terminal_cost << std::endl;
+            // std::cout << "terminal cost: " << -terminal_cost << std::endl;
             cost_val.at(0) -= terminal_cost;
         }
         
