@@ -32,9 +32,9 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0, 0.0;
         // MEASUREMENT NOISE
-        R << 0.001, 0.0, 0.0,
-             0.0, 0.001, 0.0,
-             0.0, 0.0, 0.001;
+        R << 0.000001, 0.0, 0.0,
+             0.0, 0.000001, 0.0,
+             0.0, 0.0, 0.000001;
         // PROCESS NOISE
         /*
         Q << 0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
@@ -43,11 +43,11 @@ namespace dynamic_gap {
             0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001,
             0.0000001, 0.0000001, 0.0000001, 0.0000001, 0.0000001;
         */
-        Q << 0.01, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.01, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.01, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.01, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.01;
+        Q << 0.000001, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.000001, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.000001, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.000001, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.000001;
         y << 1.0 / init_r, 
                 std::sin(init_beta), 
                 std::cos(init_beta), 
@@ -94,9 +94,9 @@ namespace dynamic_gap {
     
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
-        //std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
-        //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
-        // std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
+        std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
+        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
@@ -105,8 +105,8 @@ namespace dynamic_gap {
         double new_betadot = (cartesian_state[0]*cartesian_state[3] - cartesian_state[1]*cartesian_state[2]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
         frozen_x << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
         frozen_y << y(0), y(1), y(2), new_rdot_over_r, new_betadot;           
-        //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
-        //std::cout << "modified MP state. r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
+        std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+        std::cout << "modified MP state. r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
 
     void MP_model::frozen_state_propagate(double dt) {

@@ -103,7 +103,7 @@ namespace dynamic_gap {
         double min_beta = 0.0;
         double min_range = 0.0;
         //std::cout << "DYNAMIC SCORING" << std::endl;
-        for (int i = 0; i < cost_val.size(); i++) {
+        for (int i = 0; i < test_cost_val.size(); i++) {
             double min_dist = std::numeric_limits<double>::infinity();
             double min_beta = 0.0;
             dt = time_arr[i];
@@ -124,34 +124,30 @@ namespace dynamic_gap {
                 }
             }
             prior_dt = dt;
-            cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            // std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
-            // std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
+            test_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
+            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << test_cost_val.at(i) << std::endl;
+            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
 
         }
 
-        //std::cout << "------" << std::endl;
+        std::cout << "------" << std::endl;
     
-        /*
+        
         for (int i = 0; i < cost_val.size(); i++) {
             std::cout << "regular range at " << i << ": ";
             cost_val.at(i) = scorePose(traj.poses.at(i));
-            
-            // do we add here?
-            // cost_val.at(i) += scoreGapRanges(left_ranges.at(i), right_ranges.at(i));
-        */
-        
+        }
         
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
         auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
-        // auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
+        auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
 
         // cumulative cost of ranges of gap
 
-        // std::cout << "pose-wise cost: " << total_val << std::endl;
-        // std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
+        std::cout << "pose-wise cost: " << total_val << std::endl;
+        std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
         // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
         {

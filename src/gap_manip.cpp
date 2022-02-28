@@ -89,11 +89,11 @@ namespace dynamic_gap {
         //std::cout << " gap convex l_idx: " << gap.convex.convex_lidx << ", gap convex r_idx: " << gap.convex.convex_ridx << std::endl;
 
         // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
-        if ((x1 > 0 && y1 > 0 && x2 > 0 && y1 < 0) || (x1 > 0 && y1 < 0 && x2 > 0 && y2 > 0)) {
-            std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-            std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
-            std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
-        }
+        //if ((x1 > 0 && y1 > 0 && x2 > 0 && y1 < 0) || (x1 > 0 && y1 < 0 && x2 > 0 && y2 > 0)) {
+        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
+        std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
+        //}
         // std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
         
         //std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
@@ -101,7 +101,7 @@ namespace dynamic_gap {
         //std::cout << "frozen betadot left: " << frozen_left_model_state[4] << ", frozen betadot right: " << frozen_right_model_state[4] << std::endl;
 
         // FEASIBILITY CHECK
-        std::cout << "default feasibility check: " << std::endl;
+        // std::cout << "default feasibility check: " << std::endl;
         feasible = feasibilityCheckHelper(gap, left_betadot_check, right_betadot_check, gap_angle);
 
         //std::cout << "frozen feasibility check: " << std::endl;
@@ -115,13 +115,13 @@ namespace dynamic_gap {
 
         double nom_rbt_vel = 0.15;
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
-        // std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
+        std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
 
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
             // CATEGORY 1: TRANSLATING       
-            //std::cout << "translating gap" << std::endl;
+            std::cout << "translating gap" << std::endl;
             if (left_betadot_check - right_betadot_check > 0) {
-                //std::cout << "gap is expanding on the whole, is feasible" << std::endl;
+                std::cout << "gap is expanding on the whole, is feasible" << std::endl;
                 gap.gap_lifespan = cfg_->traj.integrate_maxt;
                 feasible = true;
             } else {
@@ -129,28 +129,27 @@ namespace dynamic_gap {
                 gap.gap_lifespan = default_lifespan;
                 //std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
                 if (gap.gap_lifespan > T_rbt2arc) {
-                    //std::cout << "gap lifespan longer than Trbt2arc, is feasible" << std::endl;
+                    std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
                     feasible = true;
                 } else {
-                    //std::cout << "gap lifespan shorter than Trbt2arc, not feasible" << std::endl;
+                    std::cout << "gap lifespan shorter than Trbt2arc, not feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
                     feasible = false;
                 }
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
             // CATEGORY 2: STATIC/CLOSING
             gap.gap_lifespan = gap_angle / abs(right_betadot_check - left_betadot_check);
-            //std::cout << "closing gap" << std::endl;
-            //std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
+            std::cout << "static/closing gap" << std::endl;
             if (gap.gap_lifespan > T_rbt2arc) {
-                //std::cout << "gap lifespan longer than Trbt2arc, is feasible" << std::endl;
+                std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
                 feasible = true;
             } else {
-                //std::cout << "gap lifespan shorter than Trbt2arc, not feasible" << std::endl;
+                std::cout << "gap lifespan shorter than Trbt2arc, not feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
                 feasible = false;
             }
         } else {
             // CATEGORY 3: EXPANDING
-            //std::cout << "expanding gap, is feasible" << std::endl;
+            std::cout << "expanding gap, is feasible" << std::endl;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             feasible = true;
         }
@@ -302,7 +301,8 @@ namespace dynamic_gap {
         auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
         
-
+        std::cout << "starting points. x1, y1: (" << x1 << ", " << y1 << "), x2, y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "original left idx: " << gap.convex.convex_lidx << ", original right idx: " << gap.convex.convex_ridx << std::endl;
         //std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
 
         dynamic_gap::MP_model* left_model;
@@ -319,21 +319,21 @@ namespace dynamic_gap {
         Matrix<double, 5, 1> left_model_state = left_model->get_state();
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
         
-        /*
+        
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
         
-        double frozen_left_betadot_check = frozen_left_model_state[4];
-        double frozen_right_betadot_check = frozen_right_model_state[4];
-        */
+        //double frozen_left_betadot_check = frozen_left_model_state[4];
+        //double frozen_right_betadot_check = frozen_right_model_state[4];
+        
 
-        double left_betadot_check = left_model_state[4];
-        double right_betadot_check = right_model_state[4];
+        double left_betadot_check = frozen_left_model_state[4];
+        double right_betadot_check = frozen_right_model_state[4];
         // FEASIBILITY CHECK
-        //std::cout << "swept values for default model" << std::endl;
+        std::cout << "setting swept values" << std::endl;
         setSweptValues(gap, left_betadot_check, right_betadot_check, left_ori, right_ori);
 
         //std::cout << "swept values for frozen model" << std::endl;
@@ -371,12 +371,12 @@ namespace dynamic_gap {
         double nom_rbt_vel = 0.15; // 1/2 of max vel?
         double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
 
-        //std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
-        //std::cout << "left betadot: " << left_betadot_check << ", right betadot: " << right_betadot_check << std::endl;
+        std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
+        std::cout << "left betadot: " << left_betadot_check << ", right betadot: " << right_betadot_check << std::endl;
 
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
             // CATEGORY 1: TRANSLATING       
-            //std::cout << "gap is translating" << std::endl;
+            std::cout << "gap is translating" << std::endl;
             // FLIPPING GOING ON HERE
             double left_swept = right_betadot_check*T_rbt2arc; // in radians
             double right_swept = left_betadot_check*T_rbt2arc; // in radians
@@ -388,13 +388,14 @@ namespace dynamic_gap {
             //std::cout << "convex lidx: " << gap.convex.convex_lidx << ", convex ridx: " << gap.convex.convex_ridx << std::endl;
             if (swept_left_idx > gap.convex.convex_ridx || swept_right_idx < gap.convex.convex_lidx) {
                 // if swept left idx crosses original right idx or swept right idx crosses left idx: no valid slice
-                // std::cout << "no valid slice" << std::endl;
+                std::cout << "no valid slice" << std::endl;
                 gap.swept_convex_ldist = gap.convex.convex_ldist;
                 gap.swept_convex_rdist = gap.convex.convex_rdist;
                 gap.swept_convex_lidx = gap.convex.convex_lidx;
                 gap.swept_convex_ridx = gap.convex.convex_ridx;
                 gap.no_valid_slice = true;
             } else {
+                std::cout << "valid slice" << std::endl;
                 // if valid slice exists, put goal in there
                 gap.swept_convex_ldist = gap.convex.convex_ldist;
                 gap.swept_convex_rdist = gap.convex.convex_rdist;
@@ -403,7 +404,7 @@ namespace dynamic_gap {
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
             // CATEGORY 2: CLOSING
-            // std::cout << "gap is closing" << std::endl;
+            std::cout << "gap is closing" << std::endl;
             // FLIPPING GOING ON HERE
             double left_swept = right_betadot_check*T_rbt2arc; // in radians
             double right_swept = left_betadot_check*T_rbt2arc; // in radians
@@ -418,15 +419,15 @@ namespace dynamic_gap {
             gap.swept_convex_ridx = swept_right_idx;
         } else {
             // CATEGORY 3: STATIC/EXPANDING
-            // std::cout << "gap is static or expanding" << std::endl;
+            std::cout << "gap is static or expanding" << std::endl;
             gap.swept_convex_ldist = gap.convex.convex_ldist;
             gap.swept_convex_rdist = gap.convex.convex_rdist;
             gap.swept_convex_lidx = gap.convex.convex_lidx;
             gap.swept_convex_ridx = gap.convex.convex_ridx;
         }
 
-        //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
-        //std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << std::endl;
+        std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
+        std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << std::endl;
 
         return;
     }
@@ -445,16 +446,21 @@ namespace dynamic_gap {
        
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
-        //std::cout << "local goal: " << localgoal.pose.position.x << ", " << localgoal.pose.position.y << std::endl;
-        //std::cout << "x1: " << x1 << ", y1: " << y1 << ". x2: " << x2 << ", y2: " << y2 << std::endl;
+        std::cout << "local goal: " << localgoal.pose.position.x << ", " << localgoal.pose.position.y << std::endl;
+        double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+        double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
+        std::cout << "local goal idx: " << local_goal_idx << std::endl; 
+        
+        std::cout << "x1: " << x1 << ", y1: " << y1 << ". x2: " << x2 << ", y2: " << y2 << std::endl;
+        std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << std::endl; 
+
         // I don't think this is guaranteed
         auto left_ori = gap.swept_convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.swept_convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
         // TODO: make sure that this is always less than 180, make sure convex
         double gap_angle = right_ori - left_ori;
 
-        //double closing_rate = right_model_state[4] - left_model_state[4];
-        //double time_to_pass = gap_angle / closing_rate;
+        std::cout << "gap angle: " << gap_angle << std::endl;
         //std::cout << "time to pass: " time_to_pass << ", rbt time to arc: " << rbt_time_to_arc << std::endl;
         
         // need to check if gap is feasible. If not, just set gap goal to 0
@@ -470,6 +476,7 @@ namespace dynamic_gap {
         bool gap_size_check = right_ori - left_ori < M_PI;
         float dist = 0;
         bool small_gap = false;
+        std::cout << "gap size check: " << gap_size_check << std::endl;
         if (gap_size_check && !cfg_->planning.planning_inflated) {
             // if smaller than M_PI/3
             dist = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
@@ -477,28 +484,33 @@ namespace dynamic_gap {
         }
 
         // no chance it can be non-convex here
-        //std::cout << "thetalr: " << thetalr << ", thetalf: " << thetalf << std::endl;
+        std::cout << "thetalr: " << thetalr << ", thetalf: " << thetalf << std::endl;
         // taking out thetalr < thetalf ||
         if (small_gap) {
             gap.goal.x = (x1 + x2) / 2;
             gap.goal.y = (y1 + y2) / 2;
-            //std::cout << "first case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            // gap.goal.discard = thetalr < thetalf;
-            // std::cout << "setting discard to " << (thetalr < thetalf) << std::endl;
+            std::cout << "first case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             gap.goal.set = true;
             return;
         }
 
-        float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
-        double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
-
         // if localgoal is within gap, just put it there
-        if (checkGoalVisibility(localgoal) && checkGoalWithinGap(gap, local_goal_idx)) {
-            gap.goal.x = localgoal.pose.position.x;
-            gap.goal.y = localgoal.pose.position.y;
-            //std::cout << "second case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        if (checkGoalWithinGapAngleRange(gap, local_goal_idx)) {
+            // if local goal is physically within gap
+            if (checkGoalVisibility(localgoal)) {
+                gap.goal.x = localgoal.pose.position.x;
+                gap.goal.y = localgoal.pose.position.y;
+                gap.goal.goalwithin = true;
+                std::cout << "second case, local goal within gap: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            } else {
+                double goal_range = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (goal_orientation - thetalf) / (thetalr - thetalf) + gap.swept_convex_ldist;
+                std::cout << "goal range: " << goal_range << std::endl;
+                std:: cout << "goal orientation: " << goal_orientation << std::endl;
+                gap.goal.x = goal_range*std::cos(goal_orientation);
+                gap.goal.y = goal_range*std::sin(goal_orientation);
+                std::cout << "second case, local goal outside of gap: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            }
             gap.goal.set = true;
-            gap.goal.goalwithin = true;
             return;
         }
         
@@ -524,7 +536,7 @@ namespace dynamic_gap {
 
         double anchor_orientation = std::atan2(yg, xg);
         double anchor_idx = std::floor(anchor_orientation*half_num_scan/M_PI + half_num_scan);
-        //std::cout << "anchor idx: " << anchor_idx << ", anchor: " << xg << ", " << yg << std::endl;
+        std::cout << "anchor idx: " << anchor_idx << ", anchor: " << xg << ", " << yg << std::endl;
         Eigen::Matrix2f r_negpi2;
             r_negpi2 << 0,1,-1,0;
         auto offset = r_negpi2 * (pr - pl);
@@ -538,23 +550,23 @@ namespace dynamic_gap {
         // THIRD CASE WILL PUSH IT OUT. anchor is always fine. offset pushes it out. maybe bound to edges of valid slice
         double gap_goal_orientation = std::atan2(gap.goal.y, gap.goal.x);
         double gap_goal_idx = std::floor(gap_goal_orientation*half_num_scan/M_PI + half_num_scan);
-        //std::cout << "gap goal idx: " << gap_goal_idx << std::endl;
+        std::cout << "gap goal idx: " << gap_goal_idx << std::endl;
 
-        if (checkGoalWithinGap(gap, gap_goal_idx)) {
-            //std::cout << "goal within gap" << std::endl;
-            int holder = 0.0;
+        if (checkGoalWithinGapAngleRange(gap, gap_goal_idx)) {
+            std::cout << "goal within gap" << std::endl;
         } else {
+            std::cout << "reverting to anchor" << std::endl;
             gap.goal.x = anchor(0);
             gap.goal.y = anchor(1);
         }
 
-        // std::cout << "third case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        std::cout << "third case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
         // need to check again if gap goals being placed outside gaps
         return;
     }
 
-    bool GapManipulator::checkGoalWithinGap(dynamic_gap::Gap& gap, double gap_goal_idx) {
-        if (gap.swept_convex_lidx < gap.swept_convex_rdist) {
+    bool GapManipulator::checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx) {
+        if (gap.swept_convex_lidx < gap.swept_convex_ridx) {
             if (!(gap.swept_convex_lidx <= gap_goal_idx && gap_goal_idx <= gap.swept_convex_ridx)) {
                 return false;
             }

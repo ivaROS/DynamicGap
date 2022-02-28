@@ -45,7 +45,7 @@ namespace dynamic_gap {
             Eigen::Vector2f pol2car(Eigen::Vector2f);
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
             bool checkGoalVisibility(geometry_msgs::PoseStamped);
-            bool checkGoalWithinGap(dynamic_gap::Gap& gap, double gap_goal_idx);
+            bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx);
             bool feasibilityCheckHelper(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double gap_angle);
             void setSweptValues(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double left_ori, double right_ori);
 
