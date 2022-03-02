@@ -89,11 +89,11 @@ namespace dynamic_gap {
         //std::cout << " gap convex l_idx: " << gap.convex.convex_lidx << ", gap convex r_idx: " << gap.convex.convex_ridx << std::endl;
 
         // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
-        //if ((x1 > 0 && y1 > 0 && x2 > 0 && y1 < 0) || (x1 > 0 && y1 < 0 && x2 > 0 && y2 > 0)) {
-        std::cout << "x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
-        std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
-        //}
+        if ((x1 > 0 && y1 > 0 && x2 > 0 && y1 < 0) || (x1 > 0 && y1 < 0 && x2 > 0 && y2 > 0)) {
+            std::cout << "FRONT FACING GAP: x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+            std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
+            std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
+        }
         // std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
         
         //std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
@@ -434,7 +434,7 @@ namespace dynamic_gap {
     
     // at this point, all gaps are feasible
     void GapManipulator::setValidSliceWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal){
-        // std::cout << "in setValidSliceWaypoint" << std::endl;
+        std::cout << "in setValidSliceWaypoint" << std::endl;
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
         int mid_idx;
@@ -451,7 +451,7 @@ namespace dynamic_gap {
         double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
         std::cout << "local goal idx: " << local_goal_idx << std::endl; 
         
-        std::cout << "x1: " << x1 << ", y1: " << y1 << ". x2: " << x2 << ", y2: " << y2 << std::endl;
+        std::cout << "(pl) x1: " << x1 << ", y1: " << y1 << ". (pr) x2: " << x2 << ", y2: " << y2 << std::endl;
         std::cout << "swept left idx: " << gap.swept_convex_lidx << ", swept right idx: " << gap.swept_convex_ridx << std::endl; 
 
         // I don't think this is guaranteed
@@ -473,18 +473,17 @@ namespace dynamic_gap {
         
         // Second condition: if angle smaller than M_PI / 3
         // Check if arc length < 3 robot width
-        bool gap_size_check = right_ori - left_ori < M_PI;
+        bool gap_size_check = gap_angle < M_PI;
         float dist = 0;
         bool small_gap = false;
-        std::cout << "gap size check: " << gap_size_check << std::endl;
+        // pretty sure gap size check is true for all time, not sure about planning_inflated
+        // std::cout << "gap size check: " << gap_size_check << std::endl;
         if (gap_size_check && !cfg_->planning.planning_inflated) {
             // if smaller than M_PI/3
             dist = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
             small_gap = dist < 4 * cfg_->rbt.r_inscr;
         }
 
-        // no chance it can be non-convex here
-        std::cout << "thetalr: " << thetalr << ", thetalf: " << thetalf << std::endl;
         // taking out thetalr < thetalf ||
         if (small_gap) {
             gap.goal.x = (x1 + x2) / 2;
@@ -493,24 +492,14 @@ namespace dynamic_gap {
             gap.goal.set = true;
             return;
         }
-
         // if localgoal is within gap, just put it there
-        if (checkGoalWithinGapAngleRange(gap, local_goal_idx)) {
+        if (checkGoalWithinGapAngleRange(gap, local_goal_idx) && checkGoalVisibility(localgoal)) {
             // if local goal is physically within gap
-            if (checkGoalVisibility(localgoal)) {
-                gap.goal.x = localgoal.pose.position.x;
-                gap.goal.y = localgoal.pose.position.y;
-                gap.goal.goalwithin = true;
-                std::cout << "second case, local goal within gap: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            } else {
-                double goal_range = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (goal_orientation - thetalf) / (thetalr - thetalf) + gap.swept_convex_ldist;
-                std::cout << "goal range: " << goal_range << std::endl;
-                std:: cout << "goal orientation: " << goal_orientation << std::endl;
-                gap.goal.x = goal_range*std::cos(goal_orientation);
-                gap.goal.y = goal_range*std::sin(goal_orientation);
-                std::cout << "second case, local goal outside of gap: " << gap.goal.x << ", " << gap.goal.y << std::endl;
-            }
+            gap.goal.x = localgoal.pose.position.x;
+            gap.goal.y = localgoal.pose.position.y;
+            gap.goal.goalwithin = true;
             gap.goal.set = true;
+            std::cout << "second case: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             return;
         }
         
@@ -518,14 +507,20 @@ namespace dynamic_gap {
         // confined_theta: confining this value to within angular space of gap, bias it to be closer to local goal
         // potential problem: can local goal be within angular space of gap here?
         float confined_theta; // = std::min(thetalr, std::max(thetalf, goal_orientation));
-        float lr_ang_diff = std::abs(thetalr - goal_orientation);
-        float lf_ang_diff = std::abs(thetalf - goal_orientation);
-        if (lr_ang_diff < lf_ang_diff) {
-            confined_theta = thetalr;
+        if (checkGoalWithinGapAngleRange(gap, local_goal_idx)) {
+            std::cout << "seting confined theta to local goal" << std::endl;
+            confined_theta = goal_orientation;
         } else {
-            confined_theta = thetalf;
+            std::cout << "setting confined theta to one side" << std::endl;
+            float lr_ang_diff = std::abs(thetalr - goal_orientation);
+            float lf_ang_diff = std::abs(thetalf - goal_orientation);
+            if (lr_ang_diff < lf_ang_diff) {
+                confined_theta = thetalr;
+            } else {
+                confined_theta = thetalf;
+            }
         }
-
+        
         // like convex combination, interpolating from l_dist to r_dist 
         float confined_r = (gap.swept_convex_rdist - gap.swept_convex_ldist) * (confined_theta - thetalf) / (thetalr - thetalf) + gap.swept_convex_ldist;
 
@@ -536,10 +531,14 @@ namespace dynamic_gap {
 
         double anchor_orientation = std::atan2(yg, xg);
         double anchor_idx = std::floor(anchor_orientation*half_num_scan/M_PI + half_num_scan);
-        std::cout << "anchor idx: " << anchor_idx << ", anchor: " << xg << ", " << yg << std::endl;
+        std::cout << "confined theta: " << confined_theta << ", anchor idx: " << anchor_idx << ", anchor: " << xg << ", " << yg << std::endl;
+
         Eigen::Matrix2f r_negpi2;
-            r_negpi2 << 0,1,-1,0;
+        r_negpi2 << 0,1,-1,0;
         auto offset = r_negpi2 * (pr - pl);
+
+        std::cout << "offset: " << offset[0] << ", " << offset[1] << std::endl;
+
         // goal point is offset so that it's slightly beyond gap, biases it to be more in the middle of the gap
         auto goal_pt = offset * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + anchor;
 
@@ -605,14 +604,25 @@ namespace dynamic_gap {
 
         // Should be sufficiently far, otherwise we are in trouble
         double goal_angle = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
-        int incident_angle = (int) round((goal_angle - scan.angle_min) / scan.angle_increment);
+        int goal_index = (int) round((goal_angle - scan.angle_min) / scan.angle_increment);
 
         double half_angle = std::asin(cfg_->rbt.r_inscr / dist2goal);
         // int index = std::ceil(half_angle / scan.angle_increment) * 1.5;
         int index = (int)(scan.ranges.size()) / 8;
-        int lower_bound = std::max(incident_angle - index, 0);
-        int upper_bound = std::min(incident_angle + index, int(scan.ranges.size() - 1));
-        auto min_val_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
+        int lower_bound = goal_index - index;
+        int upper_bound = goal_index + index;
+        float min_val_round_goal;
+        std::cout << "lower bound: " << lower_bound << ", upper bound: " << upper_bound << std::endl;
+        if (lower_bound >= 0 && upper_bound < 512) {
+            min_val_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
+        } else {
+            int rev_lower_bound = (lower_bound + scan.ranges.size()) % scan.ranges.size();
+            int rev_upper_bound = upper_bound % scan.ranges.size();
+            std::cout << "rev lower bound: " << rev_lower_bound << ", rev upper bound: " << rev_upper_bound << std::endl; 
+            auto first_min = *std::min_element(scan.ranges.begin() + rev_lower_bound, scan.ranges.end());
+            auto second_min = *std::min_element(scan.ranges.begin(), scan.ranges.begin() + rev_upper_bound);
+            min_val_round_goal = std::min(first_min, second_min);
+        }
         return dist2goal < min_val_round_goal;
     }
 
