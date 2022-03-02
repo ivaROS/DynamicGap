@@ -209,7 +209,8 @@ namespace dynamic_gap
         range_vector_rbt_frame.vector.x = gap_pt_vector_rbt_frame.vector.x - rbt_in_cam.pose.position.x;
         range_vector_rbt_frame.vector.y = gap_pt_vector_rbt_frame.vector.y - rbt_in_cam.pose.position.y;
         //std::cout << "gap_pt_vector_rbt_frame: " << gap_pt_vector_rbt_frame.vector.x << ", " << gap_pt_vector_rbt_frame.vector.y << std::endl;
-		//std::cout << "rbt in cam pose: " << rbt_in_cam.pose.position.x << ", " << rbt_in_cam.pose.position.x << std::endl;
+		std::cout << "rbt in cam pose: " << rbt_in_cam.pose.position.x << ", " << rbt_in_cam.pose.position.x << std::endl;
+        std::cout << "range vector rbt frame: " << range_vector_rbt_frame.vector.x << ", " << range_vector_rbt_frame.vector.x << std::endl;
         // how to get measurements?
 		
 		// get gap vector, transform to world coordinates?
@@ -225,9 +226,7 @@ namespace dynamic_gap
         //std::cout << gap_pt_vector_odom_frame.vector.x << ", " << gap_pt_vector_odom_frame.vector.y << std::endl;
 
         // PREVIOUSLY, using ODOM FRAME HERE:
-		//float beta_tilde = std::atan2(-gap_pt_vector_odom_frame.vector.x, gap_pt_vector_odom_frame.vector.y);
-		//float norm = std::sqrt(std::pow(gap_pt_vector_odom_frame.vector.x, 2) + pow(gap_pt_vector_odom_frame.vector.y, 2));
-        double beta_tilde = std::atan2(-range_vector_rbt_frame.vector.x, range_vector_rbt_frame.vector.y);
+        double beta_tilde = std::atan2(range_vector_rbt_frame.vector.y, range_vector_rbt_frame.vector.x);
 		double norm = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
 		
 		Matrix<double, 3, 1> y_tilde;
@@ -477,9 +476,9 @@ namespace dynamic_gap
         try {
             double curr_time = ros::Time::now().toSec();
             std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
-            std::cout << "current time length: " << curr_time_arr.size() << std::endl;
+            //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
-            std::cout << "incoming time length: " << time_arr.size() << std::endl;
+            //std::cout << "incoming time length: " << time_arr.size() << std::endl;
 
             // Both Args are in Odom frame
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
@@ -494,7 +493,7 @@ namespace dynamic_gap
 
             if (curr_traj.poses.size() == 0) {
                 if (incom_subscore == -std::numeric_limits<double>::infinity()) {
-                    std::cout << "curr traj 0, incoming infinity" << std::endl;
+                    std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj 0, incoming infinity" << std::endl;
                     ROS_WARN_STREAM("Incoming score of negative infinity");
                     auto empty_traj = geometry_msgs::PoseArray();
                     std::vector<double> empty_time_arr;
@@ -502,7 +501,7 @@ namespace dynamic_gap
                     setCurrentTimeArr(empty_time_arr);
                     return empty_traj;
                 } else {
-                    std::cout << "curr traj 0, incoming finite" << std::endl;
+                    std::cout << "TRAJECTORY CHANGE TO INCOMING: curr traj 0, incoming finite" << std::endl;
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
                     trajectory_pub.publish(incoming);
@@ -520,7 +519,7 @@ namespace dynamic_gap
             reduced_curr_rbt.poses = std::vector<geometry_msgs::Pose>(curr_rbt.poses.begin() + start_position, curr_rbt.poses.end());
             reduced_curr_time_arr = std::vector<double>(curr_time_arr.begin() + start_position, curr_time_arr.end());
             if (reduced_curr_rbt.poses.size() < 2) {
-                std::cout << "old traj short" << std::endl;
+                std::cout << "TRAJECTORY CHANGE TO INCOMING: old traj short" << std::endl;
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
@@ -538,15 +537,14 @@ namespace dynamic_gap
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
             std::cout << "current subscore: " << curr_subscore << std::endl;
 
-            /*
+            
             if (*std::min_element(curr_score.begin(), curr_score.end()) == -std::numeric_limits<double>::infinity()) {
-                std::cout << "old traj on collision course" << std::endl;
+                std::cout << "TRAJECTORY CHANGE TO INCOMING: old traj on collision course" << std::endl;
                 ROS_WARN_STREAM("Old Traj on collision course");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
                 return incoming;
             }
-            */
 
             std::vector<std::vector<double>> ret_traj_scores(2);
             ret_traj_scores.at(0) = incom_score;
@@ -560,7 +558,7 @@ namespace dynamic_gap
 
 
             if (curr_subscore == -std::numeric_limits<double>::infinity() && incom_subscore == -std::numeric_limits<double>::infinity()) {
-                std::cout << "both infinity" << std::endl;
+                std::cout << "TRAJECTORY CHANGE TO EMPTY: both infinity" << std::endl;
                 ROS_WARN_STREAM("Both Failed");
                 auto empty_traj = geometry_msgs::PoseArray();
                 std::vector<double> empty_time_arr;
@@ -571,7 +569,7 @@ namespace dynamic_gap
 
             double oscillation_pen = counts * std::exp(-(curr_time - prev_traj_switch_time)/2.0);
             if (incom_subscore > (curr_subscore + oscillation_pen)) {
-                std::cout << "swapping trajectory" << std::endl;
+                std::cout << "TRAJECTORY CHANGE TO INCOMING: swapping trajectory" << std::endl;
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
@@ -1047,6 +1045,7 @@ namespace dynamic_gap
         double cum_vel_sum = std::accumulate(log_vel_comp.begin(), log_vel_comp.end(), double(0));
         bool ret_val = cum_vel_sum > 1.0 || !log_vel_comp.full();
         if (!ret_val && !cfg.man.man_ctrl) {
+            std::cout << "-------- planning failed -------" << std::endl;
             ROS_FATAL_STREAM("--------------------------Planning Failed--------------------------");
             reset();
         }

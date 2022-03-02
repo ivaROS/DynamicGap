@@ -121,7 +121,7 @@ namespace dynamic_gap {
 		// initializing models for current gaps
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			double init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
-			double init_beta = std::atan2(-observed_gap_points[i][0], observed_gap_points[i][1]);
+			double init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
 				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::MP_model("left", *model_idx, init_r, init_beta);
 			} else {

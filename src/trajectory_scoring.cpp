@@ -82,7 +82,7 @@ namespace dynamic_gap {
             raw_models.push_back(gap.right_model);
         }
 
-        std::vector<double> test_cost_val(traj.poses.size());
+        // std::vector<double> test_cost_val(traj.poses.size());
         std::vector<double> cost_val(traj.poses.size());
 
         
@@ -103,16 +103,18 @@ namespace dynamic_gap {
         double min_beta = 0.0;
         double min_range = 0.0;
         //std::cout << "DYNAMIC SCORING" << std::endl;
-        for (int i = 0; i < test_cost_val.size(); i++) {
+        for (int i = 0; i < cost_val.size(); i++) {
             double min_dist = std::numeric_limits<double>::infinity();
             double min_beta = 0.0;
             dt = time_arr[i];
             delta = dt - prior_dt;
             // std::cout << "dt: " << dt << ", prior dt: " << prior_dt << std::endl;
             for (auto & model : raw_models) {
-                model->frozen_state_propagate(delta); // OR integrate by 0.01 x times
+                for (double i = 0.0; i < delta; i += 0.01) {
+                    model->frozen_state_propagate(0.01); // OR integrate by 0.01 x times
+                }
                 Matrix<double, 4, 1> cartesian_model_state = model->get_frozen_cartesian_state();
-                // std::cout << "frozen cartesian model. rx: " << cartesian_model_state[0] << ", ry: " << cartesian_model_state[1] << ", vx: " << cartesian_model_state[2] << ", vy: " << cartesian_model_state[3] << std::endl;
+                std::cout << "frozen cartesian model. rx: " << cartesian_model_state[0] << ", ry: " << cartesian_model_state[1] << ", vx: " << cartesian_model_state[2] << ", vy: " << cartesian_model_state[3] << std::endl;
                 Matrix<double, 5, 1> model_state = model->get_frozen_state();
                 range = 1.0 / model_state[0]; // recovering r (wrt robot frame)
                 beta = std::atan2(model_state[1], model_state[2]);
@@ -124,12 +126,13 @@ namespace dynamic_gap {
                 }
             }
             prior_dt = dt;
-            test_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << test_cost_val.at(i) << std::endl;
-            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * -1 * std::sin(min_beta) << ", " << min_range * std::cos(min_beta) << std::endl;
+            cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
+            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
+            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * std::cos(min_beta) << ", " << min_range * std::sin(min_beta) << std::endl;
 
         }
 
+        /*
         std::cout << "------" << std::endl;
     
         
@@ -137,17 +140,18 @@ namespace dynamic_gap {
             std::cout << "regular range at " << i << ": ";
             cost_val.at(i) = scorePose(traj.poses.at(i));
         }
+        */
         
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
         auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
-        auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
+        // auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
 
         // cumulative cost of ranges of gap
 
         std::cout << "pose-wise cost: " << total_val << std::endl;
-        std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
+        // std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
         // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
         {
@@ -196,8 +200,8 @@ namespace dynamic_gap {
 
     double TrajectoryArbiter::dynamicDist2Pose(geometry_msgs::Pose pose, double range, double beta) {
 
-        double x = range * -1.0 * std::sin(beta);
-        double y = range * std::cos(beta);
+        double x = range * std::cos(beta);
+        double y = range * std::sin(beta);
         double pose_dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
         // std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ", agent pose: " << x << ", " << y << std::endl;
         // std::cout << "range: " << range << ", beta: " << beta << ", x: " << x << ", y: " << y << std::endl;
@@ -206,8 +210,8 @@ namespace dynamic_gap {
 
     double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, double range, double beta) {
 
-        double x = range * -1.0 * std::sin(beta);
-        double y = range * std::cos(beta);
+        double x = range * std::cos(beta);
+        double y = range * std::sin(beta);
         double pose_dist = dynamicDist2Pose(pose, range, beta);
         // std::cout << "range: " << range << ", beta: " << beta << ", x: " << x << ", y: " << y << std::endl;
         return chapterScore(pose_dist);

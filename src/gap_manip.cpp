@@ -185,7 +185,7 @@ namespace dynamic_gap {
         // are these the correct angles to check?
         double angle_one = atan2(model_one[1], model_one[2]);
         double angle_two = atan2(model_two[1], model_two[2]);
-        double angle_goal = atan2(-pg[0], pg[1]);
+        double angle_goal = atan2(pg[1], pg[0]);
         // if all three are positive or negative
         //std::cout << "angle_one: " << angle_one << ", angle_two: " << angle_two << ", angle_goal: " << angle_goal << std::endl;
         //std::cout << "picking gap sides" << std::endl;

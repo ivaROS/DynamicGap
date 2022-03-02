@@ -22,13 +22,13 @@ namespace dynamic_gap{
         // are these the correct angles to check?
         double angle_one = atan2(model_one[1], model_one[2]);
         double angle_two = atan2(model_two[1], model_two[2]);
-        double angle_goal = atan2(-selectedGap.goal.x*coefs, selectedGap.goal.y*coefs);
+        double angle_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
         // std::cout << "picking gap sides" << std::endl;
         // seems to only do 2,7,9
         determineLeftRightModels(left_model_state, right_model_state, selectedGap, angle_goal);
 
         double beta_local_goal; 
-        beta_local_goal = atan2(-selectedGap.goal.x*coefs, selectedGap.goal.y*coefs);
+        beta_local_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
         // curr_pose is in sensor frame
         // gaps are in robot frame?
         // curr_vel is in robot frame
@@ -106,7 +106,7 @@ namespace dynamic_gap{
             // std::cout << "convex" << std::endl;
             selectedGap.goal.x -= selectedGap.qB(0);
             selectedGap.goal.y -= selectedGap.qB(1);
-            beta_local_goal = atan2(-selectedGap.goal.x, selectedGap.goal.y);
+            beta_local_goal = atan2(selectedGap.goal.y, selectedGap.goal.x);
             x = {- selectedGap.qB(0) - 1e-6, 
                  - selectedGap.qB(1) + 1e-6,
                  curr_vel.linear.x,
