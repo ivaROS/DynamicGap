@@ -1,0 +1,35 @@
+<launch>
+  <!-- Namespace and tf_prefix are assumed to be the same -->
+  <arg name="robot_namespace" default="robot0"/>
+  <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
+  <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 0.00001"/>
+
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base">
+      <!-- Default configs form the TB3 repos -->
+      <!-- <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" /> -->
+      <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find turtlebot3_navigation)/param/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find turtlebot3_navigation)/param/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find turtlebot3_navigation)/param/move_base_params.yaml" command="load" />
+      <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_burger.yaml" command="load" />
+
+      <!-- Set tf_prefix for frames explicity, overwriting defaults -->
+      <param name="global_costmap/scan/sensor_frame" value="$(arg robot_namespace)/laser_0"/>
+      <param name="global_costmap/scan/topic" value="$(arg robot_namespace)/laser_0"/>
+      <param name="global_costmap/obstacle_layer/scan/sensor_frame" value="$(arg robot_namespace)/base_scan"/>
+      <param name="global_costmap/global_frame" value="known_map"/>
+      <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)"/>
+
+      <param name="local_costmap/scan/sensor_frame" value="$(arg robot_namespace)/laser_0"/>
+      <!-- <param name="local_costmap/scan/topic" value="$(arg robot_namespace)/laser_0"/> -->
+      <param name="local_costmap/obstacle_layer/scan/sensor_frame" value="$(arg robot_namespace)/base_scan"/>
+      <param name="local_costmap/global_frame" value="known_map"/>
+      <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)"/>
+
+      <!-- Centralized map server -->
+      <remap from="map" to="/map"/>
+  </node>
+
+</launch>
