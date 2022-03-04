@@ -20,7 +20,7 @@
 	      <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_burger.yaml" command="load" />
 
 	      <!-- Set tf_prefix for frames explicity, overwriting defaults -->
-	      <param name="global_costmap/scan/sensor_frame" value="$(arg robot_namespace)/laser_0"/>
+	      <param name="global_costmap/scan/sensor_frame" value="$(arg robot_namespace)_laser_0"/>
               <param name="global_costmap/scan/topic" value="$(arg robot_namespace)/laser_0"/>
 	      <param name="global_costmap/obstacle_layer/scan/sensor_frame" value="$(arg robot_namespace)/base_scan"/>
 	      <param name="global_costmap/global_frame" value="known_map"/>
