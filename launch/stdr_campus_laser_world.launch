@@ -27,4 +27,6 @@
 
         <include file="$(find stdr_robot)/launch/robot_manager.launch" />
 
+        <node pkg="stdr_robot" type="robot_handler" name="$(arg robot_namespace)" args="add $(find dynamic_gap)/stdr_robots/robots/holonomic_robot_360_bumper.xml $(arg rbtx) $(arg rbty) 0" />
+
 </launch>

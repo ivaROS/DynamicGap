@@ -5,8 +5,10 @@
 
   <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/agent.xml $(arg rbtx) $(arg rbty) 0.0" />
 
+  <!-- 
   <node pkg="dynamic_gap" type="follow_global_path.py" name="$(anon follow_global_path)" output="screen">
 	<param name="robot_namespace" value="$(arg robot_namespace)"/>
   </node>
+  -->
 
 </launch>
