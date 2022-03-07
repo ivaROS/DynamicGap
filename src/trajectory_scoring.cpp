@@ -85,7 +85,7 @@ namespace dynamic_gap {
         // std::vector<double> test_cost_val(traj.poses.size());
         std::vector<double> cost_val(traj.poses.size());
 
-        
+        /*
         // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
         for (auto & model : raw_models) {
             model->freeze_robot_vel();
@@ -131,16 +131,16 @@ namespace dynamic_gap {
             std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * std::cos(min_beta) << ", " << min_range * std::sin(min_beta) << std::endl;
 
         }
-
-        /*
         std::cout << "------" << std::endl;
+        */
+        
     
         
         for (int i = 0; i < cost_val.size(); i++) {
-            std::cout << "regular range at " << i << ": ";
+            // std::cout << "regular range at " << i << ": ";
             cost_val.at(i) = scorePose(traj.poses.at(i));
         }
-        */
+        
         
 
         // cumulative cost of poses
@@ -248,8 +248,8 @@ namespace dynamic_gap {
         double theta = std::distance(dist.begin(), iter) * stored_scan.angle_increment - M_PI;
         double range = stored_scan.ranges.at(std::distance(dist.begin(), iter) );
         double cost = chapterScore(*iter);
-        std::cout << *iter << ", regular cost: " << cost << std::endl;
-        std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ", closest position: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
+        //std::cout << *iter << ", regular cost: " << cost << std::endl;
+        //std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ", closest position: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
         return cost;
     }
 

@@ -141,6 +141,8 @@ namespace dynamic_gap
 
         geometry_msgs::PoseArray curr_executing_traj;
         std::vector<double> curr_executing_time_arr;
+        int curr_exec_left_idx;
+        int curr_exec_right_idx;
 
         boost::circular_buffer<double> log_vel_comp;
 
@@ -266,7 +268,7 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr);
+        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr);
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function
@@ -276,6 +278,11 @@ namespace dynamic_gap
 
         void setCurrentTimeArr(std::vector<double>);
         std::vector<double> getCurrentTimeArr();
+
+        void setCurrentGapIndices(int _left_idx, int _right_idx);
+        int getCurrentLeftGapIndex();
+        int getCurrentRightGapIndex();
+
 
         /**
          * Conglomeration of getting a plan Trajectory

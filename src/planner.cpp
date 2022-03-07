@@ -413,6 +413,10 @@ namespace dynamic_gap
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
                 }
+            for (size_t i = 0; i < vec.size(); i++) {
+                std::cout << "feasible gap model indices: " << vec.at(i).left_model->get_index() << ", " << vec.at(i).right_model->get_index() << std::endl;
+            }
+
         } catch (...) {
             ROS_FATAL_STREAM("initialTrajGen");
         }
@@ -468,7 +472,7 @@ namespace dynamic_gap
         return idx;
     }
 
-    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr) {
+    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr) {
         auto curr_traj = getCurrentTraj();
         auto curr_time_arr = getCurrentTimeArr();
 
@@ -476,6 +480,7 @@ namespace dynamic_gap
         try {
             double curr_time = ros::Time::now().toSec();
             std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
+            std::cout << "current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex() << std::endl;
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
@@ -493,17 +498,19 @@ namespace dynamic_gap
 
             if (curr_traj.poses.size() == 0) {
                 if (incom_subscore == -std::numeric_limits<double>::infinity()) {
-                    std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj 0, incoming infinity" << std::endl;
+                    std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj 0, incoming infinity or curr exec gap no longer listed as feasible" << std::endl;
                     ROS_WARN_STREAM("Incoming score of negative infinity");
                     auto empty_traj = geometry_msgs::PoseArray();
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
+                    setCurrentGapIndices(-1, -1);
                     return empty_traj;
                 } else {
                     std::cout << "TRAJECTORY CHANGE TO INCOMING: curr traj 0, incoming finite" << std::endl;
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
+                    setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
                     prev_traj_switch_time = curr_time;
@@ -523,9 +530,11 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
+                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
                 prev_traj_switch_time = curr_time;
                 return incoming;
             }
+
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
             std::cout << "counts: " << counts << std::endl;
 
@@ -543,6 +552,7 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Old Traj on collision course");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
+                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
                 return incoming;
             }
 
@@ -564,6 +574,7 @@ namespace dynamic_gap
                 std::vector<double> empty_time_arr;
                 setCurrentTraj(empty_traj);
                 setCurrentTimeArr(empty_time_arr);
+                setCurrentGapIndices(-1, -1);
                 return empty_traj;
             }
 
@@ -573,9 +584,22 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
+                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
                 return incoming;
+            }
+
+
+            if (feasible_gap_model_indices.size() > 0 && (!std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex()) ||
+                    !std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex()))) {
+                std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible" << std::endl;
+                ROS_WARN_STREAM("Swap to new because curr no longer feasible ");
+                setCurrentTraj(incoming);
+                setCurrentTimeArr(time_arr);
+                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
+                prev_traj_switch_time = curr_time;
+                return incoming;        
             }
 
             std::cout << "keeping current trajectory" << std::endl;
@@ -599,6 +623,20 @@ namespace dynamic_gap
         auto min_element_iter = std::min_element(pose_diff.begin(), pose_diff.end());
         int closest_pose = std::distance(pose_diff.begin(), min_element_iter) + 1;
         return std::min(closest_pose, int(curr.poses.size() - 1));
+    }
+
+    void Planner::setCurrentGapIndices(int _left_idx, int _right_idx) {
+        curr_exec_left_idx = _left_idx;
+        curr_exec_right_idx = _right_idx;
+        return;
+    }
+
+    int Planner::getCurrentLeftGapIndex() {
+        return curr_exec_left_idx;
+    }
+    
+    int Planner::getCurrentRightGapIndex() {
+        return curr_exec_right_idx;
     }
 
     void Planner::setCurrentTraj(geometry_msgs::PoseArray curr_traj) {
@@ -1006,13 +1044,25 @@ namespace dynamic_gap
         std::cout << "STARTING COMPARE TO OLD TRAJ" << std::endl;
         geometry_msgs::PoseArray chosen_traj;
         std::vector<double> chosen_time_arr;
+        dynamic_gap::Gap chosen_gap;
         if (traj_idx >= 0) {
             chosen_traj = traj_set[traj_idx];
             chosen_time_arr = time_set[traj_idx];
+            chosen_gap = feasible_gap_set[traj_idx];
+            //int chosen_left_idx = chosen_gap.left_model->get_index();
+            //int chosen_right_idx = chosen_gap.right_model->get_index();
         } else {
             chosen_traj = geometry_msgs::PoseArray();
+            chosen_gap = dynamic_gap::Gap();
         }
-        auto final_traj = compareToOldTraj(chosen_traj, curr_raw_gaps, chosen_time_arr);
+
+        std::vector<int> feasible_gap_model_indices;
+        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
+            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).left_model->get_index());
+            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).right_model->get_index());
+        }
+
+        auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_model_indices, curr_raw_gaps, chosen_time_arr);
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
 
         previous_gaps = gap_set;
