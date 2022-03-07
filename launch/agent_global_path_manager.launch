@@ -1,70 +1,7 @@
 <launch>
-  <!--
-  <arg name="robot_namespace" default="robot0"/>
-	  <node pkg="move_base" type="move_base" respawn="false" name="move_base">
-
-	      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="global_costmap" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_burger.yaml" command="load" ns="local_costmap" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/local_costmap_params.yaml" command="load" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/global_costmap_params.yaml" command="load" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/move_base_params.yaml" command="load" />
-	      <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_burger.yaml" command="load" />
-
-	      <param name="global_costmap/scan/sensor_frame" value="robot0/laser_0"/>
-	      <param name="global_costmap/scan/topic" value="robot0/laser_0"/>
-	      <param name="global_costmap/obstacle_layer/scan/sensor_frame" value="robot0/base_scan"/>
-	      <param name="global_costmap/global_frame" value="known_map"/>
-	      <param name="global_costmap/robot_base_frame" value="robot0"/>
-
-	      <param name="local_costmap/scan/sensor_frame" value="robot0/laser_0"/>
-	      <param name="local_costmap/scan/topic" value="robot0/laser_0"/>
-	      <param name="local_costmap/obstacle_layer/scan/sensor_frame" value="robot0/base_scan"/>
-	      <param name="local_costmap/global_frame" value="known_map"/>
-	      <param name="local_costmap/robot_base_frame" value="robot0"/>
-
-	      <remap from="map" to="/map"/>
-	  </node>
- 
-
-	  <node pkg="amcl" type="amcl" name="amcl">
-	  	<param name="min_particles"             value="500"/>
-	  	<param name="max_particles"             value="3000"/>
-	  	<param name="kld_err"                   value="0.02"/>
-	  	<param name="update_min_d"              value="0.20"/>
-	  	<param name="update_min_a"              value="0.20"/>
-	  	<param name="resample_interval"         value="1"/>
-	  	<param name="transform_tolerance"       value="0.5"/>
-	  	<param name="recovery_alpha_slow"       value="0.00"/>
-	  	<param name="recovery_alpha_fast"       value="0.00"/>
-	  	<param name="initial_pose_x"            value="0.00"/>
-	  	<param name="initial_pose_y"            value="0.00"/>
-	  	<param name="initial_pose_a"            value="0.00"/>
-	  	<param name="gui_publish_rate"          value="50.0"/>
-
-		<remap from="scan"                      to="robot0/laser_0"/>
-		<remap from="map"                       to="known_map"/>
-		<param name="laser_max_range"           value="3.5"/>
-		<param name="laser_max_beams"           value="180"/>
-		<param name="laser_z_hit"               value="0.5"/>
-		<param name="laser_z_short"             value="0.05"/>
-		<param name="laser_z_max"               value="0.05"/>
-		<param name="laser_z_rand"              value="0.5"/>
-		<param name="laser_sigma_hit"           value="0.2"/>
-		<param name="laser_lambda_short"        value="0.1"/>
-		<param name="laser_likelihood_max_dist" value="2.0"/>
-		<param name="laser_model_type"          value="likelihood_field"/>
-
-		<param name="odom_model_type"           value="diff"/>
-		<param name="odom_alpha1"               value="0.1"/>
-		<param name="odom_alpha2"               value="0.1"/>
-		<param name="odom_alpha3"               value="0.1"/>
-		<param name="odom_alpha4"               value="0.1"/>
-		<param name="odom_frame_id"             value="map_static"/>
-		<param name="base_frame_id"             value="robot0"/>
-		<param name="global_frame_id"           value="known_map"/>
-	  </node>
-
- <node pkg="dynamic_gap" type="follow_global_path.py" name="$(anon follow_global_path)" output="screen" />
-  -->
+ <node pkg="dynamic_gap" type="follow_global_path.py" name="$(anon follow_global_path)" output="screen">
+	<param name="robot_namespace" value= "$(arg robot_namespace)" />
+	<param name="rbt_x" value ="$(arg rbt_x)" />
+	<param name="rbt_y" value ="$(arg rbt_y)" />
+ </node>
 </launch>
