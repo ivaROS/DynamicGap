@@ -19,7 +19,7 @@
 #include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/helper.h>
 #include <dynamic_gap/gap.h>
-#include <dynamic_gap/trajectory_follower.h>
+// #include <dynamic_gap/trajectory_follower.h>
 #include <dynamic_gap/gap_utils.h>
 
 #include <dynamic_gap/dynamicgap_config.h>

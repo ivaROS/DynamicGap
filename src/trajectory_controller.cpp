@@ -160,6 +160,7 @@ namespace dynamic_gap{
         geometry_msgs::Point position = current.position;
         geometry_msgs::Quaternion orientation = current.orientation;
 
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         tf::Quaternion q_c(
             orientation.x,
             orientation.y,
@@ -169,11 +170,12 @@ namespace dynamic_gap{
         double c_roll, c_pitch, c_yaw;
         m_c.getRPY(c_roll, c_pitch, c_yaw);
 
+        // get current x,y,theta
         Eigen::Matrix2cd g_curr = getComplexMatrix(position.x, position.y, c_yaw);
 
+        // obtaining RPY of desired orientation
         position = desired.pose.pose.position;
         orientation = desired.pose.pose.orientation;
-
         tf::Quaternion q_d(
             orientation.x,
             orientation.y,
@@ -183,8 +185,10 @@ namespace dynamic_gap{
         double d_roll, d_pitch, d_yaw;
         m_d.getRPY(d_roll, d_pitch, d_yaw);
 
+        // get desired x,y,theta
         Eigen::Matrix2cd g_des = getComplexMatrix(position.x, position.y, d_yaw);
 
+        // get x,y,theta error
         Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
         float theta_error = std::arg(g_error(0, 0));
         float x_error = g_error.real()(0, 1);
@@ -197,6 +201,7 @@ namespace dynamic_gap{
         double v_lin_x_fb = 0;
         double v_lin_y_fb = 0;
 
+        // obtain feedback velocities
         if (cfg_->man.man_ctrl) {
             ROS_INFO_STREAM("Manual Control");
             v_ang_fb = cfg_->man.man_theta;
@@ -226,6 +231,7 @@ namespace dynamic_gap{
             ROS_FATAL_STREAM("Scan range incorrect controlLaw");
         }
 
+        // applies PO
         if(projection_operator)
         {
             std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
@@ -276,6 +282,7 @@ namespace dynamic_gap{
             min_dist = min_dist <= 0 ? 0.01 : min_dist;
             // min_dist -= cfg_->rbt.r_inscr / 2;
 
+            // find minimum ego circle dist
             min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
             float min_x = min_dist * cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
             float min_y = min_dist * sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
@@ -392,14 +399,14 @@ namespace dynamic_gap{
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
 
-        // Make sure no ejection
+        // Make sure no ejection from gap. Max question: x does not always point into gap. 
         u_add_x = std::min(u_add_x, float(0));
 
         if(holonomic)
         {
             v_ang_fb = v_ang_fb + v_ang_const;
-            v_lin_x_fb = abs(theta_error) > M_PI / 3? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * u_add_x;
-            v_lin_y_fb = abs(theta_error) > M_PI / 3? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * u_add_y;
+            v_lin_x_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * u_add_x;
+            v_lin_y_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * u_add_y;
 
             if(v_lin_x_fb < 0)
                 v_lin_x_fb = 0;
@@ -492,6 +499,8 @@ namespace dynamic_gap{
         // Find pose right ahead
         std::vector<double> pose_diff(ref_pose.poses.size());
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
+
+        // obtain distance from entire ref traj and current pose
         for (int i = 0; i < pose_diff.size(); i++) // i will always be positive, so this is fine
         {
             pose_diff[i] = sqrt(pow(curr_pose.position.x - ref_pose.poses[i].position.x, 2) + 
@@ -503,7 +512,9 @@ namespace dynamic_gap{
                                 );
         }
 
+        // find pose in ref traj with smallest difference
         auto min_element_iter = std::min_element(pose_diff.begin(), pose_diff.end());
+        // go n steps ahead of pose with smallest difference
         int target_pose = std::distance(pose_diff.begin(), min_element_iter) + cfg_->control.ctrl_ahead_pose;
         return std::min(target_pose, int(ref_pose.poses.size() - 1));
     }

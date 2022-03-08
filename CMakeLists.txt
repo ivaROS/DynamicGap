@@ -64,7 +64,6 @@ catkin_package(
 
 add_library(dynamic_gap
   src/planner.cpp
-  src/trajectory_follower.cpp
   src/dynamic_gap.cpp
   src/gap_utils.cpp
   

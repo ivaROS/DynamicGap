@@ -691,7 +691,12 @@ namespace dynamic_gap
         tf2::doTransform(curr_pose_local, curr_pose_odom, rbt2odom);
         geometry_msgs::Pose curr_pose = curr_pose_odom.pose;
 
+        // obtain current robot pose in odom frame
+
+        // returns a TrajPlan (poses and velocities, velocities are zero here)
         auto orig_ref = trajController->trajGen(traj);
+        
+        // get point along trajectory to target/move towards
         ctrl_idx = trajController->targetPoseIdx(curr_pose, orig_ref);
         nav_msgs::Odometry ctrl_target_pose;
         ctrl_target_pose.header = orig_ref.header;
@@ -852,7 +857,8 @@ namespace dynamic_gap
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         association = gapassociator->associateGaps(gap_set, previous_gaps, model_idx, "simplified");
         update_models(gap_set);
-
+        gapvisualizer->drawGapsModels(gap_set);
+        
         /*
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS AFTER ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {

@@ -10,6 +10,7 @@ namespace dynamic_gap{
         gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 1000);
         gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 100);
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
+        gapmodel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_models", 10);
 
         std_msgs::ColorRGBA std_color;
         std::vector<std_msgs::ColorRGBA> raw_radial;
@@ -18,6 +19,7 @@ namespace dynamic_gap{
         std::vector<std_msgs::ColorRGBA> fin_axial;
         std::vector<std_msgs::ColorRGBA> extent;
         std::vector<std_msgs::ColorRGBA> agc;
+        std::vector<std_msgs::ColorRGBA> gap_model;
 
         // Raw Therefore Alpha halved
         std_color.a = 0.5;
@@ -52,13 +54,18 @@ namespace dynamic_gap{
         std_color.b = 0;
         agc.push_back(std_color);
         agc.push_back(std_color);
+        std_color.r = 1;
+        std_color.g = 0;
+        std_color.b = 1;
+        gap_model.push_back(std_color);
+        gap_model.push_back(std_color);
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw_axial", raw_axial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw_radial", raw_radial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_radial", fin_radial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_axial", fin_axial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_extent", extent));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_agc", agc));
-
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("gap_model", gap_model));
     }
 
     void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, std::string ns, std::string color) {
@@ -163,6 +170,57 @@ namespace dynamic_gap{
         gaparc_publisher.publish(vis_arr);
     }
 
+    void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
+        if (!cfg_->gap_viz.debug_viz) return;
+        visualization_msgs::MarkerArray vis_arr;
+        for (auto & gap : g) {
+            drawGapModels(vis_arr, gap, "gap_models");
+        }
+        gapmodel_publisher.publish(vis_arr);
+    }
+
+    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr,dynamic_gap::Gap g, std::string ns) {
+        int model_id = (int) model_arr.markers.size();
+        
+        visualization_msgs::Marker model_pts;
+        model_pts.header.frame_id = g._frame;
+        model_pts.header.stamp = ros::Time();
+        model_pts.ns = ns;
+        model_pts.type = visualization_msgs::Marker::CYLINDER;
+        model_pts.action = visualization_msgs::Marker::ADD;
+        
+        auto model_color_value = colormap.find("gap_model");
+        if (model_color_value == colormap.end()) {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+        model_pts.colors = model_color_value->second;
+        std::cout << "model pts colors: " << model_pts.colors.r << std::endl;
+        model_pts.scale.x = 0.05;
+        model_pts.scale.y = 0.1;
+        model_pts.scale.z = 0.1;
+
+        std::vector<geometry_msgs::Point> left_right_pts;
+        geometry_msgs::Point left_pt;
+        left_pt.x = g.left_model->get_cartesian_state()[0];
+        left_pt.y = g.left_model->get_cartesian_state()[1];
+        left_pt.z = 0.5;
+        std::cout << "left point: " << left_pt.x << ", " << left_pt.y << ", " << left_pt.z << std::endl;
+        geometry_msgs::Point right_pt;
+        right_pt.x = g.right_model->get_cartesian_state()[0];
+        right_pt.y = g.right_model->get_cartesian_state()[1];
+        right_pt.z = 0.5;
+        std::cout << "right point: " << right_pt.x << ", " << right_pt.y << ", " << right_pt.z << std::endl;
+        
+        model_pts.lifetime = ros::Duration(0.25);
+
+        left_right_pts.push_back(left_pt);
+        left_right_pts.push_back(right_pt);
+        model_pts.points = left_right_pts;
+        model_pts.id = model_id++;
+        model_arr.markers.push_back(model_pts);
+    }
+
     void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle) {
         // if AGC: Color is Red
         // if Convex: color is Brown, viz_jitter + 0.1
@@ -192,6 +250,7 @@ namespace dynamic_gap{
         if (g.mode.agc) {
             ns = "fin_agc";
         }
+
         
         // num gaps really means segments within a gap
         int num_segments = std::abs(g.convex.convex_ridx - g.convex.convex_lidx) / cfg_->gap_viz.min_resoln + 1;
@@ -347,6 +406,7 @@ namespace dynamic_gap{
     void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec) {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
+
         bool circle = false;
         for (auto & gap : vec) {
             drawManipGap(vis_arr, gap, circle);
