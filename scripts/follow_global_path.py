@@ -12,8 +12,10 @@ import tf2_geometry_msgs
 
 class Agent:
     def __init__(self, num_obsts, world):
-        rospy.wait_for_service('/move_base_virtual/make_plan')
-        self.get_plan = rospy.ServiceProxy('/move_base_virtual/make_plan', GetPlan)
+        # /move_base for TEB
+        # /move_base_virtual for DGap
+        rospy.wait_for_service('/move_base/make_plan')
+        self.get_plan = rospy.ServiceProxy('/move_base/make_plan', GetPlan)
         self.world = world
         self.plan_idx = 0
         self.x = 0.0
@@ -45,29 +47,21 @@ class Agent:
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
-        self.campus_goal_regions = [5, 16, 6, 13] # top left to bottom right
+        # top left to bottom right
+        self.campus_goal_regions = [[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
+                                    [13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
+                                    [20, 21, 23, 18],[16, 16, 17, 12],[19, 16, 22, 14],
+                                    [25, 17, 28, 12],[10, 11, 16, 8],[1, 7, 10, 6],
+                                    [9, 5, 13, 4],[16, 7, 21, 1]]
 
     def odom_CB(self, msg):
         robot_namespace = msg.child_frame_id
-        print('plan index:', self.plan_indices[robot_namespace])
-        if (robot_namespace not in self.plans) or len(self.plans[robot_namespace].plan.poses) <= self.plan_indices[robot_namespace]:
-            #self.plan_indices[robot_namespace] = 0
-            #self.plans[robot_namespace].plan.poses = np.flip(self.plans[robot_namespace].plan.poses)
-            self.need_plan[robot_namespace] = True
-        #print('odom msg header', msg.header)
-        if self.plan_indices[robot_namespace] > 0 and len(self.plans[robot_namespace].plan.poses) <= self.plan_indices[robot_namespace]:
-            self.plan_indices[robot_namespace] = 0
-            self.plans[robot_namespace].plan.poses = np.flip(self.plans[robot_namespace].plan.poses)
-        # ODOM: map_static
-        # DESIRED: known_map
-        # CMD_VEL: robot0 frame
-        #print('desired pose: ', desired_pose)
-        # first is target frame, second is source frame
-        # print('odom in map static: ', msg.pose.pose.position.x, ", ", msg.pose.pose.position.y)
+
         map_static_to_known_map_trans = self.tfBuffer.lookup_transform("known_map", "map_static", rospy.Time(), rospy.Duration(3.0))
 
         # print(map_static_to_known_map_trans)
         # transforming from map_static to known_map
+        # this transform causes a lot of issues
         odom_in_known_map = tf2_geometry_msgs.do_transform_pose(msg.pose, map_static_to_known_map_trans)
         # print('odom in known map: ', odom_in_known_map.pose.position.x, ", ", odom_in_known_map.pose.position.y)
 
@@ -78,10 +72,12 @@ class Agent:
             start.pose.position.x = odom_in_known_map.pose.position.x
             start.pose.position.y = odom_in_known_map.pose.position.y
             start.pose.position.z = 0.0
+            start.pose.orientation.w = 1.0
             self.get_global_plan(start, robot_namespace)
-            self.need_plan[robot_namespace] = False
+            if len(self.plans[robot_namespace].plan.poses) > 0:
+                self.need_plan[robot_namespace] = False
             return
-        print('plan index:', self.plan_indices[robot_namespace], ' out of: ', len(self.plans[robot_namespace].plan.poses))
+        # print('plan index:', self.plan_indices[robot_namespace], ' out of: ', len(self.plans[robot_namespace].plan.poses))
 
         #print('robot namespace: ', robot_namespace)
         #print('plan index: ', self.plan_indices[robot_namespace])
@@ -105,30 +101,38 @@ class Agent:
         twist = Twist()
         [x_vel, y_vel] = self.clip_cmd_vel(diff_in_robot_0)
         # print('x_vel: ', x_vel, ', y_vel: ', y_vel)
-        twist.linear.x = 5*x_vel
-        twist.linear.y = 5*y_vel
+        twist.linear.x = x_vel
+        twist.linear.y = y_vel
         # print('twist: ', twist)
         self.cmd_vel_pubs[robot_namespace].publish(twist)
 
-        if np.sqrt(np.square(x_diff) + np.square(y_diff)) < 0.05:
+        delta_x = np.sqrt(np.square(x_diff) + np.square(y_diff))
+        # print('delta_x: ', delta_x)
+        if delta_x < 0.1:
             self.plan_indices[robot_namespace] += 1
 
+        if len(self.plans[robot_namespace].plan.poses) <= self.plan_indices[robot_namespace]:
+            self.plan_indices[robot_namespace] = 0
+            self.plans[robot_namespace].plan.poses = np.flip(self.plans[robot_namespace].plan.poses)
+
     def get_global_plan(self, start, robot_namespace):
-        print('generating plan for ' + robot_namespace)
+        # print('generating plan for ' + robot_namespace)
         goal = PoseStamped()
         goal.header.frame_id = "known_map"
         goal.header.stamp = rospy.Time.now()
-        goal.pose.position.x = -10 #np.random.randint(self.campus_goal_regions[0], self.campus_goal_regions[2])
-        goal.pose.position.y = -10 #np.random.randint(self.campus_goal_regions[3], self.campus_goal_regions[1])
+        rand_region = self.campus_goal_regions[np.random.randint(0, len(self.campus_goal_regions))]
+        goal.pose.position.x = np.random.randint(rand_region[0], rand_region[2])
+        goal.pose.position.y = np.random.randint(rand_region[3], rand_region[1])
         goal.pose.position.z = 0.0
+        goal.pose.orientation.w = 1.0
         req = GetPlan()
         req.start = start
         req.goal = goal
         req.tolerance = 0.5
-        print('start of : ' + str(start.pose.position.x) + ', ' + str(start.pose.position.y)
-              + ', goal of : ' + str(goal.pose.position.x) + ', ' + str(goal.pose.position.y))
+        # print('start of : ', req.start)
+        # print('goal of : ', req.goal)
         self.plans[robot_namespace] = self.get_plan(req.start, req.goal, req.tolerance)
-        print('plan has length of: ', len(self.plans[robot_namespace].plan.poses))
+        #   print('plan has length of: ', len(self.plans[robot_namespace].plan.poses))
         pub_pose_array = PoseArray()
         pub_pose_array.header.frame_id = "known_map"
         pub_pose_array.header.stamp = rospy.Time.now()
@@ -148,7 +152,7 @@ class Agent:
     def clip_cmd_vel(self, diff_in_robot_0):
         delta_x_norm = np.sqrt(np.square(diff_in_robot_0.vector.x) + np.square(diff_in_robot_0.vector.y))
         # print('delta x norm: ', delta_x_norm)
-        thresh = 0.5
+        thresh = 0.25
         if delta_x_norm > thresh:
             return ([diff_in_robot_0.vector.x, diff_in_robot_0.vector.y] / delta_x_norm) * thresh
         else:
