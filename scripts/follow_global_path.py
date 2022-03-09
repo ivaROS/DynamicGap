@@ -113,7 +113,7 @@ class Agent:
 
         if len(self.plans[robot_namespace].plan.poses) <= self.plan_indices[robot_namespace]:
             self.plan_indices[robot_namespace] = 0
-            self.plans[robot_namespace].plan.poses = np.flip(self.plans[robot_namespace].plan.poses)
+            self.plans[robot_namespace].plan.poses = np.flip(self.plans[robot_namespace].plan.poses, axis=0)
 
     def get_global_plan(self, start, robot_namespace):
         # print('generating plan for ' + robot_namespace)

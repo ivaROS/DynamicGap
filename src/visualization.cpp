@@ -195,7 +195,7 @@ namespace dynamic_gap{
             return;
         }
         model_pts.colors = model_color_value->second;
-        std::cout << "model pts colors: " << model_pts.colors.r << std::endl;
+        // std::cout << "model pts colors: " << model_pts.colors.r << std::endl;
         model_pts.scale.x = 0.05;
         model_pts.scale.y = 0.1;
         model_pts.scale.z = 0.1;

@@ -75,7 +75,9 @@
       <param name="DynamicGapPlanner/inf_ratio" value="$(arg inf_ratio)"/>
       <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
       <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
-
+      
+      <!-- Disable the local costmap observation sources if they will not be used -->
+      <!--<param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>-->
       <!-- remapping for obstacles -->
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
       <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
@@ -83,8 +85,7 @@
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
-      <!-- Disable the local costmap observation sources if they will not be used -->
-      <!--<param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>-->
+      
   </node>
 
 

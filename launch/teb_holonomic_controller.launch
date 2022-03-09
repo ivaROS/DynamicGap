@@ -58,6 +58,7 @@
 
       <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
       <remap from="cmd_vel" to="$(arg vel_topic)"/>
+      <remap from="/odom" to="$(arg robot_namespace)/odom"/>
 
       <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" if="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
@@ -75,6 +76,7 @@
       <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
 
       <!-- Not sure if I should add these. Where do they even come from> -->
+      <param name="TebLocalPlannerROS/map_frame" value="/known_map"/>
       <param name="TebLocalPlannerROS/robot_frame_id" value="$(arg robot_namespace)"/>
       <param name="TebLocalPlannerROS/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
 
