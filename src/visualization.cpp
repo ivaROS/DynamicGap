@@ -182,29 +182,50 @@ namespace dynamic_gap{
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr,dynamic_gap::Gap g, std::string ns) {
         int model_id = (int) model_arr.markers.size();
         
-        visualization_msgs::Marker model_pts;
-        model_pts.header.frame_id = g._frame;
-        model_pts.header.stamp = ros::Time();
-        model_pts.ns = ns;
-        model_pts.type = visualization_msgs::Marker::CYLINDER;
-        model_pts.action = visualization_msgs::Marker::ADD;
-        
-        auto model_color_value = colormap.find("gap_model");
-        if (model_color_value == colormap.end()) {
-            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-            return;
-        }
-        model_pts.colors = model_color_value->second;
-        // std::cout << "model pts colors: " << model_pts.colors.r << std::endl;
-        model_pts.scale.x = 0.05;
-        model_pts.scale.y = 0.1;
-        model_pts.scale.z = 0.1;
-
+        visualization_msgs::Marker left_model_pt;
+        // std::cout << "model frame: " << g._frame << std::endl;
+        left_model_pt.header.frame_id = g._frame;
+        left_model_pt.header.stamp = ros::Time();
+        left_model_pt.ns = ns;
+        left_model_pt.id = model_id++;
+        left_model_pt.type = visualization_msgs::Marker::CYLINDER;
+        left_model_pt.action = visualization_msgs::Marker::ADD;
+        left_model_pt.pose.position.x = g.left_model->get_cartesian_state()[0];
+        left_model_pt.pose.position.y = g.left_model->get_cartesian_state()[1];
+        left_model_pt.pose.position.z = 0.5;
+        std::cout << "left point: " << left_model_pt.pose.position.x << ", " << left_model_pt.pose.position.y << ", " << left_model_pt.pose.position.z << std::endl;
+        left_model_pt.pose.orientation.w = 1.0;
+        left_model_pt.scale.x = 0.1;
+        left_model_pt.scale.y = 0.1;
+        left_model_pt.scale.z = 0.000001;
+        left_model_pt.color.a = 1.0;
+        left_model_pt.color.r = 1.0;
+        left_model_pt.lifetime = ros::Duration(0.25);
+        model_arr.markers.push_back(left_model_pt);
+        visualization_msgs::Marker right_model_pt;
+        // std::cout << "model frame: " << g._frame << std::endl;
+        right_model_pt.header.frame_id = g._frame;
+        right_model_pt.header.stamp = ros::Time();
+        right_model_pt.ns = ns;
+        right_model_pt.id = model_id++;
+        right_model_pt.type = visualization_msgs::Marker::CYLINDER;
+        right_model_pt.action = visualization_msgs::Marker::ADD;
+        right_model_pt.pose.position.x = g.right_model->get_cartesian_state()[0];
+        right_model_pt.pose.position.y = g.right_model->get_cartesian_state()[1];
+        right_model_pt.pose.position.z = 0.5;
+        std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << ", " << right_model_pt.pose.position.z << std::endl;
+        right_model_pt.pose.orientation.w = 1.0;
+        right_model_pt.scale.x = 0.1;
+        right_model_pt.scale.y = 0.1;
+        right_model_pt.scale.z = 0.000001;
+        right_model_pt.color.a = 1.0;
+        right_model_pt.color.r = 1.0;
+        right_model_pt.lifetime = ros::Duration(0.25);
+        model_arr.markers.push_back(right_model_pt);
+        // gapmodel_publisher.publish(left_model_pt);
+        /*
         std::vector<geometry_msgs::Point> left_right_pts;
         geometry_msgs::Point left_pt;
-        left_pt.x = g.left_model->get_cartesian_state()[0];
-        left_pt.y = g.left_model->get_cartesian_state()[1];
-        left_pt.z = 0.5;
         std::cout << "left point: " << left_pt.x << ", " << left_pt.y << ", " << left_pt.z << std::endl;
         geometry_msgs::Point right_pt;
         right_pt.x = g.right_model->get_cartesian_state()[0];
@@ -219,6 +240,7 @@ namespace dynamic_gap{
         model_pts.points = left_right_pts;
         model_pts.id = model_id++;
         model_arr.markers.push_back(model_pts);
+        */
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle) {
