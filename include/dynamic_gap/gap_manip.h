@@ -31,7 +31,7 @@ namespace dynamic_gap {
             void radialExtendGap(dynamic_gap::Gap&);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
             double indivGapFindCrossingPoint(Eigen::Vector2f& , dynamic_gap::MP_model* , dynamic_gap::MP_model* );
-            std::vector<dynamic_gap::Gap> feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set, std::vector<Eigen::Vector2f>& gap_crossing_points);
+            std::vector<dynamic_gap::Gap> feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set);
             std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
@@ -47,8 +47,10 @@ namespace dynamic_gap {
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
             bool checkGoalVisibility(geometry_msgs::PoseStamped);
             bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx);
-            bool feasibilityCheckHelper(dynamic_gap::Gap& gap, dynamic_gap::MP_model*, dynamic_gap::MP_model*, double gap_angle);
+            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle);
             void setSweptValues(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double left_ori, double right_ori);
+            bool gapTimecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
+            bool gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
 
 
 

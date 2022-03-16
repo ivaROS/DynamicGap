@@ -69,7 +69,8 @@ namespace dynamic_gap{
         //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
         
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
-            //std::cout << "gap deemed expanding, go to goal trajectory generated" << std::endl;
+            std::cout << "go to goal trajectory generated" << std::endl;
+            std::cout << "start: " << x[0] << x[1] << ", goal: " << selectedGap.goal.x * coefs << selectedGap.goal.y * coefs << std::endl;
             g2g inte_g2g(
                 selectedGap.goal.x * coefs,
                 selectedGap.goal.y * coefs,
@@ -141,11 +142,15 @@ namespace dynamic_gap{
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard) {
-            //std::cout << "discarding gap" << std::endl;
+            std::cout << "discarding gap" << std::endl;
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
             return return_tuple;
         }
         
+        std::cout << "go to goal trajectory generated" << std::endl;
+        std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
+            
+        // boost::numeric::odeint::max_step_checker m_checker = boost::numeric::odeint::max_step_checker(10);
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,
@@ -288,7 +293,7 @@ namespace dynamic_gap{
         old_pose.orientation.w = 1;
         geometry_msgs::Pose new_pose;
         double dx, dy, result;
-        // ROS_WARN_STREAM("entering at : " << pose_arr.poses.size());
+        std::cout << "entering at : " << pose_arr.poses.size() << std::endl;
         //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         /*
@@ -310,6 +315,7 @@ namespace dynamic_gap{
             result = sqrt(pow(dx, 2) + pow(dy, 2));
             if (result > 0.05) {
                 //ROS_WARN_STREAM("result kept at " << result);
+                std::cout << "keeping: " << pose.position.x << ", " << pose.position.y << std::endl;
                 shortened.push_back(pose);
                 shortened_time_arr.push_back(time_arr[i]);
 

@@ -83,10 +83,8 @@ namespace dynamic_gap {
     bool GapManipulator::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) {
         // std::cout << "FEASIBILITY CHECK" << std::endl;
         bool feasible;
-        bool frozen_feasible;
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
-        int mid_idx;
 
         x1 = (gap.convex.convex_ldist) * cos(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
         y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
@@ -97,7 +95,7 @@ namespace dynamic_gap {
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
         Eigen::Vector2f pg = (pl + pr) / 2.0;
-        // I don't think this is guaranteed
+
         dynamic_gap::MP_model* left_model;
         dynamic_gap::MP_model* right_model;
         std::vector<double> model_vect = determineLeftRightModels(gap, pg);
@@ -120,17 +118,78 @@ namespace dynamic_gap {
         }
 
         // FEASIBILITY CHECK
-        // std::cout << "default feasibility check: " << std::endl;
         std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
-        feasible = feasibilityCheckHelper(gap, left_model, right_model, gap_angle);
+        feasible = feasibilityCheck(gap, left_model, right_model, gap_angle);
 
-        //std::cout << "frozen feasibility check: " << std::endl;
-        //feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
-        
         return feasible;
     }
 
-    bool GapManipulator::feasibilityCheckHelper(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle) {
+    bool GapManipulator::gapTimecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+        Eigen::Vector2f crossing_pt(0.0, 0.0);
+        double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+    
+        double nom_rbt_vel = cfg_->control.vx_absmax;
+        double T_rbt2arc = crossing_pt.norm() / nom_rbt_vel;
+        std::cout << "crossing point: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
+        std::cout << "crossing time: " << crossing_time << std::endl;
+        std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
+
+        if (crossing_time > T_rbt2arc) {
+            std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << crossing_time << ")" << std::endl;
+            return true;
+        } else {
+            std::cout << "gap lifespan shorter than Trbt2arc, not feasible (gap lifespan of :" << crossing_time << ")" << std::endl;
+            return false;
+        }
+    }
+
+    bool GapManipulator::gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+        Eigen::Vector2f crossing_pt(0.0, 0.0);
+        double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+
+        Eigen::Vector2f starting_pos(0.0, 0.0);
+        Eigen::Vector2f starting_vel(left_model->get_v_ego()[0], left_model->get_v_ego()[1]);
+        Eigen::Vector2f ending_vel(0.0, 0.0);
+
+        //std::cout << "starting_pos: " << starting_pos[0] << ", " << starting_pos[1] << std::endl;
+        //std::cout << "starting_vel: " << starting_vel[0] << ", " << starting_vel[1] << std::endl;
+        //std::cout << "ending_pos: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
+        //std::cout << "ending_vel: " << ending_vel[0] << ", " << ending_vel[1] << std::endl;
+        
+        Eigen::MatrixXf A_x = MatrixXf::Random(4,4);
+        Eigen::VectorXf b_x = VectorXf::Random(4);
+        A_x << 1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             1.0, crossing_time, pow(crossing_time,2), pow(crossing_time,3),
+             0.0, 1.0, 2*crossing_time, 3*pow(crossing_time,2);
+        //std::cout << "A_x: " << A_x << std::endl;
+        b_x << starting_pos[0], starting_vel[0], crossing_pt[0], ending_vel[0];
+        //std::cout << "b_x: " << b_x << std::endl;
+        Eigen::Vector4f coeffs = A_x.bdcSvd(ComputeThinU | ComputeThinV).solve(b_x);
+        double peak_velocity_x = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
+        // std::cout << "peak velocity x: " << peak_velocity_x << std::endl;
+        Eigen::MatrixXf A_y = MatrixXf::Random(4,4);
+        Eigen::VectorXf b_y = VectorXf::Random(4);
+        A_y << 1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             1.0, crossing_time, pow(crossing_time,2), pow(crossing_time,3),
+             0.0, 1.0, 2*crossing_time, 3*pow(crossing_time,2);
+        b_y << starting_pos[1], starting_vel[1], crossing_pt[1], ending_vel[1];
+        //std::cout << "A_y: " << A_y << std::endl;
+        //std::cout << "b_y: " << b_y << std::endl;
+        
+        coeffs = A_y.bdcSvd(ComputeThinU | ComputeThinV).solve(b_y);
+        double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
+        std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
+        if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    bool GapManipulator::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle) {
         bool feasible;
         Matrix<double, 5, 1> left_model_state = left_model->get_state();        
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
@@ -143,78 +202,42 @@ namespace dynamic_gap {
 
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
-        //Matrix<double, 4, 1> frozen_left_cart_model_state = left_model->get_frozen_cartesian_state();
-        //Matrix<double, 4, 1> frozen_right_cart_model_state = right_model->get_frozen_cartesian_state();
 
         double left_betadot_check = frozen_left_model_state[4];
         double right_betadot_check = frozen_right_model_state[4];
 
         std::cout << "left betadot check: " << left_betadot_check << ", right betadot check: " << right_betadot_check << std::endl;
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
-            std::cout << "translating gap" << std::endl;
             // CATEGORY 1: TRANSLATING     
-
-                    
-            Eigen::Vector2f crossing_pt(0.0, 0.0);
-            double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
-            double nom_rbt_vel = cfg_->control.vx_absmax;
-            double T_rbt2arc = crossing_pt.norm() / nom_rbt_vel;
-            std::cout << "crossing point: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
-            std::cout << "crossing time: " << crossing_time << std::endl;
-            std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
+            std::cout << "translating gap" << std::endl;
+        
             if (left_betadot_check - right_betadot_check > 0) {
                 std::cout << "gap is expanding on the whole, is feasible" << std::endl;
-                gap.gap_lifespan = cfg_->traj.integrate_maxt;
                 feasible = true;
             } else {
-                // double default_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
-                gap.gap_lifespan = crossing_time; // default_lifespan;
-                //std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
-                if (gap.gap_lifespan > T_rbt2arc) {
-                    std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
-                    feasible = true;
-                } else {
-                    std::cout << "gap lifespan shorter than Trbt2arc, not feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
-                    feasible = false;
-                }
+                // feasible = gapTimecheck(left_model, right_model);
+                feasible = gapSplinecheck(left_model, right_model);
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
-            std::cout << "static/closing gap" << std::endl;
-                    
-            Eigen::Vector2f crossing_pt(0.0, 0.0);
-            double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
-            double nom_rbt_vel = cfg_->control.vx_absmax;
-            double T_rbt2arc = crossing_pt.norm() / nom_rbt_vel;
-        
-
             // CATEGORY 2: STATIC/CLOSING
-            std::cout << "crossing point: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
-            std::cout << "crossing time: " << crossing_time << std::endl;
-            std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
-            gap.gap_lifespan = crossing_time; //gap_angle / abs(right_betadot_check - left_betadot_check);
-            if (gap.gap_lifespan > T_rbt2arc) {
-                std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
-                feasible = true;
-            } else {
-                std::cout << "gap lifespan shorter than Trbt2arc, not feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
-                feasible = false;
-            }
+            std::cout << "static/closing gap" << std::endl;
+
+            // feasible = gapTimecheck(left_model, right_model);
+            feasible = gapSplinecheck(left_model, right_model);
         } else {
             // CATEGORY 3: EXPANDING
             std::cout << "expanding gap, is feasible" << std::endl;
-            gap.gap_lifespan = cfg_->traj.integrate_maxt;
             feasible = true;
         }
 
         return feasible;
     }
     
-    std::vector<dynamic_gap::Gap> GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set, std::vector<Eigen::Vector2f>& gap_crossing_points) {
+    std::vector<dynamic_gap::Gap> GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set) {
         bool gap_i_feasible;
         int num_gaps = manip_set.size();
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         for (size_t i = 0; i < num_gaps; i++) {
-            // indivGapFindCrossingPoint(gap_crossing_points, manip_set.at(i));
             // obtain crossing point
             std::cout << "feasibility check for gap " << i << std::endl;
             gap_i_feasible = indivGapFeasibilityCheck(manip_set.at(i));

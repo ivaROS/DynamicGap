@@ -202,8 +202,8 @@ namespace dynamic_gap {
             // x state:
             // [r_x, r_y, v_x, v_y]
             Eigen::Vector4d x(0.0, 0.0, 0.0, 0.0);
-            x(0) = (1 / y(0)) * y(1);
-            x(1) = (1 / y(0)) * y(2);
+            x(0) = (1 / y(0)) * y(2);
+            x(1) = (1 / y(0)) * y(1);
             x(2) = (1 / y(0)) * (y(3) * y(2) - y(4)*y(1));
             x(3) = (1 / y(0)) * (y(4) * y(2) + y(3)*y(1));
             return x;
@@ -389,7 +389,6 @@ namespace dynamic_gap {
             double beta_left = atan2(y_left[1], y_left[2]);
             double beta_right = atan2(y_right[1], y_right[2]);
 
-            //std::cout << "gap angle: " << gap_angle << std::endl;
             bool closed_gap = false;
             // Now, we ONLY look at the convex gaps and see if they have closed. If a non-convex gap has closed, it happened behind us and we do not care
             if (0 < gap_angle && gap_angle < M_PI) {
@@ -402,7 +401,7 @@ namespace dynamic_gap {
             // how to tell if gap has closed
             // add piece for closed gap?
             if (pass_gap || closed_gap) {
-                //std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
+                // std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0;
                 dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0;
                 dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0; dxdt[14] = 0; dxdt[15] = 0;
@@ -424,10 +423,10 @@ namespace dynamic_gap {
             }
             */
             
-            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
+            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4);
+            //std::cout << ", x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
             // std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
-            //std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
-            
+
 
             Eigen::Vector2d v_des(0.0, 0.0);
             // If V sufficiently large, set desired velocity
@@ -441,7 +440,7 @@ namespace dynamic_gap {
 
             // set desired acceleration based on desired velocity
             Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
-            // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
+            //std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
             
             
             double h_dyn = 0.0;
@@ -455,7 +454,8 @@ namespace dynamic_gap {
             //std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
             //std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
             
-            
+            // std::cout << "gap angle: " << gap_angle << std::endl;
+
             // check for convexity of gap
             // std::cout << "gap angle: " << gap_angle << std::endl;
             if (0 < gap_angle && gap_angle < M_PI) {
@@ -470,10 +470,10 @@ namespace dynamic_gap {
                 }
             }
 
-            //std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
+            // std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
             // calculate Psi
             Eigen::Vector4d d_x_dt(dxdt[0], dxdt[1], a_des[0], a_des[1]);
-            double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
+            // double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
             //std::cout << "Psi is " << Psi << std::endl;
             Eigen::Vector2d a_actual(0.0, 0.0);
             
