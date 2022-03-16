@@ -58,6 +58,7 @@ namespace dynamic_gap {
 
         return cost;
     }
+
     /*
     // Again, in rbt frame
     std::vector<double> TrajectoryArbiter::scoreTrajectories (
@@ -71,10 +72,6 @@ namespace dynamic_gap {
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps) {
         // Requires LOCAL FRAME
         // Should be no racing condition
-        //geometry_msgs::PoseArray traj = std::get<0>(return_tuple);
-        //std::vector<double> left_ranges = std::get<1>(return_tuple);
-        //std::vector<double> right_ranges = std::get<2>(return_tuple);
-
 
         std::vector<dynamic_gap::MP_model *> raw_models;
         for (auto gap : current_raw_gaps) {
@@ -84,64 +81,11 @@ namespace dynamic_gap {
 
         // std::vector<double> test_cost_val(traj.poses.size());
         std::vector<double> cost_val(traj.poses.size());
-
-        /*
-        // adjust future_raw_gap model values to simulate robot not moving (vo = 0, ao = 0)
-        for (auto & model : raw_models) {
-            model->freeze_robot_vel();
-        }
-
-        double delta = 0.01;
-        double prior_dt = 0.0;
-        double dt = 0.0;
-
-        double dist = 1.0;
-        double range = 0.0;
-        double beta = 0.0;
-
-        double min_dist = 0.0;
-        double min_beta = 0.0;
-        double min_range = 0.0;
-        //std::cout << "DYNAMIC SCORING" << std::endl;
-        for (int i = 0; i < cost_val.size(); i++) {
-            double min_dist = std::numeric_limits<double>::infinity();
-            double min_beta = 0.0;
-            dt = time_arr[i];
-            delta = dt - prior_dt;
-            // std::cout << "dt: " << dt << ", prior dt: " << prior_dt << std::endl;
-            for (auto & model : raw_models) {
-                for (double i = 0.0; i < delta; i += 0.01) {
-                    model->frozen_state_propagate(0.01); // OR integrate by 0.01 x times
-                }
-                Matrix<double, 4, 1> cartesian_model_state = model->get_frozen_cartesian_state();
-                std::cout << "frozen cartesian model. rx: " << cartesian_model_state[0] << ", ry: " << cartesian_model_state[1] << ", vx: " << cartesian_model_state[2] << ", vy: " << cartesian_model_state[3] << std::endl;
-                Matrix<double, 5, 1> model_state = model->get_frozen_state();
-                range = 1.0 / model_state[0]; // recovering r (wrt robot frame)
-                beta = std::atan2(model_state[1], model_state[2]);
-                dist = dynamicDist2Pose(traj.poses.at(i), range, beta);
-                if (dist < min_dist) {
-                    min_dist = dist;
-                    min_beta = beta;
-                    min_range = range;
-                }
-            }
-            prior_dt = dt;
-            cost_val.at(i) = dynamicScorePose(traj.poses.at(i), min_range, min_beta);
-            std::cout << "dynamic range at " << i << ": " << min_dist << ", score: " << cost_val.at(i) << std::endl;
-            std::cout << "robot pose: " << traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest position: " << min_range * std::cos(min_beta) << ", " << min_range * std::sin(min_beta) << std::endl;
-
-        }
-        std::cout << "------" << std::endl;
-        */
-        
-    
         
         for (int i = 0; i < cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
             cost_val.at(i) = scorePose(traj.poses.at(i));
         }
-        
-        
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
@@ -159,12 +103,12 @@ namespace dynamic_gap {
             double w1 = 1;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
-            if (terminal_cost < 1 && total_val >= 0) {
+            if (terminal_cost < 1 && total_val >= -10) {
                 // std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
-            // std::cout << "terminal cost: " << -terminal_cost << std::endl;
+            std::cout << "terminal cost: " << -terminal_cost << std::endl;
             cost_val.at(0) -= terminal_cost;
         }
         

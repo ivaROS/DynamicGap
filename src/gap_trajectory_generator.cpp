@@ -53,16 +53,6 @@ namespace dynamic_gap{
         auto right_ori = std::atan2(right_model_state[1], right_model_state[2]);
         // std::cout << "left ori: " << left_ori << "< right ori: " << right_ori << std::endl;
         
-        // std::cout << "left betadot: " << left_model_state[4] << ", right betadot: " << right_model_state[4]<< std::endl;            
-        /*
-        if ((left_model_state[4] >= 0  && right_model_state[4] > 0) || (left_model_state[4] <= 0  && right_model_state[4] < 0 )) {
-            std::cout << "starting a translating trajectory" << std::endl;
-        } else if (left_model_state[4] <= 0 && right_model_state[4] >= 0)  {
-            std::cout << "starting a closing trajectory" << std::endl;
-        } else {
-            std::cout << "starting an expanding trajectory" << std::endl;
-        }
-        */
         // if expanding: just do CLF
 
         // get gap points in cartesian
@@ -94,14 +84,6 @@ namespace dynamic_gap{
             return return_tuple;
         }
         
-        //double estimated_left_closure = left_model_state[4]*cfg_->traj.integrate_maxt;
-        //double estimated_right_closure = right_model_state[4]*cfg_->traj.integrate_maxt;
-        //std::cout << "estimated left closure: " << estimated_left_closure << ", estimated right closure: " << estimated_right_closure << std::endl;
-        //std::cout << "gap angle: " << gap_angle << std::endl;
-
-        //std::cout << "starting at: " << curr_pose.pose.position.x << ", " << curr_pose.pose.position.y << std::endl;
-        //std::cout << "initial local goal: " << selectedGap.goal.x << ", " << selectedGap.goal.y << std::endl;
-        
         if (selectedGap.mode.convex) {
             // std::cout << "convex" << std::endl;
             selectedGap.goal.x -= selectedGap.qB(0);
@@ -130,24 +112,6 @@ namespace dynamic_gap{
             //std::cout << "x1, y1 actually: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         }
 
-        // std::cout << "<<<<<<<<<<<<<<<<<<<<starting polar field>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
-        // std::cout << "coefs: " << coefs << std::endl;
-        // std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
-        //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        //std::cout << "left gap point: " << x1*coefs << ", " << y1*coefs << " right gap point: " << x2*coefs << ", " << y2*coefs << std::endl;
-        //std::cout << "p1/goal dot: " << selectedGap.goal.x*coefs*x1*coefs + selectedGap.goal.y*coefs*y1*coefs << std::endl;
-        //std::cout << "p2/goal dot: " << selectedGap.goal.x*coefs*x2*coefs + selectedGap.goal.y*coefs*y2*coefs << std::endl;
-        
-        /*
-        polar_gap_field inte(x1 * coefs, x2 * coefs,
-                            y1 * coefs, y2 * coefs,
-                            selectedGap.goal.x * coefs,
-                            selectedGap.goal.y * coefs,
-                            selectedGap.getLeftObs(),
-                            selectedGap.getRightObs(),
-                            selectedGap.isAxial(),
-                            cfg_->gap_manip.sigma);
-        */
 
         double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
         //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
@@ -183,15 +147,6 @@ namespace dynamic_gap{
         }
         
 
-        //std::cout << "starting clf cbf" << std::endl;
-        //std::cout << "local goal: " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << std::endl;
-        //std::cout << "initial x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        // std::cout << "left model: " << x[4] << ", " << x[5] << ", " << x[6] << ", " << x[7] << ", " << x[8] << std::endl;
-        //std::cout << "right model: " << x[9] << ", " << x[10] << ", " << x[11] << ", " << x[12] << ", " << x[13] << std::endl;
-        //std::cout << "left cbf: " << x[8] / x[4] << ", right cbf: " << x[13] / x[9] << std::endl;
-        
-        //std::cout << "starting trajectory generation" << std::endl;
-        //std::cout << "distance from start to goal: " << local_goal_dist << std::endl;
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,
             cfg_->traj.integrate_maxt,

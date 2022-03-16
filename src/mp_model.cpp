@@ -132,7 +132,7 @@ namespace dynamic_gap {
         t = ros::Time::now().toSec();
         dt = t - t0; // 0.01
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
-        std::cout << "dt: " << dt << std::endl;
+        // std::cout << "dt: " << dt << std::endl;
         double a_r = a[0]*y[2] + a[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
         double a_beta = -a[0]*y[1] + a[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
@@ -184,19 +184,17 @@ namespace dynamic_gap {
         a = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
         v_ego = _v_ego;
         Eigen::Vector4d cart_state = get_cartesian_state();
-        std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        std::cout << "x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
         // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
-        std::cout << "a: " << a[0] << ", " << a[1] << ", v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        std::cout << "a: " << a[0] << ", " << a[1] << std::endl; // ", v_ego: " << v_ego[0] << ", " << v_ego[1] << 
         
         //std::cout<< "integrating" << std::endl;
         integrate();
         cart_state = get_cartesian_state();
-        std::cout << "y_i bar:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << std::endl;
-        std::cout << "x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
+        //std::cout << "y_i bar:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
+        //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << ". x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
 
         //std::cout << "y after integration" << y << std::endl;
         //std::cout<< "linearizing" << std::endl;
@@ -214,7 +212,7 @@ namespace dynamic_gap {
         Matrix<double, 5, 5> new_P = Ad * P * Ad_transpose + dQ;
         //std::cout << "new_P: " << new_P << std::endl;
         P = new_P;
-        std::cout << "P: " << P << std::endl;
+        // std::cout << "P: " << P << std::endl;
 
         //std::cout<< "updating Kalman gain" << std::endl;
 
@@ -230,8 +228,8 @@ namespace dynamic_gap {
         //std::cout << "P_H_prod: " << P_H_prod << std::endl;
         //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
         G = P_H_prod * inverted_tmp_mat;
-        std::cout << "G: " << G << std::endl;
-        std::cout << "error: " << y_tilde - H*y << std::endl;
+        //std::cout << "G: " << G << std::endl;
+        //std::cout << "error: " << y_tilde - H*y << std::endl;
         //std::cout<< "updating state" << std::endl;
         Matrix<double, 5, 1> y_update_mat = G*(y_tilde - H*y);
         //std::cout << "actual update to y: " << y_update_mat << std::endl;
@@ -241,8 +239,7 @@ namespace dynamic_gap {
         y[2] /= std::sqrt(pow(y[1], 2) + pow(y[2], 2));
 
         cart_state = get_cartesian_state();
-        std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
-        std::cout << "x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
