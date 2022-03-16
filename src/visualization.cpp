@@ -10,7 +10,8 @@ namespace dynamic_gap{
         gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 1000);
         gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 100);
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
-        gapmodel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_models", 10);
+        gapmodel_pos_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
+        gapmodel_vel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
 
         std_msgs::ColorRGBA std_color;
         std::vector<std_msgs::ColorRGBA> raw_radial;
@@ -172,16 +173,17 @@ namespace dynamic_gap{
 
     void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
         if (!cfg_->gap_viz.debug_viz) return;
-        visualization_msgs::MarkerArray vis_arr;
+        visualization_msgs::MarkerArray gap_pos_arr;
+        visualization_msgs::MarkerArray gap_vel_arr;
         for (auto & gap : g) {
-            drawGapModels(vis_arr, gap, "gap_models");
+            drawGapModels(gap_pos_arr, gap_vel_arr, gap, "gap_models");
         }
-        gapmodel_publisher.publish(vis_arr);
+        gapmodel_pos_publisher.publish(gap_pos_arr);
+        gapmodel_vel_publisher.publish(gap_vel_arr);
     }
 
-    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr,dynamic_gap::Gap g, std::string ns) {
+    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
         int model_id = (int) model_arr.markers.size();
-        
         visualization_msgs::Marker left_model_pt;
         // std::cout << "model frame: " << g._frame << std::endl;
         left_model_pt.header.frame_id = g._frame;
@@ -193,7 +195,7 @@ namespace dynamic_gap{
         left_model_pt.pose.position.x = g.left_model->get_cartesian_state()[0];
         left_model_pt.pose.position.y = g.left_model->get_cartesian_state()[1];
         left_model_pt.pose.position.z = 0.5;
-        std::cout << "left point: " << left_model_pt.pose.position.x << ", " << left_model_pt.pose.position.y << ", " << left_model_pt.pose.position.z << std::endl;
+        std::cout << "left point: " << left_model_pt.pose.position.x << ", " << left_model_pt.pose.position.y << std::endl;
         left_model_pt.pose.orientation.w = 1.0;
         left_model_pt.scale.x = 0.1;
         left_model_pt.scale.y = 0.1;
@@ -213,7 +215,7 @@ namespace dynamic_gap{
         right_model_pt.pose.position.x = g.right_model->get_cartesian_state()[0];
         right_model_pt.pose.position.y = g.right_model->get_cartesian_state()[1];
         right_model_pt.pose.position.z = 0.5;
-        std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << ", " << right_model_pt.pose.position.z << std::endl;
+        std::cout << "right point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
         right_model_pt.pose.orientation.w = 1.0;
         right_model_pt.scale.x = 0.1;
         right_model_pt.scale.y = 0.1;
@@ -222,25 +224,53 @@ namespace dynamic_gap{
         right_model_pt.color.r = 1.0;
         right_model_pt.lifetime = ros::Duration(0.25);
         model_arr.markers.push_back(right_model_pt);
-        // gapmodel_publisher.publish(left_model_pt);
-        /*
-        std::vector<geometry_msgs::Point> left_right_pts;
-        geometry_msgs::Point left_pt;
-        std::cout << "left point: " << left_pt.x << ", " << left_pt.y << ", " << left_pt.z << std::endl;
-        geometry_msgs::Point right_pt;
-        right_pt.x = g.right_model->get_cartesian_state()[0];
-        right_pt.y = g.right_model->get_cartesian_state()[1];
-        right_pt.z = 0.5;
-        std::cout << "right point: " << right_pt.x << ", " << right_pt.y << ", " << right_pt.z << std::endl;
-        
-        model_pts.lifetime = ros::Duration(0.25);
 
-        left_right_pts.push_back(left_pt);
-        left_right_pts.push_back(right_pt);
-        model_pts.points = left_right_pts;
-        model_pts.id = model_id++;
-        model_arr.markers.push_back(model_pts);
-        */
+        visualization_msgs::Marker left_model_vel_pt;
+        // gap_vel_arr.markers.push_back(left_model_pt);
+        left_model_vel_pt.header.frame_id = g._frame;
+        left_model_vel_pt.header.stamp = ros::Time();
+        left_model_vel_pt.ns = ns;
+        left_model_vel_pt.id = model_id++;
+        left_model_vel_pt.type = visualization_msgs::Marker::ARROW;
+        left_model_vel_pt.action = visualization_msgs::Marker::ADD;
+        geometry_msgs::Point left_vel_pt;
+        left_vel_pt.x = left_model_pt.pose.position.x; //+ (g.left_model->get_cartesian_state()[2] + v_ego[0]);
+        left_vel_pt.y = left_model_pt.pose.position.y; // + (g.left_model->get_cartesian_state()[3] + v_ego[1]);
+        left_vel_pt.z = 0.5;
+        left_model_vel_pt.points.push_back(left_vel_pt);
+        left_vel_pt.x = left_model_pt.pose.position.x + (g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0]);
+        left_vel_pt.y = left_model_pt.pose.position.y + (g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
+        left_model_vel_pt.points.push_back(left_vel_pt);
+        left_model_vel_pt.scale.x = 0.1;
+        left_model_vel_pt.scale.y = 0.1;
+        left_model_vel_pt.scale.z = 0.1;
+        left_model_vel_pt.color.a = 1.0;
+        left_model_vel_pt.color.r = 1.0;
+        left_model_vel_pt.lifetime = ros::Duration(0.25);
+        gap_vel_arr.markers.push_back(left_model_vel_pt);
+
+        visualization_msgs::Marker right_model_vel_pt;
+        right_model_vel_pt.header.frame_id = g._frame;
+        right_model_vel_pt.header.stamp = ros::Time();
+        right_model_vel_pt.ns = ns;
+        right_model_vel_pt.id = model_id++;
+        right_model_vel_pt.type = visualization_msgs::Marker::ARROW;
+        right_model_vel_pt.action = visualization_msgs::Marker::ADD;
+        geometry_msgs::Point right_vel_pt;
+        right_vel_pt.x = right_model_pt.pose.position.x; //+ (g.left_model->get_cartesian_state()[2] + v_ego[0]);
+        right_vel_pt.y = right_model_pt.pose.position.y; // + (g.left_model->get_cartesian_state()[3] + v_ego[1]);
+        right_vel_pt.z = 0.5;
+        right_model_vel_pt.points.push_back(right_vel_pt);
+        right_vel_pt.x = right_model_pt.pose.position.x + (g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0]);
+        right_vel_pt.y = right_model_pt.pose.position.y + (g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
+        right_model_vel_pt.points.push_back(right_vel_pt);
+        right_model_vel_pt.scale.x = 0.1;
+        right_model_vel_pt.scale.y = 0.1;
+        right_model_vel_pt.scale.z = 0.1;
+        right_model_vel_pt.color.a = 1.0;
+        right_model_vel_pt.color.r = 1.0;
+        right_model_vel_pt.lifetime = ros::Duration(0.25);
+        gap_vel_arr.markers.push_back(right_model_vel_pt);
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle) {

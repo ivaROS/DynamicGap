@@ -41,14 +41,15 @@ namespace dynamic_gap
             void drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle);
             void drawManipGaps(std::vector<dynamic_gap::Gap> vec);
             void drawGapsModels(std::vector<dynamic_gap::Gap> g);
-            void drawGapModels(visualization_msgs::MarkerArray & model_arr,dynamic_gap::Gap g, std::string ns);
+            void drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
 
         private:
             std::map<std::string, std::vector<std_msgs::ColorRGBA>> colormap;
             ros::Publisher gaparc_publisher;
             ros::Publisher gapside_publisher;
             ros::Publisher gapgoal_publisher;
-            ros::Publisher gapmodel_publisher;
+            ros::Publisher gapmodel_pos_publisher;
+            ros::Publisher gapmodel_vel_publisher;
     };
 
     class TrajectoryVisualizer : public Visualizer{

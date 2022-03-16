@@ -6,6 +6,79 @@ namespace dynamic_gap {
         msg = msg_;
         num_of_scan = (int)(msg.get()->ranges.size());
     }
+    
+    double GapManipulator::indivGapFindCrossingPoint(Eigen::Vector2f& gap_crossing_point, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+        Matrix<double, 5, 1> left_frozen_state = left_model->get_frozen_state();        
+        Matrix<double, 5, 1> right_frozen_state = right_model->get_frozen_state();
+        double det = right_frozen_state[2]*left_frozen_state[1] - right_frozen_state[1]*left_frozen_state[2];
+        double dot = right_frozen_state[1]*left_frozen_state[1] + right_frozen_state[2]*left_frozen_state[2];
+        double swept_check;
+        
+
+        Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+        Matrix<double, 4,1 > right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+
+        std::cout << "starting left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", starting right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << std::endl;
+
+        for (double dt = 0.01; dt < cfg_->traj.integrate_maxt; dt += 0.01) {
+            left_model->frozen_state_propagate(0.01);
+            right_model->frozen_state_propagate(0.01);
+
+            left_frozen_state = left_model->get_frozen_state();
+            right_frozen_state = right_model->get_frozen_state();
+            double beta_left = std::atan2(left_frozen_state[1], left_frozen_state[2]);
+            double beta_right = std::atan2(right_frozen_state[1], right_frozen_state[2]);
+            double beta_center = (beta_left + beta_right) / 2.0;
+            Matrix<double, 2, 1> left_bearing_vect(left_frozen_state[2], left_frozen_state[1]);
+            Matrix<double, 2, 1> right_bearing_vect(right_frozen_state[2], right_frozen_state[1]);
+            Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
+            double left_central_dot = left_bearing_vect.dot(central_bearing_vect);
+            double right_central_dot = right_bearing_vect.dot(central_bearing_vect);
+            if (left_central_dot < 0 || right_central_dot < 0) {
+                // std::cout << "correcting central beta from " << beta_center << " to ";
+                if (beta_center < 0) {
+                    beta_center += M_PI;
+                } else {
+                    beta_center -= M_PI;
+                }
+                // std::cout << beta_center << std::endl;
+                central_bearing_vect << std::cos(beta_center), std::sin(beta_center);
+                left_central_dot = left_bearing_vect.dot(central_bearing_vect);
+                right_central_dot = right_bearing_vect.dot(central_bearing_vect);
+            }
+
+            det = left_frozen_state[2]*right_frozen_state[1] - left_frozen_state[1]*right_frozen_state[2];      
+            dot = left_bearing_vect.dot(right_bearing_vect);
+
+
+            swept_check = -std::atan2(det, dot);
+
+            left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+            right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+            //std::cout << "left bearing vect: " << left_bearing_vect[0] << ", " << left_bearing_vect[1] << std::endl;
+            //std::cout << "right bearing vect: " << right_bearing_vect[0] << ", " << right_bearing_vect[1] << std::endl;
+            //std::cout << "central bearing vect: " << central_bearing_vect[0] << ", " << central_bearing_vect[1] << std::endl;
+            //std::cout << "left/center dot: " << left_central_dot << ", right/center dot: " << right_central_dot << std::endl;
+            //std::cout << "sweep dt: " << dt << ", swept check: " << swept_check << ". left beta: " << beta_left << ", left range: " << 1.0 / left_frozen_state[0] << ", right beta: " << beta_right << ", right range: " << 1.0 / right_frozen_state[0] << std::endl;
+            if (swept_check < 0) {
+                if (left_central_dot > 0.0 && right_central_dot > 0.0) {
+                    if (1.0 / left_frozen_state[0] > 1.0 / right_frozen_state[0]) {
+                        gap_crossing_point << right_frozen_cartesian_state[0], right_frozen_cartesian_state[1];
+                    } else {
+                        gap_crossing_point << left_frozen_cartesian_state[0], left_frozen_cartesian_state[1];
+                    }
+                } 
+                //std::cout << "sweep dt: " << dt << ", swept check: " << swept_check << ", left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3];
+                //std::cout << ", right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3] << std::endl;
+                // else {
+                //    std::cout << "positive swept check. Gap became non-convex at: " << g.left_model->get_frozen_cartesian_state()[0] << ", " << g.left_model->get_frozen_cartesian_state()[1] << std::endl;
+                // }
+                return dt;
+            }
+        }
+        
+        return cfg_->traj.integrate_maxt;
+    }
 
     bool GapManipulator::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) {
         // std::cout << "FEASIBILITY CHECK" << std::endl;
@@ -39,9 +112,27 @@ namespace dynamic_gap {
         auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
 
+        double gap_angle;
+        if (right_ori > left_ori) {
+            gap_angle = right_ori - left_ori;
+        } else {
+            gap_angle = left_ori - right_ori;
+        }
 
-        // TODO: make sure that this is always less than 180, make sure convex
-        Matrix<double, 5, 1> left_model_state = left_model->get_state();
+        // FEASIBILITY CHECK
+        // std::cout << "default feasibility check: " << std::endl;
+        std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
+        feasible = feasibilityCheckHelper(gap, left_model, right_model, gap_angle);
+
+        //std::cout << "frozen feasibility check: " << std::endl;
+        //feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
+        
+        return feasible;
+    }
+
+    bool GapManipulator::feasibilityCheckHelper(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle) {
+        bool feasible;
+        Matrix<double, 5, 1> left_model_state = left_model->get_state();        
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
         Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
@@ -52,81 +143,32 @@ namespace dynamic_gap {
 
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
-        Matrix<double, 4, 1> frozen_left_cart_model_state = left_model->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> frozen_right_cart_model_state = right_model->get_frozen_cartesian_state();
-        
-        /*
-        Eigen::Vector4d left_cartesian_state = left_model->get_cartesian_state();
-        Eigen::Vector4d right_cartesian_state = right_model->get_cartesian_state();
-        Matrix<double, 2, 1> v_ego = left_model->get_v_ego();
-        std::cout << "left cartesian: " << left_cartesian_state[0] << ", " << left_cartesian_state[1] << ", " << left_cartesian_state[2] << ", " << left_cartesian_state[3] << std::endl;
-        std::cout << "right cartesian: " << right_cartesian_state[0] << ", " << right_cartesian_state[1] << ", " << right_cartesian_state[2] << ", " << right_cartesian_state[3] << std::endl;
-        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
-        Matrix<double, 2, 1> gap_target_left_vel(left_cartesian_state[2] + v_ego[0], left_cartesian_state[3] + v_ego[1]);
-        Matrix<double, 2, 1> gap_target_right_vel(right_cartesian_state[2] + v_ego[0], right_cartesian_state[3] + v_ego[1]);
-        std::cout << "gap_target_left_vel: " << gap_target_left_vel[0] << ", " << gap_target_left_vel[1] << std::endl;
-        std::cout << "gap_target_right_vel: " << gap_target_right_vel[0] << ", " << gap_target_right_vel[1] << std::endl;
-        double gap_phys_betadot_left = (left_cartesian_state[0]*gap_target_left_vel[1] - left_cartesian_state[1]*gap_target_left_vel[0])*(pow(left_model_state[0],2));
-        double gap_phys_betadot_right = (right_cartesian_state[0]*gap_target_right_vel[1] - right_cartesian_state[1]*gap_target_right_vel[0])*(pow(right_model_state[0],2));
-        std::cout << "gap_phys_betadot_left: " << gap_phys_betadot_left << std::endl;
-        std::cout << "gap_phys_betadot_right: " << gap_phys_betadot_right << std::endl;
-        */
-        double gap_angle;
-        if (right_ori > left_ori) {
-            gap_angle = right_ori - left_ori;
-        } else {
-            gap_angle = left_ori - right_ori;
-        }
+        //Matrix<double, 4, 1> frozen_left_cart_model_state = left_model->get_frozen_cartesian_state();
+        //Matrix<double, 4, 1> frozen_right_cart_model_state = right_model->get_frozen_cartesian_state();
 
         double left_betadot_check = frozen_left_model_state[4];
         double right_betadot_check = frozen_right_model_state[4];
-        //double frozen_left_betadot_check = frozen_left_model_state[4];
-        //double frozen_right_betadot_check = frozen_right_model_state[4];
 
-        //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
-        //std::cout << "left ori: " << left_ori << ", right ori: " << right_ori << ", gap angle: " << gap_angle << std::endl;
-
-        //std::cout << " gap convex l_idx: " << gap.convex.convex_lidx << ", gap convex r_idx: " << gap.convex.convex_ridx << std::endl;
-
-        // gap indices always return convex. Right index always greater than left index. Does that mean gaps are all swapped?
-        if ((x1 > 0 && y1 > 0 && x2 > 0 && y1 < 0) || (x1 > 0 && y1 < 0 && x2 > 0 && y2 > 0)) {
-            std::cout << "FRONT FACING GAP: x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-            std::cout << "left cartesian model: " << left_cart_model_state(0) << ", " << left_cart_model_state(1) << ", " << left_cart_model_state(2) << ", " << left_cart_model_state(3) << std::endl;
-            std::cout << "right cartesian model: " << right_cart_model_state(0) << ", " << right_cart_model_state(1) << ", " << right_cart_model_state(2) << ", " << right_cart_model_state(3) << std::endl; 
-        }
-        // std::cout << "default betadot left: " << left_model_state[4] << ", default betadot right: " << right_model_state[4] << std::endl;
-        
-        //std::cout << "left cartesian model: " << frozen_left_cart_model_state(0) << ", " << frozen_left_cart_model_state(1) << ", " << frozen_left_cart_model_state(2) << ", " << frozen_left_cart_model_state(3) << std::endl;
-        //std::cout << "right cartesian model: " << frozen_right_cart_model_state(0) << ", " << frozen_right_cart_model_state(1) << ", " << frozen_right_cart_model_state(2) << ", " << frozen_right_cart_model_state(3) << std::endl; 
-        //std::cout << "frozen betadot left: " << frozen_left_model_state[4] << ", frozen betadot right: " << frozen_right_model_state[4] << std::endl;
-
-        // FEASIBILITY CHECK
-        // std::cout << "default feasibility check: " << std::endl;
-        feasible = feasibilityCheckHelper(gap, left_betadot_check, right_betadot_check, gap_angle);
-
-        //std::cout << "frozen feasibility check: " << std::endl;
-        //feasible = feasibilityCheckHelper(gap, frozen_left_betadot_check, frozen_right_betadot_check, gap_angle);
-        
-        return feasible;
-    }
-
-    bool GapManipulator::feasibilityCheckHelper(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double gap_angle) {
-        bool feasible;
-
-        double nom_rbt_vel = 0.15;
-        double T_rbt2arc = std::max(gap.convex.convex_ldist, gap.convex.convex_rdist) / nom_rbt_vel;
-        std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
-
+        std::cout << "left betadot check: " << left_betadot_check << ", right betadot check: " << right_betadot_check << std::endl;
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
-            // CATEGORY 1: TRANSLATING       
             std::cout << "translating gap" << std::endl;
+            // CATEGORY 1: TRANSLATING     
+
+                    
+            Eigen::Vector2f crossing_pt(0.0, 0.0);
+            double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+            double nom_rbt_vel = cfg_->control.vx_absmax;
+            double T_rbt2arc = crossing_pt.norm() / nom_rbt_vel;
+            std::cout << "crossing point: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
+            std::cout << "crossing time: " << crossing_time << std::endl;
+            std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
             if (left_betadot_check - right_betadot_check > 0) {
                 std::cout << "gap is expanding on the whole, is feasible" << std::endl;
                 gap.gap_lifespan = cfg_->traj.integrate_maxt;
                 feasible = true;
             } else {
-                double default_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
-                gap.gap_lifespan = default_lifespan;
+                // double default_lifespan = gap_angle / (right_betadot_check - left_betadot_check);  
+                gap.gap_lifespan = crossing_time; // default_lifespan;
                 //std::cout << "gap lifespan: " << gap.gap_lifespan << std::endl;
                 if (gap.gap_lifespan > T_rbt2arc) {
                     std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
@@ -137,9 +179,19 @@ namespace dynamic_gap {
                 }
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
-            // CATEGORY 2: STATIC/CLOSING
-            gap.gap_lifespan = gap_angle / abs(right_betadot_check - left_betadot_check);
             std::cout << "static/closing gap" << std::endl;
+                    
+            Eigen::Vector2f crossing_pt(0.0, 0.0);
+            double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+            double nom_rbt_vel = cfg_->control.vx_absmax;
+            double T_rbt2arc = crossing_pt.norm() / nom_rbt_vel;
+        
+
+            // CATEGORY 2: STATIC/CLOSING
+            std::cout << "crossing point: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
+            std::cout << "crossing time: " << crossing_time << std::endl;
+            std::cout << "T_rbt2arc: " << T_rbt2arc << std::endl;
+            gap.gap_lifespan = crossing_time; //gap_angle / abs(right_betadot_check - left_betadot_check);
             if (gap.gap_lifespan > T_rbt2arc) {
                 std::cout << "gap lifespan longer than Trbt2arc, is feasible (gap lifespan of :" << gap.gap_lifespan << ")" << std::endl;
                 feasible = true;
@@ -157,19 +209,17 @@ namespace dynamic_gap {
         return feasible;
     }
     
-    std::vector<dynamic_gap::Gap> GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set) {
+    std::vector<dynamic_gap::Gap> GapManipulator::feasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set, std::vector<Eigen::Vector2f>& gap_crossing_points) {
         bool gap_i_feasible;
         int num_gaps = manip_set.size();
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         for (size_t i = 0; i < num_gaps; i++) {
+            // indivGapFindCrossingPoint(gap_crossing_points, manip_set.at(i));
+            // obtain crossing point
             std::cout << "feasibility check for gap " << i << std::endl;
             gap_i_feasible = indivGapFeasibilityCheck(manip_set.at(i));
             if (gap_i_feasible) {
                 feasible_gap_set.insert(feasible_gap_set.begin(), manip_set.at(i));
-                //std::cout << "deleting gap" << std::endl;
-                //manip_set.erase(manip_set.begin() + i);
-                //num_gaps = manip_set.size();
-                //i--;
             }
         }
         return feasible_gap_set;

@@ -578,7 +578,7 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            double oscillation_pen = counts * std::exp(-(curr_time - prev_traj_switch_time)/5.0);
+            double oscillation_pen = counts; // * std::exp(-(curr_time - prev_traj_switch_time)/5.0);
             if (incom_subscore > (curr_subscore + oscillation_pen)) {
                 std::cout << "TRAJECTORY CHANGE TO INCOMING: swapping trajectory" << std::endl;
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
@@ -590,7 +590,7 @@ namespace dynamic_gap
                 return incoming;
             }
 
-
+            /*
             if (feasible_gap_model_indices.size() > 0 && (!std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex()) ||
                     !std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex()))) {
                 std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible" << std::endl;
@@ -601,6 +601,7 @@ namespace dynamic_gap
                 prev_traj_switch_time = curr_time;
                 return incoming;        
             }
+            */
 
             std::cout << "keeping current trajectory" << std::endl;
 
@@ -661,6 +662,7 @@ namespace dynamic_gap
     {
         observed_gaps.clear();
         setCurrentTraj(geometry_msgs::PoseArray());
+        a << 0.0, 0.0;
         ROS_INFO_STREAM("log_vel_comp size: " << log_vel_comp.size());
         log_vel_comp.clear();
         ROS_INFO_STREAM("log_vel_comp size after clear: " << log_vel_comp.size() << ", is full: " << log_vel_comp.capacity());
@@ -857,8 +859,8 @@ namespace dynamic_gap
         std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
         association = gapassociator->associateGaps(gap_set, previous_gaps, model_idx, "simplified");
         update_models(gap_set);
+        Matrix<double, 1, 2> v_ego(current_cmd_vel.linear.x, current_cmd_vel.linear.y);
         gapvisualizer->drawGapsModels(gap_set);
-        
         /*
         std::cout << "MODELS IN ORIGINAL SIMPLIFIED GAPS AFTER ASSOCIATION" << std::endl;
         for (auto & gap : gap_set) {
@@ -1019,14 +1021,19 @@ namespace dynamic_gap
         //std::cout << "gap set size before feasibility check: " << gap_set.size() << std::endl;
         std::cout << "STARTING GAP FEASIBILITY CHECK" << std::endl;
         // gap_set gets changed here
-        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(gap_set);
+        std::vector<Eigen::Vector2f> gap_crossing_points;
+        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(gap_set, gap_crossing_points);
         std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
         // std::cout << "gap set size after feasibility check: " << gap_set.size() << std::endl;
+
+        // visualize crossing points
+
 
         std::cout << "STARTING SET GAP GOAL" << std::endl;
         for (size_t i = 0; i < feasible_gap_set.size(); i++) {
             std::cout << "setting goal for gap: " << i << std::endl;
             gapManip->setGapGoal(feasible_gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
+            // gapManip->setGapGoalFromCrossingPt()
         }
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
         //for (size_t i = 0; i < feasible_gap_set.size(); i++) {

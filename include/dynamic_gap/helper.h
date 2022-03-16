@@ -176,8 +176,9 @@ namespace dynamic_gap {
         double gap_angle;
         double T_h;
         double betadot_L_0, betadot_R_0;
-        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double betadot_L_0, double betadot_R_0)
-        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0) {}
+        double vx_absmax, vy_absmax;
+        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double betadot_L_0, double betadot_R_0, double vx_absmax, double vy_absmax)
+        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0), vx_absmax(vx_absmax), vy_absmax(vy_absmax) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -306,8 +307,20 @@ namespace dynamic_gap {
             d_h_dx(2) = T_h*(left_rel_pos_rbt_frame(1)/pow(r_left, 2) - right_rel_pos_rbt_frame(1)/pow(r_right, 2));
             d_h_dx(3) = T_h*(-left_rel_pos_rbt_frame(0)/pow(r_left, 2) + right_rel_pos_rbt_frame(0)/pow(r_right, 2));
 
-            return d_h_dx;
-                               
+            return d_h_dx;           
+        }
+
+        Eigen::Vector2d clip_velocities(double x_vel, double y_vel) {
+            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+            Eigen::Vector2d original_vel(x_vel, y_vel);
+            if (x_vel <= vx_absmax && y_vel <= vy_absmax) {
+                // std::cout << "not clipping" << std::endl;
+                return original_vel;
+            } else {
+                // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
+                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(x_vel, y_vel);
+                return clipped_vel;
+            }
         }
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
@@ -320,7 +333,6 @@ namespace dynamic_gap {
             
             double gx = local_goal_dist*x[15];
             double gy = local_goal_dist*x[14];
-
 
             Eigen::Vector2d rel_goal(gx - x[0], gy - x[1]);
 
@@ -397,8 +409,14 @@ namespace dynamic_gap {
                 return;
             }
 
-            // std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-            // std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
+            // CLIPPING VELOCITIES AFTER INTEGRATION
+            Eigen::Vector2d vels = clip_velocities(dxdt[0], dxdt[1]);
+            dxdt[0] = vels[0];
+            dxdt[1] = vels[1]; 
+
+
+            //std::cout << "t: " << t << ", x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            //std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
 
             /*
             if (rel_goal[0]*x[2] + rel_goal[1]*x[3] < 0) {
@@ -406,9 +424,9 @@ namespace dynamic_gap {
             }
             */
             
-            // std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
+            //std::cout << "y_left: " << y_left(0) << ", " << y_left(1) << ", " << y_left(2) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << y_right(1) << ", " << y_right(2) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
             // std::cout << "left beta: " << beta_left << ", right beta: " << beta_right << std::endl;
-            // std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
+            //std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
             
 
             Eigen::Vector2d v_des(0.0, 0.0);
@@ -417,6 +435,9 @@ namespace dynamic_gap {
                 v_des(0) = -K_des*(x[0] - gx);
                 v_des(1) = -K_des*(x[1] - gy);
             }
+
+            // CLIPPING DESIRED VELOCITIES
+            v_des = clip_velocities(v_des[0], v_des[1]);
 
             // set desired acceleration based on desired velocity
             Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
@@ -431,8 +452,8 @@ namespace dynamic_gap {
             double h_dyn_right = cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
             Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
-            // std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
-            // std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
+            //std::cout << "left CBF value is: " << h_dyn_left << " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
+            //std::cout << "right CBF value is: " << h_dyn_right << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
             
             
             // check for convexity of gap
@@ -449,7 +470,7 @@ namespace dynamic_gap {
                 }
             }
 
-            // std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
+            //std::cout << "h_dyn: " << h_dyn << ", d_h_dyn_dx: " << d_h_dyn_dx[0] <<  ", " << d_h_dyn_dx[1] << ", " << d_h_dyn_dx[2] << ", " << d_h_dyn_dx[3] << std::endl;
             // calculate Psi
             Eigen::Vector4d d_x_dt(dxdt[0], dxdt[1], a_des[0], a_des[1]);
             double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;

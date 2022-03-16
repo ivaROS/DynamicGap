@@ -170,7 +170,9 @@ namespace dynamic_gap{
                             cfg_->gap_manip.K_acc,
                             local_goal_dist,
                             x[8],
-                            x[13]);
+                            x[13],
+                            cfg_->control.vx_absmax,
+                            cfg_->control.vy_absmax);
         
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
