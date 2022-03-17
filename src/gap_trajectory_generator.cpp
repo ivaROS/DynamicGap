@@ -137,7 +137,9 @@ namespace dynamic_gap{
                             x[8],
                             x[13],
                             cfg_->control.vx_absmax,
-                            cfg_->control.vy_absmax);
+                            cfg_->control.vy_absmax,
+                            x[0],
+                            x[1]);
         
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
@@ -147,7 +149,7 @@ namespace dynamic_gap{
             return return_tuple;
         }
         
-        std::cout << "go to goal trajectory generated" << std::endl;
+        std::cout << "CLF/CBF trajectory generated" << std::endl;
         std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
             
         // boost::numeric::odeint::max_step_checker m_checker = boost::numeric::odeint::max_step_checker(10);
@@ -293,7 +295,7 @@ namespace dynamic_gap{
         old_pose.orientation.w = 1;
         geometry_msgs::Pose new_pose;
         double dx, dy, result;
-        std::cout << "entering at : " << pose_arr.poses.size() << std::endl;
+        // std::cout << "entering at : " << pose_arr.poses.size() << std::endl;
         //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         /*
@@ -315,7 +317,7 @@ namespace dynamic_gap{
             result = sqrt(pow(dx, 2) + pow(dy, 2));
             if (result > 0.05) {
                 //ROS_WARN_STREAM("result kept at " << result);
-                std::cout << "keeping: " << pose.position.x << ", " << pose.position.y << std::endl;
+                // std::cout << "keeping: " << pose.position.x << ", " << pose.position.y << std::endl;
                 shortened.push_back(pose);
                 shortened_time_arr.push_back(time_arr[i]);
 

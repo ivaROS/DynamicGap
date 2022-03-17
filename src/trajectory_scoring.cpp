@@ -59,16 +59,6 @@ namespace dynamic_gap {
         return cost;
     }
 
-    /*
-    // Again, in rbt frame
-    std::vector<double> TrajectoryArbiter::scoreTrajectories (
-        std::vector<geometry_msgs::PoseArray> sample_traj) {
-        // This will be in robot frame
-        
-        return std::vector<double>(sample_traj.size());
-    }
-    */
-
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps) {
         // Requires LOCAL FRAME
         // Should be no racing condition
@@ -89,7 +79,7 @@ namespace dynamic_gap {
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
-        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
+        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0)) / cost_val.size();
         // auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
 
         // cumulative cost of ranges of gap

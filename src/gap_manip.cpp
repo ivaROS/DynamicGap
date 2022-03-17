@@ -371,9 +371,7 @@ namespace dynamic_gap {
 
         // LEFT AND RIGHT ORI USE THE LIDAR INDEX L/R WHICH IS FLIPPED FROM MODEL L/R
         // SHOULD WE JUST USE BETA VALUES HERE?
-        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
-        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
-        
+
         std::cout << "starting points. x1, y1: (" << x1 << ", " << y1 << "), x2, y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         std::cout << "original left idx: " << gap.convex.convex_lidx << ", original right idx: " << gap.convex.convex_ridx << std::endl;
         //std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
@@ -395,15 +393,71 @@ namespace dynamic_gap {
         
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
+        
+        //setGapGoalTimeBased(left_model, right_model, gap, localgoal);
+        setGapGoalCrossingBased(left_model, right_model, gap, localgoal);
+    }
 
+    void GapManipulator::setGapGoalCrossingBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
+    
+        auto half_num_scan = gap.half_scan;
+        float x1, x2, y1, y2;
+        int mid_idx;
+        x1 = (gap.convex.convex_ldist) * cos(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
+        y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
+
+        x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
+        y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
+        Eigen::Vector2f pl(x1, y1);
+        Eigen::Vector2f pr(x2, y2);
+
+        auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
+        auto thetalf = car2pol(lf)(1);
+        auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
+        auto thetalr = car2pol(lr)(1);
+        // get crossing point
+        Eigen::Vector2f crossing_pt(0.0, 0.0);
+        double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+        // if cross is 0,0, just set gap goal to middle point
+        if (crossing_pt[0] == 0 && crossing_pt[1] == 0) {
+            int mid_idx;
+            if (gap.convex.convex_ridx - gap.convex.convex_lidx < 0) {
+                mid_idx = int(((gap.convex.convex_lidx + gap.convex.convex_ridx) % int(2*half_num_scan)) / 2.0);
+            } else {
+                mid_idx = int((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2.0);
+            }
+            //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << "mid idx: " << mid_idx << std::endl;
+            double theta_mid = mid_idx * msg.get()->angle_increment + msg.get()->angle_min;
+            double r_mid = (gap.convex.convex_rdist - gap.convex.convex_ldist) * (theta_mid - thetalf) / (thetalr - thetalf) + gap.convex.convex_ldist;
+            //std::cout << "theta_mid: " << theta_mid << ", r_mid: " << r_mid << std::endl;
+            gap.goal.x = r_mid*std::cos(theta_mid);
+            gap.goal.y = r_mid*std::sin(theta_mid);
+            std::cout << "no cross, goal index: " << mid_idx << std::endl; // set to: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+        } else {
+            //std::cout << "crossing pt: " << crossing_pt[0] << ", " << crossing_pt[1] << std::endl;
+            // else, set to radially extended cross point
+            double theta_crossing = std::atan2(crossing_pt[1], crossing_pt[0]);
+            int goal_idx = int((theta_crossing - msg.get()->angle_min) / msg.get()->angle_increment);
+            double r_crossing = crossing_pt.norm();
+            double r_arc_at_theta_crossing = (gap.convex.convex_rdist - gap.convex.convex_ldist) * (theta_crossing - thetalf) / (thetalr - thetalf) + gap.convex.convex_ldist;
+            gap.goal.x = 1.1*std::max(r_crossing, r_arc_at_theta_crossing)*std::cos(theta_crossing);
+            gap.goal.y = 1.1*std::max(r_crossing, r_arc_at_theta_crossing)*std::sin(theta_crossing);
+            std::cout << "cross, goal index: " << goal_idx << std::endl; //set to: " << gap.goal.x << ", " << gap.goal.y << std::endl;
+            // pivot it in by a robot radius?
+        }
+        gap.goal.set = true;
+    }
+
+
+    void GapManipulator::setGapGoalTimeBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
+
+        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
+        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
+    
         Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
         
-        //double frozen_left_betadot_check = frozen_left_model_state[4];
-        //double frozen_right_betadot_check = frozen_right_model_state[4];
-        
-
-        double left_betadot_check = frozen_left_model_state[4];
+        double left_betadot_check = frozen_left_model_state[4];     
         double right_betadot_check = frozen_right_model_state[4];
         // FEASIBILITY CHECK
         std::cout << "setting swept values" << std::endl;
