@@ -50,7 +50,7 @@ namespace dynamic_gap {
             bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle);
             void setSweptValues(dynamic_gap::Gap& gap, double left_betadot_check, double right_betadot_check, double left_ori, double right_ori);
             bool gapTimecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
-            bool gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
+            double gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
             void setGapGoalTimeBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
             void setGapGoalCrossingBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
 

@@ -143,7 +143,7 @@ namespace dynamic_gap {
         }
     }
 
-    bool GapManipulator::gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+    double GapManipulator::gapSplinecheck(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
 
@@ -182,15 +182,15 @@ namespace dynamic_gap {
         double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
         std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
         if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
-            return true;
+            return crossing_time;
         } else {
-            return false;
+            return -1.0;
         }
     }
 
 
     bool GapManipulator::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle) {
-        bool feasible;
+        bool feasible = false;
         Matrix<double, 5, 1> left_model_state = left_model->get_state();        
         Matrix<double, 5, 1> right_model_state = right_model->get_state();
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
@@ -214,20 +214,29 @@ namespace dynamic_gap {
             if (left_betadot_check - right_betadot_check > 0) {
                 std::cout << "gap is expanding on the whole, is feasible" << std::endl;
                 feasible = true;
+                gap.gap_lifespan = cfg_->traj.integrate_maxt;
             } else {
                 // feasible = gapTimecheck(left_model, right_model);
-                feasible = gapSplinecheck(left_model, right_model);
+                double crossing_time = gapSplinecheck(left_model, right_model);
+                if (crossing_time >= 0) {
+                    feasible = true;
+                    gap.gap_lifespan = crossing_time;
+                }
             }
         } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
             // CATEGORY 2: STATIC/CLOSING
             std::cout << "static/closing gap" << std::endl;
 
-            // feasible = gapTimecheck(left_model, right_model);
-            feasible = gapSplinecheck(left_model, right_model);
+            double crossing_time = gapSplinecheck(left_model, right_model);
+            if (crossing_time >= 0) {
+                feasible = true;
+                gap.gap_lifespan = crossing_time;
+            }
         } else {
             // CATEGORY 3: EXPANDING
             std::cout << "expanding gap, is feasible" << std::endl;
             feasible = true;
+            gap.gap_lifespan = cfg_->traj.integrate_maxt;
         }
 
         return feasible;
@@ -419,6 +428,21 @@ namespace dynamic_gap {
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
         // if cross is 0,0, just set gap goal to middle point
+        if (gap.convex.convex_ridx - gap.convex.convex_lidx < 0) {
+            mid_idx = int(((gap.convex.convex_lidx + gap.convex.convex_ridx) % int(2*half_num_scan)) / 2.0);
+        } else {
+            mid_idx = int((gap.convex.convex_lidx + gap.convex.convex_ridx) / 2.0);
+        }
+        //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << "mid idx: " << mid_idx << std::endl;
+        double theta_mid = mid_idx * msg.get()->angle_increment + msg.get()->angle_min;
+        double r_mid = (gap.convex.convex_rdist - gap.convex.convex_ldist) * (theta_mid - thetalf) / (thetalr - thetalf) + gap.convex.convex_ldist;
+        //std::cout << "theta_mid: " << theta_mid << ", r_mid: " << r_mid << std::endl;
+        gap.goal.x = r_mid*std::cos(theta_mid);
+        gap.goal.y = r_mid*std::sin(theta_mid);
+        gap.goal.set = true;
+
+        
+        /*
         if (crossing_pt[0] == 0 && crossing_pt[1] == 0) {
             int mid_idx;
             if (gap.convex.convex_ridx - gap.convex.convex_lidx < 0) {
@@ -446,6 +470,7 @@ namespace dynamic_gap {
             // pivot it in by a robot radius?
         }
         gap.goal.set = true;
+        */
     }
 
 

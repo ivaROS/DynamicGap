@@ -74,17 +74,17 @@ namespace dynamic_gap {
         
         for (int i = 0; i < cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
-            cost_val.at(i) = scorePose(traj.poses.at(i));
+            cost_val.at(i) = scorePose(traj.poses.at(i)) / cost_val.size();
         }
 
         // cumulative cost of poses
         // ADDING IN AVERAGE INSTEAD
-        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0)) / cost_val.size();
+        auto total_val = std::accumulate(cost_val.begin(), cost_val.end(), double(0));
         // auto dynamic_total_val = std::accumulate(test_cost_val.begin(), test_cost_val.end(), double(0));
 
         // cumulative cost of ranges of gap
 
-        std::cout << "pose-wise cost: " << total_val << std::endl;
+        std::cout << "pose-wise cost: " << total_val << " averaged over count of: " << cost_val.size() << std::endl;
         // std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
         // 
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
@@ -108,6 +108,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::terminalGoalCost(geometry_msgs::Pose pose) {
         boost::mutex::scoped_lock planlock(gplan_mutex);
         // ROS_INFO_STREAM(pose);
+        std::cout << "final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << local_goal.pose.position.x << ", " << local_goal.pose.position.y << ")" << std::endl;
         double dx = pose.position.x - local_goal.pose.position.x;
         double dy = pose.position.y - local_goal.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));

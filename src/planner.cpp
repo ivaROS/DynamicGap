@@ -391,15 +391,22 @@ namespace dynamic_gap
         }
 
         std::vector<double> result_score(prr.size());
-        
+        /*
+                        std::cout "iterating through traj scores" << std::endl;
+                for (size_t j = 0; j < counts; j++) {
+                    std::cout << score.at(i).at(j) << ", " << std::endl;
+                }
+                std::cout << "" << std::endl;
+        */
         try {
             if (omp_get_dynamic()) omp_set_dynamic(0);
             for (size_t i = 0; i < result_score.size(); i++) {
                 // ROS_WARN_STREAM("prr(" << i << "): size " << prr.at(i).poses.size());
                 int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
+
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
-                std::cout << "for gap " << i << ", returning score of " << result_score.at(i) << " with length: " << score.at(i).size() << std::endl;
+                std::cout << "for gap " << i << ", returning score of " << result_score.at(i) << " of length: " << counts << std::endl;
             }
         } catch (...) {
             ROS_FATAL_STREAM("pickTraj");

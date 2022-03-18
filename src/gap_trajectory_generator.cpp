@@ -78,7 +78,7 @@ namespace dynamic_gap{
                 cfg_->gap_manip.K_acc);
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             inte_g2g, x, 0.0,
-            cfg_->traj.integrate_maxt,
+            selectedGap.gap_lifespan,
             cfg_->traj.integrate_stept,
             corder);
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
@@ -156,7 +156,7 @@ namespace dynamic_gap{
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             clf_cbf_dyn, x, 0.0,
-            cfg_->traj.integrate_maxt,
+            selectedGap.gap_lifespan,
             cfg_->traj.integrate_stept, corder);
 
         //ROS_WARN_STREAM("CLF CBF");
