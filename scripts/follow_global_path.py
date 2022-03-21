@@ -14,8 +14,8 @@ class Agent:
     def __init__(self, num_obsts, world):
         # /move_base for TEB
         # /move_base_virtual for DGap
-        rospy.wait_for_service('/move_base/make_plan')
-        self.get_plan = rospy.ServiceProxy('/move_base/make_plan', GetPlan)
+        rospy.wait_for_service('/move_base_virtual/make_plan')
+        self.get_plan = rospy.ServiceProxy('/move_base_virtual/make_plan', GetPlan)
         self.world = world
         self.plan_idx = 0
         self.x = 0.0
@@ -47,12 +47,13 @@ class Agent:
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
-        # top left to bottom right
+        # top left to bottom right ((x, y) to (x,y)
         self.campus_goal_regions = [[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
                                     [13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
                                     [20, 21, 23, 18],[16, 16, 17, 12],[19, 16, 22, 14],
                                     [25, 17, 28, 12],[10, 11, 16, 8],[1, 7, 10, 6],
                                     [9, 5, 13, 4],[16, 7, 21, 1]]
+        self.empty_goal_regions = [[6, 22, 22, 6]]
 
     def odom_CB(self, msg):
         robot_namespace = msg.child_frame_id
@@ -120,7 +121,15 @@ class Agent:
         goal = PoseStamped()
         goal.header.frame_id = "known_map"
         goal.header.stamp = rospy.Time.now()
-        rand_region = self.campus_goal_regions[np.random.randint(0, len(self.campus_goal_regions))]
+        '''
+        if robot_namespace == "robot0":
+            goal.pose.position.x = 19
+            goal.pose.position.y = 9
+        elif robot_namespace == "robot1":
+            goal.pose.position.x = 7
+            goal.pose.position.y = 9
+        '''
+        rand_region = self.empty_goal_regions[np.random.randint(0, len(self.empty_goal_regions))]
         goal.pose.position.x = np.random.randint(rand_region[0], rand_region[2])
         goal.pose.position.y = np.random.randint(rand_region[3], rand_region[1])
         goal.pose.position.z = 0.0

@@ -43,6 +43,7 @@ namespace dynamic_gap{
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
         std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
+        void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::Gap>& current_raw_gaps, sensor_msgs::LaserScan & dynamic_laser_scan);
 
         private:
             const DynamicGapConfig* cfg_;
@@ -57,8 +58,9 @@ namespace dynamic_gap{
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
             double chapterScore(double d);
             double terminalGoalCost(geometry_msgs::Pose pose);
-            double dynamicScorePose(geometry_msgs::Pose pose, double range, double beta);
-            double dynamicDist2Pose(geometry_msgs::Pose pose, double range, double beta);
+            double dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan);
+            void populateDynamicLaserScan(int left_idx, int right_idx, double left_range, double right_range, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
+            double setDynamicLaserScanRange(double idx, double idx_span, double left_idx, double right_idx, double left_range, double right_range, bool free);
 
 
             int search_idx = -1;

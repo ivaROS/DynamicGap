@@ -70,7 +70,7 @@ namespace dynamic_gap{
         
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
             std::cout << "go to goal trajectory generated" << std::endl;
-            std::cout << "start: " << x[0] << x[1] << ", goal: " << selectedGap.goal.x * coefs << selectedGap.goal.y * coefs << std::endl;
+            std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << std::endl;
             g2g inte_g2g(
                 selectedGap.goal.x * coefs,
                 selectedGap.goal.y * coefs,

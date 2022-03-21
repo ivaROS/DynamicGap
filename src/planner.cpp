@@ -453,10 +453,20 @@ namespace dynamic_gap
             int counts = std::min(cfg.planning.num_feasi_check, (int) incom_score.size());
             auto incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
 
+            std::cout << "incom_subscore: " << incom_subscore << std::endl;
             if (curr_traj.poses.size() == 0) {
                 if (incom_subscore == -std::numeric_limits<double>::infinity()) {
                     std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming score of -infinity" << std::endl;
                     ROS_WARN_STREAM("Incoming score of negative infinity");
+                    auto empty_traj = geometry_msgs::PoseArray();
+                    std::vector<double> empty_time_arr;
+                    setCurrentTraj(empty_traj);
+                    setCurrentTimeArr(empty_time_arr);
+                    setCurrentGapIndices(-1, -1);
+                    return empty_traj;
+                } else if (incoming.poses.size() == 0) {
+                    std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length of 0" << std::endl;        
+                    ROS_WARN_STREAM("Incoming traj length 0");
                     auto empty_traj = geometry_msgs::PoseArray();
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);

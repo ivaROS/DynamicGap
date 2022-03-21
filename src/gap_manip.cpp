@@ -408,7 +408,6 @@ namespace dynamic_gap {
     }
 
     void GapManipulator::setGapGoalCrossingBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
-    
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
         int mid_idx;
@@ -427,6 +426,8 @@ namespace dynamic_gap {
         // get crossing point
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double crossing_time = indivGapFindCrossingPoint(crossing_pt, left_model, right_model);
+        /*
+
         // if cross is 0,0, just set gap goal to middle point
         if (gap.convex.convex_ridx - gap.convex.convex_lidx < 0) {
             mid_idx = int(((gap.convex.convex_lidx + gap.convex.convex_ridx) % int(2*half_num_scan)) / 2.0);
@@ -440,9 +441,9 @@ namespace dynamic_gap {
         gap.goal.x = r_mid*std::cos(theta_mid);
         gap.goal.y = r_mid*std::sin(theta_mid);
         gap.goal.set = true;
-
+        */
         
-        /*
+        
         if (crossing_pt[0] == 0 && crossing_pt[1] == 0) {
             int mid_idx;
             if (gap.convex.convex_ridx - gap.convex.convex_lidx < 0) {
@@ -470,7 +471,7 @@ namespace dynamic_gap {
             // pivot it in by a robot radius?
         }
         gap.goal.set = true;
-        */
+        
     }
 
 
