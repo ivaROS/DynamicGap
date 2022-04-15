@@ -26,36 +26,53 @@ namespace dynamic_gap {
 
     struct polar_gap_field{
 
-        double x1, x2, y1, y2, gx, gy;
+        double x_right, x_left, y_right, y_left, gx, gy;
         double close_pt_x, close_pt_y, far_pt_x, far_pt_y, far_vec_x, far_vec_y, rbt_vec_x, rbt_vec_y, angle_gap;
         double dir_vec_x, dir_vec_y;
         double _sigma;
         bool _l, _r, _axial;
+        double rbt_x_0, rbt_y_0;
+        double thetag_revised;
+        double theta_left, theta_right;
+        double thetag;
+        double w_des;
+        double w_circ;
 
-        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool l, bool r, bool axial, double sigma)
-            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), _l(l), _r(r), _axial(axial), _sigma(sigma) {}
+        polar_gap_field(double x_right, double x_left, double y_right, double y_left, double gx, double gy, bool l, bool r, bool axial, double sigma, double rbt_x_0, double rbt_y_0)
+            : x_right(x_right), x_left(x_left), y_right(y_right), y_left(y_left), gx(gx), gy(gy), _l(l), _r(r), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0) {
+                theta_left = atan2(y_left, x_left);
+                theta_right = atan2(y_right, x_right);
+                thetag = atan2(gy, gx);
+                if (theta_left > theta_right) {
+                    thetag_revised = std::min(theta_left, std::max(thetag, theta_right));
+                } else {
+                    if (thetag > 0) {
+                        thetag_revised = std::max(theta_right, thetag);
+                    } else {
+                        thetag_revised = std::min(theta_left, thetag);
+                    }
+                }
+
+                w_des = 1.0;
+                w_circ = 1.25;
+            }
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
-            // making sure that point 1 is left point and point 2 is right point
-            double begin_time = ros::Time::now().toSec();
+            // AS OF RIGHT NOW, P2 IS THE LEFT POINT FROM ROBOT POV
+            // double begin_time = ros::Time::now().toSec();
 
-            if (atan2(y1, x1) > atan2(y2, x2)) {
-                std::swap(y1, y2);
-                std::swap(x1, x2);
-            }
             //std::cout << "x: " << std::endl;
-            //std::cout << x[0] << ", " << x[1] << std::endl;
             Eigen::Vector2d rbt(x[0], x[1]);
-            Eigen::Vector2d p1(x1, y1);
-            Eigen::Vector2d p2(x2, y2);
+            Eigen::Vector2d p_right(x_right, y_right);
+            Eigen::Vector2d p_left(x_left, y_left);
             // vectors to left and right from rbt
-            Eigen::Vector2d vec_1 = p1 - rbt;
-            Eigen::Vector2d vec_2 = p2 - rbt;
+            Eigen::Vector2d vec_right_rbt = p_right - rbt;
+            Eigen::Vector2d vec_left_rbt = p_left - rbt;
 
             // rotation matrices for pi/2 and -pi/2
-            Eigen::Matrix2d r_pi2;
             double rot_angle = M_PI / 2;
+            Eigen::Matrix2d r_pi2;
             r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
             Eigen::Matrix2d neg_r_pi2;
             neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
@@ -63,68 +80,104 @@ namespace dynamic_gap {
             Eigen::Vector2d goal_pt(gx, gy);
             Eigen::Vector2d goal_vec = goal_pt - rbt;
 
-            double r1 = sqrt(pow(x1, 2) + pow(y1, 2));
-            double r2 = sqrt(pow(x2, 2) + pow(y2, 2));
+            double r_right = sqrt(pow(x_right, 2) + pow(y_right, 2));
+            double r_left = sqrt(pow(x_left, 2) + pow(y_left, 2));
             double rx = sqrt(pow(x[0], 2) + pow(x[1], 2));
             double rg = goal_vec.norm();
-            double theta1 = atan2(y1, x1);
-            double theta2 = atan2(y2, x2);
+
             double thetax = atan2(x[1], x[0]);
-            double thetag = atan2(goal_vec(1), goal_vec(0));
 
-            double new_theta = std::min(std::max(thetag, theta1), theta2);
-            double theta_test = std::min(std::max(thetax, theta1), theta2);
+            // double theta_test = std::min(std::max(thetax, theta_right), theta_left);
 
-            // ROTATIONAL TERM FOR RIGHT
-            Eigen::Vector2d c1 = r_pi2     * (vec_1 / vec_1.norm()) * exp(-std::abs(thetax - theta1) / _sigma);
+            Eigen::Vector2d left_vec(x_left, y_left);
+            Eigen::Vector2d right_vec(x_right, y_right);
+            Eigen::Vector2d rbt_vec(x[0], x[1]);
+            double left_delta_theta = std::acos(left_vec.dot(rbt_vec) / (left_vec.norm() * rbt_vec.norm()));
+            double right_delta_theta = std::acos(right_vec.dot(rbt_vec) / (right_vec.norm() * rbt_vec.norm()));
+
             
-            // ROTATIONAL TERM FOR LEFT
-            Eigen::Vector2d c2 = neg_r_pi2 * (vec_2 / vec_2.norm()) * exp(-std::abs(theta2 - thetax) / _sigma);
+            // ROTATIONAL TERM FOR LEFT (from robot pov)
+            Eigen::Vector2d c_left = neg_r_pi2 * (vec_left_rbt / vec_left_rbt.norm()) * exp(-left_delta_theta / _sigma);
 
+            // ROTATIONAL TERM FOR RIGHT (from robot pov)
+            Eigen::Vector2d c_right = r_pi2 * (vec_right_rbt / vec_right_rbt.norm()) * exp(-right_delta_theta / _sigma);
+            
             // ATTRACTIVE TERM FOR GOAL
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
-            Eigen::Vector2d sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
+            Eigen::Vector2d sub_goal_vec = goal_vec;                //(rg * cos(thetag_revised), rg * sin(thetag_revised));
 
             // bool left = r2 > r1;
 
             // checking to see if robot has passed the gap
-            bool pass_gap;
+                        
+            Eigen::Vector2d init_to_left_vect(x_left - rbt_x_0, y_left - rbt_y_0);
+            Eigen::Vector2d init_to_right_vect(x_right - rbt_x_0, y_right - rbt_y_0);
+            Eigen::Vector2d curr_to_left_vect(x_left - rbt[0], y_left - rbt[1]);  
+            Eigen::Vector2d curr_to_right_vect(x_right - rbt[0], y_right - rbt[1]);
+            Eigen::Vector2d init_to_goal_vect(gx - rbt_x_0, gy - rbt_y_0);
+            Eigen::Vector2d curr_to_goal_vect(gx - rbt[0], gy - rbt[1]);
+
+            bool past_gap_points;
+            bool past_goal = (init_to_goal_vect.dot(curr_to_goal_vect) < 0);
+            bool past_left_point = init_to_left_vect.dot(curr_to_left_vect) < 0;
+            bool past_right_point = init_to_right_vect.dot(curr_to_right_vect) < 0;
+            //std::cout << "checking past_gap_points: " << std::endl;
+            //std::cout << "init to left: (" << init_to_left_vect[0] << ", " << init_to_left_vect[1] << "), curr_to_left_vect: (" << curr_to_left_vect[0] << ", " << curr_to_left_vect[1] << ")" << std::endl;
+            //std::cout << "init to right: (" << init_to_right_vect[0] << ", " << init_to_right_vect[1] << "), curr_to_right_vect: (" << curr_to_right_vect[0] << ", " << curr_to_right_vect[1] << ")" << std::endl;
             if (_axial) {
-                pass_gap = (rbt.norm() > std::min(p1.norm(), p2.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                //pass_gap = (rbt.norm() > std::min(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point || past_right_point;
             } else {
-                pass_gap = (rbt.norm() > std::max(p1.norm(), p2.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                // pass_gap = (rbt.norm() > std::max(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point && past_right_point;
             }
+            
+            bool pass_gap = past_gap_points || past_goal;
+
+            //std::cout << "pass_gap: " << pass_gap << std::endl;
 
 
-            Eigen::Vector2d v1 = p1 - p2;
-            Eigen::Vector2d v2 = p1 - rbt;
 
             // Max: commenting out, not sure if used
             // Eigen::Vector2d polar_vec = rbt.norm() < 1e-3 || pass_gap ? Eigen::Vector2d(0, 0) : rbt / (rbt.norm());
 
             Eigen::Vector2d result(0, 0); 
-            double coeffs = pass_gap ? 0.0 : 1.0;
 
-            Eigen::Vector2d final_goal_vec(0,0);
+            if (!pass_gap) {
+                double coeffs = past_gap_points ? 0.0 : 1.0;
+                Eigen::Vector2d v_des = sub_goal_vec / sub_goal_vec.norm();
+                Eigen::Vector2d v_circ = (c_left + c_right) * coeffs; 
+                // Eigen::Vector2d norm_v_circ = v_circ / v_circ.norm();
+                
+                result = v_des + v_circ;
+                // result += v_des;
+                std::cout << "t: " << t << ", rbt: (" << rbt[0] << ", " << rbt[1] << "), p_left: (" << p_left[0] << ", " << p_left[1] << "), p_right: (" << p_right[0] << ", " << p_right[1] << ")" << std::endl;
+                // std::cout << "start pt: (" << rbt_x_0 << ", " << rbt_y_0 << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")" << std::endl;
+                std::cout << "left delta theta: " << left_delta_theta << ", right delta theta: " << right_delta_theta << std::endl; 
+                std::cout << "c_left: (" << c_left[0] << ", " << c_left[1] << "), c_right: (" << c_right[0] << ", " << c_right[1] << ")" << std::endl;
+                std::cout << "v_des: (" << v_des[0] << ", " << v_des[1] << "), v_circ: (" << v_circ[0] << ", " << v_circ[1] << ")" << std::endl;   
+                std::cout << "---" << std::endl;
+                //std::cout << "init to left vect: (" << init_to_left_vect[0] << ", " << init_to_left_vect[1] << "), curr to left vect: (" << curr_to_left_vect[0] << ", " << curr_to_left_vect[1] << ")" << std::endl;
+                //std::cout << "init to right vect: (" << init_to_right_vect[0] << ", " << init_to_right_vect[1] << "), curr to right vect: (" << curr_to_right_vect[0] << ", " << curr_to_right_vect[1] << ")" << std::endl;
+                //std::cout << "left dot: " << (init_to_left_vect.dot(curr_to_left_vect) < 0) << ", right dot: " << (init_to_right_vect.dot(curr_to_right_vect) < 0) << ", goal dot: " << (init_to_goal_vect.dot(curr_to_goal_vect) < 0)  << std::endl;
 
-            if (pass_gap)
-            {
-                result = Eigen::Vector2d(0, 0);
-            } else {
-                result = (c1 + c2) * coeffs;
-                result += sub_goal_vec / sub_goal_vec.norm();
+                // std::cout << "revised_pass_gap: " << pass_ << std::endl;
+                //std::cout << "unit vec left_rbt: (" << vec_left_rbt[0]/vec_left_rbt.norm() << ", " << vec_left_rbt[1]/vec_left_rbt.norm() << "), left angular distance: " << left_delta_theta << std::endl;
+                //std::cout << "unit vec right_rbt: (" << vec_right_rbt[0]/vec_right_rbt.norm() << ", " << vec_right_rbt[1]/vec_right_rbt.norm() << "), right angular distance: " << right_delta_theta << std::endl;
+            
+                //std::cout << "v_des: <" << v_des[0] << ", " << v_des[1] << ">, c_left: <" << c_left[0] << ", " << c_left[1] << ">, c_right: <" << c_right[0] << ", " << c_right[1] << ">, result: " << result[0] << ", " << result[1] << std::endl;
             }
 
-            double K_acc = 3.0;
+            //double K_acc = 3.0;
 
             // calculate acceleration
             // these need to be in world frame?
-            double a_x_rbt = -K_acc*(x[2] - result(0));
-            double a_y_rbt = -K_acc*(x[3] - result(1));
-            dxdt[0] = x[2];
-            dxdt[1] = x[3];
-            dxdt[2] = a_x_rbt; // rbt_v_x
-            dxdt[3] = a_y_rbt; // rbt_v_y
+            //double a_x_rbt = -K_acc*(x[2] - result(0));
+            //double a_y_rbt = -K_acc*(x[3] - result(1));
+            dxdt[0] = result[0];
+            dxdt[1] = result[1];
+            //dxdt[2] = a_x_rbt; // rbt_v_x
+            //dxdt[3] = a_y_rbt; // rbt_v_y
             // double end_time = ros::Time::now().toSec();
             // std::cout << "length: " << ros::Time::now().toSec() - begin_time << std::endl;
             return;
@@ -152,13 +205,11 @@ namespace dynamic_gap {
             }
 
             // set desired acceleration based on desired velocity
-            Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
+            // Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
             // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
         
-            dxdt[0] = x[2]; // rbt_x
-            dxdt[1] = x[3]; // rbt_y
-            dxdt[2] = a_des(0);
-            dxdt[3] = a_des(1);
+            dxdt[0] = v_des[0]; // rbt_x
+            dxdt[1] = v_des[1]; // rbt_y
             return;
         }
     };

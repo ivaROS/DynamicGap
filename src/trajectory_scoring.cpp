@@ -74,18 +74,9 @@ namespace dynamic_gap {
         dynamic_gap::MP_model * first_right = NULL;
         dynamic_gap::MP_model * last_model = raw_models[raw_models.size() - 1];
         dynamic_gap::MP_model * model = NULL;
-        Matrix<double, 5, 1> left_state, right_state, model_state;
-        double left_beta, right_beta, left_range, right_range, curr_beta;
-        int left_idx, right_idx, curr_idx;
-
-        for (int j = 0; j < raw_models.size(); j++) {
-            model = raw_models[j];
-            model_state = model->get_frozen_state();
-            curr_beta = atan2(model_state[1], model_state[2]);
-            curr_idx = (int) ((curr_beta + M_PI) / msg.get()->angle_increment);
-            //std::cout << "model side: " << model->get_side() << ", model idx: " << curr_idx << ", model state: " << model_state[0] << ", "  << model_state[1] << ", "  << model_state[2] << ", "  << model_state[3] << ", "  << model_state[4] << std::endl;
-        }
-
+        Matrix<double, 5, 1> left_state, model_state;
+        double curr_beta;
+        int curr_idx;
 
         for (int j = 0; j < raw_models.size(); j++) {
             model = raw_models[j];
@@ -106,6 +97,7 @@ namespace dynamic_gap {
                     curr_left = model;
                     //std::cout << "setting current left index to " << curr_idx << std::endl;
                 } else {
+                    left_state = curr_left->get_frozen_state();
                     if (model_state[0] > left_state[0]) {
                         //std::cout << "swapping current left to" << curr_idx << std::endl;
                         curr_left = model;
@@ -113,19 +105,8 @@ namespace dynamic_gap {
                 }
 
                 if (curr_right != nullptr && curr_left != nullptr) {
-                    left_state = curr_left->get_frozen_state();
-                    right_state = curr_right->get_frozen_state();
-                    //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
-                    //std::cout << "right state: " << right_state[0] << ", "  << right_state[1] << ", "  << right_state[2] << ", "  << right_state[3] << ", "  << right_state[4] << std::endl;
-                    left_beta = atan2(left_state[1], left_state[2]);
-                    right_beta = atan2(right_state[1], right_state[2]);
-                    left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
-                    right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
-                    left_range = 1 / left_state[0];
-                    right_range = 1  / right_state[0];
-                    //std::cout << "obstacle space between right: " << right_idx << " and left: " << left_idx << std::endl;
-                    //std::cout << "right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
-                    populateDynamicLaserScan(right_idx, left_idx, right_range, left_range, dynamic_laser_scan, 0);
+                    //std::cout << "obstacle space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
+                    populateDynamicLaserScan(curr_left, curr_right, dynamic_laser_scan, 0);
                 }
             } else if (model->get_side() == "right") {
 
@@ -135,19 +116,8 @@ namespace dynamic_gap {
                     first_right = model;
                 }
                 if (curr_right != nullptr && curr_left != nullptr) {
-                    left_state = curr_left->get_frozen_state();
-                    right_state = curr_right->get_frozen_state();
-                    //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
-                    //std::cout << "right state: " << right_state[0] << ", "  << right_state[1] << ", "  << right_state[2] << ", "  << right_state[3] << ", "  << right_state[4] << std::endl;        
-                    left_beta = atan2(left_state[1], left_state[2]);
-                    right_beta = atan2(right_state[1], right_state[2]);
-                    left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
-                    right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
-                    left_range = 1 / left_state[0];
-                    right_range = 1  / right_state[0];
-                    //std::cout << "free space between left: " << left_idx << " and right: " << right_idx << std::endl;
-                    //std::cout << "left beta: " << left_beta << ", right beta: " << right_beta << std::endl;
-                    populateDynamicLaserScan(left_idx, right_idx, left_range, right_range, dynamic_laser_scan, 1);
+                    //std::cout << "free space between left: " << left_idx << " and right: " << right_idx <<  ", left beta: " << left_beta << ", right beta: " << right_beta << std::endl;
+                    populateDynamicLaserScan(curr_left, curr_right, dynamic_laser_scan, 1);
                     searching_for_left = true;
                 }
             }
@@ -155,31 +125,28 @@ namespace dynamic_gap {
 
         if (last_model->get_side() == "left") {
             // wrapping around last free space
-            //std::cout << "wrapped free space between right: " << right_idx << " and left: " << left_idx << std::endl;
-            //std::cout << "right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
+            //std::cout << "wrapped free space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
             populateDynamicLaserScan(last_model, first_right, dynamic_laser_scan, 1);
         } else {
             // wrapping around last obstacle space
-            //std::cout << "wrapped obstacle space between right: " << right_idx << " and left: " << left_idx << std::endl;
-            //std::cout << "right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
+            //std::cout << "wrapped obstacle space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
             populateDynamicLaserScan(first_left, last_model, dynamic_laser_scan, 0);
         }
         
     }
 
     void TrajectoryArbiter::populateDynamicLaserScan(dynamic_gap::MP_model * left_model, dynamic_gap::MP_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free) {
-        //std::cout << "populating laser scan from left: " << left_idx << ", to right: " << right_idx << std::endl;
-        //std::cout << "left range: " << left_range << " right range: " << right_range << std::endl;
-        left_state = left_model->get_frozen_state();
-        right_state = right_model->get_frozen_state();
+        Matrix<double, 5, 1> left_state = left_model->get_frozen_state();
+        Matrix<double, 5, 1> right_state = right_model->get_frozen_state();
         //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
         //std::cout << "right state: " << right_state[0] << ", "  << right_state[1] << ", "  << right_state[2] << ", "  << right_state[3] << ", "  << right_state[4] << std::endl;         
-        left_beta = atan2(left_state[1], left_state[2]);
-        right_beta = atan2(right_state[1], right_state[2]);
-        left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
-        right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
-        left_range = 1 / left_state[0];
-        right_range = 1  / right_state[0];
+        double left_beta = atan2(left_state[1], left_state[2]);
+        double right_beta = atan2(right_state[1], right_state[2]);
+        int left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
+        int right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
+        double left_range = 1 / left_state[0];
+        double right_range = 1  / right_state[0];
+
         int start_idx, end_idx;
         double start_range, end_range;
         if (free) {
@@ -264,7 +231,7 @@ namespace dynamic_gap {
             raw_models.push_back(gap.right_model);
         }
 
-        std::cout << "num models: " << raw_models.size() << std::endl;
+        // std::cout << "num models: " << raw_models.size() << std::endl;
         std::vector<double> dynamic_cost_val(traj.poses.size());
         std::vector<double> static_cost_val(traj.poses.size());
         sensor_msgs::LaserScan stored_scan = *msg.get();
@@ -279,6 +246,7 @@ namespace dynamic_gap {
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
+        /*
         if (raw_models.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
@@ -301,7 +269,16 @@ namespace dynamic_gap {
             cost_val = static_cost_val;
             std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
-        
+        */
+        for (int i = 0; i < static_cost_val.size(); i++) {
+            // std::cout << "regular range at " << i << ": ";
+            static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+        }
+        auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
+        total_val = static_total_val;
+        cost_val = static_cost_val;
+        std::cout << "static pose-wise cost: " << static_total_val << std::endl;
+    
         if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
         {
             // obtain terminalGoalCost, scale by w1

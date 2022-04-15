@@ -16,12 +16,64 @@
 #include <Eigen/Core>
 
 namespace dynamic_gap {
+
+	/*
+	bool checkNeighboringPoints(sensor_msgs::LaserScan stored_scan_msgs, dynamic_gap::Gap & g, Eigen::Vector2f gap_pt, int gap_pt_index) {
+		double largest_dist = 0.0;
+		double dist_thresh = 0.5;
+
+		int N = 1;
+		int start_index = gap_pt_index - N;
+		if (start_index < 0) { start_index += 2*g.half_scan;}
+		int end_index = (gap_pt_index + N) % int(2*g.half_scan);
+		//std::cout << "left point: (" << left_pt[0] << ", " << left_pt[1] << "), neighbors (" << start_index << " to " << end_index << ") distances: " << std::endl;
+		
+		//std::cout << "" << std::endl;
+		if (end_index > start_index) {
+			for (int i = start_index; i < end_index; i++) {
+				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+				double curr_dist = (neighbor_pt - gap_pt).norm();
+				if (curr_dist > largest_dist) { largest_dist = curr_dist;}
+			}
+		} else {
+			for (int i = start_index; i < 511; i++) {
+				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+				double curr_dist = (neighbor_pt - gap_pt).norm();
+				if (curr_dist > largest_dist) { largest_dist = curr_dist;}			
+			}
+			for (int i = 0; i < end_index; i++) {
+				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+				double curr_dist = (neighbor_pt - gap_pt).norm();
+				if (curr_dist > largest_dist) { largest_dist = curr_dist;}
+			}
+		}
+	}
+	
+
+	std::vector<bool> checkLeftRightPointsAreDynamic(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, dynamic_gap::Gap & g) {
+		sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();   
+		int left_gap_index = g.convex.convex_lidx;
+		int right_gap_index = g.convex.convex_ridx;
+		
+		std::vector<bool> static_gaps(2);
+		Eigen::Vector2f left_pt((g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI),
+								(g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI));
+		Eigen::Vector2f right_pt((g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI),
+									(g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI));
+
+		static_gaps[0] = checkNeighboringPoints(stored_scan_msgs, g, left_pt, left_gap_index);
+		static_gaps[1] = checkNeighboringPoints(stored_scan_msgs, g, right_pt, right_gap_index);
+		return static_gaps;
+	}
+	*/
 	
 	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns) {
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
-		for (auto & g : gaps) {
-			
+		for (auto & g : gaps) {	
 			// this is still true, I just don't know how to handle indexing right now
             // populating the coordinates of the gap points (in rbt frame) to compute distances
 			//std::cout << "adding left points" << std::endl;
@@ -54,20 +106,20 @@ namespace dynamic_gap {
 					points[count][1] = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
 				}
 			}
-			//std::cout << "left point: " << points[count][0] << ", " << points[count][1] << std::endl;
-            //std::cout << "right point: " << points[count][0] << ", " << points[count][1] << std::endl;
+			std::cout << "left: (" << points[count - 1][0] << ", " << points[count - 1][1] << "), right: (" << points[count][0] << ", " << points[count][1] << "), ";
 			count++;
         }
+		std::cout << "" << std::endl;
 		return points;
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns) {
+	std::vector<int> GapAssociator::associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 2> v_ego) {
         int M = previous_gaps.size();
         int N = observed_gaps.size();
-		//std::cout << "obtaining gap points for previous" << std::endl;
+		std::cout << "previous gap points:" << std::endl;
         std::vector< std::vector<float>> previous_gap_points = obtainGapPoints(previous_gaps, ns);
-		//std::cout << "obtaining gap points for observed" << std::endl;
+		std::cout << "current gap points:" << std::endl;
         std::vector< std::vector<float>> observed_gap_points = obtainGapPoints(observed_gaps, ns);
         std::vector<int> associations = {};
 		std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
@@ -101,6 +153,7 @@ namespace dynamic_gap {
 			//std::cout << "done solving" << std::endl;
         }
 		
+		/*
 		std::cout << "associations" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			if (i >= 0 && associations[i] >= 0) {
@@ -108,24 +161,26 @@ namespace dynamic_gap {
 			}
 		}
 		std::cout << "" << std::endl;
+		*/
 		std::cout << "point pairs" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			if (i >= 0 && associations[i] >= 0) {
-				std::cout << "i: (" << previous_gap_points[associations[i]][0] << ", " <<  previous_gap_points[associations[i]][1] << "), to (" << observed_gap_points[i][0] << ", " <<  observed_gap_points[i][1] << "), ";
+				std::cout << i << ": (" << previous_gap_points[associations[i]][0] << ", " <<  previous_gap_points[associations[i]][1] << "), to (" << observed_gap_points[i][0] << ", " <<  observed_gap_points[i][1] << ") with a distance of " << distMatrix[i][associations[i]] << ", ";
 			} else {
-				std::cout << "i: NULL to (" << observed_gap_points[i][0] << ", " <<  observed_gap_points[i][1] << "), ";
+				std::cout << i << ": NULL to (" << observed_gap_points[i][0] << ", " <<  observed_gap_points[i][1] << "), ";
 			}
+			// TODO: include a (prev) to NULL
 		}
 		std::cout << "" << std::endl;
-
+		
 		// initializing models for current gaps
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			double init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			double init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::MP_model("left", *model_idx, init_r, init_beta);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::MP_model("left", *model_idx, init_r, init_beta, v_ego);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::MP_model("right", *model_idx, init_r, init_beta);
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::MP_model("right", *model_idx, init_r, init_beta, v_ego);
 			}
 			*model_idx += 1;
 		}
@@ -148,30 +203,22 @@ namespace dynamic_gap {
 				//std::cout << "distance under threshold" << std::endl;
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
-						//std::cout << "assocating curr left to prev left" << std::endl;
-						//std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
 					} else { // prev right;
-						//std::cout << "assocating curr left to prev right" << std::endl;
-						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
-					//observed_gaps[int(std::floor(pair[0] / 2.0))].left_model->set_side("left");
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
-						//std::cout << "assocating curr right to prev left" << std::endl;
-						//std::cout << "prev left state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
 					} else { // prev right
-						//std::cout << "assocating curr right to prev right" << std::endl;
-						//std::cout << "prev right state: " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_state() << std::endl;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
 					}
-					//observed_gaps[int(std::floor(pair[0] / 2.0))].right_model->set_side("right");
 				} 
-			} else {
+			} 
+			/*else {
 				std::cout << "no assocation" << std::endl;
 			}
+			*/
 		}
 		
 		// std::cout << "in gap associator" << std::endl;

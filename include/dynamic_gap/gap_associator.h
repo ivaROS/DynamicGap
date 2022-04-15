@@ -15,6 +15,7 @@
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
 #include <ros/ros.h>
+#include <sensor_msgs/LaserScan.h>
 #include <iostream>
 #include <vector>
 
@@ -28,8 +29,8 @@ namespace dynamic_gap
 		GapAssociator(){};
 		~GapAssociator(){};
 
-		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = 0.5;};
-		std::vector<int> associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns);
+		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = 0.25;};
+		std::vector<int> associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 2> v_ego);
         
 
 	private:

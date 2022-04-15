@@ -44,6 +44,7 @@ namespace dynamic_gap {
 
         nh.param("vx_absmax",control.vx_absmax, control.vx_absmax);
         nh.param("vy_absmax",control.vy_absmax, control.vy_absmax);
+        nh.param("vang_absmax", control.vang_absmax, control.vang_absmax);
 
         // Projection Params
         nh.param("k_po", projection.k_po, projection.k_po);
@@ -122,6 +123,7 @@ namespace dynamic_gap {
         control.ctrl_ahead_pose = cfg.ctrl_ahead_pose;
         control.vx_absmax = cfg.vx_absmax;
         control.vy_absmax = cfg.vy_absmax;
+        control.vang_absmax = cfg.vang_absmax;
 
         // Projection Params
         projection.k_po = cfg.k_po;

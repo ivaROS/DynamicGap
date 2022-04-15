@@ -107,7 +107,12 @@ namespace dynamic_gap
                 if (!_axial)
                 {
                     float resoln = M_PI / half_scan;
-                    float angle1 = (_right_idx - _left_idx) * resoln;
+                    float angle1;
+                    if (_right_idx > _left_idx) {
+                        angle1 = (_right_idx - _left_idx) * resoln;
+                    } else {
+                        angle1 = (_right_idx - _left_idx + 2*half_scan) * resoln;
+                    }                       
                     float short_side = left_type ? _ldist : _rdist;
                     float opp_side = (float) sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (float)cos(angle1));
                     // checking if alpha of gap is greater than 3*pi/4
@@ -154,8 +159,19 @@ namespace dynamic_gap
             void setAGCIdx(int lidx, int ridx) {
                 agc_lidx = lidx;
                 agc_ridx = ridx;
-                agc_ldist = float(lidx - _left_idx) / float(_right_idx - _left_idx) * (_rdist - _ldist) + _ldist;
-                agc_rdist = float(ridx - _left_idx) / float(_right_idx - _left_idx) * (_rdist - _ldist) + _ldist;
+                int new_l_idx_delta = lidx - _left_idx;
+                int new_r_idx_delta = ridx - _left_idx;
+                if (new_l_idx_delta < 0) { new_l_idx_delta += int(2*half_scan);}
+                if (new_r_idx_delta < 0) { new_r_idx_delta += int(2*half_scan);}
+                
+                double gap_idx_size;
+                if (_right_idx > _left_idx) {
+                    gap_idx_size = (_right_idx - _left_idx);
+                } else {
+                    gap_idx_size = (_right_idx - _left_idx) + 2*half_scan;
+                }
+                agc_ldist = float(new_l_idx_delta) / float(gap_idx_size) * (_rdist - _ldist) + _ldist;
+                agc_rdist = float(new_r_idx_delta) / float(gap_idx_size) * (_rdist - _ldist) + _ldist;
             }
 
             void getAGCLCartesian(float &x, float &y){
@@ -171,8 +187,15 @@ namespace dynamic_gap
             // Decimate Gap 
             void segmentGap2Vec(std::vector<dynamic_gap::Gap>& gap, int min_resoln)
             {
-                int num_gaps = (_right_idx - _left_idx) / min_resoln + 1;
-                int idx_step = (_right_idx - _left_idx) / num_gaps;
+                double gap_idx_size;
+                if (_right_idx > _left_idx) {
+                    gap_idx_size = (_right_idx - _left_idx);
+                } else {
+                    gap_idx_size = (_right_idx - _left_idx) + 2*half_scan;
+                }
+
+                int num_gaps = gap_idx_size / min_resoln + 1;
+                int idx_step = gap_idx_size / num_gaps;
                 float dist_step = (_rdist - _ldist) / num_gaps;
                 int sub_gap_lidx = _left_idx;
                 float sub_gap_ldist = _ldist;
@@ -194,7 +217,7 @@ namespace dynamic_gap
                         detected_gap.setRightObs();
                     }
 
-                    sub_gap_lidx += idx_step;
+                    sub_gap_lidx = (sub_gap_lidx + idx_step) % 2*half_scan;
                     sub_gap_ldist += dist_step;
                     // ROS_DEBUG_STREAM("ridx: " << sub_gap_lidx << "rdist: " << sub_gap_ldist);
                     if (i == num_gaps - 1)
@@ -233,7 +256,12 @@ namespace dynamic_gap
             {
                 // does resoln here imply 360 deg FOV?
                 float resoln = M_PI / half_scan;
-                float angle1 = (_right_idx - _left_idx) * resoln;
+                float angle1;
+                if (_right_idx > _left_idx) {
+                    angle1 = (_right_idx - _left_idx) * resoln;
+                } else {
+                    angle1 = (_right_idx - _left_idx + 2*half_scan) * resoln;
+                }                
                 float short_side = left_type ? _ldist : _rdist;
                 float opp_side = (float) sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (float)cos(angle1));
                 float small_angle = (float) asin(short_side / opp_side * (float) sin(angle1));
@@ -269,7 +297,13 @@ namespace dynamic_gap
 
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
             float get_dist_side() {
-                return sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (cos(float(_right_idx - _left_idx) / float(half_scan) * M_PI)));
+                int idx_diff;
+                if (_right_idx > _left_idx) {
+                    idx_diff = (_right_idx - _left_idx);
+                } else {
+                    idx_diff = (_right_idx - _left_idx + 2*half_scan);
+                }   
+                return sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (cos(float(idx_diff) / float(half_scan) * M_PI)));
             }
             
             bool no_valid_slice = false;

@@ -18,15 +18,15 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model(std::string _side, int _index, double init_r, double init_beta) {
+    MP_model::MP_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 2> v_ego) {
         side = _side;
         index = _index;
-        initialize(init_r, init_beta);
+        initialize(init_r, init_beta, v_ego);
     }
 
     MP_model::~MP_model() {}
 
-    void MP_model::initialize(double init_r, double init_beta) {
+    void MP_model::initialize(double init_r, double init_beta, Matrix<double, 1, 2> _v_ego) {
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0, 0.0,
@@ -50,11 +50,14 @@ namespace dynamic_gap {
             0.0, 0.0, 0.0, 0.01, 0.0,
             0.0, 0.0, 0.0, 0.0, 0.01;
         
+
+        double v_rel_x = -_v_ego[0];
+        double v_rel_y = -_v_ego[1];
         y << 1.0 / init_r, 
                 std::sin(init_beta), 
                 std::cos(init_beta), 
-                0.0, 
-                0.0;
+                (init_r*std::cos(init_beta)*v_rel_x + init_r*std::sin(init_beta)*v_rel_y)/ pow(init_r, 2), 
+                (init_r*std::cos(init_beta)*v_rel_y - init_r*std::sin(init_beta)*v_rel_x)/ pow(init_r, 2);
         P << 10.0e-4, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
@@ -99,14 +102,16 @@ namespace dynamic_gap {
         // std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
         //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
         //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
+        
         // recalculate polar
         double new_rdot_over_r = (cartesian_state[0]*cartesian_state[2] + cartesian_state[1]*cartesian_state[3]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
         double new_betadot = (cartesian_state[0]*cartesian_state[3] - cartesian_state[1]*cartesian_state[2]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
-        frozen_x << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
-        frozen_y << y(0), y(1), y(2), new_rdot_over_r, new_betadot;           
+        // frozen_x = cartesian_state; // << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
+        frozen_y << y(0), y(1), y(2), new_rdot_over_r, new_betadot; // get_state(); // <<    
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
         //std::cout << "modified MP state. r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }
@@ -119,8 +124,10 @@ namespace dynamic_gap {
         new_frozen_y[0] = frozen_y[0] + (-frozen_y[3]*frozen_y[0])*dt;
         new_frozen_y[1] = frozen_y[1] + frozen_y[2]*frozen_y[4]*dt;
         new_frozen_y[2] = frozen_y[2] + (-frozen_y[1]*frozen_y[4])*dt;
+
         new_frozen_y[1] /= std::sqrt(pow(new_frozen_y[1], 2) + pow(new_frozen_y[2],2));
         new_frozen_y[2] /= std::sqrt(pow(new_frozen_y[1], 2) + pow(new_frozen_y[2],2));
+        
         new_frozen_y[3] = frozen_y[3] + (frozen_y[4]*frozen_y[4] - frozen_y[3]*frozen_y[3]) * dt;
         new_frozen_y[4] = frozen_y[4] + (-2 * frozen_y[3]*frozen_y[4])*dt;
         frozen_y = new_frozen_y; // is this ok? do we need a deep copy?
@@ -250,10 +257,13 @@ namespace dynamic_gap {
     Eigen::Vector4d MP_model::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
+
+        // y state:
+        // [1/r, sin(beta), cos(beta), rdot/r, betadot]
         Eigen::Vector4d x(0.0, 0.0, 0.0, 0.0);
         x(0) = (1 / y(0)) * y(2); // r * cos(beta)
         x(1) = (1 / y(0)) * y(1); // r * sin(beta)
-        x(2) = (1 / y(0)) * (y(3) * y(2) - y(4)*y(1));
+        x(2) = (1 / y(0)) * (y(3) * y(2) - y(4)*y(1)); // 
         x(3) = (1 / y(0)) * (y(4) * y(2) + y(3)*y(1));
         return x;
     }

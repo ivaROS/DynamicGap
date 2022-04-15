@@ -51,6 +51,7 @@ namespace dynamic_gap {
                 int ctrl_ahead_pose;
                 double vx_absmax;
                 double vy_absmax;
+                double vang_absmax;
             } control;
             
             struct ProjectionParam {
@@ -145,6 +146,7 @@ namespace dynamic_gap {
             control.ctrl_ahead_pose = 2;
             control.vx_absmax = 0.5;
             control.vy_absmax = 0.5;
+            control.vang_absmax = 5.0;
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
@@ -186,7 +188,7 @@ namespace dynamic_gap {
             man.man_theta = 0;
             man.line = false;
 
-            rbt.r_inscr = 0.18;
+            rbt.r_inscr = 0.2;
         }
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);

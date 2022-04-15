@@ -48,14 +48,17 @@ class Agent:
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
         # top left to bottom right ((x, y) to (x,y)
-        self.campus_goal_regions = [[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
-                                    [13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
-                                    [20, 21, 23, 18],[16, 16, 17, 12],[19, 16, 22, 14],
-                                    [25, 17, 28, 12],[10, 11, 16, 8],[1, 7, 10, 6],
-                                    [9, 5, 13, 4],[16, 7, 21, 1]]
-        self.empty_goal_regions = [[6, 22, 22, 6]]
+        self.campus_goal_regions = [[10, 11, 16, 8],[1, 7, 10, 6],
+                                    [9, 5, 13, 4],[16, 7, 21, 1]]  #[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
+                                    #[13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
+                                    #[20, 21, 23, 18], [16, 16, 17, 12],[19, 16, 22, 14],[25, 17, 28, 12],
+
+        self.empty_goal_regions = [[9, 11, 19, 6]]
+
+        self.empty_world_transform = [13.630, 13.499]
 
     def odom_CB(self, msg):
+        # odom comes in map_static frame
         robot_namespace = msg.child_frame_id
 
         map_static_to_known_map_trans = self.tfBuffer.lookup_transform("known_map", "map_static", rospy.Time(), rospy.Duration(3.0))

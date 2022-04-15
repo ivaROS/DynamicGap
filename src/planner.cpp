@@ -137,12 +137,11 @@ namespace dynamic_gap
             angle_increment = msg.get()->angle_increment;
             min_safe_dist = *std::min_element(msg.get()->ranges.begin(), msg.get()->ranges.end());
 
-            //gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
+            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-            //gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
+            gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
 
             // do we need to merge every time?
-            //observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
             ROS_FATAL_STREAM("mergeGapsOneGo");
@@ -192,8 +191,10 @@ namespace dynamic_gap
         range_vector_rbt_frame.vector.x = gap_pt_vector_rbt_frame.vector.x - rbt_in_cam.pose.position.x;
         range_vector_rbt_frame.vector.y = gap_pt_vector_rbt_frame.vector.y - rbt_in_cam.pose.position.y;
         //std::cout << "gap_pt_vector_rbt_frame: " << gap_pt_vector_rbt_frame.vector.x << ", " << gap_pt_vector_rbt_frame.vector.y << std::endl;
-		std::cout << "rbt in cam pose: " << rbt_in_cam.pose.position.x << ", " << rbt_in_cam.pose.position.x << std::endl;
-        std::cout << "range vector rbt frame: " << range_vector_rbt_frame.vector.x << ", " << range_vector_rbt_frame.vector.x << std::endl;
+		
+        // pretty sure rbt in cam is always 0,0
+        //std::cout << "rbt in cam pose: " << rbt_in_cam.pose.position.x << ", " << rbt_in_cam.pose.position.x << std::endl;
+        //std::cout << "range vector rbt frame: " << range_vector_rbt_frame.vector.x << ", " << range_vector_rbt_frame.vector.x << std::endl;
 
         double beta_tilde = std::atan2(range_vector_rbt_frame.vector.y, range_vector_rbt_frame.vector.x);
 		double norm = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
@@ -219,7 +220,7 @@ namespace dynamic_gap
         for (int i = 0; i < 2*_observed_gaps.size(); i++) {
             // std::cout << "update gap model: " << i << std::endl;
             update_model(i, _observed_gaps);
-            std::cout << "" << std::endl;
+            //std::cout << "" << std::endl;
 		}
     }
     
@@ -335,7 +336,6 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("gapManipulate");
         }
 
-        //gapvisualizer->drawGaps(manip_set, std::string("fin"));
         gapvisualizer->drawManipGaps(manip_set);
         return manip_set;
     }
@@ -360,12 +360,7 @@ namespace dynamic_gap
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), current_raw_gaps);
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
-                }
-            /*
-            for (size_t i = 0; i < vec.size(); i++) {
-                std::cout << "feasible gap model indices: " << vec.at(i).left_model->get_index() << ", " << vec.at(i).right_model->get_index() << std::endl;
             }
-            */
 
         } catch (...) {
             ROS_FATAL_STREAM("initialTrajGen");
@@ -441,7 +436,18 @@ namespace dynamic_gap
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
-
+            if (curr_left_model != NULL) {
+                Matrix<double,4,1> curr_left_cart_state = curr_left_model->get_cartesian_state(); 
+                std::cout << "current left point: " << curr_left_cart_state[0] << ", " << curr_left_cart_state[1] << std::endl;
+            } else {
+                std::cout << "current left point: NULL" << std::endl;
+            }
+            if (curr_right_model != NULL) {
+                Matrix<double,4,1> curr_right_cart_state = curr_right_model->get_cartesian_state(); 
+                std::cout << "current right point: " << curr_right_cart_state[0] << ", " << curr_right_cart_state[1] << std::endl;
+            } else {
+                std::cout << "current right point: NULL" << std::endl;
+            }
             // Both Args are in Odom frame
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
@@ -462,7 +468,8 @@ namespace dynamic_gap
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
-                    setCurrentGapIndices(-1, -1);
+                    setCurrentLeftModel(incoming_gap.left_model);
+                    setCurrentRightModel(incoming_gap.right_model);
                     return empty_traj;
                 } else if (incoming.poses.size() == 0) {
                     std::cout << "TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length of 0" << std::endl;        
@@ -471,13 +478,15 @@ namespace dynamic_gap
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
-                    setCurrentGapIndices(-1, -1);
+                    setCurrentLeftModel(NULL);
+                    setCurrentRightModel(NULL);
                     return empty_traj;
                 } else {
                     std::cout << "TRAJECTORY CHANGE TO INCOMING: curr traj length 0, incoming score finite" << std::endl;
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
-                    setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
+                    setCurrentLeftModel(incoming_gap.left_model);
+                    setCurrentRightModel(incoming_gap.right_model);
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
                     prev_traj_switch_time = curr_time;
@@ -497,7 +506,8 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
-                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
+                setCurrentLeftModel(incoming_gap.left_model);
+                setCurrentRightModel(incoming_gap.right_model);
                 prev_traj_switch_time = curr_time;
                 return incoming;
             }
@@ -511,18 +521,7 @@ namespace dynamic_gap
             std::cout << "scoring reduced current trajectory" << std::endl;
             auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, current_raw_gaps);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
-            std::cout << "current subscore: " << curr_subscore << std::endl;
-
-            /*
-            if (*std::min_element(curr_score.begin(), curr_score.end()) == -std::numeric_limits<double>::infinity()) {
-                std::cout << "TRAJECTORY CHANGE TO INCOMING: old traj on collision course" << std::endl;
-                ROS_WARN_STREAM("Old Traj on collision course");
-                setCurrentTraj(incoming);
-                setCurrentTimeArr(time_arr);
-                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
-                return incoming;
-            }
-            */
+            std::cout << "reduced current subscore: " << curr_subscore << std::endl;
 
             std::vector<std::vector<double>> ret_traj_scores(2);
             ret_traj_scores.at(0) = incom_score;
@@ -542,7 +541,8 @@ namespace dynamic_gap
                 std::vector<double> empty_time_arr;
                 setCurrentTraj(empty_traj);
                 setCurrentTimeArr(empty_time_arr);
-                setCurrentGapIndices(-1, -1);
+                setCurrentLeftModel(NULL);
+                setCurrentRightModel(NULL);
                 return empty_traj;
             }
 
@@ -552,7 +552,8 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
-                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
+                setCurrentLeftModel(incoming_gap.left_model);
+                setCurrentRightModel(incoming_gap.right_model);
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
                 return incoming;
@@ -560,21 +561,33 @@ namespace dynamic_gap
 
             bool left_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex());
             bool right_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex());
-            std::cout << "left index count: " << left_index_count << ", right index count: " << right_index_count << std::endl; 
+            // std::cout << "left index count: " << left_index_count << ", right index count: " << right_index_count << std::endl; 
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
-            /*
-            if (feasible_gap_model_indices.size() > 0 && (!left_index_count || !right_index_count)) {
-                std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible" << std::endl;
-                ROS_WARN_STREAM("Swap to new because curr no longer feasible ");
-                setCurrentTraj(incoming);
-                setCurrentTimeArr(time_arr);
-                setCurrentGapIndices(incoming_gap.left_model->get_index(), incoming_gap.right_model->get_index());
-                prev_traj_switch_time = curr_time;
-                return incoming;        
-            }
-            */
             
-
+            if ((left_index_count == 0) || (right_index_count == 0)) {
+                if (incoming.poses.size() > 0) {
+                    std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible. left: " <<  left_index_count << ", right: " << right_index_count << std::endl;
+                    ROS_WARN_STREAM("Swap to incoming, current trajectory no longer through feasible gap");
+                    setCurrentTraj(incoming);
+                    setCurrentTimeArr(time_arr);
+                    setCurrentLeftModel(incoming_gap.left_model);
+                    setCurrentRightModel(incoming_gap.right_model);
+                    trajectory_pub.publish(incoming);
+                    prev_traj_switch_time = curr_time;
+                    return incoming;   
+                } else {
+                    auto empty_traj = geometry_msgs::PoseArray();
+                    std::vector<double> empty_time_arr;
+                    setCurrentTraj(empty_traj);
+                    setCurrentTimeArr(empty_time_arr);
+                    setCurrentLeftModel(NULL);
+                    setCurrentRightModel(NULL);
+                    return empty_traj; 
+                }    
+            }
+            
+            
+            
             std::cout << "keeping current trajectory" << std::endl;
 
             trajectory_pub.publish(curr_traj);
@@ -604,13 +617,28 @@ namespace dynamic_gap
         return;
     }
 
+    void Planner::setCurrentLeftModel(dynamic_gap::MP_model * _left_model) {
+        curr_left_model = _left_model;
+    }
+
+    void Planner::setCurrentRightModel(dynamic_gap::MP_model * _right_model) {
+        curr_right_model = _right_model;
+    }
+
     int Planner::getCurrentLeftGapIndex() {
-        return curr_exec_left_idx;
+        if (curr_left_model != NULL) {
+            return curr_left_model->get_index();
+        } else {
+            return -1;
+        }
     }
     
     int Planner::getCurrentRightGapIndex() {
-        return curr_exec_right_idx;
-    }
+        if (curr_right_model != NULL) {
+            return curr_right_model->get_index();
+        } else {
+            return -1;
+        }    }
 
     void Planner::setCurrentTraj(geometry_msgs::PoseArray curr_traj) {
         curr_executing_traj = curr_traj;
@@ -719,62 +747,75 @@ namespace dynamic_gap
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         // double begin_time = ros::Time::now().toSec();
         updateTF();
+        Matrix<double, 1, 2> v_ego(current_cmd_vel.linear.x, current_cmd_vel.linear.y);
 
-        std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
-        
         std::cout << "RAW GAP ASSOCIATION AND UPDATING" << std::endl;
-        raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps, model_idx, "raw");
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
+        raw_association = gapassociator->associateGaps(curr_raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
         update_models(curr_raw_gaps);
+        std::cout << "FINISHED RAW GAP ASSOCIATION AND UPDATING" << std::endl;
 
+        std::cout << "SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
         std::vector<dynamic_gap::Gap> curr_observed_gaps = get_curr_observed_gaps();
+        association = gapassociator->associateGaps(curr_observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
+        update_models(curr_observed_gaps);
+        gapvisualizer->drawGapsModels(curr_observed_gaps);
+        std::cout << "FINISHED SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
+
+        /*
+        start_index = right_gap_index - N;
+        if (start_index < 0) { start_index += 2*g.half_scan;}
+        end_index = (right_gap_index + N) % int(2*g.half_scan);
+        std::cout << "right point: (" << right_pt[0] << ", " << right_pt[1] << "), neighbors (" << start_index << " to " << end_index << ") distances: " << std::endl;
+        if (end_index > start_index) {
+            for (int i = start_index; i < end_index; i++) {
+                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
+            }
+        } else {
+            for (int i = start_index; i < 511; i++) {
+                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
+            }
+            for (int i = 0; i < end_index; i++) {
+                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
+                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
+                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
+            }
+        }
+        std::cout << "" << std::endl;
+        }   
+        */
+
+        std::cout << "GAP FEASIBILITY CHECK" << std::endl;
+        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(curr_observed_gaps);
+        std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
-        auto gap_set = gapManipulate(curr_observed_gaps);
-        // ISSUE: gap_set gets messed with, need to keep complete list of gaps intact for previous pointer
+        auto manip_gap_set = gapManipulate(feasible_gap_set);
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
-        std::cout << "UPDATING SIMPLIFIED GAPS" << std::endl;
-        association = gapassociator->associateGaps(gap_set, previous_gaps, model_idx, "simplified");
-        update_models(gap_set);
-        Matrix<double, 1, 2> v_ego(current_cmd_vel.linear.x, current_cmd_vel.linear.y);
-        gapvisualizer->drawGapsModels(gap_set);
-
-        //std::cout << "gap set size before feasibility check: " << gap_set.size() << std::endl;
-        std::cout << "STARTING GAP FEASIBILITY CHECK" << std::endl;
-        // gap_set gets changed here
-        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(gap_set);
-        std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
-        // std::cout << "gap set size after feasibility check: " << gap_set.size() << std::endl;
-
-        // visualize crossing points
-
-
-        std::cout << "STARTING SET GAP GOAL" << std::endl;
-        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
+        std::cout << "SET GAP GOAL" << std::endl;
+        for (size_t i = 0; i < manip_gap_set.size(); i++) {
             std::cout << "setting goal for gap: " << i << std::endl;
-            gapManip->setGapGoal(feasible_gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
-            // gapManip->setGapGoalFromCrossingPt()
+            gapManip->setGapWaypoint(manip_gap_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap types
         }
+        goalvisualizer->drawGapGoals(manip_gap_set);
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
-        //for (size_t i = 0; i < feasible_gap_set.size(); i++) {
-        //    std::cout << "goal " << i << ": " << feasible_gap_set.at(i).goal.x << ", " << feasible_gap_set.at(i).goal.y << std::endl;
-        //}
         
-
-        goalvisualizer->drawGapGoals(feasible_gap_set);
-
+        std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-        
-        std::cout << "STARTING INITIAL TRAJ GEN/SCORING" << std::endl;
-
-        auto score_set = initialTrajGen(feasible_gap_set, traj_set, curr_raw_gaps, time_set);
+        auto score_set = initialTrajGen(manip_gap_set, traj_set, curr_raw_gaps, time_set);
         std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
-        std::cout << "STARTING PICK TRAJ" << std::endl;
+
+        std::cout << "PICK TRAJ" << std::endl;
         auto traj_idx = pickTraj(traj_set, score_set);
-        
-        std::cout << "FINISHING PICK TRAJ" << std::endl;
-        std::cout << "STARTING COMPARE TO OLD TRAJ" << std::endl;
+        std::cout << "PICK TRAJ" << std::endl;
+
+        std::cout << "COMPARE TO OLD TRAJ" << std::endl;
         geometry_msgs::PoseArray chosen_traj;
         std::vector<double> chosen_time_arr;
         dynamic_gap::Gap chosen_gap;
@@ -782,8 +823,6 @@ namespace dynamic_gap
             chosen_traj = traj_set[traj_idx];
             chosen_time_arr = time_set[traj_idx];
             chosen_gap = feasible_gap_set[traj_idx];
-            //int chosen_left_idx = chosen_gap.left_model->get_index();
-            //int chosen_right_idx = chosen_gap.right_model->get_index();
         } else {
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
@@ -791,17 +830,17 @@ namespace dynamic_gap
 
         std::vector<int> feasible_gap_model_indices;
         std::cout << "feasible gap indices: ";
-        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
+        for (size_t i = 0; i < manip_gap_set.size(); i++) {
             std::cout << feasible_gap_set.at(i).left_model->get_index() << ", " << feasible_gap_set.at(i).right_model->get_index() << ", ";
-            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).left_model->get_index());
-            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).right_model->get_index());
+            feasible_gap_model_indices.push_back(manip_gap_set.at(i).left_model->get_index());
+            feasible_gap_model_indices.push_back(manip_gap_set.at(i).right_model->get_index());
         }
         std::cout << "" << std::endl;
 
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_model_indices, curr_raw_gaps, chosen_time_arr);
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
 
-        previous_gaps = gap_set;
+        previous_gaps = curr_observed_gaps;
         previous_raw_gaps = curr_raw_gaps;
 
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);

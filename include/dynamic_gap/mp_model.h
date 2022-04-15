@@ -50,9 +50,9 @@ namespace dynamic_gap {
 
         public:
 
-            MP_model(std::string, int, double, double);
+            MP_model(std::string, int, double, double, Matrix<double, 1, 2>);
             
-            void initialize(double, double);
+            void initialize(double, double, Matrix<double, 1, 2>);
 
             ~MP_model();
 

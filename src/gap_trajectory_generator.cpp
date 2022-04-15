@@ -63,10 +63,15 @@ namespace dynamic_gap{
         x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
         y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
-        //std::cout << "original starting goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-        //std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
+        std::cout << "original starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
+        std::cout << "original points x1, y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
         //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
         //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+        int rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        int left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
         
         if (left_model_state[4] > 0 && right_model_state[4] < 0) {
             std::cout << "go to goal trajectory generated" << std::endl;
@@ -86,7 +91,7 @@ namespace dynamic_gap{
         }
         
         if (selectedGap.mode.convex) {
-            // std::cout << "convex" << std::endl;
+            std::cout << "radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")" << std::endl;
             selectedGap.goal.x -= selectedGap.qB(0);
             selectedGap.goal.y -= selectedGap.qB(1);
             beta_local_goal = atan2(selectedGap.goal.y, selectedGap.goal.x);
@@ -110,23 +115,12 @@ namespace dynamic_gap{
             x2 -= selectedGap.qB(0);
             y1 -= selectedGap.qB(1);
             y2 -= selectedGap.qB(1);
-            //std::cout << "x1, y1 actually: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        }
-
+            }
 
         double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
         //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
         //std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
         //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
-            
-        // TODO: make sure that this is always less than 180, make sure convex (BROKEN)
-        double gap_angle;
-        if (right_ori > left_ori) {
-            gap_angle = right_ori - left_ori;
-        } else {
-            gap_angle = left_ori - right_ori;
-        }        
-        // std::cout << "gap angle: " << gap_angle << std::endl;
         
         //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
         clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
@@ -150,12 +144,37 @@ namespace dynamic_gap{
         }
         
         std::cout << "CLF/CBF trajectory generated" << std::endl;
-        std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
-            
+        // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
+        rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+        std::cout << "revised rbt index: " << rbt_idx << ", revised left index: " << left_idx << ", revised right index: " << right_idx << std::endl;
         // boost::numeric::odeint::max_step_checker m_checker = boost::numeric::odeint::max_step_checker(10);
 
+        // point 1 is right from robot POV
+        // point 2 is left from robot POV
+
+        float x_left, y_left, x_right, y_right;
+        x_left = x2*coefs;
+        y_left = y2*coefs;
+        x_right = x1*coefs;
+        y_right = y1*coefs;
+        std::cout << "revised starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ")" << std::endl; 
+        std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
+        std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
+        polar_gap_field polar_gap_field_inte(x_right, x_left,
+                           y_right, y_left,
+                            selectedGap.goal.x * coefs,
+                            selectedGap.goal.y * coefs,
+                            selectedGap.getLeftObs(),
+                            selectedGap.getRightObs(),
+                            selectedGap.isAxial(),
+                            cfg_->gap_manip.sigma,
+                            x[0],
+                            x[1]);
+
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            clf_cbf_dyn, x, 0.0,
+            polar_gap_field_inte, x, 0.0,
             selectedGap.gap_lifespan,
             cfg_->traj.integrate_stept, corder);
 

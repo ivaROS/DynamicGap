@@ -26,6 +26,7 @@ namespace dynamic_gap {
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
 
             void setValidSliceWaypoint(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
+            void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal);
             void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
             void convertAxialGap(dynamic_gap::Gap&);
             void radialExtendGap(dynamic_gap::Gap&);
