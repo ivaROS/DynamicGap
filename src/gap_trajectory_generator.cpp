@@ -12,11 +12,13 @@ namespace dynamic_gap{
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
         // flipping it here because the values appear to be wrong in the integration
-        Matrix<double, 5, 1> left_model_state;
-        Matrix<double, 5, 1> right_model_state;
-        Matrix<double, 5, 1> model_one = selectedGap.left_model->get_state();
+        dynamic_gap::MP_model* left_model = selectedGap.right_model;
+        dynamic_gap::MP_model* right_model = selectedGap.left_model;
+
+        Matrix<double, 5, 1> left_model_state = left_model->get_state();
+        Matrix<double, 5, 1> right_model_state = right_model->get_state();
+
         //std::cout << "nominal left model: " << model_one[0] << ", " << model_one[1] << ", " << model_one[2] << std::endl;
-        Matrix<double, 5, 1> model_two = selectedGap.right_model->get_state();
         //std::cout << "nominal right model: " << model_two[0] << ", " << model_two[1] << ", " << model_two[2] << std::endl;
         
         // are these the correct angles to check?
@@ -25,7 +27,8 @@ namespace dynamic_gap{
         double angle_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
         // std::cout << "picking gap sides" << std::endl;
         // seems to only do 2,7,9
-        determineLeftRightModels(left_model_state, right_model_state, selectedGap, angle_goal);
+
+        // determineLeftRightModels(left_model_state, right_model_state, selectedGap, angle_goal);
 
         double beta_local_goal; 
         beta_local_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
@@ -73,7 +76,7 @@ namespace dynamic_gap{
         int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
         
-        if (left_model_state[4] > 0 && right_model_state[4] < 0) {
+        if (selectedGap.getCategory() == "expanding") {
             std::cout << "go to goal trajectory generated" << std::endl;
             std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << std::endl;
             g2g inte_g2g(
@@ -115,7 +118,7 @@ namespace dynamic_gap{
             x2 -= selectedGap.qB(0);
             y1 -= selectedGap.qB(1);
             y2 -= selectedGap.qB(1);
-            }
+        }
 
         double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
         //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
@@ -127,7 +130,8 @@ namespace dynamic_gap{
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
                             cfg_->gap_manip.K_acc,
-                            local_goal_dist,
+                            selectedGap.goal.x * coefs,
+                            selectedGap.goal.y * coefs,
                             x[8],
                             x[13],
                             cfg_->control.vx_absmax,
@@ -199,7 +203,7 @@ namespace dynamic_gap{
         return traj_set;
     }
 
-
+    /*
     void GapTrajGenerator::determineLeftRightModels(Matrix<double, 5, 1>& left_model_state, Matrix<double, 5, 1>& right_model_state, dynamic_gap::Gap& selectedGap, double angle_goal) {
         Matrix<double, 5, 1> model_one = selectedGap.left_model->get_state();
         //std::cout << "nominal left model: " << model_one[0] << ", " << model_one[1] << ", " << model_one[2] << std::endl;
@@ -277,6 +281,8 @@ namespace dynamic_gap{
         }
         return;
     }
+    */
+
     // Return in Odom frame (used for ctrl)
     geometry_msgs::PoseArray GapTrajGenerator::transformBackTrajectory(
         geometry_msgs::PoseArray posearr,

@@ -48,10 +48,13 @@ class Agent:
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
         # top left to bottom right ((x, y) to (x,y)
-        self.campus_goal_regions = [[10, 11, 16, 8],[1, 7, 10, 6],
-                                    [9, 5, 13, 4],[16, 7, 21, 1]]  #[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
-                                    #[13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
-                                    #[20, 21, 23, 18], [16, 16, 17, 12],[19, 16, 22, 14],[25, 17, 28, 12],
+        self.campus_goal_regions = [[5.25, 15, 6.25, 8], [4.75, 17, 6, 15.5]]
+        '''
+        [10, 11, 16, 8],[1, 7, 10, 6],
+        [9, 5, 13, 4],[16, 7, 21, 1],[1, 29, 15, 28],[1, 23, 3, 16],[4, 23, 10, 20],
+        [13, 27, 15, 22],[16, 25, 28, 24],[12, 21, 14, 18],
+        [20, 21, 23, 18], [16, 16, 17, 12],[19, 16, 22, 14],[25, 17, 28, 12],
+        '''
 
         self.empty_goal_regions = [[9, 11, 19, 6]]
 
@@ -132,9 +135,9 @@ class Agent:
             goal.pose.position.x = 7
             goal.pose.position.y = 9
         '''
-        rand_region = self.empty_goal_regions[np.random.randint(0, len(self.empty_goal_regions))]
-        goal.pose.position.x = np.random.randint(rand_region[0], rand_region[2])
-        goal.pose.position.y = np.random.randint(rand_region[3], rand_region[1])
+        rand_region = self.campus_goal_regions[np.random.randint(0, len(self.empty_goal_regions))]
+        goal.pose.position.x = (rand_region[2] - rand_region[0])*np.random.random_sample() + rand_region[0]
+        goal.pose.position.y = (rand_region[1] - rand_region[3])*np.random.random_sample() + rand_region[3]
         goal.pose.position.z = 0.0
         goal.pose.orientation.w = 1.0
         req = GetPlan()

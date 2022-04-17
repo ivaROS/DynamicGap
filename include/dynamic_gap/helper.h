@@ -229,8 +229,9 @@ namespace dynamic_gap {
         double betadot_L_0, betadot_R_0;
         double vx_absmax, vy_absmax;
         double init_rbt_x, init_rbt_y;
-        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double local_goal_dist, double betadot_L_0, double betadot_R_0, double vx_absmax, double vy_absmax, double init_rbt_x, double init_rbt_y)
-        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), local_goal_dist(local_goal_dist), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0), vx_absmax(vx_absmax), vy_absmax(vy_absmax), init_rbt_x(init_rbt_x), init_rbt_y(init_rbt_y) {}
+        double gx, gy;
+        clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double gx, double gy, double betadot_L_0, double betadot_R_0, double vx_absmax, double vy_absmax, double init_rbt_x, double init_rbt_y)
+        : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), gx(gx), gy(gy), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0), vx_absmax(vx_absmax), vy_absmax(vy_absmax), init_rbt_x(init_rbt_x), init_rbt_y(init_rbt_y) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -529,33 +530,6 @@ namespace dynamic_gap {
             dxdt[11] = - new_x[10] * new_x[13]; // cos(beta_right)
             dxdt[12] = new_x[13]*new_x[13] - new_x[12]*new_x[12] + new_x[9] * (a_x_rel*new_x[11] + a_y_rel * new_x[10]); // rdot_right / r_right
             dxdt[13] = - 2 * new_x[12] * new_x[13] + new_x[9] * (-a_x_rel * new_x[10] + a_y_rel * new_x[11]); // betadot_right
-
-            dxdt[14] = 0;
-            dxdt[15] = 0;
-            /*
-            // do we need to move goal
-            // should I put a thing for V < 0.1? May be good to not, pushes goal away from oncoming gap point?
-            double goal_gap_pt_thresh = 0.25; // distance of 0.1
-            double goal_left_distance = sqrt(pow(rel_goal[0] - x_left[0], 2) + pow(rel_goal[1] - x_left[1], 2));
-            double goal_right_distance = sqrt(pow(rel_goal[0] - x_right[0], 2) + pow(rel_goal[1] - x_right[1], 2));
-            // should not just compare thetas here, need to compare distances I think
-            if (V > 0.1 && goal_left_distance < goal_gap_pt_thresh && x[8] < 0) {
-                //std::cout << "adjusting goal from left" << std::endl;
-                //std::cout << "goal left distance" << goal_left_distance << std::endl;
-                //std::cout << "left beta: " << std::atan2(x[5], x[6]) << ", local goal beta: " << std::atan2(x[14], x[15]) << std::endl;
-                dxdt[14] = x[15] * x[8];
-                dxdt[15] = -x[14] * x[8];
-            } else if (V > 0.1 && goal_right_distance < goal_gap_pt_thresh && x[13] > 0) {
-                //std::cout << "adjusting goal from right" << std::endl;
-                //std::cout << "goal right distance" << goal_right_distance << std::endl;
-                //std::cout << "right beta: " << std::atan2(x[10], x[11]) << ", local goal beta: " << std::atan2(x[14], x[15]) << std::endl;
-                dxdt[14] = x[15] * x[13];
-                dxdt[15] = -x[14] * x[13];
-            }
-            */
-            //std::cout << "length: " << ros::Time::now().toSec() - begin_time << std::endl;
-            // std::cout << "done" << std::endl;
-            //std::cout << "~~~~~~~~~~~~" << std::endl;
             return;
         }
     };

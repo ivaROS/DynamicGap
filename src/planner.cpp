@@ -729,12 +729,6 @@ namespace dynamic_gap
         log_vel_comp.set_capacity(cfg.planning.halt_size);
     }
 
-    bool compareBearing(dynamic_gap::MP_model* model_one, dynamic_gap::MP_model* model_two) {
-        Matrix<double, 5, 1> state_one = model_one->get_state();
-        Matrix<double, 5, 1> state_two = model_two->get_state();
-        return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
-    }
-
     // should return gaps with initialized models, no attachements to anything else
     std::vector<dynamic_gap::Gap> Planner::get_curr_raw_gaps() {
         return raw_gaps;
@@ -761,33 +755,6 @@ namespace dynamic_gap
         update_models(curr_observed_gaps);
         gapvisualizer->drawGapsModels(curr_observed_gaps);
         std::cout << "FINISHED SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
-
-        /*
-        start_index = right_gap_index - N;
-        if (start_index < 0) { start_index += 2*g.half_scan;}
-        end_index = (right_gap_index + N) % int(2*g.half_scan);
-        std::cout << "right point: (" << right_pt[0] << ", " << right_pt[1] << "), neighbors (" << start_index << " to " << end_index << ") distances: " << std::endl;
-        if (end_index > start_index) {
-            for (int i = start_index; i < end_index; i++) {
-                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
-            }
-        } else {
-            for (int i = start_index; i < 511; i++) {
-                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
-            }
-            for (int i = 0; i < end_index; i++) {
-                Eigen::Vector2f right_neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-                                                    (stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-                std::cout << (right_neighbor_pt - right_pt).norm() << ", ";
-            }
-        }
-        std::cout << "" << std::endl;
-        }   
-        */
 
         std::cout << "GAP FEASIBILITY CHECK" << std::endl;
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(curr_observed_gaps);

@@ -295,14 +295,20 @@ namespace dynamic_gap
                 return _frame;
             }
 
+            void setCategory(std::string _category) {
+                category = _category;
+            }
+
+            std::string getCategory() {
+                return category;
+            }
+
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
             float get_dist_side() {
-                int idx_diff;
-                if (_right_idx > _left_idx) {
-                    idx_diff = (_right_idx - _left_idx);
-                } else {
-                    idx_diff = (_right_idx - _left_idx + 2*half_scan);
-                }   
+                int idx_diff = _right_idx - _left_idx;
+                if (idx_diff < 0) {
+                    idx_diff += (2*half_scan);
+                } 
                 return sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (cos(float(idx_diff) / float(half_scan) * M_PI)));
             }
             
@@ -368,6 +374,7 @@ namespace dynamic_gap
             MP_model *left_model;
             MP_model *right_model;
             int _index;
+            std::string category;
         // private:
     };
 }
