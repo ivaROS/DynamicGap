@@ -1040,20 +1040,21 @@ namespace dynamic_gap {
             near_model = gap.right_model;
         }
 
-        std::cout << "near point: " << near_idx << ", " << near_dist << ", far point: " << far_idx << ", " << far_dist << std::endl;
+        std::cout << "near point in polar: " << near_idx << ", " << near_dist << ", far point in polar: " << far_idx << ", " << far_dist << std::endl;
         
         Eigen::Matrix3f rot_mat;
-        // THIS IS SE(3) MATRIX THAT REPRESENT DESIRED ROTATION FOR POINT TO PIVOT
+        // rot_mat: SE(3) matrix that represents desired rotation amount
         rot_mat << cos(theta), -sin(theta), 0,
                     sin(theta), cos(theta), 0,
                     0, 0, 1;
 
         auto half_num_scan = gap.half_scan;
         
-        Eigen::Matrix3f near_rbt;
+        // obtaining near and far theta values from indices
         double near_theta = M_PI / half_num_scan * (near_idx - half_num_scan);
         double far_theta = M_PI / half_num_scan * (far_idx - half_num_scan);
-        // THESE ARE SE(3) MATRICES THAT REPRESENT L/R POINTS FROM RBT ORIGIN
+        Eigen::Matrix3f near_rbt;
+        // near_rbt, far_robt: SE(3) matrices that represent translation from rbt origin to far and near points
         near_rbt << 1, 0, near_dist * cos(near_theta),
                     0, 1, near_dist * sin(near_theta),
                     0, 0, 1;
