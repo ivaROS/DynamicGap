@@ -30,21 +30,6 @@ namespace dynamic_gap
                 //*index += 1;
             };
 
-            /*
-            Gap(const dynamic_gap::Gap& gap) {
-                convex.convex_lidx = gap.convex.convex_lidx;
-                convex.convex_ridx = gap.convex.convex_ridx;
-                convex.convex_ldist = gap.convex.convex_ldist;
-                convex.convex_rdist = gap.convex.convex_rdist;
-
-                left_model = gap.left_model;
-                right_model = gap.right_model;
-                // set indices and distances
-                // copy models
-                // copy some sort of gap index to check against alter
-            }
-            */
-
             ~Gap() {};
 
             void setLeftModel(dynamic_gap::MP_model * _left_model) {
@@ -296,11 +281,28 @@ namespace dynamic_gap
             }
 
             void setCategory(std::string _category) {
+                std::cout << "setting category to: " << _category << std::endl;
                 category = _category;
             }
 
             std::string getCategory() {
                 return category;
+            }
+
+            void setCrossingPoint(float x, float y) {
+                crossing_pt << x,y;
+            }
+
+            Eigen::Vector2f getCrossingPoint() {
+                return crossing_pt;
+            }
+
+            void setClosingPoint(float x, float y) {
+                closing_pt << x,y;
+            }
+
+            Eigen::Vector2f getClosingPoint() {
+                return closing_pt;
             }
 
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
@@ -346,10 +348,10 @@ namespace dynamic_gap
             bool _axial = false;
             bool left_type = false;
 
-            int swept_convex_lidx = 0;
-            int swept_convex_ridx = 0;
-            float swept_convex_ldist = 3;
-            float swept_convex_rdist = 3;
+            int swept_lidx = 0;
+            int swept_ridx = 511;
+            float swept_ldist = 3;
+            float swept_rdist = 3;
 
             struct converted {
                 int convex_lidx = 0;
@@ -375,6 +377,8 @@ namespace dynamic_gap
             MP_model *right_model;
             int _index;
             std::string category;
+            Eigen::Vector2f crossing_pt;
+            Eigen::Vector2f closing_pt;
         // private:
     };
 }

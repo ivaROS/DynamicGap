@@ -139,7 +139,6 @@ namespace dynamic_gap
 
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-            gapvisualizer->drawGaps(observed_gaps, std::string("fin"));
 
             // do we need to merge every time?
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
@@ -319,24 +318,70 @@ namespace dynamic_gap
         return;
     }
 
-    std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps) {
+    /*
+    // CHANGING SO NOT PASSING BY REFERENCE HERE JUST TO SEE WHAT CHANGES DO, FIX LATER
+    std::vector<dynamic_gap::Gap> Planner::gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<dynamic_gap::Gap> manip_set;
         manip_set = _observed_gaps;
 
+        // we want to change the models in here
+
+        try {
+            for (size_t i = 0; i < manip_set.size(); i++) {
+                std::cout << "MANIPULATING GAP " << i << std::endl;
+                if (manip_set.at(i).getCategory() == "expanding") { 
+                    std::cout << "manipulating an expanding gap" << std::endl;
+                    // reduceGap, don't really need if we are not using models?
+
+                    // AGC, set new model to static
+                    gapManip->convertAxialGap(manip_set.at(i), v_ego); // swing axial inwards
+
+                    // radial extend: don't really need if we are not using models?
+                    // (how would we do radial extend if gap is non-convex?)
+                } else if (manip_set.at(i).getCategory() == "closing") {
+                    std::cout << "manipulating a static/closing gap" << std::endl;
+                    // AGC (TODO: what to do about model of pivot point?)
+                    // radial extend ( and extend models)
+                } else { // translating
+                    std::cout << "manipulating a translating gap" << std::endl;
+                    // AGC (TODO: what to do about model of pivot point?)
+                    // radial extend ( and extend models)
+                }
+            }    
+        } catch(...) {
+            ROS_FATAL_STREAM("gapManipulateByCategory");
+        }   
+
+        gapvisualizer->drawManipGaps(manip_set, std::string("manip"));
+        return manip_set;
+    }
+    */
+
+    std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego) {
+        boost::mutex::scoped_lock gapset(gapset_mutex);
+        std::vector<dynamic_gap::Gap> manip_set;
+        manip_set = _observed_gaps;
+
+        // we want to change the models in here
+
         try {
             for (size_t i = 0; i < manip_set.size(); i++)
             {
+                // a copied pointer still points to same piece of memory, so we need to copy the models
+                manip_set.at(i).left_model = new dynamic_gap::MP_model(*_observed_gaps.at(i).left_model);
+                manip_set.at(i).right_model = new dynamic_gap::MP_model(*_observed_gaps.at(i).right_model);
+
                 std::cout << "MANIPULATING GAP " << i << std::endl;
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // cut down from non convex 
-                gapManip->convertAxialGap(manip_set.at(i)); // swing axial inwards
+                gapManip->convertAxialGap(manip_set.at(i), v_ego); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i)); // extend behind robot
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
         }
 
-        gapvisualizer->drawManipGaps(manip_set);
+        gapvisualizer->drawManipGaps(manip_set, std::string("manip"));
         return manip_set;
     }
 
@@ -757,11 +802,14 @@ namespace dynamic_gap
         std::cout << "FINISHED SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
 
         std::cout << "GAP FEASIBILITY CHECK" << std::endl;
-        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->feasibilityCheck(curr_observed_gaps);
+        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->gapSetFeasibilityCheck(curr_observed_gaps);
         std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
+        // need to have here for models
+        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
+
         std::cout << "STARTING GAP MANIPULATE" << std::endl;
-        auto manip_gap_set = gapManipulate(feasible_gap_set);
+        auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego);
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
         std::cout << "SET GAP GOAL" << std::endl;

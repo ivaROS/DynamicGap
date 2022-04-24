@@ -14,58 +14,73 @@ namespace dynamic_gap{
         gapmodel_vel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
 
         std_msgs::ColorRGBA std_color;
-        std::vector<std_msgs::ColorRGBA> raw_radial;
-        std::vector<std_msgs::ColorRGBA> raw_axial;
-        std::vector<std_msgs::ColorRGBA> fin_radial;
-        std::vector<std_msgs::ColorRGBA> fin_axial;
-        std::vector<std_msgs::ColorRGBA> extent;
-        std::vector<std_msgs::ColorRGBA> agc;
+        std::vector<std_msgs::ColorRGBA> raw;
+        std::vector<std_msgs::ColorRGBA> simp_expanding;
+        std::vector<std_msgs::ColorRGBA> simp_closing;
+        std::vector<std_msgs::ColorRGBA> simp_translating;
+        std::vector<std_msgs::ColorRGBA> manip_expanding;
+        std::vector<std_msgs::ColorRGBA> manip_closing;
+        std::vector<std_msgs::ColorRGBA> manip_translating;
         std::vector<std_msgs::ColorRGBA> gap_model;
 
         // Raw Therefore Alpha halved
         // RAW: RED
         // RAW RADIAL
+        /*
         std_color.a = 0.5;
         std_color.r = 1.0; //std_color.r = 0.7;
         std_color.g = 0.0; //std_color.g = 0.1;
         std_color.b = 0.0; //std_color.b = 0.5;
         raw_radial.push_back(std_color);
         raw_radial.push_back(std_color);
-        // RAW SWEPT
-        std_color.r = 1.0; //std_color.r = 0.6;
+        */
+        // RAW
+        std_color.a = 1.0;
+        std_color.r = 0.0; //std_color.r = 0.6;
         std_color.g = 0.0; //std_color.g = 0.2;
         std_color.b = 0.0; //std_color.b = 0.1;
-        raw_axial.push_back(std_color);
-        raw_axial.push_back(std_color);
+        raw.push_back(std_color);
+        raw.push_back(std_color);
         
-        // SIMPLIFIED: BLUE
-        // SIMPLIFIED RADIAL
-        std_color.a = 1;
-        std_color.r = 0.0; //std_color.r = 1;
+        // SIMPLIFIED EXPANDING
+        std_color.a = 0.5;
+        std_color.r = 1.0; //std_color.r = 1;
         std_color.g = 0.0; //std_color.g = 0.9;
-        std_color.b = 1.0; //std_color.b = 0.3;
-        fin_radial.push_back(std_color);
-        fin_radial.push_back(std_color);
-        // SIMPLIFIED AXIAL
+        std_color.b = 0.0; //std_color.b = 0.3;
+        simp_expanding.push_back(std_color);
+        simp_expanding.push_back(std_color);
+        // SIMPLIFIED CLOSING
+        std_color.r = 0.0; //std_color.r = 0.4;
+        std_color.g = 1.0; //std_color.g = 0;
+        std_color.b = 0.0; //std_color.b = 0.9;
+        simp_closing.push_back(std_color);
+        simp_closing.push_back(std_color);
+        // SIMPLIFIED TRANSLATING
         std_color.r = 0.0; //std_color.r = 0.4;
         std_color.g = 0.0; //std_color.g = 0;
         std_color.b = 1.0; //std_color.b = 0.9;
-        fin_axial.push_back(std_color);
-        fin_axial.push_back(std_color);
+        simp_translating.push_back(std_color);
+        simp_translating.push_back(std_color);
 
-        // MANIPULATED: GREEN
-        // RADIALLY EXTENDED
-        std_color.r = 0.0; //std_color.r = 0;
-        std_color.g = 1.0; //std_color.g = 1;
-        std_color.b = 0.0; //std_color.b = 0;
-        extent.push_back(std_color);
-        extent.push_back(std_color);
-        // AXIAL GAP CONVERSION
-        std_color.r = 0.0; //std_color.r = 1;
+        // MANIPULATED EXPANDING
+        std_color.a = 1.0;
+        std_color.r = 1.0; //std_color.r = 1;
+        std_color.g = 0.0; //std_color.g = 0.9;
+        std_color.b = 0.0; //std_color.b = 0.3;
+        manip_expanding.push_back(std_color);
+        manip_expanding.push_back(std_color);
+        // MANIPULATED CLOSING
+        std_color.r = 0.0; //std_color.r = 0.4;
         std_color.g = 1.0; //std_color.g = 0;
-        std_color.b = 0.0; //std_color.b = 0;
-        agc.push_back(std_color);
-        agc.push_back(std_color);
+        std_color.b = 0.0; //std_color.b = 0.9;
+        manip_closing.push_back(std_color);
+        manip_closing.push_back(std_color);
+        // MANIPULATED TRANSLATING
+        std_color.r = 0.0; //std_color.r = 0.4;
+        std_color.g = 0.0; //std_color.g = 0;
+        std_color.b = 1.0; //std_color.b = 0.9;
+        manip_translating.push_back(std_color);
+        manip_translating.push_back(std_color);
 
         // MODELS: PURPLE
         std_color.r = 1;
@@ -73,13 +88,13 @@ namespace dynamic_gap{
         std_color.b = 1;
         gap_model.push_back(std_color);
         gap_model.push_back(std_color);
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw_axial", raw_axial));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw_radial", raw_radial));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_radial", fin_radial));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_axial", fin_axial));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_extent", extent));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("fin_agc", agc));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("gap_model", gap_model));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw", raw));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_expanding", simp_expanding));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_closing", simp_closing));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_translating", simp_translating));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_expanding", manip_expanding));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_closing", manip_closing));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_translating", manip_translating));
     }
 
     void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, std::string ns, std::string color) {
@@ -111,13 +126,21 @@ namespace dynamic_gap{
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
 
+        // std::cout << "ns coming in: " << ns << std::endl;
         std::string local_ns = ns;
-        if (g.isAxial()) {
-            local_ns.append("_axial");
-        } else {
-            local_ns.append("_radial");
+        // for compare, 0 is true?
+        if (ns.compare("raw") != 0) {
+            if (g.getCategory().compare("expanding") == 0) {
+                local_ns.append("_expanding");
+            } else if (g.getCategory().compare("closing") == 0) {
+                local_ns.append("_closing");
+            } else {
+                local_ns.append("_translating");
+            }
         }
-
+        
+        // std::cout << "gap category: " << g.getCategory() << std::endl;
+        // std::cout << "ultimate local ns: " << local_ns << std::endl;
         auto color_value = colormap.find(local_ns);
         if (color_value == colormap.end()) {
             ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
@@ -187,7 +210,7 @@ namespace dynamic_gap{
     void GapVisualizer::drawGaps(std::vector<dynamic_gap::Gap> g, std::string ns, std::string color) {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
-        for (auto & gap : g) {
+        for (auto gap : g) {
             drawGap(vis_arr, gap, ns);
         }
         gaparc_publisher.publish(vis_arr);
@@ -197,7 +220,7 @@ namespace dynamic_gap{
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray gap_pos_arr;
         visualization_msgs::MarkerArray gap_vel_arr;
-        for (auto & gap : g) {
+        for (auto gap : g) {
             drawGapModels(gap_pos_arr, gap_vel_arr, gap, "gap_models");
         }
         gapmodel_pos_publisher.publish(gap_pos_arr);
@@ -303,7 +326,7 @@ namespace dynamic_gap{
         // std::cout << "right velocity end point: " << right_vel_pt.x << ", " << right_vel_pt.y << std::endl;
     }
 
-    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle) {
+    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns) {
         // if AGC: Color is Red
         // if Convex: color is Brown, viz_jitter + 0.1
         // if RadialExtension: color is green, draw additional circle
@@ -319,6 +342,7 @@ namespace dynamic_gap{
             viz_offset = g.isLeftType() ? -2 : 2;
         }
 
+        /*
         std::string ns;
         if (g.mode.reduced) {
             ns = "fin_radial";
@@ -332,6 +356,19 @@ namespace dynamic_gap{
         if (g.mode.agc) {
             ns = "fin_agc";
         }
+        */
+
+        std::string local_ns = ns;
+        // for compare, 0 is true?
+        if (ns.compare("raw") != 0) {
+            if (g.getCategory().compare("expanding") == 0) {
+                local_ns.append("_expanding");
+            } else if (g.getCategory().compare("closing") == 0) {
+                local_ns.append("_closing");
+            } else {
+                local_ns.append("_translating");
+            }
+        }
 
         
         // num gaps really means segments within a gap
@@ -341,6 +378,7 @@ namespace dynamic_gap{
         } else {
             gap_idx_size = (g.convex.convex_ridx - g.convex.convex_lidx) + int(2*g.half_scan);
         }
+
         int num_segments = std::abs(gap_idx_size) / cfg_->gap_viz.min_resoln + 1;
         float dist_step = (g.convex.convex_rdist - g.convex.convex_ldist) / num_segments;
         int sub_gap_lidx = g.convex.convex_lidx + viz_offset;
@@ -353,7 +391,7 @@ namespace dynamic_gap{
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
 
-        auto color_value = colormap.find(ns);
+        auto color_value = colormap.find(local_ns);
         if (color_value == colormap.end()) {
             ROS_FATAL_STREAM("[drawManipGaps] Visualization Color not found, return without drawing");
             return;
@@ -390,17 +428,9 @@ namespace dynamic_gap{
 
             this_marker.points = lines;
             this_marker.id = id++;
-            /*
-            if (i == 0) {
-                this_marker.scale.x = 10*thickness;
-            } else {
-                this_marker.scale.x = thickness;
-            }
-            */
             vis_arr.markers.push_back(this_marker);
         }
 
-        // this_marker.scale.x = 10*thickness;
         // close the last
         lines.clear();
         linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
@@ -493,13 +523,13 @@ namespace dynamic_gap{
 
     }
 
-    void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec) {
+    void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns) {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
 
         bool circle = false;
-        for (auto & gap : vec) {
-            drawManipGap(vis_arr, gap, circle);
+        for (auto gap : vec) {
+            drawManipGap(vis_arr, gap, circle, ns);
         }
         gapside_publisher.publish(vis_arr);
     }
@@ -711,7 +741,7 @@ namespace dynamic_gap{
     void GoalVisualizer::drawGapGoals(std::vector<dynamic_gap::Gap> gs) {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
-        for (auto & gap : gs) {
+        for (auto gap : gs) {
             drawGapGoal(vis_arr, gap);
         }
         gapwp_pub.publish(vis_arr);

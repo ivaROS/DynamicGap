@@ -22,7 +22,7 @@
 #include "tf/transform_datatypes.h"
 
 namespace dynamic_gap {
-    typedef boost::array<double, 16> state_type;
+    typedef boost::array<double, 14> state_type;
 
     struct polar_gap_field{
 
@@ -366,12 +366,12 @@ namespace dynamic_gap {
         Eigen::Vector2d clip_velocities(double x_vel, double y_vel) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
-            if (x_vel <= vx_absmax && y_vel <= vy_absmax) {
+            if (std::abs(x_vel) <= vx_absmax && std::abs(y_vel) <= vy_absmax) {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(x_vel, y_vel);
+                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(std::abs(x_vel_, std::abs(y_vel));
                 return clipped_vel;
             }
         }
@@ -398,13 +398,16 @@ namespace dynamic_gap {
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
-            double gx = local_goal_dist*x[15];
-            double gy = local_goal_dist*x[14];
+            Eigen::Vector2d init_to_goal_vect(gx - init_rbt_x, gy - init_rbt_y);
+            Eigen::Vector2d curr_to_goal_vect(gx - x[0], gy - x[1]);
 
-            Eigen::Vector2d goal_pt(gx - init_rbt_x, gy - init_rbt_y);
-            Eigen::Vector2d rbt_traveled(x[0] - init_rbt_x, x[1] - init_rbt_y);
-            bool past_goal = rbt_traveled.norm() > 0.9*goal_pt.norm();
+            bool past_goal = (init_to_goal_vect.dot(curr_to_goal_vect) < 0);
+
+            //Eigen::Vector2d goal_pt(gx - init_rbt_x, gy - init_rbt_y);
+            //Eigen::Vector2d rbt_traveled(x[0] - init_rbt_x, x[1] - init_rbt_y);
+            //bool past_goal = rbt_traveled.norm() > 0.9*goal_pt.norm();
             // std::cout << "rbt traveled norm: " << rbt_traveled.norm() << ", goal_pt norm: " << goal_pt.norm() << std::endl;
+            
             if (past_goal) {   
                 // std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0;
@@ -419,7 +422,7 @@ namespace dynamic_gap {
 
             double V = pow(rel_goal[0], 2) + pow(rel_goal[1], 2);
             Eigen::Vector2d rbt(new_x[0], new_x[1]);
-            Eigen::Vector2d rbt_vel = clip_velocities(new_x[2], new_x[3]);
+            Eigen::Vector2d rbt_vel(new_x[2], new_x[3]);
 
             //std::cout << "t: " << t << ", x: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3] << std::endl;
             //std::cout << "V: " << V << ", local goal: " << gx << ", " << gy << ", " << std::endl;
@@ -463,6 +466,7 @@ namespace dynamic_gap {
 
             bool swept_check = -std::atan2(det, dot);
 
+            // TODO: upgrade swept check to check for each side individually
 
             Eigen::Vector2d a_actual = a_des;
             // check for convexity of gap

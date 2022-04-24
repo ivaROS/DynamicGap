@@ -26,16 +26,14 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> x; // cartesian state
             Matrix<double, 5, 1> frozen_y; // for simulating situation where robot is not moving
             Matrix<double, 4, 1> frozen_x;
+            Matrix<double, 5, 1> extended_origin_y; // for extending origin of model in radiallyExtendGap
+            Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 5, 5> P; // covariance matrix
             Matrix<double, 5, 3> G; // kalman gain
 
             double t0;
             double t;
             double dt;
-
-            //float acc_t0;
-            //float acc_t;
-            //float acc_T;
 
             Matrix<double, 1, 2> a;
             Matrix<double, 1, 2> v_ego;
@@ -51,7 +49,8 @@ namespace dynamic_gap {
         public:
 
             MP_model(std::string, int, double, double, Matrix<double, 1, 2>);
-            
+            MP_model(const dynamic_gap::MP_model &model);
+
             void initialize(double, double, Matrix<double, 1, 2>);
 
             ~MP_model();
@@ -62,6 +61,7 @@ namespace dynamic_gap {
             Matrix<double, 5, 1> get_frozen_state();
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_frozen_cartesian_state();
+            void extend_model_origin(Eigen::Vector2f qB);
 
             Matrix<double, 2, 1> get_v_ego();
             void integrate();
@@ -74,6 +74,7 @@ namespace dynamic_gap {
             void set_side(std::string _side);
             std::string get_side();
             int get_index();
+            void inflate_model(float x, float y);
 
     };
 }

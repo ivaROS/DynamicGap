@@ -243,7 +243,7 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps);
+        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
 
         /**
          * 
@@ -320,6 +320,8 @@ namespace dynamic_gap
 
         void setCurrentLeftModel(dynamic_gap::MP_model * _left_model);
         void setCurrentRightModel(dynamic_gap::MP_model * _right_model);
+
+        std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
 
     };
 }

@@ -22,9 +22,9 @@ namespace dynamic_gap{
         //std::cout << "nominal right model: " << model_two[0] << ", " << model_two[1] << ", " << model_two[2] << std::endl;
         
         // are these the correct angles to check?
-        double angle_one = atan2(model_one[1], model_one[2]);
-        double angle_two = atan2(model_two[1], model_two[2]);
-        double angle_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
+        //double angle_one = atan2(model_one[1], model_one[2]);
+        //double angle_two = atan2(model_two[1], model_two[2]);
+        //double angle_goal = atan2(selectedGap.goal.y*coefs, selectedGap.goal.x*coefs);
         // std::cout << "picking gap sides" << std::endl;
         // seems to only do 2,7,9
 
@@ -48,9 +48,7 @@ namespace dynamic_gap{
                         right_model_state[1],
                         right_model_state[2],
                         right_model_state[3],
-                        right_model_state[4],
-                        sin(beta_local_goal),
-                        cos(beta_local_goal)}; 
+                        right_model_state[4]}; 
         
         auto left_ori = std::atan2(left_model_state[1], left_model_state[2]);
         auto right_ori = std::atan2(right_model_state[1], right_model_state[2]);
@@ -76,7 +74,7 @@ namespace dynamic_gap{
         int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
         
-        if (selectedGap.getCategory() == "expanding") {
+        if (selectedGap.getCategory().compare("expanding") == 0) {
             std::cout << "go to goal trajectory generated" << std::endl;
             std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << std::endl;
             g2g inte_g2g(
@@ -111,13 +109,15 @@ namespace dynamic_gap{
                  right_model_state[1],
                  right_model_state[2],
                  right_model_state[3],
-                 right_model_state[4],
-                 sin(beta_local_goal),
-                 cos(beta_local_goal)};
+                 right_model_state[4]};
+                 
             x1 -= selectedGap.qB(0);
             x2 -= selectedGap.qB(0);
             y1 -= selectedGap.qB(1);
             y2 -= selectedGap.qB(1);
+            //selected_gap.left_model->extend_model_origin(x1, y1);
+            //selected_gap.right_model->extend_model_origin(x2, y2);
+
         }
 
         double local_goal_dist = std::sqrt(pow(selectedGap.goal.x*coefs, 2) + pow(selectedGap.goal.y*coefs, 2));
@@ -152,8 +152,7 @@ namespace dynamic_gap{
         rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        std::cout << "revised rbt index: " << rbt_idx << ", revised left index: " << left_idx << ", revised right index: " << right_idx << std::endl;
-        // boost::numeric::odeint::max_step_checker m_checker = boost::numeric::odeint::max_step_checker(10);
+        // std::cout << "revised rbt index: " << rbt_idx << ", revised left index: " << left_idx << ", revised right index: " << right_idx << std::endl;
 
         // point 1 is right from robot POV
         // point 2 is left from robot POV
@@ -176,6 +175,11 @@ namespace dynamic_gap{
                             cfg_->gap_manip.sigma,
                             x[0],
                             x[1]);
+
+        Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
+        Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
+        std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
+        std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
             polar_gap_field_inte, x, 0.0,

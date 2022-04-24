@@ -24,6 +24,16 @@ namespace dynamic_gap {
         initialize(init_r, init_beta, v_ego);
     }
 
+    MP_model::MP_model(const dynamic_gap::MP_model &model) {
+        y = model.y;
+        x = get_cartesian_state();
+    }
+
+    // copy constructor
+    // copies what
+    // state really only thing that matters
+    // won't be using covariance matrix or anything
+
     MP_model::~MP_model() {}
 
     void MP_model::initialize(double init_r, double init_beta, Matrix<double, 1, 2> _v_ego) {
@@ -58,6 +68,7 @@ namespace dynamic_gap {
                 std::cos(init_beta), 
                 (init_r*std::cos(init_beta)*v_rel_x + init_r*std::sin(init_beta)*v_rel_y)/ pow(init_r, 2), 
                 (init_r*std::cos(init_beta)*v_rel_y - init_r*std::sin(init_beta)*v_rel_x)/ pow(init_r, 2);
+        x = get_cartesian_state();
         P << 10.0e-4, 0.0, 0.0, 0.0, 0.0,
                 0.0, 10.0e-4, 0.0, 0.0, 0.0,
                 0.0, 0.0, 10.0e-4, 0.0, 0.0,
@@ -94,8 +105,42 @@ namespace dynamic_gap {
 
         frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         frozen_x << 0.0, 0.0, 0.0, 0.0;
+
+        extended_origin_y << 0.0, 0.0, 0.0, 0.0, 0.0;
+        extended_origin_x << 0.0, 0.0, 0.0, 0.0;
+    }
+
+    void MP_model::inflate_model(float inf_x_pos, float inf_y_pos) {
+        Matrix<double, 4, 1> cartesian_state = get_cartesian_state();
+        std::cout << "in inflate model, setting x from: (" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ") to ";
+        cartesian_state[0] = inf_x_pos;
+        cartesian_state[1] = inf_y_pos;
+        std::cout << "(" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ")" << std::endl;
+        
+        double new_r = std::sqrt(pow(cartesian_state[0], 2) + pow(cartesian_state[1], 2));
+        double new_beta = std::atan2(cartesian_state[1], cartesian_state[0]);
+        double new_rdot_over_r = (cartesian_state[0]*cartesian_state[2] + cartesian_state[1]*cartesian_state[3]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
+        double new_betadot = (cartesian_state[0]*cartesian_state[3] - cartesian_state[1]*cartesian_state[2]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
+        
+        // Matrix<double, 5, 1> new_y;
+        y << (1.0 / new_r), std::sin(new_beta), std::cos(new_beta), new_rdot_over_r, new_betadot;
     }
     
+    void MP_model::extend_model_origin(Eigen::Vector2f qB) {
+        Matrix<double, 4, 1> cartesian_state = get_cartesian_state();
+        // std::cout << "extending model from: " << extended_origin_x[0] << ", " << extended_origin_x[1] << ", " << extended_origin_x[2] << ", " << extended_origin_x[3] << " to ";
+        cartesian_state[0] -= qB[0];
+        cartesian_state[1] -= qB[1];
+        // std::cout << extended_origin_x[0] << ", " << extended_origin_x[1] << ", " << extended_origin_x[2] << ", " << extended_origin_x[3] << std::endl;
+        
+        double new_r = std::sqrt(pow(cartesian_state[0], 2) + pow(cartesian_state[1], 2));
+        double new_beta = std::atan2(cartesian_state[1], cartesian_state[0]);
+        double new_rdot_over_r = (cartesian_state[0]*cartesian_state[2] + cartesian_state[1]*cartesian_state[3]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
+        double new_betadot = (cartesian_state[0]*cartesian_state[3] - cartesian_state[1]*cartesian_state[2]) / (pow(cartesian_state[0],2) + pow(cartesian_state[1], 2));
+        
+        // Matrix<double, 5, 1> new_y;
+        y << (1.0 / new_r), std::sin(new_beta), std::cos(new_beta), new_rdot_over_r, new_betadot;
+    }
     
     void MP_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
@@ -117,7 +162,7 @@ namespace dynamic_gap {
     }
 
     void MP_model::frozen_state_propagate(double dt) {
-        Matrix<double, 1, 5> new_frozen_y;     
+        Matrix<double, 5, 1> new_frozen_y;     
         new_frozen_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         // std::cout << "frozen_y stepping from 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << " to ";
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
@@ -143,7 +188,7 @@ namespace dynamic_gap {
         double a_r = a[0]*y[2] + a[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
         double a_beta = -a[0]*y[1] + a[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
-        Matrix<double, 1, 5> new_y;
+        Matrix<double, 5, 1> new_y;
         new_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         // discrete euler update of state
         // 1/r, sin(beta), cos(beta), rdot/r, betadot 
