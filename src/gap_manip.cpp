@@ -1017,8 +1017,8 @@ namespace dynamic_gap {
         
         bool left = gap.isLeftType();
         // Extend of rotation to the radial gap 
-        // amp-ed by a **small** ratio to ensure the local goal does not exactly fall on the
-        // visibility line
+        // amp-ed by a **small** ratio to ensure the local goal does not exactly fall on the visibility line
+        // we are pivoting around the closer point?
         float rot_val = (float) std::atan2(cfg_->gap_manip.epsilon2 * cfg_->gap_manip.rot_ratio, cfg_->gap_manip.epsilon1);
         float theta = left ? (rot_val + 1e-3): -(rot_val + 1e-3);
         std::cout << "theta to pivot: " << theta << std::endl;
@@ -1051,8 +1051,8 @@ namespace dynamic_gap {
         auto half_num_scan = gap.half_scan;
         
         // obtaining near and far theta values from indices
-        double near_theta = M_PI / half_num_scan * (near_idx - half_num_scan);
-        double far_theta = M_PI / half_num_scan * (far_idx - half_num_scan);
+        double near_theta = M_PI * (near_idx - half_num_scan) / half_num_scan;
+        double far_theta = M_PI * (far_idx - half_num_scan) / half_num_scan;
         Eigen::Matrix3f near_rbt;
         // near_rbt, far_robt: SE(3) matrices that represent translation from rbt origin to far and near points
         near_rbt << 1, 0, near_dist * cos(near_theta),
@@ -1063,48 +1063,41 @@ namespace dynamic_gap {
                     0, 1, far_dist * sin(far_theta),
                     0, 0, 1;
 
-        /*
-        Eigen::Matrix3f closing_pt_rbt;
-        Eigen::Vector2f gap_closing_pt = gap.getClosingPoint();
-        if (gap_closing_pt.norm() >= 0.0) {
-            closing_pt_rbt  << 1, 0, gap_closing_pt[0],
-                               0, 1, gap_closing_pt[1],
-                               0, 0, 1;
-        }
-        // if gap has a crossing or closing point, add matrix here
-        */
-
+        // rot_rbt: my guess, transformation matrix FROM rbt origin TO desired pivot point
         Eigen::Matrix3f rot_rbt = near_rbt * (rot_mat * (near_rbt.inverse() * far_rbt));
         std::cout << "rot_rbt: " << rot_rbt;
 
+        // radius and index representing desired pivot point
         float r = float(sqrt(pow(rot_rbt(0, 2), 2) + pow(rot_rbt(1, 2), 2)));
-        int idx = int (std::atan2(rot_rbt(1, 2), rot_rbt(0, 2)) / M_PI * half_num_scan) + half_num_scan;
+        int idx = int(half_num_scan * std::atan2(rot_rbt(1, 2), rot_rbt(0, 2)) / M_PI) + half_num_scan;
 
         std::cout << "r: " << r << ", idx: " << idx << std::endl;
 
         // Rotation Completed
-        // Get minimum dist range val from start to target index location
-        // For wraparound
-        int offset = left ? gap._right_idx : idx;
-        int upperbound = left ? idx : gap._left_idx;
-        // int intermediate_pt = offset + 1;
-        // int second_inter_pt = intermediate_pt;
-        std:: cout << "offset: " << offset << ", upperbound: " << upperbound << std::endl;
-        int size = upperbound - offset;
+        // Get minimum dist range val between initial gap point and pivoted gap point
+        
+        // offset: original right index or the pivoted left
+        int init_search_idx = left ? gap._right_idx : idx;
+        // upperbound: pivoted right index or original left  
+        int final_search_idx = left ? idx : gap._left_idx;
+        std:: cout << "init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx << std::endl;
+        int size = final_search_idx - init_search_idx;
 
 
-        if ((upperbound - offset) < 3) {
+        if (size < 3) {
             // Arbitrary value
             std::cout << "discarding" << std::endl;
             gap.goal.discard = true;
             return;
         }
 
-        offset = std::max(offset, 0);
-        upperbound = std::min(upperbound, num_of_scan - 1);
+        // For wraparound (check to see if this happens)
+        init_search_idx = std::max(init_search_idx, 0);
+        final_search_idx = std::min(final_search_idx, num_of_scan - 1);
 
-        std:: cout << "wrapped offset: " << offset << ", wrapped upperbound: " << upperbound << std::endl;
-        std::vector<float> min_dist(upperbound - offset);
+        std:: cout << "wrapped init_search_idx: " << init_search_idx << ", wrapped final_search_idx: " << final_search_idx << std::endl;
+        size = final_search_idx - init_search_idx;
+        std::vector<float> dist(final_search_idx - init_search_idx);
 
         if (size == 0) {
             // This shouldn't happen
@@ -1116,30 +1109,36 @@ namespace dynamic_gap {
             ROS_FATAL_STREAM("Scan range incorrect gap manip");
         }
 
+        // using the law of cosines to find the index between init/final indices
+        // that's shortest distance between near point and laser scan
         try{
-            for (int i = 0; i < min_dist.size(); i++) {
-                min_dist.at(i) = sqrt(pow(near_dist, 2) + pow(stored_scan_msgs.ranges.at(i + offset), 2) -
-                    2 * near_dist * stored_scan_msgs.ranges.at(i + offset) * cos((i + offset - near_idx) * stored_scan_msgs.angle_increment));
+            for (int i = 0; i < dist.size(); i++) {
+                dist.at(i) = sqrt(pow(near_dist, 2) + pow(stored_scan_msgs.ranges.at(i + init_search_idx), 2) -
+                    2 * near_dist * stored_scan_msgs.ranges.at(i + init_search_idx) * cos((i + init_search_idx - near_idx) * stored_scan_msgs.angle_increment));
             }
         } catch(...) {
             ROS_FATAL_STREAM("convertAxialGap outofBound");
         }
 
-        auto farside_iter = std::min_element(min_dist.begin(), min_dist.end());
-        float farside = *farside_iter;
+        //auto farside_iter = std::min_element(dist.begin(), dist.end());
+        float min_dist = *std::min_element(dist.begin(), dist.end());
 
-        std::cout << "farside min dist: " << farside << std::endl;         
+        std::cout << "min dist: " << min_dist << std::endl;         
 
+        // pivoting around near point, pointing towards far point or something?
         Eigen::Matrix3f far_near = near_rbt.inverse() * far_rbt;
-        float coefs = far_near.block<2, 1>(0, 2).norm();
-        // ROS_INFO_STREAM()
-        far_near(0, 2) *= farside / coefs;
-        far_near(1, 2) *= farside / coefs;
+
+        float translation_norm = sqrt(pow(far_near(0, 2), 2) + pow(far_near(1, 2), 2));
+        // float coefs = far_near.block<2, 1>(0, 2).norm();
+        std::cout << "coefs: " << coefs << ", translation norm: " << translation_norm << std::endl;
+        // normalizing the pivot direction, multiplying by min dist        
+        far_near(0, 2) *= min_dist / translation_norm;     
+        far_near(1, 2) *= min_dist / translation_norm;
         Eigen::Matrix3f short_pt = near_rbt * (rot_mat * far_near);
 
         r = float(sqrt(pow(short_pt(0, 2), 2) + pow(short_pt(1, 2), 2)));
         float pivoted_theta = std::atan2(short_pt(1, 2), short_pt(0, 2));
-        idx = int (pivoted_theta / M_PI * half_num_scan) + half_num_scan;
+        idx = int (half_num_scan * pivoted_theta / M_PI) + half_num_scan;
 
 
         // Recalculate end point location based on length

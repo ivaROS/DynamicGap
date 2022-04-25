@@ -371,7 +371,7 @@ namespace dynamic_gap {
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(std::abs(x_vel_, std::abs(y_vel));
+                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(std::abs(x_vel), std::abs(y_vel));
                 return clipped_vel;
             }
         }

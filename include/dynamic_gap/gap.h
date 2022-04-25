@@ -248,9 +248,11 @@ namespace dynamic_gap
                     angle1 = (_right_idx - _left_idx + 2*half_scan) * resoln;
                 }                
                 float short_side = left_type ? _ldist : _rdist;
+                // law of cosines
                 float opp_side = (float) sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (float)cos(angle1));
+                // law of sines
                 float small_angle = (float) asin(short_side / opp_side * (float) sin(angle1));
-                _axial = (M_PI - small_angle - angle1 > 0.75 * M_PI); 
+                _axial = (M_PI - small_angle - angle1) > 0.75 * M_PI; 
                 return _axial;
             }
 
