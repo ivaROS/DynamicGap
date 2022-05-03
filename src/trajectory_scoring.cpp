@@ -247,7 +247,7 @@ namespace dynamic_gap {
         double t_i = 0.0;
         double t_iplus1 = 0.0;
         /*
-        if (raw_models.size() > 0) {
+        if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];

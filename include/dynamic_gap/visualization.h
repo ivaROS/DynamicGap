@@ -36,9 +36,9 @@ namespace dynamic_gap
 
             GapVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
             void initialize(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void drawGap(visualization_msgs::MarkerArray &, dynamic_gap::Gap g, std::string ns, std::string color = "Default");
-            void drawGaps(std::vector<dynamic_gap::Gap> g, std::string ns, std::string color = "Default");
-            void drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns);
+            void drawGap(visualization_msgs::MarkerArray &, dynamic_gap::Gap g, std::string ns, bool initial);
+            void drawGaps(std::vector<dynamic_gap::Gap> g, std::string ns);
+            void drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns, bool initial);
             void drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns);
             void drawGapsModels(std::vector<dynamic_gap::Gap> g);
             void drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
@@ -77,6 +77,7 @@ namespace dynamic_gap
             ros::Publisher goal_pub;
             ros::Publisher gapwp_pub;
             std_msgs::ColorRGBA gapwp_color;
+            std_msgs::ColorRGBA terminal_gapwp_color;
             std_msgs::ColorRGBA localGoal_color;
     };
 }

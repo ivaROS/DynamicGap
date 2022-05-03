@@ -37,28 +37,22 @@ namespace dynamic_gap {
     MP_model::~MP_model() {}
 
     void MP_model::initialize(double init_r, double init_beta, Matrix<double, 1, 2> _v_ego) {
+        // std::cout << "initializing with init_r: " << init_r << ", init_beta: " << init_beta << std::endl;
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0, 0.0;
         // MEASUREMENT NOISE
-        R << 0.0001, 0.0, 0.0,
-             0.0, 0.0001, 0.0,
-             0.0, 0.0, 0.0001;
+        R << 0.00001, 0.0, 0.0,
+             0.0, 0.00001, 0.0,
+             0.0, 0.0, 0.00001;
         // PROCESS NOISE
         
-        /*
-        Q << 0.01, 0.01, 0.01, 0.01, 0.01,
-            0.01, 0.01, 0.01, 0.01, 0.01,
-            0.01, 0.01, 0.01, 0.01, 0.01,
-            0.01, 0.01, 0.01, 0.01, 0.01,
-            0.01, 0.01, 0.01, 0.01, 0.01;
-        */
-        Q << 0.00001, 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.00001, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.00001, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.00001, 0.0,
-            0.0, 0.0, 0.0, 0.0, 0.00001;
+        Q << 0.005, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.005, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.005, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.05, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.05;
         
 
         double v_rel_x = -_v_ego[0];
@@ -184,7 +178,7 @@ namespace dynamic_gap {
         t = ros::Time::now().toSec();
         dt = t - t0; // 0.01
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
-        // std::cout << "dt: " << dt << std::endl;
+        std::cout << "a: " << a[0] << ", " << a[1] << ", dt: " << dt << std::endl;
         double a_r = a[0]*y[2] + a[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
         double a_beta = -a[0]*y[1] + a[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
@@ -239,10 +233,11 @@ namespace dynamic_gap {
         std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
         // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
-        std::cout << "a: " << a[0] << ", " << a[1] << std::endl; // ", v_ego: " << v_ego[0] << ", " << v_ego[1] << 
         
         //std::cout<< "integrating" << std::endl;
         integrate();
+        cart_state = get_cartesian_state();
+        std::cout << "y_i+1_prime: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1_prime: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         cart_state = get_cartesian_state();
         //std::cout << "y_i bar:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
@@ -297,6 +292,7 @@ namespace dynamic_gap {
         P = (MatrixXd::Identity(5,5) - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
+        std::cout << "" << std::endl;
     }
 
     Eigen::Vector4d MP_model::get_cartesian_state() {
@@ -311,6 +307,18 @@ namespace dynamic_gap {
         x(2) = (1 / y(0)) * (y(3) * y(2) - y(4)*y(1)); // 
         x(3) = (1 / y(0)) * (y(4) * y(2) + y(3)*y(1));
         return x;
+    }
+
+    Matrix<double, 5, 1> MP_model::cartesian_to_polar_state() {
+        Matrix<double, 5, 1> polar_y;
+        polar_y << 0.0, 0.0, 0.0, 0.0, 0.0;
+        polar_y(0) = std::sqrt(pow(x[0], 2) + pow(x[1], 2));
+        double beta = std::atan2(x[1], x[0]);
+        polar_y(1) = std::sin(beta);
+        polar_y(2) = std::cos(beta);
+        polar_y(3) = (x[0]*x[2] + x[1]*x[3]) / (pow(x[0],2) + pow(x[1], 2));
+        polar_y(4) = (x[0]*x[3] - x[1]*x[2]) / (pow(x[0],2) + pow(x[1], 2));
+        return polar_y;
     }
 
     Eigen::Vector4d MP_model::get_frozen_cartesian_state() {

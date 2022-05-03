@@ -67,6 +67,7 @@ namespace dynamic_gap {
             void integrate();
             void linearize();
             void discretizeQ();
+            Matrix<double, 5, 1> cartesian_to_polar_state();
 
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();

@@ -77,6 +77,7 @@ namespace dynamic_gap
         ros::Publisher ni_traj_pub_other;
 
         ros::Subscriber rbt_accel_sub;
+        ros::Subscriber rbt_vel_sub;
 
         std::vector<int> association;
         std::vector<int> raw_association;
@@ -91,8 +92,13 @@ namespace dynamic_gap
         // Gaps:
         std::vector<dynamic_gap::Gap> raw_gaps;
         std::vector<dynamic_gap::Gap> observed_gaps;
+
         std::vector<dynamic_gap::Gap> previous_gaps;
         std::vector<dynamic_gap::Gap> previous_raw_gaps;
+
+        std::vector<dynamic_gap::Gap> associated_raw_gaps;
+        std::vector<dynamic_gap::Gap> associated_observed_gaps;
+        
         std::vector<dynamic_gap::Gap> merged_gaps;
         std::vector<dynamic_gap::Gap> selected_gap_set;
         std::vector<dynamic_gap::Gap> ftg_gaps;
@@ -148,6 +154,7 @@ namespace dynamic_gap
 
         geometry_msgs::Twist previous_cmd_vel;
         geometry_msgs::Twist current_cmd_vel;
+        geometry_msgs::Twist current_rbt_vel;
         Matrix<double, 1, 2> a;
 
         std::string frame;
@@ -200,6 +207,7 @@ namespace dynamic_gap
         void inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         void robotImuCB(boost::shared_ptr<sensor_msgs::Imu const> msg);
+        void robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
 
         /**
          * call back function to pose, pose information obtained here only used when a new goal is used
@@ -243,7 +251,7 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
+        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego, std::vector<dynamic_gap::Gap> curr_raw_gaps);
 
         /**
          * 
@@ -314,7 +322,7 @@ namespace dynamic_gap
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
         void update_model(int i, std::vector<dynamic_gap::Gap>&);
-        void update_models(std::vector<dynamic_gap::Gap>&);
+        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap>);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 

@@ -40,6 +40,7 @@ namespace dynamic_gap {
 
             virtual std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist curr_vel) = 0;
             virtual std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>) = 0;
+
         protected:
             const DynamicGapConfig* cfg_;
     };
@@ -53,6 +54,7 @@ namespace dynamic_gap {
             geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>>);
             void determineLeftRightModels(Matrix<double, 5, 1>&, Matrix<double, 5, 1>&, dynamic_gap::Gap&, double);
+            Matrix<double, 5, 1> cartesian_to_polar(Eigen::Vector4d x);
 
         private: 
             geometry_msgs::TransformStamped planning2odom;

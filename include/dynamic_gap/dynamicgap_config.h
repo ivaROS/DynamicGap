@@ -134,7 +134,7 @@ namespace dynamic_gap {
             gap_manip.axial_convert = true;
             gap_manip.cbf_param = 1.0;
             gap_manip.cbf_r_min = 1.0;
-            gap_manip.K_des = 1.0;
+            gap_manip.K_des = 0.5;
             gap_manip.K_acc = 3.0;
             
             control.k_drive_x = 3.5;

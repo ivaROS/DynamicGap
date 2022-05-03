@@ -91,27 +91,28 @@ namespace dynamic_gap
 
                 if (!_axial)
                 {
-                    float resoln = M_PI / half_scan;
-                    float angle1;
-                    if (_right_idx > _left_idx) {
-                        angle1 = (_right_idx - _left_idx) * resoln;
-                    } else {
-                        angle1 = (_right_idx - _left_idx + 2*half_scan) * resoln;
-                    }                       
-                    float short_side = left_type ? _ldist : _rdist;
-                    float opp_side = (float) sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (float)cos(angle1));
-                    // checking if alpha of gap is greater than 3*pi/4
-                    float small_angle = (float) asin(short_side / opp_side * (float) sin(angle1));
-                    if (M_PI - small_angle - angle1 > 0.75 * M_PI) 
-                    {
-                        _axial = true;
-                    }
+                    _axial = isAxial();
                 }
 
                 convex.convex_lidx = _left_idx;
                 convex.convex_ridx = _right_idx;
                 convex.convex_ldist = _ldist;
                 convex.convex_rdist = _rdist;
+            }
+
+            void addTerminalRightInformation()
+            {
+                terminal_left_type = terminal_ldist < terminal_rdist;
+
+                if (!_terminal_axial)
+                {
+                    _terminal_axial = isAxial();
+                }
+
+                convex.terminal_lidx = terminal_lidx;
+                convex.terminal_ridx = terminal_ridx;
+                convex.terminal_ldist = terminal_ldist;
+                convex.terminal_rdist = terminal_rdist;
             }
 
             // Get Left Cartesian Distance
@@ -237,23 +238,34 @@ namespace dynamic_gap
                 return right_obs;
             }
 
-            bool isAxial()
+            bool isAxial(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
+                int check_l_idx = initial ? _left_idx : terminal_lidx;
+                int check_r_idx = initial ? _right_idx : terminal_ridx;
+                float check_l_dist = initial ? _ldist : terminal_ldist;
+                float check_r_dist = initial ? _rdist : terminal_rdist;
+
                 float resoln = M_PI / half_scan;
-                float angle1;
-                if (_right_idx > _left_idx) {
-                    angle1 = (_right_idx - _left_idx) * resoln;
-                } else {
-                    angle1 = (_right_idx - _left_idx + 2*half_scan) * resoln;
-                }                
-                float short_side = left_type ? _ldist : _rdist;
+                float gap_angle = (check_r_idx - check_l_idx) * resoln;
+                if (gap_angle < 0) { gap_angle += 2*M_PI; }
+                // std::cout << "gap_angle: " << gap_angle << std::endl;
+                float short_side = left_type ? check_l_dist : check_r_dist;
                 // law of cosines
-                float opp_side = (float) sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (float)cos(angle1));
+                float opp_side = (float) sqrt(pow(check_l_dist, 2) + pow(check_r_dist, 2) - 2 * check_l_dist * check_r_dist * (float)cos(gap_angle));
                 // law of sines
-                float small_angle = (float) asin(short_side / opp_side * (float) sin(angle1));
-                _axial = (M_PI - small_angle - angle1) > 0.75 * M_PI; 
-                return _axial;
+                float small_angle = (float) asin(short_side / opp_side * (float) sin(gap_angle));
+                // std::cout << "small angle: " << small_angle << std::endl;
+                if (initial) {
+                    _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
+                    // std::cout << "checking isAxial: " << _axial << std::endl;
+                    return _axial;
+                    
+                } else {
+                    _terminal_axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
+                    // std::cout << "checking isAxial: " << _terminal_axial << std::endl;
+                    return _terminal_axial;
+                }
             }
 
             void setRadial()
@@ -261,9 +273,17 @@ namespace dynamic_gap
                 _axial = false;
             }
 
-            bool isLeftType()
+            bool isLeftType(bool initial = true)
             {
-                return left_type;
+                if (initial) { 
+                    return left_type;
+                } else {
+                    return terminal_left_type;
+                }
+            }
+
+            bool isTerminalLeftType() {
+                return terminal_left_type;
             }
 
             void resetFrame(std::string frame) {
@@ -315,11 +335,17 @@ namespace dynamic_gap
                 } 
                 return sqrt(pow(_ldist, 2) + pow(_rdist, 2) - 2 * _ldist * _rdist * (cos(float(idx_diff) / float(half_scan) * M_PI)));
             }
+
+            void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
+                terminal_lidx = _terminal_lidx;
+                terminal_ldist = _terminal_ldist;
+                terminal_ridx = _terminal_ridx;
+                terminal_rdist = _terminal_rdist;
+            }
             
             bool no_valid_slice = false;
             bool goal_within = false;
             bool goal_dir_within = false;
-            float life_time = 0.0;
             double gap_lifespan = 0.0;
             bool agc = false;
 
@@ -336,6 +362,7 @@ namespace dynamic_gap
             float convex_rdist;
             float min_safe_dist = -1;
             Eigen::Vector2f qB;
+            Eigen::Vector2f terminal_qB;
             float half_scan = 256;
 
             int agc_lidx;
@@ -348,7 +375,9 @@ namespace dynamic_gap
             bool left_obs = true;
             bool right_obs = true;
             bool _axial = false;
+            bool _terminal_axial = false;
             bool left_type = false;
+            bool terminal_left_type = false;
 
             int swept_lidx = 0;
             int swept_ridx = 511;
@@ -360,12 +389,19 @@ namespace dynamic_gap
                 int convex_ridx = 511;
                 float convex_ldist = 3;
                 float convex_rdist = 3;
+                int terminal_lidx = 0;
+                int terminal_ridx = 511;
+                float terminal_ldist = 3;
+                float terminal_rdist = 3;
             } convex;
 
             struct GapMode {
                 bool reduced = false;
                 bool convex = false;
                 bool agc = false;
+                bool terminal_reduced = false;
+                bool terminal_convex = false;
+                bool terminal_agc = false;
             } mode;
 
             struct Goal {
@@ -375,12 +411,25 @@ namespace dynamic_gap
                 bool goalwithin = false;
             } goal;
 
+            struct TerminalGoal {
+                float x, y;
+                bool set = false;
+                bool discard = false;
+                bool goalwithin = false;
+            } terminal_goal;
+
             MP_model *left_model;
             MP_model *right_model;
             int _index;
             std::string category;
             Eigen::Vector2f crossing_pt;
             Eigen::Vector2f closing_pt;
+
+            bool gap_crossed = false;
+            int terminal_lidx = 0;
+            int terminal_ridx = 511;
+            float terminal_ldist = 3.0;
+            float terminal_rdist = 3.0;
         // private:
     };
 }
