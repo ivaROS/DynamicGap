@@ -35,8 +35,8 @@ namespace dynamic_gap {
             double t;
             double dt;
 
-            Matrix<double, 1, 2> a;
-            Matrix<double, 1, 2> v_ego;
+            Matrix<double, 1, 3> accel;
+            Matrix<double, 1, 3> v_ego;
             // Matrix<float, 3, 1> y_tilde;
 
             Matrix<double, 5, 5> A;
@@ -48,10 +48,10 @@ namespace dynamic_gap {
 
         public:
 
-            MP_model(std::string, int, double, double, Matrix<double, 1, 2>);
+            MP_model(std::string, int, double, double, Matrix<double, 1, 3>);
             MP_model(const dynamic_gap::MP_model &model);
 
-            void initialize(double, double, Matrix<double, 1, 2>);
+            void initialize(double, double, Matrix<double, 1, 3>);
 
             ~MP_model();
 
@@ -63,7 +63,7 @@ namespace dynamic_gap {
             Eigen::Vector4d get_frozen_cartesian_state();
             void extend_model_origin(Eigen::Vector2f qB);
 
-            Matrix<double, 2, 1> get_v_ego();
+            Matrix<double, 3, 1> get_v_ego();
             void integrate();
             void linearize();
             void discretizeQ();
@@ -71,7 +71,7 @@ namespace dynamic_gap {
 
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
-            void kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> a_ego, Matrix<double, 1, 2> v_ego);
+            void kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

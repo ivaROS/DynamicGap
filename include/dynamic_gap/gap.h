@@ -350,9 +350,9 @@ namespace dynamic_gap
             bool agc = false;
 
             int _left_idx = 0;
-            float _ldist = 3;
+            float _ldist = 5;
             int _right_idx = 511;
-            float _rdist = 3;
+            float _rdist = 5;
             bool wrap = false;
             bool reduced = false;
             bool convexified = false;
@@ -381,18 +381,18 @@ namespace dynamic_gap
 
             int swept_lidx = 0;
             int swept_ridx = 511;
-            float swept_ldist = 3;
-            float swept_rdist = 3;
+            float swept_ldist = 5;
+            float swept_rdist = 5;
 
             struct converted {
                 int convex_lidx = 0;
                 int convex_ridx = 511;
-                float convex_ldist = 3;
-                float convex_rdist = 3;
+                float convex_ldist = 5;
+                float convex_rdist = 5;
                 int terminal_lidx = 0;
                 int terminal_ridx = 511;
-                float terminal_ldist = 3;
-                float terminal_rdist = 3;
+                float terminal_ldist = 5;
+                float terminal_rdist = 5;
             } convex;
 
             struct GapMode {
@@ -429,8 +429,8 @@ namespace dynamic_gap
             bool gap_closed = false;
             int terminal_lidx = 0;
             int terminal_ridx = 511;
-            float terminal_ldist = 3.0;
-            float terminal_rdist = 3.0;
+            float terminal_ldist = 5.0;
+            float terminal_rdist = 5.0;
         // private:
     };
 }

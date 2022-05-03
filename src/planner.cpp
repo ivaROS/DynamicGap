@@ -38,6 +38,8 @@ namespace dynamic_gap
         selected_gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("sel_gaps", 1);
         ni_traj_pub = nh.advertise<geometry_msgs::PoseArray>("ni_traj", 10);
         ni_traj_pub_other = nh.advertise<visualization_msgs::MarkerArray>("other_ni_traj", 5);
+        dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
+
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/imu", 100, &Planner::robotImuCB, this);
         rbt_vel_sub = nh.subscribe(cfg.robot_frame_id + "/current_vel", 100, &Planner::robotVelCB, this);
 
@@ -67,8 +69,9 @@ namespace dynamic_gap
 
         previous_cmd_vel = geometry_msgs::Twist();
         current_cmd_vel = geometry_msgs::Twist();
+        current_rbt_vel = geometry_msgs::Twist();
 
-        a << 0.0, 0.0;
+        rbt_accel << 0.0, 0.0, 0.0;
         init_val = 0;
         model_idx = &init_val;
         prev_traj_switch_time = ros::Time::now().toSec();
@@ -114,11 +117,11 @@ namespace dynamic_gap
 
         rbt_accel_rbt_frame.vector.x = msg->linear_acceleration.x;
         rbt_accel_rbt_frame.vector.y = msg->linear_acceleration.y;
-        // rbt_accel_rbt_frame.vector.z = msg->angular_acceleration.z;
+        rbt_accel_rbt_frame.vector.z = msg->angular_velocity.z; //in the ROS msg its omega, but this value is alpha
 
-        a[0] = rbt_accel_rbt_frame.vector.x;
-        a[1] = rbt_accel_rbt_frame.vector.y;
-        // a[2] = rbt_accel_rbt_frame.vector.z;
+        rbt_accel[0] = rbt_accel_rbt_frame.vector.x;
+        rbt_accel[1] = rbt_accel_rbt_frame.vector.y;
+        rbt_accel[2] = rbt_accel_rbt_frame.vector.z;
     }
 
     void Planner::robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg) {
@@ -139,7 +142,7 @@ namespace dynamic_gap
 
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
-            Matrix<double, 1, 2> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y);
+            Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
 
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
@@ -148,8 +151,12 @@ namespace dynamic_gap
             // std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
 
             //std::cout << "RAW GAP ASSOCIATION AND UPDATING" << std::endl;
+            // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
             associated_raw_gaps = update_models(raw_gaps);
+            
+            // if (abs(current_rbt_vel.angular.z) < 0.25) {
+
             //std::cout << "FINISHED RAW GAP ASSOCIATION AND UPDATING" << std::endl;
 
             //std::cout << "SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
@@ -158,6 +165,8 @@ namespace dynamic_gap
             // std::vector<dynamic_gap::Gap> curr_observed_gaps = get_curr_observed_gaps();
             association = gapassociator->associateGaps(observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
             associated_observed_gaps = update_models(observed_gaps);
+
+            //std::cout << "FINISHED SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
 
             previous_gaps = associated_observed_gaps;
             previous_raw_gaps = associated_raw_gaps;
@@ -226,14 +235,14 @@ namespace dynamic_gap
 				   std::cos(beta_tilde);
         // std::cout << "y_tilde: " << y_tilde << std::endl;
 
-        Matrix<double, 1, 2> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-		if (i % 2 == 0) {
+        Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+        if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-			g.left_model->kf_update_loop(y_tilde, a, v_ego);
-		} else {
+            g.left_model->kf_update_loop(y_tilde, rbt_accel, v_ego);
+        } else {
             //std::cout << "entering right model update" << std::endl;
-			g.right_model->kf_update_loop(y_tilde, a, v_ego);
-		}
+            g.right_model->kf_update_loop(y_tilde, rbt_accel, v_ego);
+        }
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
@@ -441,14 +450,40 @@ namespace dynamic_gap
                 */
                 std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
                 if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-                    gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-                    gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
+                    try {
+                        gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+                    } catch(...) {
+                        ROS_FATAL_STREAM("terminal gap, reduceGap");
+                        std::cout << "terminal gap fail, reduceGap" << std::endl;
+                    }
+                    try {
+                        gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
+                    } catch(...) {
+                        ROS_FATAL_STREAM("terminal gap, convertAxial");
+                        std::cout << "terminal gap fail, convertAxialGap" << std::endl;
+                    }
                 }
-                gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-                // take min of laser scan and model for two points?
-                gapManip->clipGapByLaserScan(manip_set.at(i));
 
-                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
+                try {
+                    gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+                } catch(...) {
+                        ROS_FATAL_STREAM("terminal gap, radialExtendGap");
+                        std::cout << "terminal gap fail, radialExtendGap" << std::endl;
+                }
+                // take min of laser scan and model for two points?
+                try {
+                    gapManip->clipGapByLaserScan(manip_set.at(i));
+                } catch(...) {
+                        ROS_FATAL_STREAM("terminal gap, clipGapByLaserScan");
+                        std::cout << "terminal gap fail, clipGapByLaserScan" << std::endl;
+                }
+
+                try {
+                    gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
+                } catch(...) {
+                        ROS_FATAL_STREAM("terminal gap, setGapWaypoint");
+                        std::cout << "terminal gap fail, setGapWaypoint" << std::endl;
+                }
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
@@ -503,6 +538,7 @@ namespace dynamic_gap
             return -1;
         }
 
+        // poses here are in odom frame 
         std::vector<double> result_score(prr.size());
         try {
             if (omp_get_dynamic()) omp_set_dynamic(0);
@@ -512,13 +548,16 @@ namespace dynamic_gap
 
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
-                std::cout << "for gap " << i;
-                if (prr.at(i).poses.size() != 0) {
-                    std::cout << " with final pose of (" << prr.at(i).poses.at(counts).position.x << ", " << prr.at(i).poses.at(counts).position.y << ")";
-                } else {
-                    std::cout << " with empty poses";
+                std::cout << "for gap " << i << ", returning score of " << result_score.at(i) << std::endl;
+                /*
+                if (result_score.at(i) == -std::numeric_limits<double>::infinity()) {
+                    for (size_t j = 0; j < counts; j++) {
+                        if (score.at(i).at(j) == -std::numeric_limits<double>::infinity()) {
+                            std::cout << "-inf score at idx " << j << " of " << counts << std::endl;
+                        }
+                    }
                 }
-                std::cout << ", returning score of " << result_score.at(i) << " of length: " << counts << std::endl;
+                */
             }
         } catch (...) {
             ROS_FATAL_STREAM("pickTraj");
@@ -783,7 +822,7 @@ namespace dynamic_gap
     {
         observed_gaps.clear();
         setCurrentTraj(geometry_msgs::PoseArray());
-        a << 0.0, 0.0;
+        rbt_accel << 0.0, 0.0, 0.0;
         ROS_INFO_STREAM("log_vel_comp size: " << log_vel_comp.size());
         log_vel_comp.clear();
         ROS_INFO_STREAM("log_vel_comp size after clear: " << log_vel_comp.size() << ", is full: " << log_vel_comp.capacity());
@@ -865,8 +904,52 @@ namespace dynamic_gap
         Matrix<double, 1, 2> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y);
 
 
-        std::vector<dynamic_gap::Gap> curr_raw_gaps = raw_gaps;
-        std::vector<dynamic_gap::Gap> curr_observed_gaps = observed_gaps;
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
+        std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
+
+        std::cout << "curr_raw_gaps:" << std::endl;
+        for (size_t i = 0; i < curr_raw_gaps.size(); i++)      
+        {
+            std::cout << "gap " << i << std::endl;
+            dynamic_gap::Gap g = curr_raw_gaps.at(i);
+            Matrix<double, 5, 1> left_y_state = g.left_model->get_state();
+            Matrix<double, 5, 1> right_y_state = g.right_model->get_state();
+            Matrix<double, 4, 1> left_x_state = g.left_model->get_cartesian_state();
+            Matrix<double, 4, 1> right_x_state = g.right_model->get_cartesian_state();
+            std::cout << "left y model: (" << left_y_state[0] << ", " << left_y_state[1] << ", " << left_y_state[2] << ", " << left_y_state[3] << ", " << left_y_state[4] << ")" << std::endl;
+            std::cout << "right y model: (" << right_y_state[0] << ", " << right_y_state[1] << ", " << right_y_state[2] << ", " << right_y_state[3] << ", " << right_y_state[4] << ")" << std::endl;
+
+            std::cout << "left x model: (" << left_x_state[0] << ", " << left_x_state[1] << ", " << left_x_state[2] << ", " << left_x_state[3] << ")" << std::endl;
+            std::cout << "right x model: (" << right_x_state[0] << ", " << right_x_state[1] << ", " << right_x_state[2] << ", " << right_x_state[3] <<  ")" << std::endl;
+
+        }
+
+        // VISUALIZING DYNAMIC EGOCIRCLE RECREATION
+        std::cout << "recreating egocircle" << std::endl;
+        sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
+        sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
+
+        dynamic_laser_scan.header = stored_scan.header;
+        dynamic_laser_scan.angle_min = stored_scan.angle_min;
+        dynamic_laser_scan.angle_max = stored_scan.angle_max;
+        dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
+        dynamic_laser_scan.time_increment = stored_scan.time_increment;
+        dynamic_laser_scan.scan_time = stored_scan.scan_time;
+        dynamic_laser_scan.range_min = stored_scan.range_min;
+        dynamic_laser_scan.range_max = stored_scan.range_max;
+
+        std::vector<float> dynamic_ranges(stored_scan.ranges.size());
+        dynamic_laser_scan.ranges = dynamic_ranges;
+        // std::vector<float> dynamic_intensities(stored_scan.ranges.size(), 0.0);
+        // dynamic_laser_scan.intensities = dynamic_intensities;
+        double t_i = 0;
+        double t_iplus1 = cfg.traj.integrate_stept;
+        trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, curr_raw_gaps, dynamic_laser_scan);
+        dyn_egocircle_pub.publish(dynamic_laser_scan);
+
+
+
+
             
         std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
         std::cout << "curr_observed_gaps:" << std::endl;

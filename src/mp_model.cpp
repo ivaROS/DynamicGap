@@ -18,7 +18,7 @@
 using namespace Eigen;
 
 namespace dynamic_gap {
-    MP_model::MP_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 2> v_ego) {
+    MP_model::MP_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
         side = _side;
         index = _index;
         initialize(init_r, init_beta, v_ego);
@@ -36,7 +36,7 @@ namespace dynamic_gap {
 
     MP_model::~MP_model() {}
 
-    void MP_model::initialize(double init_r, double init_beta, Matrix<double, 1, 2> _v_ego) {
+    void MP_model::initialize(double init_r, double init_beta, Matrix<double, 1, 3> _v_ego) {
         // std::cout << "initializing with init_r: " << init_r << ", init_beta: " << init_beta << std::endl;
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -77,8 +77,8 @@ namespace dynamic_gap {
         t0 = ros::Time::now().toSec();
         t = ros::Time::now().toSec();
         dt = t - t0;
-        a << 0.0, 0.0;
-        v_ego << 0.0, 0.0;
+        accel << 0.0, 0.0, 0.0;
+        v_ego << 0.0, 0.0, 0.0;
 
         A << 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -137,10 +137,11 @@ namespace dynamic_gap {
     }
     
     void MP_model::freeze_robot_vel() {
+        std::cout << "in freeze_robot_vel" << std::endl;
         Eigen::Vector4d cartesian_state = get_cartesian_state();
-        // std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
+        std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
         //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
-        //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         
         // update cartesian
         cartesian_state[2] += v_ego[0];
@@ -179,40 +180,42 @@ namespace dynamic_gap {
         dt = t - t0; // 0.01
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
         // std::cout << "a: " << a[0] << ", " << a[1] << ", dt: " << dt << std::endl;
-        double a_r = a[0]*y[2] + a[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
-        double a_beta = -a[0]*y[1] + a[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
+        double a_r = accel[0]*y[2] + accel[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
+        double a_beta = -accel[0]*y[1] + accel[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
         Matrix<double, 5, 1> new_y;
         new_y << 0.0, 0.0, 0.0, 0.0, 0.0;
         // discrete euler update of state
         // 1/r, sin(beta), cos(beta), rdot/r, betadot 
+        // double omega_rbt = v_ego[2];
+        // double alpha_rel = accel[2];
         new_y[0] = y[0] + (-y[3]*y[0])*dt; // 1/r
         new_y[1] = y[1] + y[2]*y[4]*dt; // sin(beta)
-        new_y[2] = y[2] + (-y[1]*y[4])*dt; // cos(beta)
+        new_y[2] = y[2] + -y[1]*y[4]*dt; // cos(beta)
         new_y[1] /= std::sqrt(pow(new_y[1], 2) + pow(new_y[2], 2));
         new_y[2] /= std::sqrt(pow(new_y[1], 2) + pow(new_y[2], 2));
         new_y[3] = y[3] + (y[4]*y[4] - y[3]*y[3] + y[0]* a_r) * dt; // rdot/r
         new_y[4] = y[4] + (-2 * y[3]*y[4] + y[0]*a_beta)*dt; // betadot
-        y = new_y; // is this ok? do we need a deep copy?
+        y = new_y;
     }
 
     void MP_model::linearize() {
-        double a_r = a[0]*y[2] + a[1]*y[1];
-        double a_beta = -a[0]*y[1] + a[1]*y[2];
+        double a_r = accel[0]*y[2] + accel[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
+        double a_beta = -accel[0]*y[1] + accel[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << std::endl;
         //std::cout << "a_beta: " << a_beta << std::endl;
         //std::cout << "y in linearize: " << y << std::endl;
         A << -y[3], 0.0, 0.0, -y[0], 0.0,
                  0.0, 0.0, y[4], 0.0, y[2],
                  0.0, -y[4], 0.0, 0.0, -y[1],
-                 a_r, y[0]*a[1], y[0]*a[0], -2*y[3], 2*y[4],
-                 a_beta, -y[0]*a[0], y[0]*a[1], -2*y[4], -2*y[3];
+                 a_r, y[0]*accel[1], y[0]*accel[0], -2*y[3], 2*y[4],
+                 a_beta, -y[0]*accel[0], y[0]*accel[1], -2*y[4], -2*y[3];
 
         Ad << 1.0 - y[3]*dt, 0.0, 0.0, -y[0]*dt, 0.0,
                  0.0, 1.0, y[4]*dt, 0.0, y[2]*dt,
                  0.0, -y[4]*dt, 1.0, 0.0, -y[1]*dt,
-                 a_r*dt, y[0]*a[1]*dt, y[0]*a[0]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt,
-                 a_beta*dt, -y[0]*a[0]*dt, y[0]*a[1]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
+                 a_r*dt, y[0]*accel[1]*dt, y[0]*accel[0]*dt, 1 - 2*y[3]*dt, 2*y[4]*dt,
+                 a_beta*dt, -y[0]*accel[0]*dt, y[0]*accel[1]*dt, -2*y[4]*dt, 1 - 2*y[3]*dt;
         // std::cout << "Ad in linearize: " << Ad << std::endl;
     }
 
@@ -225,28 +228,28 @@ namespace dynamic_gap {
         dQ = dQ + M2 + M3;
     }
 
-    void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 2> _a_ego, Matrix<double, 1, 2> _v_ego) {
+    void MP_model::kf_update_loop(Matrix<double, 3, 1> y_tilde, Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego) {
         // acceleration comes in wrt robot frame
-        a = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
+        accel = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
         v_ego = _v_ego;
         Eigen::Vector4d cart_state = get_cartesian_state();
-        //std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
-        
+        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
+        std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
         integrate();
         cart_state = get_cartesian_state();
-        //std::cout << "y_i+1_prime: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1_prime: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        cart_state = get_cartesian_state();
+        std::cout << "y_i+1_prime: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1_prime: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        // cart_state = get_cartesian_state();
         //std::cout << "y_i bar:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        //std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << ". x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
+        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << ". x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
 
         //std::cout << "y after integration" << y << std::endl;
         //std::cout<< "linearizing" << std::endl;
         linearize();
-        //std::cout<< "discretizing Q" << std::endl;
+        // std::cout<< "discretizing Q" << std::endl;
         discretizeQ();
 
         //std::cout<< "estimating covariance matrix" << std::endl;
@@ -286,7 +289,7 @@ namespace dynamic_gap {
         y[2] /= std::sqrt(pow(y[1], 2) + pow(y[2], 2));
 
         cart_state = get_cartesian_state();
-        //std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        // std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
@@ -348,7 +351,7 @@ namespace dynamic_gap {
         return frozen_y;
     }
 
-    Matrix<double, 2, 1> MP_model::get_v_ego() {
+    Matrix<double, 3, 1> MP_model::get_v_ego() {
         return v_ego;
     }
 

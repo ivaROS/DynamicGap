@@ -586,7 +586,7 @@ namespace dynamic_gap {
             std::cout << "closer to front: " << std::endl;
             offset = -r_negpi2 * norm_lf * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         }
-        auto goal_pt = offset  + anchor;
+        auto goal_pt = anchor + offset;
         std::cout << "anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")" << std::endl;
         if (initial) {
             gap.goal.x = goal_pt(0);

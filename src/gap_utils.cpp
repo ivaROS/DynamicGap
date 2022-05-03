@@ -23,6 +23,7 @@ namespace dynamic_gap {
         int gap_size = 0;
         std::string frame = stored_scan_msgs.header.frame_id;
         // starting the left point of the gap at front facing value
+        // std::cout << "max laser scan range: " << stored_scan_msgs.range_max << std::endl;
         int gap_lidx = 0;
         float gap_ldist = stored_scan_msgs.ranges[0];
         // last as in previous scan
@@ -129,10 +130,6 @@ namespace dynamic_gap {
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap>& raw_gaps)
     {
-        // int left_idx = -1;
-        // int right_idx = -1;
-        // float right_dist = 3;
-        // float left_dist = 3; // TODO: Make this reconfigurable
         int observed_size = (int) raw_gaps.size();
         std::vector<dynamic_gap::Gap> simplified_gaps;
 

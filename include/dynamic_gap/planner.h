@@ -76,6 +76,8 @@ namespace dynamic_gap
         ros::Publisher ni_traj_pub;
         ros::Publisher ni_traj_pub_other;
 
+        ros::Publisher dyn_egocircle_pub;
+        
         ros::Subscriber rbt_accel_sub;
         ros::Subscriber rbt_vel_sub;
 
@@ -155,7 +157,7 @@ namespace dynamic_gap
         geometry_msgs::Twist previous_cmd_vel;
         geometry_msgs::Twist current_cmd_vel;
         geometry_msgs::Twist current_rbt_vel;
-        Matrix<double, 1, 2> a;
+        Matrix<double, 1, 3> rbt_accel;
 
         std::string frame;
         double angle_increment;

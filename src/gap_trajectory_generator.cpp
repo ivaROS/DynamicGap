@@ -238,7 +238,7 @@ namespace dynamic_gap{
         //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            clf_cbf_dyn, x, 0.0,
+            polar_gap_field_inte, x, 0.0,
             selectedGap.gap_lifespan,
             cfg_->traj.integrate_stept, corder);
 

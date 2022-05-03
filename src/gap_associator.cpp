@@ -114,7 +114,7 @@ namespace dynamic_gap {
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 2> v_ego) {
+	std::vector<int> GapAssociator::associateGaps(std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 3> v_ego) {
         int M = previous_gaps.size();
         int N = observed_gaps.size();
 		//std::cout << "previous gap points:" << std::endl;
@@ -162,8 +162,8 @@ namespace dynamic_gap {
 		}
 		std::cout << "" << std::endl;
 		*/
-		//std::cout << "point pairs" << std::endl;
 		/*
+		std::cout << "point pairs" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			if (i >= 0 && associations[i] >= 0) {
 				std::cout << i << ": (" << previous_gap_points[associations[i]][0] << ", " <<  previous_gap_points[associations[i]][1] << "), to (" << observed_gap_points[i][0] << ", " <<  observed_gap_points[i][1] << ") with a distance of " << distMatrix[i][associations[i]] << ", ";
@@ -174,6 +174,7 @@ namespace dynamic_gap {
 		}
 		std::cout << "" << std::endl;
 		*/
+		
 		// initializing models for current gaps
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			double init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
@@ -185,8 +186,10 @@ namespace dynamic_gap {
 			}
 			*model_idx += 1;
 		}
+		
 
 		// ASSOCIATING MODELS
+		// std::cout << "accepting associations" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			//std::cout << "i " << i << std::endl;
 			// the values in associations are indexes for observed gaps
@@ -227,7 +230,6 @@ namespace dynamic_gap {
 			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
 			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
 		//}
-
         return associations;
     }
 	

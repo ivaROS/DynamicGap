@@ -35,28 +35,35 @@ namespace dynamic_gap {
 
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::Gap>& current_raw_gaps, sensor_msgs::LaserScan& dynamic_laser_scan) {
         // freeze models
+        // std::cout << "num gaps: " << current_raw_gaps.size() << std::endl;
         std::vector<dynamic_gap::MP_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
         }
 
+        // std::cout << "starting setting sides and freezing velocities" << std::endl;
         int count = 0;
-        for (auto & model : raw_models) { 
+        for (auto & model : raw_models) {
             if (count % 2 == 0) {
+                // std::cout << "setting left" << std::endl;
                 model->set_side("left");
             } else {
+                // std::cout << "setting right" << std::endl;
                 model->set_side("right");
             }
             count++;
+            // std::cout << "going to freeze robot vel" << std::endl;
             model->freeze_robot_vel();
         }
+        // std::cout << "finished setting sides and freezing velocities" << std::endl;
 
         //sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         //dynamic_laser_scan.set_ranges_size(2*gap.half_scan);
 
 
         // iterate
+        // std::cout << "propagating models" << std::endl;
         double interval = t_iplus1 - t_i;
         //std::cout << "time: " << t_iplus1 << std::endl;
         for (double i = 0.0; i < interval; i += 0.01) {
@@ -64,6 +71,7 @@ namespace dynamic_gap {
                 model->frozen_state_propagate(0.01);
             }
         }
+        // std::cout << "sorting models" << std::endl;
         sort(raw_models.begin(), raw_models.end(), compareModelBearings);
 
         bool searching_for_left = true;
@@ -78,7 +86,9 @@ namespace dynamic_gap {
         double curr_beta;
         int curr_idx;
 
+        // std::cout << "iterating through models" << std::endl;
         for (int j = 0; j < raw_models.size(); j++) {
+            // std::cout << "model " << j << std::endl;
             model = raw_models[j];
             model_state = model->get_frozen_state();
             curr_beta = atan2(model_state[1], model_state[2]);
@@ -136,6 +146,7 @@ namespace dynamic_gap {
     }
 
     void TrajectoryArbiter::populateDynamicLaserScan(dynamic_gap::MP_model * left_model, dynamic_gap::MP_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free) {
+        // std::cout << "populating part of laser scan" << std::endl;
         Matrix<double, 5, 1> left_state = left_model->get_frozen_state();
         Matrix<double, 5, 1> right_state = right_model->get_frozen_state();
         //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
@@ -174,11 +185,12 @@ namespace dynamic_gap {
             // std::cout << "updating range at " << entry_idx << " to " << new_range << std::endl;
             dynamic_laser_scan.ranges[entry_idx] = new_range;
         }
+        // std::cout << "done populating" << std::endl;
     }
 
     double TrajectoryArbiter::setDynamicLaserScanRange(double idx, double idx_span, double start_idx, double end_idx, double start_range, double end_range, bool free) {
         if (free) {
-            return 3;
+            return 5;
         } else {
             if (start_idx != end_idx) {
                 return start_range + (end_range - start_range) * (idx / idx_span);
@@ -246,6 +258,8 @@ namespace dynamic_gap {
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
+
+        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));
         /*
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
@@ -270,7 +284,6 @@ namespace dynamic_gap {
             std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
         */
-        std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
         for (int i = 0; i < static_cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
             static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
@@ -280,12 +293,21 @@ namespace dynamic_gap {
             }
             */
         }
+        std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
+        for (int i = 0; i < counts; i++) {
+            // std::cout << "regular range at " << i << ": ";
+            if (static_cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
+                std::cout << "-inf at pose " << i << " of " << static_cost_val.size() << " with distance of: " << getClosestDist(traj.poses.at(i)) << std::endl;
+            }
+        }
+
+
         auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
         total_val = static_total_val;
         cost_val = static_cost_val;
         std::cout << "static pose-wise cost: " << static_total_val << std::endl;
     
-        if (cost_val.size() > 0) // && ! cost_val.at(0) == -std::numeric_limits<double>::infinity())
+        if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
             double w1 = 1;
@@ -320,17 +342,6 @@ namespace dynamic_gap {
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
     }
 
-    double TrajectoryArbiter::scoreGapRanges(double left_range, double right_range) {
-        double range = std::min(left_range, right_range);
-        if (range < r_inscr * cfg_->traj.inf_ratio) {
-            return -std::numeric_limits<double>::infinity();
-        }
-        // if distance is essentially infinity, return 0
-        if (range > rmax) return 0;
-
-        return cobs * std::exp(- w * (range - r_inscr * cfg_->traj.inf_ratio));
-    }
-
     double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan) {
         boost::mutex::scoped_lock lock(egocircle_mutex);
 
@@ -351,7 +362,7 @@ namespace dynamic_gap {
         // Meant to find where is really small
         for (int i = 0; i < dist.size(); i++) {
             float this_dist = dynamic_laser_scan.ranges.at(i);
-            this_dist = this_dist == 3 ? this_dist + cfg_->traj.rmax : this_dist;
+            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
             dist.at(i) = dist2Pose(i * dynamic_laser_scan.angle_increment - M_PI, this_dist, pose);
         }
 
@@ -365,14 +376,40 @@ namespace dynamic_gap {
         return cost;
     }
 
+    double TrajectoryArbiter::getClosestDist(geometry_msgs::Pose pose) {
+        boost::mutex::scoped_lock lock(egocircle_mutex);
+        sensor_msgs::LaserScan stored_scan = *msg.get();
+
+        int scan_size = (int) stored_scan.ranges.size();
+        // dist is size of scan
+        std::vector<double> dist(scan_size);
+
+        // This size **should** be ensured
+        if (stored_scan.ranges.size() < 500) {
+            ROS_FATAL_STREAM("Scan range incorrect scorePose");
+        }
+
+        // iterate through ranges and obtain the distance from the egocircle point and the pose
+        // Meant to find where is really small
+        for (int i = 0; i < dist.size(); i++) {
+            float this_dist = stored_scan.ranges.at(i);
+            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
+            dist.at(i) = dist2Pose(i * stored_scan.angle_increment - M_PI,
+                this_dist, pose);
+        }
+
+        auto iter = std::min_element(dist.begin(), dist.end());
+
+        return *iter;
+    }
 
     double TrajectoryArbiter::scorePose(geometry_msgs::Pose pose) {
         boost::mutex::scoped_lock lock(egocircle_mutex);
         sensor_msgs::LaserScan stored_scan = *msg.get();
 
         // obtain orientation and idx of pose
-        double pose_ori = std::atan2(pose.position.y + 1e-3, pose.position.x + 1e-3);
-        int center_idx = (int) std::round((pose_ori + M_PI) / msg.get()->angle_increment);
+        //double pose_ori = std::atan2(pose.position.y + 1e-3, pose.position.x + 1e-3);
+        //int center_idx = (int) std::round((pose_ori + M_PI) / msg.get()->angle_increment);
         
         int scan_size = (int) stored_scan.ranges.size();
         // dist is size of scan
@@ -387,14 +424,12 @@ namespace dynamic_gap {
         // Meant to find where is really small
         for (int i = 0; i < dist.size(); i++) {
             float this_dist = stored_scan.ranges.at(i);
-            this_dist = this_dist == 3 ? this_dist + cfg_->traj.rmax : this_dist;
+            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
             dist.at(i) = dist2Pose(i * stored_scan.angle_increment - M_PI,
                 this_dist, pose);
         }
 
         auto iter = std::min_element(dist.begin(), dist.end());
-        double theta = std::distance(dist.begin(), iter) * stored_scan.angle_increment - M_PI;
-        double range = stored_scan.ranges.at(std::distance(dist.begin(), iter) );
         //std::cout << "closest point: (" << x << ", " << y << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
         double cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
