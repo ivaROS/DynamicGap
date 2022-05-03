@@ -105,7 +105,8 @@ namespace dynamic_gap {
                         int right_idx = (int) std::floor((prev_beta_right - msg.get()->angle_min) / msg.get()->angle_increment);
                         float right_dist = (1.0 / prev_right_frozen_state[0]);
                         gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
-                        gap.gap_crossed = true;
+                        gap.gap_closed = true;
+                        // gap.gap_crossed = true;
                         return dt;
                     } else {
                         if (first_cross) {
@@ -133,7 +134,7 @@ namespace dynamic_gap {
             prev_right_frozen_state = right_frozen_state;
         }
 
-        if (!gap.gap_crossed) {
+        if (!gap.gap_crossed && !gap.gap_closed) {
             left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
             right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
             left_frozen_state = left_model->get_frozen_state();
@@ -656,14 +657,13 @@ namespace dynamic_gap {
 
     // In place modification
     void GapManipulator::reduceGap(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
+        if (!msg) return; 
+        // msg is from egocircle
+
         int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
         int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
         float ldist = initial ? gap.LDist() : gap.terminal_ldist;
         float rdist = initial ? gap.RDist() : gap.terminal_rdist;
-
-        if (!msg) return; 
-        // msg is from egocircle
-
         double gap_idx_size;
         if (ridx > lidx) {
             gap_idx_size = (ridx - lidx);
@@ -678,7 +678,7 @@ namespace dynamic_gap {
             return;
         }
 
-        std::cout << "running reduceGap" << std::endl;
+        std::cout << "~running reduceGap, gap_theta_size: " << gap_theta_size << "~" << std::endl;
 
         float x1, x2, y1, y2;
         x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
@@ -687,8 +687,8 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
         y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
 
-        std::cout << "initial gap in polar, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
-        std::cout << "initial gap in cart, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "pre-reduce gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
+        std::cout << "pre-reduce gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
         //std::cout << "indices: " << lidx << ", " << ridx << std::endl;
 
 
@@ -756,21 +756,29 @@ namespace dynamic_gap {
             gap.convex.convex_ldist = new_ldist + cfg_->gap_viz.viz_jitter;
             gap.convex.convex_rdist = new_rdist + cfg_->gap_viz.viz_jitter;
             gap.mode.reduced = true;
+
+            x1 = (gap.convex.convex_ldist) * cos(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.convex_ldist) * sin(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+
+            x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
+            y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
+            std::cout << "post-reduce gap in polar. left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
+
         } else {
             gap.convex.terminal_lidx = new_l_idx;
             gap.convex.terminal_ridx = new_r_idx;
             gap.convex.terminal_ldist = new_ldist + cfg_->gap_viz.viz_jitter;
             gap.convex.terminal_rdist = new_rdist + cfg_->gap_viz.viz_jitter;
             gap.mode.terminal_reduced = true;
-        }
-        
-        x1 = (gap.convex.convex_ldist) * cos(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
-        y1 = (gap.convex.convex_ldist) * sin(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
 
-        x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
-        y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
-        std::cout << "reduced gap in polar, left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
-        std::cout << "new gap in cart, left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl;
+            x1 = (gap.convex.terminal_ldist) * cos(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.terminal_ldist) * sin(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+
+            x2 = (gap.convex.terminal_rdist) * cos(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI);
+            y2 = (gap.convex.terminal_rdist) * sin(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI);
+            std::cout << "post-reduce gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
+        }
+        std::cout << "post-reduce in cart. left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl;
 
         //std::cout << "new angular size: " << (new_r - new_l) * (msg.get()->angle_increment) << std::endl;
 
@@ -786,7 +794,7 @@ namespace dynamic_gap {
         if (!gap.isAxial(initial) || !cfg_->gap_manip.axial_convert) {
             return;
         }
-        std::cout << "running convertAxialGap" << std::endl;
+        std::cout << "~running convertAxialGap~" << std::endl;
 
         int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
         int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
@@ -800,8 +808,8 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
         y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
 
-        std::cout << "initial gap in polar, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
-        std::cout << "initial gap in cart, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "pre-AGC gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
+        std::cout << "pre-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
         //std::cout << "indices: " << lidx << ", " << ridx << std::endl;
         
         bool left = initial ? gap.isLeftType() : gap.isTerminalLeftType();
@@ -889,7 +897,6 @@ namespace dynamic_gap {
             return;
         }
 
-
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         if (stored_scan_msgs.ranges.size() < 500) {
             ROS_FATAL_STREAM("Scan range incorrect gap manip");
@@ -934,12 +941,26 @@ namespace dynamic_gap {
             gap.convex.convex_ridx = left ? idx : near_idx;
             gap.convex.convex_rdist = left ? r : near_dist;
 
+            x1 = (gap.convex.convex_ldist) * cos(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.convex_ldist) * sin(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+            x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
+            y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
+            std::cout << "post-AGC gap in polar. left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
+            gap.mode.agc = true;
         } else {
             gap.convex.terminal_lidx = left ? near_idx : idx;
             gap.convex.terminal_ldist = left ? near_dist : r;
             gap.convex.terminal_ridx = left ? idx : near_idx;
             gap.convex.terminal_rdist = left ? r : near_dist;
+            
+            x1 = (gap.convex.terminal_ldist) * cos(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.terminal_ldist) * sin(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+            x2 = (gap.convex.terminal_rdist) * cos(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
+            y2 = (gap.convex.terminal_rdist) * sin(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
+            std::cout << "post-AGC gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
+            gap.mode.terminal_agc = true;
         }
+        std::cout << "post-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
 
         /*
         // reinitialize the near point that is pivoted
@@ -949,23 +970,7 @@ namespace dynamic_gap {
             gap.left_model->initialize(r, pivoted_theta, v_ego);
         }
         */
-        
-        if (initial) { 
-            x1 = (gap.convex.convex_ldist) * cos(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
-            y1 = (gap.convex.convex_ldist) * sin(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
-            x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
-            y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
-            std::cout << "converted axial gap in polar, left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
-            gap.mode.agc = true;
-        } else {
-            x1 = (gap.convex.terminal_ldist) * cos(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
-            y1 = (gap.convex.terminal_ldist) * sin(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
-            x2 = (gap.convex.terminal_rdist) * cos(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
-            y2 = (gap.convex.terminal_rdist) * sin(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
-            std::cout << "converted axial gap in polar, left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
-            gap.mode.terminal_agc = true;
-        }
-        std::cout << "converted axial gap in cart, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+
 
         /*
         Matrix<double, 4, 1> left_cartesian_state = gap.left_model->get_cartesian_state();
@@ -974,26 +979,20 @@ namespace dynamic_gap {
         std::cout << "right: (" << right_cartesian_state[0] << ", " << right_cartesian_state[1] << ", " << right_cartesian_state[2] << ", " << right_cartesian_state[3] << ")" << std::endl;
         */
 
-        /*
-        if (left && gap.convex.convex_ridx < gap.convex.convex_lidx) {
-            gap.goal.discard = true;
-        }
-
-        if (!left && gap.convex.convex_ridx < gap.convex.convex_lidx) {
-            gap.goal.discard = true;
-        }
-        */
-
     }
 
     void GapManipulator::clipGapByLaserScan(dynamic_gap::Gap& gap) {
+        std::cout << "running clipGapByLaserScan" << std::endl;
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
-        if (gap.convex.terminal_ldist > 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx)) {
-            gap.convex.terminal_ldist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
+        double laserscan_left_dist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
+        if (gap.convex.terminal_ldist > laserscan_left_dist) {
+            std::cout << "clipping left dist from " << gap.convex.terminal_ldist << " to " << laserscan_left_dist << std::endl;
+            gap.convex.terminal_ldist = laserscan_left_dist;
         }
-        
-        if (gap.convex.terminal_rdist > 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx)) {
-            gap.convex.terminal_rdist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx);
+        double laserscan_right_dist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx);
+        if (gap.convex.terminal_rdist > laserscan_right_dist) {
+            std::cout << "clipping right dist from " << gap.convex.terminal_rdist << " to " << laserscan_right_dist << std::endl;
+            gap.convex.terminal_rdist = laserscan_right_dist;
         }
     }
 
@@ -1009,7 +1008,7 @@ namespace dynamic_gap {
         int half_num_scan = gap.half_scan; // changing this
         // minSafeDist is the minimum distance within the laser scan 
         float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
-        std::cout << "min safe dist: " << s << std::endl;
+        // std::cout << "min safe dist: " << s << std::endl;
         int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
         int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
         float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
@@ -1022,8 +1021,8 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
         y2 = (rdist) * sin(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
 
-        std::cout << "initial gap in polar, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
-        std::cout << "initial gap in cart, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "pre-RE gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
+        std::cout << "pre-RE gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
         
         Eigen::Vector2f gL(x1, y1);
         Eigen::Vector2f gR(x2, y2);
@@ -1074,7 +1073,7 @@ namespace dynamic_gap {
             y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
             x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
             y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-            std::cout << "radially extended gap in polar, left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
+            std::cout << "post-RE gap in polar, left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
             gap.qB = qB;
         } else {
             gap.convex.terminal_lidx = polqLn(1) / M_PI * half_num_scan + half_num_scan;
@@ -1086,10 +1085,10 @@ namespace dynamic_gap {
             y1 = (gap.convex.terminal_ldist) * sin(-((float) half_num_scan - gap.convex.terminal_lidx) / half_num_scan * M_PI);
             x2 = (gap.convex.terminal_rdist) * cos(-((float) half_num_scan - gap.convex.terminal_ridx) / half_num_scan * M_PI);
             y2 = (gap.convex.terminal_rdist) * sin(-((float) half_num_scan - gap.convex.terminal_ridx) / half_num_scan * M_PI);
-            std::cout << "radially extended gap in polar, left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
+            std::cout << "post-RE gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
             gap.terminal_qB = qB;
         }
-        std::cout << "radially extended gap in cart, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "post-RE gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
 
         // std::cout << "after radial extension:" << std::endl;
 

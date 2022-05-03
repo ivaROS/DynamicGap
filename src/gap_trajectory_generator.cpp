@@ -197,7 +197,8 @@ namespace dynamic_gap{
                             x[0],
                             x[1],
                             goal_vel_x,
-                            goal_vel_y);
+                            goal_vel_y,
+                            selectedGap.gap_crossed);
         
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
@@ -208,6 +209,9 @@ namespace dynamic_gap{
         }
         
         std::cout << "CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan << std::endl;
+        if (selectedGap.gap_crossed) {
+            std::cout << "gap crossed, ignoring further point" << std::endl;
+        }
         // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
         //rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         //left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));

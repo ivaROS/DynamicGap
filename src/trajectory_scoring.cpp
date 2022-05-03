@@ -270,9 +270,15 @@ namespace dynamic_gap {
             std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
         */
+        std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
         for (int i = 0; i < static_cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
             static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+            /*
+            if (static_cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
+                std::cout << "-inf at pose " << i << " of " << static_cost_val.size() << std::endl;
+            }
+            */
         }
         auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
         total_val = static_total_val;
@@ -400,6 +406,7 @@ namespace dynamic_gap {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         // std::cout << "in chapterScore with distance: " << d << std::endl;
         if (d < r_inscr * cfg_->traj.inf_ratio) {
+            // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
             // sum of betadot leftsstd::cout << "pose too close to obstacle, returning -inf" << std::endl;
             return -std::numeric_limits<double>::infinity();
         }

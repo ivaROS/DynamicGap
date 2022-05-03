@@ -57,7 +57,7 @@ namespace dynamic_gap
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
             void globalPlanRbtFrame(const std::vector<geometry_msgs::PoseStamped> & );
-            void trajScore(geometry_msgs::PoseArray, std::vector<double>);
+            // void trajScore(geometry_msgs::PoseArray, std::vector<double>);
             void pubAllTraj(std::vector<geometry_msgs::PoseArray> prr);
             void pubAllScore(std::vector<geometry_msgs::PoseArray>, std::vector<std::vector<double>>);
         private: 

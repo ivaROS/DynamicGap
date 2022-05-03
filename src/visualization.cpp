@@ -629,7 +629,7 @@ namespace dynamic_gap{
         }
         goal_selector_traj_vis.publish(vis_arr);
     }
-
+    /*
     void TrajectoryVisualizer::trajScore(geometry_msgs::PoseArray p_arr, std::vector<double> p_score) {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -664,7 +664,7 @@ namespace dynamic_gap{
 
         trajectory_score.publish(score_arr);
     }
-
+    */
     void TrajectoryVisualizer::pubAllScore(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> cost) {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray score_arr;

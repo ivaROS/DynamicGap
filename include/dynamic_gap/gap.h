@@ -426,6 +426,7 @@ namespace dynamic_gap
             Eigen::Vector2f closing_pt;
 
             bool gap_crossed = false;
+            bool gap_closed = false;
             int terminal_lidx = 0;
             int terminal_ridx = 511;
             float terminal_ldist = 3.0;

@@ -106,10 +106,10 @@ namespace dynamic_gap {
 
     void MP_model::inflate_model(float inf_x_pos, float inf_y_pos) {
         Matrix<double, 4, 1> cartesian_state = get_cartesian_state();
-        std::cout << "in inflate model, setting x from: (" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ") to ";
+        // std::cout << "in inflate model, setting x from: (" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ") to ";
         cartesian_state[0] = inf_x_pos;
         cartesian_state[1] = inf_y_pos;
-        std::cout << "(" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ")" << std::endl;
+        //std::cout << "(" << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << ")" << std::endl;
         
         double new_r = std::sqrt(pow(cartesian_state[0], 2) + pow(cartesian_state[1], 2));
         double new_beta = std::atan2(cartesian_state[1], cartesian_state[0]);
@@ -178,7 +178,7 @@ namespace dynamic_gap {
         t = ros::Time::now().toSec();
         dt = t - t0; // 0.01
         //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
-        std::cout << "a: " << a[0] << ", " << a[1] << ", dt: " << dt << std::endl;
+        // std::cout << "a: " << a[0] << ", " << a[1] << ", dt: " << dt << std::endl;
         double a_r = a[0]*y[2] + a[1]*y[1]; // ax*cos(beta) + ay*sin(beta)
         double a_beta = -a[0]*y[1] + a[1]*y[2]; // -ax*sin(beta) + ay*cos(beta)
         //std::cout << "a_r: " << a_r << ", a_beta " << a_beta << std::endl;
@@ -230,18 +230,18 @@ namespace dynamic_gap {
         a = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
         v_ego = _v_ego;
         Eigen::Vector4d cart_state = get_cartesian_state();
-        std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        //std::cout << "y_i:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
         // std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << std::endl;
         
         //std::cout<< "integrating" << std::endl;
         integrate();
         cart_state = get_cartesian_state();
-        std::cout << "y_i+1_prime: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1_prime: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        //std::cout << "y_i+1_prime: " << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1_prime: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         cart_state = get_cartesian_state();
         //std::cout << "y_i bar:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << std::endl;
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << ". x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
+        //std::cout << "y_tilde: " << y_tilde[0] << ", " << y_tilde[1] << ", " << y_tilde[2] << ". x_tilde: " << (1.0 / y_tilde[0])*y_tilde[2] << ", " << (1.0 / y_tilde[0])*y_tilde[1] << std::endl;
 
         //std::cout << "y after integration" << y << std::endl;
         //std::cout<< "linearizing" << std::endl;
@@ -286,13 +286,13 @@ namespace dynamic_gap {
         y[2] /= std::sqrt(pow(y[1], 2) + pow(y[2], 2));
 
         cart_state = get_cartesian_state();
-        std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
+        //std::cout << "y_i+1:" << y[0] << ", " << y[1] << ", " << y[2] << ", " << y[3] << ", " << y[4] << ". x_i+1: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(5,5) - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
-        std::cout << "" << std::endl;
+        //std::cout << "" << std::endl;
     }
 
     Eigen::Vector4d MP_model::get_cartesian_state() {
