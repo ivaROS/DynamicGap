@@ -66,7 +66,6 @@ add_library(dynamic_gap
   src/planner.cpp
   src/dynamic_gap.cpp
   src/gap_utils.cpp
-  
   src/dynamicgap_config.cpp
   src/visualization.cpp
   src/goal_selector.cpp
@@ -76,6 +75,7 @@ add_library(dynamic_gap
   src/trajectory_controller.cpp
   src/gap_associator.cpp
   src/mp_model.cpp
+  src/cart_model.cpp
   ) 
 
 catkin_install_python(PROGRAMS
