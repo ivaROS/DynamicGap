@@ -58,7 +58,7 @@ namespace dynamic_gap{
             double chapterScore(double d);
             double terminalGoalCost(geometry_msgs::Pose pose);
             double dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan);
-            void populateDynamicLaserScan(dynamic_gap::MP_model * left_model, dynamic_gap::MP_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
+            void populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
             double setDynamicLaserScanRange(double idx, double idx_span, double start_idx, double end_idx, double start_range, double end_range, bool free);
             double getClosestDist(geometry_msgs::Pose pose);
 

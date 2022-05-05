@@ -143,35 +143,28 @@ namespace dynamic_gap
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
             Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+            Matrix<double, 1, 3> a_ego(rbt_accel[0], rbt_accel[1], rbt_accel[2]);
 
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
 
-            // std::vector<dynamic_gap::Gap> curr_raw_gaps = get_curr_raw_gaps();
-
-            //std::cout << "RAW GAP ASSOCIATION AND UPDATING" << std::endl;
+            std::cout << "RAW GAP ASSOCIATING" << std::endl;
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
-            associated_raw_gaps = update_models(raw_gaps);
-            
-            // if (abs(current_rbt_vel.angular.z) < 0.25) {
+            std::cout << "RAW GAP UPDATING" << std::endl;
+            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego);
 
-            //std::cout << "FINISHED RAW GAP ASSOCIATION AND UPDATING" << std::endl;
-
-            //std::cout << "SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
 
-            // std::vector<dynamic_gap::Gap> curr_observed_gaps = get_curr_observed_gaps();
+            std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             association = gapassociator->associateGaps(observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
-            associated_observed_gaps = update_models(observed_gaps);
-
-            //std::cout << "FINISHED SIMPLIFIED GAP ASSOCIATION AND UPDATING" << std::endl;
+            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego);
 
             previous_gaps = associated_observed_gaps;
             previous_raw_gaps = associated_raw_gaps;
 
-            // do we need to merge every time?
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
             ROS_FATAL_STREAM("mergeGapsOneGo");
@@ -200,7 +193,9 @@ namespace dynamic_gap
 
     }
     
-    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps) {
+    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego) {
+        // boost::mutex::scoped_lock gapset(gapset_mutex);
+
         // UPDATING MODELS
         //std::cout << "obtaining gap g" << std::endl;
 		geometry_msgs::Vector3Stamped gap_pt_vector_rbt_frame;
@@ -208,7 +203,6 @@ namespace dynamic_gap
         gap_pt_vector_rbt_frame.header.frame_id = cfg.robot_frame_id;
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
         //std::cout << "obtaining gap pt vector" << std::endl;
-        // convex is for simplified gaps, straight ldist is for raw gaps, may need separate one for both
 		// THIS VECTOR IS IN THE ROBOT FRAME
 		if (i % 2 == 0) {
 			gap_pt_vector_rbt_frame.vector.x = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
@@ -227,32 +221,31 @@ namespace dynamic_gap
         //std::cout << "range vector rbt frame: " << range_vector_rbt_frame.vector.x << ", " << range_vector_rbt_frame.vector.x << std::endl;
 
         double beta_tilde = std::atan2(range_vector_rbt_frame.vector.y, range_vector_rbt_frame.vector.x);
-		double norm = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
+		double range_tilde = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
 		
-		Matrix<double, 3, 1> y_tilde;
-		y_tilde << 1.0 / norm, 
-				   std::sin(beta_tilde),
-				   std::cos(beta_tilde);
+		Matrix<double, 2, 1> laserscan_measurement;
+		laserscan_measurement << range_tilde, 
+				                 beta_tilde;
         // std::cout << "y_tilde: " << y_tilde << std::endl;
 
-        Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+        // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(y_tilde, rbt_accel, v_ego);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(y_tilde, rbt_accel, v_ego);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego);
         }
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps) {
+    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
 
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
-            // std::cout << "update gap model: " << i << std::endl;
-            update_model(i, associated_observed_gaps);
-            //std::cout << "" << std::endl;
+            std::cout << "update gap model: " << i << std::endl;
+            update_model(i, associated_observed_gaps, _v_ego, _a_ego);
+            std::cout << "" << std::endl;
 		}
 
         return associated_observed_gaps;
@@ -423,8 +416,8 @@ namespace dynamic_gap
                 // a copied pointer still points to same piece of memory, so we need to copy the models
                 // if we want to have a separate model for the manipulated gap
                 
-                //manip_set.at(i).left_model = new dynamic_gap::MP_model(*_observed_gaps.at(i).left_model);
-                //manip_set.at(i).right_model = new dynamic_gap::MP_model(*_observed_gaps.at(i).right_model);
+                //manip_set.at(i).left_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).left_model);
+                //manip_set.at(i).right_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).right_model);
 
                 /*
                 sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
@@ -764,11 +757,11 @@ namespace dynamic_gap
         return;
     }
 
-    void Planner::setCurrentLeftModel(dynamic_gap::MP_model * _left_model) {
+    void Planner::setCurrentLeftModel(dynamic_gap::cart_model * _left_model) {
         curr_left_model = _left_model;
     }
 
-    void Planner::setCurrentRightModel(dynamic_gap::MP_model * _right_model) {
+    void Planner::setCurrentRightModel(dynamic_gap::cart_model * _right_model) {
         curr_right_model = _right_model;
     }
 
@@ -890,10 +883,9 @@ namespace dynamic_gap
         updateTF();
         Matrix<double, 1, 2> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y);
 
-
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
         std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
-
+        /*
         std::cout << "curr_raw_gaps:" << std::endl;
         for (size_t i = 0; i < curr_raw_gaps.size(); i++)      
         {
@@ -910,7 +902,6 @@ namespace dynamic_gap
             std::cout << "right x model: (" << right_x_state[0] << ", " << right_x_state[1] << ", " << right_x_state[2] << ", " << right_x_state[3] <<  ")" << std::endl;
 
         }
-
         // VISUALIZING DYNAMIC EGOCIRCLE RECREATION
         std::cout << "recreating egocircle" << std::endl;
         sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
@@ -933,10 +924,7 @@ namespace dynamic_gap
         double t_iplus1 = cfg.traj.integrate_stept;
         trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, curr_raw_gaps, dynamic_laser_scan);
         dyn_egocircle_pub.publish(dynamic_laser_scan);
-
-
-
-
+        */
             
         std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
         std::cout << "curr_observed_gaps:" << std::endl;
@@ -944,16 +932,10 @@ namespace dynamic_gap
         {
             std::cout << "gap " << i << std::endl;
             dynamic_gap::Gap g = curr_observed_gaps.at(i);
-            Matrix<double, 5, 1> left_y_state = g.left_model->get_state();
-            Matrix<double, 5, 1> right_y_state = g.right_model->get_state();
-            Matrix<double, 4, 1> left_x_state = g.left_model->get_cartesian_state();
-            Matrix<double, 4, 1> right_x_state = g.right_model->get_cartesian_state();
-            std::cout << "left y model: (" << left_y_state[0] << ", " << left_y_state[1] << ", " << left_y_state[2] << ", " << left_y_state[3] << ", " << left_y_state[4] << ")" << std::endl;
-            std::cout << "right y model: (" << right_y_state[0] << ", " << right_y_state[1] << ", " << right_y_state[2] << ", " << right_y_state[3] << ", " << right_y_state[4] << ")" << std::endl;
-
-            std::cout << "left x model: (" << left_x_state[0] << ", " << left_x_state[1] << ", " << left_x_state[2] << ", " << left_x_state[3] << ")" << std::endl;
-            std::cout << "right x model: (" << right_x_state[0] << ", " << right_x_state[1] << ", " << right_x_state[2] << ", " << right_x_state[3] <<  ")" << std::endl;
-
+            Matrix<double, 4, 1> left_state = g.left_model->get_state();
+            Matrix<double, 4, 1> right_state = g.right_model->get_state();
+            std::cout << "left y model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")" << std::endl;
+            std::cout << "right y model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")" << std::endl;
         }
 
         std::cout << "drawing models" << std::endl;

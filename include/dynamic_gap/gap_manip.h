@@ -31,7 +31,7 @@ namespace dynamic_gap {
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void clipGapByLaserScan(dynamic_gap::Gap& gap);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
-            double indivGapFindCrossingPoint(dynamic_gap::Gap& gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
+            double indivGapFindCrossingPoint(dynamic_gap::Gap& gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set);
             std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
@@ -48,10 +48,10 @@ namespace dynamic_gap {
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
             bool checkGoalVisibility(geometry_msgs::PoseStamped,  sensor_msgs::LaserScan const scan);
             bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx, float lidx, float ridx);
-            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle);
-            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model);
-            void setGapGoalTimeBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
-            void setGapGoalCrossingBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
+            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, double gap_angle);
+            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
+            void setGapGoalTimeBased(dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
+            void setGapGoalCrossingBased(dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal);
 
 
 

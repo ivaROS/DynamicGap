@@ -27,16 +27,18 @@ namespace dynamic_gap {
         tf2::doTransform(lg, local_goal, odom2rbt);
     }
 
-    bool compareModelBearings(dynamic_gap::MP_model* model_one, dynamic_gap::MP_model* model_two) {
-        Matrix<double, 5, 1> state_one = model_one->get_state();
-        Matrix<double, 5, 1> state_two = model_two->get_state();
-        return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
+    bool compareModelBearings(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
+        Matrix<double, 4, 1> state_one = model_one->get_state();
+        Matrix<double, 4, 1> state_two = model_two->get_state();
+        
+        return state_one[1] < state_two[1];
+        // return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
     }
 
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::Gap>& current_raw_gaps, sensor_msgs::LaserScan& dynamic_laser_scan) {
         // freeze models
         // std::cout << "num gaps: " << current_raw_gaps.size() << std::endl;
-        std::vector<dynamic_gap::MP_model *> raw_models;
+        std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
@@ -76,13 +78,13 @@ namespace dynamic_gap {
 
         bool searching_for_left = true;
         bool start = true;
-        dynamic_gap::MP_model * curr_left = NULL;
-        dynamic_gap::MP_model * curr_right = NULL;
-        dynamic_gap::MP_model * first_left = NULL;
-        dynamic_gap::MP_model * first_right = NULL;
-        dynamic_gap::MP_model * last_model = raw_models[raw_models.size() - 1];
-        dynamic_gap::MP_model * model = NULL;
-        Matrix<double, 5, 1> left_state, model_state;
+        dynamic_gap::cart_model * curr_left = NULL;
+        dynamic_gap::cart_model * curr_right = NULL;
+        dynamic_gap::cart_model * first_left = NULL;
+        dynamic_gap::cart_model * first_right = NULL;
+        dynamic_gap::cart_model * last_model = raw_models[raw_models.size() - 1];
+        dynamic_gap::cart_model * model = NULL;
+        Matrix<double, 4, 1> left_state, model_state;
         double curr_beta;
         int curr_idx;
 
@@ -90,8 +92,8 @@ namespace dynamic_gap {
         for (int j = 0; j < raw_models.size(); j++) {
             // std::cout << "model " << j << std::endl;
             model = raw_models[j];
-            model_state = model->get_frozen_state();
-            curr_beta = atan2(model_state[1], model_state[2]);
+            model_state = model->get_frozen_modified_polar_state();
+            curr_beta = model_state[1]; // atan2(model_state[1], model_state[2]);
             curr_idx = (int) ((curr_beta + M_PI) / msg.get()->angle_increment);
             //std::cout << "candidate model with idx: " << curr_idx << std::endl;
 
@@ -145,14 +147,14 @@ namespace dynamic_gap {
         
     }
 
-    void TrajectoryArbiter::populateDynamicLaserScan(dynamic_gap::MP_model * left_model, dynamic_gap::MP_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free) {
+    void TrajectoryArbiter::populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free) {
         // std::cout << "populating part of laser scan" << std::endl;
-        Matrix<double, 5, 1> left_state = left_model->get_frozen_state();
-        Matrix<double, 5, 1> right_state = right_model->get_frozen_state();
+        Matrix<double, 4, 1> left_state = left_model->get_frozen_modified_polar_state();
+        Matrix<double, 4, 1> right_state = right_model->get_frozen_modified_polar_state();
         //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
         //std::cout << "right state: " << right_state[0] << ", "  << right_state[1] << ", "  << right_state[2] << ", "  << right_state[3] << ", "  << right_state[4] << std::endl;         
-        double left_beta = atan2(left_state[1], left_state[2]);
-        double right_beta = atan2(right_state[1], right_state[2]);
+        double left_beta = left_state[1]; // atan2(left_state[1], left_state[2]);
+        double right_beta = right_state[1]; // atan2(right_state[1], right_state[2]);
         int left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
         int right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
         double left_range = 1 / left_state[0];
@@ -236,8 +238,8 @@ namespace dynamic_gap {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-
-        std::vector<dynamic_gap::MP_model *> raw_models;
+        /*
+        std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
@@ -245,7 +247,6 @@ namespace dynamic_gap {
 
         // std::cout << "num models: " << raw_models.size() << std::endl;
         std::vector<double> dynamic_cost_val(traj.poses.size());
-        std::vector<double> static_cost_val(traj.poses.size());
         sensor_msgs::LaserScan stored_scan = *msg.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
@@ -253,13 +254,9 @@ namespace dynamic_gap {
         std::vector<float> dynamic_ranges(stored_scan.ranges.size());
         dynamic_laser_scan.ranges = dynamic_ranges;
 
-        double total_val = 0.0;
-        std::vector<double> cost_val;
-
         double t_i = 0.0;
         double t_iplus1 = 0.0;
 
-        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));
         /*
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
@@ -284,14 +281,15 @@ namespace dynamic_gap {
             std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
         */
+
+        double total_val = 0.0;
+        std::vector<double> cost_val;
+        std::vector<double> static_cost_val(traj.poses.size());
+        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));
+
         for (int i = 0; i < static_cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
             static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
-            /*
-            if (static_cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
-                std::cout << "-inf at pose " << i << " of " << static_cost_val.size() << std::endl;
-            }
-            */
         }
         std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
         for (int i = 0; i < counts; i++) {

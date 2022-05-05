@@ -170,8 +170,8 @@ namespace dynamic_gap
         double prev_traj_switch_time;
         double init_time;
 
-        dynamic_gap::MP_model * curr_left_model;
-        dynamic_gap::MP_model * curr_right_model;
+        dynamic_gap::cart_model * curr_left_model;
+        dynamic_gap::cart_model * curr_right_model;
 
     public:
         Planner();
@@ -323,13 +323,13 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
-        void update_model(int i, std::vector<dynamic_gap::Gap>&);
-        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap>);
+        void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego);
+        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 
-        void setCurrentLeftModel(dynamic_gap::MP_model * _left_model);
-        void setCurrentRightModel(dynamic_gap::MP_model * _right_model);
+        void setCurrentLeftModel(dynamic_gap::cart_model * _left_model);
+        void setCurrentRightModel(dynamic_gap::cart_model * _right_model);
 
         std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
 

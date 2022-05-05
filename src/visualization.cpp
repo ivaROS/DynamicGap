@@ -154,7 +154,7 @@ namespace dynamic_gap{
         int viz_offset = 0;
         double viz_jitter = cfg_->gap_viz.viz_jitter;
 
-        if (viz_jitter > 0 && g.isAxial(initial)){
+        if (viz_jitter > 0 && g.isAxial(initial)) {
             viz_offset = g.isLeftType(initial) ? -2 : 2;
         }
 

@@ -9,7 +9,7 @@
 #include <std_msgs/ColorRGBA.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <dynamic_gap/mp_model.h>
+#include <dynamic_gap/cart_model.h>
 
 namespace dynamic_gap
 {
@@ -20,25 +20,9 @@ namespace dynamic_gap
 
             // colon used here is an initialization list. helpful for const variables.
             Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
-            {
-                // std::cout << "initializing gap with index: " << index << std::endl;
-                // std::cout << "class member variable _index: " << _index << std::endl;
-                // ADD Y INITIALIZATIONS HERE?
-                //left_model = new dynamic_gap::MP_model("left", *index);
-                //*index += 1;
-                //right_model = new dynamic_gap::MP_model("right", *index);
-                //*index += 1;
-            };
+            {};
 
             ~Gap() {};
-
-            void setLeftModel(dynamic_gap::MP_model * _left_model) {
-                left_model = _left_model;
-            }
-
-            void setRightModel(dynamic_gap::MP_model * _right_model) {
-                right_model = _right_model;
-            }
             
             void setLIdx(int lidx)
             {
@@ -418,8 +402,8 @@ namespace dynamic_gap
                 bool goalwithin = false;
             } terminal_goal;
 
-            MP_model *left_model;
-            MP_model *right_model;
+            cart_model *left_model;
+            cart_model *right_model;
             int _index;
             std::string category;
             Eigen::Vector2f crossing_pt;

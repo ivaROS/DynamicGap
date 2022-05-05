@@ -7,16 +7,18 @@ namespace dynamic_gap {
         num_of_scan = (int)(msg.get()->ranges.size());
     }
     
-    double GapManipulator::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+    double GapManipulator::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         std::cout << "determining crossing point" << std::endl;
-        Matrix<double, 5, 1> left_frozen_state = left_model->get_frozen_state();        
-        Matrix<double, 5, 1> right_frozen_state = right_model->get_frozen_state();
+        Matrix<double, 4, 1> left_frozen_state = left_model->get_frozen_modified_polar_state();        
+        Matrix<double, 4, 1> right_frozen_state = right_model->get_frozen_modified_polar_state();
 
-        Matrix<double, 2, 1> left_bearing_vect(left_frozen_state[2], left_frozen_state[1]);
-        Matrix<double, 2, 1> right_bearing_vect(right_frozen_state[2], right_frozen_state[1]);
+        Matrix<double, 2, 1> left_bearing_vect(std::cos(left_frozen_state[1]), std::sin(left_frozen_state[1]));
+        Matrix<double, 2, 1> right_bearing_vect(std::cos(right_frozen_state[1]), std::sin(right_frozen_state[1]));
 
-        double det = left_frozen_state[2]*right_frozen_state[1] - left_frozen_state[1]*right_frozen_state[2];      
-        double dot = left_bearing_vect.dot(right_bearing_vect);
+        // det = cos_left*sin_right - sin_left*cos_right
+        // dot = cos_left*cos_right + sin_left*sin_right
+        double det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
+        double dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
 
         double swept_check = -std::atan2(det, dot);     
         double L_to_R_angle = swept_check;
@@ -25,8 +27,8 @@ namespace dynamic_gap {
             L_to_R_angle += 2*M_PI; 
         }
 
-        double beta_left = std::atan2(left_frozen_state[1], left_frozen_state[2]);
-        double beta_right = std::atan2(right_frozen_state[1], right_frozen_state[2]);
+        double beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
+        double beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
         double beta_center = beta_left -= (L_to_R_angle / 2.0);
 
         Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
@@ -45,30 +47,28 @@ namespace dynamic_gap {
         bool first_cross = true;
         bool bearing_crossing_check, range_closing_check;    
 
-        Matrix<double, 5, 1> prev_left_frozen_state = left_frozen_state;        
-        Matrix<double, 5, 1> prev_right_frozen_state = right_frozen_state;        
+        Matrix<double, 4, 1> prev_left_frozen_state = left_frozen_state;        
+        Matrix<double, 4, 1> prev_right_frozen_state = right_frozen_state;        
         
         for (double dt = cfg_->traj.integrate_stept; dt < cfg_->traj.integrate_maxt; dt += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
 
-            left_frozen_state = left_model->get_frozen_state();
-            right_frozen_state = right_model->get_frozen_state();
-            beta_left = std::atan2(left_frozen_state[1], left_frozen_state[2]);
-            beta_right = std::atan2(right_frozen_state[1], right_frozen_state[2]);
+            left_frozen_state = left_model->get_frozen_modified_polar_state();
+            right_frozen_state = right_model->get_frozen_modified_polar_state();
+            beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
+            beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             // beta_center = (beta_left + beta_right) / 2.0;
 
-            left_bearing_vect << left_frozen_state[2], left_frozen_state[1];
-            right_bearing_vect << right_frozen_state[2], right_frozen_state[1];
+            left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
+            right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
             // central_bearing_vect << std::cos(beta_center), std::sin(beta_center);
 
             left_central_dot = left_bearing_vect.dot(central_bearing_vect);
             right_central_dot = right_bearing_vect.dot(central_bearing_vect);
 
-            det = left_frozen_state[2]*right_frozen_state[1] - left_frozen_state[1]*right_frozen_state[2];      
-            dot = left_bearing_vect.dot(right_bearing_vect);
-
-
+            det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
+            dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
             swept_check = -std::atan2(det, dot); // this value is the angle swept clockwise from L to R (ranging from -pi to pi)
 
                         
@@ -97,8 +97,8 @@ namespace dynamic_gap {
                             gap_crossing_point << left_frozen_cartesian_state[0], left_frozen_cartesian_state[1];
                             gap.setClosingPoint(left_frozen_cartesian_state[0], left_frozen_cartesian_state[1]);
                         }
-                        float prev_beta_left = std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
-                        float prev_beta_right = std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
+                        float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
+                        float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
             
                         int left_idx = (int) std::ceil((prev_beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
                         float left_dist = (1.0 / prev_left_frozen_state[0]);
@@ -115,8 +115,8 @@ namespace dynamic_gap {
                             std::cout << "gap crosses but does not close at " << dt << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << std::endl; 
                             gap.setCrossingPoint(mid_x, mid_y);
                             first_cross = false;
-                            float prev_beta_left = std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
-                            float prev_beta_right = std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
+                            float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
+                            float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
             
                             int left_idx = (int) std::ceil((prev_beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
                             float left_dist = (1.0 / prev_left_frozen_state[0]);
@@ -139,8 +139,8 @@ namespace dynamic_gap {
             right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
             left_frozen_state = left_model->get_frozen_state();
             right_frozen_state = right_model->get_frozen_state();
-            beta_left = std::atan2(left_frozen_state[1], left_frozen_state[2]);
-            beta_right = std::atan2(right_frozen_state[1], right_frozen_state[2]);
+            beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
+            beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             
             std::cout << "no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")" << std::endl;
             int left_idx = int((beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
@@ -197,8 +197,8 @@ namespace dynamic_gap {
         Eigen::Vector2f pg = (pl + pr) / 2.0;
 
         // FLIPPING MODELS HERE
-        dynamic_gap::MP_model* left_model = gap.right_model;
-        dynamic_gap::MP_model* right_model = gap.left_model;
+        dynamic_gap::cart_model* left_model = gap.right_model;
+        dynamic_gap::cart_model* right_model = gap.left_model;
 
         auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
@@ -221,7 +221,7 @@ namespace dynamic_gap {
         return feasible;
     }
 
-    double GapManipulator::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model) {
+    double GapManipulator::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double crossing_time = indivGapFindCrossingPoint(gap, crossing_pt, left_model, right_model);
 
@@ -271,23 +271,39 @@ namespace dynamic_gap {
     }
 
 
-    bool GapManipulator::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, double gap_angle) {
+    bool GapManipulator::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, double gap_angle) {
         bool feasible = false;
-        Matrix<double, 5, 1> left_model_state = left_model->get_state();        
-        Matrix<double, 5, 1> right_model_state = right_model->get_state();
+        //Matrix<double, 5, 1> left_model_state = left_model->get_state();        
+        //Matrix<double, 5, 1> right_model_state = right_model->get_state();
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
         Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
        
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
-        Matrix<double, 5, 1> frozen_left_model_state = left_model->get_frozen_state();
-        Matrix<double, 5, 1> frozen_right_model_state = right_model->get_frozen_state();
+        Matrix<double, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
+        Matrix<double, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
 
-        double left_betadot_check = frozen_left_model_state[4];
-        double right_betadot_check = frozen_right_model_state[4];
+        double left_betadot = frozen_left_model_state[3];
+        double right_betadot = frozen_right_model_state[3];
         double crossing_time = gapSplinecheck(gap, left_model, right_model);
 
+        double min_betadot = std::min(left_betadot, right_betadot);
+        double subtracted_left_betadot = left_betadot - min_betadot;
+        double subtracted_right_betadot = right_betadot - min_betadot;
+
+        if (subtracted_left_betadot > 0) {
+            // expanding
+            feasible = true;
+            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+        } else {
+            if (crossing_time >= 0) {
+                feasible = true;
+                gap.gap_lifespan = crossing_time;
+            }
+        }
+
+        /*
         std::cout << "left betadot check: " << left_betadot_check << ", right betadot check: " << right_betadot_check << std::endl;
         if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
             // CATEGORY 1: TRANSLATING     
@@ -321,7 +337,7 @@ namespace dynamic_gap {
             // double crossing_time = gapSplinecheck(gap, left_model, right_model);
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
         }
-
+        */
         return feasible;
     }
     
@@ -365,8 +381,8 @@ namespace dynamic_gap {
         std::cout << "original left idx: " << gap.convex.convex_lidx << ", original right idx: " << gap.convex.convex_ridx << std::endl;
         //std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
 
-        dynamic_gap::MP_model* left_model = gap.right_model;
-        dynamic_gap::MP_model* right_model = gap.left_model;
+        dynamic_gap::cart_model* left_model = gap.right_model;
+        dynamic_gap::cart_model* right_model = gap.left_model;
         /*
         std::vector<double> model_vect = determineLeftRightModels(gap, pg);
         if (model_vect[0] == 0.0) {
@@ -378,8 +394,8 @@ namespace dynamic_gap {
         }
         */
 
-        Matrix<double, 5, 1> left_model_state = left_model->get_state();
-        Matrix<double, 5, 1> right_model_state = right_model->get_state();
+        // Matrix<double, 4, 1> left_model_state = left_model->get_state();
+        // Matrix<double, 4, 1> right_model_state = right_model->get_state();
         
         
         left_model->freeze_robot_vel();
@@ -389,7 +405,7 @@ namespace dynamic_gap {
         setGapGoalCrossingBased(left_model, right_model, gap, localgoal);
     }
 
-    void GapManipulator::setGapGoalCrossingBased(dynamic_gap::MP_model* left_model, dynamic_gap::MP_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
+    void GapManipulator::setGapGoalCrossingBased(dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;
         int mid_idx;
@@ -821,7 +837,7 @@ namespace dynamic_gap {
         std::cout << "theta to pivot: " << theta << std::endl;
         int near_idx, far_idx;
         float near_dist, far_dist;
-        dynamic_gap::MP_model * near_model;
+        dynamic_gap::cart_model * near_model;
         
         near_idx = left ? lidx : ridx;
         far_idx = left ? ridx : lidx;

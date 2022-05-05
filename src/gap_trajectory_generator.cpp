@@ -12,11 +12,11 @@ namespace dynamic_gap{
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
         // flipping models here to be from robot's POV
-        dynamic_gap::MP_model* left_model = selectedGap.right_model;
-        dynamic_gap::MP_model* right_model = selectedGap.left_model;
+        // dynamic_gap::cart_model* left_model = selectedGap.right_model;
+        // dynamic_gap::cart_model* right_model = selectedGap.left_model;
 
-        Matrix<double, 5, 1> left_model_state = left_model->get_state();
-        Matrix<double, 5, 1> right_model_state = right_model->get_state();
+        // Matrix<double, 4, 1> left_model_state = left_model->get_modified_polar_state();
+        // Matrix<double, 4, 1> right_model_state = right_model->get_modified_polar_state();
 
         // curr_pose is in sensor frame, gaps are in robot frame?, curr_vel is in robot frame
         Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
@@ -184,6 +184,7 @@ namespace dynamic_gap{
         //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
         
         //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
+        /*
         clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
@@ -199,7 +200,7 @@ namespace dynamic_gap{
                             goal_vel_x,
                             goal_vel_y,
                             selectedGap.gap_crossed);
-        
+        */
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
@@ -221,16 +222,11 @@ namespace dynamic_gap{
         //std::cout << "revised starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << initial_goal_x << ", " << initial_goal_y << ")" << std::endl; 
         //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
         // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
-        polar_gap_field polar_gap_field_inte(x_right, x_left,
-                           y_right, y_left,
-                            initial_goal_x,
-                            initial_goal_y,
-                            selectedGap.getLeftObs(),
-                            selectedGap.getRightObs(),
-                            selectedGap.isAxial(),
+        polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
+                            initial_goal_x, initial_goal_y,
+                            selectedGap.getLeftObs(), selectedGap.getRightObs(), selectedGap.isAxial(),
                             cfg_->gap_manip.sigma,
-                            x[0],
-                            x[1]);
+                            x[0], x[1]);
 
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
         //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();

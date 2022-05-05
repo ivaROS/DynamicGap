@@ -27,6 +27,7 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
+            Matrix<double, 2, 1> x_tilde;
 
             double t0;
             double t;
@@ -40,6 +41,7 @@ namespace dynamic_gap {
 
             std::string side;
             int index;
+            double omega_rbt_prev;
 
 
         public:
@@ -55,6 +57,8 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> get_frozen_state();
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_frozen_cartesian_state();
+            Eigen::Vector4d get_modified_polar_state();
+            Eigen::Vector4d get_frozen_modified_polar_state();
 
             Matrix<double, 3, 1> get_v_ego();
             void integrate();
@@ -63,7 +67,7 @@ namespace dynamic_gap {
 
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
-            void kf_update_loop(Matrix<double, 2, 1> x_tilde, Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego);
+            void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

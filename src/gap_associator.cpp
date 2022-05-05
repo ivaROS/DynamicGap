@@ -16,59 +16,6 @@
 #include <Eigen/Core>
 
 namespace dynamic_gap {
-
-	/*
-	bool checkNeighboringPoints(sensor_msgs::LaserScan stored_scan_msgs, dynamic_gap::Gap & g, Eigen::Vector2f gap_pt, int gap_pt_index) {
-		double largest_dist = 0.0;
-		double dist_thresh = 0.5;
-
-		int N = 1;
-		int start_index = gap_pt_index - N;
-		if (start_index < 0) { start_index += 2*g.half_scan;}
-		int end_index = (gap_pt_index + N) % int(2*g.half_scan);
-		//std::cout << "left point: (" << left_pt[0] << ", " << left_pt[1] << "), neighbors (" << start_index << " to " << end_index << ") distances: " << std::endl;
-		
-		//std::cout << "" << std::endl;
-		if (end_index > start_index) {
-			for (int i = start_index; i < end_index; i++) {
-				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-				double curr_dist = (neighbor_pt - gap_pt).norm();
-				if (curr_dist > largest_dist) { largest_dist = curr_dist;}
-			}
-		} else {
-			for (int i = start_index; i < 511; i++) {
-				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-				double curr_dist = (neighbor_pt - gap_pt).norm();
-				if (curr_dist > largest_dist) { largest_dist = curr_dist;}			
-			}
-			for (int i = 0; i < end_index; i++) {
-				Eigen::Vector2f neighbor_pt((stored_scan_msgs.ranges[i]) * cos(-((float) g.half_scan - i) / g.half_scan * M_PI),
-													(stored_scan_msgs.ranges[i]) * sin(-((float) g.half_scan - i) / g.half_scan * M_PI));
-				double curr_dist = (neighbor_pt - gap_pt).norm();
-				if (curr_dist > largest_dist) { largest_dist = curr_dist;}
-			}
-		}
-	}
-	
-
-	std::vector<bool> checkLeftRightPointsAreDynamic(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, dynamic_gap::Gap & g) {
-		sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();   
-		int left_gap_index = g.convex.convex_lidx;
-		int right_gap_index = g.convex.convex_ridx;
-		
-		std::vector<bool> static_gaps(2);
-		Eigen::Vector2f left_pt((g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI),
-								(g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI));
-		Eigen::Vector2f right_pt((g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI),
-									(g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI));
-
-		static_gaps[0] = checkNeighboringPoints(stored_scan_msgs, g, left_pt, left_gap_index);
-		static_gaps[1] = checkNeighboringPoints(stored_scan_msgs, g, right_pt, right_gap_index);
-		return static_gaps;
-	}
-	*/
 	
 	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns) {
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
@@ -162,7 +109,7 @@ namespace dynamic_gap {
 		}
 		std::cout << "" << std::endl;
 		*/
-		/*
+		
 		std::cout << "point pairs" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			if (i >= 0 && associations[i] >= 0) {
@@ -173,16 +120,16 @@ namespace dynamic_gap {
 			// TODO: include a (prev) to NULL
 		}
 		std::cout << "" << std::endl;
-		*/
+		
 		
 		// initializing models for current gaps
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			double init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			double init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::MP_model("left", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::MP_model("right", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego);
 			}
 			*model_idx += 1;
 		}
