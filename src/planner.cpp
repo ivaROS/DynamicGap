@@ -593,20 +593,7 @@ namespace dynamic_gap
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
-            /*
-            if (curr_left_model != NULL) {
-                Matrix<double,4,1> curr_left_cart_state = curr_left_model->get_cartesian_state(); 
-                std::cout << "current left point: " << curr_left_cart_state[0] << ", " << curr_left_cart_state[1] << std::endl;
-            } else {
-                std::cout << "current left point: NULL" << std::endl;
-            }
-            if (curr_right_model != NULL) {
-                Matrix<double,4,1> curr_right_cart_state = curr_right_model->get_cartesian_state(); 
-                std::cout << "current right point: " << curr_right_cart_state[0] << ", " << curr_right_cart_state[1] << std::endl;
-            } else {
-                std::cout << "current right point: NULL" << std::endl;
-            }
-            */
+            
             // Both Args are in Odom frame
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
