@@ -137,8 +137,8 @@ namespace dynamic_gap {
         if (!gap.gap_crossed && !gap.gap_closed) {
             left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
             right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-            left_frozen_state = left_model->get_frozen_state();
-            right_frozen_state = right_model->get_frozen_state();
+            left_frozen_state = left_model->get_frozen_modified_polar_state();
+            right_frozen_state = right_model->get_frozen_modified_polar_state();
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             

@@ -268,11 +268,11 @@ namespace dynamic_gap{
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : g) {
             drawGap(vis_arr, gap, ns, true);
-            /*
+            
             if (ns.compare("raw") != 0) {
                 drawGap(vis_arr, gap, ns, false);
             }
-            */
+            
         }
         gaparc_publisher.publish(vis_arr);
     }
@@ -603,7 +603,7 @@ namespace dynamic_gap{
         bool circle = false;
         for (auto gap : vec) {
             drawManipGap(vis_arr, gap, circle, ns, true);
-            // drawManipGap(vis_arr, gap, circle, ns, false);
+            drawManipGap(vis_arr, gap, circle, ns, false);
         }
         gapside_publisher.publish(vis_arr);
     }
