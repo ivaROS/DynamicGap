@@ -42,14 +42,14 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.00001, 0.0,
-             0.0, 0.00001;
+        R << 0.00000001, 0.0,
+             0.0, 0.00000001;
 
         // PROCESS NOISE
-        Q << 0.000001, 0.0, 0.0, 0.0,
-             0.0, 0.000001, 0.0, 0.0,
-             0.0, 0.0, 0.000001, 0.0,
-             0.0, 0.0, 0.0, 0.000001;
+        Q << 0.0001, 0.0, 0.0, 0.0,
+             0.0, 0.0001, 0.0, 0.0,
+             0.0, 0.0, 0.0001, 0.0,
+             0.0, 0.0, 0.0, 0.0001;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -61,7 +61,7 @@ namespace dynamic_gap {
         P << 10.0e-4, 0.0, 0.0, 0.0,
              0.0, 10.0e-4, 0.0, 0.0,
              0.0, 0.0, 10.0e-4, 0.0,
-             0.0, 0.0, 0.0, 10.0e-2;
+             0.0, 0.0, 0.0, 10.0e-4;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -177,6 +177,7 @@ namespace dynamic_gap {
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
+        /*
         // TRANSFORMING
         double delta_theta = 0.5 * (omega_rbt_prev + _v_ego[2]) * dt;
         std::cout << "robot rotated theta: " << delta_theta << std::endl;
@@ -198,7 +199,7 @@ namespace dynamic_gap {
 
         x << rot_rel_pos[0], rot_rel_pos[1], rot_rel_vel[0], rot_rel_vel[1];
         std::cout << "x after rotation: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        
+        */
         // std::cout << "x after integration" << x << std::endl;
         // std::cout<< "linearizing" << std::endl;
         linearize();
@@ -240,6 +241,7 @@ namespace dynamic_gap {
         std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
 
 
+        std::cout << "P: " << P << std::endl;
         Matrix<double, 4, 1> x_update_mat = G*(x_tilde - H*x);
         // std::cout << "actual update to x: " << x_update_mat << std::endl;
         x = x + x_update_mat;

@@ -40,8 +40,8 @@ namespace dynamic_gap
         ni_traj_pub_other = nh.advertise<visualization_msgs::MarkerArray>("other_ni_traj", 5);
         dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
 
-        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/imu", 100, &Planner::robotImuCB, this);
-        rbt_vel_sub = nh.subscribe(cfg.robot_frame_id + "/current_vel", 100, &Planner::robotVelCB, this);
+        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
+        // rbt_vel_sub = nh.subscribe(cfg.robot_frame_id + "/current_vel", 100, &Planner::robotVelCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -67,11 +67,12 @@ namespace dynamic_gap
 
         log_vel_comp.set_capacity(cfg.planning.halt_size);
 
-        previous_cmd_vel = geometry_msgs::Twist();
-        current_cmd_vel = geometry_msgs::Twist();
         current_rbt_vel = geometry_msgs::Twist();
+        rbt_vel_min1 = geometry_msgs::Twist();
 
-        rbt_accel << 0.0, 0.0, 0.0;
+        rbt_accel = geometry_msgs::Twist();
+        rbt_accel_min1 = geometry_msgs::Twist();
+        
         init_val = 0;
         model_idx = &init_val;
         prev_traj_switch_time = ros::Time::now().toSec();
@@ -111,8 +112,10 @@ namespace dynamic_gap
         sharedPtr_inflatedlaser = msg;
     }
 
-    void Planner::robotImuCB(boost::shared_ptr<sensor_msgs::Imu const> msg)
+    void Planner::robotAccCB(boost::shared_ptr<geometry_msgs::Twist const> msg)
     {
+        rbt_accel = *msg;
+        /*
         geometry_msgs::Vector3Stamped rbt_accel_rbt_frame;
 
         rbt_accel_rbt_frame.vector.x = msg->linear_acceleration.x;
@@ -122,14 +125,17 @@ namespace dynamic_gap
         rbt_accel[0] = rbt_accel_rbt_frame.vector.x;
         rbt_accel[1] = rbt_accel_rbt_frame.vector.y;
         rbt_accel[2] = rbt_accel_rbt_frame.vector.z;
+        */
     }
 
+    /*
     void Planner::robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg) {
         current_rbt_vel = *msg;
         // std::cout << "from STDR, vel in robot frame: " << msg->linear.x << ", " << msg->linear.y << std::endl;
     }
+    */
 
-    // can run this at 30 Hz 
+    // running at 30 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         sharedPtr_laser = msg;
@@ -142,13 +148,22 @@ namespace dynamic_gap
 
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
-            Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-            Matrix<double, 1, 3> a_ego(rbt_accel[0], rbt_accel[1], rbt_accel[2]);
+            //Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+            //Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
+
+            Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
+            Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
+
+            Matrix<double, 1, 3> v_ego = rbt_vel_tmin1;
+            Matrix<double, 1, 3> a_ego = rbt_acc_tmin1;
 
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
 
+            std::cout << "robot pose: " << std::endl;
+            std::cout << "x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y;
+            std::cout << ", quat: " << sharedPtr_pose.orientation.x << ", " << sharedPtr_pose.orientation.y << ", " << sharedPtr_pose.orientation.z << ", " << sharedPtr_pose.orientation.w << std::endl;
             std::cout << "RAW GAP ASSOCIATING" << std::endl;
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
@@ -190,6 +205,9 @@ namespace dynamic_gap
 
         gapManip->updateEgoCircle(msg);
         trajController->updateEgoCircle(msg);
+
+        rbt_vel_min1 = current_rbt_vel;
+        rbt_accel_min1 = rbt_accel;
 
     }
     
@@ -285,6 +303,7 @@ namespace dynamic_gap
             sharedPtr_pose = msg->pose.pose;
         }
 
+        current_rbt_vel = msg->twist.twist;
         
     }
 
@@ -802,7 +821,7 @@ namespace dynamic_gap
     {
         observed_gaps.clear();
         setCurrentTraj(geometry_msgs::PoseArray());
-        rbt_accel << 0.0, 0.0, 0.0;
+        rbt_accel = geometry_msgs::Twist();
         ROS_INFO_STREAM("log_vel_comp size: " << log_vel_comp.size());
         log_vel_comp.clear();
         ROS_INFO_STREAM("log_vel_comp size after clear: " << log_vel_comp.size() << ", is full: " << log_vel_comp.capacity());
@@ -1043,8 +1062,6 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("--------------------------Planning Failed--------------------------");
             reset();
         }
-        previous_cmd_vel = current_cmd_vel;
-        current_cmd_vel = cmd_vel;
         return ret_val || cfg.man.man_ctrl;
     }
 

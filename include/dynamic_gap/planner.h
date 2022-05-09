@@ -79,7 +79,7 @@ namespace dynamic_gap
         ros::Publisher dyn_egocircle_pub;
         
         ros::Subscriber rbt_accel_sub;
-        ros::Subscriber rbt_vel_sub;
+        // ros::Subscriber rbt_vel_sub;
 
         std::vector<int> association;
         std::vector<int> raw_association;
@@ -154,10 +154,10 @@ namespace dynamic_gap
 
         boost::circular_buffer<double> log_vel_comp;
 
-        geometry_msgs::Twist previous_cmd_vel;
-        geometry_msgs::Twist current_cmd_vel;
         geometry_msgs::Twist current_rbt_vel;
-        Matrix<double, 1, 3> rbt_accel;
+        geometry_msgs::Twist rbt_vel_min1;
+        geometry_msgs::Twist rbt_accel;
+        geometry_msgs::Twist rbt_accel_min1;
 
         std::string frame;
         double angle_increment;
@@ -208,8 +208,8 @@ namespace dynamic_gap
         void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
         void inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
-        void robotImuCB(boost::shared_ptr<sensor_msgs::Imu const> msg);
-        void robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
+        void robotAccCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
+        // void robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
 
         /**
          * call back function to pose, pose information obtained here only used when a new goal is used
