@@ -152,12 +152,12 @@ namespace dynamic_gap {
                 
                 result = v_des + v_circ;
                 // result += v_des;
-                std::cout << "t: " << t << ", rbt: (" << rbt[0] << ", " << rbt[1] << "), p_left: (" << p_left[0] << ", " << p_left[1] << "), p_right: (" << p_right[0] << ", " << p_right[1] << ")" << std::endl;
+                //std::cout << "t: " << t << ", rbt: (" << rbt[0] << ", " << rbt[1] << "), p_left: (" << p_left[0] << ", " << p_left[1] << "), p_right: (" << p_right[0] << ", " << p_right[1] << ")" << std::endl;
                 // std::cout << "start pt: (" << rbt_x_0 << ", " << rbt_y_0 << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")" << std::endl;
-                std::cout << "left delta theta: " << left_delta_theta << ", right delta theta: " << right_delta_theta << std::endl; 
-                std::cout << "c_left: (" << c_left[0] << ", " << c_left[1] << "), c_right: (" << c_right[0] << ", " << c_right[1] << ")" << std::endl;
-                std::cout << "v_des: (" << v_des[0] << ", " << v_des[1] << "), v_circ: (" << v_circ[0] << ", " << v_circ[1] << ")" << std::endl;   
-                std::cout << "---" << std::endl;
+                //std::cout << "left delta theta: " << left_delta_theta << ", right delta theta: " << right_delta_theta << std::endl; 
+                //std::cout << "c_left: (" << c_left[0] << ", " << c_left[1] << "), c_right: (" << c_right[0] << ", " << c_right[1] << ")" << std::endl;
+                //std::cout << "v_des: (" << v_des[0] << ", " << v_des[1] << "), v_circ: (" << v_circ[0] << ", " << v_circ[1] << ")" << std::endl;   
+                //std::cout << "---" << std::endl;
                 //std::cout << "init to left vect: (" << init_to_left_vect[0] << ", " << init_to_left_vect[1] << "), curr to left vect: (" << curr_to_left_vect[0] << ", " << curr_to_left_vect[1] << ")" << std::endl;
                 //std::cout << "init to right vect: (" << init_to_right_vect[0] << ", " << init_to_right_vect[1] << "), curr to right vect: (" << curr_to_right_vect[0] << ", " << curr_to_right_vect[1] << ")" << std::endl;
                 //std::cout << "left dot: " << (init_to_left_vect.dot(curr_to_left_vect) < 0) << ", right dot: " << (init_to_right_vect.dot(curr_to_right_vect) < 0) << ", goal dot: " << (init_to_goal_vect.dot(curr_to_goal_vect) < 0)  << std::endl;

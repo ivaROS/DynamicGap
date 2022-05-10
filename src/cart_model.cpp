@@ -58,8 +58,8 @@ namespace dynamic_gap {
              v_rel_x,
              v_rel_y;
 
-        P << 10.0e-6, 0.0, 0.0, 0.0,
-             0.0, 10.0e-6, 0.0, 0.0,
+        P << 10.0e-4, 0.0, 0.0, 0.0,
+             0.0, 10.0e-4, 0.0, 0.0,
              0.0, 0.0, 10.0e-4, 0.0,
              0.0, 0.0, 0.0, 10.0e-4;
 
@@ -93,6 +93,9 @@ namespace dynamic_gap {
 
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
         omega_rbt_prev = 0.0;
+        linear_acc_ego << 0.0, 0.0;
+        linear_vel_ego << 0.0, 0.0;
+        ang_vel_ego = 0.0;
     }
 
     void cart_model::freeze_robot_vel() {
@@ -125,30 +128,29 @@ namespace dynamic_gap {
     
 
     void cart_model::integrate() {
-        t = ros::Time::now().toSec();
-        dt = t - t0; // 0.01
-        //std::cout << "t0: " << t0 << ", t: " << t << std::endl;
-        // std::cout << "a: " << a[0] << ", " << a[1] << ", dt: " << dt << std::endl;
         Matrix<double, 4, 1> new_x;
         new_x << 0.0, 0.0, 0.0, 0.0;
 
-        new_x[0] = x[0] + (x[2])*dt + 0.5*accel[0]*dt*dt; // r_x
-        new_x[1] = x[1] + (x[3])*dt + 0.5*accel[1]*dt*dt; // r_y
-        new_x[2] = x[2] + accel[0]*dt; // v_x
-        new_x[3] = x[3] + accel[1]*dt; // v_y
+        double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
+        double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
+
+        new_x[0] = x[0] + (x[2] + x[1]*ang_vel_ego)*dt; // r_x
+        new_x[1] = x[1] + (x[3] - x[0]*ang_vel_ego)*dt; // r_y
+        new_x[2] = x[2] + (x[3]*ang_vel_ego - vdot_x_body)*dt; // v_x
+        new_x[3] = x[3] + (-x[2]*ang_vel_ego - vdot_y_body)*dt; // v_y
         x = new_x;
     }
 
     void cart_model::linearize() {
-        A << 0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0,
-             0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.0, 0.0;
+        A << 0.0, ang_vel_ego, 1.0, 0.0,
+             -ang_vel_ego, 0.0, 0.0, 1.0,
+             0.0, 0.0, 0.0, ang_vel_ego,
+             0.0, 0.0, -ang_vel_ego, 0.0;
 
-        Ad << 1.0, 0.0, dt, 0.0,
-              0.0, 1.0, 0.0, dt,
-              0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 1.0;
+        Ad << 1.0, ang_vel_ego*dt, dt, 0.0,
+              -ang_vel_ego*dt, 1.0, 0.0, dt,
+              0.0, 0.0, 1.0, ang_vel_ego*dt,
+              0.0, 0.0, -ang_vel_ego*dt, 1.0;
         // std::cout << "Ad in linearize: " << Ad << std::endl;
     }
 
@@ -162,8 +164,13 @@ namespace dynamic_gap {
     }
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego) {
+        t = ros::Time::now().toSec();
+        dt = t - t0;
         // acceleration comes in wrt robot frame
-        accel = -1 * _a_ego; // negative because a = a_target - a_ego, but we assume a_target = 0
+        linear_acc_ego << _a_ego[0], _a_ego[1];
+        linear_vel_ego << _v_ego[0], _v_ego[1];
+        ang_vel_ego = _v_ego[2];
+        
         v_ego = _v_ego;
         //  Eigen::Vector4d cart_state = get_cartesian_state();
         std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
@@ -176,28 +183,6 @@ namespace dynamic_gap {
         std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
-        
-        // TRANSFORMING
-        double delta_theta = 0.5 * (omega_rbt_prev + _v_ego[2]) * dt;
-        std::cout << "robot rotated theta: " << delta_theta << std::endl;
-        Matrix<double, 2, 2> rbt_frame_rot;
-        rbt_frame_rot << std::cos(delta_theta), std::sin(delta_theta),
-                        -std::sin(delta_theta), std::cos(delta_theta);
-        // std::cout << "rbt rot: " << rbt_frame_rot << std::endl;
-        Matrix<double, 2, 1> rel_pos_prev_frame;
-        rel_pos_prev_frame << x[0], x[1];
-        // std::cout << "rel_pos_prev_frame: " << rel_pos_prev_frame[0] << ", " << rel_pos_prev_frame[1] << std::endl;
-        Matrix<double, 2, 1> rel_vel_prev_frame;
-        rel_vel_prev_frame << x[2], x[3];
-        // std::cout << "rel_vel_prev_frame: " << rel_vel_prev_frame[0] << ", " << rel_vel_prev_frame[1] << std::endl;
-
-        Matrix<double, 2, 1> rot_rel_pos = rbt_frame_rot * rel_pos_prev_frame;
-        // std::cout << "rot_rel_pos: " << rot_rel_pos[0] << ", " << rot_rel_pos[1] << std::endl;
-        Matrix<double, 2, 1> rot_rel_vel = rbt_frame_rot * rel_vel_prev_frame;
-        // std::cout << "rot_rel_vel: " << rot_rel_vel[0] << ", " << rot_rel_vel[1] << std::endl;
-
-        x << rot_rel_pos[0], rot_rel_pos[1], rot_rel_vel[0], rot_rel_vel[1];
-        std::cout << "x after rotation: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         
         // std::cout << "x after integration" << x << std::endl;
         // std::cout<< "linearizing" << std::endl;
@@ -262,6 +247,12 @@ namespace dynamic_gap {
         return x;
     }
 
+    Eigen::Vector4d cart_model::get_frozen_cartesian_state() {
+        // x state:
+        // [r_x, r_y, v_x, v_y]
+        return frozen_x;
+    }
+
     Eigen::Vector4d cart_model::get_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
@@ -282,12 +273,6 @@ namespace dynamic_gap {
                            (frozen_x[0]*frozen_x[2] + frozen_x[1]*frozen_x[3]) / (pow(frozen_x[0], 2) + pow(frozen_x[1], 2)),
                            (frozen_x[0]*frozen_x[3] - frozen_x[1]*frozen_x[2]) / (pow(frozen_x[0], 2) + pow(frozen_x[1], 2));
         return frozen_mp_state;
-    }
-
-    Eigen::Vector4d cart_model::get_frozen_cartesian_state() {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
-        return frozen_x;
     }
 
     Matrix<double, 4, 1> cart_model::get_state() {

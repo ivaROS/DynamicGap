@@ -43,6 +43,10 @@ namespace dynamic_gap {
             int index;
             double omega_rbt_prev;
 
+            Matrix<double, 2, 1> linear_acc_ego;
+            Matrix<double, 2, 1> linear_vel_ego;
+            double ang_vel_ego;
+
 
         public:
 

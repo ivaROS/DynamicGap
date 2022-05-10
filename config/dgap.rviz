@@ -106,7 +106,7 @@ Visualization Manager:
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        gap_goal: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -114,7 +114,7 @@ Visualization Manager:
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        allTraj: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -137,7 +137,6 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         raw: true
-        simp: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -290,7 +289,7 @@ Visualization Manager:
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        manip: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -298,7 +297,7 @@ Visualization Manager:
       Marker Topic: /robot0/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -314,7 +313,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -353,7 +352,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -361,7 +360,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -369,7 +368,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -456,16 +455,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 19.373367309570312
+      Distance: 16.29266357421875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.077747821807861
-        Y: -0.09358537197113037
-        Z: -7.345418453216553
+        X: -14.629491806030273
+        Y: -3.031259775161743
+        Z: -7.3486738204956055
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -474,7 +473,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.695394515991211
+      Yaw: 4.730395317077637
     Saved: ~
 Window Geometry:
   Displays:

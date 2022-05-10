@@ -77,6 +77,9 @@ namespace dynamic_gap
         model_idx = &init_val;
         prev_traj_switch_time = ros::Time::now().toSec();
         init_time = ros::Time::now().toSec(); 
+
+        curr_left_model = NULL;
+        curr_right_model = NULL;
         return true;
     }
 
@@ -785,19 +788,26 @@ namespace dynamic_gap
     }
 
     int Planner::getCurrentLeftGapIndex() {
+        std::cout << "get current left" << std::endl;
         if (curr_left_model != NULL) {
+            std::cout << "model is not  null" << std::endl;
             return curr_left_model->get_index();
         } else {
+            std::cout << "model is null" << std::endl;
             return -1;
         }
     }
     
     int Planner::getCurrentRightGapIndex() {
+        std::cout << "get current right" << std::endl;
         if (curr_right_model != NULL) {
+            std::cout << "model is not  null" << std::endl;
             return curr_right_model->get_index();
         } else {
+            std::cout << "model is null" << std::endl;
             return -1;
-        }    }
+        }    
+    }
 
     void Planner::setCurrentTraj(geometry_msgs::PoseArray curr_traj) {
         curr_executing_traj = curr_traj;
