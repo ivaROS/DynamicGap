@@ -473,6 +473,7 @@ namespace dynamic_gap {
     }
     
     void GapManipulator::setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan){
+        std::cout << "~running setGapWaypoint" << std::endl;
         auto half_num_scan = gap.half_scan;
 
         int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
@@ -490,8 +491,8 @@ namespace dynamic_gap {
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
         
-        std::cout << "original gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
-        std::cout << "original gap x/y, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        std::cout << "gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
+        std::cout << "gap x/y, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
         
         // if agc. then the shorter side need to be further in
         // lf: front (first one, left from laser scan)
@@ -527,10 +528,12 @@ namespace dynamic_gap {
                 gap.goal.set = true;
                 gap.goal.x = (x1 + x2) / 2;
                 gap.goal.y = (y1 + y2) / 2;
+                std::cout << "goal: " << gap.goal.x << ", " << gap.goal.y << std::endl;
             } else {
                 gap.terminal_goal.set = true;
                 gap.terminal_goal.x = (x1 + x2) / 2;
                 gap.terminal_goal.y = (y1 + y2) / 2;
+                std::cout << "goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y << std::endl;
             }
 
             return;
@@ -998,7 +1001,7 @@ namespace dynamic_gap {
     }
 
     void GapManipulator::clipGapByLaserScan(dynamic_gap::Gap& gap) {
-        std::cout << "running clipGapByLaserScan" << std::endl;
+        std::cout << "~running clipGapByLaserScan" << std::endl;
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         double laserscan_left_dist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
         if (gap.convex.terminal_ldist > laserscan_left_dist) {
@@ -1022,9 +1025,7 @@ namespace dynamic_gap {
 
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         int half_num_scan = gap.half_scan; // changing this
-        // minSafeDist is the minimum distance within the laser scan 
-        float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
-        // std::cout << "min safe dist: " << s << std::endl;
+        
         int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
         int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
         float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
@@ -1040,34 +1041,40 @@ namespace dynamic_gap {
         std::cout << "pre-RE gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")" << std::endl;
         std::cout << "pre-RE gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
         
-        Eigen::Vector2f gL(x1, y1);
-        Eigen::Vector2f gR(x2, y2);
+        Eigen::Vector2f left_point(x1, y1);
+        Eigen::Vector2f right_point(x2, y2);
 
-        Eigen::Vector2f eL = gL / gL.norm();
-        Eigen::Vector2f eR = gR / gR.norm();
+        Eigen::Vector2f eL = left_point / left_point.norm();
+        Eigen::Vector2f eR = right_point / right_point.norm();
 
+        // middle of gap direction
         Eigen::Vector2f eB = (eL + eR) / 2;
         eB /= eB.norm();
+        // angular size of gap
         float gap_size = std::acos(eL.dot(eR));
 
+        // minSafeDist is the minimum distance within the laser scan 
+        float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
+        // std::cout << "min safe dist: " << s << std::endl;
+        
+        // point opposite direction of middle of gap, magnitude of min safe dist
         Eigen::Vector2f qB = -s * eB;
         
-        // Shifted Back Frame
-        Eigen::Vector2f qLp = gL - qB;
-        Eigen::Vector2f qRp = gR - qB;
+        // Shifted Back left and right points
+        Eigen::Vector2f qLp = left_point - qB;
+        Eigen::Vector2f qRp = right_point - qB;
 
+        // (x,y) to (r, theta) 
         Eigen::Vector2f pLp = car2pol(qLp);
-        // pLp(1) += M_PI;
         Eigen::Vector2f pRp = car2pol(qRp);
-        // pRp(1) += M_PI;
 
+        // angular difference between right and left
         float phiB = pRp(1) - pLp(1);
 
         Eigen::Vector2f pB = car2pol(-qB);
-        // pB(2) += M_PI;
 
-        float thL = pB(1) - gap_size / 4;
-        float thR = pB(1) + gap_size / 4;
+        float thL = pB(1) - gap_size / 4; // left side 1/2 throgh
+        float thR = pB(1) + gap_size / 4; // right side 1/2 through
 
         Eigen::Vector2f pLn = pTheta(thL, phiB, pLp, pRp);
         Eigen::Vector2f pRn = pTheta(thR, phiB, pLp, pRp);
@@ -1141,8 +1148,8 @@ namespace dynamic_gap {
     }
 
     Eigen::Vector2f GapManipulator::pTheta(
-        float th, float phiB, Eigen::Vector2f pRp, Eigen::Vector2f pLp) {
-        return pLp * (th - pRp(1)) / phiB + pRp * (pLp(1) - th) / phiB;
+        float th, float phiB, Eigen::Vector2f pLp, Eigen::Vector2f pRp) {
+        return pRp * (th - pLp(1)) / phiB + pLp * (pRp(1) - th) / phiB;
     }
 
 }

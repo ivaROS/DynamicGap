@@ -42,8 +42,8 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.00000001, 0.0,
-             0.0, 0.00000001;
+        R << 0.0001, 0.0,
+             0.0, 0.0001;
 
         // PROCESS NOISE
         Q << 0.0001, 0.0, 0.0, 0.0,
@@ -173,14 +173,14 @@ namespace dynamic_gap {
         
         v_ego = _v_ego;
         //  Eigen::Vector4d cart_state = get_cartesian_state();
-        std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        //std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
-        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
-        std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
+        //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
+        //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
         integrate();
         // cart_state = get_cartesian_state();
-        std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        //std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
@@ -222,7 +222,7 @@ namespace dynamic_gap {
 
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
+        //std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
 
 
         // std::cout << "P: " << P << std::endl;
@@ -231,7 +231,7 @@ namespace dynamic_gap {
         x = x + x_update_mat;
 
         // cart_state = get_cartesian_state();
-        std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        //std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
 
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(4,4) - G*H)*P;

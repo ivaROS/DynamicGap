@@ -164,20 +164,20 @@ namespace dynamic_gap
             raw_gaps = finder->hybridScanGap(msg);
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
 
-            std::cout << "robot pose: " << std::endl;
-            std::cout << "x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y;
-            std::cout << ", quat: " << sharedPtr_pose.orientation.x << ", " << sharedPtr_pose.orientation.y << ", " << sharedPtr_pose.orientation.z << ", " << sharedPtr_pose.orientation.w << std::endl;
-            std::cout << "RAW GAP ASSOCIATING" << std::endl;
+            //std::cout << "robot pose: " << std::endl;
+            //std::cout << "x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y;
+            //std::cout << ", quat: " << sharedPtr_pose.orientation.x << ", " << sharedPtr_pose.orientation.y << ", " << sharedPtr_pose.orientation.z << ", " << sharedPtr_pose.orientation.w << std::endl;
+            //std::cout << "RAW GAP ASSOCIATING" << std::endl;
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_association = gapassociator->associateGaps(raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
-            std::cout << "RAW GAP UPDATING" << std::endl;
+            //std::cout << "RAW GAP UPDATING" << std::endl;
             associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego);
 
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
 
-            std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
+            //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             association = gapassociator->associateGaps(observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
-            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
             associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego);
 
             previous_gaps = associated_observed_gaps;
@@ -264,9 +264,9 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
 
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
-            std::cout << "update gap model: " << i << std::endl;
+            //std::cout << "update gap model: " << i << std::endl;
             update_model(i, associated_observed_gaps, _v_ego, _a_ego);
-            std::cout << "" << std::endl;
+            //std::cout << "" << std::endl;
 		}
 
         return associated_observed_gaps;
@@ -465,40 +465,12 @@ namespace dynamic_gap
                 */
                 std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
                 if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-                    try {
-                        gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-                    } catch(...) {
-                        ROS_FATAL_STREAM("terminal gap, reduceGap");
-                        std::cout << "terminal gap fail, reduceGap" << std::endl;
-                    }
-                    try {
-                        gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
-                    } catch(...) {
-                        ROS_FATAL_STREAM("terminal gap, convertAxial");
-                        std::cout << "terminal gap fail, convertAxialGap" << std::endl;
-                    }
+                    gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+                    gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
                 }
-
-                try {
-                    gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-                } catch(...) {
-                        ROS_FATAL_STREAM("terminal gap, radialExtendGap");
-                        std::cout << "terminal gap fail, radialExtendGap" << std::endl;
-                }
-                // take min of laser scan and model for two points?
-                try {
-                    gapManip->clipGapByLaserScan(manip_set.at(i));
-                } catch(...) {
-                        ROS_FATAL_STREAM("terminal gap, clipGapByLaserScan");
-                        std::cout << "terminal gap fail, clipGapByLaserScan" << std::endl;
-                }
-
-                try {
-                    gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
-                } catch(...) {
-                        ROS_FATAL_STREAM("terminal gap, setGapWaypoint");
-                        std::cout << "terminal gap fail, setGapWaypoint" << std::endl;
-                }
+                gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+                gapManip->clipGapByLaserScan(manip_set.at(i));
+                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
@@ -788,23 +760,23 @@ namespace dynamic_gap
     }
 
     int Planner::getCurrentLeftGapIndex() {
-        std::cout << "get current left" << std::endl;
+        // std::cout << "get current left" << std::endl;
         if (curr_left_model != NULL) {
-            std::cout << "model is not  null" << std::endl;
+            // std::cout << "model is not  null" << std::endl;
             return curr_left_model->get_index();
         } else {
-            std::cout << "model is null" << std::endl;
+            // std::cout << "model is null" << std::endl;
             return -1;
         }
     }
     
     int Planner::getCurrentRightGapIndex() {
-        std::cout << "get current right" << std::endl;
+        // std::cout << "get current right" << std::endl;
         if (curr_right_model != NULL) {
-            std::cout << "model is not  null" << std::endl;
+            // std::cout << "model is not  null" << std::endl;
             return curr_right_model->get_index();
         } else {
-            std::cout << "model is null" << std::endl;
+            // std::cout << "model is null" << std::endl;
             return -1;
         }    
     }
@@ -963,8 +935,8 @@ namespace dynamic_gap
             dynamic_gap::Gap g = curr_observed_gaps.at(i);
             Matrix<double, 4, 1> left_state = g.left_model->get_state();
             Matrix<double, 4, 1> right_state = g.right_model->get_state();
-            std::cout << "left y model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")" << std::endl;
-            std::cout << "right y model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")" << std::endl;
+            std::cout << "left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")" << std::endl;
+            std::cout << "right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")" << std::endl;
         }
 
         std::cout << "drawing models" << std::endl;
@@ -982,12 +954,22 @@ namespace dynamic_gap
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
+        double x1, x2, y1, y2;
+
         for (size_t i = 0; i < feasible_gap_set.size(); i++)
         {
             std::cout << "gap " << i << std::endl;
             dynamic_gap::Gap g = feasible_gap_set.at(i);
-            std::cout << "initial, left: (" << g.LIdx() << ", " << g.LDist() << "), right: (" << g.RIdx() << ", " << g.RDist() << ")" << std::endl; 
-            std::cout << "terminal, left: (" << g.terminal_lidx << ", " << g.terminal_ldist << "), right: (" << g.terminal_ridx << ", " << g.terminal_rdist << ")" << std::endl; 
+            x1 = (g._ldist) * cos(-((float) g.half_scan - g._left_idx) / g.half_scan * M_PI);
+            y1 = (g._ldist) * sin(-((float) g.half_scan - g._left_idx) / g.half_scan * M_PI);
+            x2 = (g._rdist) * cos(-((float) g.half_scan - g._right_idx) / g.half_scan * M_PI);
+            y2 = (g._rdist) * sin(-((float) g.half_scan - g._right_idx) / g.half_scan * M_PI);
+            std::cout << "initial, left in cart: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl; 
+            x1 = (g.terminal_ldist) * cos(-((float) g.half_scan - g.terminal_lidx) / g.half_scan * M_PI);
+            y1 = (g.terminal_ldist) * sin(-((float) g.half_scan - g.terminal_lidx) / g.half_scan * M_PI);
+            x2 = (g.terminal_rdist) * cos(-((float) g.half_scan - g.terminal_ridx) / g.half_scan * M_PI);
+            y2 = (g.terminal_rdist) * sin(-((float) g.half_scan - g.terminal_ridx) / g.half_scan * M_PI);
+            std::cout << "terminal, left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl; 
             std::cout << "~~~" << std::endl;
         }
 
@@ -996,9 +978,17 @@ namespace dynamic_gap
         {
             std::cout << "gap " << i << std::endl;
             dynamic_gap::Gap g = manip_gap_set.at(i);
-            std::cout << "initial gap, left: (" << g.convex.convex_lidx << ", " << g.convex.convex_ldist << "), right: (" << g.convex.convex_ridx << ", " << g.convex.convex_rdist << ")" << std::endl; 
+            x1 = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+            y1 = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+            x2 = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+            y2 = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+            std::cout << "initial, left in cart: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl; 
             std::cout << "initial goal: (" << g.goal.x << ", " << g.goal.y << ")" << std::endl;
-            std::cout << "terminal, left: (" << g.convex.terminal_lidx << ", " << g.convex.terminal_ldist << "), right: (" << g.convex.terminal_ridx << ", " << g.convex.terminal_rdist << ")" << std::endl; 
+            x1 = (g.convex.terminal_ldist) * cos(-((float) g.half_scan - g.convex.terminal_lidx) / g.half_scan * M_PI);
+            y1 = (g.convex.terminal_ldist) * sin(-((float) g.half_scan - g.convex.terminal_lidx) / g.half_scan * M_PI);
+            x2 = (g.convex.terminal_rdist) * cos(-((float) g.half_scan - g.convex.terminal_ridx) / g.half_scan * M_PI);
+            y2 = (g.convex.terminal_rdist) * sin(-((float) g.half_scan - g.convex.terminal_ridx) / g.half_scan * M_PI);
+            std::cout << "terminal, left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl; 
             std::cout << "terminal goal: (" << g.terminal_goal.x << ", " << g.terminal_goal.y << ")" << std::endl;
             std::cout << "~~~" << std::endl;
         }

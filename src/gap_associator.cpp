@@ -101,15 +101,6 @@ namespace dynamic_gap {
         }
 		
 		/*
-		std::cout << "associations" << std::endl;
-		for (int i = 0; i < associations.size(); i++) {
-			if (i >= 0 && associations[i] >= 0) {
-				std::cout << "(" << i << ", " << associations[i] << "), with a cost of: " << distMatrix[i][associations[i]] << ", ";
-			}
-		}
-		std::cout << "" << std::endl;
-		*/
-		
 		std::cout << "point pairs" << std::endl;
 		for (int i = 0; i < associations.size(); i++) {
 			if (i >= 0 && associations[i] >= 0) {
@@ -120,7 +111,7 @@ namespace dynamic_gap {
 			// TODO: include a (prev) to NULL
 		}
 		std::cout << "" << std::endl;
-		
+		*/
 		
 		// initializing models for current gaps
 		for (int i = 0; i < observed_gap_points.size(); i++) {

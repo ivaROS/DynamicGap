@@ -315,7 +315,7 @@ namespace dynamic_gap {
     Matrix<double, 5, 1> MP_model::cartesian_to_polar_state() {
         Matrix<double, 5, 1> polar_y;
         polar_y << 0.0, 0.0, 0.0, 0.0, 0.0;
-        polar_y(0) = std::sqrt(pow(x[0], 2) + pow(x[1], 2));
+        polar_y(0) = 1.0 / std::sqrt(pow(x[0], 2) + pow(x[1], 2));
         double beta = std::atan2(x[1], x[0]);
         polar_y(1) = std::sin(beta);
         polar_y(2) = std::cos(beta);
