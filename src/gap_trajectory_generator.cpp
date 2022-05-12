@@ -27,7 +27,6 @@ namespace dynamic_gap{
                         right_model_state[0], right_model_state[1], right_model_state[2], right_model_state[3], right_model_state[4]}; 
         */
 
-
         // get gap points in cartesian
         float x1, x2, y1, y2;
         float half_num_scan = selectedGap.half_scan;
@@ -57,26 +56,6 @@ namespace dynamic_gap{
         //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
         
-
-        /*
-        // if expanding: just do CLF
-        if (selectedGap.getCategory().compare("expanding") == 0) {
-            std::cout << "go to goal trajectory generated" << std::endl;
-            std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << std::endl;
-            g2g inte_g2g(
-                selectedGap.goal.x * coefs,
-                selectedGap.goal.y * coefs,
-                cfg_->gap_manip.K_des,
-                cfg_->gap_manip.K_acc);
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            inte_g2g, x, 0.0,
-            selectedGap.gap_lifespan,
-            cfg_->traj.integrate_stept,
-            corder);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            return return_tuple;
-        }
-        */
         
         if (selectedGap.mode.convex) {
             std::cout << "radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")" << std::endl;

@@ -464,12 +464,12 @@ namespace dynamic_gap
                 dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
                 */
                 std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
-                if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-                    gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-                    gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
-                }
+                //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
+                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+                gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
+                //}
                 gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-                gapManip->clipGapByLaserScan(manip_set.at(i));
+                // gapManip->clipGapByLaserScan(manip_set.at(i));
                 gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
             }
         } catch(...) {

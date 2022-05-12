@@ -853,8 +853,8 @@ namespace dynamic_gap {
         Eigen::Matrix3f rot_mat;
         // rot_mat: SE(3) matrix that represents desired rotation amount
         rot_mat << cos(theta), -sin(theta), 0,
-                    sin(theta), cos(theta), 0,
-                    0, 0, 1;
+                   sin(theta), cos(theta), 0,
+                   0, 0, 1;
 
         auto half_num_scan = gap.half_scan;
         
@@ -873,7 +873,7 @@ namespace dynamic_gap {
 
         // rot_rbt: my guess, transformation matrix FROM rbt origin TO desired pivot point
         Eigen::Matrix3f rot_rbt = near_rbt * (rot_mat * (near_rbt.inverse() * far_rbt));
-        std::cout << "rot_rbt: " << rot_rbt;
+        // std::cout << "rot_rbt: " << rot_rbt;
 
         // radius and index representing desired pivot point
         float r = float(sqrt(pow(rot_rbt(0, 2), 2) + pow(rot_rbt(1, 2), 2)));
@@ -884,8 +884,9 @@ namespace dynamic_gap {
         // Rotation Completed
         // Get minimum dist range val between initial gap point and pivoted gap point
         
+        int delta = 10;
         // offset: original right index or the pivoted left
-        int init_search_idx = left ? ridx : idx;
+        int init_search_idx = left ? (ridx + delta) : (idx - delta);
         // upperbound: pivoted right index or original left  
         int final_search_idx = left ? idx : lidx;
         std:: cout << "init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx << std::endl;
@@ -1060,7 +1061,7 @@ namespace dynamic_gap {
         // point opposite direction of middle of gap, magnitude of min safe dist
         Eigen::Vector2f qB = -s * eB;
         
-        // Shifted Back left and right points
+        // push out left and right points
         Eigen::Vector2f qLp = left_point - qB;
         Eigen::Vector2f qRp = right_point - qB;
 
@@ -1086,9 +1087,16 @@ namespace dynamic_gap {
         Eigen::Vector2f polqLn = car2pol(qLn);
         Eigen::Vector2f polqRn = car2pol(qRn);
 
+        int new_left_idx = std::floor(polqLn(1) / M_PI * half_num_scan + half_num_scan);
+        int new_right_idx = std::ceil(polqRn(1) / M_PI * half_num_scan + half_num_scan);
+        if (new_left_idx == new_right_idx) {
+            std::cout << "post-RE, indices are the same" << std::endl;
+            new_right_idx += 1;
+        }
+
         if (initial) {
-            gap.convex.convex_lidx = polqLn(1) / M_PI * half_num_scan + half_num_scan;
-            gap.convex.convex_ridx = polqRn(1) / M_PI * half_num_scan + half_num_scan;
+            gap.convex.convex_lidx = new_left_idx;
+            gap.convex.convex_ridx = new_right_idx;
             gap.convex.convex_ldist = polqLn(0);
             gap.convex.convex_rdist = polqRn(0);
             gap.mode.convex = true;
@@ -1099,8 +1107,8 @@ namespace dynamic_gap {
             std::cout << "post-RE gap in polar, left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
             gap.qB = qB;
         } else {
-            gap.convex.terminal_lidx = polqLn(1) / M_PI * half_num_scan + half_num_scan;
-            gap.convex.terminal_ridx = polqRn(1) / M_PI * half_num_scan + half_num_scan;
+            gap.convex.terminal_lidx = new_left_idx;
+            gap.convex.terminal_ridx = new_right_idx;
             gap.convex.terminal_ldist = polqLn(0);
             gap.convex.terminal_rdist = polqRn(0);
             gap.mode.terminal_convex = true;
