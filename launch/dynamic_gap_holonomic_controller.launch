@@ -43,7 +43,6 @@
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
-
       <!-- none of these have to do with frames/ids -->
       <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="DynamicGapPlanner"/>
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
