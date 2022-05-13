@@ -1,7 +1,0 @@
-\subsubsection usage Usage
-\verbatim
-<node name="dynamic_gap" pkg="dynamic_gap" type="dynamic_gap">
-  <param name="min_resoln" type="int" value="50" />
-</node>
-\endverbatim
-
