@@ -197,6 +197,7 @@ namespace dynamic_gap {
         Eigen::Vector2f pg = (pl + pr) / 2.0;
 
         // FLIPPING MODELS HERE
+        std::cout << "FLIPPING MODELS TO GET L/R FROM ROBOT POV" << std::endl;
         dynamic_gap::cart_model* left_model = gap.right_model;
         dynamic_gap::cart_model* right_model = gap.left_model;
 
@@ -209,7 +210,7 @@ namespace dynamic_gap {
         }
 
         // FEASIBILITY CHECK
-        std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
+        // std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
         std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
         feasible = feasibilityCheck(gap, left_model, right_model, gap_angle);
 
@@ -222,6 +223,20 @@ namespace dynamic_gap {
     }
 
     double GapManipulator::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
+        
+        int lidx = gap.LIdx();
+        int ridx = gap.RIdx();
+        float ldist = gap.LDist();
+        float rdist = gap.RDist();
+
+        float x1, x2, y1, y2;
+        x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+        y1 = (ldist) * sin(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+
+        x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+        y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+
+        std::cout << "actual gap left: (" << x2 << ", " << y2 << "), actual gap right: (" << x1 << ", " << y1 << ")" << std::endl;
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double crossing_time = indivGapFindCrossingPoint(gap, crossing_pt, left_model, right_model);
 
@@ -591,7 +606,7 @@ namespace dynamic_gap {
         Eigen::Vector2f anchor(xg, yg);
         Eigen::Matrix2f r_negpi2;
         r_negpi2 << 0,1,
-                    -1,0;
+                   -1,0;
         //auto offset = r_negpi2 * (pr - pl);
         Eigen::Vector2f offset;
         std::cout << "lf: (" << lf[0] << ", " << lf[1] << "), lr: (" << lr[0] << ", " << lr[1] << ")" << std::endl;
