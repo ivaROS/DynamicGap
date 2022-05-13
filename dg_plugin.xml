@@ -1,0 +1,7 @@
+<library path="lib/libdynamic_gap">
+
+  <class name="dynamic_gap/DynamicGapPlanner" type="dynamic_gap::DynamicGapPlanner" base_class_type="nav_core::BaseLocalPlanner">
+    <description>This is a Dynamic Gap plugin.</description>
+  </class>
+
+</library>

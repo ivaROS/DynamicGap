@@ -1,0 +1,29 @@
+<launch>
+
+	<arg name="use_sim_time" default="false"/>
+	<group if="$(arg use_sim_time)">
+		<param name="/use_sim_time" value="true" />
+	</group>
+
+	<arg name="map_num" default="$(optenv GM_PARAM_MAP_NUM 0)"/>
+
+	<arg name="stdr_map" default="$(find dynamic_gap)/maps/fourth_floor_maps/$(arg map_num).yaml"/>
+	<arg name="map_file" default="$(find dynamic_gap)/maps/fourth_floor_gazebo.yaml"/>
+	
+	<node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">
+		<remap from="/map" to="/known_map"/>
+		<remap from="/map_metadata" to="/known_map_metadata"/>
+		<param name="frame_id" value="known_map"/>
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="world2kmap" args="0 0 0 0 0 0  world known_map 20" />
+
+	<node type="stdr_server_node" pkg="stdr_server" name="stdr_server" output="screen" args="$(arg stdr_map)"/>
+
+	<node pkg="tf" type="static_transform_publisher" name="world2map" args="0 0 0 0 0 0  world map 20" />
+	
+	<include file="$(find stdr_gui)/launch/stdr_gui.launch"/>
+	
+        <include file="$(find stdr_robot)/launch/robot_manager.launch" />
+
+</launch>

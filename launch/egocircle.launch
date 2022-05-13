@@ -1,0 +1,7 @@
+<launch>
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+      <param name="base_frame_id" value="robot0"/>
+      <param name="odom_frame_id" value="map_static"/>
+      <remap from="/scan" to="/robot0/laser_0"/>
+  </node>
+</launch>

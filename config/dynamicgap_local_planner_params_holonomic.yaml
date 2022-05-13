@@ -1,0 +1,49 @@
+DynamicGapPlanner:
+    min_resoln: 1
+    gap_diff: 0.1
+    global_plan_lookup_increment: 30
+    goal_tolerance: 0.5
+    global_plan_change_tolerance: 0.1
+    follow_the_gap_visparsing: True
+    close_gap_visparsing: True
+
+    epsilon2: 0.20 # 0.18 0.09
+    epsilon1: 0.20 # 0.18 0.09
+    r_inscr:  0.20
+
+    niGen_s: True
+    config_sanity_val: 100
+    ctrl_ahead_pose: 2
+    reduction_threshold: 3.1415926
+    max_idx_diff: 256
+    feasi_inflated: True
+    v_lin_x_const: 0.0
+    v_lin_y_const: 0.0
+    k_drive_x: 2
+    k_drive_y: 2
+    k_turn: 0.8
+
+    projection_inflated: False
+    planning_inflated: False # False
+    fig_gen: False
+    k_po: 1
+    k_po_turn: 3
+
+    r_min: 0.36
+    r_norm: 0.75
+    r_norm_offset: 0
+
+    synthesized_frame: True
+    scale: 0.8
+    integrate_maxt: 5
+    integrate_stept: 0.01
+
+    num_feasi_check: 30
+    projection_operator: False
+    holonomic: True
+
+    close_gap_vis: False
+    follow_the_gap_vis: False
+    debug_viz: True
+    rmax: 0.5
+    inf_ratio: 1.2
