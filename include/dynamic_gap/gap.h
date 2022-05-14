@@ -114,16 +114,16 @@ namespace dynamic_gap
                 y = (_rdist) * sin(-((float) half_scan - _right_idx) / half_scan * M_PI);
             }
 
-            void getRadialExLCartesian(float &x, float &y){
+            void getSimplifiedLCartesian(float &x, float &y){
                 // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
-                x = (convex_ldist) * cos(-((float) half_scan - convex_lidx) / half_scan * M_PI);
-                y = (convex_ldist) * sin(-((float) half_scan - convex_lidx) / half_scan * M_PI);
+                x = (convex.convex_ldist) * cos(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
+                y = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
             }
 
-            void getRadialExRCartesian(float &x, float &y){
+            void getSimplifiedRCartesian(float &x, float &y){
                 // std::cout << "convex_rdist: " << convex_rdist << ", convex_ridx: " << convex_ridx << ", half_scan: " << half_scan << std::endl;
-                x = (convex_rdist) * cos(-((float) half_scan - convex_ridx) / half_scan * M_PI);
-                y = (convex_rdist) * sin(-((float) half_scan - convex_ridx) / half_scan * M_PI);
+                x = (convex.convex_rdist) * cos(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
+                y = (convex.convex_rdist) * sin(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
             }
 
             void setAGCIdx(int lidx, int ridx) {

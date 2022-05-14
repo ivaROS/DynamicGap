@@ -81,8 +81,13 @@ namespace dynamic_gap
         ros::Subscriber rbt_accel_sub;
         // ros::Subscriber rbt_vel_sub;
 
-        std::vector<int> association;
+        std::vector<int> simp_association;
         std::vector<int> raw_association;
+
+        vector< vector<double> > simp_distMatrix;
+        vector< vector<double> > raw_distMatrix;
+
+        bool print_associations;
 
 
         // Goals and stuff
@@ -332,6 +337,8 @@ namespace dynamic_gap
         void setCurrentRightModel(dynamic_gap::cart_model * _right_model);
 
         std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
+        void printGapModels(std::vector<dynamic_gap::Gap> gaps);
+        void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association);
 
     };
 }

@@ -12,11 +12,17 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> left_frozen_state = left_model->get_frozen_modified_polar_state();        
         Matrix<double, 4, 1> right_frozen_state = right_model->get_frozen_modified_polar_state();
 
-        Matrix<double, 2, 1> left_bearing_vect(std::cos(left_frozen_state[1]), std::sin(left_frozen_state[1]));
-        Matrix<double, 2, 1> right_bearing_vect(std::cos(right_frozen_state[1]), std::sin(right_frozen_state[1]));
+        double x1, x2, y1, y2;
 
-        // det = cos_left*sin_right - sin_left*cos_right
-        // dot = cos_left*cos_right + sin_left*sin_right
+        x1 = (gap.LDist()) * cos(-((double) gap.half_scan - gap.LIdx()) / gap.half_scan * M_PI);
+        y1 = (gap.LDist()) * sin(-((double) gap.half_scan - gap.LIdx()) / gap.half_scan * M_PI);
+
+        x2 = (gap.RDist()) * cos(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
+        y2 = (gap.RDist()) * sin(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
+       
+        Matrix<double, 2, 1> left_bearing_vect(x2 / gap.RDist(), y2 / gap.RDist());
+        Matrix<double, 2, 1> right_bearing_vect(x1 / gap.LDist(), y1 / gap.LDist());
+
         double det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
         double dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
 
@@ -27,8 +33,8 @@ namespace dynamic_gap {
             L_to_R_angle += 2*M_PI; 
         }
 
-        double beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
-        double beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
+        double beta_left = atan2(y2, x2); // std::atan2(left_frozen_state[1], left_frozen_state[2]);
+        double beta_right = atan2(y1, x1); // std::atan2(right_frozen_state[1], right_frozen_state[2]);
         double beta_center = beta_left -= (L_to_R_angle / 2.0);
 
         Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
@@ -49,7 +55,8 @@ namespace dynamic_gap {
 
         Matrix<double, 4, 1> prev_left_frozen_state = left_frozen_state;        
         Matrix<double, 4, 1> prev_right_frozen_state = right_frozen_state;        
-        
+        Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
+
         for (double dt = cfg_->traj.integrate_stept; dt < cfg_->traj.integrate_maxt; dt += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
@@ -62,14 +69,22 @@ namespace dynamic_gap {
 
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
-            // central_bearing_vect << std::cos(beta_center), std::sin(beta_center);
-
-            left_central_dot = left_bearing_vect.dot(central_bearing_vect);
-            right_central_dot = right_bearing_vect.dot(central_bearing_vect);
-
             det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
             dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
             swept_check = -std::atan2(det, dot); // this value is the angle swept clockwise from L to R (ranging from -pi to pi)
+            L_to_R_angle = swept_check;
+
+            if (L_to_R_angle < 0) {
+                L_to_R_angle += 2*M_PI; 
+            }
+            beta_center = beta_left -= (L_to_R_angle / 2.0);
+
+            Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
+        
+
+            left_central_dot = left_bearing_vect.dot(prev_central_bearing_vect);
+            right_central_dot = right_bearing_vect.dot(prev_central_bearing_vect);
+
 
                         
             //std::cout << "left bearing vect: " << left_bearing_vect[0] << ", " << left_bearing_vect[1] << std::endl;
@@ -132,6 +147,7 @@ namespace dynamic_gap {
 
             prev_left_frozen_state = left_frozen_state;
             prev_right_frozen_state = right_frozen_state;
+            prev_central_bearing_vect = central_bearing_vect;
         }
 
         if (!gap.gap_crossed && !gap.gap_closed) {
