@@ -43,7 +43,7 @@ namespace dynamic_gap{
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
         std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
-        void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::Gap>& current_raw_gaps, sensor_msgs::LaserScan & dynamic_laser_scan);
+        void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan);
 
         private:
             const DynamicGapConfig* cfg_;

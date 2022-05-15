@@ -175,24 +175,7 @@ namespace dynamic_gap {
     /*
     // CHANGING SO NOT PASSING BY REFERENCE HERE JUST TO SEE WHAT CHANGES DO, FIX LATER
     void GapManipulator::setGapGoalsByCategory(dynamic_gap::Gap gap, geometry_msgs::PoseStamped localgoal) {
-        if (gap.getCategory() == "expanding") { 
-            std::cout << "setting goal for expanding gap" << std::endl;
-            setGapWaypoint(gap, localgoal);
-        } else if (gap.getCategory() == "closing") {
-            std::cout << "gap is static/closing" << std::endl;
-            // if no agc:
-            //      if gap crosses, place at crossing or closing
-            //      else, place as Pgap with remaining points  
-            // else:
-            //      place as PGap with pivoted point and original point (to workshop I think)
-        } else { // translating
-            std::cout << "gap is translating" << std::endl;
-            // if no agc:
-            //      if gap crosses, place at crossing or closing
-            //      else, place as Pgap with remaining points  
-            // else:
-            //      place as PGap with pivoted point and original point (to workshop I think)
-        }    
+        
     }
     */
 
@@ -327,11 +310,13 @@ namespace dynamic_gap {
             // expanding
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.setCategory("expanding");
         } else {
             if (crossing_time >= 0) {
                 feasible = true;
                 gap.gap_lifespan = crossing_time;
             }
+            gap.setCategory("closing");
         }
 
         /*
@@ -503,6 +488,76 @@ namespace dynamic_gap {
         
     }
     
+    void GapManipulator::setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
+        if (gap.getCategory() == "expanding") { 
+            std::cout << "setting goal for expanding gap" << std::endl;
+            setGapWaypoint(gap, localgoal, false);
+        } else if (gap.getCategory() == "closing") {
+            if (gap.gap_crossed) {
+                std::cout << "setting goal for crossed closing gap" << std::endl;
+                // get left and right models
+                gap.left_model->freeze_robot_vel();
+                gap.right_model->freeze_robot_vel();
+                Eigen::Vector4d left_model = gap.left_model->get_frozen_modified_polar_state();
+                Eigen::Vector4d right_model = gap.right_model->get_frozen_modified_polar_state();
+
+                std::cout << "comparing left: (" << left_model[0] << ", " << left_model[1] << ", " << left_model[2] << ", " << left_model[3] << ") ";
+                std::cout << "to right: (" << right_model[0] << ", " << right_model[1] << ", " << right_model[2] << ", " << right_model[3] << ")" << std::endl;
+                int lidx = gap.convex.terminal_lidx;
+                int ridx = gap.convex.terminal_ridx;
+                float ldist = gap.convex.terminal_ldist;
+                float rdist = gap.convex.terminal_rdist;
+
+                float x1, x2, y1, y2;
+                x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+                y1 = (ldist) * sin(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+
+                x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+                y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+                Eigen::Vector2f pl(x1, y1);
+                Eigen::Vector2f pr(x2, y2);
+                
+                auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
+                auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
+                Eigen::Matrix2f r_negpi2;
+                r_negpi2 << 0,1,
+                        -1,0;
+                Eigen::Vector2f offset(0.0, 0.0);
+                // which one has the smallest betadot
+                // pick that manipulated side as anchor
+                Eigen::Vector2f anchor(0.0, 0.0);
+                if (std::abs(left_model[3]) > std::abs(right_model[3])) { // left betadot larger
+                    std::cout << "left betadot is larger, setting anchor to right" << std::endl;
+                    anchor << x2, y2;
+                    Eigen::Vector2f norm_lr = lr / lr.norm();
+                    offset = r_negpi2 * norm_lr * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                } else { // right betadot larger
+                    std::cout << "right betadot is larger, setting anchor to left" << std::endl;
+                    anchor << x1, y1;
+                    Eigen::Vector2f norm_lf = lf / lf.norm();
+                    offset = -r_negpi2 * norm_lf * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                }
+                auto goal_pt = anchor + offset;
+
+                // do what is normally done
+                gap.terminal_goal.x = goal_pt[0];
+                gap.terminal_goal.y = goal_pt[1];
+                gap.terminal_goal.set = true;
+            } else if (gap.gap_closed) {
+                std::cout << "setting goal for closed closing gap" << std::endl;
+                Eigen::Vector2f closing_pt = gap.getClosingPoint();
+                float mult_factor = (closing_pt.norm() + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / closing_pt.norm();
+                gap.terminal_goal.x = closing_pt[0] * mult_factor;
+                gap.terminal_goal.y = closing_pt[1] * mult_factor;
+                gap.terminal_goal.set = true;
+            } else {
+                std::cout << "setting goal for existent closing gap" << std::endl;
+                setGapWaypoint(gap, localgoal, false);
+            }
+        }  
+    }
+
+
     void GapManipulator::setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan){
         std::cout << "~running setGapWaypoint" << std::endl;
         auto half_num_scan = gap.half_scan;

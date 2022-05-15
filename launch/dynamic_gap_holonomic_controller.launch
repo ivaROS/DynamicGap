@@ -3,8 +3,6 @@
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius"/>
 
-  <arg name="fov" default="$(optenv GM_PARAM_RBT_FOV 60)"/>
-
   <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="screen" args="$(arg robot_namespace) $(arg robot_radius)" />	
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->

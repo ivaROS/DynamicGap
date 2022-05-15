@@ -76,9 +76,4 @@
       <!-- Disable the local costmap observation sources if they will not be used -->
       <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
   </node>
-
-
-
-
-
 </launch>

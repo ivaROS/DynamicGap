@@ -477,7 +477,7 @@ namespace dynamic_gap
                 //}
                 gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
                 // gapManip->clipGapByLaserScan(manip_set.at(i));
-                gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // incorporating dynamic gap type
+                gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
             }
         } catch(...) {
             ROS_FATAL_STREAM("gapManipulate");
@@ -700,14 +700,13 @@ namespace dynamic_gap
                 return incoming;
             }
 
-            bool left_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex());
-            bool right_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex());
+            //bool left_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex());
+            //bool right_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex());
             // std::cout << "left index count: " << left_index_count << ", right index count: " << right_index_count << std::endl; 
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
-            
-            if ((left_index_count == 0) || (right_index_count == 0)) {
+            if (getCurrentLeftGapIndex() != incoming_gap.left_model->get_index() || getCurrentRightGapIndex() != incoming_gap.right_model->get_index()) {
                 if (incoming.poses.size() > 0) {
-                    std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible. left: " <<  left_index_count << ", right: " << right_index_count << std::endl;
+                    std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible. current left: " <<  getCurrentLeftGapIndex() << ", incoming left: " << incoming_gap.left_model->get_index() << ", current right: " << getCurrentRightGapIndex() << ", incoming right: " << incoming_gap.right_model->get_index() << std::endl;
                     ROS_WARN_STREAM("Swap to incoming, current trajectory no longer through feasible gap");
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
@@ -995,24 +994,7 @@ namespace dynamic_gap
             std::cout << "terminal goal: (" << g.terminal_goal.x << ", " << g.terminal_goal.y << ")" << std::endl;
             std::cout << "~~~" << std::endl;
         }
-        // 
 
-        /*
-        std::cout << "MANIPULATED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
-        for (size_t i = 0; i < feasible_gap_set.size(); i++)
-        {
-            dynamic_gap::Gap g = feasible_gap_set.at(i);
-            std::cout << "initial, left: (" << g.convex.convex_lidx << ", " << g.convex.convex_ldist << "), right: (" << g.convex.convex_ridx << ", " << g.convex.convex_rdist << ")" << std::endl; 
-            std::cout << "terminal, left: (" << g.convex.terminal_lidx << ", " << g.convex.terminal_ldist << "), right: (" << g.convex.terminal_ridx << ", " << g.convex.terminal_rdist << ")" << std::endl; 
-        }
-        */
-        /*
-        std::cout << "SET GAP GOAL" << std::endl;
-        for (size_t i = 0; i < manip_gap_set.size(); i++) {
-            std::cout << "setting goal for gap: " << i << std::endl;
-            gapManip->setGapWaypoint(manip_gap_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
-        }
-        */
         goalvisualizer->drawGapGoals(manip_gap_set);
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
         

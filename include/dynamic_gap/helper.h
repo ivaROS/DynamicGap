@@ -233,6 +233,7 @@ namespace dynamic_gap {
         double gx, gy;
         double goal_vel_x, goal_vel_y;
         bool gap_crossed;
+        double ax_absmax, ay_absmax;
         clf_cbf(bool axial, double K_des, double cbf_param, double K_acc, double gx, 
                 double gy, double betadot_L_0, double betadot_R_0, double vx_absmax, 
                 double vy_absmax, double init_rbt_x, double init_rbt_y, 
@@ -240,7 +241,8 @@ namespace dynamic_gap {
         : _axial(axial), K_des(K_des), cbf_param(cbf_param), K_acc(K_acc), gx(gx), 
             gy(gy), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0), 
             vx_absmax(vx_absmax), vy_absmax(vy_absmax), init_rbt_x(init_rbt_x), 
-            init_rbt_y(init_rbt_y), goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), gap_crossed(gap_crossed) {}
+            init_rbt_y(init_rbt_y), goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), 
+            gap_crossed(gap_crossed), ax_absmax(3.0), ay_absmax(3.0) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -372,56 +374,26 @@ namespace dynamic_gap {
             return d_h_dx;           
         }
 
-        Eigen::Vector2d clip_velocities(double x_vel, double y_vel) {
+        Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
-            if (std::abs(x_vel) <= vx_absmax && std::abs(y_vel) <= vy_absmax) {
+            if (std::abs(x_vel) <= x_lim && std::abs(y_vel) <= x_lim) {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = vx_absmax * original_vel / std::max(std::abs(x_vel), std::abs(y_vel));
+                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(std::abs(x_vel), std::abs(y_vel));
                 return clipped_vel;
             }
         }
 
-        /*
-        double get_beta_center(Eigen::VectorXd y_left, Eigen::VectorXd y_right) {
-            Eigen::Vector2d left_bearing_vect(y_left[2], y_left[1]);
-            Eigen::Vector2d right_bearing_vect(y_right[2], y_right[1]);
-
-            double det = y_left[2]*y_right[1] - y_left[1]*y_right[2];      
-            double dot = left_bearing_vect.dot(right_bearing_vect);
-
-            double swept_check = -std::atan2(det, dot);     
-            double L_to_R_angle = swept_check;
-
-            double curr_beta_center;
-            if (L_to_R_angle > 0) { // convex
-                curr_beta_center = beta_left - (L_to_R_angle / 2.0);
-            } else {    // non-convex
-                L_to_R_angle += 2*M_PI; 
-            }
-
-            double beta_left = std::atan2(y_left[1], y_left[2]);
-            double beta_right = std::atan2(y_right[1], y_right[2]);
-            if (curr_beta_center > 0 && curr_beta_center > M_PI) {
-                curr_beta_center -= 2*M_PI;
-            } else if (curr_beta_center < 0 && curr_beta_center < -M_PI) {
-                curr_beta_center += 2*M_PI;
-            }
-            std::cout << "beta left: " << beta_left << ", beta right: " << beta_right << std::endl;
-            std::cout << "L_to_R_angle: " << L_to_R_angle << ", beta center: " << curr_beta_center << std::endl;
-            return curr_beta_center;
-        }
-        */
 
         state_type adjust_state(const state_type &x) {
             // clipping velocities
             // taking norm of sin/cos norm vector
             state_type new_x = x;
             // std::cout << "original state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3] << std::endl;
-            Eigen::Vector2d rbt_vel = clip_velocities(new_x[2], new_x[3]);
+            Eigen::Vector2d rbt_vel = clip_velocities(new_x[2], new_x[3], vx_absmax);
             new_x[2] = rbt_vel[0];
             new_x[3] = rbt_vel[1];
             // std::cout << "new state with clipped vels: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3] << std::endl;
@@ -498,12 +470,14 @@ namespace dynamic_gap {
             }
 
             // CLIPPING DESIRED VELOCITIES
-            v_des = clip_velocities(v_des[0], v_des[1]);
+            v_des = clip_velocities(v_des[0], v_des[1], vx_absmax);
 
             // set desired acceleration based on desired velocity
             Eigen::Vector2d a_des(-K_acc*(rbt_vel[0] - v_des(0)), -K_acc*(rbt_vel[1] - v_des(1)));
             // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
-            
+
+            a_des = clip_velocities(a_des[0], a_des[1], ax_absmax);
+
             double det = y_left[2]*y_right[1] - y_left[1]*y_right[2];      
             double dot = y_left[2]*y_right[2] + y_left[1]*y_right[1];
 
@@ -571,7 +545,8 @@ namespace dynamic_gap {
             } 
 
             // std::cout << "a_actual: " << a_actual(0) << ", " << a_actual(1) << std::endl;
-            
+            a_actual = clip_velocities(a_actual[0], a_actual[1], ax_absmax);
+
             double a_x_rbt = a_actual(0); // -K_acc*(x[2] - result(0)); // 
             double a_y_rbt = a_actual(1); // -K_acc*(x[3] - result(1)); // 
 

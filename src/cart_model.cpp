@@ -42,14 +42,14 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.001, 0.0,
-             0.0, 0.001;
+        R << 0.000001, 0.0,
+             0.0, 0.000001;
 
         // PROCESS NOISE
-        Q << 0.001, 0.0, 0.0, 0.0,
-             0.0, 0.001, 0.0, 0.0,
-             0.0, 0.0, 0.001, 0.0,
-             0.0, 0.0, 0.0, 0.001;
+        Q << 0.01, 0.0, 0.0, 0.0,
+             0.0, 0.01, 0.0, 0.0,
+             0.0, 0.0, 0.01, 0.0,
+             0.0, 0.0, 0.0, 0.01;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -99,11 +99,11 @@ namespace dynamic_gap {
     }
 
     void cart_model::freeze_robot_vel() {
-        std::cout << "in freeze_robot_vel" << std::endl;
+        // std::cout << "in freeze_robot_vel" << std::endl;
         Eigen::Vector4d cartesian_state = get_cartesian_state();
-        std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
+        // std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
         //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
-        std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        // std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
         
         // update cartesian
         cartesian_state[2] += v_ego[0];
@@ -116,12 +116,24 @@ namespace dynamic_gap {
     void cart_model::frozen_state_propagate(double dt) {
         Matrix<double, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
+
+        Matrix<double, 2, 1> frozen_linear_acc_ego;
+        frozen_linear_acc_ego << 0.0, 0.0;
+
+        Matrix<double, 2, 1> frozen_linear_vel_ego;
+        frozen_linear_vel_ego << 0.0, 0.0; //linear_vel_ego[0], linear_vel_ego[1];
+
+        double frozen_ang_vel_ego = 0.0;// ang_vel_ego;
+
+        double vdot_x_body = frozen_linear_acc_ego[0] + frozen_linear_vel_ego[1]*frozen_ang_vel_ego;
+        double vdot_y_body = frozen_linear_acc_ego[1] - frozen_linear_vel_ego[0]*frozen_ang_vel_ego;
+
         // std::cout << "frozen_y stepping from 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << " to ";
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
-        new_frozen_x[0] = frozen_x[0] + (frozen_x[2])*dt;
-        new_frozen_x[1] = frozen_x[1] + (frozen_x[3])*dt;
-        new_frozen_x[2] = frozen_x[2];
-        new_frozen_x[3] = frozen_x[3];
+        new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*dt;
+        new_frozen_x[1] = frozen_x[1] + (frozen_x[3] - frozen_x[0]*frozen_ang_vel_ego)*dt;
+        new_frozen_x[2] = frozen_x[2] + (frozen_x[3]*frozen_ang_vel_ego - vdot_x_body)*dt;
+        new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*dt;
         frozen_x = new_frozen_x; // is this ok? do we need a deep copy?
         // std::cout << " 1/r: " << frozen_y[0] << ", beta: " << std::atan2(frozen_y[1], frozen_y[2]) << ", rdot/r: " << frozen_y[3] << ", betadot: " << frozen_y[4] << std::endl;
     }

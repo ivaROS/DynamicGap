@@ -35,29 +35,10 @@ namespace dynamic_gap {
         // return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
     }
 
-    void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::Gap>& current_raw_gaps, sensor_msgs::LaserScan& dynamic_laser_scan) {
+    void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan) {
         // freeze models
         // std::cout << "num gaps: " << current_raw_gaps.size() << std::endl;
-        std::vector<dynamic_gap::cart_model *> raw_models;
-        for (auto gap : current_raw_gaps) {
-            raw_models.push_back(gap.left_model);
-            raw_models.push_back(gap.right_model);
-        }
 
-        // std::cout << "starting setting sides and freezing velocities" << std::endl;
-        int count = 0;
-        for (auto & model : raw_models) {
-            if (count % 2 == 0) {
-                // std::cout << "setting left" << std::endl;
-                model->set_side("left");
-            } else {
-                // std::cout << "setting right" << std::endl;
-                model->set_side("right");
-            }
-            count++;
-            // std::cout << "going to freeze robot vel" << std::endl;
-            model->freeze_robot_vel();
-        }
         // std::cout << "finished setting sides and freezing velocities" << std::endl;
 
         //sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
@@ -68,9 +49,9 @@ namespace dynamic_gap {
         // std::cout << "propagating models" << std::endl;
         double interval = t_iplus1 - t_i;
         //std::cout << "time: " << t_iplus1 << std::endl;
-        for (double i = 0.0; i < interval; i += 0.01) {
+        for (double i = 0.0; i < interval; i += cfg_->traj.integrate_stept) {
             for (auto & model : raw_models) {
-                model->frozen_state_propagate(0.01);
+                model->frozen_state_propagate(cfg_->traj.integrate_stept);
             }
         }
         // std::cout << "sorting models" << std::endl;
@@ -238,15 +219,34 @@ namespace dynamic_gap {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-        /*
+        
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
         }
+        
+        // std::cout << "starting setting sides and freezing velocities" << std::endl;
+        int count = 0;
+        for (auto & model : raw_models) {
+            if (count % 2 == 0) {
+                // std::cout << "setting left" << std::endl;
+                model->set_side("left");
+            } else {
+                // std::cout << "setting right" << std::endl;
+                model->set_side("right");
+            }
+            count++;
+            // std::cout << "going to freeze robot vel" << std::endl;
+            model->freeze_robot_vel();
+        }
 
         // std::cout << "num models: " << raw_models.size() << std::endl;
         std::vector<double> dynamic_cost_val(traj.poses.size());
+        std::vector<double> static_cost_val(traj.poses.size());
+        double total_val = 0.0;
+        std::vector<double> cost_val;
+
         sensor_msgs::LaserScan stored_scan = *msg.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
@@ -257,13 +257,12 @@ namespace dynamic_gap {
         double t_i = 0.0;
         double t_iplus1 = 0.0;
 
-        /*
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
-                recoverDynamicEgoCircle(t_i, t_iplus1, current_raw_gaps, dynamic_laser_scan);
-                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan) / static_cost_val.size();
+                recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
+                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan) / dynamic_cost_val.size();
                 t_i = t_iplus1;
             }
             auto dynamic_total_val = std::accumulate(dynamic_cost_val.begin(), dynamic_cost_val.end(), double(0));
@@ -280,31 +279,28 @@ namespace dynamic_gap {
             cost_val = static_cost_val;
             std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
-        */
-
-        double total_val = 0.0;
-        std::vector<double> cost_val;
-        std::vector<double> static_cost_val(traj.poses.size());
-        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));
-
+        
+        /*
         for (int i = 0; i < static_cost_val.size(); i++) {
             // std::cout << "regular range at " << i << ": ";
             static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
         }
-        std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
-        for (int i = 0; i < counts; i++) {
-            // std::cout << "regular range at " << i << ": ";
-            if (static_cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
-                std::cout << "-inf at pose " << i << " of " << static_cost_val.size() << " with distance of: " << getClosestDist(traj.poses.at(i)) << std::endl;
-            }
-        }
-
-
         auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
         total_val = static_total_val;
         cost_val = static_cost_val;
         std::cout << "static pose-wise cost: " << static_total_val << std::endl;
-    
+        */
+
+        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
+        //std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
+        for (int i = 0; i < counts; i++) {
+            // std::cout << "regular range at " << i << ": ";
+            if (cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
+                std::cout << "-inf at pose " << i << " of " << cost_val.size() << " with distance of: " << getClosestDist(traj.poses.at(i)) << std::endl;
+            }
+        }
+
+
         if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
