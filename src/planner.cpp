@@ -904,8 +904,6 @@ namespace dynamic_gap
         // std::cout << "curr_raw_gaps:" << std::endl;
         //printGapModels(curr_raw_gaps);
         
-
-
         std::cout << "current simplified gaps:" << std::endl;
         printGapModels(curr_observed_gaps);
 
