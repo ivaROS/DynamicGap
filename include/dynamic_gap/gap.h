@@ -415,6 +415,8 @@ namespace dynamic_gap
             int terminal_ridx = 511;
             float terminal_ldist = 5.0;
             float terminal_rdist = 5.0;
+
+            bool gap_chosen = false;
         // private:
     };
 }

@@ -111,7 +111,7 @@ namespace dynamic_gap{
         simp_terminal.push_back(std_color);
         simp_terminal.push_back(std_color);
 
-        std_color.a = 0.5;
+        std_color.a = 1.0;
         std_color.r = 0.0; 
         std_color.g = 1.0;
         std_color.b = 0.0;
@@ -119,7 +119,7 @@ namespace dynamic_gap{
         manip_initial.push_back(std_color);
 
         std_color.a = 1.0;
-        std_color.r = 0.0; 
+        std_color.r = 1.0; 
         std_color.g = 1.0; 
         std_color.b = 0.0; 
         manip_terminal.push_back(std_color);
@@ -410,7 +410,6 @@ namespace dynamic_gap{
         float ldist = initial ? g.convex.convex_ldist : g.convex.terminal_ldist;
         float rdist = initial ? g.convex.convex_rdist : g.convex.terminal_rdist;
 
-
         /*
         std::string ns;
         if (g.mode.reduced) {
@@ -426,6 +425,7 @@ namespace dynamic_gap{
             ns = "fin_agc";
         }
         */
+
         /*
         std::string local_ns = ns;
         // for compare, 0 is true?
@@ -521,16 +521,17 @@ namespace dynamic_gap{
         
         // MAX: removing just for visualizing
         /*
-        if (g.mode.convex) {
+        if ((g.mode.convex || g.mode.terminal_convex) && g.gap_chosen) {
             float r = g.getMinSafeDist();
             if (r < 0) {
                 ROS_WARN_STREAM("Gap min safe dist not recorded");
             }
+            auto convex_color = colormap[local_ns];
 
-            auto convex_color = colormap["fin_extent"];
+            //this_marker.colors = color_value->second;
+            //auto convex_color = colormap["fin_extent"];
 
             this_marker.ns = "fin_extent";
-
             // The Circle
             if (!circle) {
                 for (int i = 0; i < 50; i++) {
@@ -542,9 +543,9 @@ namespace dynamic_gap{
                     lines.push_back(linel);
                     lines.push_back(liner);
                     this_marker.points = lines;
-                    this_marker.colors = convex_color;
+                    this_marker.colors = convex_color; //convex_color;
                     this_marker.id = id++;
-                    this_marker.lifetime = ros::Duration();
+                    this_marker.lifetime = ros::Duration(0.2);
                     vis_arr.markers.push_back(this_marker);
                 }
                 circle = true;
@@ -579,12 +580,18 @@ namespace dynamic_gap{
 
             {
                 this_marker.ns = "extent_line";
-                getline(g.convex.convex_lidx, g.convex.convex_ldist, g.qB, 
-                    lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
-                getline(g.convex.convex_ridx, g.convex.convex_rdist, g.qB, 
-                    lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
+                if (initial) {
+                    getline(g.convex.convex_lidx, g.convex.convex_ldist, g.qB, 
+                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
+                    getline(g.convex.convex_ridx, g.convex.convex_rdist, g.qB, 
+                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
+                } else {
+                    getline(g.convex.convex_lidx, g.convex.convex_ldist, g.terminal_qB, 
+                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
+                    getline(g.convex.convex_ridx, g.convex.convex_rdist, g.terminal_qB, 
+                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
+                }
                 Eigen::Vector2f origin(0, 0);
-
 
                 this_marker.ns = "orig_line";
                 getline(g._left_idx, g._ldist, origin, 
@@ -594,7 +601,6 @@ namespace dynamic_gap{
             }
         }
         */
-
     }
 
     void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns) {
@@ -604,7 +610,9 @@ namespace dynamic_gap{
         bool circle = false;
         for (auto gap : vec) {
             drawManipGap(vis_arr, gap, circle, ns, true);
-            // drawManipGap(vis_arr, gap, circle, ns, false);
+            if (gap.gap_chosen) {
+                drawManipGap(vis_arr, gap, circle, ns, false);
+            }
         }
         gapside_publisher.publish(vis_arr);
     }
@@ -839,7 +847,9 @@ namespace dynamic_gap{
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : gs) {
-            drawGapGoal(vis_arr, gap);
+            if (gap.gap_chosen) {
+                drawGapGoal(vis_arr, gap);
+            }
         }
         gapwp_pub.publish(vis_arr);
         return;

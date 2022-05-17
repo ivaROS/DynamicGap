@@ -288,13 +288,13 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        manip: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /robot0/marker
@@ -446,6 +446,15 @@ Visualization Manager:
       Topic: /robot0/global_path
       Unreliable: false
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /pg_sides
+      Name: MarkerArray
+      Namespaces:
+        extent_line: true
+        manip: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

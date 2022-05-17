@@ -257,7 +257,7 @@ namespace dynamic_gap {
         double t_i = 0.0;
         double t_iplus1 = 0.0;
 
-        /*
+
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
@@ -271,27 +271,15 @@ namespace dynamic_gap {
             cost_val = dynamic_cost_val;
             std::cout << "dynamic pose-wise cost: " << dynamic_total_val << std::endl;
         } else {
-        */
-        for (int i = 0; i < static_cost_val.size(); i++) {
-            // std::cout << "regular range at " << i << ": ";
-            static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+            for (int i = 0; i < static_cost_val.size(); i++) {
+                // std::cout << "regular range at " << i << ": ";
+                static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+            }
+            auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
+            total_val = static_total_val;
+            cost_val = static_cost_val;
+            std::cout << "static pose-wise cost: " << static_total_val << std::endl;
         }
-        auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-        total_val = static_total_val;
-        cost_val = static_cost_val;
-        std::cout << "static pose-wise cost: " << static_total_val << std::endl;
-        //}
-        
-        /*
-        for (int i = 0; i < static_cost_val.size(); i++) {
-            // std::cout << "regular range at " << i << ": ";
-            static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
-        }
-        auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-        total_val = static_total_val;
-        cost_val = static_cost_val;
-        std::cout << "static pose-wise cost: " << static_total_val << std::endl;
-        */
 
         int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
         //std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;

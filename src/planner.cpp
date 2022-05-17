@@ -483,7 +483,6 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("gapManipulate");
         }
 
-        gapvisualizer->drawManipGaps(manip_set, std::string("manip"));
         return manip_set;
     }
 
@@ -570,7 +569,7 @@ namespace dynamic_gap
         }
 
         std::cout << "picking gap: " << idx << std::endl;
-
+        
         return idx;
     }
 
@@ -995,7 +994,6 @@ namespace dynamic_gap
             std::cout << "~~~" << std::endl;
         }
 
-        goalvisualizer->drawGapGoals(manip_gap_set);
         std::cout << "FINISHED SET GAP GOAL" << std::endl;
         
         std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
@@ -1015,11 +1013,15 @@ namespace dynamic_gap
         if (traj_idx >= 0) {
             chosen_traj = traj_set[traj_idx];
             chosen_time_arr = time_set[traj_idx];
-            chosen_gap = feasible_gap_set[traj_idx];
+            chosen_gap = manip_gap_set[traj_idx];
+            manip_gap_set[traj_idx].gap_chosen = true;
         } else {
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
         }
+        gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
+        goalvisualizer->drawGapGoals(manip_gap_set);
+
 
         std::vector<int> feasible_gap_model_indices;
         std::cout << "feasible gap indices: ";
