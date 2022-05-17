@@ -42,8 +42,8 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.000001, 0.0,
-             0.0, 0.000001;
+        R << 0.001, 0.0,
+             0.0, 0.001;
 
         // PROCESS NOISE
         Q << 0.01, 0.0, 0.0, 0.0,
@@ -55,13 +55,13 @@ namespace dynamic_gap {
         double v_rel_y = -_v_ego[1];
         x << init_r * std::cos(init_beta),
              init_r * std::sin(init_beta),
-             v_rel_x,
-             v_rel_y;
+             0.0,
+             0.0;
 
         P << 10.0e-4, 0.0, 0.0, 0.0,
              0.0, 10.0e-4, 0.0, 0.0,
-             0.0, 0.0, 10.0e-4, 0.0,
-             0.0, 0.0, 0.0, 10.0e-4;
+             0.0, 0.0, 0.1, 0.0,
+             0.0, 0.0, 0.0, 0.1;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -175,7 +175,7 @@ namespace dynamic_gap {
         dQ = dQ + M2 + M3;
     }
 
-    void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego) {
+    void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, std::string gap_type) {
         t = ros::Time::now().toSec();
         dt = t - t0;
         // acceleration comes in wrt robot frame
@@ -185,14 +185,20 @@ namespace dynamic_gap {
         
         v_ego = _v_ego;
         //  Eigen::Vector4d cart_state = get_cartesian_state();
-        //std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         //std::cout << "acceleration" << std::endl;
         //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
         //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
+        if (gap_type == "simplified") {
+            std::cout << "linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego << std::endl;
+            std::cout << "linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1] << std::endl;
+            std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        }
         integrate();
         // cart_state = get_cartesian_state();
-        //std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        if (gap_type == "simplified") {
+            std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+        }
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
@@ -234,8 +240,9 @@ namespace dynamic_gap {
 
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        //std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
-
+        if (gap_type == "simplified") {
+            std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
+        }
 
         // std::cout << "P: " << P << std::endl;
         Matrix<double, 4, 1> x_update_mat = G*(x_tilde - H*x);
@@ -243,14 +250,15 @@ namespace dynamic_gap {
         x = x + x_update_mat;
 
         // cart_state = get_cartesian_state();
-        //std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-
+        if (gap_type == "simplified") {
+            std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
+            std::cout << "-----------" << std::endl;
+        }
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (MatrixXd::Identity(4,4) - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         omega_rbt_prev = _v_ego[2];
-        //std::cout << "" << std::endl;
     }
 
     Eigen::Vector4d cart_model::get_cartesian_state() {

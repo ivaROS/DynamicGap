@@ -71,7 +71,7 @@ namespace dynamic_gap {
 
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
-            void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego);
+            void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, std::string gap_type);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

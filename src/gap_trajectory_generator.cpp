@@ -42,12 +42,12 @@ namespace dynamic_gap{
         term_y2 = (selectedGap.convex.terminal_rdist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
 
         // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
-        std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
-        std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
-        std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-        std::cout << "original terminal goal: (" << selectedGap.terminal_goal.x << ", " << selectedGap.terminal_goal.y << ")" << std::endl; 
-        std::cout << "original initial left point: (" << x2 << ", " << y2 << "), original initial right point: (" << x1 << ", " << y1 << ")" << std::endl; 
-        std::cout << "original terminal left point: (" << term_x2 << ", " << term_y2 << "), original terminal right point: (" << term_x1 << ", " << term_y1 << ")" << std::endl;
+        //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
+        //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
+        //std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
+        //std::cout << "original terminal goal: (" << selectedGap.terminal_goal.x << ", " << selectedGap.terminal_goal.y << ")" << std::endl; 
+        //std::cout << "original initial left point: (" << x2 << ", " << y2 << "), original initial right point: (" << x1 << ", " << y1 << ")" << std::endl; 
+        //std::cout << "original terminal left point: (" << term_x2 << ", " << term_y2 << "), original terminal right point: (" << term_x1 << ", " << term_y1 << ")" << std::endl;
         
         //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
         //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;

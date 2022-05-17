@@ -171,19 +171,19 @@ namespace dynamic_gap
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_distMatrix = gapassociator->associateGaps(raw_association, raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
             //std::cout << "RAW GAP UPDATING" << std::endl;
-            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego);
+            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, "raw");
 
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
 
-            //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
+            std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
-            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego);
+            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, "simplified");
 
-            if (print_associations) {
-                printGapAssociations(observed_gaps, previous_gaps, simp_association);
-                print_associations = false;
-            }
+            //if (print_associations) {
+            printGapAssociations(observed_gaps, previous_gaps, simp_association);
+                //print_associations = false;
+            //}
 
             previous_gaps = associated_observed_gaps;
             previous_raw_gaps = associated_raw_gaps;
@@ -221,7 +221,7 @@ namespace dynamic_gap
 
     }
     
-    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego) {
+    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, std::string gap_type) {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
 
         // UPDATING MODELS
@@ -259,20 +259,20 @@ namespace dynamic_gap
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, gap_type);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, gap_type);
         }
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego) {
+    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, std::string gap_type) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
 
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
-            update_model(i, associated_observed_gaps, _v_ego, _a_ego);
+            update_model(i, associated_observed_gaps, _v_ego, _a_ego, gap_type);
             //std::cout << "" << std::endl;
 		}
 
@@ -921,6 +921,7 @@ namespace dynamic_gap
         auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego, curr_raw_gaps);
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
+        /*
         // pruning overlapping gaps?
         for (size_t i = 0; i < (manip_gap_set.size() - 1); i++)
         {
@@ -953,6 +954,7 @@ namespace dynamic_gap
                 i = -1; // to restart for loop
             }
         }
+        */
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         double x1, x2, y1, y2;
 
