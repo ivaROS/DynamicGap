@@ -80,6 +80,9 @@ namespace dynamic_gap
 
         curr_left_model = NULL;
         curr_right_model = NULL;
+
+        sharedPtr_pose = geometry_msgs::Pose();
+        sharedPtr_previous_pose = sharedPtr_previous_pose;
         return true;
     }
 
@@ -151,35 +154,69 @@ namespace dynamic_gap
 
         try {
             boost::mutex::scoped_lock gapset(gapset_mutex);
-            //Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-            //Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
 
-            Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
-            Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
+            tf2::Quaternion curr_quat(sharedPtr_pose.orientation.x, sharedPtr_pose.orientation.y, sharedPtr_pose.orientation.z, sharedPtr_pose.orientation.w);
+            tf2::Matrix3x3 curr_m(curr_quat);
+            double curr_r, curr_p, curr_y;
+            curr_m.getRPY(curr_r, curr_p, curr_y);
 
-            Matrix<double, 1, 3> v_ego = rbt_vel_tmin1;
-            Matrix<double, 1, 3> a_ego = rbt_acc_tmin1;
+            tf2::Quaternion prev_quat(sharedPtr_previous_pose.orientation.x, sharedPtr_previous_pose.orientation.y, sharedPtr_previous_pose.orientation.z, sharedPtr_previous_pose.orientation.w);
+            tf2::Matrix3x3 prev_m(prev_quat);
+            double prev_r, prev_p, prev_y;
+            prev_m.getRPY(prev_r, prev_p, prev_y);
+
+            Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+            Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
+
+            //Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
+            //Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
+
+            Matrix<double, 1, 3> v_ego = rbt_vel_t;
+            Matrix<double, 1, 3> a_ego = rbt_acc_t;
 
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
+            /*
+            std::cout << "printing raw gaps" << std::endl;
+            for (size_t i = 0; i < raw_gaps.size(); i++)
+            {
+                dynamic_gap::Gap current_gap = raw_gaps[i];
+                std::cout << "gap " << i << ": ";
+                current_gap.printCartesianPoints(true, true);
+            } 
+            */           
+            
+            
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
 
-            //std::cout << "robot pose: " << std::endl;
-            //std::cout << "x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y;
-            //std::cout << ", quat: " << sharedPtr_pose.orientation.x << ", " << sharedPtr_pose.orientation.y << ", " << sharedPtr_pose.orientation.z << ", " << sharedPtr_pose.orientation.w << std::endl;
             //std::cout << "RAW GAP ASSOCIATING" << std::endl;
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_distMatrix = gapassociator->associateGaps(raw_association, raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
             //std::cout << "RAW GAP UPDATING" << std::endl;
             associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, "raw");
 
+
+            
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
+            /*
+            std::cout << "printing simplified gaps" << std::endl;
+            for (size_t i = 0; i < observed_gaps.size(); i++)
+            {
+                dynamic_gap::Gap current_gap = observed_gaps[i];
+                std::cout << "gap " << i << ": ";
+                current_gap.printCartesianPoints(true, true);
+            }  
+            */
 
-            std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
+            //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
-            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
             associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, "simplified");
-
+            
+            std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
+            //std::cout << ", quat: " <<  << ", " <<  << ", " << << ", " <<  << std::endl;
+            std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
+            
             //if (print_associations) {
             printGapAssociations(observed_gaps, previous_gaps, simp_association);
                 //print_associations = false;
@@ -219,17 +256,30 @@ namespace dynamic_gap
         rbt_vel_min1 = current_rbt_vel;
         rbt_accel_min1 = rbt_accel;
 
+        sharedPtr_previous_pose = sharedPtr_pose;
+
     }
     
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, std::string gap_type) {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
-
+		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
+        if (i % 2 == 0) {
+            if (g.left_model->get_initialized()) {
+                g.left_model->set_initialized(false);
+                return;
+            } 
+        } else {
+            if (g.right_model->get_initialized()) {
+                g.right_model->set_initialized(false);
+                return;
+            } 
+        }
+ 
         // UPDATING MODELS
         //std::cout << "obtaining gap g" << std::endl;
 		geometry_msgs::Vector3Stamped gap_pt_vector_rbt_frame;
         geometry_msgs::Vector3Stamped range_vector_rbt_frame;
         gap_pt_vector_rbt_frame.header.frame_id = cfg.robot_frame_id;
-		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
         //std::cout << "obtaining gap pt vector" << std::endl;
 		// THIS VECTOR IS IN THE ROBOT FRAME
 		if (i % 2 == 0) {
@@ -281,6 +331,7 @@ namespace dynamic_gap
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
+
         // Transform the msg to odom frame
         if(msg->header.frame_id != cfg.odom_frame_id)
         {
@@ -920,7 +971,7 @@ namespace dynamic_gap
         auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego, curr_raw_gaps);
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
-        
+        /*
         // pruning overlapping gaps?
         for (size_t i = 0; i < (manip_gap_set.size() - 1); i++)
         {
@@ -953,7 +1004,8 @@ namespace dynamic_gap
                 i = -1; // to restart for loop
             }
         }
-        
+        */
+
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         double x1, x2, y1, y2;
 

@@ -136,6 +136,7 @@ namespace dynamic_gap
         int ctrl_idx = 0;
 
         geometry_msgs::Pose sharedPtr_pose;
+        geometry_msgs::Pose sharedPtr_previous_pose;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_inflatedlaser;
 

@@ -24,6 +24,7 @@ namespace dynamic_gap {
 
             Matrix<double, 4, 1> x; // cartesian state
             Matrix<double, 4, 1> frozen_x;
+            Matrix<double, 4, 1> copied_x;
             Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
@@ -47,6 +48,7 @@ namespace dynamic_gap {
             Matrix<double, 2, 1> linear_vel_ego;
             double ang_vel_ego;
 
+            bool initialized;
 
         public:
 
@@ -79,5 +81,8 @@ namespace dynamic_gap {
             std::string get_side();
             int get_index();
             void inflate_model(float x, float y);
+
+            void set_initialized(bool _initialized);
+            bool get_initialized();
     };
 }

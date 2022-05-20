@@ -42,12 +42,12 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.04, 0.0,
-             0.0, 0.04;
+        R << 0.02, 0.0,
+             0.0, 0.02;
 
         // PROCESS NOISE
-        Q << 0.01, 0.0, 0.0, 0.0,
-             0.0, 0.01, 0.0, 0.0,
+        Q << 0.02, 0.0, 0.0, 0.0,
+             0.0, 0.02, 0.0, 0.0,
              0.0, 0.0, 0.15, 0.0,
              0.0, 0.0, 0.0, 0.15;
 
@@ -96,9 +96,10 @@ namespace dynamic_gap {
         linear_acc_ego << 0.0, 0.0;
         linear_vel_ego << 0.0, 0.0;
         ang_vel_ego = 0.0;
+        initialized = true;
     }
 
-    void cart_model::copy_model()) {
+    void cart_model::copy_model() {
         // std::cout << "in freeze_robot_vel" << std::endl;
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         // std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
@@ -111,7 +112,7 @@ namespace dynamic_gap {
 
     void cart_model::copy_model_propagate(double dt) {
         Matrix<double, 4, 1> new_copied_x;
-        new_x << 0.0, 0.0, 0.0, 0.0;
+        new_copied_x << 0.0, 0.0, 0.0, 0.0;
 
         double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
         double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
@@ -143,12 +144,8 @@ namespace dynamic_gap {
 
         Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
 
-        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0);
+        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0); 
         double frozen_ang_vel_ego = 0.0;
-        if (!freeze) {
-            frozen_linear_vel_ego << linear_vel_ego[0], linear_vel_ego[1];
-            frozen_ang_vel_ego = ang_vel_ego;
-        }
 
         double vdot_x_body = frozen_linear_acc_ego[0] + frozen_linear_vel_ego[1]*frozen_ang_vel_ego;
         double vdot_y_body = frozen_linear_acc_ego[1] - frozen_linear_vel_ego[0]*frozen_ang_vel_ego;
@@ -348,4 +345,11 @@ namespace dynamic_gap {
         return index;
     }
 
+    void cart_model::set_initialized(bool _initialized) {
+        initialized = _initialized;
+    }
+
+    bool cart_model::get_initialized() {
+        return initialized;
+    }
 }

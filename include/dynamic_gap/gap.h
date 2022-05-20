@@ -75,7 +75,7 @@ namespace dynamic_gap
 
                 if (!_axial)
                 {
-                    _axial = isAxial();
+                    _axial = isSwept();
                 }
 
                 convex.convex_lidx = _left_idx;
@@ -90,7 +90,7 @@ namespace dynamic_gap
 
                 if (!_terminal_axial)
                 {
-                    _terminal_axial = isAxial();
+                    _terminal_axial = isSwept();
                 }
 
                 convex.terminal_lidx = terminal_lidx;
@@ -222,7 +222,7 @@ namespace dynamic_gap
                 return right_obs;
             }
 
-            bool isAxial(bool initial = true)
+            bool isSwept(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
                 int check_l_idx = initial ? _left_idx : terminal_lidx;
@@ -242,12 +242,12 @@ namespace dynamic_gap
                 // std::cout << "small angle: " << small_angle << std::endl;
                 if (initial) {
                     _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
-                    // std::cout << "checking isAxial: " << _axial << std::endl;
+                    // std::cout << "checking isSwept: " << _axial << std::endl;
                     return _axial;
                     
                 } else {
                     _terminal_axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
-                    // std::cout << "checking isAxial: " << _terminal_axial << std::endl;
+                    // std::cout << "checking isSwept: " << _terminal_axial << std::endl;
                     return _terminal_axial;
                 }
             }
@@ -326,6 +326,38 @@ namespace dynamic_gap
                 terminal_ridx = _terminal_ridx;
                 terminal_rdist = _terminal_rdist;
             }
+
+            void printCartesianPoints(bool initial, bool simplified) {
+                float x1,y1,x2,y2;
+
+                if (initial) {
+                    if (simplified) {
+                        x1 = (_ldist) * cos(-((float) half_scan - _left_idx) / half_scan * M_PI);
+                        y1 = (_ldist) * sin(-((float) half_scan - _left_idx) / half_scan * M_PI);
+                        x2 = (_rdist) * cos(-((float) half_scan - _right_idx) / half_scan * M_PI);
+                        y2 = (_rdist) * sin(-((float) half_scan - _right_idx) / half_scan * M_PI);
+                    } else {
+                        x1 = (convex.convex_ldist) * cos(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
+                        y1 = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
+                        x2 = (convex.convex_rdist) * cos(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
+                        y2 = (convex.convex_rdist) * sin(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
+                    }
+                } else {
+                    if (simplified) {
+                        x1 = (terminal_ldist) * cos(-((float) half_scan - terminal_lidx) / half_scan * M_PI);
+                        y1 = (terminal_ldist) * sin(-((float) half_scan - terminal_lidx) / half_scan * M_PI);
+                        x2 = (terminal_rdist) * cos(-((float) half_scan - terminal_ridx) / half_scan * M_PI);
+                        y2 = (terminal_rdist) * sin(-((float) half_scan - terminal_ridx) / half_scan * M_PI);
+                    } else {
+                        x1 = (convex.terminal_ldist) * cos(-((float) half_scan - convex.terminal_lidx) / half_scan * M_PI);
+                        y1 = (convex.terminal_ldist) * sin(-((float) half_scan - convex.terminal_lidx) / half_scan * M_PI);
+                        x2 = (convex.terminal_rdist) * cos(-((float) half_scan - convex.terminal_ridx) / half_scan * M_PI);
+                        y2 = (convex.terminal_rdist) * sin(-((float) half_scan - convex.terminal_ridx) / half_scan * M_PI);
+                    }
+                }
+
+                std::cout << "x1,y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl;
+            }   
             
             bool no_valid_slice = false;
             bool goal_within = false;
