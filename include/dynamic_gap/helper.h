@@ -22,7 +22,7 @@
 #include "tf/transform_datatypes.h"
 
 namespace dynamic_gap {
-    typedef boost::array<double, 16> state_type;
+    typedef boost::array<double, 14> state_type;
 
     struct polar_gap_field{
 
@@ -242,7 +242,7 @@ namespace dynamic_gap {
             gy(gy), betadot_L_0(betadot_L_0), betadot_R_0(betadot_R_0), 
             vx_absmax(vx_absmax), vy_absmax(vy_absmax), init_rbt_x(init_rbt_x), 
             init_rbt_y(init_rbt_y), goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), 
-            gap_crossed(gap_crossed), ax_absmax(3.0), ay_absmax(3.0) {}
+            gap_crossed(gap_crossed), ax_absmax(1.5), ay_absmax(1.5) {}
         // state: 
         // x[0]: rbt_x
         // x[1]: rbt_y
@@ -398,11 +398,11 @@ namespace dynamic_gap {
             new_x[3] = rbt_vel[1];
             // std::cout << "new state with clipped vels: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3] << std::endl;
 
-            new_x[5] /= std::sqrt(pow(new_x[5], 2) + pow(new_x[6], 2));
-            new_x[6] /= std::sqrt(pow(new_x[5], 2) + pow(new_x[6], 2));
+            //new_x[5] /= std::sqrt(pow(new_x[5], 2) + pow(new_x[6], 2));
+            //new_x[6] /= std::sqrt(pow(new_x[5], 2) + pow(new_x[6], 2));
 
-            new_x[10] /= std::sqrt(pow(new_x[10], 2) + pow(new_x[11], 2));
-            new_x[11] /= std::sqrt(pow(new_x[10], 2) + pow(new_x[11], 2));
+            //new_x[10] /= std::sqrt(pow(new_x[10], 2) + pow(new_x[11], 2));
+            //new_x[11] /= std::sqrt(pow(new_x[10], 2) + pow(new_x[11], 2));
             // std::cout << "new state with normalized left and right vectors: " << new_x[5] << ", " << new_x[6] << ", " << new_x[10] << ", " << new_x[11] << std::endl;
 
             return new_x;
@@ -410,7 +410,7 @@ namespace dynamic_gap {
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
-            Eigen::Vector2d goal(x[14], x[15]);
+            Eigen::Vector2d goal(x[12], x[13]);
             Eigen::Vector2d init_to_goal_vect(goal[0] - init_rbt_x, goal[1] - init_rbt_y);
             Eigen::Vector2d curr_to_goal_vect(goal[0] - x[0], goal[1] - x[1]);
 
@@ -425,7 +425,7 @@ namespace dynamic_gap {
                 // std::cout << "past gap: " << pass_gap << ", closed gap: " << closed_gap << std::endl;
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0;
                 dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0;
-                dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0; dxdt[14] = 0; dxdt[15] = 0;
+                dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
                 return;
             }
 
@@ -441,17 +441,18 @@ namespace dynamic_gap {
 
             // std::cout << "inte_t: " << t << ", x: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3] << std::endl;
             // std::cout << "V: " << V << ", local goal: " << goal[0] << ", " << goal[1] << ", " << std::endl;
-            
+            /*
             // set left/right models
             Eigen::VectorXd y_left(5);
             y_left << new_x[4], new_x[5], new_x[6], new_x[7], new_x[8];
             Eigen::VectorXd y_right(5);
             y_right << new_x[9], new_x[10], new_x[11], new_x[12], new_x[13];
-
+            */
             // obtain cartesian/rbt frame info from models
-            Eigen::Vector4d x_left = mod_pol_to_cart(y_left);
-            Eigen::Vector4d x_right = mod_pol_to_cart(y_right);
-
+            Eigen::Vector4d x_left(4); // = mod_pol_to_cart(y_left);
+            x_left << new_x[4], new_x[5], new_x[6], new_x[7];
+            Eigen::Vector4d x_right(4); // = mod_pol_to_cart(y_right);
+            x_right << new_x[8], new_x[9], new_x[10], new_x[11];
             // std::cout << "y_left: " << y_left(0) << ", " << std::atan2(y_left(1),y_left(2)) << ", " << y_left(3) << ", " << y_left(4) << ", y_right: " << y_right(0) << ", " << std::atan2(y_right(1), y_right(2)) << ", " << y_right(3) << ", " << y_right(4) << std::endl;
             // std::cout << "x_left: " << x_left(0) << ", " << x_left(1) << ", " << x_left(2) << ", " << x_left(3) << ", x_right: " << x_right(0) << ", " << x_right(1) << ", " << x_right(2) << ", " << x_right(3) << std::endl;
 
@@ -478,8 +479,13 @@ namespace dynamic_gap {
 
             a_des = clip_velocities(a_des[0], a_des[1], ax_absmax);
 
-            double det = y_left[2]*y_right[1] - y_left[1]*y_right[2];      
-            double dot = y_left[2]*y_right[2] + y_left[1]*y_right[1];
+            // 1: sin, 2: cos
+            double left_norm = std::sqrt(pow(x_left[0], 2) + pow(x_left[1], 2));
+            double right_norm = std::sqrt(pow(x_right[0], 2) + pow(x_right[1], 2));
+            Eigen::Vector2d left_unit_norm(x_left[0] / left_norm, x_left[1] / left_norm);
+            Eigen::Vector2d right_unit_norm(x_right[0] / right_norm, x_right[1] / right_norm);
+            double det = left_unit_norm[0]*right_unit_norm[1] - left_unit_norm[1]*right_unit_norm[0];      
+            double dot = left_unit_norm[0]*right_unit_norm[0] + left_unit_norm[1]*right_unit_norm[1];
 
             Eigen::Vector2d rbt_curr_to_init(x[0] - init_rbt_x, x[1] - init_rbt_y);
             Eigen::Vector2d curr_to_left_vect(x_left[0], x_left[1]);  
@@ -494,7 +500,6 @@ namespace dynamic_gap {
                         
             bool past_left_and_right = past_left_point && past_right_point; //-std::atan2(det, dot);
             // std::cout << "past left: " << past_left_point << ", past right: " << past_right_point << std::endl;
-            // TODO: IGNORE MODEL IF IT IS THE FURTHER ONE AND GAP IS CROSSING?
             Eigen::Vector2d a_actual = a_des;
             // check for convexity of gap
             if (V > 0.1 && !past_left_and_right) {
@@ -512,7 +517,7 @@ namespace dynamic_gap {
                 
                 if (gap_crossed) {
                     // if r_left < r_right (left is closer)
-                    if ((1 / y_left[0]) < (1 / y_right[0])) {
+                    if (left_norm < right_norm) {
                         h_dyn_right = std::numeric_limits<double>::infinity();
                     } else {
                         h_dyn_left = std::numeric_limits<double>::infinity();
@@ -558,19 +563,17 @@ namespace dynamic_gap {
             dxdt[2] = a_x_rbt; // rbt_v_x
             dxdt[3] = a_y_rbt; // rbt_v_y
 
-            dxdt[4] = - new_x[7] * new_x[4]; // 1 / r_left
-            dxdt[5] = new_x[6] * new_x[8]; // sin(beta_left)
-            dxdt[6] = -new_x[5] * new_x[8]; // cos(beta_left)
-            dxdt[7] = new_x[8]*new_x[8] - new_x[7]*new_x[7] + new_x[4]* (a_x_rel * new_x[6] + a_y_rel * new_x[5]); // rdot_left / r_left
-            dxdt[8] = - 2 * new_x[7] * new_x[8] + new_x[4] * (-a_x_rel*new_x[5] + a_y_rel*new_x[6]); // betadot_left
+            dxdt[4] = new_x[6]; // r_x left
+            dxdt[5] = new_x[7]; // r_y left
+            dxdt[6] = a_x_rel; // v_x left
+            dxdt[7] = a_y_rel; // v_y left
 
-            dxdt[9] = - new_x[12] * new_x[9]; // 1 / r_right
-            dxdt[10] = new_x[11] * new_x[13]; // sin(beta_right)
-            dxdt[11] = - new_x[10] * new_x[13]; // cos(beta_right)
-            dxdt[12] = new_x[13]*new_x[13] - new_x[12]*new_x[12] + new_x[9] * (a_x_rel*new_x[11] + a_y_rel * new_x[10]); // rdot_right / r_right
-            dxdt[13] = - 2 * new_x[12] * new_x[13] + new_x[9] * (-a_x_rel * new_x[10] + a_y_rel * new_x[11]); // betadot_right
-            dxdt[14] = goal_vel_x;
-            dxdt[15] = goal_vel_y;
+            dxdt[8] = new_x[10]; // r_x right
+            dxdt[9] = new_x[11]; // r_y right
+            dxdt[10] = a_x_rel; // v_x right
+            dxdt[11] = a_y_rel; // v_y right
+            dxdt[12] = goal_vel_x;
+            dxdt[13] = goal_vel_y;
             return;
         }
     };

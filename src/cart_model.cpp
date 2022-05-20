@@ -98,6 +98,31 @@ namespace dynamic_gap {
         ang_vel_ego = 0.0;
     }
 
+    void cart_model::copy_model()) {
+        // std::cout << "in freeze_robot_vel" << std::endl;
+        Eigen::Vector4d cartesian_state = get_cartesian_state();
+        // std::cout << "original cartesian state: " << cartesian_state[0] << ", " << cartesian_state[1] << ", " << cartesian_state[2] << ", " << cartesian_state[3] << std::endl;
+        //std::cout << "original MP state. r: " << y[0] << ", beta: " << std::atan2(y[1], y[2]) << ", rdot/r: " << y[3] << ", betadot: " << y[4] << std::endl;
+        // std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+        
+        copied_x = cartesian_state; // << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
+        //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+    }
+
+    void cart_model::copy_model_propagate(double dt) {
+        Matrix<double, 4, 1> new_copied_x;
+        new_x << 0.0, 0.0, 0.0, 0.0;
+
+        double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
+        double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
+
+        new_copied_x[0] = copied_x[0] + (copied_x[2] + copied_x[1]*ang_vel_ego)*dt; // r_x
+        new_copied_x[1] = copied_x[1] + (copied_x[3] - copied_x[0]*ang_vel_ego)*dt; // r_y
+        new_copied_x[2] = copied_x[2] + (copied_x[3]*ang_vel_ego - vdot_x_body)*dt; // v_x
+        new_copied_x[3] = copied_x[3] + (-copied_x[2]*ang_vel_ego - vdot_y_body)*dt; // v_y
+        copied_x = new_copied_x;
+    }
+
     void cart_model::freeze_robot_vel() {
         // std::cout << "in freeze_robot_vel" << std::endl;
         Eigen::Vector4d cartesian_state = get_cartesian_state();
@@ -108,7 +133,6 @@ namespace dynamic_gap {
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
-        
         frozen_x = cartesian_state; // << cartesian_state[0], cartesian_state[1], cartesian_state[2], cartesian_state[3];
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
     }
@@ -117,13 +141,14 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
-        Matrix<double, 2, 1> frozen_linear_acc_ego;
-        frozen_linear_acc_ego << 0.0, 0.0;
+        Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
 
-        Matrix<double, 2, 1> frozen_linear_vel_ego;
-        frozen_linear_vel_ego << 0.0, 0.0; //linear_vel_ego[0], linear_vel_ego[1];
-
-        double frozen_ang_vel_ego = 0.0;// ang_vel_ego;
+        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0);
+        double frozen_ang_vel_ego = 0.0;
+        if (!freeze) {
+            frozen_linear_vel_ego << linear_vel_ego[0], linear_vel_ego[1];
+            frozen_ang_vel_ego = ang_vel_ego;
+        }
 
         double vdot_x_body = frozen_linear_acc_ego[0] + frozen_linear_vel_ego[1]*frozen_ang_vel_ego;
         double vdot_y_body = frozen_linear_acc_ego[1] - frozen_linear_vel_ego[0]*frozen_ang_vel_ego;
@@ -297,6 +322,10 @@ namespace dynamic_gap {
 
     Matrix<double, 4, 1> cart_model::get_state() {
         return x;
+    }
+
+    Matrix<double, 4, 1> cart_model::get_copy_state() {
+        return copied_x;
     }
 
     Matrix<double, 4, 1> cart_model::get_frozen_state() {

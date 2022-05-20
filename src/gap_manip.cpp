@@ -294,6 +294,8 @@ namespace dynamic_gap {
        
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
+        left_model->copy_model();
+        right_model->copy_model();
 
         Matrix<double, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
         Matrix<double, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
@@ -373,7 +375,7 @@ namespace dynamic_gap {
         }
         return feasible_gap_set;
     }
-
+    /*
     // NEED TO ADD FROZEN HERE
     void GapManipulator::setGapGoal(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
         //std::cout << "in setGapGoal" << std::endl;
@@ -399,16 +401,6 @@ namespace dynamic_gap {
 
         dynamic_gap::cart_model* left_model = gap.right_model;
         dynamic_gap::cart_model* right_model = gap.left_model;
-        /*
-        std::vector<double> model_vect = determineLeftRightModels(gap, pg);
-        if (model_vect[0] == 0.0) {
-            left_model = gap.left_model;
-            right_model = gap.right_model;
-        } else {
-            left_model = gap.right_model;
-            right_model = gap.left_model;
-        }
-        */
 
         // Matrix<double, 4, 1> left_model_state = left_model->get_state();
         // Matrix<double, 4, 1> right_model_state = right_model->get_state();
@@ -420,6 +412,7 @@ namespace dynamic_gap {
         //setGapGoalTimeBased(left_model, right_model, gap, localgoal);
         setGapGoalCrossingBased(left_model, right_model, gap, localgoal);
     }
+    */
 
     void GapManipulator::setGapGoalCrossingBased(dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
         auto half_num_scan = gap.half_scan;
@@ -498,6 +491,8 @@ namespace dynamic_gap {
                 // get left and right models
                 gap.left_model->freeze_robot_vel();
                 gap.right_model->freeze_robot_vel();
+                gap.left_model->copy_model();
+                gap.right_model->copy_model();
                 Eigen::Vector4d left_model = gap.left_model->get_frozen_modified_polar_state();
                 Eigen::Vector4d right_model = gap.right_model->get_frozen_modified_polar_state();
 
@@ -1090,12 +1085,12 @@ namespace dynamic_gap {
     void GapManipulator::clipGapByLaserScan(dynamic_gap::Gap& gap) {
         std::cout << "~running clipGapByLaserScan" << std::endl;
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
-        double laserscan_left_dist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
+        double laserscan_left_dist = 0.8 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
         if (gap.convex.terminal_ldist > laserscan_left_dist) {
             std::cout << "clipping left dist from " << gap.convex.terminal_ldist << " to " << laserscan_left_dist << std::endl;
             gap.convex.terminal_ldist = laserscan_left_dist;
         }
-        double laserscan_right_dist = 0.9 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx);
+        double laserscan_right_dist = 0.8 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx);
         if (gap.convex.terminal_rdist > laserscan_right_dist) {
             std::cout << "clipping right dist from " << gap.convex.terminal_rdist << " to " << laserscan_right_dist << std::endl;
             gap.convex.terminal_rdist = laserscan_right_dist;

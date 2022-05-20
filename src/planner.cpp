@@ -476,7 +476,7 @@ namespace dynamic_gap
                 gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
                 //}
                 gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-                // gapManip->clipGapByLaserScan(manip_set.at(i));
+                gapManip->clipGapByLaserScan(manip_set.at(i));
                 gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
             }
         } catch(...) {
@@ -920,7 +920,7 @@ namespace dynamic_gap
         auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego, curr_raw_gaps);
         std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
-        /*
+        
         // pruning overlapping gaps?
         for (size_t i = 0; i < (manip_gap_set.size() - 1); i++)
         {
@@ -953,7 +953,7 @@ namespace dynamic_gap
                 i = -1; // to restart for loop
             }
         }
-        */
+        
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         double x1, x2, y1, y2;
 

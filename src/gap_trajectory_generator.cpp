@@ -130,11 +130,11 @@ namespace dynamic_gap{
         std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
         std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
 
-        Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
-        Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
+        //Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
+        //Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
 
-        std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
-        std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
+        //std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
+        //std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
 
         double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan;
         double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
@@ -143,16 +143,14 @@ namespace dynamic_gap{
                         ego_x[1],
                         ego_x[2],
                         ego_x[3],
-                        manip_left_polar_state[0],
-                        manip_left_polar_state[1],
-                        manip_left_polar_state[2],
-                        manip_left_polar_state[3],
-                        manip_left_polar_state[4],
-                        manip_right_polar_state[0],
-                        manip_right_polar_state[1],
-                        manip_right_polar_state[2],
-                        manip_right_polar_state[3],
-                        manip_right_polar_state[4],
+                        manip_left_cart_state[0],
+                        manip_left_cart_state[1],
+                        manip_left_cart_state[2],
+                        manip_left_cart_state[3],
+                        manip_right_cart_state[0],
+                        manip_right_cart_state[1],
+                        manip_right_cart_state[2],
+                        manip_right_cart_state[3],
                         initial_goal_x,
                         initial_goal_y};
 
