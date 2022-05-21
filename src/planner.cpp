@@ -193,7 +193,7 @@ namespace dynamic_gap
             // ASSOCIATE GAPS PASSES BY REFERENCE
             raw_distMatrix = gapassociator->associateGaps(raw_association, raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
             //std::cout << "RAW GAP UPDATING" << std::endl;
-            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, "raw");
+            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, false);
 
 
             
@@ -211,22 +211,19 @@ namespace dynamic_gap
             //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
             //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, "simplified");
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
-            std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
+            //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
             //std::cout << ", quat: " <<  << ", " <<  << ", " << << ", " <<  << std::endl;
-            std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
+            //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
             
             //if (print_associations) {
-            printGapAssociations(observed_gaps, previous_gaps, simp_association);
+            //printGapAssociations(observed_gaps, previous_gaps, simp_association);
                 //print_associations = false;
             //}
 
             previous_gaps = associated_observed_gaps;
             previous_raw_gaps = associated_raw_gaps;
-
-
-
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
             ROS_FATAL_STREAM("mergeGapsOneGo");
@@ -260,7 +257,7 @@ namespace dynamic_gap
 
     }
     
-    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, std::string gap_type) {
+    void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
         if (i % 2 == 0) {
@@ -309,20 +306,20 @@ namespace dynamic_gap
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, gap_type);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, gap_type);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print);
         }
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, std::string gap_type) {
+    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
 
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
-            update_model(i, associated_observed_gaps, _v_ego, _a_ego, gap_type);
+            update_model(i, associated_observed_gaps, _v_ego, _a_ego, print);
             //std::cout << "" << std::endl;
 		}
 
@@ -490,48 +487,64 @@ namespace dynamic_gap
 
         // we want to change the models in here
 
-        try {
-            for (size_t i = 0; i < manip_set.size(); i++)
-            {
-                // a copied pointer still points to same piece of memory, so we need to copy the models
-                // if we want to have a separate model for the manipulated gap
-                
-                //manip_set.at(i).left_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).left_model);
-                //manip_set.at(i).right_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).right_model);
+        for (size_t i = 0; i < manip_set.size(); i++)
+        {
+            // a copied pointer still points to same piece of memory, so we need to copy the models
+            // if we want to have a separate model for the manipulated gap
+            
+            //manip_set.at(i).left_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).left_model);
+            //manip_set.at(i).right_model = new dynamic_gap::cart_model(*_observed_gaps.at(i).right_model);
 
-                /*
-                sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
-                sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
-                dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
-                dynamic_laser_scan.header = stored_scan.header;
-                std::vector<float> dynamic_ranges(stored_scan.ranges.size());
-                dynamic_laser_scan.ranges = dynamic_ranges;
-                */
+            /*
+            sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
+            sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
+            dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
+            dynamic_laser_scan.header = stored_scan.header;
+            std::vector<float> dynamic_ranges(stored_scan.ranges.size());
+            dynamic_laser_scan.ranges = dynamic_ranges;
+            */
 
-                std::cout << "MANIPULATING INITIAL GAP " << i << std::endl;
-                // MANIPULATE POINTS AT T=0
+            std::cout << "MANIPULATING INITIAL GAP " << i << std::endl;
+            try { 
+            // MANIPULATE POINTS AT T=0
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i), v_ego, true); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
-
                 gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
-                /*
-                if (curr_raw_gaps.size() > 0) {
-                    trajArbiter->recoverDynamicEgoCircle(0.0, manip_set.at(i).gap_lifespan, curr_raw_gaps, dynamic_laser_scan);
-                }
-                dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
-                */
-                std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
-                //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-                gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
-                //}
-                gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-                gapManip->clipGapByLaserScan(manip_set.at(i));
-                gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
+            } catch(...) {
+                std::cout << "gapManipulate failed on initial gap" << std::endl;
+            } 
+
+            /*
+            if (curr_raw_gaps.size() > 0) {
+                trajArbiter->recoverDynamicEgoCircle(0.0, manip_set.at(i).gap_lifespan, curr_raw_gaps, dynamic_laser_scan);
             }
-        } catch(...) {
-            ROS_FATAL_STREAM("gapManipulate");
+            dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
+            */
+            std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
+            //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
+            try {
+                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+            } catch(...) {
+                std::cout << "gapManipulate failed on terminal reduceGgap" << std::endl;
+            } 
+            try {
+                gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
+            } catch(...) {
+                std::cout << "gapManipulate failed on terminal convertAxialGap" << std::endl;
+            } 
+            //}
+            try {
+                gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+            } catch(...) {
+                std::cout << "gapManipulate failed on terminal radialExtendGap" << std::endl;
+            } 
+            //gapManip->clipGapByLaserScan(manip_set.at(i));
+            try {
+                gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
+            } catch(...) {
+                std::cout << "gapManipulate failed on terminal gapWaypoint" << std::endl;
+            } 
         }
 
         return manip_set;
@@ -632,10 +645,10 @@ namespace dynamic_gap
         try {
             double curr_time = ros::Time::now().toSec();
             
-            std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
-            std::cout << "current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex() << std::endl;
+            // std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
+            //std::cout << "current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex() << std::endl;
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
-            std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
+            //std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
             
             // Both Args are in Odom frame
@@ -754,6 +767,7 @@ namespace dynamic_gap
             //bool right_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex());
             // std::cout << "left index count: " << left_index_count << ", right index count: " << right_index_count << std::endl; 
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
+            
             if (getCurrentLeftGapIndex() != incoming_gap.left_model->get_index() || getCurrentRightGapIndex() != incoming_gap.right_model->get_index()) {
                 if (incoming.poses.size() > 0) {
                     std::cout << "TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible. current left: " <<  getCurrentLeftGapIndex() << ", incoming left: " << incoming_gap.left_model->get_index() << ", current right: " << getCurrentRightGapIndex() << ", incoming right: " << incoming_gap.right_model->get_index() << std::endl;
@@ -775,8 +789,6 @@ namespace dynamic_gap
                     return empty_traj; 
                 }    
             }
-            
-            
             
             std::cout << "keeping current trajectory" << std::endl;
 
@@ -947,8 +959,6 @@ namespace dynamic_gap
         
         std::vector<dynamic_gap::Gap> prev_raw_gaps = previous_raw_gaps;
         std::vector<dynamic_gap::Gap> prev_observed_gaps = previous_gaps;  
-
-        std::vector<int> curr_simp_association = simp_association;   
         
         std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
         // std::cout << "curr_raw_gaps:" << std::endl;
@@ -1007,46 +1017,22 @@ namespace dynamic_gap
         */
 
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
-        double x1, x2, y1, y2;
-
         for (size_t i = 0; i < feasible_gap_set.size(); i++)
         {
-            std::cout << "gap " << i << std::endl;
-            dynamic_gap::Gap g = feasible_gap_set.at(i);
-            x1 = (g._ldist) * cos(-((float) g.half_scan - g._left_idx) / g.half_scan * M_PI);
-            y1 = (g._ldist) * sin(-((float) g.half_scan - g._left_idx) / g.half_scan * M_PI);
-            x2 = (g._rdist) * cos(-((float) g.half_scan - g._right_idx) / g.half_scan * M_PI);
-            y2 = (g._rdist) * sin(-((float) g.half_scan - g._right_idx) / g.half_scan * M_PI);
-            std::cout << "initial, polar L/R: (" << g._left_idx << ", " << g._ldist << "), (" << g._right_idx << ", " << g._rdist << "), cart L/R: (" << x1 << ", " << y1 << "), (" << x2 << ", " << y2 << ")" << std::endl; 
-            x1 = (g.terminal_ldist) * cos(-((float) g.half_scan - g.terminal_lidx) / g.half_scan * M_PI);
-            y1 = (g.terminal_ldist) * sin(-((float) g.half_scan - g.terminal_lidx) / g.half_scan * M_PI);
-            x2 = (g.terminal_rdist) * cos(-((float) g.half_scan - g.terminal_ridx) / g.half_scan * M_PI);
-            y2 = (g.terminal_rdist) * sin(-((float) g.half_scan - g.terminal_ridx) / g.half_scan * M_PI);
-            std::cout << "terminal, polar L/R: (" << g.terminal_lidx << ", " << g.terminal_ldist << "), (" << g.terminal_ridx << ", " << g.terminal_rdist << "), cart L/R: (" << x1 << ", " << y1 << "), (" << x2 << ", " << y2 << ")" << std::endl; 
-            std::cout << "~~~" << std::endl;
-        }
+            std::cout << "gap " << i << " initial: ";
+            feasible_gap_set[i].printCartesianPoints(true, true);
+            std::cout << "gap " << i << " terminal: ";
+            feasible_gap_set[i].printCartesianPoints(false, true);
+        } 
 
         std::cout << "MANIPULATED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         for (size_t i = 0; i < manip_gap_set.size(); i++)
         {
-            std::cout << "gap " << i << std::endl;
-            dynamic_gap::Gap g = manip_gap_set.at(i);
-            x1 = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-            y1 = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-            x2 = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-            y2 = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-            std::cout << "initial, polar L/R: (" << g.convex.convex_lidx << ", " << g.convex.convex_ldist << "), (" << g.convex.convex_ridx << ", " << g.convex.convex_rdist << "), cart L/R: (" << x1 << ", " << y1 << "), (" << x2 << ", " << y2 << ")" << std::endl; 
-            std::cout << "initial goal: (" << g.goal.x << ", " << g.goal.y << ")" << std::endl;
-            x1 = (g.convex.terminal_ldist) * cos(-((float) g.half_scan - g.convex.terminal_lidx) / g.half_scan * M_PI);
-            y1 = (g.convex.terminal_ldist) * sin(-((float) g.half_scan - g.convex.terminal_lidx) / g.half_scan * M_PI);
-            x2 = (g.convex.terminal_rdist) * cos(-((float) g.half_scan - g.convex.terminal_ridx) / g.half_scan * M_PI);
-            y2 = (g.convex.terminal_rdist) * sin(-((float) g.half_scan - g.convex.terminal_ridx) / g.half_scan * M_PI);
-            std::cout << "terminal, polar L/R: (" << g.convex.terminal_lidx << ", " << g.convex.terminal_ldist << "), (" << g.convex.terminal_ridx << ", " << g.convex.terminal_rdist << "), cart L/R: (" << x1 << ", " << y1 << "), (" << x2 << ", " << y2 << ")" << std::endl; 
-            std::cout << "terminal goal: (" << g.terminal_goal.x << ", " << g.terminal_goal.y << ")" << std::endl;
-            std::cout << "~~~" << std::endl;
-        }
-
-        std::cout << "FINISHED SET GAP GOAL" << std::endl;
+            std::cout << "gap " << i << " initial: ";
+            manip_gap_set[i].printCartesianPoints(false, true);
+            std::cout << "gap " << i << " terminal: ";
+            manip_gap_set[i].printCartesianPoints (false, false);
+        } 
         
         std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
         std::vector<geometry_msgs::PoseArray> traj_set;

@@ -162,6 +162,7 @@ namespace dynamic_gap{
         
         //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
         
+        /*
         clf_cbf clf_cbf_dyn(selectedGap.isSwept(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
@@ -177,7 +178,8 @@ namespace dynamic_gap{
                             goal_vel_x,
                             goal_vel_y,
                             selectedGap.gap_crossed);
-        
+        */
+
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
@@ -199,20 +201,19 @@ namespace dynamic_gap{
         //std::cout << "revised starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << initial_goal_x << ", " << initial_goal_y << ")" << std::endl; 
         //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
         // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
-        /*
+        
         polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                             initial_goal_x, initial_goal_y,
-                            selectedGap.getLeftObs(), selectedGap.getRightObs(), selectedGap.isSwept(),
-                            cfg_->gap_manip.sigma,
-                            x[0], x[1]);
-        */
+                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isSwept(),
+                            cfg_->gap_manip.sigma);
+        
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
         //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
         //std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
         //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            clf_cbf_dyn, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
+            polar_gap_field_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
 
         //ROS_WARN_STREAM("CLF CBF");
         //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());

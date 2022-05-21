@@ -449,6 +449,7 @@ namespace dynamic_gap
             float terminal_rdist = 5.0;
 
             bool gap_chosen = false;
+            bool pivoted_left = false;
         // private:
     };
 }

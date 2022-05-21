@@ -603,7 +603,7 @@ namespace dynamic_gap {
             small_gap = dist < 4 * cfg_->rbt.r_inscr;
         }
 
-        if (small_gap) {
+        if (thetalr < thetalf || small_gap) {
             std::cout << "Option 1: small gap" << std::endl;
             if (initial) {
                 gap.goal.set = true;
@@ -642,51 +642,19 @@ namespace dynamic_gap {
 
         std::cout << "Option 3: biasing" << std::endl;
 
-        float confined_theta;
-        if (thetalr > thetalf) {
-            confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
-        } else {
-            if (goal_orientation > 0) {
-                confined_theta = std::max(thetalf, goal_orientation);
-            } else {
-                confined_theta = std::min(thetalr, goal_orientation);
-            }
-        }
+        float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
         std::cout << "confined idx: " << confined_idx << std::endl;
-
-        double new_gap_angle = thetalr - thetalf;
-        if (new_gap_angle < 0) {
-            new_gap_angle += 2*M_PI;
-        }
-        double confined_theta_delta = confined_theta - thetalf;
-        if (confined_theta_delta < 0) {
-            confined_theta_delta += 2*M_PI;
-        }
-
-        float confined_r = (rdist - ldist) * (confined_theta_delta) / new_gap_angle + ldist;
-
-
+        float confined_r = (rdist - ldist) * (confined_theta - thetalf) / (thetalr - thetalf) + ldist;
         float xg = confined_r * cos(confined_theta);
         float yg = confined_r * sin(confined_theta);
         Eigen::Vector2f anchor(xg, yg);
         Eigen::Matrix2f r_negpi2;
         r_negpi2 << 0,1,
                    -1,0;
-        //auto offset = r_negpi2 * (pr - pl);
-        Eigen::Vector2f offset;
-        std::cout << "lf: (" << lf[0] << ", " << lf[1] << "), lr: (" << lr[0] << ", " << lr[1] << ")" << std::endl;
-        Eigen::Vector2f norm_anchor = anchor / anchor.norm();
-        Eigen::Vector2f norm_lr = lr / lr.norm();
-        Eigen::Vector2f norm_lf = lf / lf.norm();
-        if (norm_anchor.dot(norm_lr) > norm_anchor.dot(norm_lf)) {
-            std::cout << "closer to rear" << std:: endl;
-            offset = r_negpi2 * norm_lr * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-        } else {
-            std::cout << "closer to front: " << std::endl;
-            offset = -r_negpi2 * norm_lf * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-        }
-        auto goal_pt = anchor + offset;
+        auto offset = r_negpi2 * (pr - pl);
+
+        auto goal_pt = offset * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + anchor;
         std::cout << "anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")" << std::endl;
         if (initial) {
             gap.goal.x = goal_pt(0);
@@ -701,16 +669,7 @@ namespace dynamic_gap {
     }
 
     bool GapManipulator::checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx, float lidx, float ridx) { 
-        if (ridx > lidx) {
-            return (lidx <= gap_goal_idx && gap_goal_idx <= ridx);
-        } else {
-            if (gap_goal_idx <= gap.half_scan) { // if between 0 and 256
-                return (gap_goal_idx < ridx);
-            } else {
-                return (gap_goal_idx > lidx);
-            }
-        }
-        // return true;
+        return (lidx <= gap_goal_idx && gap_goal_idx <= ridx);
     }
 
     bool GapManipulator::checkGoalVisibility(geometry_msgs::PoseStamped localgoal, sensor_msgs::LaserScan const scan) {
@@ -740,18 +699,8 @@ namespace dynamic_gap {
         int index = (int)(scan.ranges.size()) / 8;
         int lower_bound = goal_index - index;
         int upper_bound = goal_index + index;
-        float min_val_round_goal;
-        // std::cout << "lower bound: " << lower_bound << ", upper bound: " << upper_bound << std::endl;
-        if (lower_bound >= 0 && upper_bound < 512) {
-            min_val_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
-        } else {
-            int rev_lower_bound = (lower_bound + scan.ranges.size()) % scan.ranges.size();
-            int rev_upper_bound = upper_bound % scan.ranges.size();
-            // std::cout << "rev lower bound: " << rev_lower_bound << ", rev upper bound: " << rev_upper_bound << std::endl; 
-            auto first_min = *std::min_element(scan.ranges.begin() + rev_lower_bound, scan.ranges.end());
-            auto second_min = *std::min_element(scan.ranges.begin(), scan.ranges.begin() + rev_upper_bound);
-            min_val_round_goal = std::min(first_min, second_min);
-        }
+        float min_val_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
+
         return dist2goal < min_val_round_goal;
     }
 
@@ -764,12 +713,8 @@ namespace dynamic_gap {
         int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
         float ldist = initial ? gap.LDist() : gap.terminal_ldist;
         float rdist = initial ? gap.RDist() : gap.terminal_rdist;
-        double gap_idx_size;
-        if (ridx > lidx) {
-            gap_idx_size = (ridx - lidx);
-        } else {
-            gap_idx_size = (ridx - lidx) + 2*gap.half_scan;
-        }
+        double gap_idx_size = (ridx - lidx);
+
         double gap_theta_size = gap_idx_size * (msg.get()->angle_increment);
         // std::cout << "gap idx size: " << gap_idx_size << std::endl;
 
@@ -795,7 +740,8 @@ namespace dynamic_gap {
         // the desired size for the reduced gap?
         // target is pi
         int target_idx_size = cfg_->gap_manip.reduction_target / msg.get()->angle_increment;
-        // std::cout << "l_biased_r: " << l_biased_r << ", r_biased_l: " << r_biased_l << std::endl;
+        int l_biased_r = lidx + target_idx_size;
+        int r_biased_l = ridx - target_idx_size;
        
         double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         int goal_idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
@@ -804,51 +750,24 @@ namespace dynamic_gap {
 
         //std::cout << "goal orientation: " << goal_orientation << ", goal idx: " << goal_idx << ", acceptable distance: " << acceptable_dist << std::endl;
         int new_l_idx, new_r_idx;
-        if (ridx > lidx) {
-            //std::cout << "right greater than left" << std::endl;
-            if (goal_idx + acceptable_dist > ridx){ // r-biased Gap, checking if goal is on the right side of the gap
-                //std::cout << "right biased gap" << std::endl;
-                new_r_idx = ridx;
-                new_l_idx = ridx - target_idx_size;
-                if (new_l_idx < 0) { new_l_idx += int(2*gap.half_scan); }
-            } else if (goal_idx - acceptable_dist < lidx) { // l-biased gap, checking if goal is on left side of gap?
-                //std::cout << "left biased gap" << std::endl;                
-                new_r_idx = (lidx + target_idx_size) % int(2*gap.half_scan);
-                new_l_idx = lidx;
-            } else { // Lingering in center
-                //std::cout << "central gap" << std::endl;
-                new_l_idx = goal_idx - acceptable_dist;
-                if (new_l_idx < 0) { new_l_idx += (2*gap.half_scan);}
-                new_r_idx = (goal_idx + acceptable_dist) % int(2*gap.half_scan);
-            }
-        } else {
-            //std::cout << "left greater than right" << std::endl;
-            if (goal_idx + acceptable_dist > lidx){ // l-biased Gap, checking if goal is on the left side of the gap
-                //std::cout << "left biased gap" << std::endl;                                
-                new_l_idx = lidx;
-                new_r_idx = (lidx + target_idx_size) % int(2*gap.half_scan);
-            } else if (goal_idx - acceptable_dist < ridx) { // r-biased gap, checking if goal is on right side of gap?
-                //std::cout << "right biased gap" << std::endl;
-                new_l_idx = ridx - target_idx_size;
-                if (new_l_idx < 0) { new_l_idx += (2*gap.half_scan);}
-                new_r_idx = ridx;
-            } else { // Lingering in center
-                //std::cout << "central gap" << std::endl;                
-                new_l_idx = goal_idx - acceptable_dist;
-                if (new_l_idx < 0) { new_l_idx += (2*gap.half_scan);}
-                new_r_idx = (goal_idx + acceptable_dist) % int(2*gap.half_scan);
-            }
+        //std::cout << "right greater than left" << std::endl;
+        if (goal_idx + acceptable_dist > ridx){ // r-biased Gap, checking if goal is on the right side of the gap
+            //std::cout << "right biased gap" << std::endl;
+            new_r_idx = ridx;
+            new_l_idx = r_biased_l;
+        } else if (goal_idx - acceptable_dist < lidx) { // l-biased gap, checking if goal is on left side of gap?
+            //std::cout << "left biased gap" << std::endl;                
+            new_r_idx = l_biased_r;
+            new_l_idx = lidx;
+        } else { // Lingering in center
+            //std::cout << "central gap" << std::endl;
+            new_l_idx = goal_idx - acceptable_dist;
+            new_r_idx = goal_idx + acceptable_dist;
         }
 
-        int new_l_idx_delta = new_l_idx - lidx;
-        int new_r_idx_delta = new_r_idx - ridx;
-        
-        if (new_l_idx_delta < 0) { new_l_idx_delta += int(2*gap.half_scan);}
-        if (new_r_idx_delta < 0) { new_r_idx_delta += int(2*gap.half_scan);}
-
         // removed some float casting here
-        float new_ldist = (rdist - ldist) * new_l_idx_delta / gap_idx_size  + ldist;
-        float new_rdist =  (rdist - ldist) * new_r_idx_delta / gap_idx_size + ldist;
+        float new_ldist = float(new_l_idx - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
+        float new_rdist = float(new_r_idx - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
         
         if (initial) {
             gap.convex.convex_lidx = new_l_idx;
@@ -879,13 +798,6 @@ namespace dynamic_gap {
             std::cout << "post-reduce gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
         }
         std::cout << "post-reduce in cart. left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")" << std::endl;
-
-        //std::cout << "new angular size: " << (new_r - new_l) * (msg.get()->angle_increment) << std::endl;
-
-
-        //std::cout << "gap reduced to: " << std::endl;
-        //std::cout << "indices: " << gap.convex.convex_lidx << ", " << gap.convex.convex_ridx << std::endl;
-
         return;
     }
 
@@ -923,11 +835,19 @@ namespace dynamic_gap {
         float near_dist, far_dist;
         dynamic_gap::cart_model * near_model;
         
-        near_idx = left ? lidx : ridx;
-        far_idx = left ? ridx : lidx;
-        near_dist = left ? ldist : rdist;
-        far_dist = left ? rdist : ldist;
-        // near_model = left ? gap.left_model : gap.right_model;
+        if (left) {
+            near_idx = lidx;
+            far_idx = ridx;
+            near_dist = ldist;
+            far_dist = rdist;
+            gap.pivoted_left = false;
+        } else {
+            near_idx = ridx;
+            far_idx = lidx;
+            near_dist = rdist;
+            far_dist = ldist;
+            gap.pivoted_left = true;
+        }
 
         std::cout << "near point in polar: " << near_idx << ", " << near_dist << ", far point in polar: " << far_idx << ", " << far_dist << std::endl;
         
@@ -965,9 +885,8 @@ namespace dynamic_gap {
         // Rotation Completed
         // Get minimum dist range val between initial gap point and pivoted gap point
         
-        int delta = 10;
         // offset: original right index or the pivoted left
-        int init_search_idx = left ? (ridx + delta) : (idx - delta);
+        int init_search_idx = left ? ridx : idx;
         // upperbound: pivoted right index or original left  
         int final_search_idx = left ? idx : lidx;
         std:: cout << "init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx << std::endl;
@@ -1062,24 +981,6 @@ namespace dynamic_gap {
             gap.mode.terminal_agc = true;
         }
         std::cout << "post-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
-
-        /*
-        // reinitialize the near point that is pivoted
-        if (left) {
-            gap.right_model->initialize(r, pivoted_theta, v_ego);
-        } else {
-            gap.left_model->initialize(r, pivoted_theta, v_ego);
-        }
-        */
-
-
-        /*
-        Matrix<double, 4, 1> left_cartesian_state = gap.left_model->get_cartesian_state();
-        Matrix<double, 4, 1> right_cartesian_state = gap.right_model->get_cartesian_state();
-        std::cout << "converted models in cart, left: (" << left_cartesian_state[0] << ", " << left_cartesian_state[1] << ", " << left_cartesian_state[2] << ", " << left_cartesian_state[3] << "), ";
-        std::cout << "right: (" << right_cartesian_state[0] << ", " << right_cartesian_state[1] << ", " << right_cartesian_state[2] << ", " << right_cartesian_state[3] << ")" << std::endl;
-        */
-
     }
 
     void GapManipulator::clipGapByLaserScan(dynamic_gap::Gap& gap) {

@@ -11,6 +11,7 @@ namespace dynamic_gap {
 
     std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser)
     {
+        //std::cout << "running hybridScanGap" << std::endl;
         // clear gaps
         std::vector<dynamic_gap::Gap> raw_gaps;
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
@@ -51,10 +52,11 @@ namespace dynamic_gap {
                     dynamic_gap::Gap detected_gap(frame, it - 1, last_scan, true, half_scan);
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
-                    //std::cout << "adding radial gap from (" << (it-1) << ", " << last_scan << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                    //std::cout << "candiate radial gap from (" << (it-1) << ", " << last_scan << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
                     if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) { 
+                        //std::cout << "adding candiate radial gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
                 }
@@ -71,10 +73,13 @@ namespace dynamic_gap {
                     dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, false, half_scan);
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
-                    //std::cout << "adding swept(?) gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                    //std::cout << "candidate swept gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) raw_gaps.push_back(detected_gap);
+                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
+                        //std::cout << "adding candidate swept gap" << std::endl;
+                        raw_gaps.push_back(detected_gap);
+                    }
                 }
                 else // signals the beginning of a gap
                 {
@@ -89,11 +94,15 @@ namespace dynamic_gap {
         // Catch the last gap (could be in the middle of a swept gap but laser scan ends)
         if (prev_lgap) 
         {
+            //std::cout << "catching last gap" << std::endl;
             dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, false, half_scan);
-            detected_gap.addRightInformation(int(stored_scan_msgs.ranges.size() - 1), *(stored_scan_msgs.ranges.end() - 1));
+            int last_scan_idx = stored_scan_msgs.ranges.size() - 1;
+            double last_scan_dist = *(stored_scan_msgs.ranges.end() - 1);
+            detected_gap.addRightInformation(last_scan_idx, last_scan_dist);
             detected_gap.setMinSafeDist(min_dist);
-            //std::cout << "adding last gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << int(stored_scan_msgs.ranges.size() - 1) << ", " << *(stored_scan_msgs.ranges.end() - 1) << ")" << std::endl;
+            //std::cout << "candidate last gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
             if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr) {
+                //std::cout << "adding candidate last gap" << std::endl;
                 raw_gaps.push_back(detected_gap);
             }
         }
@@ -101,28 +110,30 @@ namespace dynamic_gap {
         // Bridge the last gap around
         if (raw_gaps.size() > 1)
         {
+            int last_raw_gap_idx = raw_gaps.size() - 1;
             //std::cout << "checking: " << raw_gaps[0].LIdx() << " and " << raw_gaps[raw_gaps.size() - 1].RIdx() << std::endl;
-            if (raw_gaps[0].LIdx() == 0 && raw_gaps[raw_gaps.size() - 1].RIdx() == (stored_scan_msgs.ranges.size() - 1)) // Magic number?
+            if (raw_gaps[0].LIdx() == 0 && raw_gaps[last_raw_gap_idx].RIdx() == (stored_scan_msgs.ranges.size() - 1)) // Magic number?
             {
-                //std::cout << "bridging first/last gaps" << std::endl;
+                //std::cout << "bridging first and last gaps" << std::endl;
                 // Both ends
                 // currently only changing distances?
                 float start_side_dist = raw_gaps[0].RDist();
-                float end_side_dist = raw_gaps[raw_gaps.size() - 1].LDist();
+                float end_side_dist = raw_gaps[last_raw_gap_idx].LDist();
                 int start_side_idx = raw_gaps[0].RIdx();
-                int end_side_idx = raw_gaps[raw_gaps.size() - 1].LIdx();
+                int end_side_idx = raw_gaps[last_raw_gap_idx].LIdx();
                 //std::cout << "original first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")" << std::endl;
                 //std::cout << "original last gap: (" << raw_gaps[raw_gaps.size() - 1].LIdx() << ", " << raw_gaps[raw_gaps.size() - 1].LDist() << ") to (" << raw_gaps[raw_gaps.size() - 1].RIdx() << ", " << raw_gaps[raw_gaps.size() - 1].RDist()  << ")" << std::endl;
                 int total_size = (stored_scan_msgs.ranges.size() - 1) - end_side_idx + start_side_idx;
                 float result = (end_side_dist - start_side_dist) * (float (start_side_idx) / float (total_size)) + start_side_dist;
-                //raw_gaps[0].setLeftObs();
-                //raw_gaps[raw_gaps.size() - 1].setRightObs();
-                //raw_gaps[raw_gaps.size() - 1].addRightInformation(511, result);
-                //raw_gaps[0].setLDist(result);
-                raw_gaps[raw_gaps.size() - 1].addRightInformation(start_side_idx, start_side_dist);
-                raw_gaps.erase(raw_gaps.begin(), raw_gaps.begin() + 1);
+                raw_gaps[0].setLeftObs();
+                raw_gaps[raw_gaps.size() - 1].setRightObs();
+                raw_gaps[raw_gaps.size() - 1].addRightInformation(511, result);
+                raw_gaps[0].setLDist(result);
+                //raw_gaps[last_raw_gap_idx].addRightInformation(start_side_idx, start_side_dist);
+                //std::cout << "merging into last gap: (" << raw_gaps[last_raw_gap_idx].LIdx() << ", " << raw_gaps[last_raw_gap_idx].LDist() << ") to (" << raw_gaps[last_raw_gap_idx].RIdx() << ", " << raw_gaps[last_raw_gap_idx].RDist()  << ")" << std::endl;
+
+                //raw_gaps.erase(raw_gaps.begin(), raw_gaps.begin() + 1);
                 //std::cout << "revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")" << std::endl;
-                //std::cout << "merged into last gap: (" << raw_gaps[raw_gaps.size() - 1].LIdx() << ", " << raw_gaps[raw_gaps.size() - 1].LDist() << ") to (" << raw_gaps[raw_gaps.size() - 1].RIdx() << ", " << raw_gaps[raw_gaps.size() - 1].RDist()  << ")" << std::endl;
             }
         }
         
@@ -145,23 +156,24 @@ namespace dynamic_gap {
         int left_counter = 0;
         bool changed = true;
 
-        //std::cout << "merging gaps: " << std::endl;
+        //std::cout << "running MergeGapsOneGo: " << std::endl;
         for (int i = 0; i < (int) raw_gaps.size(); i++)
         {
-            // axial means swept gap
+            // if we are starting merging, this raw gap is swept, and left dist < right dist, then we may be able to merge
             if (mark_to_start && raw_gaps.at(i).isSwept() && raw_gaps.at(i).isLeftType())
             {
-                // Wait until the first mergable gap aka swept left type gap
                 mark_to_start = false;
                 simplified_gaps.push_back(raw_gaps[i]);
+                //std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
             } else {
-                if (!mark_to_start) // we have already found a mergable gap
+                if (!mark_to_start) // if we have already found a mergable gap
                 {
-                    if (raw_gaps.at(i).isSwept())
+                    if (raw_gaps.at(i).isSwept()) // if gap is swept
                     {
-                        if (raw_gaps.at(i).isLeftType())
+                        if (raw_gaps.at(i).isLeftType()) // if l_dist < r_dist
                         {
                             simplified_gaps.push_back(raw_gaps[i]);
+                            //std::cout << "adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                             //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                         }
                         else
@@ -171,7 +183,7 @@ namespace dynamic_gap {
                             int last_mergable = -1;
 
                             float coefs = cfg_->planning.planning_inflated ? 0 : 2;
-                            // iterating through simplified gaps to see if they need to be merged in
+                            // iterating backwards through simplified gaps to see if they can be merged
                             for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
                             {
                                 int start_idx = std::min(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
@@ -192,17 +204,19 @@ namespace dynamic_gap {
                             }
 
                             if (last_mergable != -1) {
+                                //std::cout << "erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size() << std::endl;
                                 simplified_gaps.erase(simplified_gaps.begin() + last_mergable + 1, simplified_gaps.end());
                                 simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
-                                //std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                                //std::cout << "merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
                             } else {
                                 simplified_gaps.push_back(raw_gaps.at(i));
+                                //std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
                                 //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                             }
                         }
                     }
                     else
-                    { // If current raw gap is not swept
+                    { // If current raw gap is radial
                         float curr_rdist = raw_gaps.at(i).RDist();
                         if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isSwept() && simplified_gaps.back().isLeftType())
                         {
@@ -210,15 +224,17 @@ namespace dynamic_gap {
                             //std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
                         } else {
                             simplified_gaps.push_back(raw_gaps[i]);
+                            //std::cout << "adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+
                             //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                         }
                     }
                 }
                 else
                 {
-                    // A swept gap solely on its own
+                    // Prior to marking start
                     simplified_gaps.push_back(raw_gaps[i]);
-                    //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                    // std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
                 }
             }
             last_type_left = raw_gaps[i].isLeftType();

@@ -197,7 +197,8 @@ namespace dynamic_gap {
         dQ = dQ + M2 + M3;
     }
 
-    void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, std::string gap_type) {
+    void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
+                                    Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, bool print) {
         t = ros::Time::now().toSec();
         dt = t - t0;
         // acceleration comes in wrt robot frame
@@ -211,14 +212,14 @@ namespace dynamic_gap {
         //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
         //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
-        if (gap_type == "simplified") {
+        if (print) {
             std::cout << "linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego << std::endl;
             std::cout << "linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1] << std::endl;
             std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         }
         integrate();
         // cart_state = get_cartesian_state();
-        if (gap_type == "simplified") {
+        if (print) {
             std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
         }
         // cart_state = get_cartesian_state();
@@ -262,7 +263,7 @@ namespace dynamic_gap {
 
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        if (gap_type == "simplified") {
+        if (print) {
             std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
         }
 
@@ -272,7 +273,7 @@ namespace dynamic_gap {
         x = x + x_update_mat;
 
         // cart_state = get_cartesian_state();
-        if (gap_type == "simplified") {
+        if (print) {
             std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
             std::cout << "-----------" << std::endl;
         }

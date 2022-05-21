@@ -610,9 +610,7 @@ namespace dynamic_gap{
         bool circle = false;
         for (auto gap : vec) {
             drawManipGap(vis_arr, gap, circle, ns, true);
-            if (gap.gap_chosen) {
-                drawManipGap(vis_arr, gap, circle, ns, false);
-            }
+            //drawManipGap(vis_arr, gap, circle, ns, false);
         }
         gapside_publisher.publish(vis_arr);
     }
@@ -801,11 +799,8 @@ namespace dynamic_gap{
         goal_pub.publish(lg_marker);
     }
 
-    void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, dynamic_gap::Gap g) {
-        if (!cfg_->gap_viz.debug_viz) return;
-        if (!g.goal.set) {
-            return;
-        }
+    void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, dynamic_gap::Gap g, bool initial) {
+        if (!cfg_->gap_viz.debug_viz || !g.goal.set) return;
 
         visualization_msgs::Marker lg_marker;
         lg_marker.header.frame_id = g._frame;
@@ -815,30 +810,20 @@ namespace dynamic_gap{
         lg_marker.id = int (vis_arr.markers.size());
         lg_marker.type = visualization_msgs::Marker::SPHERE;
         lg_marker.action = visualization_msgs::Marker::ADD;
-        lg_marker.pose.position.x = g.goal.x;
-        lg_marker.pose.position.y = g.goal.y;
+        if (initial) {
+            lg_marker.pose.position.x = g.goal.x;
+            lg_marker.pose.position.y = g.goal.y;
+            lg_marker.color = gapwp_color;
+        } else {
+            lg_marker.pose.position.x = g.terminal_goal.x;
+            lg_marker.pose.position.y = g.terminal_goal.y; 
+            lg_marker.color = terminal_gapwp_color;
+        }
         lg_marker.pose.position.z = 0.5;
         lg_marker.pose.orientation.w = 1;
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;
         lg_marker.scale.z = 0.1;
-        lg_marker.color = gapwp_color;
-        lg_marker.lifetime = ros::Duration(0.2);
-        vis_arr.markers.push_back(lg_marker);
-
-        lg_marker.header.stamp = ros::Time::now();
-        lg_marker.ns = "gap_goal";
-        lg_marker.id = int (vis_arr.markers.size());
-        lg_marker.type = visualization_msgs::Marker::SPHERE;
-        lg_marker.action = visualization_msgs::Marker::ADD;
-        lg_marker.pose.position.x = g.terminal_goal.x;
-        lg_marker.pose.position.y = g.terminal_goal.y;
-        lg_marker.pose.position.z = 0.5;
-        lg_marker.pose.orientation.w = 1;
-        lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = 0.1;
-        lg_marker.scale.z = 0.1;
-        lg_marker.color = terminal_gapwp_color;
         lg_marker.lifetime = ros::Duration(0.2);
         vis_arr.markers.push_back(lg_marker);
     }
@@ -847,9 +832,8 @@ namespace dynamic_gap{
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : gs) {
-            if (gap.gap_chosen) {
-                drawGapGoal(vis_arr, gap);
-            }
+            drawGapGoal(vis_arr, gap, true);
+            // drawGapGoal(vis_arr, gap, false)
         }
         gapwp_pub.publish(vis_arr);
         return;
