@@ -83,6 +83,10 @@ namespace dynamic_gap
 
         sharedPtr_pose = geometry_msgs::Pose();
         sharedPtr_previous_pose = sharedPtr_previous_pose;
+
+        prev_pose_time = ros::Time::now().toSec(); 
+        prev_scan_time = ros::Time::now().toSec(); 
+
         return true;
     }
 
@@ -141,9 +145,13 @@ namespace dynamic_gap
     }
     */
 
-    // running at 30 Hz
+    // running at point_scan rate which is around 8-9 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
+        double curr_time = ros::Time::now().toSec();
+        std::cout << "laser scan rate: " << 1.0 / (curr_time - prev_scan_time) << std::endl;
+        prev_scan_time = curr_time;
+
         sharedPtr_laser = msg;
 
         if (cfg.planning.planning_inflated && sharedPtr_inflatedlaser) {
@@ -176,15 +184,21 @@ namespace dynamic_gap
 
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
-            /*
-            std::cout << "printing raw gaps" << std::endl;
+            
+            
+            std::cout << "current raw gaps" << std::endl;
             for (size_t i = 0; i < raw_gaps.size(); i++)
             {
-                dynamic_gap::Gap current_gap = raw_gaps[i];
                 std::cout << "gap " << i << ": ";
-                current_gap.printCartesianPoints(true, true);
+                raw_gaps[i].printCartesianPoints(true, true);
             } 
-            */           
+            std::cout << "previous raw gaps" << std::endl;
+            for (size_t i = 0; i < previous_raw_gaps.size(); i++)
+            {
+                std::cout << "gap " << i << ": ";
+                previous_raw_gaps[i].printCartesianPoints(true, true);
+            } 
+                   
             
             
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
@@ -198,29 +212,37 @@ namespace dynamic_gap
 
             
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-            /*
-            std::cout << "printing simplified gaps" << std::endl;
-            for (size_t i = 0; i < observed_gaps.size(); i++)
-            {
-                dynamic_gap::Gap current_gap = observed_gaps[i];
-                std::cout << "gap " << i << ": ";
-                current_gap.printCartesianPoints(true, true);
-            }  
-            */
 
             //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
-            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
-            //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
-            //std::cout << ", quat: " <<  << ", " <<  << ", " << << ", " <<  << std::endl;
-            //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
-            
+            std::cout << "current simplified gaps" << std::endl;
+            for (size_t i = 0; i < observed_gaps.size(); i++)
+            {
+                std::cout << "gap " << i << ": ";
+                observed_gaps[i].printCartesianPoints(true, true);
+            } 
+            std::cout << "previous simplified gaps" << std::endl;
+            for (size_t i = 0; i < previous_gaps.size(); i++)
+            {
+                std::cout << "gap " << i << ": ";
+                previous_gaps[i].printCartesianPoints(true, true);
+            } 
+
             //if (print_associations) {
-            //printGapAssociations(observed_gaps, previous_gaps, simp_association);
+            printGapAssociations(observed_gaps, previous_gaps, simp_association);
                 //print_associations = false;
             //}
+
+            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
+            
+            std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
+            std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
+            
+            // need to have here for models
+            gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
+
 
             previous_gaps = associated_observed_gaps;
             previous_raw_gaps = associated_raw_gaps;
@@ -328,7 +350,10 @@ namespace dynamic_gap
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
-
+        double curr_time = ros::Time::now().toSec();
+        std::cout << "pose rate: " << 1.0 / (curr_time - prev_pose_time) << std::endl;
+        prev_pose_time = curr_time;
+        
         // Transform the msg to odom frame
         if(msg->header.frame_id != cfg.odom_frame_id)
         {
@@ -960,26 +985,23 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> prev_raw_gaps = previous_raw_gaps;
         std::vector<dynamic_gap::Gap> prev_observed_gaps = previous_gaps;  
         
-        std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
+        //std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
         // std::cout << "curr_raw_gaps:" << std::endl;
         //printGapModels(curr_raw_gaps);
         
-        std::cout << "current simplified gaps:" << std::endl;
-        printGapModels(curr_observed_gaps);
+        //std::cout << "current simplified gaps:" << std::endl;
+        //printGapModels(curr_observed_gaps);
 
-        std::cout << "drawing models" << std::endl;
+        //std::cout << "drawing models" << std::endl;
         gapvisualizer->drawGapsModels(curr_observed_gaps);
 
-        std::cout << "GAP FEASIBILITY CHECK" << std::endl;
+        //std::cout << "GAP FEASIBILITY CHECK" << std::endl;
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->gapSetFeasibilityCheck(curr_observed_gaps);
-        std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
+        //std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
-        // need to have here for models
-        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
-
-        std::cout << "STARTING GAP MANIPULATE" << std::endl;
+        //std::cout << "STARTING GAP MANIPULATE" << std::endl;
         auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego, curr_raw_gaps);
-        std::cout << "FINISHED GAP MANIPULATE" << std::endl;
+        //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
         /*
         // pruning overlapping gaps?
@@ -1015,7 +1037,7 @@ namespace dynamic_gap
             }
         }
         */
-
+        /*
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         for (size_t i = 0; i < feasible_gap_set.size(); i++)
         {
@@ -1033,12 +1055,13 @@ namespace dynamic_gap
             std::cout << "gap " << i << " terminal: ";
             manip_gap_set[i].printCartesianPoints (false, false);
         } 
-        
-        std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
+        */
+
+        //std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         auto score_set = initialTrajGen(manip_gap_set, traj_set, curr_raw_gaps, time_set);
-        std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
+        //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
 
         std::cout << "PICK TRAJ" << std::endl;
         auto traj_idx = pickTraj(traj_set, score_set);

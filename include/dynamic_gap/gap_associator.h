@@ -29,7 +29,7 @@ namespace dynamic_gap
 		GapAssociator(){};
 		~GapAssociator(){};
 
-		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = 0.10;};
+		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = 0.2;};
 		vector< vector<double> > associateGaps(std::vector<int>& association, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 3> v_ego);
         
 

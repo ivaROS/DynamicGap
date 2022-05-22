@@ -179,6 +179,9 @@ namespace dynamic_gap
         dynamic_gap::cart_model * curr_left_model;
         dynamic_gap::cart_model * curr_right_model;
 
+        double prev_pose_time;
+        double prev_scan_time;
+
     public:
         Planner();
 

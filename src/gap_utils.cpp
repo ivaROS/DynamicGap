@@ -159,9 +159,10 @@ namespace dynamic_gap {
         //std::cout << "running MergeGapsOneGo: " << std::endl;
         for (int i = 0; i < (int) raw_gaps.size(); i++)
         {
+            //std::cout << "i: " << i << std::endl;
             // if we are starting merging, this raw gap is swept, and left dist < right dist, then we may be able to merge
             if (mark_to_start && raw_gaps.at(i).isSwept() && raw_gaps.at(i).isLeftType())
-            {
+            {   
                 mark_to_start = false;
                 simplified_gaps.push_back(raw_gaps[i]);
                 //std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
@@ -211,7 +212,6 @@ namespace dynamic_gap {
                             } else {
                                 simplified_gaps.push_back(raw_gaps.at(i));
                                 //std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
-                                //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                             }
                         }
                     }
@@ -234,7 +234,7 @@ namespace dynamic_gap {
                 {
                     // Prior to marking start
                     simplified_gaps.push_back(raw_gaps[i]);
-                    // std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                    //std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
                 }
             }
             last_type_left = raw_gaps[i].isLeftType();
