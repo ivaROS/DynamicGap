@@ -205,7 +205,7 @@ namespace dynamic_gap{
         polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                             initial_goal_x, initial_goal_y,
                             selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isSwept(),
-                            cfg_->gap_manip.sigma);
+                            cfg_->gap_manip.sigma, x[0], x[1]);
         
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
         //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();

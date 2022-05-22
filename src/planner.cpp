@@ -148,9 +148,9 @@ namespace dynamic_gap
     // running at point_scan rate which is around 8-9 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
-        double curr_time = ros::Time::now().toSec();
-        std::cout << "laser scan rate: " << 1.0 / (curr_time - prev_scan_time) << std::endl;
-        prev_scan_time = curr_time;
+        //double curr_time = ros::Time::now().toSec();
+        //std::cout << "laser scan rate: " << 1.0 / (curr_time - prev_scan_time) << std::endl;
+        //prev_scan_time = curr_time;
 
         sharedPtr_laser = msg;
 
@@ -185,7 +185,7 @@ namespace dynamic_gap
             // getting raw gaps
             raw_gaps = finder->hybridScanGap(msg);
             
-            
+            /*
             std::cout << "current raw gaps" << std::endl;
             for (size_t i = 0; i < raw_gaps.size(); i++)
             {
@@ -198,7 +198,7 @@ namespace dynamic_gap
                 std::cout << "gap " << i << ": ";
                 previous_raw_gaps[i].printCartesianPoints(true, true);
             } 
-                   
+            */    
             
             
             gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
@@ -216,6 +216,7 @@ namespace dynamic_gap
             //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
             simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
             
+            /*
             std::cout << "current simplified gaps" << std::endl;
             for (size_t i = 0; i < observed_gaps.size(); i++)
             {
@@ -228,17 +229,18 @@ namespace dynamic_gap
                 std::cout << "gap " << i << ": ";
                 previous_gaps[i].printCartesianPoints(true, true);
             } 
+            */
 
             //if (print_associations) {
-            printGapAssociations(observed_gaps, previous_gaps, simp_association);
+            //printGapAssociations(observed_gaps, previous_gaps, simp_association);
                 //print_associations = false;
             //}
 
-            std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
+            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
-            std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
-            std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
+            //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
+            //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
             
             // need to have here for models
             gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
@@ -350,9 +352,9 @@ namespace dynamic_gap
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        double curr_time = ros::Time::now().toSec();
-        std::cout << "pose rate: " << 1.0 / (curr_time - prev_pose_time) << std::endl;
-        prev_pose_time = curr_time;
+        //double curr_time = ros::Time::now().toSec();
+        //std::cout << "pose rate: " << 1.0 / (curr_time - prev_pose_time) << std::endl;
+        //prev_pose_time = curr_time;
         
         // Transform the msg to odom frame
         if(msg->header.frame_id != cfg.odom_frame_id)
@@ -385,6 +387,12 @@ namespace dynamic_gap
             */
             sharedPtr_pose = msg->pose.pose;
         }
+
+        tf2::Quaternion curr_quat(sharedPtr_pose.orientation.x, sharedPtr_pose.orientation.y, sharedPtr_pose.orientation.z, sharedPtr_pose.orientation.w);
+        tf2::Matrix3x3 curr_m(curr_quat);
+        double curr_r, curr_p, curr_y;
+        curr_m.getRPY(curr_r, curr_p, curr_y);
+        //std::cout << "poseCB: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
 
         current_rbt_vel = msg->twist.twist;
         

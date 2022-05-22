@@ -32,9 +32,10 @@ namespace dynamic_gap {
         double dir_vec_x, dir_vec_y;
         double _sigma;
         bool mode_agc, pivoted_left, _axial;
+        double rbt_x_0, rbt_y_0;
 
-        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool mode_agc, bool pivoted_left, bool axial, double sigma)
-            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma) {}
+        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool mode_agc, bool pivoted_left, bool axial, double sigma, double rbt_x_0, double rbt_y_0)
+            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0) {}
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
@@ -84,31 +85,45 @@ namespace dynamic_gap {
 
             bool left = r2 > r1;
 
-            bool pass_gap;
+            Eigen::Vector2d init_to_left_vect(x2 - rbt_x_0, y2 - rbt_y_0);
+            Eigen::Vector2d init_to_right_vect(x1 - rbt_x_0, y1 - rbt_y_0);
+            Eigen::Vector2d curr_to_left_vect(x2 - rbt[0], y2 - rbt[1]);  
+            Eigen::Vector2d curr_to_right_vect(x1 - rbt[0], y1 - rbt[1]);
+            Eigen::Vector2d init_to_goal_vect(gx - rbt_x_0, gy - rbt_y_0);
+            Eigen::Vector2d curr_to_goal_vect(gx - rbt[0], gy - rbt[1]);
+
+            bool past_gap_points;
+            bool past_goal = (init_to_goal_vect.dot(curr_to_goal_vect) < 0);
+            bool past_left_point = init_to_left_vect.dot(curr_to_left_vect) < 0;
+            bool past_right_point = init_to_right_vect.dot(curr_to_right_vect) < 0;
+            
+            //bool pass_gap;
             if (_axial) {
-                pass_gap = (rbt.norm() > std::min(p1.norm(), p2.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                //pass_gap = (rbt.norm() > std::min(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point || past_right_point;
             } else {
-                pass_gap = (rbt.norm() > std::max(p1.norm(), p2.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                // pass_gap = (rbt.norm() > std::max(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point && past_right_point;
             }
+            
+            bool pass_gap = past_gap_points || past_goal;
 
             Eigen::Vector2d result(0, 0); 
-            double coeffs = pass_gap ? 0.0 : 1.0;
 
             Eigen::Vector2d final_goal_vec(0,0);
 
-            if (pass_gap)
+            if (!pass_gap)
             {
-                result = Eigen::Vector2d(0, 0);
-            } else {
                 double w1, w2;
-                
+                double coeffs = past_gap_points ? 0.0 : 1.0;
+
                 if (mode_agc) { 
                     if (pivoted_left) {
-                        w1 = 0.2;
+                        w1 = 0.5;
                         w2 = 1.0;
                     } else {
                         w1 = 1.0;
-                        w2 = 0.2;
+                        w2 = 0.5;
                     }
                 } else {
                     w1 = 1.0;
@@ -117,7 +132,7 @@ namespace dynamic_gap {
 
                 Eigen::Vector2d weighted_circulation_sum = w1*c1 + w2*c2;
                 Eigen::Vector2d circulation_field = coeffs * (weighted_circulation_sum);
-                Eigen::Vector2d attraction_field = sub_goal_vec / sub_goal_vec.norm();
+                Eigen::Vector2d attraction_field = sub_goal_vec; // / sub_goal_vec.norm();
                 std::cout << "inte_t: " << t << std::endl;
                 std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
                 std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
