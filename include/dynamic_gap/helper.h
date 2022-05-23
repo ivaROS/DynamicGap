@@ -32,10 +32,11 @@ namespace dynamic_gap {
         double dir_vec_x, dir_vec_y;
         double _sigma;
         bool mode_agc, pivoted_left, _axial;
-        double rbt_x_0, rbt_y_0;
+        double rbt_x_0, rbt_y_0;    
+        double K_acc;
 
-        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool mode_agc, bool pivoted_left, bool axial, double sigma, double rbt_x_0, double rbt_y_0)
-            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0) {}
+        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool mode_agc, bool pivoted_left, bool axial, double sigma, double rbt_x_0, double rbt_y_0, double K_acc)
+            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0), K_acc(K_acc) {}
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
@@ -108,31 +109,21 @@ namespace dynamic_gap {
             
             bool pass_gap = past_gap_points || past_goal;
 
-            Eigen::Vector2d result(0, 0); 
+            Eigen::Vector2d vel_des(0, 0); 
 
             Eigen::Vector2d final_goal_vec(0,0);
 
             if (!pass_gap)
             {
-                double w1, w2;
                 double coeffs = past_gap_points ? 0.0 : 1.0;
 
-                if (mode_agc) { 
-                    if (pivoted_left) {
-                        w1 = 0.5;
-                        w2 = 1.0;
-                    } else {
-                        w1 = 1.0;
-                        w2 = 0.5;
-                    }
-                } else {
-                    w1 = 1.0;
-                    w2 = 1.0;
-                }
-
+                double vec_1_norm = vec_1.norm();
+                double vec_2_norm = vec_2.norm();
+                double w1 = vec_2_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
+                double w2 = vec_1_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
                 Eigen::Vector2d weighted_circulation_sum = w1*c1 + w2*c2;
-                Eigen::Vector2d circulation_field = coeffs * (weighted_circulation_sum);
-                Eigen::Vector2d attraction_field = sub_goal_vec; // / sub_goal_vec.norm();
+                Eigen::Vector2d circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm();
+                Eigen::Vector2d attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm();
                 std::cout << "inte_t: " << t << std::endl;
                 std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
                 std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
@@ -140,11 +131,15 @@ namespace dynamic_gap {
                 std::cout << "circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")" << std::endl;
                 std::cout << "robot to goal: (" << goal_vec[0] << ", " << goal_vec[1] << ")" << std::endl;
                 std::cout << "attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")" << std::endl;
-                result = circulation_field + attraction_field;
+                vel_des = circulation_field + attraction_field;
             }
 
-            dxdt[0] = result(0);
-            dxdt[1] = result(1);
+            Eigen::Vector2d acc(K_acc*(vel_des(0) - x[2]), K_acc*(vel_des(1) - x[3]));
+
+            dxdt[0] = x[2];
+            dxdt[1] = x[3];
+            dxdt[2] = acc[0];
+            dxdt[3] = acc[1];
             return;
         }
     };
@@ -168,6 +163,7 @@ namespace dynamic_gap {
                 v_des(0) = K_des*(gx - x[0]);
                 v_des(1) = K_des*(gy - x[1]);
             }
+
 
             // set desired acceleration based on desired velocity
             // Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));

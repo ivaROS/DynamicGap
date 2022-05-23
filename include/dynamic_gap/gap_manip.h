@@ -30,6 +30,7 @@ namespace dynamic_gap {
             void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped, bool); //), sensor_msgs::LaserScan const);
             void convertAxialGap(dynamic_gap::Gap&, Matrix<double, 1, 2> v_ego, bool); //, sensor_msgs::LaserScan const);
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
+            void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
             void clipGapByLaserScan(dynamic_gap::Gap& gap);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
             double indivGapFindCrossingPoint(dynamic_gap::Gap& gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);

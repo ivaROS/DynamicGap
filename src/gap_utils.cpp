@@ -35,7 +35,7 @@ namespace dynamic_gap {
         int wrap = 0;
 
         // iterating through scan
-        //std::cout << "finding raw gaps: " << std::endl;
+        std::cout << "finding raw gaps: " << std::endl;
         for (std::vector<float>::size_type it = 1; it < stored_scan_msgs.ranges.size(); ++it)
         {
             scan_dist = stored_scan_msgs.ranges[it];
@@ -52,11 +52,11 @@ namespace dynamic_gap {
                     dynamic_gap::Gap detected_gap(frame, it - 1, last_scan, true, half_scan);
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
-                    //std::cout << "candiate radial gap from (" << (it-1) << ", " << last_scan << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                    std::cout << "candiate radial gap from (" << (it-1) << ", " << last_scan << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) { 
-                        //std::cout << "adding candiate radial gap" << std::endl;
+                    if (detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) { 
+                        std::cout << "adding candidate radial gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
                 }
@@ -73,11 +73,11 @@ namespace dynamic_gap {
                     dynamic_gap::Gap detected_gap(frame, gap_lidx, gap_ldist, false, half_scan);
                     detected_gap.addRightInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
-                    //std::cout << "candidate swept gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                    std::cout << "candidate swept gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
-                        //std::cout << "adding candidate swept gap" << std::endl;
+                    if (detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
+                        std::cout << "adding candidate swept gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
                 }
@@ -100,9 +100,9 @@ namespace dynamic_gap {
             double last_scan_dist = *(stored_scan_msgs.ranges.end() - 1);
             detected_gap.addRightInformation(last_scan_idx, last_scan_dist);
             detected_gap.setMinSafeDist(min_dist);
-            //std::cout << "candidate last gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
-            if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr) {
-                //std::cout << "adding candidate last gap" << std::endl;
+            std::cout << "candidate last gap from (" << gap_lidx << ", " << gap_ldist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
+            if (detected_gap._right_idx - detected_gap._left_idx > 500 || detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr) {
+                std::cout << "adding candidate last gap" << std::endl;
                 raw_gaps.push_back(detected_gap);
             }
         }
@@ -156,7 +156,7 @@ namespace dynamic_gap {
         int left_counter = 0;
         bool changed = true;
 
-        //std::cout << "running MergeGapsOneGo: " << std::endl;
+        std::cout << "running MergeGapsOneGo: " << std::endl;
         for (int i = 0; i < (int) raw_gaps.size(); i++)
         {
             //std::cout << "i: " << i << std::endl;
@@ -165,7 +165,7 @@ namespace dynamic_gap {
             {   
                 mark_to_start = false;
                 simplified_gaps.push_back(raw_gaps[i]);
-                //std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
             } else {
                 if (!mark_to_start) // if we have already found a mergable gap
                 {
@@ -174,8 +174,7 @@ namespace dynamic_gap {
                         if (raw_gaps.at(i).isLeftType()) // if l_dist < r_dist
                         {
                             simplified_gaps.push_back(raw_gaps[i]);
-                            //std::cout << "adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
-                            //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                            std::cout << "adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                         }
                         else
                         {
@@ -205,13 +204,13 @@ namespace dynamic_gap {
                             }
 
                             if (last_mergable != -1) {
-                                //std::cout << "erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size() << std::endl;
+                                std::cout << "erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size() << std::endl;
                                 simplified_gaps.erase(simplified_gaps.begin() + last_mergable + 1, simplified_gaps.end());
                                 simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
-                                //std::cout << "merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                                std::cout << "merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
                             } else {
                                 simplified_gaps.push_back(raw_gaps.at(i));
-                                //std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                                std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
                             }
                         }
                     }
@@ -221,10 +220,10 @@ namespace dynamic_gap {
                         if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isSwept() && simplified_gaps.back().isLeftType())
                         {
                             simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
-                            //std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                            std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
                         } else {
                             simplified_gaps.push_back(raw_gaps[i]);
-                            //std::cout << "adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                            std::cout << "adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
 
                             //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                         }
@@ -234,7 +233,7 @@ namespace dynamic_gap {
                 {
                     // Prior to marking start
                     simplified_gaps.push_back(raw_gaps[i]);
-                    //std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                    std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
                 }
             }
             last_type_left = raw_gaps[i].isLeftType();

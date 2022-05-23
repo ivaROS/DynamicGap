@@ -39,7 +39,7 @@ DynamicGapPlanner:
     integrate_stept: 0.01
 
     num_feasi_check: 30
-    projection_operator: False
+    projection_operator: True
     holonomic: True
 
     close_gap_vis: False

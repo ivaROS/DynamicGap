@@ -9,7 +9,7 @@
 
   <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
-  <arg name="projection_operator" default="false"/>
+  <arg name="projection_operator" default="true"/>
 
   <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>

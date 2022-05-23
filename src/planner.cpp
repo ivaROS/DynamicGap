@@ -543,6 +543,7 @@ namespace dynamic_gap
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i), v_ego, true); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
+                //gapManip->inflateGapSides(manip_set.at(i), true);
                 gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
             } catch(...) {
                 std::cout << "gapManipulate failed on initial gap" << std::endl;
@@ -554,6 +555,7 @@ namespace dynamic_gap
             }
             dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
             */
+            /*
             std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
             //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
             try {
@@ -578,6 +580,13 @@ namespace dynamic_gap
             } catch(...) {
                 std::cout << "gapManipulate failed on terminal gapWaypoint" << std::endl;
             } 
+
+            try {
+                gapManip->inflateGapSides(manip_set.at(i), true);
+            } catch(...) {
+                std::cout << "gapManipulate failed on terminal inflate gap" << std::endl;
+            }
+            */
         }
 
         return manip_set;
@@ -657,12 +666,35 @@ namespace dynamic_gap
         int idx = std::distance(result_score.begin(), iter);
 
         if (result_score.at(idx) == -std::numeric_limits<double>::infinity()) {
+            
             std::cout << "all -infinity" << std::endl;
             ROS_WARN_STREAM("No executable trajectory, values: ");
             for (auto val : result_score) {
                 ROS_INFO_STREAM("Score: " << val);
             }
             ROS_INFO_STREAM("------------------");
+
+            bool all_init_poses_neg_inf = true;
+            for (size_t i = 0; i < score.size(); i++) {
+                if (score.at(i).at(0) != -std::numeric_limits<double>::infinity()) {
+                    all_init_poses_neg_inf = false;
+                    break;
+                }
+            }
+
+            if (all_init_poses_neg_inf) {
+                int min_idx = -1;
+                double min_cost = std::numeric_limits<double>::infinity();
+                for (size_t i = 0; i < prr.size(); i++) {
+                    double ith_terminal_cost = trajArbiter->terminalGoalCost(prr.at(i).poses.back());
+                    if (ith_terminal_cost < min_cost) {
+                        min_cost = ith_terminal_cost;
+                        min_idx = i;
+                    }
+                }
+
+                idx = min_idx;
+            }
         }
 
         std::cout << "picking gap: " << idx << std::endl;

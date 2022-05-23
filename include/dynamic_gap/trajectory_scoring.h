@@ -45,6 +45,8 @@ namespace dynamic_gap{
         std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
         void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan);
 
+        double terminalGoalCost(geometry_msgs::Pose pose);
+
         private:
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> msg;
@@ -56,7 +58,6 @@ namespace dynamic_gap{
             int searchIdx(geometry_msgs::Pose pose);
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
             double chapterScore(double d);
-            double terminalGoalCost(geometry_msgs::Pose pose);
             double dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan);
             void populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
             double setDynamicLaserScanRange(double idx, double idx_span, double start_idx, double end_idx, double start_range, double end_range, bool free);

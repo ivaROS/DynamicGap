@@ -424,7 +424,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::chapterScore(double d) {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         // std::cout << "in chapterScore with distance: " << d << std::endl;
-        if (d < r_inscr * cfg_->traj.inf_ratio) { // 
+        if (d < r_inscr * cfg_->traj.inf_ratio) { //   
             // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
             return -std::numeric_limits<double>::infinity();
         }

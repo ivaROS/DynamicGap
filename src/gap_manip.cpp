@@ -928,13 +928,14 @@ namespace dynamic_gap {
             for (int i = 0; i < dist.size(); i++) {
                 dist.at(i) = sqrt(pow(near_dist, 2) + pow(stored_scan_msgs.ranges.at(i + init_search_idx), 2) -
                     2 * near_dist * stored_scan_msgs.ranges.at(i + init_search_idx) * cos((i + init_search_idx - near_idx) * stored_scan_msgs.angle_increment));
+                //std::cout << "dist at " << i << ": " << dist.at(i) << std::endl;
             }
         } catch(...) {
             ROS_FATAL_STREAM("convertAxialGap outofBound");
         }
 
-        //auto farside_iter = std::min_element(dist.begin(), dist.end());
-        float min_dist = *std::min_element(dist.begin(), dist.end());
+        auto farside_iter = std::min_element(dist.begin(), dist.end());
+        float min_dist = *farside_iter;
 
         std::cout << "min dist: " << min_dist << std::endl;         
 
@@ -1127,6 +1128,82 @@ namespace dynamic_gap {
         //ROS_DEBUG_STREAM("ldist: " << gap._ldist << " to " << gap.convex_ldist << ", rdist: " << gap._rdist << " to " << gap.convex_rdist);
 
         return;
+    }
+
+    void GapManipulator::inflateGapSides(dynamic_gap::Gap& gap, bool initial) {
+        // get points
+        int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
+        int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
+        float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
+        float rdist = initial ? gap.convex.convex_rdist : gap.convex.terminal_rdist;
+
+        float x1, x2, y1, y2;
+        x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+        y1 = (ldist) * sin(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
+
+        x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+        y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
+        Eigen::Vector2f pl(x1, y1);
+        Eigen::Vector2f pr(x2, y2);
+
+        // inflate inwards by radius * infl
+        // rotate by pi/2, norm
+        Eigen::Matrix2f r_negpi2;
+        r_negpi2 << 0,1,
+                   -1,0;
+
+        // pivot "left" point by -r_negpi2
+        Eigen::Vector2f left_angular_inflate = -r_negpi2 * pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        // pivot "right" point by r_negpi2
+        Eigen::Vector2f right_angular_inflate = r_negpi2 * pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+
+        // inflate upward by radius * infl
+        Eigen::Vector2f left_radial_inflate = pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        Eigen::Vector2f right_radial_inflate = pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+
+        Eigen::Vector2f new_l = pl + left_angular_inflate + left_radial_inflate;
+        Eigen::Vector2f new_r = pr + right_angular_inflate + right_radial_inflate;
+
+        float new_l_range = new_l.norm();
+        float new_l_theta = std::atan2(new_l[1], new_l[0]);
+        float new_l_idx = int (gap.half_scan * new_l_theta / M_PI) + gap.half_scan;
+
+        float new_r_range = new_r.norm();
+        float new_r_theta = std::atan2(new_r[1], new_r[0]);
+        float new_r_idx = int (gap.half_scan * new_r_theta / M_PI) + gap.half_scan;
+
+        if (new_l_idx > new_r_idx) {
+            return;
+        }
+
+        std::cout << "pre-inflate gap in polar. left: (" << lidx << ", " << ldist << "), right: (" << ridx << ", " << rdist << ")" << std::endl;
+        std::cout << "pre-inflate gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
+        
+        if (initial) {
+            gap.convex.convex_lidx = new_l_idx;
+            gap.convex.convex_ridx = new_r_idx;
+            gap.convex.convex_ldist = new_l_range;
+            gap.convex.convex_rdist = new_r_range;
+            
+            x1 = (gap.convex.convex_ldist) * cos(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.convex_ldist) * sin(-((float) gap.half_scan - gap.convex.convex_lidx) / gap.half_scan * M_PI);
+            x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
+            y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI); 
+            std::cout << "post-inflate gap in polar. left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")" << std::endl;
+        } else {
+            gap.convex.terminal_lidx = new_l_idx;
+            gap.convex.terminal_ridx = new_r_idx;
+            gap.convex.terminal_ldist = new_l_range;
+            gap.convex.terminal_rdist = new_r_range;
+            
+            x1 = (gap.convex.terminal_ldist) * cos(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+            y1 = (gap.convex.terminal_ldist) * sin(-((float) gap.half_scan - gap.convex.terminal_lidx) / gap.half_scan * M_PI);
+            x2 = (gap.convex.terminal_rdist) * cos(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
+            y2 = (gap.convex.terminal_rdist) * sin(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI); 
+            std::cout << "post-inflate gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")" << std::endl;
+        }
+
+        std::cout << "pre-inflate gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")" << std::endl;
     }
 
     Eigen::Vector2f GapManipulator::car2pol(Eigen::Vector2f a) {
