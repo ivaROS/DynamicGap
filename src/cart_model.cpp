@@ -212,6 +212,11 @@ namespace dynamic_gap {
         //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
         //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
+        if (get_initialized()) {
+            set_initialized(false);
+            return;
+        } 
+        
         if (print) {
             std::cout << "linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego << std::endl;
             std::cout << "linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1] << std::endl;

@@ -76,6 +76,7 @@ add_library(dynamic_gap
   src/gap_associator.cpp
   src/mp_model.cpp
   src/cart_model.cpp
+  src/gap_feasibility.cpp
   ) 
 
 catkin_install_python(PROGRAMS

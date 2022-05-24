@@ -28,13 +28,12 @@ namespace dynamic_gap {
             void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
             void setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal);
             void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped, bool); //), sensor_msgs::LaserScan const);
-            void convertAxialGap(dynamic_gap::Gap&, Matrix<double, 1, 2> v_ego, bool); //, sensor_msgs::LaserScan const);
+            void convertAxialGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
             void clipGapByLaserScan(dynamic_gap::Gap& gap);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
             double indivGapFindCrossingPoint(dynamic_gap::Gap& gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
-            std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(std::vector<dynamic_gap::Gap>& manip_set);
             std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);

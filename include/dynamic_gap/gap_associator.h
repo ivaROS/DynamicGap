@@ -30,8 +30,10 @@ namespace dynamic_gap
 		~GapAssociator(){};
 
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = 0.75;};
-		vector< vector<double> > associateGaps(std::vector<int>& association, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 3> v_ego);
-        
+		std::vector<int> associateGaps(vector< vector<double> > distMatrix);
+        void assignModels(std::vector<int> association, vector< vector<double> > distMatrix, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, Matrix<double, 1, 3> v_ego, int * model_idx);
+		vector<vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::string ns);
+
 
 	private:
 		const DynamicGapConfig* cfg_;
@@ -45,6 +47,10 @@ namespace dynamic_gap
 		void step3(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
 		void step4(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col);
 		void step5(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
+	
+		std::vector< std::vector<float>> previous_gap_points;
+		std::vector< std::vector<float>> observed_gap_points;
+
 	};
 }
 

@@ -57,6 +57,7 @@ namespace dynamic_gap
         gapManip = new dynamic_gap::GapManipulator(nh, cfg);
         trajController = new dynamic_gap::TrajectoryController(nh, cfg);
         gapassociator = new dynamic_gap::GapAssociator(nh, cfg);
+        gapFeasibilityChecker = new dynamic_gap::GapFeasibilityChecker(nh, cfg);
 
         map2rbt.transform.rotation.w = 1;
         rbt2map.transform.rotation.w = 1;
@@ -183,71 +184,42 @@ namespace dynamic_gap
             Matrix<double, 1, 3> a_ego = rbt_acc_t;
 
             // getting raw gaps
+            previous_raw_gaps = associated_raw_gaps;
             raw_gaps = finder->hybridScanGap(msg);
-            
-            /*
-            std::cout << "current raw gaps" << std::endl;
-            for (size_t i = 0; i < raw_gaps.size(); i++)
-            {
-                std::cout << "gap " << i << ": ";
-                raw_gaps[i].printCartesianPoints(true, true);
-            } 
-            std::cout << "previous raw gaps" << std::endl;
-            for (size_t i = 0; i < previous_raw_gaps.size(); i++)
-            {
-                std::cout << "gap " << i << ": ";
-                previous_raw_gaps[i].printCartesianPoints(true, true);
-            } 
-            */    
-            
-            
-            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
-
+  
             //std::cout << "RAW GAP ASSOCIATING" << std::endl;
             // ASSOCIATE GAPS PASSES BY REFERENCE
-            raw_distMatrix = gapassociator->associateGaps(raw_association, raw_gaps, previous_raw_gaps, model_idx, "raw", v_ego);
-            //std::cout << "RAW GAP UPDATING" << std::endl;
+
+            //std::cout << "obtaining dist matrix" << std::endl;
+            raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
+
+            //std::cout << "obtaining raw association" << std::endl;
+            raw_association = gapassociator->associateGaps(raw_distMatrix);
+            //std::cout << "assigning models" << std::endl;
+            gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx);
             associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, false);
 
-
-            
+            previous_gaps = associated_observed_gaps;
             observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-
-            //std::cout << "SIMPLIFIED GAP ASSOCIATING" << std::endl;
-            simp_distMatrix = gapassociator->associateGaps(simp_association, observed_gaps, previous_gaps, model_idx, "simplified", v_ego);
             
-            /*
-            std::cout << "current simplified gaps" << std::endl;
-            for (size_t i = 0; i < observed_gaps.size(); i++)
-            {
-                std::cout << "gap " << i << ": ";
-                observed_gaps[i].printCartesianPoints(true, true);
-            } 
-            std::cout << "previous simplified gaps" << std::endl;
-            for (size_t i = 0; i < previous_gaps.size(); i++)
-            {
-                std::cout << "gap " << i << ": ";
-                previous_gaps[i].printCartesianPoints(true, true);
-            } 
-            */
-
-            //if (print_associations) {
-            //printGapAssociations(observed_gaps, previous_gaps, simp_association);
-                //print_associations = false;
-            //}
-
+            //std::cout << "running simp obtainDistMatrix" << std::endl;
+            simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
+            //std::cout << "running simp associateGaps" << std::endl;
+            simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
+            //std::cout << "running simp assignModels" << std::endl;
+            gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
+            std::cout << "scanCB, running simplified update_models" << std::endl;
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
+                        
             //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
             //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
             //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
             
             // need to have here for models
+            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
             gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
 
-
-            previous_gaps = associated_observed_gaps;
-            previous_raw_gaps = associated_raw_gaps;
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
         } catch (...) {
             ROS_FATAL_STREAM("mergeGapsOneGo");
@@ -273,28 +245,31 @@ namespace dynamic_gap
 
         gapManip->updateEgoCircle(msg);
         trajController->updateEgoCircle(msg);
+        gapFeasibilityChecker->updateEgoCircle(msg);
+
 
         rbt_vel_min1 = current_rbt_vel;
         rbt_accel_min1 = rbt_accel;
 
         sharedPtr_previous_pose = sharedPtr_pose;
+        std::cout << "done in laserscanCB" << std::endl;
 
     }
     
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
-        if (i % 2 == 0) {
-            if (g.left_model->get_initialized()) {
-                g.left_model->set_initialized(false);
-                return;
-            } 
-        } else {
-            if (g.right_model->get_initialized()) {
-                g.right_model->set_initialized(false);
-                return;
-            } 
-        }
+        // if (i % 2 == 0) {
+        //     if (g.left_model->get_initialized()) {
+        //         g.left_model->set_initialized(false);
+        //         return;
+        //     } 
+        // } else {
+        //     if (g.right_model->get_initialized()) {
+        //         g.right_model->set_initialized(false);
+        //         return;
+        //     } 
+        // }
  
         // UPDATING MODELS
         //std::cout << "obtaining gap g" << std::endl;
@@ -513,10 +488,12 @@ namespace dynamic_gap
     }
     */
 
-    std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego, std::vector<dynamic_gap::Gap> curr_raw_gaps) {
+    std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<dynamic_gap::Gap> manip_set;
         manip_set = _observed_gaps;
+
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
 
         // we want to change the models in here
 
@@ -541,7 +518,7 @@ namespace dynamic_gap
             try { 
             // MANIPULATE POINTS AT T=0
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
-                gapManip->convertAxialGap(manip_set.at(i), v_ego, true); // swing axial inwards
+                gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
                 gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
                 //gapManip->inflateGapSides(manip_set.at(i), true);
                 gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
@@ -593,12 +570,15 @@ namespace dynamic_gap
     }
 
     // std::vector<geometry_msgs::PoseArray> 
-    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<std::vector<double>>& res_time_traj) {
+    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<double>>& res_time_traj) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<geometry_msgs::PoseArray> ret_traj(vec.size());
         std::vector<std::vector<double>> ret_time_traj(vec.size());
         std::vector<std::vector<double>> ret_traj_scores(vec.size());
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
+
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
+
         try {
             for (size_t i = 0; i < vec.size(); i++) {
                 std::cout << "generating traj for gap: " << i << std::endl;
@@ -609,7 +589,7 @@ namespace dynamic_gap
                 return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
 
                 std::cout << "scoring trajectory for gap: " << i << std::endl;
-                ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), current_raw_gaps);
+                ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps);
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
             }
@@ -702,10 +682,12 @@ namespace dynamic_gap
         return idx;
     }
 
-    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr) {
+    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<double> time_arr) {
+        boost::mutex::scoped_lock gapset(gapset_mutex);
         auto curr_traj = getCurrentTraj();
         auto curr_time_arr = getCurrentTimeArr();
 
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
 
         try {
             double curr_time = ros::Time::now().toSec();
@@ -721,7 +703,7 @@ namespace dynamic_gap
             incom_rbt.header.frame_id = cfg.robot_frame_id;
             // why do we have to rescore here?
             std::cout << "~~scoring incoming trajectory~~" << std::endl;
-            auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, current_raw_gaps);
+            auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, curr_raw_gaps);
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
 
             int counts = std::min(cfg.planning.num_feasi_check, (int) incom_score.size());
@@ -788,7 +770,7 @@ namespace dynamic_gap
             std::cout << "incoming subscore: " << incom_subscore << std::endl;
 
             std::cout << "scoring current trajectory" << std::endl;
-            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, current_raw_gaps);
+            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
             std::cout << "current subscore: " << curr_subscore << std::endl;
 
@@ -1012,35 +994,74 @@ namespace dynamic_gap
         return observed_gaps;
     }
 
-    geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-        // double begin_time = ros::Time::now().toSec();
-        updateTF();
-        Matrix<double, 1, 2> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y);
+    std::vector<int> Planner::get_raw_associations() {
+        return raw_association;
+    }
 
-        print_associations = true;
+    std::vector<int> Planner::get_simplified_associations() {
+        return simp_association;
+    }
 
+    std::vector<dynamic_gap::Gap> Planner::gapSetFeasibilityCheck() {
+        boost::mutex::scoped_lock gapset(gapset_mutex);
+        std::cout << "PULLING MODELS TO ACT ON" << std::endl;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
         std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
         
         std::vector<dynamic_gap::Gap> prev_raw_gaps = previous_raw_gaps;
         std::vector<dynamic_gap::Gap> prev_observed_gaps = previous_gaps;  
-        
+
+        std::vector<int> _raw_association = raw_association;
+        std::vector<int> _simp_association = simp_association;
+
+        //std::cout << "curr_raw_gaps size: " << curr_raw_gaps.size() << std::endl;
+        //std::cout << "curr_observed_gaps size: " << curr_observed_gaps.size() << std::endl;
+
+        //std::cout << "prev_raw_gaps size: " << prev_raw_gaps.size() << std::endl;
+        //std::cout << "prev_observed_gaps size: " << prev_observed_gaps.size() << std::endl;
+
+        //std::cout << "_raw_association size: " << _raw_association.size() << std::endl;
+        //std::cout << "_simp_association size: " << _simp_association.size() << std::endl;
+
         //std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
-        // std::cout << "curr_raw_gaps:" << std::endl;
+        //std::cout << "current raw gaps:" << std::endl;
         //printGapModels(curr_raw_gaps);
+
+        //std::cout << "pulled current simplified associations:" << std::endl;
+        printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
         
-        //std::cout << "current simplified gaps:" << std::endl;
-        //printGapModels(curr_observed_gaps);
+        std::cout << "current simplified gaps:" << std::endl;
+        printGapModels(curr_observed_gaps);
 
         //std::cout << "drawing models" << std::endl;
         gapvisualizer->drawGapsModels(curr_observed_gaps);
+        
+        bool gap_i_feasible;
+        int num_gaps = curr_observed_gaps.size();
+        std::vector<dynamic_gap::Gap> feasible_gap_set;
+        for (size_t i = 0; i < num_gaps; i++) {
+            // obtain crossing point
+            std::cout << "feasibility check for gap " << i << std::endl; //  ", left index: " << manip_set.at(i).left_model->get_index() << ", right index: " << manip_set.at(i).right_model->get_index() 
+            gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));
+            
+            if (gap_i_feasible) {
+                curr_observed_gaps.at(i).addTerminalRightInformation();
+                feasible_gap_set.push_back(curr_observed_gaps.at(i));
+            }
+        }
+        return feasible_gap_set;
+    }
+
+    geometry_msgs::PoseArray Planner::getPlanTrajectory() {
+        // double begin_time = ros::Time::now().toSec();
+        updateTF();
 
         //std::cout << "GAP FEASIBILITY CHECK" << std::endl;
-        std::vector<dynamic_gap::Gap> feasible_gap_set = gapManip->gapSetFeasibilityCheck(curr_observed_gaps);
+        std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
         //std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
         //std::cout << "STARTING GAP MANIPULATE" << std::endl;
-        auto manip_gap_set = gapManipulate(feasible_gap_set, v_ego, curr_raw_gaps);
+        auto manip_gap_set = gapManipulate(feasible_gap_set);
         //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
         /*
@@ -1100,7 +1121,7 @@ namespace dynamic_gap
         //std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-        auto score_set = initialTrajGen(manip_gap_set, traj_set, curr_raw_gaps, time_set);
+        auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
 
         std::cout << "PICK TRAJ" << std::endl;
@@ -1126,14 +1147,14 @@ namespace dynamic_gap
 
         std::vector<int> feasible_gap_model_indices;
         std::cout << "feasible gap indices: ";
-        for (size_t i = 0; i < manip_gap_set.size(); i++) {
+        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
             std::cout << feasible_gap_set.at(i).left_model->get_index() << ", " << feasible_gap_set.at(i).right_model->get_index() << ", ";
-            feasible_gap_model_indices.push_back(manip_gap_set.at(i).left_model->get_index());
-            feasible_gap_model_indices.push_back(manip_gap_set.at(i).right_model->get_index());
+            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).left_model->get_index());
+            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).right_model->get_index());
         }
         std::cout << "" << std::endl;
 
-        auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_model_indices, curr_raw_gaps, chosen_time_arr);
+        auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_model_indices, chosen_time_arr);
         std::cout << "FINISHED COMPARE TO OLD TRAJ" << std::endl;
 
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
@@ -1153,14 +1174,16 @@ namespace dynamic_gap
         for (int i = 0; i < association.size(); i++) {
             std::vector<int> pair{i, association[i]};
             std::cout << "pair (" << i << ", " << association[i] << "). ";
-            if (i >= 0 && association[i] >= 0) {
-                int current_gap_idx = int(std::floor(pair[0] / 2.0));
-                int previous_gap_idx = int(std::floor(pair[1] / 2.0));
-                if (pair[0] % 2 == 0) {  // curr left
+            int current_gap_idx = int(std::floor(pair[0] / 2.0));
+            int previous_gap_idx = int(std::floor(pair[1] / 2.0));
+
+            if (pair[0] % 2 == 0) {  // curr left
                     current_gaps.at(current_gap_idx).getSimplifiedLCartesian(curr_x, curr_y);
                 } else { // curr right
                     current_gaps.at(current_gap_idx).getSimplifiedRCartesian(curr_x, curr_y);
-                }
+            }
+            
+            if (i >= 0 && association[i] >= 0) {
                 if (pair[1] % 2 == 0) { // prev left
                     previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
                 } else { // prev right
@@ -1168,10 +1191,11 @@ namespace dynamic_gap
                 }
                 std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
             } else {
-                std::cout << "From NULL to (" << curr_x << ", " <<  curr_y << ")";
+                std::cout << "From NULL to (" << curr_x << ", " <<  curr_y << ")" << std::endl;
             }
         }
     }
+
     void Planner::printGapModels(std::vector<dynamic_gap::Gap> gaps) {
         for (size_t i = 0; i < gaps.size(); i++)
         {

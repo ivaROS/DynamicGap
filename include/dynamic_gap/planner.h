@@ -28,6 +28,7 @@
 #include <dynamic_gap/trajectory_scoring.h>
 #include <dynamic_gap/gap_manip.h>
 #include <dynamic_gap/trajectory_controller.h>
+#include <dynamic_gap/gap_feasibility.h>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -124,6 +125,7 @@ namespace dynamic_gap
         dynamic_gap::GapManipulator *gapManip;
         dynamic_gap::TrajectoryController *trajController;
         dynamic_gap::GapAssociator *gapassociator;
+        dynamic_gap::GapFeasibilityChecker *gapFeasibilityChecker;
 
         // Status
         bool hasGoal = false;
@@ -262,13 +264,13 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego, std::vector<dynamic_gap::Gap> curr_raw_gaps);
+        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps);
 
         /**
          * 
          *
          */
-        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<std::vector<double>>& res_time_traj);
+        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<double>>& res_time_traj);
 
         /**
          * Callback function to config object
@@ -290,7 +292,7 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<dynamic_gap::Gap>& current_raw_gaps, std::vector<double> time_arr);
+        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<double> time_arr);
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function
@@ -343,6 +345,12 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);
         void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association);
+
+        std::vector<int> get_raw_associations();
+
+        std::vector<int> get_simplified_associations();
+
+        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck();
 
     };
 }

@@ -345,12 +345,15 @@ namespace dynamic_gap{
         left_model_vel_pt.type = visualization_msgs::Marker::ARROW;
         left_model_vel_pt.action = visualization_msgs::Marker::ADD;
         geometry_msgs::Point left_vel_pt;
-        left_vel_pt.x = left_model_pt.pose.position.x; //+ (g.left_model->get_cartesian_state()[2] + v_ego[0]);
-        left_vel_pt.y = left_model_pt.pose.position.y; // + (g.left_model->get_cartesian_state()[3] + v_ego[1]);
+        left_vel_pt.x = left_model_pt.pose.position.x;
+        left_vel_pt.y = left_model_pt.pose.position.y;
         left_vel_pt.z = 0.5;
         left_model_vel_pt.points.push_back(left_vel_pt);
-        left_vel_pt.x = left_model_pt.pose.position.x + (g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0]);
-        left_vel_pt.y = left_model_pt.pose.position.y + (g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
+        Eigen::Vector2d left_vel(g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
+                                 g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
+        std::cout << "visualizing left gap only vel: " << left_vel[0] << ", " << left_vel[1] << std::endl;
+        left_vel_pt.x = left_model_pt.pose.position.x + left_vel[0];
+        left_vel_pt.y = left_model_pt.pose.position.y + left_vel[1];
         left_model_vel_pt.points.push_back(left_vel_pt);
         left_model_vel_pt.scale.x = 0.1;
         left_model_vel_pt.scale.y = 0.1;
@@ -370,12 +373,15 @@ namespace dynamic_gap{
         right_model_vel_pt.type = visualization_msgs::Marker::ARROW;
         right_model_vel_pt.action = visualization_msgs::Marker::ADD;
         geometry_msgs::Point right_vel_pt;
-        right_vel_pt.x = right_model_pt.pose.position.x; //+ (g.left_model->get_cartesian_state()[2] + v_ego[0]);
-        right_vel_pt.y = right_model_pt.pose.position.y; // + (g.left_model->get_cartesian_state()[3] + v_ego[1]);
+        right_vel_pt.x = right_model_pt.pose.position.x;
+        right_vel_pt.y = right_model_pt.pose.position.y;
         right_vel_pt.z = 0.5;
         right_model_vel_pt.points.push_back(right_vel_pt);
-        right_vel_pt.x = right_model_pt.pose.position.x + (g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0]);
-        right_vel_pt.y = right_model_pt.pose.position.y + (g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
+        Eigen::Vector2d right_vel(g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
+                                 g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
+        std::cout << "visualizing right gap only vel: " << right_vel[0] << ", " << right_vel[1] << std::endl;
+        right_vel_pt.x = right_model_pt.pose.position.x + right_vel[0];
+        right_vel_pt.y = right_model_pt.pose.position.y + right_vel[1];
         right_model_vel_pt.points.push_back(right_vel_pt);
         right_model_vel_pt.scale.x = 0.1;
         right_model_vel_pt.scale.y = 0.1;

@@ -16,7 +16,7 @@
 #include <Eigen/Core>
 
 namespace dynamic_gap {
-	
+
 	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns) {
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
@@ -59,20 +59,19 @@ namespace dynamic_gap {
 		// std::cout << "" << std::endl;
 		return points;
 	}
-        
 
-	vector< vector<double> > GapAssociator::associateGaps(std::vector<int>& association, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap>& previous_gaps, int * model_idx, std::string ns, Matrix<double, 1, 3> v_ego) {
-        int M = previous_gaps.size();
-        int N = observed_gaps.size();
-		// association.clear();
-		//std::cout << "previous gap points:" << std::endl;
-        std::vector< std::vector<float>> previous_gap_points = obtainGapPoints(previous_gaps, ns);
-		//std::cout << "current gap points:" << std::endl;
-        std::vector< std::vector<float>> observed_gap_points = obtainGapPoints(observed_gaps, ns);
-        // std::vector<int> associations = {};
-		//std::cout << "prev gaps size: " << M << ", observed gaps size: " << N << std::endl;
-        // initialize distance matrix
-        vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
+	vector<vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
+															std::vector<dynamic_gap::Gap> previous_gaps, 
+															std::string ns) {
+		
+		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
+		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
+		//std::cout << "getting previous points:" << std::endl;
+		previous_gap_points = obtainGapPoints(previous_gaps, ns);
+		//std::cout << "getting current points:" << std::endl;
+        observed_gap_points = obtainGapPoints(observed_gaps, ns);
+        
+		vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
 		// std::cout << "populating distance matrix" << std::endl;
@@ -91,20 +90,24 @@ namespace dynamic_gap {
 			//std::cout << "" << std::endl;
         }
 
+		return distMatrix;
+	}
+	
 
 
-		// NEW ASSIGNMENT OBTAINED
-		// std::cout << "obtaining new assignment" << std::endl;
-        if (distMatrix.size() > 0 && distMatrix[0].size() > 0) {
-			//std::cout << "solving" << std::endl;
-            double cost = Solve(distMatrix, association);
-			//std::cout << "done solving" << std::endl;
-        }
+	void GapAssociator::assignModels(std::vector<int> association, 
+									 vector< vector<double> > distMatrix, 
+									 std::vector<dynamic_gap::Gap>& observed_gaps, 
+									std::vector<dynamic_gap::Gap> previous_gaps,
+									Matrix<double, 1, 3> v_ego,
+									int * model_idx){
 		
 		// initializing models for current gaps
+		double init_r, init_beta;
+
 		for (int i = 0; i < observed_gap_points.size(); i++) {
-			double init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
-			double init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
+			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
+			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
 				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
 			} else {
@@ -113,7 +116,6 @@ namespace dynamic_gap {
 			*model_idx += 1;
 		}
 		
-
 		// ASSOCIATING MODELS
 		// std::cout << "accepting associations" << std::endl;
 		for (int i = 0; i < association.size(); i++) {
@@ -122,11 +124,14 @@ namespace dynamic_gap {
 			int previous_gap_idx = association[i];
 			std::vector<int> pair{i, previous_gap_idx};
 			/*
-			std::cout << "pair " << pair[0] << ", " << pair[1] << std::endl;
+			std::cout << "pair " << pair[0] << ", " << pair[1] << ". ";
 			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0))) {
-				std::cout << "distance: " << distMatrix[pair[0]][pair[1]] << std::endl;
+				std::cout << "Distance: " << distMatrix[pair[0]][pair[1]] << std::endl;
 			}
 			*/
+			// printGapAssociations(observed_gaps, previous_gaps, association);
+
+			
 			// if current gap pt has valid association and association is under distance threshold
 			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0)) && distMatrix[pair[0]][pair[1]] <= assoc_thresh) {
 				//std::cout << "associating" << std::endl;	
@@ -151,13 +156,61 @@ namespace dynamic_gap {
 			*/
 		}
 		
+	}
+        
+
+	std::vector<int> GapAssociator::associateGaps(vector< vector<double> > distMatrix) {
+		// NEW ASSIGNMENT OBTAINED
+		// std::cout << "obtaining new assignment" << std::endl;
+		std::vector<int> association;
+        if (distMatrix.size() > 0 && distMatrix[0].size() > 0) {
+			//std::cout << "solving" << std::endl;
+            double cost = Solve(distMatrix, association);
+			//std::cout << "done solving" << std::endl;
+        }
+	
 		// std::cout << "in gap associator" << std::endl;
 		//for (auto & g : observed_gaps) {
 			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
 			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
 		//}
-        return distMatrix;
+        return association;
     }
+
+	/*
+	void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association) {
+        std::cout << "current simplified associations" << std::endl;
+        std::cout << "number of gaps: " << current_gaps.size() << ", number of previous gaps: " << previous_gaps.size() << std::endl;
+        std::cout << "association size: " << association.size() << std::endl;
+        for (int i = 0; i < association.size(); i++) {
+            std::cout << association[i] << ", ";
+        }
+        std::cout << "" << std::endl;
+
+        float curr_x, curr_y, prev_x, prev_y;
+        for (int i = 0; i < association.size(); i++) {
+            std::vector<int> pair{i, association[i]};
+            std::cout << "pair (" << i << ", " << association[i] << "). ";
+            if (i >= 0 && association[i] >= 0) {
+                int current_gap_idx = int(std::floor(pair[0] / 2.0));
+                int previous_gap_idx = int(std::floor(pair[1] / 2.0));
+                if (pair[0] % 2 == 0) {  // curr left
+                    current_gaps.at(current_gap_idx).getSimplifiedLCartesian(curr_x, curr_y);
+                } else { // curr right
+                    current_gaps.at(current_gap_idx).getSimplifiedRCartesian(curr_x, curr_y);
+                }
+                if (pair[1] % 2 == 0) { // prev left
+                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
+                } else { // prev right
+                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesian(prev_x, prev_y);
+                }
+                std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
+            } else {
+                std::cout << "From NULL to (" << curr_x << ", " <<  curr_y << ")";
+            }
+        }
+    }
+	*/
 	
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
