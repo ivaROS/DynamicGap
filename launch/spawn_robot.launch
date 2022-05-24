@@ -5,5 +5,5 @@
   <arg name="fov" default="$(optenv GM_PARAM_RBT_FOV 60)"/>
   <arg name="robot_file" default="holonomic_robot_second_order_$(arg fov)_bumper.xml"/>
 
-  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/$(arg robot_file) $(arg rbtx) $(arg rbty) 0.0" />
+  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="add $(find dynamic_gap)/stdr_robots/robots/$(arg robot_file) $(arg rbtx) $(arg rbty) 1.57" />
 </launch>

@@ -80,6 +80,7 @@ namespace dynamic_gap
         ros::Publisher dyn_egocircle_pub;
         
         ros::Subscriber rbt_accel_sub;
+        ros::Subscriber agent_vel_sub;
         // ros::Subscriber rbt_vel_sub;
 
         std::vector<int> simp_association;
@@ -183,6 +184,8 @@ namespace dynamic_gap
 
         double prev_pose_time;
         double prev_scan_time;
+
+        geometry_msgs::Vector3Stamped current_agent_vel;
 
     public:
         Planner();
@@ -352,6 +355,7 @@ namespace dynamic_gap
 
         std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck();
 
+        void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
     };
 }
 

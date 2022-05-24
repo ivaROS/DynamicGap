@@ -41,7 +41,7 @@ namespace dynamic_gap{
         term_x2 = (selectedGap.convex.terminal_rdist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
         term_y2 = (selectedGap.convex.terminal_rdist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
 
-        // std::cout << "is gap axial: " << selectedGap.isSwept() << std::endl;
+        // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
         //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
         //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
         //std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
@@ -163,7 +163,7 @@ namespace dynamic_gap{
         //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
         
         /*
-        clf_cbf clf_cbf_dyn(selectedGap.isSwept(),
+        clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
                             cfg_->gap_manip.K_des,
                             cfg_->gap_manip.cbf_param,
                             cfg_->gap_manip.K_acc,
@@ -204,7 +204,7 @@ namespace dynamic_gap{
         
         polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                             initial_goal_x, initial_goal_y,
-                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isSwept(),
+                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(),
                             cfg_->gap_manip.sigma, x[0], x[1], cfg_->gap_manip.K_acc);
         
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();

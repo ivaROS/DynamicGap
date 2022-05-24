@@ -156,25 +156,29 @@ namespace dynamic_gap {
         int left_counter = 0;
         bool changed = true;
 
+        int num_raw_gaps = (int) raw_gaps.size();
         //std::cout << "running MergeGapsOneGo: " << std::endl;
-        for (int i = 0; i < (int) raw_gaps.size(); i++)
+        for (int i = 0; i < num_raw_gaps; i++)
         {
-            //std::cout << "i: " << i << std::endl;
+            //std::cout << "raw gap " << i << " of " << num_raw_gaps << ": " << std::endl;
+            //std::cout << "axial: " << raw_gaps[i].isAxial() << ", left: " << raw_gaps[i].isLeftType() << std::endl;
+            //std::cout << "points: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+            //std::cout << "---" << std::endl;
             // if we are starting merging, this raw gap is swept, and left dist < right dist, then we may be able to merge
-            if (mark_to_start && raw_gaps.at(i).isSwept() && raw_gaps.at(i).isLeftType())
+            if (mark_to_start && raw_gaps.at(i).isAxial() && raw_gaps.at(i).isLeftType())
             {   
                 mark_to_start = false;
-                simplified_gaps.push_back(raw_gaps[i]);
                 //std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                simplified_gaps.push_back(raw_gaps[i]);
             } else {
                 if (!mark_to_start) // if we have already found a mergable gap
                 {
-                    if (raw_gaps.at(i).isSwept()) // if gap is swept
+                    if (raw_gaps.at(i).isAxial()) // if gap is axial
                     {
                         if (raw_gaps.at(i).isLeftType()) // if l_dist < r_dist
                         {
-                            simplified_gaps.push_back(raw_gaps[i]);
                             //std::cout << "adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                            simplified_gaps.push_back(raw_gaps[i]);
                         }
                         else
                         {
@@ -184,6 +188,7 @@ namespace dynamic_gap {
 
                             float coefs = cfg_->planning.planning_inflated ? 0 : 2;
                             // iterating backwards through simplified gaps to see if they can be merged
+                            //std::cout << "attempting merge" << std::endl;
                             for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
                             {
                                 int start_idx = std::min(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
@@ -195,7 +200,7 @@ namespace dynamic_gap {
                                                    simplified_gaps[j].LDist() <= (min_dist - coefs * cfg_->rbt.r_inscr);
                                 
                                 // left type just means if left side distance is less than right side distance
-                                bool dist_diff = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isSwept();
+                                bool dist_diff = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isAxial();
                                 // making sure that this merged gap is not too large?
                                 bool idx_diff = raw_gaps[i].RIdx() - simplified_gaps[j].LIdx() < cfg_->gap_manip.max_idx_diff;
                                 if (second_test && dist_diff && idx_diff) {
@@ -209,21 +214,21 @@ namespace dynamic_gap {
                                 simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                                 //std::cout << "merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
                             } else {
-                                simplified_gaps.push_back(raw_gaps.at(i));
                                 //std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                                simplified_gaps.push_back(raw_gaps.at(i));
                             }
                         }
                     }
                     else
                     { // If current raw gap is radial
                         float curr_rdist = raw_gaps.at(i).RDist();
-                        if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isSwept() && simplified_gaps.back().isLeftType())
+                        if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isLeftType())
                         {
-                            simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                             //std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                            simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                         } else {
-                            simplified_gaps.push_back(raw_gaps[i]);
                             //std::cout << "adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                            simplified_gaps.push_back(raw_gaps[i]);
 
                             //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
                         }

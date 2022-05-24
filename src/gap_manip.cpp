@@ -442,7 +442,7 @@ namespace dynamic_gap {
 
     void GapManipulator::convertAxialGap(dynamic_gap::Gap& gap, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
         // Return if not axial gap or disabled
-        if (!gap.isSwept(initial) || !cfg_->gap_manip.axial_convert) {
+        if (!gap.isAxial(initial) || !cfg_->gap_manip.axial_convert) {
             return;
         }
         std::cout << "~running convertAxialGap~" << std::endl;

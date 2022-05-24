@@ -75,7 +75,7 @@ namespace dynamic_gap
 
                 if (!_axial)
                 {
-                    _axial = isSwept();
+                    _axial = isAxial();
                 }
 
                 convex.convex_lidx = _left_idx;
@@ -90,7 +90,7 @@ namespace dynamic_gap
 
                 if (!_terminal_axial)
                 {
-                    _terminal_axial = isSwept();
+                    _terminal_axial = isAxial();
                 }
 
                 convex.terminal_lidx = terminal_lidx;
@@ -222,7 +222,7 @@ namespace dynamic_gap
                 return right_obs;
             }
 
-            bool isSwept(bool initial = true)
+            bool isAxial(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
                 int check_l_idx = initial ? _left_idx : terminal_lidx;
@@ -232,13 +232,12 @@ namespace dynamic_gap
 
                 float resoln = M_PI / half_scan;
                 float gap_angle = (check_r_idx - check_l_idx) * resoln;
-                if (gap_angle < 0) { gap_angle += 2*M_PI; }
                 // std::cout << "gap_angle: " << gap_angle << std::endl;
                 float short_side = left_type ? check_l_dist : check_r_dist;
                 // law of cosines
                 float opp_side = (float) sqrt(pow(check_l_dist, 2) + pow(check_r_dist, 2) - 2 * check_l_dist * check_r_dist * (float)cos(gap_angle));
                 // law of sines
-                float small_angle = (float) asin(short_side / opp_side * (float) sin(gap_angle));
+                float small_angle = (float) asin(short_side / (opp_side * (float) sin(gap_angle)));
                 // std::cout << "small angle: " << small_angle << std::endl;
                 if (initial) {
                     _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;

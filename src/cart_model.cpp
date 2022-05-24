@@ -14,8 +14,10 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
+namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
@@ -42,26 +44,36 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
 
         // MEASUREMENT NOISE
-        R << 0.015, 0.0,
-             0.0, 0.015;
+        // Ran some tests to see variance of gap detection, roughly got this value
+        // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
+        R << 0.001, 0.0,
+             0.0, 0.001;
 
         // PROCESS NOISE
-        Q << 0.02, 0.0, 0.0, 0.0,
-             0.0, 0.02, 0.0, 0.0,
-             0.0, 0.0, 0.15, 0.0,
-             0.0, 0.0, 0.0, 0.15;
+        // what are we not modeling?
+        // angular acceleration.
+        // latency.
+
+        Q << 0.001, 0.0, 0.0, 0.0,
+             0.0, 0.001, 0.0, 0.0,
+             0.0, 0.0, 0.04, 0.0,
+             0.0, 0.0, 0.0, 0.04;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
-        x << init_r * std::cos(init_beta),
-             init_r * std::sin(init_beta),
+        std::vector<double> measurement{init_r * std::cos(init_beta), init_r * std::sin(init_beta), v_rel_x, v_rel_y};
+
+        x << measurement[0],
+             measurement[1],
              v_rel_x,
              v_rel_y;
 
+        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
+        // larger P_0 helps with GT values that are non-zero
         P << 0.001, 0.0, 0.0, 0.0,
              0.0, 0.001, 0.0, 0.0,
-             0.0, 0.0, 0.25, 0.0,
-             0.0, 0.0, 0.0, 0.25;
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -92,11 +104,14 @@ namespace dynamic_gap {
         frozen_x << 0.0, 0.0, 0.0, 0.0;
 
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
-        omega_rbt_prev = 0.0;
         linear_acc_ego << 0.0, 0.0;
         linear_vel_ego << 0.0, 0.0;
         ang_vel_ego = 0.0;
         initialized = true;
+        life_time = 0.0;
+        std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
+        previous_states.push_back(state);
+        previous_measurements.push_back(measurement);
     }
 
     void cart_model::copy_model() {
@@ -198,9 +213,12 @@ namespace dynamic_gap {
     }
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
-                                    Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, bool print) {
+                                    Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, 
+                                    bool print, geometry_msgs::Vector3Stamped agent_vel) {
         t = ros::Time::now().toSec();
         dt = t - t0;
+        life_time += dt;
+        std::cout << "model lifetime: " << life_time << std::endl;
         // acceleration comes in wrt robot frame
         linear_acc_ego << _a_ego[0], _a_ego[1];
         linear_vel_ego << _v_ego[0], _v_ego[1];
@@ -286,7 +304,61 @@ namespace dynamic_gap {
         P = (MatrixXd::Identity(4,4) - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
-        omega_rbt_prev = _v_ego[2];
+
+        if (life_time <= 10.0 && !plotted) {
+            std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
+            std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
+            std::cout << "ego velocity: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+            std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
+            previous_states.push_back(state);
+            previous_measurements.push_back(ground_truths);
+        }
+
+        if (life_time > 10.0 && !plotted) {
+            plot_states();
+        }
+    }
+
+    void cart_model::plot_states() {
+        std::cout << "in plot states" << std::endl;
+        int n = previous_states.size();
+        std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n);
+        for(int i=0; i < previous_states.size(); i++) {
+            t.at(i) = previous_states[i][0];
+            r_xs.at(i) = previous_states[i][1];
+            r_ys.at(i) = previous_states[i][2];
+            v_xs.at(i) = previous_states[i][3];
+            v_ys.at(i) = previous_states[i][4];
+            r_xs_GT.at(i) = previous_measurements[i][0];
+            r_ys_GT.at(i) = previous_measurements[i][1];
+            v_xs_GT.at(i) = previous_measurements[i][2];
+            v_ys_GT.at(i) = previous_measurements[i][3];
+        }
+
+        std::cout << "position plot" << std::endl;
+        // Set the size of output image to 1200x780 pixels
+        plt::figure_size(1200, 780);
+        // Plot line from given x and y data. Color is selected automatically.
+        plt::scatter(t, r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
+        plt::scatter(t, r_ys_GT, 25.0, {{"label", "r_y (GT)"}});
+        plt::scatter(t, r_xs, 25.0, {{"label", "r_x"}});
+        plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
+        //plt::xlim(4, 10);
+        plt::legend();
+        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
+        plt::close();
+
+        std::cout << "velocity plot" << std::endl;
+        plt::figure_size(1200, 780);
+        plt::scatter(t, v_xs_GT, 25.0, {{"label", "v_x (GT)"}});
+        plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
+        plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
+        plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
+        //plt::xlim(4, 10);
+        plt::legend();
+        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
+        plt::close();
+        plotted = true;
     }
 
     Eigen::Vector4d cart_model::get_cartesian_state() {

@@ -40,8 +40,9 @@ namespace dynamic_gap
         ni_traj_pub_other = nh.advertise<visualization_msgs::MarkerArray>("other_ni_traj", 5);
         dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
 
+        std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        // rbt_vel_sub = nh.subscribe(cfg.robot_frame_id + "/current_vel", 100, &Planner::robotVelCB, this);
+        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -305,10 +306,10 @@ namespace dynamic_gap
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, current_agent_vel);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, current_agent_vel);
         }
     }
 
@@ -371,6 +372,23 @@ namespace dynamic_gap
 
         current_rbt_vel = msg->twist.twist;
         
+    }
+
+    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
+
+        std::string source_frame = "robot0";
+        std::cout << "in agentOdomCB" << std::endl;
+        std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
+        geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
+        geometry_msgs::Vector3Stamped in_vel, out_vel;
+        in_vel.header = msg->header;
+        in_vel.header.frame_id = source_frame;
+        in_vel.vector = msg->twist.twist.linear;
+        std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
+        tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
+        std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
+
+        current_agent_vel = out_vel;
     }
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
@@ -1011,8 +1029,8 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> prev_raw_gaps = previous_raw_gaps;
         std::vector<dynamic_gap::Gap> prev_observed_gaps = previous_gaps;  
 
-        std::vector<int> _raw_association = raw_association;
-        std::vector<int> _simp_association = simp_association;
+        //std::vector<int> _raw_association = raw_association;
+        //std::vector<int> _simp_association = simp_association;
 
         //std::cout << "curr_raw_gaps size: " << curr_raw_gaps.size() << std::endl;
         //std::cout << "curr_observed_gaps size: " << curr_observed_gaps.size() << std::endl;
@@ -1028,7 +1046,7 @@ namespace dynamic_gap
         //printGapModels(curr_raw_gaps);
 
         //std::cout << "pulled current simplified associations:" << std::endl;
-        printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
+        //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
         
         std::cout << "current simplified gaps:" << std::endl;
         printGapModels(curr_observed_gaps);
