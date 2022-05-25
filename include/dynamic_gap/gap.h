@@ -286,7 +286,7 @@ namespace dynamic_gap
             }
 
             void setCategory(std::string _category) {
-                std::cout << "setting category to: " << _category << std::endl;
+                //std::cout << "setting category to: " << _category << std::endl;
                 category = _category;
             }
 
@@ -355,13 +355,13 @@ namespace dynamic_gap
                     }
                 }
 
-                std::cout << "x1,y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")" << std::endl;
+                ROS_INFO_STREAM("x1,y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")");
             }   
             
             bool no_valid_slice = false;
             bool goal_within = false;
             bool goal_dir_within = false;
-            double gap_lifespan = 0.0;
+            double gap_lifespan = 5.0   ;
             bool agc = false;
 
             int _left_idx = 0;

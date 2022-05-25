@@ -63,7 +63,7 @@ namespace dynamic_gap {
 	vector<vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
 															std::vector<dynamic_gap::Gap> previous_gaps, 
 															std::string ns) {
-		
+		double start_time = ros::Time::now().toSec(); 
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
 		//std::cout << "getting previous points:" << std::endl;
@@ -91,6 +91,8 @@ namespace dynamic_gap {
         }
 
 		return distMatrix;
+
+		// ROS_INFO_STREAM("obtainDistMatrix time elapsed: " << ros::Time::now().toSec() - start_time);
 	}
 	
 
@@ -101,7 +103,7 @@ namespace dynamic_gap {
 									std::vector<dynamic_gap::Gap> previous_gaps,
 									Matrix<double, 1, 3> v_ego,
 									int * model_idx){
-		
+		double start_time = ros::Time::now().toSec();
 		// initializing models for current gaps
 		double init_r, init_beta;
 
@@ -123,12 +125,7 @@ namespace dynamic_gap {
 			// the values in associations are indexes for observed gaps
 			int previous_gap_idx = association[i];
 			std::vector<int> pair{i, previous_gap_idx};
-			/*
-			std::cout << "pair " << pair[0] << ", " << pair[1] << ". ";
-			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0))) {
-				std::cout << "Distance: " << distMatrix[pair[0]][pair[1]] << std::endl;
-			}
-			*/
+
 			// printGapAssociations(observed_gaps, previous_gaps, association);
 
 			
@@ -155,12 +152,15 @@ namespace dynamic_gap {
 			}
 			*/
 		}
-		
+
+		//ROS_INFO_STREAM("assignModels time elapsed: " << ros::Time::now().toSec() - start_time); 
 	}
         
 
 	std::vector<int> GapAssociator::associateGaps(vector< vector<double> > distMatrix) {
 		// NEW ASSIGNMENT OBTAINED
+		//double start_time = ros::Time::now().toSec();
+
 		// std::cout << "obtaining new assignment" << std::endl;
 		std::vector<int> association;
         if (distMatrix.size() > 0 && distMatrix[0].size() > 0) {
@@ -169,6 +169,7 @@ namespace dynamic_gap {
 			//std::cout << "done solving" << std::endl;
         }
 
+		//ROS_INFO_STREAM("associateGaps time elapsed: " << ros::Time::now().toSec() - start_time);
         return association;
     }
 

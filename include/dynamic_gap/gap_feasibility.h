@@ -25,7 +25,7 @@ namespace dynamic_gap {
 
 
             bool indivGapFeasibilityCheck(dynamic_gap::Gap& gap);
-            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, double gap_angle);
+            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             double gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             double indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_);

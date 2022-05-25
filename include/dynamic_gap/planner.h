@@ -247,14 +247,6 @@ namespace dynamic_gap
         void updateTF();
 
         /**
-         * select the gap to pass through based on where the goal is
-         * TODO: make this polymorphism so more than one strategy can be adopted
-         * @param selected_gap that will be returned by the same variable
-         * @return selected_gap via the passed in variable
-         */
-        void vectorSelectGap(dynamic_gap::Gap & selected_gap);
-
-        /**
          * Generate ctrl command to a target pose
          * TODO: fix vector pop and get rid of pose_counter
          * @param pose_arr_odom

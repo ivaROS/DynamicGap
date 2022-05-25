@@ -379,7 +379,7 @@ namespace dynamic_gap{
         right_model_vel_pt.points.push_back(right_vel_pt);
         Eigen::Vector2d right_vel(g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
                                  g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
-        std::cout << "visualizing right gap only vel: " << right_vel[0] << ", " << right_vel[1] << std::endl;
+        // std::cout << "visualizing right gap only vel: " << right_vel[0] << ", " << right_vel[1] << std::endl;
         right_vel_pt.x = right_model_pt.pose.position.x + right_vel[0];
         right_vel_pt.y = right_model_pt.pose.position.y + right_vel[1];
         right_model_vel_pt.points.push_back(right_vel_pt);

@@ -42,7 +42,7 @@ namespace dynamic_gap {
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0;
-
+        H_transpose = H.transpose();
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
@@ -58,6 +58,7 @@ namespace dynamic_gap {
              0.0, 0.1, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0,
              0.0, 0.0, 0.0, 1.0;
+        dQ = Q;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -93,16 +94,9 @@ namespace dynamic_gap {
              0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0;
+        Ad = A;
+        Ad_transpose = A;
 
-        Ad << 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0;
-
-        dQ << 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0;
 
         frozen_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -113,7 +107,10 @@ namespace dynamic_gap {
         initialized = true;
         life_time = 0.0;
         life_time_threshold = 2.0;
-
+        eyes_state = MatrixXd::Identity(4,4);
+        new_P = eyes_state;
+        inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
+        x_update << 0.0, 0.0, 0.0, 0.0;
         //std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
         //previous_states.push_back(state);
         //previous_measurements.push_back(measurement);
@@ -182,16 +179,15 @@ namespace dynamic_gap {
     
 
     void cart_model::integrate() {
-        Matrix<double, 4, 1> new_x;
-        new_x << 0.0, 0.0, 0.0, 0.0;
-
         double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
         double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
 
-        new_x[0] = x[0] + (x[2] + x[1]*ang_vel_ego)*dt; // r_x
-        new_x[1] = x[1] + (x[3] - x[0]*ang_vel_ego)*dt; // r_y
-        new_x[2] = x[2] + (x[3]*ang_vel_ego - vdot_x_body)*dt; // v_x
-        new_x[3] = x[3] + (-x[2]*ang_vel_ego - vdot_y_body)*dt; // v_y
+        Matrix<double, 4, 1> new_x;
+        new_x << x[0] + (x[2] + x[1]*ang_vel_ego)*dt, // r_x
+                 x[1] + (x[3] - x[0]*ang_vel_ego)*dt, // r_y
+                 x[2] + (x[3]*ang_vel_ego - vdot_x_body)*dt, // v_x
+                 x[3] + (-x[2]*ang_vel_ego - vdot_y_body)*dt; // v_y
+        
         x = new_x;
     }
 
@@ -205,14 +201,20 @@ namespace dynamic_gap {
               -ang_vel_ego*dt, 1.0, 0.0, dt,
               0.0, 0.0, 1.0, ang_vel_ego*dt,
               0.0, 0.0, -ang_vel_ego*dt, 1.0;
+
+        Ad_transpose << 1.0, -ang_vel_ego*dt, 0.0, 0.0,
+                        ang_vel_ego*dt, 1.0, 0.0, 0.0,
+                        dt, 0.0, 1.0, -ang_vel_ego*dt,
+                        0.0, dt, ang_vel_ego*dt, 1.0;
         // std::cout << "Ad in linearize: " << Ad << std::endl;
     }
 
     void cart_model::discretizeQ() {
         dQ = Q * dt;
 
-        Matrix<double, 4, 4> M2 = 0.5 * dt * ((A * dQ).transpose() + A * dQ);
-        Matrix<double, 4, 4> M3 = 0.3333 * dt * dt * (A * dQ).transpose();
+        Matrix<double, 4, 4> A_dQ_transpose = (A * dQ).transpose();
+        Matrix<double, 4, 4> M2 = 0.5 * dt * (A_dQ_transpose + A * dQ);
+        Matrix<double, 4, 4> M3 = 0.3333 * dt * dt * A_dQ_transpose;
 
         dQ = dQ + M2 + M3;
     }
@@ -223,7 +225,7 @@ namespace dynamic_gap {
         t = ros::Time::now().toSec();
         dt = t - t0;
         life_time += dt;
-        std::cout << "model lifetime: " << life_time << std::endl;
+        //std::cout << "model lifetime: " << life_time << std::endl;
         // acceleration comes in wrt robot frame
         linear_acc_ego << _a_ego[0], _a_ego[1];
         linear_vel_ego << _v_ego[0], _v_ego[1];
@@ -235,39 +237,49 @@ namespace dynamic_gap {
         //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
         //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
-        if (get_initialized()) {
-            set_initialized(false);
-            return;
-        } 
+        //if (get_initialized()) {
+        //    set_initialized(false);
+        //    return;
+        //} 
         
-        if (print) {
-            std::cout << "update for model " << get_index() << std::endl;
-            std::cout << "linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego << std::endl;
-            std::cout << "linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1] << std::endl;
-            std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        }
+        //if (print) {
+        //ROS_INFO_STREAM("update for model " << get_index());
+        //ROS_INFO_STREAM("linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego);
+        //ROS_INFO_STREAM("linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1]);
+        //ROS_INFO_STREAM("x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+        //}
+        //check_time1 = ros::Time::now().toSec(); 
         integrate();
+        //std::cout << "integrate time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
         // cart_state = get_cartesian_state();
-        if (print) {
-            std::cout << "x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-        }
+        //if (print) {
+        //ROS_INFO_STREAM("x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+        //}
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
         // std::cout << "x after integration" << x << std::endl;
         // std::cout<< "linearizing" << std::endl;
+        //check_time1 = ros::Time::now().toSec(); 
         linearize();
+        //std::cout << "linearize time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
+        
         // std::cout<< "discretizing Q" << std::endl;
+        //check_time1 = ros::Time::now().toSec(); 
         discretizeQ();
+        //std::cout << "discretizeQ time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
 
         //std::cout<< "estimating covariance matrix" << std::endl;
         //std::cout << "Ad: " << Ad << std::endl;
         //std::cout << "initial P: " << P << std::endl;
-        Matrix<double, 4, 4> Ad_transpose = Ad.transpose();
+        //Matrix<double, 4, 4> Ad_transpose = ;
         // std::cout << "Ad_transpose: " << Ad_transpose << std::endl;
         //std::cout << "dQ: " << dQ << std::endl;
 
-        Matrix<double, 4, 4> new_P = Ad * P * Ad_transpose + dQ;
+        //check_time1 = ros::Time::now().toSec(); 
+        new_P = Ad * P * Ad_transpose + dQ;
+        //std::cout << "Ad transpose time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
+
         // std::cout << "new_P: " << new_P << std::endl;
         P = new_P;
         // std::cout << "P: " << P << std::endl;
@@ -275,39 +287,46 @@ namespace dynamic_gap {
         //std::cout<< "updating Kalman gain" << std::endl;
 
         //std::cout << "H: " << H << std::endl;
-        Matrix<double, 4, 2> H_transpose = H.transpose();
         // std::cout << "H_transpose: " << H_transpose << std::endl;
         //std::cout << "R: " << R << std::endl;
         tmp_mat = H*P*H_transpose + R;
         // std::cout << "tmp_mat: " << tmp_mat << std::endl;
-        Matrix<double, 2, 2> inverted_tmp_mat = tmp_mat.inverse();
+        //double det = 1.0 / (tmp_mat.coeff(0,0)*tmp_mat.coeff(1,1) - tmp_mat.coeff(0,1)*tmp_mat.coeff(1, 0));
+        //
+        //inverted_tmp_mat << det*tmp_mat.coeff(1,1), det*-tmp_mat.coeff(0,1),
+        //                    det*-tmp_mat.coeff(1, 0), det*tmp_mat.coeff(0,0);
+
+        //check_time1 = ros::Time::now().toSec(); 
+        inverted_tmp_mat = tmp_mat.inverse();
+        //std::cout << "Inversion time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
+         
         // std::cout << "tmp_mat inverse: " << inverted_tmp_mat << std::endl;
-        Matrix<double, 4, 2> P_H_prod = P * H_transpose;
+        //Matrix<double, 4, 2> P_H_prod = ;
         //std::cout << "P_H_prod: " << P_H_prod << std::endl;
         //std::cout << "inverted tmp mat: " << inverted_tmp_mat << std::endl;
-        G = P_H_prod * inverted_tmp_mat;
+        G = P * H_transpose * inverted_tmp_mat;
         // std::cout << "G: " << G << std::endl;
         //std::cout << "error: " << y_tilde - H*y << std::endl;
         //std::cout<< "updating state" << std::endl;
 
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        if (print) {
-            std::cout << "x_tilde: " << x_tilde[0] << ", " << x_tilde[1] << std::endl;
-        }
+        //if (print) {
+        //ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+        //}
 
         // std::cout << "P: " << P << std::endl;
-        Matrix<double, 4, 1> x_update_mat = G*(x_tilde - H*x);
+        x_update = G*(x_tilde - H*x);
         // std::cout << "actual update to x: " << x_update_mat << std::endl;
-        x = x + x_update_mat;
+        x += x_update;
 
         // cart_state = get_cartesian_state();
-        if (print) {
-            std::cout << "x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
-            std::cout << "-----------" << std::endl;
-        }
+        //if (print) {
+        //ROS_INFO_STREAM("x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+        //ROS_INFO_STREAM("-----------");
+        //}
         //std::cout<< "updating covariance matrix" << std::endl;
-        P = (MatrixXd::Identity(4,4) - G*H)*P;
+        P = (eyes_state - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         /*

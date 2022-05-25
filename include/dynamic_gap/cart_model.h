@@ -16,6 +16,7 @@ namespace dynamic_gap {
         private:
             int n;
             Matrix<double, 2, 4> H; // observation matrix
+            Matrix<double, 4, 2> H_transpose;
             Matrix2d R; // measurement noise matrix
             Matrix<double, 4, 4> Q; // covariance noise matrix
             Matrix<double, 4, 4> dQ; // discretized covariance noise matrix
@@ -39,7 +40,7 @@ namespace dynamic_gap {
 
             Matrix<double, 4, 4> A;
             Matrix<double, 4, 4> Ad;
-
+            Matrix<double, 4, 4> Ad_transpose;
             std::string side;
             int index;
             double omega_rbt_prev;
@@ -55,6 +56,11 @@ namespace dynamic_gap {
             std::vector< std::vector<double>> previous_measurements;
             bool plotted = false;
             double life_time_threshold;
+            Matrix<double, 4, 4> eyes_state;
+            double check_time1;
+            Matrix<double, 4, 4> new_P;
+            Matrix<double, 2, 2> inverted_tmp_mat;
+            Matrix<double, 4, 1> x_update;
 
         public:
 

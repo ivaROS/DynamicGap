@@ -26,32 +26,21 @@ namespace dynamic_gap {
         Eigen::Vector2f pg = (pl + pr) / 2.0;
 
         // FLIPPING MODELS HERE
-        std::cout << "FLIPPING MODELS TO GET L/R FROM ROBOT POV" << std::endl;
+        //std::cout << "FLIPPING MODELS TO GET L/R FROM ROBOT POV" << std::endl;
         dynamic_gap::cart_model* left_model = gap.right_model;
         dynamic_gap::cart_model* right_model = gap.left_model;
 
-        auto left_ori = gap.convex.convex_lidx * msg.get()->angle_increment + msg.get()->angle_min;
-        auto right_ori = gap.convex.convex_ridx * msg.get()->angle_increment + msg.get()->angle_min;
-
-        double gap_angle = right_ori - left_ori;
-        if (gap_angle < 0) {
-            gap_angle += (2*M_PI);
-        }
-
         // FEASIBILITY CHECK
         // std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
-        std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
-        feasible = feasibilityCheck(gap, left_model, right_model, gap_angle);
-
-        if (feasible) {
-            std::cout << "gap is feasible" << std::endl;
-        } else {
-            std::cout << "gap is not feasible" << std::endl;
-        }
+        //std::cout << "left idx: " << gap.convex.convex_lidx << ", right idx: " << gap.convex.convex_ridx << std::endl;
+        double start_time = ros::Time::now().toSec();
+        feasible = feasibilityCheck(gap, left_model, right_model);
+        ROS_INFO_STREAM("feasibilityCheck time elapsed:" << ros::Time::now().toSec() - start_time);
+        ROS_INFO_STREAM("is gap feasible: " << feasible);
         return feasible;
     }
 
-    bool GapFeasibilityChecker::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, double gap_angle) {
+    bool GapFeasibilityChecker::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         bool feasible = false;
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
         Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
@@ -66,7 +55,9 @@ namespace dynamic_gap {
 
         double left_betadot = frozen_left_model_state[3];
         double right_betadot = frozen_right_model_state[3];
+        double start_time = ros::Time::now().toSec();
         double crossing_time = gapSplinecheck(gap, left_model, right_model);
+        ROS_INFO_STREAM("gapSplinecheck time elapsed:" << ros::Time::now().toSec() - start_time);
 
         double min_betadot = std::min(left_betadot, right_betadot);
         double subtracted_left_betadot = left_betadot - min_betadot;
@@ -85,41 +76,6 @@ namespace dynamic_gap {
             gap.setCategory("closing");
         }
 
-        /*
-        std::cout << "left betadot check: " << left_betadot_check << ", right betadot check: " << right_betadot_check << std::endl;
-        if ((left_betadot_check >= 0  && right_betadot_check > 0) || (left_betadot_check <= 0  && right_betadot_check < 0 )) {
-            // CATEGORY 1: TRANSLATING     
-            std::cout << "translating gap" << std::endl;
-            gap.setCategory("translating");
-            if (left_betadot_check - right_betadot_check > 0) {
-                feasible = true;
-                // double crossing_time = gapSplinecheck(gap, left_model, right_model);
-                gap.gap_lifespan = cfg_->traj.integrate_maxt;
-            } else {
-                // double crossing_time = gapSplinecheck(gap, left_model, right_model);
-                if (crossing_time >= 0) {
-                    feasible = true;
-                    gap.gap_lifespan = crossing_time;
-                }
-            }
-        } else if (left_betadot_check <= 0 && right_betadot_check >= 0)  {
-            // CATEGORY 2: STATIC/CLOSING
-            std::cout << "static/closing gap" << std::endl;
-            gap.setCategory("closing");
-            // double crossing_time = gapSplinecheck(gap, left_model, right_model);
-            if (crossing_time >= 0) {
-                feasible = true;
-                gap.gap_lifespan = crossing_time;
-            }
-        } else {
-            // CATEGORY 3: EXPANDING
-            std::cout << "expanding gap" << std::endl;
-            gap.setCategory("expanding");
-            feasible = true;
-            // double crossing_time = gapSplinecheck(gap, left_model, right_model);
-            gap.gap_lifespan = cfg_->traj.integrate_maxt;
-        }
-        */
         return feasible;
     }
     
@@ -138,9 +94,11 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
         y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
 
-        std::cout << "actual gap left: (" << x2 << ", " << y2 << "), actual gap right: (" << x1 << ", " << y1 << ")" << std::endl;
+        //std::cout << "actual gap left: (" << x2 << ", " << y2 << "), actual gap right: (" << x1 << ", " << y1 << ")" << std::endl;
         Eigen::Vector2f crossing_pt(0.0, 0.0);
+        double start_time = ros::Time::now().toSec();
         double crossing_time = indivGapFindCrossingPoint(gap, crossing_pt, left_model, right_model);
+        ROS_INFO_STREAM("indivGapFindCrossingPoint time elapsed:" << ros::Time::now().toSec() - start_time);
 
         Eigen::Vector2f starting_pos(0.0, 0.0);
         Eigen::Vector2f starting_vel(left_model->get_v_ego()[0], left_model->get_v_ego()[1]);
@@ -149,9 +107,10 @@ namespace dynamic_gap {
         if (crossing_pt.norm() > 0) {
             ending_vel << starting_vel.norm() * crossing_pt[0] / crossing_pt.norm(), starting_vel.norm() * crossing_pt[1] / crossing_pt.norm();
         } 
-        std::cout << "starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1] << std::endl;
-        std::cout << "ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1] << std::endl;
+        //std::cout << "starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1] << std::endl;
+        //std::cout << "ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1] << std::endl;
         
+        start_time = ros::Time::now().toSec();
         Eigen::MatrixXf A_x = MatrixXf::Random(4,4);
         Eigen::VectorXf b_x = VectorXf::Random(4);
         A_x << 1.0, 0.0, 0.0, 0.0,
@@ -161,7 +120,7 @@ namespace dynamic_gap {
         //std::cout << "A_x: " << A_x << std::endl;
         b_x << starting_pos[0], starting_vel[0], crossing_pt[0], ending_vel[0];
         //std::cout << "b_x: " << b_x << std::endl;
-        Eigen::Vector4f coeffs = A_x.bdcSvd(ComputeThinU | ComputeThinV).solve(b_x);
+        Eigen::Vector4f coeffs = A_x.partialPivLu().solve(b_x);
         // std::cout << "x coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
         double peak_velocity_x = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
         // std::cout << "peak velocity x: " << peak_velocity_x << std::endl;
@@ -175,11 +134,12 @@ namespace dynamic_gap {
         //std::cout << "A_y: " << A_y << std::endl;
         //std::cout << "b_y: " << b_y << std::endl;
         
-        coeffs = A_y.bdcSvd(ComputeThinU | ComputeThinV).solve(b_y);
-        std::cout << "y coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
+        coeffs = A_y.partialPivLu().solve(b_y);
+        //std::cout << "y coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
         double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
-        std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
-        
+        //std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
+        ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
+
         if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
             return crossing_time;
         } else {
@@ -188,7 +148,7 @@ namespace dynamic_gap {
     }
  
     double GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
-        std::cout << "determining crossing point" << std::endl;
+        //std::cout << "determining crossing point" << std::endl;
         Matrix<double, 4, 1> left_frozen_state = left_model->get_frozen_modified_polar_state();        
         Matrix<double, 4, 1> right_frozen_state = right_model->get_frozen_modified_polar_state();
 
@@ -219,13 +179,13 @@ namespace dynamic_gap {
 
         Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
         
-        std::cout << "initial beta left: (" << left_bearing_vect[0] << ", " << left_bearing_vect[1] << "), initial beta right: (" << right_bearing_vect[0] << ", " << right_bearing_vect[1] << "), initial beta center: (" << central_bearing_vect[0] << ", " << central_bearing_vect[1] << ")" << std::endl;
+        //std::cout << "initial beta left: (" << left_bearing_vect[0] << ", " << left_bearing_vect[1] << "), initial beta right: (" << right_bearing_vect[0] << ", " << right_bearing_vect[1] << "), initial beta center: (" << central_bearing_vect[0] << ", " << central_bearing_vect[1] << ")" << std::endl;
         
         Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
         Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
 
-        std::cout << "starting left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3] << std::endl; 
-        std::cout << "starting right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3] << std::endl;
+        //std::cout << "starting left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3] << std::endl; 
+        //std::cout << "starting right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3] << std::endl;
 
         // double beta_left, beta_right, beta_center;
        
@@ -237,7 +197,7 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> prev_right_frozen_state = right_frozen_state;        
         Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
 
-        for (double dt = cfg_->traj.integrate_stept; dt < cfg_->traj.integrate_maxt; dt += cfg_->traj.integrate_stept) {
+        for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
 
@@ -280,7 +240,7 @@ namespace dynamic_gap {
                     
                     range_closing_check = std::abs((1.0 / left_frozen_state[0]) - (1.0 / right_frozen_state[0])) < 4*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
                     if (range_closing_check) {
-                        std::cout << "gap closes at " << dt << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << std::endl; 
+                        ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1]); 
                         if ((1.0 / left_frozen_state[0]) < (1.0 / right_frozen_state[0])) {
                             //std::cout << "setting right equal to cross" << std::endl;
                             //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
@@ -302,12 +262,12 @@ namespace dynamic_gap {
                         gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
                         gap.gap_closed = true;
                         // gap.gap_crossed = true;
-                        return dt;
+                        return t;
                     } else {
                         if (first_cross) {
                             double mid_x = (left_frozen_cartesian_state[0] + right_frozen_cartesian_state[0]) / 2;
                             double mid_y = (left_frozen_cartesian_state[1] + right_frozen_cartesian_state[1]) / 2;
-                            std::cout << "gap crosses but does not close at " << dt << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << std::endl; 
+                            ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1]); 
                             gap.setCrossingPoint(mid_x, mid_y);
                             first_cross = false;
                             float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
@@ -338,7 +298,7 @@ namespace dynamic_gap {
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             
-            std::cout << "no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")" << std::endl;
+            ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")");
             int left_idx = int((beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
             float left_dist = (1.0 / left_frozen_state[0]);
             int right_idx = int((beta_right - msg.get()->angle_min) / msg.get()->angle_increment);

@@ -6,13 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Map1
         - /MarkerArray1
-        - /Axes1
-        - /Axes2
-        - /MarkerArray2
-        - /MarkerArray3
-        - /MarkerArray4
+        - /Marker1
+        - /PoseArray1
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -41,24 +37,6 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.5
-      Cell Size: 1
-      Class: rviz/Grid
-      Color: 160; 160; 164
-      Enabled: false
-      Line Style:
-        Line Width: 0.029999999329447746
-        Value: Lines
-      Name: Grid
-      Normal Cell Count: 0
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Plane: XY
-      Plane Cell Count: 10
-      Reference Frame: <Fixed Frame>
-      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -91,6 +69,22 @@ Visualization Manager:
       Radius: 0.10000000149011612
       Reference Frame: robot1
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /robot0/marker
+      Name: Marker
+      Namespaces:
+        robot_position_markers: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /robot1/marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /pg_arcs
@@ -102,7 +96,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /gaps
+      Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
         {}
@@ -123,68 +117,6 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /pg_traj
       Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /move_base/TebLocalPlannerROS/local_plan
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /move_base/current_goal
-      Unreliable: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /pg_sides
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /robot0/marker
-      Name: Marker
-      Namespaces:
-        robot_position_markers: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /robot1/marker
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
@@ -208,22 +140,6 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         gap_models: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /robot2/marker
-      Name: Marker
-      Namespaces:
-        robot_position_markers: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /pg_sides
-      Name: MarkerArray
-      Namespaces:
-        manip: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -254,33 +170,13 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/LaserScan
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
+    - Class: rviz/MarkerArray
       Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
-      Name: LaserScan
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.009999999776482582
-      Style: Flat Squares
-      Topic: /robot1/mod_laser_0
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
+      Marker Topic: /all_traj_vis
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: false
   Enabled: true
   Global Options:
@@ -310,16 +206,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 38.31342697143555
+      Distance: 52.14708709716797
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.9644503593444824
-        Y: -2.9757654666900635
-        Z: -30.016117095947266
+        X: 0.6233484745025635
+        Y: -1.1881723403930664
+        Z: -30.0144100189209
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -328,7 +224,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.695394515991211
+      Yaw: 4.710394859313965
     Saved: ~
 Window Geometry:
   Displays:

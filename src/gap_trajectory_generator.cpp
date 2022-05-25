@@ -6,7 +6,7 @@ namespace dynamic_gap{
         geometry_msgs::PoseArray posearr;
         std::vector<double> timearr;
         posearr.header.stamp = ros::Time::now();
-        
+        double start_time = ros::Time::now().toSec();
         double coefs = cfg_->traj.scale;
         write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
         posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
@@ -58,7 +58,7 @@ namespace dynamic_gap{
         
         
         if (selectedGap.mode.convex) {
-            std::cout << "radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")" << std::endl;
+            //ROS_INFO_STREAM("radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")");
             selectedGap.goal.x -= selectedGap.qB(0);
             selectedGap.goal.y -= selectedGap.qB(1);
             selectedGap.terminal_goal.x -= selectedGap.qB(0);
@@ -112,12 +112,12 @@ namespace dynamic_gap{
         terminal_goal_x = selectedGap.terminal_goal.x * coefs;
         terminal_goal_y = selectedGap.terminal_goal.y * coefs;
 
-        std::cout << "actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
-        std::cout << "actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
-        std::cout << "actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")" << std::endl; 
-        std::cout << "actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")" << std::endl; 
-        std::cout << "actual initial left point: (" << x_left << ", " << y_left << "), original initial right point: (" << x_right << ", " << y_right << ")" << std::endl; 
-        std::cout << "actual terminal left point: (" << term_x_left << ", " << term_y_left << "), original terminal right point: (" << term_x_right << ", " << term_y_right << ")" << std::endl;
+        ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
+        ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
+        ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
+        //std::cout << "actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")" << std::endl; 
+        ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), original initial right point: (" << x_right << ", " << y_right << ")"); 
+        //std::cout << "actual terminal left point: (" << term_x_left << ", " << term_y_left << "), original terminal right point: (" << term_x_right << ", " << term_y_right << ")" << std::endl;
 
         Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
                                               y_left - ego_x[1],
@@ -127,8 +127,8 @@ namespace dynamic_gap{
                                                y_right - ego_x[1],
                                                ((term_x_right - x_right) / selectedGap.gap_lifespan) - curr_vel.linear.x,
                                                ((term_y_right - y_right) / selectedGap.gap_lifespan) - curr_vel.linear.y);
-        std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
-        std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
+        //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
+        //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
 
         //Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
         //Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
@@ -183,14 +183,14 @@ namespace dynamic_gap{
         // or if model is invalid?
         //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
         if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
-            std::cout << "discarding gap" << std::endl;
+            ROS_INFO_STREAM("discarding gap");
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
             return return_tuple;
         }
         
-        std::cout << "CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan << std::endl;
+        ROS_INFO_STREAM("CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan);
         if (selectedGap.gap_crossed) {
-            std::cout << "gap crossed, ignoring further point" << std::endl;
+            ROS_INFO_STREAM("gap crossed, ignoring further point");
         }
         // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
         //rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
@@ -227,6 +227,7 @@ namespace dynamic_gap{
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
         std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+        ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
         return return_tuple;
     }
 

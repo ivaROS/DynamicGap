@@ -13,6 +13,7 @@ namespace dynamic_gap {
     {
         //std::cout << "running hybridScanGap" << std::endl;
         // clear gaps
+        double start_time = ros::Time::now().toSec();
         std::vector<dynamic_gap::Gap> raw_gaps;
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         // get half scan value
@@ -35,7 +36,7 @@ namespace dynamic_gap {
         int wrap = 0;
 
         // iterating through scan
-        std::cout << "finding raw gaps: " << std::endl;
+        //std::cout << "finding raw gaps: " << std::endl;
         for (std::vector<float>::size_type it = 1; it < stored_scan_msgs.ranges.size(); ++it)
         {
             scan_dist = stored_scan_msgs.ranges[it];
@@ -136,6 +137,8 @@ namespace dynamic_gap {
                 //std::cout << "revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")" << std::endl;
             }
         }
+
+        //ROS_INFO_STREAM("hybridScanGap time elapsed: " << ros::Time::now().toSec() - start_time); 
         
         return raw_gaps;
     }
@@ -144,6 +147,8 @@ namespace dynamic_gap {
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
         std::vector<dynamic_gap::Gap>& raw_gaps)
     {
+        //double start_time = ros::Time::now().toSec();
+
         int observed_size = (int) raw_gaps.size();
         std::vector<dynamic_gap::Gap> simplified_gaps;
 
@@ -243,6 +248,7 @@ namespace dynamic_gap {
             }
             last_type_left = raw_gaps[i].isLeftType();
         }
+        //ROS_INFO_STREAM("mergeGapsOneGo time elapsed: " << ros::Time::now().toSec() - start_time); 
 
         // raw_gaps.clear();
         return simplified_gaps;

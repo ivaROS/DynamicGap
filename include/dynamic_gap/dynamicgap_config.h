@@ -146,7 +146,7 @@ namespace dynamic_gap {
             control.ctrl_ahead_pose = 2;
             control.vx_absmax = 0.5;
             control.vy_absmax = 0.5;
-            control.vang_absmax = 5.0;
+            control.vang_absmax = 0.5;
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
