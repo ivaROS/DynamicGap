@@ -53,8 +53,6 @@ namespace dynamic_gap {
 
     bool GapFeasibilityChecker::feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, double gap_angle) {
         bool feasible = false;
-        //Matrix<double, 5, 1> left_model_state = left_model->get_state();        
-        //Matrix<double, 5, 1> right_model_state = right_model->get_state();
         Matrix<double, 4, 1> left_cart_model_state = left_model->get_cartesian_state();
         Matrix<double, 4, 1> right_cart_model_state = right_model->get_cartesian_state();
        

@@ -46,34 +46,37 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.001, 0.0,
-             0.0, 0.001;
+        R << 0.5, 0.0,
+             0.0, 0.5;
 
         // PROCESS NOISE
         // what are we not modeling?
         // angular acceleration.
         // latency.
 
-        Q << 0.001, 0.0, 0.0, 0.0,
-             0.0, 0.001, 0.0, 0.0,
-             0.0, 0.0, 0.04, 0.0,
-             0.0, 0.0, 0.0, 0.04;
+        Q << 0.1, 0.0, 0.0, 0.0,
+             0.0, 0.1, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
-        std::vector<double> measurement{init_r * std::cos(init_beta), init_r * std::sin(init_beta), v_rel_x, v_rel_y};
+        std::vector<double> measurement{init_r * std::cos(init_beta), 
+                                        init_r * std::sin(init_beta), 
+                                        v_rel_x, 
+                                        v_rel_y};
 
         x << measurement[0],
              measurement[1],
-             v_rel_x,
-             v_rel_y;
+             0.0,
+             0.0;
 
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
-        P << 0.001, 0.0, 0.0, 0.0,
-             0.0, 0.001, 0.0, 0.0,
-             0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0;
+        P << 0.01, 0.0, 0.0, 0.0,
+             0.0, 0.01, 0.0, 0.0,
+             0.0, 0.0, 10.0, 0.0,
+             0.0, 0.0, 0.0, 10.0;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -109,9 +112,11 @@ namespace dynamic_gap {
         ang_vel_ego = 0.0;
         initialized = true;
         life_time = 0.0;
-        std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
-        previous_states.push_back(state);
-        previous_measurements.push_back(measurement);
+        life_time_threshold = 2.0;
+
+        //std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
+        //previous_states.push_back(state);
+        //previous_measurements.push_back(measurement);
     }
 
     void cart_model::copy_model() {
@@ -236,6 +241,7 @@ namespace dynamic_gap {
         } 
         
         if (print) {
+            std::cout << "update for model " << get_index() << std::endl;
             std::cout << "linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego << std::endl;
             std::cout << "linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1] << std::endl;
             std::cout << "x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << std::endl;
@@ -304,7 +310,7 @@ namespace dynamic_gap {
         P = (MatrixXd::Identity(4,4) - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
-
+        /*
         if (life_time <= 10.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
@@ -317,6 +323,7 @@ namespace dynamic_gap {
         if (life_time > 10.0 && !plotted) {
             plot_states();
         }
+        */
     }
 
     void cart_model::plot_states() {
@@ -335,8 +342,9 @@ namespace dynamic_gap {
             v_ys_GT.at(i) = previous_measurements[i][3];
         }
 
-        std::cout << "position plot" << std::endl;
+        //std::cout << "position plot" << std::endl;
         // Set the size of output image to 1200x780 pixels
+        //plt::subplot(1, 2, 1);
         plt::figure_size(1200, 780);
         // Plot line from given x and y data. Color is selected automatically.
         plt::scatter(t, r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
@@ -348,7 +356,7 @@ namespace dynamic_gap {
         plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
         plt::close();
 
-        std::cout << "velocity plot" << std::endl;
+        //std::cout << "velocity plot" << std::endl;
         plt::figure_size(1200, 780);
         plt::scatter(t, v_xs_GT, 25.0, {{"label", "v_x (GT)"}});
         plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
@@ -364,12 +372,24 @@ namespace dynamic_gap {
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
+        Eigen::Vector4d return_x;
+        if (life_time > life_time_threshold) {
+            return_x = x;
+        } else {
+            return_x << x[0], x[1], -v_ego[0], -v_ego[1];
+        }
         return x;
     }
 
     Eigen::Vector4d cart_model::get_frozen_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
+        Eigen::Vector4d return_x;
+        if (life_time > life_time_threshold) {
+            return_x = frozen_x;
+        } else {
+            return_x << x[0], x[1], 0.0, 0.0;
+        }
         return frozen_x;
     }
 
@@ -377,10 +397,11 @@ namespace dynamic_gap {
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4d mp_state;
-        mp_state << 1.0 / sqrt(pow(x[0], 2) + pow(x[1], 2)),
-                    std::atan2(x[1], x[0]),
-                    (x[0]*x[2] + x[1]*x[3]) / (pow(x[0], 2) + pow(x[1], 2)),
-                    (x[0]*x[3] - x[1]*x[2]) / (pow(x[0], 2) + pow(x[1], 2));
+        Eigen::Vector4d cart_state = get_cartesian_state();
+        mp_state << 1.0 / sqrt(pow(cart_state[0], 2) + pow(cart_state[1], 2)),
+                    std::atan2(cart_state[1], cart_state[0]),
+                    (cart_state[0]*cart_state[2] + cart_state[1]*cart_state[3]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2)),
+                    (cart_state[0]*cart_state[3] - cart_state[1]*cart_state[2]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2));
         return mp_state;
     }
 
@@ -388,23 +409,12 @@ namespace dynamic_gap {
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4d frozen_mp_state;
-        frozen_mp_state << 1.0 / sqrt(pow(frozen_x[0], 2) + pow(frozen_x[1], 2)),
-                           std::atan2(frozen_x[1], frozen_x[0]),
-                           (frozen_x[0]*frozen_x[2] + frozen_x[1]*frozen_x[3]) / (pow(frozen_x[0], 2) + pow(frozen_x[1], 2)),
-                           (frozen_x[0]*frozen_x[3] - frozen_x[1]*frozen_x[2]) / (pow(frozen_x[0], 2) + pow(frozen_x[1], 2));
+        Eigen::Vector4d frozen_cart_state = get_frozen_cartesian_state();
+        frozen_mp_state << 1.0 / sqrt(pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
+                           std::atan2(frozen_cart_state[1], frozen_cart_state[0]),
+                           (frozen_cart_state[0]*frozen_cart_state[2] + frozen_cart_state[1]*frozen_cart_state[3]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
+                           (frozen_cart_state[0]*frozen_cart_state[3] - frozen_cart_state[1]*frozen_cart_state[2]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2));
         return frozen_mp_state;
-    }
-
-    Matrix<double, 4, 1> cart_model::get_state() {
-        return x;
-    }
-
-    Matrix<double, 4, 1> cart_model::get_copy_state() {
-        return copied_x;
-    }
-
-    Matrix<double, 4, 1> cart_model::get_frozen_state() {
-        return frozen_x;
     }
 
     Matrix<double, 3, 1> cart_model::get_v_ego() {

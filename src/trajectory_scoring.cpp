@@ -28,8 +28,8 @@ namespace dynamic_gap {
     }
 
     bool compareModelBearings(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
-        Matrix<double, 4, 1> state_one = model_one->get_state();
-        Matrix<double, 4, 1> state_two = model_two->get_state();
+        Matrix<double, 4, 1> state_one = model_one->get_cartesian_state();
+        Matrix<double, 4, 1> state_two = model_two->get_cartesian_state();
         
         return state_one[1] < state_two[1];
         // return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
@@ -90,7 +90,7 @@ namespace dynamic_gap {
                     curr_left = model;
                     //std::cout << "setting current left index to " << curr_idx << std::endl;
                 } else {
-                    left_state = curr_left->get_frozen_state();
+                    left_state = curr_left->get_frozen_modified_polar_state();
                     if (model_state[0] > left_state[0]) {
                         //std::cout << "swapping current left to" << curr_idx << std::endl;
                         curr_left = model;

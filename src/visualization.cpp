@@ -351,7 +351,7 @@ namespace dynamic_gap{
         left_model_vel_pt.points.push_back(left_vel_pt);
         Eigen::Vector2d left_vel(g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
                                  g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
-        std::cout << "visualizing left gap only vel: " << left_vel[0] << ", " << left_vel[1] << std::endl;
+        //std::cout << "visualizing left gap only vel: " << left_vel[0] << ", " << left_vel[1] << std::endl;
         left_vel_pt.x = left_model_pt.pose.position.x + left_vel[0];
         left_vel_pt.y = left_model_pt.pose.position.y + left_vel[1];
         left_model_vel_pt.points.push_back(left_vel_pt);

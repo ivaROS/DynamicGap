@@ -7,52 +7,6 @@ namespace dynamic_gap {
         num_of_scan = (int)(msg.get()->ranges.size());
     }
 
-    /*
-    // CHANGING SO NOT PASSING BY REFERENCE HERE JUST TO SEE WHAT CHANGES DO, FIX LATER
-    void GapManipulator::setGapGoalsByCategory(dynamic_gap::Gap gap, geometry_msgs::PoseStamped localgoal) {
-        
-    }
-    */
-
-    /*
-    // NEED TO ADD FROZEN HERE
-    void GapManipulator::setGapGoal(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
-        //std::cout << "in setGapGoal" << std::endl;
-        auto half_num_scan = gap.half_scan;
-        float x1, x2, y1, y2;
-        int mid_idx;
-        x1 = (gap.convex.convex_ldist) * cos(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
-        y1 = (gap.convex.convex_ldist) * sin(-((float) half_num_scan - gap.convex.convex_lidx) / half_num_scan * M_PI);
-
-        x2 = (gap.convex.convex_rdist) * cos(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-        y2 = (gap.convex.convex_rdist) * sin(-((float) half_num_scan - gap.convex.convex_ridx) / half_num_scan * M_PI);
-       
-        Eigen::Vector2f pl(x1, y1);
-        Eigen::Vector2f pr(x2, y2);
-        Eigen::Vector2f pg = (pl + pr) / 2.0;
-
-        // LEFT AND RIGHT ORI USE THE LIDAR INDEX L/R WHICH IS FLIPPED FROM MODEL L/R
-        // SHOULD WE JUST USE BETA VALUES HERE?
-
-        std::cout << "starting points. x1, y1: (" << x1 << ", " << y1 << "), x2, y2: (" << x2 << ", " << y2 << ")" << std::endl; 
-        std::cout << "original left idx: " << gap.convex.convex_lidx << ", original right idx: " << gap.convex.convex_ridx << std::endl;
-        //std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
-
-        dynamic_gap::cart_model* left_model = gap.right_model;
-        dynamic_gap::cart_model* right_model = gap.left_model;
-
-        // Matrix<double, 4, 1> left_model_state = left_model->get_state();
-        // Matrix<double, 4, 1> right_model_state = right_model->get_state();
-        
-        
-        left_model->freeze_robot_vel();
-        right_model->freeze_robot_vel();
-        
-        //setGapGoalTimeBased(left_model, right_model, gap, localgoal);
-        setGapGoalCrossingBased(left_model, right_model, gap, localgoal);
-    }
-    */
-
     void GapManipulator::setGapGoalCrossingBased(dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model, dynamic_gap::Gap& gap,  geometry_msgs::PoseStamped localgoal) {
         auto half_num_scan = gap.half_scan;
         float x1, x2, y1, y2;

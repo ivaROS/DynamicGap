@@ -168,12 +168,7 @@ namespace dynamic_gap {
             double cost = Solve(distMatrix, association);
 			//std::cout << "done solving" << std::endl;
         }
-	
-		// std::cout << "in gap associator" << std::endl;
-		//for (auto & g : observed_gaps) {
-			//std::cout << "g left: " << g.left_model->get_state() << std::endl;
-			//std::cout << "g right: " << g.right_model->get_state() << std::endl;
-		//}
+
         return association;
     }
 

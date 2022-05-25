@@ -42,7 +42,7 @@ namespace dynamic_gap
 
         std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
+        //agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -1219,8 +1219,8 @@ namespace dynamic_gap
         {
             std::cout << "gap " << i << std::endl;
             dynamic_gap::Gap g = gaps.at(i);
-            Matrix<double, 4, 1> left_state = g.left_model->get_state();
-            Matrix<double, 4, 1> right_state = g.right_model->get_state();
+            Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
+            Matrix<double, 4, 1> right_state = g.right_model->get_cartesian_state();
             std::cout << "left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")" << std::endl;
             std::cout << "right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")" << std::endl;
         }

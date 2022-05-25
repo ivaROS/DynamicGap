@@ -54,6 +54,8 @@ namespace dynamic_gap {
             std::vector< std::vector<double>> previous_states;
             std::vector< std::vector<double>> previous_measurements;
             bool plotted = false;
+            double life_time_threshold;
+
         public:
 
             cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
@@ -63,8 +65,6 @@ namespace dynamic_gap {
 
             ~cart_model();
 
-            Matrix<double, 4, 1> get_state();
-            Matrix<double, 4, 1> get_frozen_state();
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_frozen_cartesian_state();
             Eigen::Vector4d get_modified_polar_state();
