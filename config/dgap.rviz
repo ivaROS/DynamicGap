@@ -10,6 +10,7 @@ Panels:
         - /Axes1
         - /Axes2
         - /Marker1
+        - /Marker2
         - /PoseArray1
       Splitter Ratio: 0.5
     Tree Height: 728
@@ -58,12 +59,12 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: robot0
-      Value: false
+      Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 1
@@ -216,16 +217,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 49.79156494140625
+      Distance: 54.9635124206543
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.0944693088531494
-        Y: -4.320802688598633
-        Z: -35.83743667602539
+        X: -8.25641918182373
+        Y: 1.3204686641693115
+        Z: -35.832035064697266
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

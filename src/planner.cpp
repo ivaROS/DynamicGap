@@ -42,7 +42,7 @@ namespace dynamic_gap
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
+        // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -216,8 +216,6 @@ namespace dynamic_gap
             //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
             
             // need to have here for models
-            gapvisualizer->drawGaps(raw_gaps, std::string("raw"));
-            gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
             gapvisualizer->drawGapsModels(associated_observed_gaps);
         
             // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
@@ -351,23 +349,24 @@ namespace dynamic_gap
         
     }
     
+    /*
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
         std::string source_frame = "robot0";
-        std::cout << "in agentOdomCB" << std::endl;
-        std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
+        // std::cout << "in agentOdomCB" << std::endl;
+        // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
         geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
         geometry_msgs::Vector3Stamped in_vel, out_vel;
         in_vel.header = msg->header;
         in_vel.header.frame_id = source_frame;
         in_vel.vector = msg->twist.twist.linear;
-        std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
+        // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
         tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
-        std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
+        // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
 
         current_agent_vel = out_vel;
     }
-    
+    */
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
     {
@@ -474,8 +473,9 @@ namespace dynamic_gap
             }
             dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
             */
-            /*
-            std::cout << "MANIPULATING TERMINAL GAP " << i << std::endl;
+            
+            
+            ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
             try {
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
@@ -483,7 +483,7 @@ namespace dynamic_gap
                 std::cout << "gapManipulate failed on terminal reduceGgap" << std::endl;
             } 
             try {
-                gapManip->convertAxialGap(manip_set.at(i), v_ego, false); // swing axial inwards
+                gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
             } catch(...) {
                 std::cout << "gapManipulate failed on terminal convertAxialGap" << std::endl;
             } 
@@ -499,13 +499,8 @@ namespace dynamic_gap
             } catch(...) {
                 std::cout << "gapManipulate failed on terminal gapWaypoint" << std::endl;
             } 
+            
 
-            try {
-                gapManip->inflateGapSides(manip_set.at(i), true);
-            } catch(...) {
-                std::cout << "gapManipulate failed on terminal inflate gap" << std::endl;
-            }
-            */
         }
 
         return manip_set;
@@ -989,6 +984,13 @@ namespace dynamic_gap
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
             }
         }
+
+        // I am putting these here because running them in the call back gets a bit exhaustive
+        ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
+        gapvisualizer->drawGaps(curr_raw_gaps, std::string("raw"));
+        ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
+        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
+
         return feasible_gap_set;
     }
 

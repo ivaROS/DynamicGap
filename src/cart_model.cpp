@@ -329,6 +329,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
+        /*
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             //std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
@@ -341,7 +342,7 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        
+        */
     }
 
     void cart_model::plot_states() {

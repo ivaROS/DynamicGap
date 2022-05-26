@@ -149,6 +149,8 @@ namespace dynamic_gap {
  
     double GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         //std::cout << "determining crossing point" << std::endl;
+        auto egocircle = *msg.get();
+
         Matrix<double, 4, 1> left_frozen_state = left_model->get_frozen_modified_polar_state();        
         Matrix<double, 4, 1> right_frozen_state = right_model->get_frozen_modified_polar_state();
 
@@ -192,11 +194,15 @@ namespace dynamic_gap {
         double left_central_dot, right_central_dot;
         bool first_cross = true;
         bool bearing_crossing_check, range_closing_check;    
+        int idx_left, idx_right;
+        double min_dist;
 
         Matrix<double, 4, 1> prev_left_frozen_state = left_frozen_state;        
         Matrix<double, 4, 1> prev_right_frozen_state = right_frozen_state;        
         Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
 
+        Eigen::Vector2d left_cross_pt;
+        Eigen::Vector2d right_cross_pt;
         for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
@@ -205,6 +211,15 @@ namespace dynamic_gap {
             right_frozen_state = right_model->get_frozen_modified_polar_state();
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
+            idx_left = (int) std::ceil((beta_left - egocircle.angle_min) / egocircle.angle_increment);
+            idx_right = (int) std::floor((beta_right - egocircle.angle_min) / egocircle.angle_increment);
+
+            // clipping distance by current laser scan
+            //min_dist = std::min(1.0 / left_frozen_state[0], (double) egocircle.ranges[idx_left]);
+            //left_frozen_state[0] = 1.0 / min_dist;
+            //min_dist = std::min(1.0 / right_frozen_state[0],(double) egocircle.ranges[idx_right]);
+            //right_frozen_state[0] = 1.0 / min_dist;
+
             // beta_center = (beta_left + beta_right) / 2.0;
 
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
@@ -235,29 +250,31 @@ namespace dynamic_gap {
             if (swept_check < 0) {
                 bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
                 if (bearing_crossing_check) {
-                    left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-                    right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-                    
+                    //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+                    //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+                    left_cross_pt << (1.0 / left_frozen_state[0])*std::cos(left_frozen_state[1]), (1.0 / left_frozen_state[0])*std::sin(left_frozen_state[1]);
+                    right_cross_pt << (1.0 / right_frozen_state[0])*std::cos(right_frozen_state[1]), (1.0 / right_frozen_state[0])*std::sin(right_frozen_state[1]);
+
                     range_closing_check = std::abs((1.0 / left_frozen_state[0]) - (1.0 / right_frozen_state[0])) < 4*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
                     if (range_closing_check) {
-                        ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1]); 
+                        ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
                         if ((1.0 / left_frozen_state[0]) < (1.0 / right_frozen_state[0])) {
                             //std::cout << "setting right equal to cross" << std::endl;
                             //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
-                            gap_crossing_point << right_frozen_cartesian_state[0], right_frozen_cartesian_state[1];
-                            gap.setClosingPoint(right_frozen_cartesian_state[0], right_frozen_cartesian_state[1]);
+                            gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
+                            gap.setClosingPoint(right_cross_pt[0], right_cross_pt[1]);
                         } else {
                             //std::cout << "setting left equal to cross" << std::endl;
                             //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
-                            gap_crossing_point << left_frozen_cartesian_state[0], left_frozen_cartesian_state[1];
-                            gap.setClosingPoint(left_frozen_cartesian_state[0], left_frozen_cartesian_state[1]);
+                            gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
+                            gap.setClosingPoint(left_cross_pt[0], left_cross_pt[1]);
                         }
                         float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
                         float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
             
-                        int left_idx = (int) std::ceil((prev_beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
+                        int left_idx = (int) std::ceil((prev_beta_left - egocircle.angle_min) / egocircle.angle_increment);
                         float left_dist = (1.0 / prev_left_frozen_state[0]);
-                        int right_idx = (int) std::floor((prev_beta_right - msg.get()->angle_min) / msg.get()->angle_increment);
+                        int right_idx = (int) std::floor((prev_beta_right - egocircle.angle_min) / egocircle.angle_increment);
                         float right_dist = (1.0 / prev_right_frozen_state[0]);
                         gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
                         gap.gap_closed = true;
@@ -265,17 +282,17 @@ namespace dynamic_gap {
                         return t;
                     } else {
                         if (first_cross) {
-                            double mid_x = (left_frozen_cartesian_state[0] + right_frozen_cartesian_state[0]) / 2;
-                            double mid_y = (left_frozen_cartesian_state[1] + right_frozen_cartesian_state[1]) / 2;
-                            ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", right point at " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1]); 
+                            double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
+                            double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
+                            ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
                             gap.setCrossingPoint(mid_x, mid_y);
                             first_cross = false;
                             float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
                             float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
             
-                            int left_idx = (int) std::ceil((prev_beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
+                            int left_idx = (int) std::ceil((prev_beta_left - egocircle.angle_min) / egocircle.angle_increment);
                             float left_dist = (1.0 / prev_left_frozen_state[0]);
-                            int right_idx = (int) std::floor((prev_beta_right - msg.get()->angle_min) / msg.get()->angle_increment);
+                            int right_idx = (int) std::floor((prev_beta_right - egocircle.angle_min) / egocircle.angle_increment);
                             float right_dist = (1.0 / prev_right_frozen_state[0]);
                             gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
                             gap.gap_crossed = true;
@@ -291,17 +308,17 @@ namespace dynamic_gap {
         }
 
         if (!gap.gap_crossed && !gap.gap_closed) {
-            left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-            right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-            left_frozen_state = left_model->get_frozen_modified_polar_state();
-            right_frozen_state = right_model->get_frozen_modified_polar_state();
+            //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+            //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+            //left_frozen_state = left_model->get_frozen_modified_polar_state();
+            //right_frozen_state = right_model->get_frozen_modified_polar_state();
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             
-            ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")");
-            int left_idx = int((beta_left - msg.get()->angle_min) / msg.get()->angle_increment);
+            ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_state[0] << ", " << left_frozen_state[1] << "), (" << right_frozen_state[0] << ", " << right_frozen_state[1] << ")");
+            int left_idx = int((beta_left - egocircle.angle_min) / egocircle.angle_increment);
             float left_dist = (1.0 / left_frozen_state[0]);
-            int right_idx = int((beta_right - msg.get()->angle_min) / msg.get()->angle_increment);
+            int right_idx = int((beta_right - egocircle.angle_min) / egocircle.angle_increment);
             float right_dist = (1.0 / right_frozen_state[0]);
 
             gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);

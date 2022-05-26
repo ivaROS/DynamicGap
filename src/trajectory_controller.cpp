@@ -213,6 +213,8 @@ namespace dynamic_gap{
             v_lin_y_fb = y_error * k_drive_y_;
         }
 
+        ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+
         float min_dist_ang = 0;
         float min_dist = 0;
 
@@ -224,6 +226,7 @@ namespace dynamic_gap{
         Eigen::Vector3d comp;
         double PO_dot_prod_check;
         Eigen::Vector2d Psi_der;
+        double Psi;
         Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
 
 
@@ -245,6 +248,7 @@ namespace dynamic_gap{
             // ROS_INFO_STREAM("Local Line Start");
             std::vector<geometry_msgs::Point> vec = findLocalLine(min_idx);
             // ROS_INFO_STREAM("Local Line End");
+            /*
             if (vec.size() > 1) {
                 // Visualization and Recenter
                 vec.at(0).x -= rbt_in_cam_lc.pose.position.x;
@@ -272,6 +276,7 @@ namespace dynamic_gap{
                 line_viz.id = 10;
                 projection_viz.publish(line_viz);
             }
+            */
 
             // ROS_DEBUG_STREAM("Elapsed: " << (ros::Time::now() - last_time).toSec());
             last_time = ros::Time::now();
@@ -327,7 +332,7 @@ namespace dynamic_gap{
                     der /= der.norm();
                     comp = Eigen::Vector3d(der(0), der(1), line_si);
                     Psi_der = der;
-                    Psi_der(1) /= 3;
+                    Psi_der(1);// /= 3;
                     PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
                 }
 
@@ -336,42 +341,49 @@ namespace dynamic_gap{
                 min_diff_y = - min_y;
                 comp = projection_method(min_diff_x, min_diff_y);
                 Psi_der = Eigen::Vector2d(comp(0), comp(1));
-                //Psi_der(1) /= 3; // deriv wrt y?
+                Psi_der(1);// /= 3; // deriv wrt y?
                 PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
             }
+            ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
 
-            ROS_INFO_STREAM("Psi: " << comp(2) << ", dot product check: " << PO_dot_prod_check);
-            if(comp(2) >= 0 && PO_dot_prod_check <= 0)
+            Psi = comp(2);
+
+            ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
+            if(Psi >= 0 && PO_dot_prod_check <= 0)
             {
-                cmd_vel_x_safe = comp(2) * PO_dot_prod_check * - comp(0);
-                cmd_vel_y_safe = comp(2) * PO_dot_prod_check * - comp(1);
+                cmd_vel_x_safe = Psi * PO_dot_prod_check * - comp(0);
+                cmd_vel_y_safe = Psi * PO_dot_prod_check * - comp(1);
                 ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
             }
 
             // cmd_vel_safe
-            visualization_msgs::Marker res;
-            res.header.frame_id = cfg_->robot_frame_id;
-            res.type = visualization_msgs::Marker::ARROW;
-            res.action = visualization_msgs::Marker::ADD;
-            res.pose.position.x = 0;
-            res.pose.position.y = 0;
-            res.pose.position.z = 1;
-            double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
-            tf2::Quaternion dir_quat;
-            dir_quat.setRPY(0, 0, dir);
-            res.pose.orientation = tf2::toMsg(dir_quat);
+            if (cmd_vel_x_safe != 0 || cmd_vel_y_safe != 0) {
+                visualization_msgs::Marker res;
+                res.header.frame_id = cfg_->robot_frame_id;
+                res.type = visualization_msgs::Marker::ARROW;
+                res.action = visualization_msgs::Marker::ADD;
+                res.pose.position.x = 0;
+                res.pose.position.y = 0;
+                res.pose.position.z = 1;
+                double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
+                tf2::Quaternion dir_quat;
+                dir_quat.setRPY(0, 0, dir);
+                res.pose.orientation = tf2::toMsg(dir_quat);
 
-            res.scale.x = sqrt(pow(cmd_vel_y_safe, 2) + pow(cmd_vel_x_safe, 2));
-            res.scale.y = 0.01;  
-            res.scale.z = 0.01;
-            
-            res.color.a = 1;
-            res.color.r = 0.9;
-            res.color.g = 0.9;
-            res.color.b = 0.9;
-            res.id = 0;
-            projection_viz.publish(res);
+                res.scale.x = sqrt(pow(cmd_vel_y_safe, 2) + pow(cmd_vel_x_safe, 2));
+                res.scale.y = 0.01;  
+                res.scale.z = 0.01;
+                
+                res.color.a = 1;
+                res.color.r = 0.9;
+                res.color.g = 0.9;
+                res.color.b = 0.9;
+                res.id = 0;
+                res.lifetime = ros::Duration(0.1);
+                projection_viz.publish(res);
+            }
 
+            /*
             // Min Direction
             res.header.frame_id = cfg_->sensor_frame_id;
             res.scale.x = 1;
@@ -381,7 +393,7 @@ namespace dynamic_gap{
             res.color.a = 0.5;
             res.pose.position.z = 0.9;
             projection_viz.publish(res);
-
+            */
             /*
             res.header.frame_id = cfg_->robot_frame_id;
             res.type = visualization_msgs::Marker::SPHERE;

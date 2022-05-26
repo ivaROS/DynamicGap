@@ -62,9 +62,6 @@ namespace dynamic_gap {
             Eigen::Vector2d goal_pt(gx, gy);
             Eigen::Vector2d goal_vec = goal_pt - rbt;
 
-            double r1 = sqrt(pow(x1, 2) + pow(y1, 2));
-            double r2 = sqrt(pow(x2, 2) + pow(y2, 2));
-            double rx = sqrt(pow(x[0], 2) + pow(x[1], 2));
             double rg = goal_vec.norm();
             double theta1 = atan2(y1, x1);
             double theta2 = atan2(y2, x2);
@@ -72,7 +69,6 @@ namespace dynamic_gap {
             double thetag = atan2(goal_vec(1), goal_vec(0));
 
             double new_theta = std::min(std::max(thetag, theta1), theta2);
-            double theta_test = std::min(std::max(thetax, theta1), theta2);
 
             double ang_diff_1 = std::abs(thetax - theta1);
             double ang_diff_2 = std::abs(theta2 - thetax);
@@ -83,8 +79,6 @@ namespace dynamic_gap {
 
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
             Eigen::Vector2d sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
-
-            bool left = r2 > r1;
 
             Eigen::Vector2d init_to_left_vect(x2 - rbt_x_0, y2 - rbt_y_0);
             Eigen::Vector2d init_to_right_vect(x1 - rbt_x_0, y1 - rbt_y_0);
@@ -136,6 +130,248 @@ namespace dynamic_gap {
 
             Eigen::Vector2d acc(K_acc*(vel_des(0) - x[2]), K_acc*(vel_des(1) - x[3]));
 
+            dxdt[0] = x[2];
+            dxdt[1] = x[3];
+            dxdt[2] = acc[0];
+            dxdt[3] = acc[1];
+            return;
+        }
+    };
+
+
+    struct APF_CBF{
+
+        double x_right, x_left, y_right, y_left;
+        double dir_vec_x, dir_vec_y;
+        double _sigma;
+        bool mode_agc, pivoted_left, _axial;
+        double rbt_x_0, rbt_y_0;    
+        double K_acc;
+        Eigen::Matrix2d r_pi2, neg_r_pi2;
+        double rot_angle;
+        double v_lin_max, a_lin_max;
+
+        APF_CBF(double x_right, double x_left, double y_right, double y_left, 
+                bool mode_agc, bool pivoted_left, bool axial, double sigma, 
+                double rbt_x_0, double rbt_y_0, double K_acc)
+            : x_right(x_right), x_left(x_left), y_right(y_right), y_left(y_left), 
+              mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), 
+              rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0), K_acc(K_acc), rot_angle(M_PI/2)
+              {
+                r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
+                neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
+              }
+        
+
+        state_type adjust_state(const state_type &x) {
+            // clipping velocities
+            // taking norm of sin/cos norm vector
+            state_type new_x = x;
+            Eigen::Vector2d rbt_vel = clip_velocities(new_x[2], new_x[3], v_lin_max);
+            new_x[2] = rbt_vel[0];
+            new_x[3] = rbt_vel[1];
+
+            return new_x;
+        }
+
+
+        double cbf_left(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame) {
+            // current design: h_left = r*betadot
+            double r = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
+            double betadot = (left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0))/pow(r, 2);
+
+            double h_left;
+            if (betadot >= 0) {
+                h_left = betadot;
+            } else {
+                h_left = betadot - betadot_L_0;
+            }
+
+            return h_left;
+        }
+
+        Eigen::Vector4d cbf_partials_left(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame) {
+            // current design: h_left = r*betadot
+            Eigen::Vector4d d_h_left_dx(0.0, 0.0, 0.0, 0.0);
+            double r = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
+            double r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
+
+            // derivative with respect to r_ox, r_oy, v_ox, v_oy
+            d_h_left_dx(0) = -left_rel_vel_rbt_frame(1)/pow(r,2) + 2*left_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r, 4);
+            d_h_left_dx(1) =  left_rel_vel_rbt_frame(0)/pow(r,2) + 2*left_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r, 4);
+            d_h_left_dx(2) =  left_rel_pos_rbt_frame(1) / pow(r,2);
+            d_h_left_dx(3) = -left_rel_pos_rbt_frame(0) / pow(r,2);
+            return d_h_left_dx;
+        }
+
+        double cbf_right(const state_type &x, Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
+            // current design: h_right = -r*betadot
+            double r = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
+            double betadot = (right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0))/pow(r,2);
+            
+            double h_right;
+            if (betadot <= 0) {
+                h_right = -betadot;
+            } else {
+                h_right = betadot_R_0 - betadot;
+            }
+            
+            return h_right;
+        }
+
+        Eigen::Vector4d cbf_partials_right(const state_type &x, Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
+            // current design: h_right = -r * betadot
+            Eigen::Vector4d d_h_right_dx(0.0, 0.0, 0.0, 0.0);
+            
+            double r = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
+            double r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
+            // derivative with respect to r_ox, r_oy, v_ox, v_oy
+            
+            d_h_right_dx(0) =  right_rel_vel_rbt_frame(1)/pow(r,2) - 2*right_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r,4);
+            d_h_right_dx(1) = -right_rel_vel_rbt_frame(0)/pow(r,2) - 2*right_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r,4);
+            d_h_right_dx(2) = -right_rel_pos_rbt_frame(1) / pow(r,2);
+            d_h_right_dx(3) =  right_rel_pos_rbt_frame(0) / pow(r,2);
+
+            return d_h_right_dx;
+        }
+
+        void operator()(const state_type &x, state_type &dxdt, const double t)
+        {
+            // IN HERE X1,Y1 IS RIGHT FROM ROBOT POV, X2,Y2 IS LEFT FROM ROBOT POV
+            // clip state, extract left/right points
+            state_type new_x = adjust_state(x);
+            Eigen::Vector4d x_left(4); 
+            x_left << new_x[4], new_x[5], new_x[6], new_x[7];
+            Eigen::Vector4d x_right(4); 
+            x_right << new_x[8], new_x[9], new_x[10], new_x[11];
+
+            // construct vector field commands
+
+
+            // DO WE NEED TO CHECK FOR FLIPPED LEFT/RIGHT? MAYBE?
+            
+            Eigen::Vector2d rbt(x[0], x[1]);
+            Eigen::Vector2d rel_right_pos(x_right, y_right);
+            Eigen::Vector2d rel_left_pos(x_left, y_left);
+            Eigen::Vector2d rel_goal_pos(new_x[12], new_x[13]);
+            Eigen::Vector2d abs_left_pos = rel_left_pos + rbt;
+            Eigen::Vector2d abs_right_pos = rel_right_pos + rbt;
+            Eigen::Vector2d abs_goal_pos = rel_goal_pos + rbt;
+
+            double rg = rel_goal_pos.norm();
+            double theta_right = atan2(abs_right_pos[1], abs_right_pos[0]);
+            double theta_left = atan2(abs_left_pos[1], abs_left_pos[0]);
+            double thetax = atan2(x[1], x[0]);
+            double thetag = atan2(rel_goal_pos[1], rel_goal_pos[0]);
+
+            double new_theta = std::min(std::max(thetag, theta_right), theta_left);
+
+            double ang_diff_right = std::abs(thetax - theta_right);
+            double ang_diff_left = std::abs(theta_left - thetax);
+            //double new_sigma = 0.05;
+
+            Eigen::Vector2d c_left = neg_r_pi2 * (rel_left_pos / rel_left_pos.norm()) * exp(- ang_diff_left / _sigma);
+            Eigen::Vector2d c_right = r_pi2 * (rel_right_pos / rel_right_pos.norm()) * exp(- ang_diff_right / _sigma);
+
+            // Since local goal will definitely be within the range of the gap, this limit poses no difference
+            Eigen::Vector2d sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
+
+            bool past_gap_points;
+            bool past_goal = (abs_goal_pos.dot(rel_goal_pos) < 0);
+            bool past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
+            bool past_right_point = abs_right_pos.dot(rel_right_pos) < 0;
+            
+            //bool pass_gap;
+            if (_axial) {
+                //pass_gap = (rbt.norm() > std::min(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point || past_right_point;
+            } else {
+                // pass_gap = (rbt.norm() > std::max(p_right.norm(), p_left.norm()) + 0.18) && rbt.norm() > goal_pt.norm();
+                past_gap_points = past_left_point && past_right_point;
+            }
+            
+            bool pass_gap = past_gap_points || past_goal;
+
+            Eigen::Vector2d v_des(0, 0); 
+            if (!pass_gap)
+            {
+                double coeffs = past_gap_points ? 0.0 : 1.0;
+
+                double rel_right_pos_norm = rel_right_pos.norm();
+                double rel_left_pos_norm = rel_left_pos.norm();
+                double w_left = rel_left_pos_norm / sqrt(pow(rel_right_pos_norm, 2) + pow(rel_left_pos_norm,2));
+                double w_right = rel_right_pos_norm / sqrt(pow(rel_right_pos_norm, 2) + pow(rel_left_pos_norm,2));
+                Eigen::Vector2d weighted_circulation_sum = w_left*c_left + w_right*c_right;
+                Eigen::Vector2d circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm();
+                Eigen::Vector2d attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm();
+                //std::cout << "inte_t: " << t << std::endl;
+                //std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
+                //std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
+                //std::cout << "left weight: " << w2 << ", left circulation component: (" << c2[0] << ", " << c2[1] << "), right weight: " << w1 << ", right circulation component: (" << c1[0] << ", " << c1[1] << ")" << std::endl;  
+                //std::cout << "circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")" << std::endl;
+                //std::cout << "robot to goal: (" << goal_vec[0] << ", " << goal_vec[1] << ")" << std::endl;
+                //std::cout << "attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")" << std::endl;
+                v_des = circulation_field + attraction_field;
+            }
+
+            // CLIPPING DESIRED VELOCITIES
+            v_des = clip_velocities(v_des[0], v_des[1], v_lin_max);
+
+            // set desired acceleration based on desired velocity
+            Eigen::Vector2d a_des(K_acc*(v_des[0] - x[3]), K_acc*(v_des[1] - x[4]));
+            // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
+
+            a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
+
+            Eigen::Vector2d a_actual = a_des;
+            // check for convexity of gap
+            if (rg > 0.1 && !past_left_and_right) {
+                // std::cout << "adding CBF" << std::endl;
+                double h_dyn = 0.0;
+                Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
+
+                Eigen::Vector2d left_rel_pos_rbt_frame(x_left(0), x_left(1));
+                Eigen::Vector2d left_rel_vel_rbt_frame(x_left(2), x_left(3));
+                Eigen::Vector2d right_rel_pos_rbt_frame(x_right(0), x_right(1));
+                Eigen::Vector2d right_rel_vel_rbt_frame(x_right(2), x_right(3));
+
+                double h_dyn_left = past_left_point ? std::numeric_limits<double>::infinity() : cbf_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
+                double h_dyn_right = past_right_point ? std::numeric_limits<double>::infinity() : cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
+                
+                if (gap_crossed) {
+                    // if r_left < r_right (left is closer)
+                    if (left_norm < right_norm) {
+                        h_dyn_right = std::numeric_limits<double>::infinity();
+                    } else {
+                        h_dyn_left = std::numeric_limits<double>::infinity();
+                    }
+                }
+                
+                //Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
+                //Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
+                // std::cout << "left CBF value is: " << h_dyn_left << ", right CBF value is: " << h_dyn_right << std::endl;
+                // " with partials: " << d_h_dyn_left_dx(0) << ", " << d_h_dyn_left_dx(1) << ", " << d_h_dyn_left_dx(2) << ", " << d_h_dyn_left_dx(3) << std::endl;
+                // std::cout << << " with partials: " << d_h_dyn_right_dx(0) << ", " << d_h_dyn_right_dx(1) << ", " << d_h_dyn_right_dx(2) << ", " << d_h_dyn_right_dx(3) << std::endl;
+                
+                if (h_dyn_left <= h_dyn_right) { // left less than or equal to right
+                    h_dyn = h_dyn_left;
+                    d_h_dyn_dx = cbf_partials_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
+                } else { // right less than left
+                    h_dyn = h_dyn_right;
+                    d_h_dyn_dx = cbf_partials_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
+                }
+
+                // calculate Psi
+                Eigen::Vector4d d_x_dt(rbt_vel[0], rbt_vel[1], a_des[0], a_des[1]);
+                double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
+                // std::cout << "h_dyn: " << h_dyn << ", Psi: " << Psi << std::endl;
+
+                if (Psi < 0.0) {
+                    Eigen::Vector2d Lg_h(d_h_dyn_dx[2], d_h_dyn_dx[3]); // Lie derivative of h wrt x
+                    a_actual = a_des + -(Lg_h * Psi) / (Lg_h.dot(Lg_h));
+                }
+            } 
+            // check against CBF
             dxdt[0] = x[2];
             dxdt[1] = x[3];
             dxdt[2] = acc[0];
@@ -237,11 +473,8 @@ namespace dynamic_gap {
             // current design: h_left = r*betadot
             double r = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
             double betadot = (left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0))/pow(r, 2);
-            //double h_left = r * betadot;
 
             double h_left;
-            // revised design: h_left = betadot OR betadot - betadot_0
-
             if (betadot >= 0) {
                 h_left = betadot;
             } else {
@@ -256,13 +489,8 @@ namespace dynamic_gap {
             Eigen::Vector4d d_h_left_dx(0.0, 0.0, 0.0, 0.0);
             double r = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
             double r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
-            // partials wrt r_ox, r_oy, v_ox, v_oy:
-            //d_h_left_dx(0) = -left_rel_vel_rbt_frame(1)/r + left_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r, 3);
-            //d_h_left_dx(1) =  left_rel_vel_rbt_frame(0)/r + left_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r, 3);
-            //d_h_left_dx(2) = left_rel_pos_rbt_frame(1) / r;
-            //d_h_left_dx(3) = -left_rel_pos_rbt_frame(0) / r;
 
-            // revised design: h_left = betadot OR betadot - betadot_0
+            // derivative with respect to r_ox, r_oy, v_ox, v_oy
             d_h_left_dx(0) = -left_rel_vel_rbt_frame(1)/pow(r,2) + 2*left_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r, 4);
             d_h_left_dx(1) =  left_rel_vel_rbt_frame(0)/pow(r,2) + 2*left_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r, 4);
             d_h_left_dx(2) =  left_rel_pos_rbt_frame(1) / pow(r,2);
@@ -274,10 +502,8 @@ namespace dynamic_gap {
             // current design: h_right = -r*betadot
             double r = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
             double betadot = (right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0))/pow(r,2);
-            //double h_right = - r * betadot;
+            
             double h_right;
-            // revised design: h_right = -betadot OR betadot_0 - betadot
-
             if (betadot <= 0) {
                 h_right = -betadot;
             } else {
@@ -295,12 +521,6 @@ namespace dynamic_gap {
             double r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
             // derivative with respect to r_ox, r_oy, v_ox, v_oy
             
-            //d_h_right_dx(0) =  right_rel_vel_rbt_frame(1)/r - right_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r,3);
-            //d_h_right_dx(1) = -right_rel_vel_rbt_frame(0)/r - right_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r,3);
-            //d_h_right_dx(2) = -right_rel_pos_rbt_frame(1) / r;
-            //d_h_right_dx(3) = right_rel_pos_rbt_frame(0) / r;
-
-            // revised design: h_right = -betadot OR betadot_0 - betadot
             d_h_right_dx(0) =  right_rel_vel_rbt_frame(1)/pow(r,2) - 2*right_rel_pos_rbt_frame(0)*r_v_cross_prod/pow(r,4);
             d_h_right_dx(1) = -right_rel_vel_rbt_frame(0)/pow(r,2) - 2*right_rel_pos_rbt_frame(1)*r_v_cross_prod/pow(r,4);
             d_h_right_dx(2) = -right_rel_pos_rbt_frame(1) / pow(r,2);
@@ -309,30 +529,6 @@ namespace dynamic_gap {
             return d_h_right_dx;
         }
 
-        double time_to_pass_CBF(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame,
-                                                     Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
-            double r_left = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
-            double r_right = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
-            double left_r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
-            double right_r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
-            double cbf = gap_angle + T_h*(left_r_v_cross_prod/pow(r_left,2) - right_r_v_cross_prod/pow(r_right,2));
-            return cbf;
-        }
-
-        Eigen::Vector4d time_to_pass_CBF_partials(const state_type &x, Eigen::Vector2d left_rel_pos_rbt_frame, Eigen::Vector2d left_rel_vel_rbt_frame,
-                                                              Eigen::Vector2d right_rel_pos_rbt_frame, Eigen::Vector2d right_rel_vel_rbt_frame) {
-            Eigen::Vector4d d_h_dx(0.0, 0.0, 0.0, 0.0);         
-            double r_left = sqrt(pow(left_rel_pos_rbt_frame(0), 2) + pow(left_rel_pos_rbt_frame(1), 2));
-            double r_right = sqrt(pow(right_rel_pos_rbt_frame(0), 2) + pow(right_rel_pos_rbt_frame(1), 2));
-            double left_r_v_cross_prod = left_rel_pos_rbt_frame(0)*left_rel_vel_rbt_frame(1) - left_rel_pos_rbt_frame(1)*left_rel_vel_rbt_frame(0);
-            double right_r_v_cross_prod = right_rel_pos_rbt_frame(0)*right_rel_vel_rbt_frame(1) - right_rel_pos_rbt_frame(1)*right_rel_vel_rbt_frame(0);
-            d_h_dx(0) = T_h*(-left_rel_vel_rbt_frame(1)/pow(r_left, 2) + right_rel_vel_rbt_frame(1)/pow(r_right, 2) + (2*left_rel_pos_rbt_frame(0)*left_r_v_cross_prod)/pow(r_left,4) + (-2*right_rel_pos_rbt_frame(0)*right_r_v_cross_prod)/pow(r_right, 4));
-            d_h_dx(1) = T_h*(left_rel_vel_rbt_frame(0)/pow(r_left, 2) - right_rel_vel_rbt_frame(0)/pow(r_right, 2) +  (2*left_rel_pos_rbt_frame(1)*left_r_v_cross_prod)/pow(r_left,4) + (-2*right_rel_pos_rbt_frame(1)*right_r_v_cross_prod)/pow(r_right, 4));
-            d_h_dx(2) = T_h*(left_rel_pos_rbt_frame(1)/pow(r_left, 2) - right_rel_pos_rbt_frame(1)/pow(r_right, 2));
-            d_h_dx(3) = T_h*(-left_rel_pos_rbt_frame(0)/pow(r_left, 2) + right_rel_pos_rbt_frame(0)/pow(r_right, 2));
-
-            return d_h_dx;           
-        }
 
         Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;

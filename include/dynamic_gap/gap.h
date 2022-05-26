@@ -232,6 +232,9 @@ namespace dynamic_gap
 
                 float resoln = M_PI / half_scan;
                 float gap_angle = (check_r_idx - check_l_idx) * resoln;
+                if (gap_angle < 0) {
+                    gap_angle += 2*M_PI;
+                }
                 // std::cout << "gap_angle: " << gap_angle << std::endl;
                 float short_side = left_type ? check_l_dist : check_r_dist;
                 // law of cosines
@@ -243,7 +246,6 @@ namespace dynamic_gap
                     _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
                     // std::cout << "checking isSwept: " << _axial << std::endl;
                     return _axial;
-                    
                 } else {
                     _terminal_axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
                     // std::cout << "checking isSwept: " << _terminal_axial << std::endl;
