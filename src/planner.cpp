@@ -42,7 +42,7 @@ namespace dynamic_gap
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        //agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
+        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -350,7 +350,7 @@ namespace dynamic_gap
         current_rbt_vel = msg->twist.twist;
         
     }
-    /*
+    
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
         std::string source_frame = "robot0";
@@ -367,7 +367,7 @@ namespace dynamic_gap
 
         current_agent_vel = out_vel;
     }
-    */
+    
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
     {
@@ -1076,7 +1076,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM("PICK TRAJ");
         start_time = ros::Time::now().toSec();
         auto traj_idx = pickTraj(traj_set, score_set);
-        ROS_INFO_STREAM("initialTrajGen time elapsed: " << ros::Time::now().toSec() - start_time);
+        ROS_INFO_STREAM("pickTraj time elapsed: " << ros::Time::now().toSec() - start_time);
         ROS_INFO_STREAM("PICK TRAJ");
 
         geometry_msgs::PoseArray chosen_traj;

@@ -195,8 +195,8 @@ namespace dynamic_gap{
         float y_error = g_error.imag()(0, 1);
 
 
-        float u_add_x = 0;
-        float u_add_y = 0;
+        float cmd_vel_x_safe = 0;
+        float cmd_vel_y_safe = 0;
         double v_ang_fb = 0;
         double v_lin_x_fb = 0;
         double v_lin_y_fb = 0;
@@ -222,9 +222,9 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
         
         Eigen::Vector3d comp;
-        double prod_mul;
-        Eigen::Vector2d si_der;
-        Eigen::Vector2d v_err(v_lin_x_fb, v_lin_y_fb);
+        double PO_dot_prod_check;
+        Eigen::Vector2d Psi_der;
+        Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
 
 
         if (inflated_egocircle.ranges.size() < 500) {
@@ -288,7 +288,7 @@ namespace dynamic_gap{
             float min_y = min_dist * sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
             min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));
 
-            // ROS_INFO_STREAM("min_dist: " << min_dist);
+            ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
 
             if (cfg_->man.line && vec.size() > 0) {
                 // Dist to 
@@ -305,14 +305,14 @@ namespace dynamic_gap{
                     min_diff_x = - pt1(0);
                     min_diff_y = - pt1(1);
                     comp = projection_method(min_diff_x, min_diff_y);
-                    si_der = Eigen::Vector2d(comp(0), comp(1));
-                    prod_mul = v_err.dot(si_der);
+                    Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
                 } else if (c.dot(-b) < 0) {
                     min_diff_x = - pt2(0);
                     min_diff_y = - pt2(1);
                     comp = projection_method(min_diff_x, min_diff_y);
-                    si_der = Eigen::Vector2d(comp(0), comp(1));
-                    prod_mul = v_err.dot(si_der);
+                    Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
                 } else {
                     double line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
                     double sign;
@@ -320,33 +320,35 @@ namespace dynamic_gap{
                     line_dist *= sign;
                     
                     double line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
-                    double line_si_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
-                    double line_si_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_si_der_base;
-                    double line_si_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_si_der_base;
-                    Eigen::Vector2d der(line_si_der_x, line_si_der_y);
+                    double line_Psi_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
+                    double line_Psi_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                    double line_Psi_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                    Eigen::Vector2d der(line_Psi_der_x, line_Psi_der_y);
                     der /= der.norm();
                     comp = Eigen::Vector3d(der(0), der(1), line_si);
-                    si_der = der;
-                    si_der(1) /= 3;
-                    prod_mul = v_err.dot(si_der);
+                    Psi_der = der;
+                    Psi_der(1) /= 3;
+                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
                 }
 
             } else {
                 min_diff_x = - min_x;
                 min_diff_y = - min_y;
                 comp = projection_method(min_diff_x, min_diff_y);
-                si_der = Eigen::Vector2d(comp(0), comp(1));
-                si_der(1) /= 3;
-                prod_mul = v_err.dot(si_der);
+                Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                //Psi_der(1) /= 3; // deriv wrt y?
+                PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
             }
 
-
-            if(comp(2) >= 0 && prod_mul <= 0)
+            ROS_INFO_STREAM("Psi: " << comp(2) << ", dot product check: " << PO_dot_prod_check);
+            if(comp(2) >= 0 && PO_dot_prod_check <= 0)
             {
-                u_add_x = comp(2) * prod_mul * - comp(0);
-                u_add_y = comp(2) * prod_mul * - comp(1);
+                cmd_vel_x_safe = comp(2) * PO_dot_prod_check * - comp(0);
+                cmd_vel_y_safe = comp(2) * PO_dot_prod_check * - comp(1);
+                ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
             }
 
+            // cmd_vel_safe
             visualization_msgs::Marker res;
             res.header.frame_id = cfg_->robot_frame_id;
             res.type = visualization_msgs::Marker::ARROW;
@@ -354,15 +356,13 @@ namespace dynamic_gap{
             res.pose.position.x = 0;
             res.pose.position.y = 0;
             res.pose.position.z = 1;
-            double dir = std::atan2(u_add_y, u_add_x);
+            double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
             tf2::Quaternion dir_quat;
             dir_quat.setRPY(0, 0, dir);
             res.pose.orientation = tf2::toMsg(dir_quat);
 
-            res.scale.x = sqrt(pow(u_add_y, 2) + pow(u_add_x, 2));
-            res.scale.y = 0.01; 
-            res.scale.y = 0.01; 
-            res.scale.y = 0.01; 
+            res.scale.x = sqrt(pow(cmd_vel_y_safe, 2) + pow(cmd_vel_x_safe, 2));
+            res.scale.y = 0.01;  
             res.scale.z = 0.01;
             
             res.color.a = 1;
@@ -382,6 +382,7 @@ namespace dynamic_gap{
             res.pose.position.z = 0.9;
             projection_viz.publish(res);
 
+            /*
             res.header.frame_id = cfg_->robot_frame_id;
             res.type = visualization_msgs::Marker::SPHERE;
             res.action = visualization_msgs::Marker::ADD;
@@ -395,26 +396,29 @@ namespace dynamic_gap{
             // res.color.a = 0.5;
             // res.pose.position.z = 0.9;
             projection_viz.publish(res);
+            */
         } else {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
 
         // Make sure no ejection from gap. Max question: x does not always point into gap. 
-        u_add_x = std::min(u_add_x, float(0));
+        cmd_vel_x_safe = std::min(cmd_vel_x_safe, float(0));
 
         if(holonomic)
         {
             v_ang_fb = v_ang_fb + v_ang_const;
-            v_lin_x_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * u_add_x;
-            v_lin_y_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * u_add_y;
+            v_lin_x_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
+            v_lin_y_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * cmd_vel_y_safe;
 
             if(v_lin_x_fb < 0)
                 v_lin_x_fb = 0;
+
+            ROS_INFO_STREAM("ultimate command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         }
         else
         {
-            v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * u_add_y + v_ang_const;
-            v_lin_x_fb = v_lin_x_fb + v_lin_x_const + k_po_ * u_add_x;
+            v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe + v_ang_const;
+            v_lin_x_fb = v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
 
             if (projection_operator && min_dist_ang > - M_PI / 4 && min_dist_ang < M_PI / 4 && min_dist < cfg_->rbt.r_inscr)
             {
@@ -439,16 +443,16 @@ namespace dynamic_gap{
         float r_norm = cfg_->projection.r_norm;
 
         float min_dist = sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2));
-        float si = (r_min / min_dist - r_min / r_norm) / (1. - r_min / r_norm);
-        float base_const = sqrt(pow(min_dist, 3)) * (r_min - r_norm);
+        float Psi = (r_min / min_dist - r_min / r_norm) / (1.0 - r_min / r_norm);
+        float base_const = pow(min_dist, 3) * (r_min - r_norm);
         float up_const = r_min * r_norm;
-        float si_der_x = up_const * - min_diff_x / base_const;
-        float si_der_y = up_const * - min_diff_y / base_const;
+        float Psi_der_x = up_const * - min_diff_x / base_const;
+        float Psi_der_y = up_const * - min_diff_y / base_const;
 
-        float norm_si_der = sqrt(pow(si_der_x, 2) + pow(si_der_y, 2));
-        float norm_si_der_x = si_der_x / norm_si_der;
-        float norm_si_der_y = si_der_y / norm_si_der;
-        return Eigen::Vector3d(norm_si_der_x, norm_si_der_y, si);
+        float norm_Psi_der = sqrt(pow(Psi_der_x, 2) + pow(Psi_der_y, 2));
+        float norm_Psi_der_x = Psi_der_x / norm_Psi_der;
+        float norm_Psi_der_y = Psi_der_y / norm_Psi_der;
+        return Eigen::Vector3d(norm_Psi_der_x, norm_Psi_der_y, Psi);
     }
 
     Eigen::Matrix2cd TrajectoryController::getComplexMatrix(

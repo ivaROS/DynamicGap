@@ -46,16 +46,16 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.5, 0.0,
-             0.0, 0.5;
+        R << 0.05, 0.0,
+             0.0, 0.05;
 
         // PROCESS NOISE
         // what are we not modeling?
         // angular acceleration.
         // latency.
 
-        Q << 0.1, 0.0, 0.0, 0.0,
-             0.0, 0.1, 0.0, 0.0,
+        Q << 0.25, 0.0, 0.0, 0.0,
+             0.0, 0.25, 0.0, 0.0,
              0.0, 0.0, 1.0, 0.0,
              0.0, 0.0, 0.0, 1.0;
         dQ = Q;
@@ -97,7 +97,6 @@ namespace dynamic_gap {
         Ad = A;
         Ad_transpose = A;
 
-
         frozen_x << 0.0, 0.0, 0.0, 0.0;
 
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
@@ -106,14 +105,14 @@ namespace dynamic_gap {
         ang_vel_ego = 0.0;
         initialized = true;
         life_time = 0.0;
-        life_time_threshold = 2.0;
+        life_time_threshold = 1.0;
         eyes_state = MatrixXd::Identity(4,4);
         new_P = eyes_state;
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
         x_update << 0.0, 0.0, 0.0, 0.0;
-        //std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
-        //previous_states.push_back(state);
-        //previous_measurements.push_back(measurement);
+        std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
+        previous_states.push_back(state);
+        previous_measurements.push_back(measurement);
     }
 
     void cart_model::copy_model() {
@@ -289,7 +288,7 @@ namespace dynamic_gap {
         //std::cout << "H: " << H << std::endl;
         // std::cout << "H_transpose: " << H_transpose << std::endl;
         //std::cout << "R: " << R << std::endl;
-        tmp_mat = H*P*H_transpose + R;
+        tmp_mat = H*P*H_transpose + R * (10.0 - 9.0*std::exp(-life_time));
         // std::cout << "tmp_mat: " << tmp_mat << std::endl;
         //double det = 1.0 / (tmp_mat.coeff(0,0)*tmp_mat.coeff(1,1) - tmp_mat.coeff(0,1)*tmp_mat.coeff(1, 0));
         //
@@ -329,24 +328,24 @@ namespace dynamic_gap {
         P = (eyes_state - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
-        /*
-        if (life_time <= 10.0 && !plotted) {
+        
+        if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
-            std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
-            std::cout << "ego velocity: " << v_ego[0] << ", " << v_ego[1] << std::endl;
+            //std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
+            //std::cout << "ego velocity: " << v_ego[0] << ", " << v_ego[1] << std::endl;
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
             previous_states.push_back(state);
             previous_measurements.push_back(ground_truths);
         }
 
-        if (life_time > 10.0 && !plotted) {
+        if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        */
+        
     }
 
     void cart_model::plot_states() {
-        std::cout << "in plot states" << std::endl;
+        //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
         std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n);
         for(int i=0; i < previous_states.size(); i++) {
@@ -370,7 +369,7 @@ namespace dynamic_gap {
         plt::scatter(t, r_ys_GT, 25.0, {{"label", "r_y (GT)"}});
         plt::scatter(t, r_xs, 25.0, {{"label", "r_x"}});
         plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
-        //plt::xlim(4, 10);
+        plt::xlim(0, 15);
         plt::legend();
         plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
         plt::close();
@@ -381,7 +380,7 @@ namespace dynamic_gap {
         plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
         plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
         plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
-        //plt::xlim(4, 10);
+        plt::xlim(0, 15);
         plt::legend();
         plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
         plt::close();
