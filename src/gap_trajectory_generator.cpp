@@ -118,7 +118,10 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("actual terminal left point: (" << term_x_left << ", " << term_y_left << "), original terminal right point: (" << term_x_right << ", " << term_y_right << ")");
         ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
         ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
-            
+
+        double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
+        double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
+
         Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
                                               y_left - ego_x[1],
                                               ((term_x_left - x_left) / selectedGap.gap_lifespan) - curr_vel.linear.x,
@@ -127,18 +130,14 @@ namespace dynamic_gap{
                                                y_right - ego_x[1],
                                                ((term_x_right - x_right) / selectedGap.gap_lifespan) - curr_vel.linear.x,
                                                ((term_y_right - y_right) / selectedGap.gap_lifespan) - curr_vel.linear.y);
-        
-        ROS_INFO_STREAM("manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3]);
-        ROS_INFO_STREAM("manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3]);
+        //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
+        //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
 
         Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
         Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
 
         //std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
         //std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
-
-        double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan;
-        double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
 
         state_type x = {ego_x[0], 
                         ego_x[1],
@@ -154,7 +153,10 @@ namespace dynamic_gap{
                         manip_right_cart_state[3],
                         initial_goal_x,
                         initial_goal_y};
-
+        
+        double betadot_L_0 = manip_right_polar_state[4]; // INITIAL LEFT BEARING RATE (FLIPPED)
+        double betadot_R_0 = manip_left_polar_state[4]; // INITIAL RIGHT BEARING RATE (FLIPPED)
+        
         // need to parameterize goal
 
         //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
@@ -170,8 +172,8 @@ namespace dynamic_gap{
                             cfg_->gap_manip.K_acc,
                             initial_goal_x,
                             initial_goal_y,
-                            manip_left_polar_state[4], 
-                            manip_right_polar_state[4],
+                            betadot_L_0,
+                            betadot_R_0,
                             cfg_->control.vx_absmax,
                             cfg_->control.vy_absmax,
                             x[0],
@@ -203,27 +205,26 @@ namespace dynamic_gap{
         //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
         // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
         
-        /*
         polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
-                            initial_goal_x, initial_goal_y, selectedGap.isAxial(),
+                            initial_goal_x, initial_goal_y,
+                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(),
                             cfg_->gap_manip.sigma, x[0], x[1], cfg_->gap_manip.K_acc);
-        */
-
-        double betadot_L_0 = manip_right_polar_state[4]; // INITIAL LEFT BEARING RATE (FLIPPED)
-        double betadot_R_0 = manip_left_polar_state[4]; // INITIAL RIGHT BEARING RATE (FLIPPED)
-        double a_lin_max = 1.5;
-        APF_CBF apf_cbf_traj_gen(x_right, x_left, y_right, y_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
-                                x[0], x[1], cfg_->gap_manip.K_acc, goal_vel_x, goal_vel_y,
-                                cfg_->control.vx_absmax, a_lin_max, betadot_L_0, betadot_R_0,
-                                selectedGap.gap_crossed, cfg_->gap_manip.cbf_param);
         
+        double a_lin_max = 1.5;      
+        double cbf_right_const = std::max(betadot_R_0, 0.0);
+        double cbf_left_const = std::min(betadot_L_0, 0.0);  
+        
+        APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, 
+                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
+                            x[0], x[1], cfg_->gap_manip.K_acc, cbf_left_const, cbf_right_const, 
+                            cfg_->gap_manip.cbf_param, goal_vel_x, goal_vel_y, cfg_->control.vx_absmax, a_lin_max);
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
         //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
         //std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
         //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            apf_cbf_traj_gen, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
+                                                abf_cbf_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
 
         //ROS_WARN_STREAM("CLF CBF");
         //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
