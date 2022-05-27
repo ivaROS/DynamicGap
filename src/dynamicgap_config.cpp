@@ -110,7 +110,6 @@ namespace dynamic_gap {
         gap_manip.radial_extend = cfg.radial_extend;
         gap_manip.axial_convert = cfg.axial_convert;
         gap_manip.cbf_param = cfg.cbf_param;
-        gap_manip.cbf_r_min = cfg.cbf_r_min;
         gap_manip.K_des = cfg.K_des;
 
         // Control Params

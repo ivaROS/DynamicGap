@@ -474,7 +474,7 @@ namespace dynamic_gap{
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
 
-        ROS_INFO_STREAM("drawManipGap local_ns: " << local_ns);
+        // ROS_INFO_STREAM("drawManipGap local_ns: " << local_ns);
         auto color_value = colormap.find(local_ns);
         if (color_value == colormap.end()) {
             ROS_FATAL_STREAM("[drawManipGaps] Visualization Color not found, return without drawing");

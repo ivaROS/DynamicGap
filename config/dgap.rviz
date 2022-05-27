@@ -12,6 +12,7 @@ Panels:
         - /Marker1
         - /Marker2
         - /PoseArray1
+        - /MarkerArray7
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -77,7 +78,7 @@ Visualization Manager:
       Marker Topic: /robot0/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -85,7 +86,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -174,19 +175,19 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /po_dir
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
   Enabled: true
