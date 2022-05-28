@@ -186,6 +186,7 @@ namespace dynamic_gap
         double prev_scan_time;
 
         geometry_msgs::Vector3Stamped current_agent_vel;
+        bool first_traj;
 
     public:
         Planner();
@@ -287,7 +288,7 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<int> feasible_gap_model_indices, std::vector<double> time_arr);
+        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<dynamic_gap::Gap> feasible_gaps, std::vector<double> time_arr);
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function

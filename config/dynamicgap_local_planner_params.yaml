@@ -35,7 +35,7 @@ DynamicGapPlanner:
     synthesized_frame: True
     scale: 1
     integrate_maxt: 5
-    integrate_stept: 0.02
+    integrate_stept: 0.05
 
     num_feasi_check: 30
     projection_operator: True

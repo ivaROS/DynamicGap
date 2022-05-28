@@ -205,17 +205,17 @@ namespace dynamic_gap{
         //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
         // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
         
+        /*
         polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                             initial_goal_x, initial_goal_y,
                             selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(),
                             cfg_->gap_manip.sigma, x[0], x[1], cfg_->gap_manip.K_acc);
-        
+        */
         double a_lin_max = 1.5;      
         double cbf_right_const = std::max(betadot_R_0, 0.0);
         double cbf_left_const = std::min(betadot_L_0, 0.0);  
         
-        APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, 
-                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
+        APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
                             x[0], x[1], cfg_->gap_manip.K_acc, cbf_left_const, cbf_right_const, 
                             cfg_->gap_manip.cbf_param, goal_vel_x, goal_vel_y, cfg_->control.vx_absmax, a_lin_max);
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
