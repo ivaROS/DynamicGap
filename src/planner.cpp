@@ -42,7 +42,7 @@ namespace dynamic_gap
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
+        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -207,10 +207,10 @@ namespace dynamic_gap
             simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
             simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
             gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
+            ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
             
 
-            //std::cout << "SIMPLIFIED GAP UPDATING" << std::endl;
             
             //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
             //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
@@ -349,7 +349,7 @@ namespace dynamic_gap
         
     }
     
-    /*
+    
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
         std::string source_frame = "robot0";
@@ -366,7 +366,7 @@ namespace dynamic_gap
 
         current_agent_vel = out_vel;
     }
-    */
+    
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
     {
@@ -458,7 +458,7 @@ namespace dynamic_gap
             dynamic_laser_scan.ranges = dynamic_ranges;
             */
 
-            ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
+            // ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
             // MANIPULATE POINTS AT T=0
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
@@ -475,32 +475,12 @@ namespace dynamic_gap
             */
             
             
-            ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
+            // ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-            try {
-                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-            } catch(...) {
-                std::cout << "gapManipulate failed on terminal reduceGgap" << std::endl;
-            } 
-            try {
-                gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
-            } catch(...) {
-                std::cout << "gapManipulate failed on terminal convertAxialGap" << std::endl;
-            } 
-            //}
-            try {
-                gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
-            } catch(...) {
-                std::cout << "gapManipulate failed on terminal radialExtendGap" << std::endl;
-            } 
-            //gapManip->clipGapByLaserScan(manip_set.at(i));
-            try {
-                gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
-            } catch(...) {
-                std::cout << "gapManipulate failed on terminal gapWaypoint" << std::endl;
-            } 
-            
-
+            gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+            gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
+            gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+            gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
         }
 
         return manip_set;
@@ -589,30 +569,6 @@ namespace dynamic_gap
                 ROS_INFO_STREAM("Score: " << val);
             }
             ROS_INFO_STREAM("------------------");
-
-            /*
-            bool all_init_poses_neg_inf = true;
-            for (size_t i = 0; i < score.size(); i++) {
-                if (score.at(i).at(0) != -std::numeric_limits<double>::infinity()) {
-                    all_init_poses_neg_inf = false;
-                    break;
-                }
-            }
-
-            if (all_init_poses_neg_inf) {
-                int min_idx = -1;
-                double min_cost = std::numeric_limits<double>::infinity();
-                for (size_t i = 0; i < prr.size(); i++) {
-                    double ith_terminal_cost = trajArbiter->terminalGoalCost(prr.at(i).poses.back());
-                    if (ith_terminal_cost < min_cost) {
-                        min_cost = ith_terminal_cost;
-                        min_idx = i;
-                    }
-                }
-
-                idx = min_idx;
-            }
-            */
         }
 
         ROS_INFO_STREAM("picking gap: " << idx);
@@ -993,9 +949,9 @@ namespace dynamic_gap
         }
 
         // I am putting these here because running them in the call back gets a bit exhaustive
-        ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
+        // ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
         gapvisualizer->drawGaps(curr_raw_gaps, std::string("raw"));
-        ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
+        // ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
         gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
 
         return feasible_gap_set;

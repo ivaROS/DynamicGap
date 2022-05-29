@@ -191,10 +191,10 @@ namespace dynamic_gap{
             return return_tuple;
         }
         
-        ROS_INFO_STREAM("CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan);
-        if (selectedGap.gap_crossed) {
-            ROS_INFO_STREAM("gap crossed, ignoring further point");
-        }
+        // ROS_INFO_STREAM("CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan);
+        //if (selectedGap.gap_crossed) {
+        //    ROS_INFO_STREAM("gap crossed, ignoring further point");
+        //}
         // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
         //rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         //left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));

@@ -145,7 +145,8 @@ namespace dynamic_gap {
         double x_right, x_left, y_right, y_left, _sigma, rbt_x_0, rbt_y_0, K_acc, rot_angle, 
                v_lin_max, a_lin_max, cbf_left_const, cbf_right_const, cbf_param, goal_vel_x, goal_vel_y,
                rg, theta_right, theta_left, thetax, thetag, new_theta, ang_diff_right, ang_diff_left, 
-               coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel; 
+               coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
+               r_reach, theta, r_inscr; 
         bool mode_agc, pivoted_left, _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Matrix2d r_pi2, neg_r_pi2;
         Eigen::Vector2d rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
@@ -160,7 +161,7 @@ namespace dynamic_gap {
             : x_right(x_right), x_left(x_left), y_right(y_right), y_left(y_left), 
               mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), 
               rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0), K_acc(K_acc), rot_angle(M_PI/2), cbf_left_const(cbf_left_const), cbf_right_const(cbf_right_const), cbf_param(cbf_param),
-              goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max), a_lin_max(a_lin_max)
+              goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max), a_lin_max(a_lin_max), v_nom(v_lin_max), r_inscr(0.2)
               {
                 r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
                 neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
@@ -264,6 +265,19 @@ namespace dynamic_gap {
             state_type new_x = adjust_state(x);
             cart_left_state << new_x[4], new_x[5], new_x[6], new_x[7];
             cart_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
+
+            r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(cart_left_state[0], 2) + pow(cart_left_state[1], 2)));
+            theta = std::atan2(cart_left_state[1], cart_left_state[0]);
+            cart_left_state[0] = r_reach*std::cos(theta);
+            cart_left_state[1] = r_reach*std::sin(theta);
+
+            r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(cart_right_state[0], 2) + pow(cart_right_state[1], 2)));
+            theta = std::atan2(cart_right_state[1], cart_right_state[0]);
+            cart_right_state[0] = r_reach*std::cos(theta);
+            cart_right_state[1] = r_reach*std::sin(theta);
+            
+
+
             rbt << new_x[0], new_x[1];
             rel_right_pos << cart_right_state[0], cart_right_state[1];
             rel_left_pos << cart_left_state[0], cart_left_state[1];
@@ -285,9 +299,8 @@ namespace dynamic_gap {
             pass_gap = past_gap_points || past_goal;
 
             if (pass_gap) {
-                dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0; 
-                dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; 
-                dxdt[10] = 0; dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
+                dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; 
+                dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0; dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
                 return;
             }
             

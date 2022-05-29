@@ -35,7 +35,7 @@ namespace dynamic_gap {
             double t;
             double dt;
 
-            Matrix<double, 1, 3> accel;
+            Matrix<double, 1, 3> a_ego;
             Matrix<double, 1, 3> v_ego;
 
             Matrix<double, 4, 4> A;
@@ -45,15 +45,13 @@ namespace dynamic_gap {
             int index;
             double omega_rbt_prev;
 
-            Matrix<double, 2, 1> linear_acc_ego;
-            Matrix<double, 2, 1> linear_vel_ego;
-            double ang_vel_ego;
-
             bool initialized;
             double life_time, start_time;
 
             std::vector< std::vector<double>> previous_states;
             std::vector< std::vector<double>> previous_measurements;
+            std::vector< std::vector<double>> previous_ego_accels;
+            std::vector< std::vector<double>> previous_ego_vels;
             bool plotted = false;
             double life_time_threshold;
             Matrix<double, 4, 4> eyes_state;
@@ -65,11 +63,11 @@ namespace dynamic_gap {
         public:
 
             cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
-            cart_model(const dynamic_gap::cart_model &model);
+            // cart_model(const dynamic_gap::cart_model &model);
 
             void initialize(double, double, Matrix<double, 1, 3>);
 
-            ~cart_model();
+            ~cart_model() {};
 
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_frozen_cartesian_state();

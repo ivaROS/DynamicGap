@@ -14,10 +14,10 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-// #include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
-//using namespace Eigen;
-//namespace plt = matplotlibcpp;
+using namespace Eigen;
+namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
@@ -26,16 +26,9 @@ namespace dynamic_gap {
         initialize(init_r, init_beta, v_ego);
     }
 
-    cart_model::cart_model(const dynamic_gap::cart_model &model) {
-        x = model.x;
-    }
-
-    // copy constructor
-    // copies what
-    // state really only thing that matters
-    // won't be using covariance matrix or anything
-
-    cart_model::~cart_model() {}
+    //cart_model::cart_model(const dynamic_gap::cart_model &model) {
+    //    x = model.x;
+    // }
 
     void cart_model::initialize(double init_r, double init_beta, Matrix<double, 1, 3> _v_ego) {
         // std::cout << "initializing with init_r: " << init_r << ", init_beta: " << init_beta << std::endl;
@@ -46,18 +39,18 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.05, 0.0,
-             0.0, 0.05;
+        R << 0.0001, 0.0,
+             0.0, 0.0001;
 
         // PROCESS NOISE
         // what are we not modeling?
         // angular acceleration.
         // latency.
 
-        Q << 0.25, 0.0, 0.0, 0.0,
-             0.0, 0.25, 0.0, 0.0,
-             0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0;
+        Q << 0.00001, 0.0, 0.0, 0.0,
+             0.0, 0.00001, 0.0, 0.0,
+             0.0, 0.0, .0001, 0.0,
+             0.0, 0.0, 0.0, .0001;
         dQ = Q;
 
         double v_rel_x = -_v_ego[0];
@@ -74,10 +67,10 @@ namespace dynamic_gap {
 
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
-        P << 0.01, 0.0, 0.0, 0.0,
-             0.0, 0.01, 0.0, 0.0,
-             0.0, 0.0, 10.0, 0.0,
-             0.0, 0.0, 0.0, 10.0;
+        P << 0.1, 0.0, 0.1, 0.0,
+             0.0, 0.1, 0.0, 0.1,
+             0.1, 0.0, 1.0, 0.0,
+             0.0, 0.1, 0.0, 1.0;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -87,8 +80,8 @@ namespace dynamic_gap {
         t0 = ros::Time::now().toSec();
         t = ros::Time::now().toSec();
         dt = t - t0;
-        accel << 0.0, 0.0, 0.0;
         v_ego << 0.0, 0.0, 0.0;
+        a_ego << 0.0, 0.0, 0.0;
 
         A << 0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0,
@@ -100,9 +93,6 @@ namespace dynamic_gap {
         frozen_x << 0.0, 0.0, 0.0, 0.0;
 
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
-        linear_acc_ego << 0.0, 0.0;
-        linear_vel_ego << 0.0, 0.0;
-        ang_vel_ego = 0.0;
         initialized = true;
         life_time = 0.0;
         life_time_threshold = 1.0;
@@ -111,8 +101,12 @@ namespace dynamic_gap {
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
         x_update << 0.0, 0.0, 0.0, 0.0;
         std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
+        std::vector<double> ego_accels{a_ego[0], a_ego[1], a_ego[2]};
+        std::vector<double> ego_vels{v_ego[0], v_ego[1], v_ego[2]};
         previous_states.push_back(state);
         previous_measurements.push_back(measurement);
+        previous_ego_accels.push_back(ego_accels);
+        previous_ego_vels.push_back(ego_vels);
     }
 
     void cart_model::copy_model() {
@@ -130,8 +124,9 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> new_copied_x;
         new_copied_x << 0.0, 0.0, 0.0, 0.0;
 
-        double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
-        double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
+        double ang_vel_ego = v_ego[2];
+        double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
+        double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
         new_copied_x[0] = copied_x[0] + (copied_x[2] + copied_x[1]*ang_vel_ego)*dt; // r_x
         new_copied_x[1] = copied_x[1] + (copied_x[3] - copied_x[0]*ang_vel_ego)*dt; // r_y
@@ -178,8 +173,9 @@ namespace dynamic_gap {
     
 
     void cart_model::integrate() {
-        double vdot_x_body = linear_acc_ego[0] + linear_vel_ego[1]*ang_vel_ego;
-        double vdot_y_body = linear_acc_ego[1] - linear_vel_ego[0]*ang_vel_ego;
+        double ang_vel_ego = v_ego[2];
+        double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
+        double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
         Matrix<double, 4, 1> new_x;
         new_x << x[0] + (x[2] + x[1]*ang_vel_ego)*dt, // r_x
@@ -191,6 +187,7 @@ namespace dynamic_gap {
     }
 
     void cart_model::linearize() {
+        double ang_vel_ego = v_ego[2];
         A << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
              0.0, 0.0, 0.0, ang_vel_ego,
@@ -226,34 +223,29 @@ namespace dynamic_gap {
         life_time += dt;
         //std::cout << "model lifetime: " << life_time << std::endl;
         // acceleration comes in wrt robot frame
-        linear_acc_ego << _a_ego[0], _a_ego[1];
-        linear_vel_ego << _v_ego[0], _v_ego[1];
-        ang_vel_ego = _v_ego[2];
-        
+        a_ego = _a_ego;
         v_ego = _v_ego;
         //  Eigen::Vector4d cart_state = get_cartesian_state();
         //std::cout << "acceleration" << std::endl;
-        //std::cout << "v_ego: " << v_ego[0] << ", " << v_ego[1] << ", " << v_ego[2] << std::endl;
-        //std::cout << "a_ego: " << _a_ego[0] << ", " << _a_ego[1] << ", " << _a_ego[2] << std::endl;
         //std::cout<< "integrating" << std::endl;
         //if (get_initialized()) {
         //    set_initialized(false);
         //    return;
         //} 
         
-        //if (print) {
-        //ROS_INFO_STREAM("update for model " << get_index());
-        //ROS_INFO_STREAM("linear ego vel: " << linear_vel_ego[0] << ", " << linear_vel_ego[1] << ", angular ego vel: " << ang_vel_ego);
-        //ROS_INFO_STREAM("linear ego acceleration: " << linear_acc_ego[0] << ", " << linear_acc_ego[1]);
-        //ROS_INFO_STREAM("x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-        //}
+        if (print) {
+            ROS_INFO_STREAM("update for model " << get_index());
+            ROS_INFO_STREAM("x_i: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+            ROS_INFO_STREAM("linear ego vel: " << v_ego[0] << ", " << v_ego[1] << ", angular ego vel: " << v_ego[2]);
+            ROS_INFO_STREAM("linear ego acceleration: " << a_ego[0] << ", " << a_ego[1] << ", angular ego acc: " << a_ego[2]);
+        }
         //check_time1 = ros::Time::now().toSec(); 
         integrate();
         //std::cout << "integrate time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
         // cart_state = get_cartesian_state();
-        //if (print) {
-        //ROS_INFO_STREAM("x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-        //}
+        if (print) {
+            ROS_INFO_STREAM("x_i+1_prime: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+        }
         // cart_state = get_cartesian_state();
         //std::cout << "x_i bar: " << cart_state[0] << ", " << cart_state[1] << ", " << cart_state[2] << ", " << cart_state[3] << std::endl;
         
@@ -288,7 +280,7 @@ namespace dynamic_gap {
         //std::cout << "H: " << H << std::endl;
         // std::cout << "H_transpose: " << H_transpose << std::endl;
         //std::cout << "R: " << R << std::endl;
-        tmp_mat = H*P*H_transpose + R * (10.0 - 9.0*std::exp(-life_time));
+        tmp_mat = H*P*H_transpose + R; //  * (10.0 - 9.0*std::exp(-life_time))
         // std::cout << "tmp_mat: " << tmp_mat << std::endl;
         //double det = 1.0 / (tmp_mat.coeff(0,0)*tmp_mat.coeff(1,1) - tmp_mat.coeff(0,1)*tmp_mat.coeff(1, 0));
         //
@@ -310,9 +302,9 @@ namespace dynamic_gap {
 
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        //if (print) {
-        //ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
-        //}
+        if (print) {
+            ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+        }
 
         // std::cout << "P: " << P << std::endl;
         x_update = G*(x_tilde - H*x);
@@ -320,36 +312,45 @@ namespace dynamic_gap {
         x += x_update;
 
         // cart_state = get_cartesian_state();
-        //if (print) {
-        //ROS_INFO_STREAM("x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-        //ROS_INFO_STREAM("-----------");
-        //}
+        if (print) {
+            ROS_INFO_STREAM("x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+            ROS_INFO_STREAM("P_i+1: " << P(0, 0) << ", " << P(0, 1) << ", " << P(0, 2) << ", " << P(0, 3));
+            ROS_INFO_STREAM(P(1, 0) << ", " << P(1, 1) << ", " << P(1, 2) << ", " << P(1, 3));
+            ROS_INFO_STREAM(P(2, 0) << ", " << P(2, 1) << ", " << P(2, 2) << ", " << P(2, 3));
+            ROS_INFO_STREAM(P(3, 0) << ", " << P(3, 1) << ", " << P(3, 2) << ", " << P(3, 3));            
+            ROS_INFO_STREAM("-----------");
+        }
         //std::cout<< "updating covariance matrix" << std::endl;
         P = (eyes_state - G*H)*P;
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        /*
+        
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
-            //std::cout << "agent velocity: " << agent_vel.vector.x << ", " << agent_vel.vector.y << std::endl;
-            //std::cout << "ego velocity: " << v_ego[0] << ", " << v_ego[1] << std::endl;
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
+            std::vector<double> ego_vels{v_ego[0], v_ego[1], v_ego[2]};
+            std::vector<double> ego_accels{a_ego[0], a_ego[1], a_ego[2]};
+        
             previous_states.push_back(state);
             previous_measurements.push_back(ground_truths);
+            previous_ego_accels.push_back(ego_accels);
+            previous_ego_vels.push_back(ego_vels);            
         }
 
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        */
+        
     }
 
-    /*
+    
     void cart_model::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
-        std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n);
+        std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), 
+                            r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n),
+                            v_ego_angs(n), a_ego_angs(n);
         for(int i=0; i < previous_states.size(); i++) {
             t.at(i) = previous_states[i][0];
             r_xs.at(i) = previous_states[i][1];
@@ -360,6 +361,8 @@ namespace dynamic_gap {
             r_ys_GT.at(i) = previous_measurements[i][1];
             v_xs_GT.at(i) = previous_measurements[i][2];
             v_ys_GT.at(i) = previous_measurements[i][3];
+            v_ego_angs.at(i) = previous_ego_vels[i][2];
+            a_ego_angs.at(i) = previous_ego_accels[i][2];
         }
 
         //std::cout << "position plot" << std::endl;
@@ -382,13 +385,15 @@ namespace dynamic_gap {
         plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
         plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
         plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
+        plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ego_ang"}});
+        plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
         plt::close();
         plotted = true;
     }
-    */
+    
 
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:
