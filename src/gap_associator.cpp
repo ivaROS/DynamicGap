@@ -46,11 +46,13 @@ namespace dynamic_gap {
 					points[count][0] = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
 					points[count][1] = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
 				} else {
-					points[count][0] = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-					points[count][1] = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+					Eigen::Vector4d left_state = g.left_model->get_cartesian_state();
+					Eigen::Vector4d right_state = g.right_model->get_cartesian_state();
+					points[count][0] = left_state[0]; //(g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+					points[count][1] = left_state[1]; // (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
 					count++;
-					points[count][0] = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-					points[count][1] = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+					points[count][0] = right_state[0]; //(g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+					points[count][1] = right_state[1]; //(g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
 				}
 			}
 			// std::cout << "left: (" << points[count - 1][0] << ", " << points[count - 1][1] << "), right: (" << points[count][0] << ", " << points[count][1] << "), ";

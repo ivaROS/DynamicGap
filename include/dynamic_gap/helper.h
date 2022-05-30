@@ -266,6 +266,7 @@ namespace dynamic_gap {
             cart_left_state << new_x[4], new_x[5], new_x[6], new_x[7];
             cart_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
 
+            /*
             r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(cart_left_state[0], 2) + pow(cart_left_state[1], 2)));
             theta = std::atan2(cart_left_state[1], cart_left_state[0]);
             cart_left_state[0] = r_reach*std::cos(theta);
@@ -275,7 +276,7 @@ namespace dynamic_gap {
             theta = std::atan2(cart_right_state[1], cart_right_state[0]);
             cart_right_state[0] = r_reach*std::cos(theta);
             cart_right_state[1] = r_reach*std::sin(theta);
-            
+            */
 
 
             rbt << new_x[0], new_x[1];

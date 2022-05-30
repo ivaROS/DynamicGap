@@ -39,19 +39,30 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.0001, 0.0,
-             0.0, 0.0001;
+        R << 0.25, 0.0,
+             0.0, 0.25;
 
         // PROCESS NOISE
         // what are we not modeling?
         // angular acceleration.
         // latency.
 
-        Q << 0.00001, 0.0, 0.0, 0.0,
-             0.0, 0.00001, 0.0, 0.0,
-             0.0, 0.0, .0001, 0.0,
-             0.0, 0.0, 0.0, .0001;
+        Q << 0.0005, 0.0, 0.0, 0.0,
+             0.0, 0.0005, 0.0, 0.0,
+             0.0, 0.0, 0.001, 0.0,
+             0.0, 0.0, 0.0, 0.001;
+        
+        // Q *= 0.001;
         dQ = Q;
+
+        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
+        // larger P_0 helps with GT values that are non-zero
+        // larger P_0 gives more weight to measurements
+        // Could initialize off-diagonal terms, not sure if helps
+        P << 1, 0.0, 0.0, 0.0,
+             0.0, 1, 0.0, 0.0,
+             0.0, 0.0, 5, 0.0,
+             0.0, 0.0, 0.0, 5;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -65,12 +76,6 @@ namespace dynamic_gap {
              0.0,
              0.0;
 
-        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
-        // larger P_0 helps with GT values that are non-zero
-        P << 0.1, 0.0, 0.1, 0.0,
-             0.0, 0.1, 0.0, 0.1,
-             0.1, 0.0, 1.0, 0.0,
-             0.0, 0.1, 0.0, 1.0;
 
         G << 1.0, 1.0,
              1.0, 1.0,
@@ -95,7 +100,7 @@ namespace dynamic_gap {
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
         initialized = true;
         life_time = 0.0;
-        life_time_threshold = 1.0;
+        life_time_threshold = 3.0;
         eyes_state = MatrixXd::Identity(4,4);
         new_P = eyes_state;
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
@@ -177,17 +182,33 @@ namespace dynamic_gap {
         double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
         double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
+        double p_dot_x = (x[2] + x[1]*ang_vel_ego);
+        double p_dot_y = (x[3] - x[0]*ang_vel_ego);
+        double v_dot_x = (x[3]*ang_vel_ego - vdot_x_body);
+        double v_dot_y = (-x[2]*ang_vel_ego - vdot_y_body);
+
         Matrix<double, 4, 1> new_x;
-        new_x << x[0] + (x[2] + x[1]*ang_vel_ego)*dt, // r_x
-                 x[1] + (x[3] - x[0]*ang_vel_ego)*dt, // r_y
-                 x[2] + (x[3]*ang_vel_ego - vdot_x_body)*dt, // v_x
-                 x[3] + (-x[2]*ang_vel_ego - vdot_y_body)*dt; // v_y
+        new_x << x[0] + p_dot_x*dt + v_dot_x*dt*dt, // r_x
+                 x[1] + p_dot_y*dt + v_dot_y*dt*dt, // r_y
+                 x[2] + v_dot_x*dt, // v_x
+                 x[3] + v_dot_y*dt; // v_y
         
         x = new_x;
     }
 
     void cart_model::linearize() {
         double ang_vel_ego = v_ego[2];
+        
+        A << 0.0, ang_vel_ego, 1.0, ang_vel_ego*dt,
+             -ang_vel_ego, 0.0, -ang_vel_ego*dt, 1.0,
+             0.0, 0.0, 0.0, ang_vel_ego,
+             0.0, 0.0, -ang_vel_ego, 0.0;
+
+        Ad << 1.0, ang_vel_ego*dt, dt, 0.5 * ang_vel_ego * dt * dt,
+              -ang_vel_ego*dt, 1.0, -0.5 * ang_vel_ego * dt * dt, dt,
+              0.0, 0.0, 1.0, ang_vel_ego*dt,
+              0.0, 0.0, -ang_vel_ego*dt, 1.0;
+        /*
         A << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
              0.0, 0.0, 0.0, ang_vel_ego,
@@ -197,14 +218,15 @@ namespace dynamic_gap {
               -ang_vel_ego*dt, 1.0, 0.0, dt,
               0.0, 0.0, 1.0, ang_vel_ego*dt,
               0.0, 0.0, -ang_vel_ego*dt, 1.0;
-
-        Ad_transpose << 1.0, -ang_vel_ego*dt, 0.0, 0.0,
-                        ang_vel_ego*dt, 1.0, 0.0, 0.0,
-                        dt, 0.0, 1.0, -ang_vel_ego*dt,
-                        0.0, dt, ang_vel_ego*dt, 1.0;
+        */
+        //Ad_transpose << 1.0, -ang_vel_ego*dt, 0.0, 0.0,
+        //                ang_vel_ego*dt, 1.0, 0.0, 0.0,
+        //                dt, 0.0, 1.0, -ang_vel_ego*dt,
+        //                0.0, dt, ang_vel_ego*dt, 1.0;
         // std::cout << "Ad in linearize: " << Ad << std::endl;
     }
 
+    // this does give off-diagonal terms to Q, so init diagonal Q is fine
     void cart_model::discretizeQ() {
         dQ = Q * dt;
 
@@ -213,6 +235,11 @@ namespace dynamic_gap {
         Matrix<double, 4, 4> M3 = 0.3333 * dt * dt * A_dQ_transpose;
 
         dQ = dQ + M2 + M3;
+        //ROS_INFO_STREAM("dQ+1: " << dQ(0, 0) << ", " << dQ(0, 1) << ", " << dQ(0, 2) << ", " << dQ(0, 3));
+        //    ROS_INFO_STREAM(dQ(1, 0) << ", " << dQ(1, 1) << ", " << dQ(1, 2) << ", " << dQ(1, 3));
+        //    ROS_INFO_STREAM(dQ(2, 0) << ", " << dQ(2, 1) << ", " << dQ(2, 2) << ", " << dQ(2, 3));
+        //    ROS_INFO_STREAM(dQ(3, 0) << ", " << dQ(3, 1) << ", " << dQ(3, 2) << ", " << dQ(3, 3));            
+        //    ROS_INFO_STREAM("-----------");
     }
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
@@ -268,7 +295,7 @@ namespace dynamic_gap {
         //std::cout << "dQ: " << dQ << std::endl;
 
         //check_time1 = ros::Time::now().toSec(); 
-        new_P = Ad * P * Ad_transpose + dQ;
+        new_P = Ad * P * Ad.transpose() + dQ;
         //std::cout << "Ad transpose time elapsed: " << ros::Time::now().toSec() - check_time1 << std::endl;
 
         // std::cout << "new_P: " << new_P << std::endl;
@@ -314,10 +341,10 @@ namespace dynamic_gap {
         // cart_state = get_cartesian_state();
         if (print) {
             ROS_INFO_STREAM("x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-            ROS_INFO_STREAM("P_i+1: " << P(0, 0) << ", " << P(0, 1) << ", " << P(0, 2) << ", " << P(0, 3));
-            ROS_INFO_STREAM(P(1, 0) << ", " << P(1, 1) << ", " << P(1, 2) << ", " << P(1, 3));
-            ROS_INFO_STREAM(P(2, 0) << ", " << P(2, 1) << ", " << P(2, 2) << ", " << P(2, 3));
-            ROS_INFO_STREAM(P(3, 0) << ", " << P(3, 1) << ", " << P(3, 2) << ", " << P(3, 3));            
+            //ROS_INFO_STREAM("P_i+1: " << P(0, 0) << ", " << P(0, 1) << ", " << P(0, 2) << ", " << P(0, 3));
+            //ROS_INFO_STREAM(P(1, 0) << ", " << P(1, 1) << ", " << P(1, 2) << ", " << P(1, 3));
+            //ROS_INFO_STREAM(P(2, 0) << ", " << P(2, 1) << ", " << P(2, 2) << ", " << P(2, 3));
+            //ROS_INFO_STREAM(P(3, 0) << ", " << P(3, 1) << ", " << P(3, 2) << ", " << P(3, 3));            
             ROS_INFO_STREAM("-----------");
         }
         //std::cout<< "updating covariance matrix" << std::endl;
@@ -325,7 +352,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        
+        /*
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
@@ -341,7 +368,7 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        
+        */
     }
 
     
@@ -385,8 +412,8 @@ namespace dynamic_gap {
         plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
         plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
         plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
-        plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ego_ang"}});
-        plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
+        // plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ego_ang"}});
+        // plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
