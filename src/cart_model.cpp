@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -178,7 +178,7 @@ namespace dynamic_gap {
     
 
     void cart_model::integrate() {
-        double ang_vel_ego = v_ego[2];
+        double ang_vel_ego = (v_ego[2] + (v_ego[2] - a_ego[2]*dt)) / 2.0;
         double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
         double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
@@ -197,7 +197,7 @@ namespace dynamic_gap {
     }
 
     void cart_model::linearize() {
-        double ang_vel_ego = v_ego[2];
+        double ang_vel_ego = (v_ego[2] + (v_ego[2] - a_ego[2]*dt)) / 2.0;
         
         A << 0.0, ang_vel_ego, 1.0, ang_vel_ego*dt,
              -ang_vel_ego, 0.0, -ang_vel_ego*dt, 1.0,
@@ -352,7 +352,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        /*
+        
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
@@ -368,10 +368,10 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        */
+        
     }
 
-    
+       
     void cart_model::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
@@ -403,7 +403,7 @@ namespace dynamic_gap {
         plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
+        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
         plt::close();
 
         //std::cout << "velocity plot" << std::endl;
@@ -412,14 +412,15 @@ namespace dynamic_gap {
         plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
         plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
         plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
-        // plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ego_ang"}});
-        // plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
+        //plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ego_ang"}});
+        //plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
+        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
         plt::close();
         plotted = true;
     }
+    
     
 
     Eigen::Vector4d cart_model::get_cartesian_state() {

@@ -246,7 +246,7 @@ namespace dynamic_gap{
 
             this_marker.points = lines;
             this_marker.id = id++;
-            this_marker.lifetime = ros::Duration(0.1);
+            this_marker.lifetime = ros::Duration(0.2);
 
             vis_arr.markers.push_back(this_marker);
         }
@@ -262,12 +262,22 @@ namespace dynamic_gap{
         lines.push_back(liner);
         this_marker.points = lines;
         this_marker.id = id++;
-        this_marker.lifetime = ros::Duration(0.1);
+        this_marker.lifetime = ros::Duration(0.2);
         vis_arr.markers.push_back(this_marker);
     }
     
     void GapVisualizer::drawGaps(std::vector<dynamic_gap::Gap> g, std::string ns) {
         if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = ns;
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gaparc_publisher.publish(clear_arr);
+
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : g) {
             drawGap(vis_arr, gap, ns, true);
@@ -275,14 +285,24 @@ namespace dynamic_gap{
             if (ns.compare("raw") != 0) {
                 drawGap(vis_arr, gap, ns, false);
             }
-            
-            
         }
         gaparc_publisher.publish(vis_arr);
+        prev_num_gaps = g.size();
     }
 
     void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
         if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = "gap_models";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gapmodel_pos_publisher.publish(clear_arr);
+        gapmodel_vel_publisher.publish(clear_arr);
+
         visualization_msgs::MarkerArray gap_pos_arr;
         visualization_msgs::MarkerArray gap_vel_arr;
         for (auto gap : g) {
@@ -290,6 +310,7 @@ namespace dynamic_gap{
         }
         gapmodel_pos_publisher.publish(gap_pos_arr);
         gapmodel_vel_publisher.publish(gap_vel_arr);
+        prev_num_models = 2* g.size();
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
@@ -315,7 +336,7 @@ namespace dynamic_gap{
         left_model_pt.color.a = 1.0;
         left_model_pt.color.r = 1.0;
         left_model_pt.color.b = 1.0;
-        left_model_pt.lifetime = ros::Duration(0.1);
+        left_model_pt.lifetime = ros::Duration(0.2);
         model_arr.markers.push_back(left_model_pt);
         visualization_msgs::Marker right_model_pt;
         // std::cout << "model frame: " << g._frame << std::endl;
@@ -336,7 +357,7 @@ namespace dynamic_gap{
         right_model_pt.color.a = 1.0;
         right_model_pt.color.r = 1.0;
         right_model_pt.color.b = 1.0;
-        right_model_pt.lifetime = ros::Duration(0.1);
+        right_model_pt.lifetime = ros::Duration(0.2);
         model_arr.markers.push_back(right_model_pt);
 
         visualization_msgs::Marker left_model_vel_pt;
@@ -364,7 +385,7 @@ namespace dynamic_gap{
         left_model_vel_pt.color.a = 1.0;
         left_model_vel_pt.color.r = 1.0;
         left_model_vel_pt.color.b = 1.0;
-        left_model_vel_pt.lifetime = ros::Duration(0.1);
+        left_model_vel_pt.lifetime = ros::Duration(0.2);
         gap_vel_arr.markers.push_back(left_model_vel_pt);
         // std::cout << "left velocity end point: " << left_vel_pt.x << ", " << left_vel_pt.y << std::endl;
 
@@ -392,7 +413,7 @@ namespace dynamic_gap{
         right_model_vel_pt.color.a = 1.0;
         right_model_vel_pt.color.r = 1.0;
         right_model_vel_pt.color.b = 1.0;
-        right_model_vel_pt.lifetime = ros::Duration(0.1);
+        right_model_vel_pt.lifetime = ros::Duration(0.2);
         gap_vel_arr.markers.push_back(right_model_vel_pt);
         // std::cout << "right velocity end point: " << right_vel_pt.x << ", " << right_vel_pt.y << std::endl;
     }
@@ -496,7 +517,7 @@ namespace dynamic_gap{
         int id = (int) vis_arr.markers.size();
         // ROS_INFO_STREAM("ID: "<< id);
 
-        this_marker.lifetime = ros::Duration(0.1);
+        this_marker.lifetime = ros::Duration(0.2);
 
         for (int i = 0; i < num_segments - 1; i++)
         {
@@ -526,7 +547,7 @@ namespace dynamic_gap{
         this_marker.scale.x = thickness;
         this_marker.points = lines;
         this_marker.id = id++;
-        this_marker.lifetime = ros::Duration(0.1);
+        this_marker.lifetime = ros::Duration(0.2);
         vis_arr.markers.push_back(this_marker);
         
         // MAX: removing just for visualizing
@@ -615,6 +636,16 @@ namespace dynamic_gap{
 
     void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns) {
         if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = ns;
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gapside_publisher.publish(clear_arr);
+
         visualization_msgs::MarkerArray vis_arr;
 
         bool circle = false;
@@ -623,6 +654,7 @@ namespace dynamic_gap{
             drawManipGap(vis_arr, gap, circle, ns, false);
         }
         gapside_publisher.publish(vis_arr);
+        prev_num_manip_gaps = 2*vec.size();
     }
 
     TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
@@ -707,7 +739,7 @@ namespace dynamic_gap{
         lg_marker.color.r = 1;
         lg_marker.color.g = 1;
         lg_marker.color.b = 1;
-        lg_marker.lifetime = ros::Duration(0.1);
+        lg_marker.lifetime = ros::Duration(0.2);
 
 
         ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
@@ -734,6 +766,17 @@ namespace dynamic_gap{
 
     void TrajectoryVisualizer::pubAllTraj(std::vector<geometry_msgs::PoseArray> prr) {
         if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns =  "allTraj";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        all_traj_viz.publish(clear_arr);
+
+        
         visualization_msgs::MarkerArray vis_traj_arr;
         visualization_msgs::Marker lg_marker;
         if (prr.size() == 0)
@@ -754,7 +797,7 @@ namespace dynamic_gap{
         lg_marker.color.a = 1;
         lg_marker.color.r = 0.5;
         lg_marker.color.g = 0.5;
-        lg_marker.lifetime = ros::Duration(0.1);
+        lg_marker.lifetime = ros::Duration(0.2);
 
         for (auto & arr : prr) {
             for (auto pose : arr.poses) {
@@ -764,6 +807,7 @@ namespace dynamic_gap{
             }
         }
         all_traj_viz.publish(vis_traj_arr);
+
     }
 
     GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
@@ -834,12 +878,23 @@ namespace dynamic_gap{
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;
         lg_marker.scale.z = 0.1;
-        lg_marker.lifetime = ros::Duration(0.1);
+        lg_marker.lifetime = ros::Duration(0.2);
         vis_arr.markers.push_back(lg_marker);
     }
 
     void GoalVisualizer::drawGapGoals(std::vector<dynamic_gap::Gap> gs) {
         if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = "gap_goal";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gapwp_pub.publish(clear_arr);
+
+
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : gs) {
             drawGapGoal(vis_arr, gap, true);

@@ -50,6 +50,9 @@ namespace dynamic_gap
             ros::Publisher gapgoal_publisher;
             ros::Publisher gapmodel_pos_publisher;
             ros::Publisher gapmodel_vel_publisher;
+            double prev_num_gaps;
+            double prev_num_manip_gaps;
+            double prev_num_models;
     };
 
     class TrajectoryVisualizer : public Visualizer{
@@ -64,6 +67,7 @@ namespace dynamic_gap
             ros::Publisher goal_selector_traj_vis;
             ros::Publisher trajectory_score;
             ros::Publisher all_traj_viz;
+            double prev_num_trajs;
     };
 
     class GoalVisualizer : public Visualizer{
@@ -79,6 +83,7 @@ namespace dynamic_gap
             std_msgs::ColorRGBA gapwp_color;
             std_msgs::ColorRGBA terminal_gapwp_color;
             std_msgs::ColorRGBA localGoal_color;
+            double prev_num_goals;
     };
 }
 

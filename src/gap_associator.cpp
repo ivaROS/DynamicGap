@@ -17,7 +17,7 @@
 
 namespace dynamic_gap {
 
-	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns) {
+	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns, bool previous) {
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
 		for (auto & g : gaps) {	
@@ -34,26 +34,30 @@ namespace dynamic_gap {
 				count++;
 				points[count][0] = -100;
 				points[count][1] = -100;
-			} else {
-				if (ns == "raw") {
-					int lidx = g.LIdx();
-        			int ridx = g.RIdx();
-        			float ldist = g.LDist();
-        			float rdist = g.RDist();
-					points[count][0] = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-					points[count][1] = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-					count++;
-					points[count][0] = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-					points[count][1] = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-				} else {
+			} else {					
+				float left_x, left_y, right_x, right_y;
+				if (previous) {
 					Eigen::Vector4d left_state = g.left_model->get_cartesian_state();
 					Eigen::Vector4d right_state = g.right_model->get_cartesian_state();
-					points[count][0] = left_state[0]; //(g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-					points[count][1] = left_state[1]; // (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-					count++;
-					points[count][0] = right_state[0]; //(g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-					points[count][1] = right_state[1]; //(g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+					left_x = left_state[0];
+					left_y = left_state[1];
+					right_x = right_state[0];
+					right_y = right_state[1];
+				} else {
+					int lidx = g.LIdx();
+					int ridx = g.RIdx();
+					float ldist = g.LDist();
+					float rdist = g.RDist();
+					left_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
+					left_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
+					right_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
+					right_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);				
 				}
+				points[count][0] = left_x;
+				points[count][1] = left_y;
+				count++;
+				points[count][0] = right_x;
+				points[count][1] = right_y;
 			}
 			// std::cout << "left: (" << points[count - 1][0] << ", " << points[count - 1][1] << "), right: (" << points[count][0] << ", " << points[count][1] << "), ";
 			count++;
@@ -69,9 +73,9 @@ namespace dynamic_gap {
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
 		//std::cout << "getting previous points:" << std::endl;
-		previous_gap_points = obtainGapPoints(previous_gaps, ns);
+		previous_gap_points = obtainGapPoints(previous_gaps, ns, true);
 		//std::cout << "getting current points:" << std::endl;
-        observed_gap_points = obtainGapPoints(observed_gaps, ns);
+        observed_gap_points = obtainGapPoints(observed_gaps, ns, false);
         
 		vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
