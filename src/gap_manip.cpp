@@ -248,7 +248,7 @@ namespace dynamic_gap {
             return;
         }
 
-        // ROS_INFO_STREAM("~running reduceGap, gap_theta_size: " << gap_theta_size << "~");
+        ROS_INFO_STREAM("~running reduceGap~");
 
         float x1, x2, y1, y2;
         x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
@@ -329,7 +329,7 @@ namespace dynamic_gap {
         if (!gap.isAxial(initial) || !cfg_->gap_manip.axial_convert) {
             return;
         }
-        // ROS_INFO_STREAM("~running convertAxialGap~");
+        ROS_INFO_STREAM("~running convertAxialGap~");
 
         int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
         int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
@@ -530,7 +530,7 @@ namespace dynamic_gap {
             return;
         }
 
-        // ROS_INFO_STREAM( "running radialExtendGap");
+        ROS_INFO_STREAM( "running radialExtendGap");
 
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         int half_num_scan = gap.half_scan; // changing this

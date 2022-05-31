@@ -225,6 +225,7 @@ namespace dynamic_gap
             bool isAxial(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
+                // ROS_INFO_STREAM("running isAxial");
                 int check_l_idx = initial ? _left_idx : terminal_lidx;
                 int check_r_idx = initial ? _right_idx : terminal_ridx;
                 float check_l_dist = initial ? _ldist : terminal_ldist;
@@ -235,13 +236,15 @@ namespace dynamic_gap
                 if (gap_angle < 0) {
                     gap_angle += 2*M_PI;
                 }
-                // std::cout << "gap_angle: " << gap_angle << std::endl;
+                // ROS_INFO_STREAM("gap_angle: " << gap_angle);
                 float short_side = left_type ? check_l_dist : check_r_dist;
                 // law of cosines
                 float opp_side = (float) sqrt(pow(check_l_dist, 2) + pow(check_r_dist, 2) - 2 * check_l_dist * check_r_dist * (float)cos(gap_angle));
                 // law of sines
-                float small_angle = (float) asin(short_side / (opp_side * (float) sin(gap_angle)));
-                // std::cout << "small angle: " << small_angle << std::endl;
+                float small_angle = (float) asin((short_side / opp_side) * (float) sin(gap_angle));
+                // ROS_INFO_STREAM("short_side: " << short_side);
+                // ROS_INFO_STREAM("opp_side: " << opp_side);
+                // ROS_INFO_STREAM("small angle: " << small_angle);
                 if (initial) {
                     _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
                     // std::cout << "checking isSwept: " << _axial << std::endl;

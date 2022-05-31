@@ -278,7 +278,6 @@ namespace dynamic_gap {
             cart_right_state[1] = r_reach*std::sin(theta);
             */
 
-
             rbt << new_x[0], new_x[1];
             rel_right_pos << cart_right_state[0], cart_right_state[1];
             rel_left_pos << cart_left_state[0], cart_left_state[1];
@@ -332,7 +331,7 @@ namespace dynamic_gap {
             weighted_circulation_sum = w_left*c_left + w_right*c_right; //  
             circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm(); // / 
             attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm(); // 
-            /*
+            
             ROS_INFO_STREAM("inte_t: " << t);
             ROS_INFO_STREAM("robot position: " << new_x[0] << ", " << new_x[1] << ", robot velocity: " << new_x[2] << ", " << new_x[3]);
             ROS_INFO_STREAM("robot to left: (" << rel_left_pos[0] << ", " << rel_left_pos[1] << "), robot to right: (" << rel_right_pos[0] << ", " << rel_right_pos[1] << ")");
@@ -341,7 +340,7 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")");
             ROS_INFO_STREAM("robot to goal: (" << rel_goal_pos[0] << ", " << rel_goal_pos[1] << ")");
             ROS_INFO_STREAM("attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")");
-            */
+            
             v_des = (circulation_field + attraction_field);
 
             // CLIPPING DESIRED VELOCITIES
@@ -351,10 +350,10 @@ namespace dynamic_gap {
             a_des << K_acc*(v_des[0] - new_x[2]), K_acc*(v_des[1] - new_x[3]);
             a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
             
-            // ROS_INFO_STREAM("v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1));
+            ROS_INFO_STREAM("v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1));
 
             a_actual = a_des;
-            /*
+            
             // check for convexity of gap
             if (rg > 0.1 && !past_gap_points) {
                 // std::cout << "adding CBF" << std::endl;
@@ -388,7 +387,7 @@ namespace dynamic_gap {
                 Eigen::Vector2d Lg_h(d_h_dyn_dx[2], d_h_dyn_dx[3]); // Lie derivative of h wrt x
                 a_actual = a_des + -(Lg_h * std::min(Psi, 0.0)) / (Lg_h.dot(Lg_h));
             } 
-            */
+            
             a_actual = clip_velocities(a_actual[0], a_actual[1], a_lin_max);
             
             //ROS_INFO_STREAM("a_actual: " << a_actual(0) << ", " << a_actual(1));

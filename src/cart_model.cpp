@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -39,8 +39,8 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Ran some tests to see variance of gap detection, roughly got this value
         // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.25, 0.0,
-             0.0, 0.25;
+        R << 0.1, 0.0,
+             0.0, 0.1;
 
         // PROCESS NOISE
         // what are we not modeling?
@@ -352,7 +352,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        
+        /*
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
@@ -368,10 +368,10 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        
+        */
     }
 
-       
+    /*
     void cart_model::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
@@ -403,7 +403,7 @@ namespace dynamic_gap {
         plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
+        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
         plt::close();
 
         //std::cout << "velocity plot" << std::endl;
@@ -416,11 +416,11 @@ namespace dynamic_gap {
         //plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
+        plt::save("/home/masselmeier3/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
         plt::close();
         plotted = true;
     }
-    
+    */
     
 
     Eigen::Vector4d cart_model::get_cartesian_state() {

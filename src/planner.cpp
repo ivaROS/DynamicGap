@@ -208,7 +208,7 @@ namespace dynamic_gap
             simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
             gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
             ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
+            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
 
             
@@ -379,7 +379,7 @@ namespace dynamic_gap
         
         trajvisualizer->globalPlanRbtFrame(goalselector->getOdomGlobalPlan());
 
-        // Find Local Goal
+        // Obtaining Local Goal by using global plan
         goalselector->updateLocalGoal(map2rbt);
         // return local goal (odom) frame
         auto new_local_waypoint = goalselector->getCurrentLocalGoal(rbt2odom);
@@ -958,21 +958,21 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-        double getPlan_start_time = ros::Time::now().toSec();
+        // double getPlan_start_time = ros::Time::now().toSec();
         updateTF();
 
-        //std::cout << "GAP FEASIBILITY CHECK" << std::endl;
-        double start_time = ros::Time::now().toSec();
+        ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
+        // double start_time = ros::Time::now().toSec();
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
-        ROS_INFO_STREAM("gapSetFeasibilityCheck time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("gapSetFeasibilityCheck time elapsed: " << ros::Time::now().toSec() - start_time);
 
         //std::vector<dynamic_gap::Gap> feasible_gap_set = associated_observed_gaps;
         //std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
-        //std::cout << "STARTING GAP MANIPULATE" << std::endl;
-        start_time = ros::Time::now().toSec();
+        ROS_INFO_STREAM("starting gapManipulate");        
+        // start_time = ros::Time::now().toSec();
         auto manip_gap_set = gapManipulate(feasible_gap_set);
-        ROS_INFO_STREAM("gapManipulate time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("gapManipulate time elapsed: " << ros::Time::now().toSec() - start_time);
 
         //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
@@ -1030,19 +1030,19 @@ namespace dynamic_gap
         } 
         */
 
-        //std::cout << "INITIAL TRAJ GEN/SCORING" << std::endl;
+        ROS_INFO_STREAM("starting initialTrajGen");
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-        start_time = ros::Time::now().toSec();
+        // start_time = ros::Time::now().toSec();
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
-        ROS_INFO_STREAM("initialTrajGen time elapsed: " << ros::Time::now().toSec() - start_time);
+        //ROS_INFO_STREAM("initialTrajGen time elapsed: " << ros::Time::now().toSec() - start_time);
 
-        ROS_INFO_STREAM("PICK TRAJ");
-        start_time = ros::Time::now().toSec();
+        ROS_INFO_STREAM("starting pickTraj");
+        // start_time = ros::Time::now().toSec();
         auto traj_idx = pickTraj(traj_set, score_set);
-        ROS_INFO_STREAM("pickTraj time elapsed: " << ros::Time::now().toSec() - start_time);
-        ROS_INFO_STREAM("PICK TRAJ");
+        // ROS_INFO_STREAM("pickTraj time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("PICK TRAJ");
 
         geometry_msgs::PoseArray chosen_traj;
         std::vector<double> chosen_time_arr;
@@ -1069,12 +1069,12 @@ namespace dynamic_gap
         }
         //std::cout << "" << std::endl;
         */
-        ROS_INFO_STREAM("COMPARE TO OLD TRAJ");
-        start_time = ros::Time::now().toSec();
+        ROS_INFO_STREAM("starting compareToOldTraj");
+        // start_time = ros::Time::now().toSec();
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
-        ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::Time::now().toSec() - start_time);                
+        // ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::Time::now().toSec() - start_time);                
         
-        ROS_INFO_STREAM("getPlan time elapsed: " << ros::Time::now().toSec() - getPlan_start_time);
+        // ROS_INFO_STREAM("getPlan time elapsed: " << ros::Time::now().toSec() - getPlan_start_time);
         // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
         return final_traj;
     }

@@ -238,7 +238,7 @@ namespace dynamic_gap{
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
         std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-        ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
         return return_tuple;
     }
 

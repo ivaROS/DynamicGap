@@ -92,6 +92,7 @@ namespace dynamic_gap {
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getRelevantGlobalPlan(geometry_msgs::TransformStamped map2rbt) {
         // Global Plan is now in robot frame
         // Do magic with egocircle
+        ROS_INFO_STREAM("getRelevantGlobalPlan");
         boost::mutex::scoped_lock gplock(gplan_mutex);
         mod_plan.clear();
         // where is global_plan coming from?
@@ -108,27 +109,36 @@ namespace dynamic_gap {
         }
 
         // calculating distance to robot at each step of plan
-        std::vector<double> distance(mod_plan.size());
-        for (int i = 0; i < distance.size(); i++) {
-            distance.at(i) = dist2rbt(mod_plan.at(i));
-        }
-
+        // distance: distance to robot at each index of plan
+        // need indices: laser scan index at each index of plan
         // Finding the largest distance in the laser scan
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         threshold = (double) *std::max_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
 
+        // ROS_INFO_STREAM("mod plan size: " << mod_plan.size());
+        std::vector<double> plan_dists(mod_plan.size());
+        std::vector<double> scan_dists(mod_plan.size());
+        std::vector<double> plan_dist_diff(mod_plan.size());
+        for (int i = 0; i < plan_dists.size(); i++) {
+            plan_dists.at(i) = dist2rbt(mod_plan.at(i));
+            scan_dists.at(i) = scanDistsAtPlanIndices(mod_plan.at(i), stored_scan_msgs);
+            plan_dist_diff.at(i) = scan_dists.at(i) - plan_dists.at(i);
+        }
+
         // Find closest pose to robot to start the global plan snippet
-        auto start_pose = std::min_element(distance.begin(), distance.end());
+        auto start_pose = std::min_element(plan_dists.begin(), plan_dists.end());
+        int start_idx = std::distance(plan_dists.begin(), start_pose);
+        // ROS_INFO_STREAM("start_idx: " << start_idx);
 
         // find_if returns iterator for which predicate is true within range (start_pose, distance.end()). You would
         // imagine that as distance goes on, the distances get greater.
         // bind1st: binds "this" object to the isNotWithin function?
 
         // end_pose is the first point within distance that lies beyond the robot scan.
-        auto end_pose = std::find_if(start_pose, distance.end(),
+        auto end_pose = std::find_if(plan_dist_diff.begin() + start_idx, plan_dist_diff.end(),
             std::bind1st(std::mem_fun(&GoalSelector::isNotWithin), this));
 
-        if (start_pose == distance.end()) {
+        if (start_pose == plan_dist_diff.end()) {
             ROS_FATAL_STREAM("No Global Plan pose within Robot scan");
             return std::vector<geometry_msgs::PoseStamped>(0);
         } else if (mod_plan.size() == 0) {
@@ -136,8 +146,7 @@ namespace dynamic_gap {
             return std::vector<geometry_msgs::PoseStamped>(0);
         }
 
-        int start_idx = std::distance(distance.begin(), start_pose);
-        int end_idx = std::distance(distance.begin(), end_pose);
+        int end_idx = std::distance(plan_dist_diff.begin(), end_pose);
 
         auto start_gplan = mod_plan.begin() + start_idx;
         auto end_gplan = mod_plan.begin() + end_idx;
@@ -150,8 +159,20 @@ namespace dynamic_gap {
         return sqrt(pow(pose.pose.position.x, 2) + pow(pose.pose.position.y, 2));
     }
 
+    double GoalSelector::scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, sensor_msgs::LaserScan stored_scan_msgs) {
+        double plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
+        int half_num_scan = stored_scan_msgs.ranges.size() / 2;
+        int plan_idx = int (half_num_scan * plan_theta / M_PI) + half_num_scan;
+
+        double scan_dist = stored_scan_msgs.ranges.at(plan_idx);
+
+        return scan_dist;
+    }
+
+
     bool GoalSelector::isNotWithin(const double dist) {
-        return dist > threshold;
+
+        return dist <= 0.0;
     }
 
     geometry_msgs::PoseStamped GoalSelector::getCurrentLocalGoal(geometry_msgs::TransformStamped rbt2odom) {

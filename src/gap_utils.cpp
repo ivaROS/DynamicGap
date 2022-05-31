@@ -162,18 +162,17 @@ namespace dynamic_gap {
         bool changed = true;
 
         int num_raw_gaps = (int) raw_gaps.size();
-        //std::cout << "running MergeGapsOneGo: " << std::endl;
+        // ROS_INFO_STREAM("running MergeGapsOneGo: ");
         for (int i = 0; i < num_raw_gaps; i++)
         {
-            //std::cout << "raw gap " << i << " of " << num_raw_gaps << ": " << std::endl;
-            //std::cout << "axial: " << raw_gaps[i].isAxial() << ", left: " << raw_gaps[i].isLeftType() << std::endl;
-            //std::cout << "points: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
-            //std::cout << "---" << std::endl;
+            // ROS_INFO_STREAM("raw gap " << i << " of " << num_raw_gaps << ": ");
+            // ROS_INFO_STREAM("points: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");
+            // ROS_INFO_STREAM("axial: " << raw_gaps[i].isAxial() << ", left: " << raw_gaps[i].isLeftType());
             // if we are starting merging, this raw gap is swept, and left dist < right dist, then we may be able to merge
             if (mark_to_start && raw_gaps.at(i).isAxial() && raw_gaps.at(i).isLeftType())
             {   
                 mark_to_start = false;
-                //std::cout << "adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                // ROS_INFO_STREAM("adding first swept left raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");
                 simplified_gaps.push_back(raw_gaps[i]);
             } else {
                 if (!mark_to_start) // if we have already found a mergable gap
@@ -182,7 +181,7 @@ namespace dynamic_gap {
                     {
                         if (raw_gaps.at(i).isLeftType()) // if l_dist < r_dist
                         {
-                            //std::cout << "adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
+                            // ROS_INFO_STREAM("adding a raw gap (swept, left): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");
                             simplified_gaps.push_back(raw_gaps[i]);
                         }
                         else
@@ -193,33 +192,36 @@ namespace dynamic_gap {
 
                             float coefs = cfg_->planning.planning_inflated ? 0 : 2;
                             // iterating backwards through simplified gaps to see if they can be merged
-                            //std::cout << "attempting merge" << std::endl;
+                            // ROS_INFO_STREAM("attempting merge with raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");
                             for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
                             {
+                                // ROS_INFO_STREAM("on simplified gap " << j << " of " << simplified_gaps.size() << ": ");
+                                // ROS_INFO_STREAM("points: (" << simplified_gaps[j].LIdx() << ", " << simplified_gaps[j].LDist() << ") to (" << simplified_gaps[j].RIdx() << ", " << simplified_gaps[j].RDist() << ")");
                                 int start_idx = std::min(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
                                 int end_idx = std::max(simplified_gaps[j].RIdx(), raw_gaps[i].LIdx());
                                 auto farside_iter = std::min_element(stored_scan_msgs.ranges.begin() + start_idx, stored_scan_msgs.ranges.begin() + end_idx);
                                 float min_dist = *farside_iter;
                                 // second test is checking if simplified gap dist is less than current min dist of raw gap
-                                bool second_test = curr_rdist <= (min_dist - coefs * cfg_->rbt.r_inscr) && 
+                                bool simp_left_raw_right_dist_test = curr_rdist <= (min_dist - coefs * cfg_->rbt.r_inscr) && 
                                                    simplified_gaps[j].LDist() <= (min_dist - coefs * cfg_->rbt.r_inscr);
                                 
                                 // left type just means if left side distance is less than right side distance
-                                bool dist_diff = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isAxial();
-                                // making sure that this merged gap is not too large?
+                                bool left_or_radial = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isAxial();
+                                // making sure that this merged gap is not too large? max_idx_diff is 256 I'm pretty sure
                                 bool idx_diff = raw_gaps[i].RIdx() - simplified_gaps[j].LIdx() < cfg_->gap_manip.max_idx_diff;
-                                if (second_test && dist_diff && idx_diff) {
+                                // ROS_INFO_STREAM("simp_left_raw_right_dist_test: " << simp_left_raw_right_dist_test << ", left_or_radial: " << left_or_radial << ", idx_diff: " << idx_diff);
+                                if (simp_left_raw_right_dist_test && left_or_radial && idx_diff) {
                                     last_mergable = j;
                                 } 
                             }
 
                             if (last_mergable != -1) {
-                                //std::cout << "erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size() << std::endl;
+                                // ROS_INFO_STREAM("erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size());
                                 simplified_gaps.erase(simplified_gaps.begin() + last_mergable + 1, simplified_gaps.end());
                                 simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
-                                //std::cout << "merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                                // ROS_INFO_STREAM("merging simplified gap into (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")");
                             } else {
-                                //std::cout << "no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                                // ROS_INFO_STREAM("no merge, adding raw gap (swept, right): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");                            
                                 simplified_gaps.push_back(raw_gaps.at(i));
                             }
                         }
@@ -227,12 +229,13 @@ namespace dynamic_gap {
                     else
                     { // If current raw gap is radial
                         float curr_rdist = raw_gaps.at(i).RDist();
+                        // ROS_INFO_STREAM("comparing raw right dist of " << curr_rdist << " to simplified left dist of " << simplified_gaps.back().LDist());
                         if (std::abs(curr_rdist - simplified_gaps.back().LDist()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isLeftType())
                         {
-                            //std::cout << "adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")" << std::endl;
+                            // ROS_INFO_STREAM("adjusting simplifed gap to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ") to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ")");
                             simplified_gaps.back().addRightInformation(raw_gaps[i].RIdx(), raw_gaps[i].RDist());
                         } else {
-                            //std::cout << "adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                            // ROS_INFO_STREAM("adding raw gap (radial): (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");                            
                             simplified_gaps.push_back(raw_gaps[i]);
 
                             //std::cout << "adding raw gap from (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;
@@ -243,10 +246,11 @@ namespace dynamic_gap {
                 {
                     // Prior to marking start
                     simplified_gaps.push_back(raw_gaps[i]);
-                    //std::cout << "before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")" << std::endl;                            
+                    // ROS_INFO_STREAM("before marking start, adding raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");                            
                 }
             }
             last_type_left = raw_gaps[i].isLeftType();
+            // ROS_INFO_STREAM("---");
         }
         //ROS_INFO_STREAM("mergeGapsOneGo time elapsed: " << ros::Time::now().toSec() - start_time); 
 
