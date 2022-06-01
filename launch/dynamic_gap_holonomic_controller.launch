@@ -3,7 +3,7 @@
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius"/>
 
-  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="screen" args="$(arg robot_namespace) $(arg robot_radius)" />	
+  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)" />	
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
@@ -78,5 +78,5 @@
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
   </node>
 
-  <!-- node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/>
 </launch>

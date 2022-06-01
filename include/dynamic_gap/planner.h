@@ -97,6 +97,7 @@ namespace dynamic_gap
         geometry_msgs::Pose current_pose_;
         geometry_msgs::PoseStamped local_waypoint_odom; // local_waypoint, 
         geometry_msgs::PoseStamped final_goal_odom;
+        geometry_msgs::PoseStamped final_goal_rbt;
 
         // Gaps:
         std::vector<dynamic_gap::Gap> raw_gaps;
@@ -187,6 +188,7 @@ namespace dynamic_gap
 
         geometry_msgs::Vector3Stamped current_agent_vel;
         bool first_traj;
+        double max_range = 4.9;
 
     public:
         Planner();

@@ -97,7 +97,7 @@ namespace dynamic_gap {
         Eigen::Vector2f pl(x1, y1);
         Eigen::Vector2f pr(x2, y2);
         
-        // ROS_INFO_STREAM("gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
+        ROS_INFO_STREAM("gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         // ROS_INFO_STREAM("gap x/y, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
         
         // if agc. then the shorter side need to be further in
@@ -129,17 +129,17 @@ namespace dynamic_gap {
         }
 
         if (thetalr < thetalf || small_gap) {
-            // ROS_INFO_STREAM("Option 1: small gap");
+            ROS_INFO_STREAM("Option 1: small gap");
             if (initial) {
                 gap.goal.set = true;
                 gap.goal.x = (x1 + x2) / 2;
                 gap.goal.y = (y1 + y2) / 2;
-                // ROS_INFO_STREAM("goal: " << gap.goal.x << ", " << gap.goal.y);
+                ROS_INFO_STREAM("goal: " << gap.goal.x << ", " << gap.goal.y);
             } else {
                 gap.terminal_goal.set = true;
                 gap.terminal_goal.x = (x1 + x2) / 2;
                 gap.terminal_goal.y = (y1 + y2) / 2;
-                // ROS_INFO_STREAM("goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
+                ROS_INFO_STREAM("terminal goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
             }
 
             return;
@@ -148,24 +148,31 @@ namespace dynamic_gap {
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
-        // ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
-        if (checkGoalVisibility(localgoal, stored_scan_msgs) && checkGoalWithinGapAngleRange(gap, local_goal_idx, lidx, ridx)) {
+        ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
+        bool goal_vis = checkGoalVisibility(localgoal, stored_scan_msgs);
+        bool goal_in_range = checkGoalWithinGapAngleRange(gap, local_goal_idx, lidx, ridx);
+        ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
+        
+        if (goal_vis && goal_in_range) {
             ROS_INFO_STREAM("Option 2: local goal");
             if (initial) {
                 gap.goal.x = localgoal.pose.position.x;
                 gap.goal.y = localgoal.pose.position.y;
                 gap.goal.set = true;
                 gap.goal.goalwithin = true;
+                ROS_INFO_STREAM("goal: " << gap.goal.x << ", " << gap.goal.y);
             } else {
                 gap.terminal_goal.x = localgoal.pose.position.x;
                 gap.terminal_goal.y = localgoal.pose.position.y;
                 gap.terminal_goal.set = true;
                 gap.terminal_goal.goalwithin = true;
+                ROS_INFO_STREAM("terminal goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
+
             }
             return;
         }
 
-        // ROS_INFO_STREAM("Option 3: biasing");
+        ROS_INFO_STREAM("Option 3: biasing");
 
         float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
@@ -185,10 +192,12 @@ namespace dynamic_gap {
             gap.goal.x = goal_pt(0);
             gap.goal.y = goal_pt(1);
             gap.goal.set = true;
+            ROS_INFO_STREAM("goal: " << gap.goal.x << ", " << gap.goal.y);            
         } else {
             gap.terminal_goal.x = goal_pt(0);
             gap.terminal_goal.y = goal_pt(1);
             gap.terminal_goal.set = true;
+            ROS_INFO_STREAM("terminal goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
         }
 
     }
@@ -547,7 +556,7 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
         y2 = (rdist) * sin(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
 
-        // ROS_INFO_STREAM( "pre-RE gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
+        ROS_INFO_STREAM( "pre-RE gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         // ROS_INFO_STREAM( "pre-RE gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
         
         Eigen::Vector2f left_point(x1, y1);

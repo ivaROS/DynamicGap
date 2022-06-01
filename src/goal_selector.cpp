@@ -92,7 +92,7 @@ namespace dynamic_gap {
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getRelevantGlobalPlan(geometry_msgs::TransformStamped map2rbt) {
         // Global Plan is now in robot frame
         // Do magic with egocircle
-        ROS_INFO_STREAM("getRelevantGlobalPlan");
+        // ROS_INFO_STREAM("getRelevantGlobalPlan");
         boost::mutex::scoped_lock gplock(gplan_mutex);
         mod_plan.clear();
         // where is global_plan coming from?

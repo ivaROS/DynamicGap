@@ -454,6 +454,7 @@ namespace dynamic_gap
 
             bool gap_chosen = false;
             bool pivoted_left = false;
+            bool artificial = false;
         // private:
     };
 }

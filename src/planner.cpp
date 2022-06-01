@@ -89,6 +89,8 @@ namespace dynamic_gap
         prev_pose_time = ros::Time::now().toSec(); 
         prev_scan_time = ros::Time::now().toSec(); 
 
+        final_goal_rbt = geometry_msgs::PoseStamped();
+
         return true;
     }
 
@@ -162,66 +164,81 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM(msg.get()->ranges.size());
 
-        try {
-            boost::mutex::scoped_lock gapset(gapset_mutex);
+        // try {
+        boost::mutex::scoped_lock gapset(gapset_mutex);
 
-            /*
-            tf2::Quaternion curr_quat(sharedPtr_pose.orientation.x, sharedPtr_pose.orientation.y, sharedPtr_pose.orientation.z, sharedPtr_pose.orientation.w);
-            tf2::Matrix3x3 curr_m(curr_quat);
-            double curr_r, curr_p, curr_y;
-            curr_m.getRPY(curr_r, curr_p, curr_y);
+        /*
+        tf2::Quaternion curr_quat(sharedPtr_pose.orientation.x, sharedPtr_pose.orientation.y, sharedPtr_pose.orientation.z, sharedPtr_pose.orientation.w);
+        tf2::Matrix3x3 curr_m(curr_quat);
+        double curr_r, curr_p, curr_y;
+        curr_m.getRPY(curr_r, curr_p, curr_y);
 
-            tf2::Quaternion prev_quat(sharedPtr_previous_pose.orientation.x, sharedPtr_previous_pose.orientation.y, sharedPtr_previous_pose.orientation.z, sharedPtr_previous_pose.orientation.w);
-            tf2::Matrix3x3 prev_m(prev_quat);
-            double prev_r, prev_p, prev_y;
-            prev_m.getRPY(prev_r, prev_p, prev_y);
-            */
-            Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-            Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
+        tf2::Quaternion prev_quat(sharedPtr_previous_pose.orientation.x, sharedPtr_previous_pose.orientation.y, sharedPtr_previous_pose.orientation.z, sharedPtr_previous_pose.orientation.w);
+        tf2::Matrix3x3 prev_m(prev_quat);
+        double prev_r, prev_p, prev_y;
+        prev_m.getRPY(prev_r, prev_p, prev_y);
+        */
+        Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+        Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
 
-            //Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
-            //Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
+        //Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
+        //Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
 
-            Matrix<double, 1, 3> v_ego = rbt_vel_t;
-            Matrix<double, 1, 3> a_ego = rbt_acc_t;
+        Matrix<double, 1, 3> v_ego = rbt_vel_t;
+        Matrix<double, 1, 3> a_ego = rbt_acc_t;
 
-            // getting raw gaps
-            previous_raw_gaps = associated_raw_gaps;
-            raw_gaps = finder->hybridScanGap(msg);
-            associated_raw_gaps = raw_gaps;
-
-            //std::cout << "RAW GAP ASSOCIATING" << std::endl;
-            // ASSOCIATE GAPS PASSES BY REFERENCE
-            
-            raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
-            raw_association = gapassociator->associateGaps(raw_distMatrix);
-            gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx);
-            associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, false);
-            
-
-            previous_gaps = associated_observed_gaps;
-            observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-            associated_observed_gaps = observed_gaps;
-            
-            
-            simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
-            simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-            gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-            // ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
-            associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
-            
-
-            
-            //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
-            //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
-            
-            // need to have here for models
-            gapvisualizer->drawGapsModels(associated_observed_gaps);
+        // getting raw gaps
+        previous_raw_gaps = associated_raw_gaps;
+        raw_gaps = finder->hybridScanGap(msg);
         
-            // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
-        } catch (...) {
-            ROS_FATAL_STREAM("mergeGapsOneGo");
+        // if terminal_goal within laserscan and not in a gap, create a gap
+        //ROS_INFO_STREAM("laserscan CB");
+        double final_goal_dist = sqrt(pow(final_goal_rbt.pose.position.x, 2) + pow(final_goal_rbt.pose.position.y, 2));
+        if (final_goal_dist > 0) {
+            double final_goal_theta = std::atan2(final_goal_rbt.pose.position.y, final_goal_rbt.pose.position.x);
+            int half_num_scan = sharedPtr_laser.get()->ranges.size() / 2;
+            int final_goal_idx = int(half_num_scan * final_goal_theta / M_PI) + half_num_scan;
+            double scan_dist = sharedPtr_laser.get()->ranges.at(final_goal_idx);
+            
+            if (final_goal_dist < scan_dist) {
+                raw_gaps = finder->addTerminalGoal(final_goal_idx, raw_gaps, msg);
+            }
         }
+
+        associated_raw_gaps = raw_gaps;
+
+        //std::cout << "RAW GAP ASSOCIATING" << std::endl;
+        // ASSOCIATE GAPS PASSES BY REFERENCE
+        
+        raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
+        raw_association = gapassociator->associateGaps(raw_distMatrix);
+        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx);
+        associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, false);
+        
+
+        previous_gaps = associated_observed_gaps;
+        observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
+        associated_observed_gaps = observed_gaps;
+        
+        
+        simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
+        simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
+        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
+        // ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
+        associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
+        
+
+        
+        //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
+        //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
+        
+        // need to have here for models
+        gapvisualizer->drawGapsModels(associated_observed_gaps);
+    
+        // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
+        //} catch (...) {
+        //    ROS_FATAL_STREAM("mergeGapsOneGo");
+        // }
 
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
         if (sharedPtr_inflatedlaser) {
@@ -373,7 +390,7 @@ namespace dynamic_gap
         if (plan.size() == 0) return true;
         final_goal_odom = *std::prev(plan.end());
         tf2::doTransform(final_goal_odom, final_goal_odom, map2odom);
-
+        tf2::doTransform(final_goal_odom, final_goal_rbt, odom2rbt);
         // Store New Global Plan to Goal Selector
         goalselector->setGoal(plan);
         
@@ -458,7 +475,7 @@ namespace dynamic_gap
             dynamic_laser_scan.ranges = dynamic_ranges;
             */
 
-            // ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
+            ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
             // MANIPULATE POINTS AT T=0
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
@@ -475,7 +492,7 @@ namespace dynamic_gap
             */
             
             
-            // ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
+            ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
