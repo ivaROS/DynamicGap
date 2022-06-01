@@ -56,6 +56,35 @@ namespace dynamic_gap{
         //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
         //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
         
+        /*
+        if (selectedGap.goal.goalwithin) {
+            state_type x = {ego_x[0], 
+                        ego_x[1],
+                        ego_x[2],
+                        ego_x[3],
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        initial_goal_x,
+                        initial_goal_y};
+            // ROS_INFO_STREAM("Goal to Goal");
+            g2g inte_g2g(
+                selectedGap.goal.x * coefs,
+                selectedGap.goal.y * coefs);
+            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+            inte_g2g, x, 0.0,
+            cfg_->traj.integrate_maxt,
+            cfg_->traj.integrate_stept,
+            corder);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+            return return_tuple;
+        }
+        */
         
         if (selectedGap.mode.convex) {
             //ROS_INFO_STREAM("radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")");
