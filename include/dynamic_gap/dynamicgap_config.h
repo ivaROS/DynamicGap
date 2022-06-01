@@ -132,7 +132,7 @@ namespace dynamic_gap {
             gap_manip.reduction_target = M_PI;
             gap_manip.radial_extend = true;
             gap_manip.axial_convert = true;
-            gap_manip.cbf_param = 1.0;
+            gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
             gap_manip.K_acc = 3.0;
             
@@ -149,8 +149,8 @@ namespace dynamic_gap {
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
-            projection.r_min = 0.5;
-            projection.r_norm = 1.0;
+            projection.r_min = 0.75;
+            projection.r_norm = 1.25;
             projection.r_norm_offset = 0.5;
 
             waypoint.global_plan_lookup_increment = 75;

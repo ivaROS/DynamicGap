@@ -258,6 +258,13 @@ namespace dynamic_gap {
             return d_h_right_dx;
         }
 
+        void enforce_reachability(Eigen::Vector4d &state, const double t) {
+            r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(state[0], 2) + pow(state[1], 2)));
+            theta = std::atan2(state[1], state[0]);
+            state[0] = r_reach*std::cos(theta);
+            state[1] = r_reach*std::sin(theta);
+        }
+
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
             // IN HERE X1,Y1 IS RIGHT FROM ROBOT POV, X2,Y2 IS LEFT FROM ROBOT POV
@@ -265,18 +272,9 @@ namespace dynamic_gap {
             state_type new_x = adjust_state(x);
             cart_left_state << new_x[4], new_x[5], new_x[6], new_x[7];
             cart_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
+            enforce_reachability(cart_left_state, t);
+            enforce_reachability(cart_right_state, t);
 
-            /*
-            r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(cart_left_state[0], 2) + pow(cart_left_state[1], 2)));
-            theta = std::atan2(cart_left_state[1], cart_left_state[0]);
-            cart_left_state[0] = r_reach*std::cos(theta);
-            cart_left_state[1] = r_reach*std::sin(theta);
-
-            r_reach = std::min(r_inscr + t * v_nom, sqrt(pow(cart_right_state[0], 2) + pow(cart_right_state[1], 2)));
-            theta = std::atan2(cart_right_state[1], cart_right_state[0]);
-            cart_right_state[0] = r_reach*std::cos(theta);
-            cart_right_state[1] = r_reach*std::sin(theta);
-            */
 
             rbt << new_x[0], new_x[1];
             rel_right_pos << cart_right_state[0], cart_right_state[1];
@@ -331,7 +329,7 @@ namespace dynamic_gap {
             weighted_circulation_sum = w_left*c_left + w_right*c_right; //  
             circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm(); // / 
             attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm(); // 
-            
+            /*
             ROS_INFO_STREAM("inte_t: " << t);
             ROS_INFO_STREAM("robot position: " << new_x[0] << ", " << new_x[1] << ", robot velocity: " << new_x[2] << ", " << new_x[3]);
             ROS_INFO_STREAM("robot to left: (" << rel_left_pos[0] << ", " << rel_left_pos[1] << "), robot to right: (" << rel_right_pos[0] << ", " << rel_right_pos[1] << ")");
@@ -340,7 +338,7 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")");
             ROS_INFO_STREAM("robot to goal: (" << rel_goal_pos[0] << ", " << rel_goal_pos[1] << ")");
             ROS_INFO_STREAM("attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")");
-            
+            */
             v_des = (circulation_field + attraction_field);
 
             // CLIPPING DESIRED VELOCITIES
@@ -350,7 +348,7 @@ namespace dynamic_gap {
             a_des << K_acc*(v_des[0] - new_x[2]), K_acc*(v_des[1] - new_x[3]);
             a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
             
-            ROS_INFO_STREAM("v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1));
+            // ROS_INFO_STREAM("v_des: " << v_des(0) << ", " << v_des(1)  << ", a_des: " << a_des(0) << ", " << a_des(1));
 
             a_actual = a_des;
             
@@ -368,7 +366,7 @@ namespace dynamic_gap {
                 double h_dyn_left = past_left_point ? std::numeric_limits<double>::infinity() : cbf_left(x, left_rel_pos_rbt_frame, left_rel_vel_rbt_frame);
                 double h_dyn_right = past_right_point ? std::numeric_limits<double>::infinity() : cbf_right(x, right_rel_pos_rbt_frame, right_rel_vel_rbt_frame);
                 
-                ROS_INFO_STREAM("left CBF value is: " << h_dyn_left << ", right CBF value is: " << h_dyn_right);
+                // ROS_INFO_STREAM("left CBF value is: " << h_dyn_left << ", right CBF value is: " << h_dyn_right);
                
                 if (h_dyn_left <= h_dyn_right) { // left less than or equal to right
                     h_dyn = h_dyn_left;
@@ -382,7 +380,7 @@ namespace dynamic_gap {
                 Eigen::Vector4d d_x_dt(new_x[2], new_x[3], a_des[0], a_des[1]);
                 double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
                 
-                ROS_INFO_STREAM("h_dyn: " << h_dyn << ", Psi: " << Psi);
+                // ROS_INFO_STREAM("h_dyn: " << h_dyn << ", Psi: " << Psi);
 
                 Eigen::Vector2d Lg_h(d_h_dyn_dx[2], d_h_dyn_dx[3]); // Lie derivative of h wrt x
                 a_actual = a_des + -(Lg_h * std::min(Psi, 0.0)) / (Lg_h.dot(Lg_h));

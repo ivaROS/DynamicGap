@@ -282,9 +282,11 @@ namespace dynamic_gap{
         for (auto gap : g) {
             drawGap(vis_arr, gap, ns, true);
             
+            /*
             if (ns.compare("raw") != 0) {
                 drawGap(vis_arr, gap, ns, false);
             }
+            */
         }
         gaparc_publisher.publish(vis_arr);
         prev_num_gaps = g.size();
@@ -651,7 +653,7 @@ namespace dynamic_gap{
         bool circle = false;
         for (auto gap : vec) {
             drawManipGap(vis_arr, gap, circle, ns, true);
-            drawManipGap(vis_arr, gap, circle, ns, false);
+            // drawManipGap(vis_arr, gap, circle, ns, false);
         }
         gapside_publisher.publish(vis_arr);
         prev_num_manip_gaps = 2*vec.size();

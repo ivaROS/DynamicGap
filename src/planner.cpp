@@ -207,7 +207,7 @@ namespace dynamic_gap
             simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
             simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
             gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-            ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
+            // ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
             associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
             
 
