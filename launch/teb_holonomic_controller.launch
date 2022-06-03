@@ -3,7 +3,7 @@
   <arg name="robot_namespace"/>
   <arg name="robot_radius"/>
 
-  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="screen" args="$(arg robot_namespace) $(arg robot_radius)" />	
+  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)" />	
 
   <arg name="egocircle" default="false"/>
   
@@ -41,24 +41,30 @@
       <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
 
+      <!-- none of these have to do with frames/ids -->
       <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="TebLocalPlannerROS"/>
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
 
-      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
-      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
-
-      <!-- Approach-specific parameters/remappings/etc -->
-      <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
       <param name="controller_frequency" value="$(arg controller_freq)" />
       <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
-
       <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
       <remap from="cmd_vel" to="$(arg vel_topic)"/>
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
+
+      <!-- Not sure if I should add these. Where do they even come from> -->
+      <param name="TebLocalPlannerROS/map_frame" value="/known_map"/>
+      <param name="TebLocalPlannerROS/robot_frame_id" value="$(arg robot_namespace)"/>
+      <param name="TebLocalPlannerROS/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
+      <!-- Odom frame id? -->
+
+      <!-- Approach-specific parameters/remappings/etc -->
+      <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
 
       <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" if="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
@@ -75,11 +81,6 @@
       <!-- Disable the local costmap observation sources if they will not be used -->
       <param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/>
 
-      <!-- Not sure if I should add these. Where do they even come from> -->
-      <param name="TebLocalPlannerROS/map_frame" value="/known_map"/>
-      <param name="TebLocalPlannerROS/robot_frame_id" value="$(arg robot_namespace)"/>
-      <param name="TebLocalPlannerROS/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
-
       <!-- remapping for obstacles -->
       <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
@@ -88,6 +89,7 @@
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
   </node>
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/>
+
+  <!-- node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
 
 </launch>

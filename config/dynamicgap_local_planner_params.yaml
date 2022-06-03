@@ -24,7 +24,7 @@ DynamicGapPlanner:
     projection_inflated: False
     planning_inflated: False
     fig_gen: False
-    k_po: 1
+    k_po: 2
     k_po_turn: 1
     inf_ratio: 1.1
 

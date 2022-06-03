@@ -37,8 +37,6 @@ namespace dynamic_gap
         trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("pg_traj", 10);
         gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("gaps", 1);
         selected_gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("sel_gaps", 1);
-        ni_traj_pub = nh.advertise<geometry_msgs::PoseArray>("ni_traj", 10);
-        ni_traj_pub_other = nh.advertise<visualization_msgs::MarkerArray>("other_ni_traj", 5);
         dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
@@ -519,11 +517,15 @@ namespace dynamic_gap
                 // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple;
+                
+                // TRAJECTORY GENERATED IN RBT FRAME
                 return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel);
                 return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
 
                 ROS_INFO_STREAM("scoring trajectory for gap: " << i);
                 ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps);
+                
+                // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
             }
@@ -870,6 +872,7 @@ namespace dynamic_gap
 
         // obtain current robot pose in odom frame
 
+        // traj in odom frame here
         // returns a TrajPlan (poses and velocities, velocities are zero here)
         auto orig_ref = trajController->trajGen(traj);
         

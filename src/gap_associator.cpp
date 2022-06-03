@@ -116,11 +116,10 @@ namespace dynamic_gap {
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
-			dynamic_gap::Gap observed_gap = observed_gaps[int(std::floor(i / 2.0))];
 			if (i % 2 == 0) {  // curr left
-				observed_gap.left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego, observed_gap.artificial);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
 			} else {
-				observed_gap.right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego, observed_gap.artificial);
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego);
 			}
 			*model_idx += 1;
 		}

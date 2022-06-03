@@ -41,6 +41,7 @@
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
+      
       <!-- none of these have to do with frames/ids -->
       <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="DynamicGapPlanner"/>
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
@@ -78,5 +79,5 @@
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
   </node>
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/>
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
 </launch>

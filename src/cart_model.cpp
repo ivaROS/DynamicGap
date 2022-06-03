@@ -20,17 +20,17 @@ using namespace Eigen;
 // namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
-    cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego, bool artificial=false) {
+    cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
         side = _side;
         index = _index;
-        initialize(init_r, init_beta, v_ego, artificial);
+        initialize(init_r, init_beta, v_ego);
     }
 
     //cart_model::cart_model(const dynamic_gap::cart_model &model) {
     //    x = model.x;
     // }
 
-    void cart_model::initialize(double init_r, double init_beta, Matrix<double, 1, 3> _v_ego, bool artificial) {
+    void cart_model::initialize(double init_r, double init_beta, Matrix<double, 1, 3> _v_ego) {
         // std::cout << "initializing with init_r: " << init_r << ", init_beta: " << init_beta << std::endl;
         // OBSERVATION MATRIX
         H << 1.0, 0.0, 0.0, 0.0,
@@ -70,11 +70,8 @@ namespace dynamic_gap {
                                         init_r * std::sin(init_beta), 
                                         v_rel_x, 
                                         v_rel_y};
-        if (artificial)
-            x << measurement[0], measurement[1], 0.0, 0.0;
-        else {
-            x << measurement[0], measurement[1], v_rel_x, v_rel_y;            
-        }
+        
+        x << measurement[0], measurement[1], 0.0, 0.0;
 
         G << 1.0, 1.0,
              1.0, 1.0,

@@ -166,7 +166,7 @@ namespace dynamic_gap {
                 r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
                 neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
               }
-        
+
         Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
@@ -416,6 +416,211 @@ namespace dynamic_gap {
         }
     };
 
+    Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
+        // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+        Eigen::Vector2d original_vel(x_vel, y_vel);
+        double abs_x_vel = std::abs(x_vel);
+        double abs_y_vel = std::abs(y_vel);
+        if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+            // std::cout << "not clipping" << std::endl;
+            return original_vel;
+        } else {
+            // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
+            Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+            return clipped_vel;
+        }
+    }
+
+    struct reachable_gap_APF {
+        Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1, left_vel, right_vel, nom_vel, 
+                        goal_pt_0, goal_pt_1;
+        std::vector<std::vector <double>> left_curve, right_curve;
+
+        int num_curve_points;
+        double _sigma, rot_angle, 
+               v_lin_max, a_lin_max, K_acc, num_curve_points,
+               rg, theta_right, theta_left, thetax, thetag, new_theta, ang_diff_right, ang_diff_left, 
+               coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
+               r_reach, theta, r_inscr; 
+        bool mode_agc, pivoted_left, _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
+        Eigen::Matrix2d r_pi2, neg_r_pi2;
+        Eigen::Vector2d rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
+                        abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, 
+                        weighted_circulation_sum, circulation_field, attraction_field, a_des, a_actual;
+        Eigen::Vector4d cart_left_state, cart_right_state;
+
+
+        reachable_gap_APF(Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1,
+                          Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1,
+                          Eigen::Vector2d left_vel, Eigen::Vector2d right_vel,
+                          Eigen::Vector2d nom_vel, Eigen::Vector2d goal_pt_1
+                          double sigma, double K_acc,
+                          double v_lin_max, double a_lin_max) 
+                          : left_pt_0(left_pt_0), left_pt_1(left_pt_1), right_pt_0(right_pt_0), right_pt_1(right_pt_1), 
+                            left_vel(left_vel), right_vel(right_vel), nom_vel(nom_vel), goal_pt_1(goal_pt_1), _sigma(_sigma),
+                            rot_angle(M_PI/2.), num_curve_points(25)
+                        {
+                            std::vector<std::vector <double>> _left_curve(num_curve_points);
+                            std::vector<std::vector <double>> _right_curve(num_curve_points);
+
+                            double left_weight = left_vel.norm() / nom_vel.norm();
+                            double right_weight = right_vel.norm() / nom_vel.norm();
+                            
+                            // model gives: left_pt - rbt.
+                            Eigen::Vector2d weighted_left_pt = left_weight * left_pt_0;
+                            Eigen::Vector2d weighted_right_pt = right_weight * right_pt_0;
+                                
+                            double s;    
+                            for (int i = 0; i < num_curve_points; i++) {
+                                s = i / num_curve_points;
+
+                                // quadratic weighted bezier
+                                Eigen::Vector2d left_pt = 2*(1 - s)*s*weighted_left_pt + s*s*left_pt_1;
+                                Eigen::Vector2d right_pt = 2*(1 - s)*s*weighted_right_pt + s*s*right_pt_1;
+
+                                _left_curve[i][0] = left_pt[0];
+                                _left_curve[i][1] = left_pt[1];
+                                _right_curve[i][0] = right_pt[0];
+                                _right_curve[i][1] = right_pt[1];
+                            }
+
+                            left_curve = _left_curve;
+                            right_curve = _right_curve;
+
+                            r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
+                            neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
+                        }
+
+        Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
+            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+            Eigen::Vector2d original_vel(x_vel, y_vel);
+            double abs_x_vel = std::abs(x_vel);
+            double abs_y_vel = std::abs(y_vel);
+            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+                // std::cout << "not clipping" << std::endl;
+                return original_vel;
+            } else {
+                // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
+                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                return clipped_vel;
+            }
+        }
+
+        void operator()(const state_type &x, state_type &dxdt, const double t)
+        {
+            // Just use the same state to be able to make these past checks
+            rbt << new_x[0], new_x[1];
+            rel_right_pos << cart_right_state[0], cart_right_state[1];
+            rel_left_pos << cart_left_state[0], cart_left_state[1];
+            abs_goal_pos = goal_pt_1;
+            abs_left_pos = rel_left_pos + rbt;
+            abs_right_pos = rel_right_pos + rbt;
+            rel_goal_pos = goal_pt_1 - rbt;
+
+            past_goal = abs_goal_pos.dot(rel_goal_pos) < 0;
+            past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
+            past_right_point = abs_right_pos.dot(rel_right_pos) < 0;
+            
+            if (_axial) {
+                past_gap_points = past_left_point || past_right_point;
+            } else {
+                past_gap_points = past_left_point && past_right_point;
+            }
+            
+            pass_gap = past_gap_points || past_goal;
+
+            if (pass_gap) {
+                dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; 
+                dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0; dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
+                return;
+            } 
+
+            // APF
+            rg = rel_goal_pos.norm();
+            theta_right = atan2(abs_right_pos[1], abs_right_pos[0]);
+            theta_left = atan2(abs_left_pos[1], abs_left_pos[0]);
+            thetax = atan2(new_x[1], new_x[0]);
+            thetag = atan2(rel_goal_pos[1], rel_goal_pos[0]);
+
+            new_theta = std::min(std::max(thetag, theta_right), theta_left);
+
+            std::vector<double> left_ang_diffs, right_ang_diffs;
+            std::vector<std::vector<double>> left_pos_diffs, right_pos_diffs, left_vect, right_vect;
+
+            for (int i = 0; i < num_curve_points; i++) {
+                std::vector<double> left_pt = left_curve[i];
+                std::vector<double> left_pt_diff{left_pt[0] - new_x[0], left_pt[1] - new_x[1]}; 
+                double theta_left = atan2(left_pt[1], left_pt[0]);
+                double theta_left_diff = std::abs(theta_left - thetax);
+                left_ang_diffs.push_back(std::exp(-theta_left_diff / _sigma));
+                left_pos_diffs.push_back(left_pt_diff);
+
+                left_vect.push_back(left_ang_diffs[i] * left_pos_diffs[i]);
+
+                std::vector<double> right_pt = right_curve[i];
+                std::vector<double> right_pt_diff{right_pt[0] - new_x[0], right_pt[1] - new_x[1]}; 
+                double theta_right = atan2(right_pt[1], right_pt[0]);
+                double theta_right_diff = std::abs(theta_right - thetax);
+                right_ang_diffs.push_back(std::exp(-theta_right_diff / _sigma));
+                right_pos_diffs.push_back(right_pt_diff);
+
+                right_vect.push_back(right_ang_diffs[i] * right_pos_diffs[i]);
+            }
+
+            Eigen::Vector2d left_term(0.0, 0.0);
+            Eigen::Vector2d right_term(0.0, 0.0);
+            for (int i = 0; i < num_curve_points; i++) {
+                left_term[0] += left_vect[i][0];
+                left_term[1] += left_vect[i][1];
+                right_term[0] += right_vect[i][0];
+                right_term[1] += right_vect[i][1];
+            }
+
+            c_left = neg_r_pi2 * (left_term / left_term.norm());
+            c_right = r_pi2 * (right_term / right_term.norm());
+
+            sub_goal_vec << rg * cos(new_theta), rg * sin(new_theta);
+
+            coeffs = (!past_gap_points);
+
+            weighted_circulation_sum = c_left + c_right;
+            circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm(); // / 
+            attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm(); // 
+
+            v_des = (circulation_field + attraction_field);
+
+            // CLIPPING DESIRED VELOCITIES
+            v_des = clip_velocities(v_des[0], v_des[1], v_lin_max);
+
+            // set desired acceleration based on desired velocity
+            a_des << K_acc*(v_des[0] - new_x[2]), K_acc*(v_des[1] - new_x[3]);
+            a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
+
+            double a_x_rbt = a_des(0); // -K_acc*(x[2] - result(0)); // 
+            double a_y_rbt = a_des(1); // -K_acc*(x[3] - result(1)); // 
+
+            double a_x_rel = 0 - a_x_rbt;
+            double a_y_rel = 0 - a_y_rbt;
+
+            dxdt[0] = new_x[2]; // rbt_x
+            dxdt[1] = new_x[3]; // rbt_y
+            dxdt[2] = a_x_rbt; // rbt_v_x
+            dxdt[3] = a_y_rbt; // rbt_v_y
+
+            dxdt[4] = new_x[6]; // r_x left
+            dxdt[5] = new_x[7]; // r_y left
+            dxdt[6] = a_x_rel; // v_x left
+            dxdt[7] = a_y_rel; // v_y left
+
+            dxdt[8] = new_x[10]; // r_x right
+            dxdt[9] = new_x[11]; // r_y right
+            dxdt[10] = a_x_rel; // v_x right
+            dxdt[11] = a_y_rel; // v_y right
+            dxdt[12] = 0.0;
+            dxdt[13] = 0.0;
+        }
+    };
+
     struct g2g {
         double gx, gy, K_des, K_acc;
         g2g(double gx, double gy, double K_des, double K_acc)
@@ -565,20 +770,20 @@ namespace dynamic_gap {
             return d_h_right_dx;
         }
 
-
         Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
-            if (std::abs(x_vel) <= x_lim && std::abs(y_vel) <= x_lim) {
+            double abs_x_vel = std::abs(x_vel);
+            double abs_y_vel = std::abs(y_vel);
+            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(std::abs(x_vel), std::abs(y_vel));
+                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
                 return clipped_vel;
             }
         }
-
 
         state_type adjust_state(const state_type &x) {
             // clipping velocities

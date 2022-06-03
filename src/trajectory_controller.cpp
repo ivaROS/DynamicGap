@@ -14,10 +14,10 @@ namespace dynamic_gap{
         msg_ = msg;
     }
 
-    std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int idx) {
+    std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int min_dist_idx) {
         // get egocircle measurement
         auto egocircle = *msg_.get();
-        std::vector<double> dist(egocircle.ranges.size());
+        std::vector<double> scan_interpoint_dists(egocircle.ranges.size());
 
         if (!msg_) {
             return std::vector<geometry_msgs::Point>(0);
@@ -29,41 +29,42 @@ namespace dynamic_gap{
 
 
         // iterating through egocircle
-        for (int i = 1; i < dist.size(); i++) {
+        float range_i, theta_i, range_imin1, theta_imin1;
+        for (int i = 1; i < scan_interpoint_dists.size(); i++) {
             // current distance/idx
-            float l1 = egocircle.ranges.at(i);
-            float t1 = float(i) * egocircle.angle_increment + egocircle.angle_min;
+            range_i = egocircle.ranges.at(i);
+            theta_i = float(i) * egocircle.angle_increment + egocircle.angle_min;
             // prior distance/idx
-            float l2 = egocircle.ranges.at(i - 1);
-            float t2 = float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
+            range_imin1 = egocircle.ranges.at(i - 1);
+            theta_imin1 = float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
             
             // if current distance is big, set dist to big
-            if (l1 > 2.9) {
-                dist.at(i) = 10;
+            if (range_i > 2.9) {
+                scan_interpoint_dists.at(i) = 10;
             } else {
                 // get distance between two indices
-                dist.at(i) = polDist(l1, t1, l2, t2);
+                scan_interpoint_dists.at(i) = polDist(range_i, theta_i, range_imin1, theta_imin1);
             } 
         }
 
-        dist.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, egocircle.ranges.at(511), float(511) * egocircle.angle_increment + egocircle.angle_min);
+        scan_interpoint_dists.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, egocircle.ranges.at(511), float(511) * egocircle.angle_increment + egocircle.angle_min);
 
-        // searching forward for big enough distances
-        auto result_fwd = std::find_if(dist.begin() + idx, dist.end(), 
+        // searching forward for the first place where interpoint distances exceed threshold (0.1) (starting from the min_dist_idx).
+        auto result_fwd = std::find_if(scan_interpoint_dists.begin() + min_dist_idx, scan_interpoint_dists.end(), 
             std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
 
-        // searching backward for big enough distances
-        auto res_rev = std::find_if(dist.rbegin() + (dist.size() - idx), dist.rend(),
+        // searching backward for first place where interpoint distances exceed threshold (0.1)
+        auto res_rev = std::find_if(scan_interpoint_dists.rbegin() + (scan_interpoint_dists.size() - min_dist_idx), scan_interpoint_dists.rend(),
             std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
         
 
-        if (res_rev == dist.rend()) {
+        if (res_rev == scan_interpoint_dists.rend()) {
             return std::vector<geometry_msgs::Point>(0);
         }
 
         // get index for big enough distance
-        int idx_fwd = std::distance(dist.begin(), std::prev(result_fwd));
-        int idx_rev = std::distance(res_rev, dist.rend());
+        int idx_fwd = std::distance(scan_interpoint_dists.begin(), std::prev(result_fwd));
+        int idx_rev = std::distance(res_rev, scan_interpoint_dists.rend());
 
         // are indices valid
         int min_idx_range = 0;
@@ -74,36 +75,36 @@ namespace dynamic_gap{
         
         float dist_fwd = egocircle.ranges.at(idx_fwd);
         float dist_rev = egocircle.ranges.at(idx_rev);
-        float dist_cent = egocircle.ranges.at(idx);
+        float dist_cent = egocircle.ranges.at(min_dist_idx);
 
         double angle_fwd = double(idx_fwd) * egocircle.angle_increment + egocircle.angle_min;
         double angle_rev = double(idx_rev) * egocircle.angle_increment + egocircle.angle_min;
         
-        if (idx_fwd < idx || idx_rev > idx) {
+        if (idx_fwd < min_dist_idx || idx_rev > min_dist_idx) {
             return std::vector<geometry_msgs::Point>(0);
         }
 
-        Eigen::Vector2d fwd_pol(dist_fwd, angle_fwd);
-        Eigen::Vector2d rev_pol(dist_rev, angle_rev);
-        Eigen::Vector2d cent_pol(dist_cent, double(idx) * egocircle.angle_increment + egocircle.angle_min);
-        Eigen::Vector2d fwd_car = pol2car(fwd_pol);
-        Eigen::Vector2d rev_car = pol2car(rev_pol);
-        Eigen::Vector2d cent_car = pol2car(cent_pol);
+        Eigen::Vector2d fwd_polar(dist_fwd, angle_fwd);
+        Eigen::Vector2d rev_polar(dist_rev, angle_rev);
+        Eigen::Vector2d cent_polar(dist_cent, double(min_dist_idx) * egocircle.angle_increment + egocircle.angle_min);
+        Eigen::Vector2d fwd_cart = pol2car(fwd_polar);
+        Eigen::Vector2d rev_cart = pol2car(rev_polar);
+        Eigen::Vector2d cent_cart = pol2car(cent_polar);
 
         Eigen::Vector2d pf;
         Eigen::Vector2d pr;
 
         if (dist_cent < dist_fwd && dist_cent < dist_rev) {
             // ROS_INFO_STREAM("Non line");
-            Eigen::Vector2d a = cent_car - fwd_car;
-            Eigen::Vector2d b = rev_car - fwd_car;
-            Eigen::Vector2d a1 = (a.dot(b / b.norm())) * (b / b.norm());
-            Eigen::Vector2d a2 = a - a1;
-            pf = fwd_car + a2;
-            pr = rev_car + a2;
+            Eigen::Vector2d a = cent_cart - fwd_cart;
+            Eigen::Vector2d b = rev_cart - fwd_cart;
+            Eigen::Vector2d proj_a_onto_b = (a.dot(b / b.norm())) * (b / b.norm());
+            Eigen::Vector2d orth_a_onto_b = a - proj_a_onto_b;
+            pf = fwd_cart + orth_a_onto_b;
+            pr = rev_cart + orth_a_onto_b;
         } else {
-            pf = fwd_car;
-            pr = rev_car;
+            pf = fwd_cart;
+            pr = rev_cart;
         }
 
         geometry_msgs::Point lower_point;
@@ -155,6 +156,7 @@ namespace dynamic_gap{
         float r_norm_offset = cfg_->projection.r_norm_offset; 
         float k_po_turn_ = cfg_->projection.k_po_turn;
 
+        // ROS_INFO_STREAM("r_min: " << r_min);
         // auto inflated_egocircle = *msg_.get();
         geometry_msgs::Twist cmd_vel;
         geometry_msgs::Point position = current.position;
@@ -237,6 +239,7 @@ namespace dynamic_gap{
         // applies PO
         if(projection_operator)
         {
+            // iterates through current egocircle and finds the minimum distance to the robot's pose
             std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
             for (int i = 0; i < min_dist_arr.size(); i++) {
                 float angle = i * inflated_egocircle.angle_increment - M_PI;
@@ -283,11 +286,12 @@ namespace dynamic_gap{
             float r_max = r_norm + r_norm_offset;
             min_dist = (float) min_dist_arr.at(min_idx);
             min_dist = min_dist >= r_max ? r_max : min_dist;
-            if (min_dist <= 0) ROS_INFO_STREAM("Min dist <= 0, : " << min_dist);
+            if (min_dist <= 0) 
+                ROS_INFO_STREAM("Min dist <= 0, : " << min_dist);
             min_dist = min_dist <= 0 ? 0.01 : min_dist;
             // min_dist -= cfg_->rbt.r_inscr / 2;
 
-            // find minimum ego circle dist
+            // find minimum ego circle distance
             min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
             float min_x = min_dist * cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
             float min_y = min_dist * sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
@@ -304,21 +308,20 @@ namespace dynamic_gap{
                 Eigen::Vector2d b = pt2 - pt1;
                 Eigen::Vector2d c = rbt - pt2;
                 
-                if (a.dot(b) < 0) {
-                    // Dist to pt1
+                if (a.dot(b) < 0) { // Pt 1 is closer than pt 2
                     // ROS_INFO_STREAM("Pt1");
                     min_diff_x = - pt1(0);
                     min_diff_y = - pt1(1);
                     comp = projection_method(min_diff_x, min_diff_y);
                     Psi_der = Eigen::Vector2d(comp(0), comp(1));
                     PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-                } else if (c.dot(-b) < 0) {
+                } else if (c.dot(-b) < 0) { // Pt 2 is closer than pt 1
                     min_diff_x = - pt2(0);
                     min_diff_y = - pt2(1);
                     comp = projection_method(min_diff_x, min_diff_y);
                     Psi_der = Eigen::Vector2d(comp(0), comp(1));
                     PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-                } else {
+                } else { // pt's are equidistant
                     double line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
                     double sign;
                     sign = line_dist < 0 ? -1 : 1;
@@ -332,16 +335,16 @@ namespace dynamic_gap{
                     der /= der.norm();
                     comp = Eigen::Vector3d(der(0), der(1), line_si);
                     Psi_der = der;
-                    Psi_der(1);// /= 3;
+                    // Psi_der(1);// /= 3;
                     PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
                 }
 
             } else {
                 min_diff_x = - min_x;
                 min_diff_y = - min_y;
-                comp = projection_method(min_diff_x, min_diff_y);
+                comp = projection_method(min_diff_x, min_diff_y); // return Psi, and Psi_der
                 Psi_der = Eigen::Vector2d(comp(0), comp(1));
-                Psi_der(1);// /= 3; // deriv wrt y?
+                // Psi_der(1);// /= 3; // deriv wrt y?
                 PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
             }
             ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
@@ -419,8 +422,8 @@ namespace dynamic_gap{
         if(holonomic)
         {
             v_ang_fb = v_ang_fb + v_ang_const;
-            v_lin_x_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
-            v_lin_y_fb = abs(theta_error) > M_PI / 3 ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * cmd_vel_y_safe;
+            v_lin_x_fb = (abs(theta_error) > M_PI/3 && Psi < 0)? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
+            v_lin_y_fb = (abs(theta_error) > M_PI/3 && Psi < 0) ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * cmd_vel_y_safe;
 
             if(v_lin_x_fb < 0)
                 v_lin_x_fb = 0;
