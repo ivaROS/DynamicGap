@@ -62,10 +62,10 @@ namespace dynamic_gap {
 
         public:
 
-            cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
+            cart_model(std::string, int, double, double, Matrix<double, 1, 3>, bool);
             // cart_model(const dynamic_gap::cart_model &model);
 
-            void initialize(double, double, Matrix<double, 1, 3>);
+            void initialize(double, double, Matrix<double, 1, 3>, bool);
 
             ~cart_model() {};
 

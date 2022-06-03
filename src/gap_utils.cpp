@@ -285,7 +285,7 @@ namespace dynamic_gap {
         dynamic_gap::Gap detected_gap(frame, left_idx, stored_scan_msgs.ranges.at(left_idx), true, half_num_scan);
         detected_gap.addRightInformation(right_idx, stored_scan_msgs.ranges.at(right_idx));
         detected_gap.setMinSafeDist(min_dist);
-        // detected_gap.artificial = true;
+        detected_gap.artificial = true;
         raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        
         return raw_gaps;
     }

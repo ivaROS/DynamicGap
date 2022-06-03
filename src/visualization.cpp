@@ -797,8 +797,7 @@ namespace dynamic_gap{
         lg_marker.scale.y = cfg_->gap_viz.fig_gen ? 0.02 : 0.01;// 0.01;
         lg_marker.scale.z = 0.1;
         lg_marker.color.a = 1;
-        lg_marker.color.r = 0.5;
-        lg_marker.color.g = 0.5;
+        lg_marker.color.b = 1.0;
         lg_marker.lifetime = ros::Duration(0.2);
 
         for (auto & arr : prr) {

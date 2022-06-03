@@ -19,6 +19,7 @@ namespace dynamic_gap
 
     bool Planner::initialize(const ros::NodeHandle& unh)
     {
+            ROS_INFO_STREAM("starting initialize");
         if (initialized())
         {
             ROS_WARN("DynamicGap Planner already initalized");
@@ -90,7 +91,7 @@ namespace dynamic_gap
         prev_scan_time = ros::Time::now().toSec(); 
 
         final_goal_rbt = geometry_msgs::PoseStamped();
-
+        ROS_INFO_STREAM("INITIALIZING");
         return true;
     }
 
@@ -1076,16 +1077,6 @@ namespace dynamic_gap
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
         goalvisualizer->drawGapGoals(manip_gap_set);
 
-        /*
-        std::vector<int> feasible_gap_model_indices;
-        //std::cout << "feasible gap indices: ";
-        for (size_t i = 0; i < feasible_gap_set.size(); i++) {
-            //std::cout << feasible_gap_set.at(i).left_model->get_index() << ", " << feasible_gap_set.at(i).right_model->get_index() << ", ";
-            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).left_model->get_index());
-            feasible_gap_model_indices.push_back(feasible_gap_set.at(i).right_model->get_index());
-        }
-        //std::cout << "" << std::endl;
-        */
         ROS_INFO_STREAM("starting compareToOldTraj");
         // start_time = ros::Time::now().toSec();
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);

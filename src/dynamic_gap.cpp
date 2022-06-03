@@ -41,6 +41,7 @@ namespace dynamic_gap
 
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
     {
+        ROS_INFO_STREAM("starting DGap initialize");
         planner_name = name;
         // pnh: planner node handle?
         ros::NodeHandle pnh("~/" + planner_name);
