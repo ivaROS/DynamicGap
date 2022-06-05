@@ -1,4 +1,4 @@
-#include <dynamic_gap/gap_trajectory_generator.h>
+ #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
     std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
@@ -247,13 +247,30 @@ namespace dynamic_gap{
         APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
                             x[0], x[1], cfg_->gap_manip.K_acc, cbf_left_const, cbf_right_const, 
                             cfg_->gap_manip.cbf_param, goal_vel_x, goal_vel_y, cfg_->control.vx_absmax, a_lin_max);
+        
+        Eigen::Vector2d left_pt_0(x_left, y_left);
+        Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
+        Eigen::Vector2d right_pt_0(x_right, y_right);
+        Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
+        Eigen::Vector2d left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
+        Eigen::Vector2d right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
+        Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
+        Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
+
+        reachable_gap_APF reachable_gap_APF_inte(left_pt_0, left_pt_1,
+                                                 right_pt_0, right_pt_1,
+                                                 left_vel, right_vel,
+                                                 nom_vel, goal_pt_1,
+                                                 cfg_->gap_manip.sigma, cfg_->gap_manip.K_acc,
+                                                 cfg_->control.vx_absmax, a_lin_max);   
+        
         //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
         //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
         //std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
         //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
 
         boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-                                                abf_cbf_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
+                                                reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
 
         //ROS_WARN_STREAM("CLF CBF");
         //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
@@ -267,7 +284,7 @@ namespace dynamic_gap{
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
         
         std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-        // ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
+        ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
         return return_tuple;
     }
 
