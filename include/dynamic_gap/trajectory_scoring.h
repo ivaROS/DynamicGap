@@ -44,6 +44,7 @@ namespace dynamic_gap{
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
         std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
         void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan);
+        void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
         double terminalGoalCost(geometry_msgs::Pose pose);
 
@@ -67,6 +68,7 @@ namespace dynamic_gap{
             int search_idx = -1;
 
             double r_inscr, rmax, cobs, w;
+            ros::Publisher propagatedEgocirclePublisher;
     };
 }
 

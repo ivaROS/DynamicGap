@@ -266,7 +266,7 @@ namespace dynamic_gap
         rbt_accel_min1 = rbt_accel;
 
         sharedPtr_previous_pose = sharedPtr_pose;
-        //ROS_INFO_STREAM("laserscanCB time elapsed: " << ros::Time::now().toSec() - start_time);
+        ROS_INFO_STREAM("laserscanCB time elapsed: " << ros::Time::now().toSec() - start_time);
     }
     
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
@@ -979,7 +979,7 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-        // double getPlan_start_time = ros::Time::now().toSec();
+        double getPlan_start_time = ros::Time::now().toSec();
         updateTF();
 
         ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
@@ -994,6 +994,7 @@ namespace dynamic_gap
         // start_time = ros::Time::now().toSec();
         auto manip_gap_set = gapManipulate(feasible_gap_set);
         // ROS_INFO_STREAM("gapManipulate time elapsed: " << ros::Time::now().toSec() - start_time);
+
 
         //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
@@ -1085,8 +1086,7 @@ namespace dynamic_gap
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
         // ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::Time::now().toSec() - start_time);                
         
-        // ROS_INFO_STREAM("getPlan time elapsed: " << ros::Time::now().toSec() - getPlan_start_time);
-        // ROS_WARN_STREAM("getPlanTrajectory time: " << ros::Time::now().toSec() - begin_time);
+        ROS_INFO_STREAM("getPlan time elapsed: " << ros::Time::now().toSec() - getPlan_start_time);
         return final_traj;
     }
 
@@ -1143,7 +1143,6 @@ namespace dynamic_gap
         double cum_vel_sum = std::accumulate(log_vel_comp.begin(), log_vel_comp.end(), double(0));
         bool ret_val = cum_vel_sum > 1.0 || !log_vel_comp.full();
         if (!ret_val && !cfg.man.man_ctrl) {
-            std::cout << "-------- planning failed -------" << std::endl;
             ROS_FATAL_STREAM("--------------------------Planning Failed--------------------------");
             reset();
         }

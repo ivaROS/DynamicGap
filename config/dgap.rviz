@@ -11,8 +11,10 @@ Panels:
         - /Axes2
         - /Marker1
         - /Marker2
+        - /LaserScan1
         - /MarkerArray7
         - /PoseArray2
+        - /LaserScan2
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -33,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -56,7 +58,7 @@ Visualization Manager:
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_goal: true
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -94,7 +96,8 @@ Visualization Manager:
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        {}
+        raw: true
+        simp: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -102,7 +105,7 @@ Visualization Manager:
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        {}
+        manip: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -134,7 +137,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -142,7 +145,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -168,7 +171,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /point_scan
+      Topic: /robot15/mod_laser_0
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -178,7 +181,7 @@ Visualization Manager:
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -186,7 +189,7 @@ Visualization Manager:
       Marker Topic: /po_dir
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -412,6 +415,34 @@ Visualization Manager:
       Topic: /move_base/TebLocalPlannerROS/local_plan
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 252; 175; 62
+      Min Color: 252; 175; 62
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /propagated_egocircle
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -440,16 +471,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 48.23704147338867
+      Distance: 50.24607467651367
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -6.5470290184021
-        Y: 0.16300655901432037
-        Z: -35.83316421508789
+        X: -5.782352924346924
+        Y: -3.7292346954345703
+        Z: -35.837093353271484
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

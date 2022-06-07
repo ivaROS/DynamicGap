@@ -367,7 +367,7 @@ namespace dynamic_gap{
                 res.action = visualization_msgs::Marker::ADD;
                 res.pose.position.x = 0;
                 res.pose.position.y = 0;
-                res.pose.position.z = 1;
+                res.pose.position.z = 0.0001;
                 double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
                 tf2::Quaternion dir_quat;
                 dir_quat.setRPY(0, 0, dir);

@@ -2,290 +2,296 @@
 
 namespace dynamic_gap{
     std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
-        // return geometry_msgs::PoseArray();
-        geometry_msgs::PoseArray posearr;
-        std::vector<double> timearr;
-        posearr.header.stamp = ros::Time::now();
-        double start_time = ros::Time::now().toSec();
-        double coefs = cfg_->traj.scale;
-        write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
-        posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
+        try {        
+            // return geometry_msgs::PoseArray();
+            geometry_msgs::PoseArray posearr;
+            std::vector<double> timearr;
+            posearr.header.stamp = ros::Time::now();
+            double start_time = ros::Time::now().toSec();
+            double coefs = cfg_->traj.scale;
+            write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
+            posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
-        // flipping models here to be from robot's POV
-        // dynamic_gap::cart_model* left_model = selectedGap.right_model;
-        // dynamic_gap::cart_model* right_model = selectedGap.left_model;
+            // flipping models here to be from robot's POV
+            // dynamic_gap::cart_model* left_model = selectedGap.right_model;
+            // dynamic_gap::cart_model* right_model = selectedGap.left_model;
 
-        // Matrix<double, 4, 1> left_model_state = left_model->get_modified_polar_state();
-        // Matrix<double, 4, 1> right_model_state = right_model->get_modified_polar_state();
+            // Matrix<double, 4, 1> left_model_state = left_model->get_modified_polar_state();
+            // Matrix<double, 4, 1> right_model_state = right_model->get_modified_polar_state();
 
-        // curr_pose is in sensor frame, gaps are in robot frame?, curr_vel is in robot frame
-        Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
-                                curr_vel.linear.x, curr_vel.linear.y);
-        /*
-        state_type x = {                 
-                        left_model_state[0], left_model_state[1], left_model_state[2], left_model_state[3], left_model_state[4],
-                        right_model_state[0], right_model_state[1], right_model_state[2], right_model_state[3], right_model_state[4]}; 
-        */
-
-        // get gap points in cartesian
-        float x1, x2, y1, y2;
-        float half_num_scan = selectedGap.half_scan;
-        x1 = (selectedGap.convex.convex_ldist) * cos(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-        y1 = (selectedGap.convex.convex_ldist) * sin(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-        x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-        y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-
-        float term_x1, term_x2, term_y1, term_y2;
-        term_x1 = (selectedGap.convex.terminal_ldist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
-        term_y1 = (selectedGap.convex.terminal_ldist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
-        term_x2 = (selectedGap.convex.terminal_rdist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
-        term_y2 = (selectedGap.convex.terminal_rdist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
-
-        // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
-        //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
-        //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
-        //std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-        //std::cout << "original terminal goal: (" << selectedGap.terminal_goal.x << ", " << selectedGap.terminal_goal.y << ")" << std::endl; 
-        //std::cout << "original initial left point: (" << x2 << ", " << y2 << "), original initial right point: (" << x1 << ", " << y1 << ")" << std::endl; 
-        //std::cout << "original terminal left point: (" << term_x2 << ", " << term_y2 << "), original terminal right point: (" << term_x1 << ", " << term_y1 << ")" << std::endl;
-        
-        //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-        //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
-        //int rbt_idx = int((std::atan2(ego_x[1],ego_x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        //int left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
-        
-        /*
-        if (selectedGap.goal.goalwithin) {
-            state_type x = {ego_x[0], 
-                        ego_x[1],
-                        ego_x[2],
-                        ego_x[3],
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        initial_goal_x,
-                        initial_goal_y};
-            // ROS_INFO_STREAM("Goal to Goal");
-            g2g inte_g2g(
-                selectedGap.goal.x * coefs,
-                selectedGap.goal.y * coefs);
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            inte_g2g, x, 0.0,
-            cfg_->traj.integrate_maxt,
-            cfg_->traj.integrate_stept,
-            corder);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            return return_tuple;
-        }
-        */
-        
-        if (selectedGap.mode.convex) {
-            //ROS_INFO_STREAM("radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")");
-            selectedGap.goal.x -= selectedGap.qB(0);
-            selectedGap.goal.y -= selectedGap.qB(1);
-            selectedGap.terminal_goal.x -= selectedGap.qB(0);
-            selectedGap.terminal_goal.y -= selectedGap.qB(1);
-
-            x1 -= selectedGap.qB(0);
-            x2 -= selectedGap.qB(0);
-            y1 -= selectedGap.qB(1);
-            y2 -= selectedGap.qB(1);
-            term_x1 -= selectedGap.qB(0);
-            term_x2 -= selectedGap.qB(0);
-            term_y1 -= selectedGap.qB(1);
-            term_y2 -= selectedGap.qB(1);
-    
-            ego_x[0] -= selectedGap.qB(0);
-            ego_x[1] -= selectedGap.qB(1);
+            // curr_pose is in sensor frame, gaps are in robot frame?, curr_vel is in robot frame
+            Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
+                                    curr_vel.linear.x, curr_vel.linear.y);
             /*
-            x = {- selectedGap.qB(0) - 1e-6, 
-                 - selectedGap.qB(1) + 1e-6,
-                 curr_vel.linear.x,
-                 curr_vel.linear.y,
-                 manip_left_polar_state[0],
-                 manip_left_polar_state[1],
-                 manip_left_polar_state[2],
-                 manip_left_polar_state[3],
-                 manip_left_polar_state[4],
-                 manip_right_polar_state[0],
-                 manip_right_polar_state[1],
-                 manip_right_polar_state[2],
-                 manip_right_polar_state[3],
-                 manip_right_polar_state[4]};
+            state_type x = {                 
+                            left_model_state[0], left_model_state[1], left_model_state[2], left_model_state[3], left_model_state[4],
+                            right_model_state[0], right_model_state[1], right_model_state[2], right_model_state[3], right_model_state[4]}; 
             */
-        }
 
-        // point 1 is right from robot POV
-        // point 2 is left from robot POV
-        float x_left, y_left, x_right, y_right;
-        x_left = x2*coefs;
-        y_left = y2*coefs;
-        x_right = x1*coefs;
-        y_right = y1*coefs;
-        float term_x_left, term_y_left, term_x_right, term_y_right;
-        term_x_left = term_x2*coefs;
-        term_y_left = term_y2*coefs;
-        term_x_right = term_x1*coefs;
-        term_y_right = term_y1*coefs;
+            // get gap points in cartesian
+            float x1, x2, y1, y2;
+            float half_num_scan = selectedGap.half_scan;
+            x1 = (selectedGap.convex.convex_ldist) * cos(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
+            y1 = (selectedGap.convex.convex_ldist) * sin(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
+            x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
+            y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
 
-        double initial_goal_x, initial_goal_y, terminal_goal_x, terminal_goal_y;
-        initial_goal_x = selectedGap.goal.x * coefs;
-        initial_goal_y = selectedGap.goal.y * coefs;
-        terminal_goal_x = selectedGap.terminal_goal.x * coefs;
-        terminal_goal_y = selectedGap.terminal_goal.y * coefs;
+            float term_x1, term_x2, term_y1, term_y2;
+            term_x1 = (selectedGap.convex.terminal_ldist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
+            term_y1 = (selectedGap.convex.terminal_ldist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
+            term_x2 = (selectedGap.convex.terminal_rdist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
+            term_y2 = (selectedGap.convex.terminal_rdist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
 
-        ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
-        ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
-        ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), original initial right point: (" << x_right << ", " << y_right << ")"); 
-        ROS_INFO_STREAM("actual terminal left point: (" << term_x_left << ", " << term_y_left << "), original terminal right point: (" << term_x_right << ", " << term_y_right << ")");
-        ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
-        ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
-
-        double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
-        double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
-
-        Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
-                                              y_left - ego_x[1],
-                                              ((term_x_left - x_left) / selectedGap.gap_lifespan) - curr_vel.linear.x,
-                                              ((term_y_left - y_left) / selectedGap.gap_lifespan) - curr_vel.linear.y);
-        Eigen::Vector4d manip_right_cart_state(x_right - ego_x[0],
-                                               y_right - ego_x[1],
-                                               ((term_x_right - x_right) / selectedGap.gap_lifespan) - curr_vel.linear.x,
-                                               ((term_y_right - y_right) / selectedGap.gap_lifespan) - curr_vel.linear.y);
-        //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
-        //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
-
-        Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
-        Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
-
-        //std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
-        //std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
-
-        state_type x = {ego_x[0], 
-                        ego_x[1],
-                        ego_x[2],
-                        ego_x[3],
-                        manip_left_cart_state[0],
-                        manip_left_cart_state[1],
-                        manip_left_cart_state[2],
-                        manip_left_cart_state[3],
-                        manip_right_cart_state[0],
-                        manip_right_cart_state[1],
-                        manip_right_cart_state[2],
-                        manip_right_cart_state[3],
-                        initial_goal_x,
-                        initial_goal_y};
-        
-        double betadot_L_0 = manip_right_polar_state[4]; // INITIAL LEFT BEARING RATE (FLIPPED)
-        double betadot_R_0 = manip_left_polar_state[4]; // INITIAL RIGHT BEARING RATE (FLIPPED)
-        
-        // need to parameterize goal
-
-        //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
-        //std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
-        //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
-        
-        //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
-        
-        /*
-        clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
-                            cfg_->gap_manip.K_des,
-                            cfg_->gap_manip.cbf_param,
-                            cfg_->gap_manip.K_acc,
+            // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
+            //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
+            //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
+            //std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
+            //std::cout << "original terminal goal: (" << selectedGap.terminal_goal.x << ", " << selectedGap.terminal_goal.y << ")" << std::endl; 
+            //std::cout << "original initial left point: (" << x2 << ", " << y2 << "), original initial right point: (" << x1 << ", " << y1 << ")" << std::endl; 
+            //std::cout << "original terminal left point: (" << term_x2 << ", " << term_y2 << "), original terminal right point: (" << term_x1 << ", " << term_y1 << ")" << std::endl;
+            
+            //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
+            //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
+            //int rbt_idx = int((std::atan2(ego_x[1],ego_x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            //int left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
+            
+            /*
+            if (selectedGap.goal.goalwithin) {
+                state_type x = {ego_x[0], 
+                            ego_x[1],
+                            ego_x[2],
+                            ego_x[3],
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
                             initial_goal_x,
-                            initial_goal_y,
-                            betadot_L_0,
-                            betadot_R_0,
-                            cfg_->control.vx_absmax,
-                            cfg_->control.vy_absmax,
-                            x[0],
-                            x[1],
-                            goal_vel_x,
-                            goal_vel_y,
-                            selectedGap.gap_crossed);
-        */
-
-        // or if model is invalid?
-        //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
-        if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
-            ROS_INFO_STREAM("discarding gap");
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            return return_tuple;
-        }
-        
-        // ROS_INFO_STREAM("CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan);
-        //if (selectedGap.gap_crossed) {
-        //    ROS_INFO_STREAM("gap crossed, ignoring further point");
-        //}
-        // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
-        //rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        //left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        //right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-        // std::cout << "revised rbt index: " << rbt_idx << ", revised left index: " << left_idx << ", revised right index: " << right_idx << std::endl;
-
-        //std::cout << "revised starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << initial_goal_x << ", " << initial_goal_y << ")" << std::endl; 
-        //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
-        // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
-        
-        /*
-        polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
-                            initial_goal_x, initial_goal_y,
-                            selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(),
-                            cfg_->gap_manip.sigma, x[0], x[1], cfg_->gap_manip.K_acc);
-        */
-        double a_lin_max = 1.5;      
-        double cbf_right_const = std::max(betadot_R_0, 0.0);
-        double cbf_left_const = std::min(betadot_L_0, 0.0);  
-        
-        APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
-                            x[0], x[1], cfg_->gap_manip.K_acc, cbf_left_const, cbf_right_const, 
-                            cfg_->gap_manip.cbf_param, goal_vel_x, goal_vel_y, cfg_->control.vx_absmax, a_lin_max);
-        
-        Eigen::Vector2d left_pt_0(x_left, y_left);
-        Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
-        Eigen::Vector2d right_pt_0(x_right, y_right);
-        Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
-        Eigen::Vector2d left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
-        Eigen::Vector2d right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
-        Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
-        Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
-
-        reachable_gap_APF reachable_gap_APF_inte(left_pt_0, left_pt_1,
-                                                 right_pt_0, right_pt_1,
-                                                 left_vel, right_vel,
-                                                 nom_vel, goal_pt_1,
-                                                 cfg_->gap_manip.sigma, cfg_->gap_manip.K_acc,
-                                                 cfg_->control.vx_absmax, a_lin_max);   
-        
-        //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
-        //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
-        //std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
-        //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
-
-        boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-                                                reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
-
-        //ROS_WARN_STREAM("CLF CBF");
-        //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
-        if (selectedGap.mode.convex) {
-            for (auto & p : posearr.poses) {
-                p.position.x += selectedGap.qB(0);
-                p.position.y += selectedGap.qB(1);
+                            initial_goal_y};
+                // ROS_INFO_STREAM("Goal to Goal");
+                g2g inte_g2g(
+                    selectedGap.goal.x * coefs,
+                    selectedGap.goal.y * coefs);
+                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+                inte_g2g, x, 0.0,
+                cfg_->traj.integrate_maxt,
+                cfg_->traj.integrate_stept,
+                corder);
+                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+                return return_tuple;
             }
-        }
-        //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
-        //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
+            */
+            
+            if (selectedGap.mode.convex) {
+                //ROS_INFO_STREAM("radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")");
+                selectedGap.goal.x -= selectedGap.qB(0);
+                selectedGap.goal.y -= selectedGap.qB(1);
+                selectedGap.terminal_goal.x -= selectedGap.qB(0);
+                selectedGap.terminal_goal.y -= selectedGap.qB(1);
+
+                x1 -= selectedGap.qB(0);
+                x2 -= selectedGap.qB(0);
+                y1 -= selectedGap.qB(1);
+                y2 -= selectedGap.qB(1);
+                term_x1 -= selectedGap.qB(0);
+                term_x2 -= selectedGap.qB(0);
+                term_y1 -= selectedGap.qB(1);
+                term_y2 -= selectedGap.qB(1);
         
-        std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-        ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
-        return return_tuple;
+                ego_x[0] -= selectedGap.qB(0);
+                ego_x[1] -= selectedGap.qB(1);
+                /*
+                x = {- selectedGap.qB(0) - 1e-6, 
+                    - selectedGap.qB(1) + 1e-6,
+                    curr_vel.linear.x,
+                    curr_vel.linear.y,
+                    manip_left_polar_state[0],
+                    manip_left_polar_state[1],
+                    manip_left_polar_state[2],
+                    manip_left_polar_state[3],
+                    manip_left_polar_state[4],
+                    manip_right_polar_state[0],
+                    manip_right_polar_state[1],
+                    manip_right_polar_state[2],
+                    manip_right_polar_state[3],
+                    manip_right_polar_state[4]};
+                */
+            }
+
+            // point 1 is right from robot POV
+            // point 2 is left from robot POV
+            float x_left, y_left, x_right, y_right;
+            x_left = x2*coefs;
+            y_left = y2*coefs;
+            x_right = x1*coefs;
+            y_right = y1*coefs;
+            float term_x_left, term_y_left, term_x_right, term_y_right;
+            term_x_left = term_x2*coefs;
+            term_y_left = term_y2*coefs;
+            term_x_right = term_x1*coefs;
+            term_y_right = term_y1*coefs;
+
+            double initial_goal_x, initial_goal_y, terminal_goal_x, terminal_goal_y;
+            initial_goal_x = selectedGap.goal.x * coefs;
+            initial_goal_y = selectedGap.goal.y * coefs;
+            terminal_goal_x = selectedGap.terminal_goal.x * coefs;
+            terminal_goal_y = selectedGap.terminal_goal.y * coefs;
+
+            ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
+            ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
+            ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), original initial right point: (" << x_right << ", " << y_right << ")"); 
+            ROS_INFO_STREAM("actual terminal left point: (" << term_x_left << ", " << term_y_left << "), original terminal right point: (" << term_x_right << ", " << term_y_right << ")");
+            ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
+            ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
+
+            double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
+            double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
+
+            Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
+                                                y_left - ego_x[1],
+                                                ((term_x_left - x_left) / selectedGap.gap_lifespan) - curr_vel.linear.x,
+                                                ((term_y_left - y_left) / selectedGap.gap_lifespan) - curr_vel.linear.y);
+            Eigen::Vector4d manip_right_cart_state(x_right - ego_x[0],
+                                                y_right - ego_x[1],
+                                                ((term_x_right - x_right) / selectedGap.gap_lifespan) - curr_vel.linear.x,
+                                                ((term_y_right - y_right) / selectedGap.gap_lifespan) - curr_vel.linear.y);
+            //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
+            //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
+
+            Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
+            Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
+
+            //std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
+            //std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
+
+            state_type x = {ego_x[0], 
+                            ego_x[1],
+                            ego_x[2],
+                            ego_x[3],
+                            manip_left_cart_state[0],
+                            manip_left_cart_state[1],
+                            manip_left_cart_state[2],
+                            manip_left_cart_state[3],
+                            manip_right_cart_state[0],
+                            manip_right_cart_state[1],
+                            manip_right_cart_state[2],
+                            manip_right_cart_state[3],
+                            initial_goal_x,
+                            initial_goal_y};
+            
+            double betadot_L_0 = manip_right_polar_state[4]; // INITIAL LEFT BEARING RATE (FLIPPED)
+            double betadot_R_0 = manip_left_polar_state[4]; // INITIAL RIGHT BEARING RATE (FLIPPED)
+            
+            // need to parameterize goal
+
+            //std::cout << "rbt start: " << x[0] << ", " << x[1] << std::endl;
+            //std::cout << "starting goal: (" << selectedGap.goal.x * coefs << ", " << selectedGap.goal.y * coefs << ")" << std::endl; 
+            //std::cout << "p1: " << x1*coefs << ", " << y1*coefs << " p2: " << x2*coefs << ", " << y2*coefs << std::endl;
+            
+            //std::cout << "gap is either static or closing, CLF/CBF trajectory generated" << std::endl;
+            
+            /*
+            clf_cbf clf_cbf_dyn(selectedGap.isAxial(),
+                                cfg_->gap_manip.K_des,
+                                cfg_->gap_manip.cbf_param,
+                                cfg_->gap_manip.K_acc,
+                                initial_goal_x,
+                                initial_goal_y,
+                                betadot_L_0,
+                                betadot_R_0,
+                                cfg_->control.vx_absmax,
+                                cfg_->control.vy_absmax,
+                                x[0],
+                                x[1],
+                                goal_vel_x,
+                                goal_vel_y,
+                                selectedGap.gap_crossed);
+            */
+
+            // or if model is invalid?
+            //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
+            if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
+                ROS_INFO_STREAM("discarding gap");
+                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+                return return_tuple;
+            }
+            
+            // ROS_INFO_STREAM("CLF/CBF trajectory generated with lifespan: " << selectedGap.gap_lifespan);
+            //if (selectedGap.gap_crossed) {
+            //    ROS_INFO_STREAM("gap crossed, ignoring further point");
+            //}
+            // std::cout << "start: " << x[0] << ", " << x[1] << ", goal: " << local_goal_dist*x[15] << ", " << local_goal_dist*x[14] << std::endl;
+            //rbt_idx = int((std::atan2(x[1],x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            //left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            //right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
+            // std::cout << "revised rbt index: " << rbt_idx << ", revised left index: " << left_idx << ", revised right index: " << right_idx << std::endl;
+
+            //std::cout << "revised starting robot: (" << x[0] << ", " << x[1] << "), goal: (" << initial_goal_x << ", " << initial_goal_y << ")" << std::endl; 
+            //std::cout << "revised points x1, y1: (" << x_right << ", " << y_right << "), x2,y2: (" << x_left << ", " << y_left << ")" << std::endl; 
+            // std::cout << "sigma value: " << cfg_->gap_manip.sigma << std::endl;
+            
+            /*
+            polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
+                                initial_goal_x, initial_goal_y,
+                                selectedGap.mode.agc, selectedGap.pivoted_left, selectedGap.isAxial(),
+                                cfg_->gap_manip.sigma, x[0], x[1], cfg_->gap_manip.K_acc);
+            */
+            double a_lin_max = 1.5;      
+            double cbf_right_const = std::max(betadot_R_0, 0.0);
+            double cbf_left_const = std::min(betadot_L_0, 0.0);  
+
+            APF_CBF abf_cbf_inte(x_right, x_left, y_right, y_left, selectedGap.isAxial(), cfg_->gap_manip.sigma, 
+                                x[0], x[1], cfg_->gap_manip.K_acc, cbf_left_const, cbf_right_const, 
+                                cfg_->gap_manip.cbf_param, goal_vel_x, goal_vel_y, cfg_->control.vx_absmax, a_lin_max);
+            /*
+
+            Eigen::Vector2d left_pt_0(x_left, y_left);
+            Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
+            Eigen::Vector2d right_pt_0(x_right, y_right);
+            Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
+            Eigen::Vector2d left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
+            Eigen::Vector2d right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
+            Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
+            Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
+            reachable_gap_APF reachable_gap_APF_inte(left_pt_0, left_pt_1,
+                                                    right_pt_0, right_pt_1,
+                                                    left_vel, right_vel,
+                                                    nom_vel, goal_pt_1,
+                                                    cfg_->gap_manip.sigma, cfg_->gap_manip.K_acc,
+                                                    cfg_->control.vx_absmax, a_lin_max);   
+            */
+            //Matrix<double, 4, 1> left_model_cart_state = left_model->get_cartesian_state();
+            //Matrix<double, 4, 1> right_model_cart_state = right_model->get_cartesian_state();
+            //std::cout << "revised left model cart state: " << left_model_cart_state[0] << ", " << left_model_cart_state[1] << ", " << left_model_cart_state[2] << ", " << left_model_cart_state[3] << std::endl;
+            //std::cout << "revised right model cart state: " << right_model_cart_state[0] << ", " << right_model_cart_state[1] << ", " << right_model_cart_state[2] << ", " << right_model_cart_state[3] << std::endl;
+
+            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+                                                    abf_cbf_inte, x, 0.0, selectedGap.gap_lifespan, cfg_->traj.integrate_stept, corder);
+
+            //ROS_WARN_STREAM("CLF CBF");
+            //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
+            if (selectedGap.mode.convex) {
+                for (auto & p : posearr.poses) {
+                    p.position.x += selectedGap.qB(0);
+                    p.position.y += selectedGap.qB(1);
+                }
+            }
+            //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
+            //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
+            
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+            ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
+            return return_tuple;
+            
+        } catch (...) {
+            ROS_FATAL_STREAM("integrator");
+        }
+
     }
 
     Matrix<double, 5, 1> GapTrajGenerator::cartesian_to_polar(Eigen::Vector4d x) {

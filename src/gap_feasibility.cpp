@@ -63,7 +63,11 @@ namespace dynamic_gap {
         double subtracted_left_betadot = left_betadot - min_betadot;
         double subtracted_right_betadot = right_betadot - min_betadot;
 
-        if (subtracted_left_betadot > 0) {
+        if (gap.artificial) {
+            feasible = true;
+            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.setTerminalPoints(gap.LIdx(), gap.LDist(), gap.RIdx(), gap.RDist());
+        } else if (subtracted_left_betadot > 0) {
             // expanding
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
@@ -282,6 +286,7 @@ namespace dynamic_gap {
                         float left_dist = (1.0 / prev_left_frozen_state[0]);
                         int right_idx = (int) std::floor((prev_beta_right - egocircle.angle_min) / egocircle.angle_increment);
                         float right_dist = (1.0 / prev_right_frozen_state[0]);
+
                         gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
                         gap.gap_closed = true;
                         // gap.gap_crossed = true;
@@ -322,9 +327,9 @@ namespace dynamic_gap {
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
             
             ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")");
-            int left_idx = int((beta_left - egocircle.angle_min) / egocircle.angle_increment);
+            int left_idx = (int) std::ceil((beta_left - egocircle.angle_min) / egocircle.angle_increment);
             float left_dist = (1.0 / left_frozen_state[0]);
-            int right_idx = int((beta_right - egocircle.angle_min) / egocircle.angle_increment);
+            int right_idx = (int) std::floor((beta_right - egocircle.angle_min) / egocircle.angle_increment);
             float right_dist = (1.0 / right_frozen_state[0]);
 
             gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
