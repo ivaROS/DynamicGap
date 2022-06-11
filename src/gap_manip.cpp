@@ -716,8 +716,8 @@ namespace dynamic_gap {
         Eigen::Vector2f left_radial_inflate = pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         Eigen::Vector2f right_radial_inflate = pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
-        Eigen::Vector2f new_l = pl + left_angular_inflate + left_radial_inflate;
-        Eigen::Vector2f new_r = pr + right_angular_inflate + right_radial_inflate;
+        Eigen::Vector2f new_l = pl + left_radial_inflate;
+        Eigen::Vector2f new_r = pr + right_radial_inflate;
 
         float new_l_range = new_l.norm();
         float new_l_theta = std::atan2(new_l[1], new_l[0]);

@@ -479,7 +479,7 @@ namespace dynamic_gap
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
             gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
-            //gapManip->inflateGapSides(manip_set.at(i), true);
+            gapManip->inflateGapSides(manip_set.at(i), true); // inflate gap radially
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
 
 
@@ -496,6 +496,7 @@ namespace dynamic_gap
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
             gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+            gapManip->inflateGapSides(manip_set.at(i), false); // inflate gap radially
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
         }
 
