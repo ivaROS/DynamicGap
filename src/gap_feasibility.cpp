@@ -292,6 +292,9 @@ namespace dynamic_gap {
                         // gap.gap_crossed = true;
                         return t;
                     } else {
+                        // I think crossing may still be a little fraught. More so at trajectory generation 
+                        // level, but how do we ensure that robot abides by both sides and then once gap
+                        // crosses, robot then ignores crossing side
                         if (first_cross) {
                             double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
                             double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
