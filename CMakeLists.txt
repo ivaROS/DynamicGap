@@ -5,6 +5,8 @@ add_compile_options(-std=c++17)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 
+# set(osqp-cpp_DIR "/home/masselmeier3/osqp-cpp/")
+
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
   message(STATUS "OPENMP FOUND")
@@ -29,6 +31,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+find_package(osqp REQUIRED)
+find_package(OsqpEigen REQUIRED)
+#  PATHS C:/home/masselmeier3/osqp-eigen
+# find_package(osqp-cpp REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/dg.cfg
@@ -40,6 +46,7 @@ include_directories(
   SYSTEM ${EIGEN3_INCLUDE_DIRS}
   include
   ${catkin_INCLUDE_DIRS}
+  ${osqp_INCLUDE_DIR}
 )
 
 add_message_files(DIRECTORY msg
@@ -88,7 +95,11 @@ add_dependencies(dynamic_gap ${PROJECT_NAME}_gencfg)
 add_dependencies(dynamic_gap custom_msg_generate_messages_cpp)
 add_dependencies(dynamic_gap ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
+
 target_link_libraries(dynamic_gap
 ${catkin_LIBRARIES}
 ${OpenMP_LIBS}
+osqp::osqp
+OsqpEigen::OsqpEigen
 )
+# target_link_libraries(PRIVATE )

@@ -21,6 +21,9 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "tf/transform_datatypes.h"
 
+//#include "osqp.h"
+//#include "/home/masselmeier3/osqp-cpp/include/osqp++.h"
+#include "OsqpEigen/OsqpEigen.h"
 
 namespace dynamic_gap {
     typedef boost::array<double, 14> state_type;
@@ -475,24 +478,27 @@ namespace dynamic_gap {
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
+            /*
 
+            */
             // THINGS DO NOT GET PRINTED OUT NORMALLY HERE
             //ROS_INFO_STREAM('initializing reachable_gap_APF');
             //std::vector<std::vector<double>> _left_curve(num_curve_points, std::vector<double>(2));
 
             // 25 rows, 2 columns
-            Eigen::MatrixXd left_curve(num_curve_points, 2);
-            Eigen::MatrixXd right_curve(num_curve_points, 2);
-            Eigen::MatrixXd all_curve_pts(2*num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> left_curve; // (num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> right_curve; // (num_curve_points, 2);
+            Eigen::Matrix<double, 50, 2> all_curve_pts; // (2*num_curve_points, 2);
 
-            Eigen::MatrixXd left_curve_vel(num_curve_points, 2);
-            Eigen::MatrixXd right_curve_vel(num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> left_curve_vel; //(num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> right_curve_vel; // (num_curve_points, 2);
 
-            Eigen::MatrixXd left_curve_inward_norm(num_curve_points, 2);
-            Eigen::MatrixXd right_curve_inward_norm(num_curve_points, 2);
-            Eigen::MatrixXd all_inward_norms(2*num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> left_curve_inward_norm; // (num_curve_points, 2);
+            Eigen::Matrix<double, 25, 2> right_curve_inward_norm; // (num_curve_points, 2);
+            Eigen::Matrix<double, 50, 2> all_inward_norms; //(2*num_curve_points, 2);
 
-            Eigen::MatrixXd all_centers(2*num_curve_points + 1, 2);
+            Eigen::Matrix<double, 50, 2> left_right_centers; //(2*num_curve_points, 2);
+            Eigen::Matrix<double, 51, 2> all_centers; //(2*num_curve_points + 1, 2);
                                     
             r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), std::sin(rot_angle), std::cos(rot_angle);
             neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), std::sin(-rot_angle), std::cos(-rot_angle);
@@ -506,7 +512,9 @@ namespace dynamic_gap {
             Eigen::Vector2d weighted_left_pt = left_weight * left_pt_0;
             Eigen::Vector2d weighted_right_pt = right_weight * right_pt_0;
 
-            Eigen::Vector2d goal = goal_pt_1;
+            Eigen::Matrix<double, 1, 2> goal; // (1, 2);
+            goal << goal_pt_1[0],
+                    goal_pt_1[1];
             //ROS_INFO_STREAM("left_pt_0: " << left_pt_0[0] << ", " << left_pt_0[1]);
             //ROS_INFO_STREAM("right_pt_0: " << right_pt_0[0] << ", " << right_pt_0[1]);
             //ROS_INFO_STREAM("weighted_left_pt: " << weighted_left_pt[0] << ", " << weighted_left_pt[1]);
@@ -548,8 +556,9 @@ namespace dynamic_gap {
 
             all_curve_pts << left_curve, right_curve;
             all_inward_norms << left_curve_inward_norm, right_curve_inward_norm;
-            all_centers << goal, (all_curve_pts - all_inward_norms*offset);
 
+            left_right_centers = all_curve_pts - all_inward_norms*offset;
+            all_centers << goal, left_right_centers;
             ROS_INFO_STREAM("all_curve_pts: " << all_curve_pts);
             ROS_INFO_STREAM("all_inward_norms: " << all_inward_norms);
             ROS_INFO_STREAM("all_centers: " << all_centers);
@@ -557,45 +566,129 @@ namespace dynamic_gap {
             int N = 2*num_curve_points;
             int Kplus1 = 2*num_curve_points + 1;
 
-            Eigen::MatrixXd inward_norm_vector(Kplus1, 2); 
-            Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2);
-            Eigen::MatrixXd A_N(Kplus1, N);
-            Eigen::MatrixXd A_S(Kplus1, 1);
-            Eigen::MatrixXd w_0(Kplus1, 1);
+            Eigen::Matrix<double, 51, 2> inward_norm_vector; //(Kplus1, 2); 
+            Eigen::Matrix<double, 51, 2> gradient_of_pti_wrt_centers; // (Kplus1, 2);
+            Eigen::Matrix<double, 51, 50> A_N; //(Kplus1, N);
+            Eigen::Matrix<double, 51, 1> A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
+            Eigen::Matrix<double, 51, 1> w_0 = Eigen::MatrixXd::Zero(Kplus1, 1);
+            // Eigen::VectorXd zero_vect(1, 1);
+            Eigen::VectorXd neg_one_vect(1, 1);
+            // zero_vect << 0.0;
+            neg_one_vect << -1.0;
 
             for (int i = 0; i < N; i++) {
                 Eigen::Vector2d boundary_pt_i = all_centers.row(i);
 
                 for (int j = 0; j < Kplus1; j++) {
-                    A_S.row(j) = 0.0;
-                    w_0.row(j) = 0.0;
+                    //A_S.row(j) = zero_vect;
 
                     inward_norm_vector.row(j) = all_inward_norms.row(i); // need to replicate this Kplus1 times;
                     
-                    Eigen::Vector2d center_j = all_centers.row(i);
+                    Eigen::Vector2d center_j = all_centers.row(j);
+                    // ROS_INFO_STREAM("boundary_pt_i: " << boundary_pt_i);
+                    // ROS_INFO_STREAM("center_j: " << center_j);
                     Eigen::Vector2d diff = boundary_pt_i - center_j;
+                    // ROS_INFO_STREAM("diff: " << diff);
                     Eigen::Vector2d gradient = diff / (diff.norm() + eps);
                     gradient_of_pti_wrt_centers.row(j) = gradient;
                 }
-
+                // ROS_INFO_STREAM("inward_norm_vector: " << inward_norm_vector);
+                // ROS_INFO_STREAM("gradient_of_pti: " << gradient_of_pti_wrt_centers);
+                // error in here
                 Eigen::MatrixXd elem_wise_mult_prod(Kplus1, 2);
-                elem_wise_mult_prod << inward_norm_vector * gradient_of_pti_wrt_centers;
+                elem_wise_mult_prod = inward_norm_vector.cwiseProduct(gradient_of_pti_wrt_centers);
+                // ROS_INFO_STREAM("elem_wise_mult_prod: " << elem_wise_mult_prod);
 
                 Eigen::MatrixXd A_pi(Kplus1, 1);
-                A_pi << elem_wise_mult_prod.colwise().sum();
+                A_pi = elem_wise_mult_prod.rowwise().sum();
+                // ROS_INFO_STREAM("A_pi: " << A_pi);
                 A_N.col(i) = A_pi;
                 // dotting inward norm (Kplus1 rows, 2 columns) with gradient of pti (Kplus1 rows, 2 columns) to get (Kplus1 rows, 1 column)
             }
-            A_S.row(0) = -1.0;
 
-            Eigen::MatrixXd A(Kplus, N+1);
+            A_S.row(0) = neg_one_vect;
+
+
+            Eigen::Matrix<double, 51, 51> A; // (Kplus1, N+1);
             A << A_N, A_S;
+            ROS_INFO_STREAM("A: " << A);
 
-            Eigen::MatrixXd b(N+1, 1);
-            for (int i = 0; i < (N+1); i++) {
-                b.row(i) = 0.0;
+            Eigen::Matrix<double, 51, 1> b = Eigen::MatrixXd::Zero(N+1, 1);
+
+            Eigen::SparseMatrix<double> hessian(Kplus1, Kplus1);
+            Eigen::VectorXd gradient(Kplus1, 1);
+            Eigen::SparseMatrix<double> linearMatrix(Kplus1, Kplus1);
+            Eigen::VectorXd lowerBound(Kplus1, 1);
+            Eigen::VectorXd upperBound(Kplus1, 1);
+            
+            for (int i = 0; i < Kplus1; i++) {
+                gradient(i, 0) = 0.0;
+
+                lowerBound(i, 0) = -std::numeric_limits<double>::infinity();
+                upperBound(i, 0) = 0.0;
             }
 
+            for (int i = 0; i < Kplus1; i++) {
+                for (int j = 0; j < Kplus1; j++) {
+                    hessian.insert(i, j) = 1.0; // initialize off-diagonal to zero?
+
+                    /*
+                    if (i == j) {
+                        hessian.insert(i, j) = 1.0; // initialize off-diagonal to zero?
+                    } else {
+                        hessian.insert(i, j) = 0.0;
+                    }
+                    */
+
+                    // need to transpose A vector
+                    linearMatrix.insert(j, i) = A.coeff(i, j);
+                }
+            }
+
+            ROS_INFO_STREAM("Hessian: " << hessian);
+            ROS_INFO_STREAM("Gradient: " << gradient);
+            ROS_INFO_STREAM("linearMatrix: " << linearMatrix);
+            ROS_INFO_STREAM("lowerBound: " << lowerBound);
+            ROS_INFO_STREAM("upperBound: " << upperBound);
+
+            OsqpEigen::Solver solver;
+            solver.data()->setNumberOfVariables(Kplus1);
+            solver.data()->setNumberOfConstraints(Kplus1);
+            if(!solver.data()->setHessianMatrix(hessian)) return; // H ?
+            if(!solver.data()->setGradient(gradient)) return; // f ?
+            if(!solver.data()->setLinearConstraintsMatrix(linearMatrix)) return;
+            if(!solver.data()->setLowerBound(lowerBound)) return;
+            if(!solver.data()->setUpperBound(upperBound)) return;
+
+
+            if(!solver.initSolver()) return;
+
+            Eigen::VectorXd QPSolution;
+
+            // number of iteration steps
+            int numberOfSteps = 50;
+
+            for (int i = 0; i < numberOfSteps; i++){
+
+                // solve the QP problem
+                if(solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+
+                // get the controller input
+                QPSolution = solver.getSolution();
+                ROS_INFO_STREAM("current solution: " << QPSolution);
+            }
+
+            //Eigen::SparseMatrix<double> objective_matrix(Kplus1, Kplus1);
+            //objective_matrix = H;
+            //osqp::OsqpInstance instance;
+            //instance.objective_matrix = objective_matrix;
+            //instance.objective_vector.resize(2);
+            //instance.objective_vector << 1.0, 0.0;            
+            /*
+            for (int i = 0; i < (N+1); i++) {
+                b.row(i) = zero_vect;
+            }
+            */
             // ROS_INFO_STREAM("left_curve: " << left_curve);
 
             //left_curve = _left_curve;
@@ -608,7 +701,8 @@ namespace dynamic_gap {
             //_all_norm_pts.insert(_all_norm_pts.end(), _right_curve_inward_norm.begin(), _right_curve_inward_norm.end());
 
             // ROS_INFO_STREAM("t: " << t);
-            
+            /*            
+            */
             state_type new_x = adjust_state(x);
             cart_left_state << new_x[4], new_x[5], new_x[6], new_x[7];  
             cart_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
