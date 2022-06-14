@@ -228,7 +228,7 @@ namespace dynamic_gap {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-               
+        /*           
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
@@ -248,13 +248,13 @@ namespace dynamic_gap {
             model->freeze_robot_vel();
         }
         
-
+        */
         // std::cout << "num models: " << raw_models.size() << std::endl;
-        std::vector<double> dynamic_cost_val(traj.poses.size());
+        //std::vector<double> dynamic_cost_val(traj.poses.size());
         std::vector<double> static_cost_val(traj.poses.size());
         double total_val = 0.0;
         std::vector<double> cost_val;
-
+        /*
         sensor_msgs::LaserScan stored_scan = *msg.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         dynamic_laser_scan.header = stored_scan.header;
@@ -287,15 +287,16 @@ namespace dynamic_gap {
             cost_val = dynamic_cost_val;
             ROS_INFO_STREAM("dynamic pose-wise cost: " << dynamic_total_val);
         } else {
-            for (int i = 0; i < static_cost_val.size(); i++) {
-                // std::cout << "regular range at " << i << ": ";
-                static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
-            }
-            auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-            total_val = static_total_val;
-            cost_val = static_cost_val;
-            ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
+        */
+        for (int i = 0; i < static_cost_val.size(); i++) {
+            // std::cout << "regular range at " << i << ": ";
+            static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
         }
+        auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
+        total_val = static_total_val;
+        cost_val = static_cost_val;
+        ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
+        //}
 
         int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
         //std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;

@@ -11,13 +11,11 @@
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="true"/>
 
-  <!--
   <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/>
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
   </node>
-  -->
   
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>

@@ -9,7 +9,7 @@ namespace dynamic_gap {
         cfg_ = & cfg;
     }
 
-    std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser)
+    std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, geometry_msgs::PoseStamped final_goal_rbt)
     {
         //std::cout << "running hybridScanGap" << std::endl;
         // clear gaps
@@ -22,7 +22,7 @@ namespace dynamic_gap {
         auto max_dist_iter = std::max_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
         float max_scan_dist = *max_dist_iter;
         auto min_dist = *std::min_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
-        ROS_INFO_STREAM("hybridScanGap min_dist: " << min_dist);
+        // ROS_INFO_STREAM("hybridScanGap min_dist: " << min_dist);
         int gap_size = 0;
         std::string frame = stored_scan_msgs.header.frame_id;
         // starting the left point of the gap at front facing value
@@ -141,8 +141,54 @@ namespace dynamic_gap {
 
         //ROS_INFO_STREAM("hybridScanGap time elapsed: " << ros::Time::now().toSec() - start_time); 
         
+        // if terminal_goal within laserscan and not in a gap, create a gap
+        //ROS_INFO_STREAM("laserscan CB");
+        double final_goal_dist = sqrt(pow(final_goal_rbt.pose.position.x, 2) + pow(final_goal_rbt.pose.position.y, 2));
+        if (final_goal_dist > 0) {
+            double final_goal_theta = std::atan2(final_goal_rbt.pose.position.y, final_goal_rbt.pose.position.x);
+            int half_num_scan = stored_scan_msgs.ranges.size() / 2;
+            int final_goal_idx = int(half_num_scan * final_goal_theta / M_PI) + half_num_scan;
+            double scan_dist = stored_scan_msgs.ranges.at(final_goal_idx);
+            
+            if (final_goal_dist < scan_dist) {
+                raw_gaps = addTerminalGoal(final_goal_idx, raw_gaps, stored_scan_msgs);
+            }
+        }
+
         return raw_gaps;
     }
+
+    std::vector<dynamic_gap::Gap> GapUtils::addTerminalGoal(int final_goal_idx,
+                                                            std::vector<dynamic_gap::Gap> &raw_gaps,
+                                                            sensor_msgs::LaserScan stored_scan_msgs) {
+        ROS_INFO_STREAM("running addTerminalGoal");
+        ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
+        int gap_idx = 0;
+        int half_num_scan = stored_scan_msgs.ranges.size() / 2;
+        auto min_dist = *std::min_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
+
+        for (dynamic_gap::Gap g : raw_gaps) {
+            // if final_goal idx is within gap, return
+            // ROS_INFO_STREAM("checking against: " << g.LIdx() << " to " << g.RIdx());
+            if (final_goal_idx >= g.LIdx() && final_goal_idx <= g.RIdx()) {
+                ROS_INFO_STREAM("final goal is in gap: " << g.LIdx() << ", " << g.RIdx());
+                return raw_gaps;
+            }
+            gap_idx += 1;
+        }
+
+        std::string frame = stored_scan_msgs.header.frame_id;
+        int half_gap_span = half_num_scan / 12;
+        int left_idx = std::max(final_goal_idx - half_gap_span, 0);
+        int right_idx = std::min(final_goal_idx + half_gap_span, 2*half_num_scan - 1);
+        ROS_INFO_STREAM("creating gap " << left_idx << ", to " << right_idx);
+        dynamic_gap::Gap detected_gap(frame, left_idx, stored_scan_msgs.ranges.at(left_idx), true, half_num_scan);
+        detected_gap.addRightInformation(right_idx, stored_scan_msgs.ranges.at(right_idx));
+        detected_gap.setMinSafeDist(min_dist);
+        detected_gap.artificial = true;
+        raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        
+        return raw_gaps;
+    }    
 
     std::vector<dynamic_gap::Gap> GapUtils::mergeGapsOneGo(
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
@@ -259,36 +305,4 @@ namespace dynamic_gap {
         return simplified_gaps;
     }
 
-    std::vector<dynamic_gap::Gap> GapUtils::addTerminalGoal(int final_goal_idx,
-                                                            std::vector<dynamic_gap::Gap> &raw_gaps,
-                                                            boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser) {
-        ROS_INFO_STREAM("running addTerminalGoal");
-        ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
-        sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        int gap_idx = 0;
-        int half_num_scan = stored_scan_msgs.ranges.size() / 2;
-        auto min_dist = *std::min_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
-
-        for (dynamic_gap::Gap g : raw_gaps) {
-            // if final_goal idx is within gap, return
-            // ROS_INFO_STREAM("checking against: " << g.LIdx() << " to " << g.RIdx());
-            if (final_goal_idx >= g.LIdx() && final_goal_idx <= g.RIdx()) {
-                ROS_INFO_STREAM("final goal is in gap: " << g.LIdx() << ", " << g.RIdx());
-                return raw_gaps;
-            }
-            gap_idx += 1;
-        }
-
-        std::string frame = stored_scan_msgs.header.frame_id;
-        int half_gap_span = half_num_scan / 12;
-        int left_idx = std::max(final_goal_idx - half_gap_span, 0);
-        int right_idx = std::min(final_goal_idx + half_gap_span, 2*half_num_scan - 1);
-        ROS_INFO_STREAM("creating gap " << left_idx << ", to " << right_idx);
-        dynamic_gap::Gap detected_gap(frame, left_idx, stored_scan_msgs.ranges.at(left_idx), true, half_num_scan);
-        detected_gap.addRightInformation(right_idx, stored_scan_msgs.ranges.at(right_idx));
-        detected_gap.setMinSafeDist(min_dist);
-        detected_gap.artificial = true;
-        raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        
-        return raw_gaps;
-    }
 }

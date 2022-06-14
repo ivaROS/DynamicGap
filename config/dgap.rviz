@@ -35,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -70,10 +70,10 @@ Visualization Manager:
       Value: false
     - Class: rviz/Axes
       Enabled: true
-      Length: 1
+      Length: 0.5
       Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: robot0
+      Radius: 0.05000000074505806
+      Reference Frame: robot2
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -88,7 +88,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -171,7 +171,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /robot15/mod_laser_0
+      Topic: /point_scan
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -213,7 +213,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -471,16 +471,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 50.24607467651367
+      Distance: 48.80940628051758
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -5.782352924346924
-        Y: -3.7292346954345703
-        Z: -35.837093353271484
+        X: 1.3605568408966064
+        Y: -4.162052631378174
+        Z: -35.83750915527344
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

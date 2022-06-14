@@ -76,8 +76,8 @@ namespace dynamic_gap
         
         init_val = 0;
         model_idx = &init_val;
-        prev_traj_switch_time = ros::Time::now().toSec();
-        init_time = ros::Time::now().toSec(); 
+        prev_traj_switch_time = ros::WallTime::now().toSec();
+        init_time = ros::WallTime::now().toSec(); 
 
         curr_left_model = NULL;
         curr_right_model = NULL;
@@ -85,11 +85,13 @@ namespace dynamic_gap
         sharedPtr_pose = geometry_msgs::Pose();
         sharedPtr_previous_pose = sharedPtr_previous_pose;
 
-        prev_pose_time = ros::Time::now().toSec(); 
-        prev_scan_time = ros::Time::now().toSec(); 
+        prev_pose_time = ros::WallTime::now().toSec(); 
+        prev_scan_time = ros::WallTime::now().toSec(); 
+
+        prev_timestamp = ros::Time::now();
+        curr_timestamp = ros::Time::now();
 
         final_goal_rbt = geometry_msgs::PoseStamped();
-        ROS_INFO_STREAM("INITIALIZING");
         return true;
     }
 
@@ -119,7 +121,7 @@ namespace dynamic_gap
         }
         return false;
     }
-
+    
     void Planner::inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         sharedPtr_inflatedlaser = msg;
@@ -151,32 +153,25 @@ namespace dynamic_gap
     // running at point_scan rate which is around 8-9 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
-        double start_time = ros::Time::now().toSec();
+        curr_timestamp = msg.get()->header.stamp;
+        ROS_INFO_STREAM("laserscanCB time stamp difference: " << (curr_timestamp - prev_timestamp).toSec());
+        prev_timestamp = curr_timestamp;
+        double start_time = ros::WallTime::now().toSec();
         //std::cout << "laser scan rate: " << 1.0 / (curr_time - prev_scan_time) << std::endl;
         //prev_scan_time = curr_time;
 
         sharedPtr_laser = msg;
-
+        // planning_inflated is a 0
         if (cfg.planning.planning_inflated && sharedPtr_inflatedlaser) {
             msg = sharedPtr_inflatedlaser;
         }
 
-        // ROS_INFO_STREAM(msg.get()->ranges.size());
 
         // try {
-        boost::mutex::scoped_lock gapset(gapset_mutex);
+        // ROS_INFO_STREAM("Time elapsed before scoped_lock: " << (ros::WallTime::now().toSec() - start_time));
+        boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
+        //  ROS_INFO_STREAM("Time elapsed after scoped_lock: " << (ros::WallTime::now().toSec() - start_time));
 
-        /*
-        tf2::Quaternion curr_quat(sharedPtr_pose.orientation.x, sharedPtr_pose.orientation.y, sharedPtr_pose.orientation.z, sharedPtr_pose.orientation.w);
-        tf2::Matrix3x3 curr_m(curr_quat);
-        double curr_r, curr_p, curr_y;
-        curr_m.getRPY(curr_r, curr_p, curr_y);
-
-        tf2::Quaternion prev_quat(sharedPtr_previous_pose.orientation.x, sharedPtr_previous_pose.orientation.y, sharedPtr_previous_pose.orientation.z, sharedPtr_previous_pose.orientation.w);
-        tf2::Matrix3x3 prev_m(prev_quat);
-        double prev_r, prev_p, prev_y;
-        prev_m.getRPY(prev_r, prev_p, prev_y);
-        */
         Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
 
@@ -186,58 +181,34 @@ namespace dynamic_gap
         Matrix<double, 1, 3> v_ego = rbt_vel_t;
         Matrix<double, 1, 3> a_ego = rbt_acc_t;
 
-        // getting raw gaps
+        // ROS_INFO_STREAM("RAW GAP ASSOCIATING");
+        // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+
         previous_raw_gaps = associated_raw_gaps;
-        raw_gaps = finder->hybridScanGap(msg);
-        
-        // if terminal_goal within laserscan and not in a gap, create a gap
-        //ROS_INFO_STREAM("laserscan CB");
-        double final_goal_dist = sqrt(pow(final_goal_rbt.pose.position.x, 2) + pow(final_goal_rbt.pose.position.y, 2));
-        if (final_goal_dist > 0) {
-            double final_goal_theta = std::atan2(final_goal_rbt.pose.position.y, final_goal_rbt.pose.position.x);
-            int half_num_scan = sharedPtr_laser.get()->ranges.size() / 2;
-            int final_goal_idx = int(half_num_scan * final_goal_theta / M_PI) + half_num_scan;
-            double scan_dist = sharedPtr_laser.get()->ranges.at(final_goal_idx);
-            
-            if (final_goal_dist < scan_dist) {
-                raw_gaps = finder->addTerminalGoal(final_goal_idx, raw_gaps, msg);
-            }
-        }
-
+        raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
         associated_raw_gaps = raw_gaps;
-
-        //std::cout << "RAW GAP ASSOCIATING" << std::endl;
-        // ASSOCIATE GAPS PASSES BY REFERENCE
         
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
-        raw_association = gapassociator->associateGaps(raw_distMatrix);
+        raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
         gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx);
         associated_raw_gaps = update_models(raw_gaps, v_ego, a_ego, false);
-        
+        // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
+
+        // double observed_gaps_start_time = ros::WallTime::now().toSec();
         previous_gaps = associated_observed_gaps;
         observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
         associated_observed_gaps = observed_gaps;
         
-        
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-        // ROS_INFO_STREAM("SIMPLIFIED GAP UPDATING");
         associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
-        
+        // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        
-        //std::cout << "robot pose, x,y: " << sharedPtr_pose.position.x << ", " << sharedPtr_pose.position.y << ", theta; " << curr_y << std::endl;
-        //std::cout << "delta x,y: " << sharedPtr_pose.position.x - sharedPtr_previous_pose.position.x << ", " << sharedPtr_pose.position.y - sharedPtr_previous_pose.position.y << ", theta: " << curr_y - prev_y << std::endl;
-        
         // need to have here for models
         gapvisualizer->drawGapsModels(associated_observed_gaps);
-    
-        // ROS_INFO_STREAM("observed_gaps count:" << observed_gaps.size());
-        //} catch (...) {
-        //    ROS_FATAL_STREAM("mergeGapsOneGo");
-        // }
+        // ROS_INFO_STREAM("Time elapsed after drawing models: " << (ros::WallTime::now().toSec() - start_time));
 
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
         if (sharedPtr_inflatedlaser) {
@@ -253,20 +224,24 @@ namespace dynamic_gap
             local_goal = goalselector->getCurrentLocalGoal(rbt2odom);
             goalvisualizer->localGoal(local_goal);
         }
-        
+        // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
+
         trajArbiter->updateEgoCircle(msg);
         trajArbiter->updateLocalGoal(local_goal, odom2rbt);
+
+        // ROS_INFO_STREAM("Time elapsed after updating arbiter: " << (ros::WallTime::now().toSec() - start_time));
 
         gapManip->updateEgoCircle(msg);
         trajController->updateEgoCircle(msg);
         gapFeasibilityChecker->updateEgoCircle(msg);
+        // ROS_INFO_STREAM("Time elapsed after updating rest: " << (ros::WallTime::now().toSec() - start_time));
 
 
         rbt_vel_min1 = current_rbt_vel;
         rbt_accel_min1 = rbt_accel;
 
         sharedPtr_previous_pose = sharedPtr_pose;
-        ROS_INFO_STREAM("laserscanCB time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("laserscan time elapsed: " << ros::WallTime::now().toSec() - start_time);
     }
     
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
@@ -317,20 +292,20 @@ namespace dynamic_gap
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
-        double start_time = ros::Time::now().toSec();
+        double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
             update_model(i, associated_observed_gaps, _v_ego, _a_ego, print);
             //std::cout << "" << std::endl;
 		}
 
-        //ROS_INFO_STREAM("update_models time elapsed: " << ros::Time::now().toSec() - start_time);
+        //ROS_INFO_STREAM("update_models time elapsed: " << ros::WallTime::now().toSec() - start_time);
         return associated_observed_gaps;
     }
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        //double curr_time = ros::Time::now().toSec();
+        //double curr_time = ros::WallTime::now().toSec();
         //std::cout << "pose rate: " << 1.0 / (curr_time - prev_pose_time) << std::endl;
         //prev_pose_time = curr_time;
         
@@ -605,7 +580,7 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
 
         try {
-            double curr_time = ros::Time::now().toSec();
+            double curr_time = ros::WallTime::now().toSec();
             
             // std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
             //std::cout << "current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex() << std::endl;
@@ -980,59 +955,23 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-        double getPlan_start_time = ros::Time::now().toSec();
+        double getPlan_start_time = ros::WallTime::now().toSec();
         updateTF();
 
-        ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
-        // double start_time = ros::Time::now().toSec();
+        // ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
-        // ROS_INFO_STREAM("gapSetFeasibilityCheck time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("time elapsed after gapSetFeasibilityCheck: " << ros::WallTime::now().toSec() - getPlan_start_time);
 
         //std::vector<dynamic_gap::Gap> feasible_gap_set = associated_observed_gaps;
         //std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
 
-        ROS_INFO_STREAM("starting gapManipulate");        
-        // start_time = ros::Time::now().toSec();
+        // ROS_INFO_STREAM("starting gapManipulate");        
         auto manip_gap_set = gapManipulate(feasible_gap_set);
-        // ROS_INFO_STREAM("gapManipulate time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("time elapsed after gapManipulate: " << ros::WallTime::now().toSec() - getPlan_start_time);
 
 
         //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
 
-        /*
-        // pruning overlapping gaps?
-        for (size_t i = 0; i < (manip_gap_set.size() - 1); i++)
-        {
-            dynamic_gap::Gap current_gap = manip_gap_set.at(i);
-            int prev_gap_idx = (i == 0) ? manip_gap_set.size() - 1 : i-1;
-            dynamic_gap::Gap prev_gap = manip_gap_set.at(prev_gap_idx);
-            int next_gap_idx = (i == (manip_gap_set.size() - 1)) ? 0 :i+1;
-            dynamic_gap::Gap next_gap = manip_gap_set.at(next_gap_idx);
-
-            std::cout << "previous: (" << prev_gap.convex.convex_lidx << ", " << prev_gap.convex.convex_ldist << "), (" << prev_gap.convex.convex_ridx << ", " << prev_gap.convex.convex_rdist << ")" << std::endl;
-            std::cout << "current: (" << current_gap.convex.convex_lidx << ", " << current_gap.convex.convex_ldist << "), (" << current_gap.convex.convex_ridx << ", " << current_gap.convex.convex_rdist << ")" << std::endl;
-            std::cout << "next: (" << next_gap.convex.convex_lidx << ", " << next_gap.convex.convex_ldist << "), (" << next_gap.convex.convex_ridx << ", " << next_gap.convex.convex_rdist << ")" << std::endl;
-
-            if (prev_gap.convex.convex_lidx < current_gap.convex.convex_lidx && prev_gap.convex.convex_ridx > current_gap.convex.convex_lidx) {
-                std::cout << "manipulated gap overlap, previous gap right: " << prev_gap.convex.convex_ridx << ", current gap left: " << current_gap.convex.convex_lidx << std::endl;
-                if (prev_gap.convex.convex_rdist > current_gap.convex.convex_ldist) {
-                    manip_gap_set.erase(manip_gap_set.begin() + prev_gap_idx);
-                } else {
-                    manip_gap_set.erase(manip_gap_set.begin() + i);
-                }
-                i = -1; // to restart for loop
-            } 
-            if (next_gap.convex.convex_lidx > current_gap.convex.convex_lidx && next_gap.convex.convex_lidx < current_gap.convex.convex_ridx) {
-                std::cout << "manipulated gap overlap, current gap right: " << current_gap.convex.convex_ridx << ", next gap left: " << next_gap.convex.convex_lidx << std::endl;
-                if (next_gap.convex.convex_ldist > current_gap.convex.convex_rdist) {
-                    manip_gap_set.erase(manip_gap_set.begin() + next_gap_idx);
-                } else {
-                    manip_gap_set.erase(manip_gap_set.begin() + i);
-                }
-                i = -1; // to restart for loop
-            }
-        }
-        */
         /*
         std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
         for (size_t i = 0; i < feasible_gap_set.size(); i++)
@@ -1053,18 +992,18 @@ namespace dynamic_gap
         } 
         */
 
-        ROS_INFO_STREAM("starting initialTrajGen");
+        // ROS_INFO_STREAM("starting initialTrajGen");
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-        // start_time = ros::Time::now().toSec();
+        // start_time = ros::WallTime::now().toSec();
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
-        //ROS_INFO_STREAM("initialTrajGen time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("time elapsed after initialTrajGen: " << ros::WallTime::now().toSec() - getPlan_start_time);
 
-        ROS_INFO_STREAM("starting pickTraj");
-        // start_time = ros::Time::now().toSec();
+        // ROS_INFO_STREAM("starting pickTraj");
+        // start_time = ros::WallTime::now().toSec();
         auto traj_idx = pickTraj(traj_set, score_set);
-        // ROS_INFO_STREAM("pickTraj time elapsed: " << ros::Time::now().toSec() - start_time);
+        // ROS_INFO_STREAM("time elapsed after pickTraj: " << ros::WallTime::now().toSec() - getPlan_start_time);
         // ROS_INFO_STREAM("PICK TRAJ");
 
         geometry_msgs::PoseArray chosen_traj;
@@ -1082,12 +1021,12 @@ namespace dynamic_gap
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
         goalvisualizer->drawGapGoals(manip_gap_set);
 
-        ROS_INFO_STREAM("starting compareToOldTraj");
-        // start_time = ros::Time::now().toSec();
+        // ROS_INFO_STREAM("starting compareToOldTraj");
+        // start_time = ros::WallTime::now().toSec();
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
-        // ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::Time::now().toSec() - start_time);                
+        // ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::WallTime::now().toSec() - start_time);                
         
-        ROS_INFO_STREAM("getPlan time elapsed: " << ros::Time::now().toSec() - getPlan_start_time);
+        // ROS_INFO_STREAM("getPlan time elapsed: " << ros::WallTime::now().toSec() - getPlan_start_time);
         return final_traj;
     }
 

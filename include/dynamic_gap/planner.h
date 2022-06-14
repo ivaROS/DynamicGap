@@ -190,6 +190,11 @@ namespace dynamic_gap
         bool first_traj;
         double max_range = 4.9;
 
+        ros::Time prev_timestamp;
+        ros::Time curr_timestamp;
+
+        double max_scan_time_elapsed;
+
     public:
         Planner();
 

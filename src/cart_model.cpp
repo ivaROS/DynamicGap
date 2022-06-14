@@ -37,20 +37,17 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
         H_transpose = H.transpose();
         // MEASUREMENT NOISE
-        // Ran some tests to see variance of gap detection, roughly got this value
-        // observed variance in x/y measurements of with standard deviation of roughly 0.015. Squared to 0.000225. Inflated.
-        R << 0.1, 0.0,
-             0.0, 0.1;
+        // Bigger R: better performance with static things (weighting robot's motion more)
+        R << 0.05, 0.0,
+             0.0, 0.05;
 
         // PROCESS NOISE
-        // what are we not modeling?
-        // angular acceleration.
-        // latency.
+        // Bigger Q: Better with dynamic things (weighting measurements more)
 
-        Q << 0.0005, 0.0, 0.0, 0.0,
-             0.0, 0.0005, 0.0, 0.0,
-             0.0, 0.0, 0.001, 0.0,
-             0.0, 0.0, 0.0, 0.001;
+        Q << 0.05, 0.0, 0.0, 0.0,
+             0.0, 0.05, 0.0, 0.0,
+             0.0, 0.0, 0.1, 0.0,
+             0.0, 0.0, 0.0, 0.1;
         
         // Q *= 0.001;
         dQ = Q;

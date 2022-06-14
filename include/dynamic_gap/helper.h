@@ -455,7 +455,7 @@ namespace dynamic_gap {
 
                             Eigen::Matrix<double, 51, 51> A; // (Kplus1, N+1);
                             setConstraintMatrix(A, N, Kplus1);
-                            ROS_INFO_STREAM("A: " << A);
+                            // ROS_INFO_STREAM("A: " << A);
 
                             Eigen::Matrix<double, 51, 1> b = Eigen::MatrixXd::Zero(Kplus1, 1);
 
@@ -493,13 +493,14 @@ namespace dynamic_gap {
                                 }
                             }
 
-                            ROS_INFO_STREAM("Hessian: " << hessian);
-                            ROS_INFO_STREAM("Gradient: " << gradient);
-                            ROS_INFO_STREAM("linearMatrix: " << linearMatrix);
-                            ROS_INFO_STREAM("lowerBound: " << lowerBound);
-                            ROS_INFO_STREAM("upperBound: " << upperBound);
+                            //ROS_INFO_STREAM("Hessian: " << hessian);
+                            //ROS_INFO_STREAM("Gradient: " << gradient);
+                            //ROS_INFO_STREAM("linearMatrix: " << linearMatrix);
+                            //ROS_INFO_STREAM("lowerBound: " << lowerBound);
+                            //ROS_INFO_STREAM("upperBound: " << upperBound);
 
                             OsqpEigen::Solver solver;
+                            solver.settings()->setVerbosity(false);
                             solver.settings()->setWarmStart(true);        
                             solver.data()->setNumberOfVariables(Kplus1);
                             solver.data()->setNumberOfConstraints(Kplus1);
@@ -518,7 +519,7 @@ namespace dynamic_gap {
 
                             // get the controller input
                             weights = solver.getSolution();
-                            ROS_INFO_STREAM("current solution: " << weights); 
+                            // ROS_INFO_STREAM("current solution: " << weights); 
                         }
 
         state_type adjust_state(const state_type &x) {
@@ -545,168 +546,6 @@ namespace dynamic_gap {
                 Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
                 return clipped_vel;
             }
-        }
-
-        void setDynamicsMatrices(Eigen::Matrix<double, 12, 12> &a, Eigen::Matrix<double, 12, 4> &b)
-        {
-            a << 1.,      0.,     0., 0., 0., 0., 0.1,     0.,     0.,  0.,     0.,     0.    ,
-                0.,      1.,     0., 0., 0., 0., 0.,      0.1,    0.,  0.,     0.,     0.    ,
-                0.,      0.,     1., 0., 0., 0., 0.,      0.,     0.1, 0.,     0.,     0.    ,
-                0.0488,  0.,     0., 1., 0., 0., 0.0016,  0.,     0.,  0.0992, 0.,     0.    ,
-                0.,     -0.0488, 0., 0., 1., 0., 0.,     -0.0016, 0.,  0.,     0.0992, 0.    ,
-                0.,      0.,     0., 0., 0., 1., 0.,      0.,     0.,  0.,     0.,     0.0992,
-                0.,      0.,     0., 0., 0., 0., 1.,      0.,     0.,  0.,     0.,     0.    ,
-                0.,      0.,     0., 0., 0., 0., 0.,      1.,     0.,  0.,     0.,     0.    ,
-                0.,      0.,     0., 0., 0., 0., 0.,      0.,     1.,  0.,     0.,     0.    ,
-                0.9734,  0.,     0., 0., 0., 0., 0.0488,  0.,     0.,  0.9846, 0.,     0.    ,
-                0.,     -0.9734, 0., 0., 0., 0., 0.,     -0.0488, 0.,  0.,     0.9846, 0.    ,
-                0.,      0.,     0., 0., 0., 0., 0.,      0.,     0.,  0.,     0.,     0.9846;
-
-            b << 0.,      -0.0726,  0.,     0.0726,
-                -0.0726,  0.,      0.0726, 0.    ,
-                -0.0152,  0.0152, -0.0152, 0.0152,
-                -0.,     -0.0006, -0.,     0.0006,
-                0.0006,   0.,     -0.0006, 0.0000,
-                0.0106,   0.0106,  0.0106, 0.0106,
-                0,       -1.4512,  0.,     1.4512,
-                -1.4512,  0.,      1.4512, 0.    ,
-                -0.3049,  0.3049, -0.3049, 0.3049,
-                -0.,     -0.0236,  0.,     0.0236,
-                0.0236,   0.,     -0.0236, 0.    ,
-                0.2107,   0.2107,  0.2107, 0.2107;
-        }
-
-
-        void setInequalityConstraints(Eigen::Matrix<double, 12, 1> &xMax, Eigen::Matrix<double, 12, 1> &xMin,
-                                    Eigen::Matrix<double, 4, 1> &uMax, Eigen::Matrix<double, 4, 1> &uMin)
-        {
-            double u0 = 10.5916;
-
-            // input inequality constraints
-            uMin << 9.6 - u0,
-                9.6 - u0,
-                9.6 - u0,
-                9.6 - u0;
-
-            uMax << 13 - u0,
-                13 - u0,
-                13 - u0,
-                13 - u0;
-
-            // state inequality constraints
-            xMin << -M_PI/6,-M_PI/6,-OsqpEigen::INFTY,-OsqpEigen::INFTY,-OsqpEigen::INFTY,-1.,
-                -OsqpEigen::INFTY, -OsqpEigen::INFTY,-OsqpEigen::INFTY,-OsqpEigen::INFTY,
-                -OsqpEigen::INFTY,-OsqpEigen::INFTY;
-
-            xMax << M_PI/6,M_PI/6, OsqpEigen::INFTY,OsqpEigen::INFTY,OsqpEigen::INFTY,
-                OsqpEigen::INFTY, OsqpEigen::INFTY,OsqpEigen::INFTY,OsqpEigen::INFTY,
-                OsqpEigen::INFTY,OsqpEigen::INFTY,OsqpEigen::INFTY;
-        }
-
-        void setWeightMatrices(Eigen::DiagonalMatrix<double, 12> &Q, Eigen::DiagonalMatrix<double, 4> &R)
-        {
-            Q.diagonal() << 0, 0, 10., 10., 10., 10., 0, 0, 0, 5., 5., 5.;
-            R.diagonal() << 0.1, 0.1, 0.1, 0.1;
-        }
-
-        void castMPCToQPHessian(const Eigen::DiagonalMatrix<double, 12> &Q, const Eigen::DiagonalMatrix<double, 4> &R, int mpcWindow,
-                                Eigen::SparseMatrix<double> &hessianMatrix)
-        {
-
-            //populate hessian matrix
-            for(int i = 0; i<12*(mpcWindow+1) + 4 * mpcWindow; i++){
-                if(i < 12*(mpcWindow+1)){
-                    int posQ=i%12;
-                    float value = Q.diagonal()[posQ];
-                    if(value != 0)
-                        hessianMatrix.insert(i,i) = value;
-                }
-                else{
-                    int posR=i%4;
-                    float value = R.diagonal()[posR];
-                    if(value != 0)
-                        hessianMatrix.insert(i,i) = value;
-                }
-            }
-        }
-
-        void castMPCToQPGradient(const Eigen::DiagonalMatrix<double, 12> &Q, const Eigen::Matrix<double, 12, 1> &xRef, int mpcWindow,
-                                Eigen::VectorXd &gradient)
-        {
-
-            Eigen::Matrix<double,12,1> Qx_ref;
-            Qx_ref = Q * (-xRef);
-
-            // populate the gradient vector
-            for(int i = 0; i<12*(mpcWindow+1); i++){
-                int posQ=i%12;
-                float value = Qx_ref(posQ,0);
-                gradient(i,0) = value;
-            }
-        }
-
-        void castMPCToQPConstraintMatrix(const Eigen::Matrix<double, 12, 12> &dynamicMatrix, const Eigen::Matrix<double, 12, 4> &controlMatrix,
-                                        int mpcWindow, Eigen::SparseMatrix<double> &constraintMatrix)
-        {
-
-            // populate linear constraint matrix
-            for(int i = 0; i<12*(mpcWindow+1); i++){
-                constraintMatrix.insert(i,i) = -1;
-            }
-
-            for(int i = 0; i < mpcWindow; i++)
-                for(int j = 0; j<12; j++)
-                    for(int k = 0; k<12; k++){
-                        float value = dynamicMatrix(j,k);
-                        if(value != 0){
-                            constraintMatrix.insert(12 * (i+1) + j, 12 * i + k) = value;
-                        }
-                    }
-
-            for(int i = 0; i < mpcWindow; i++)
-                for(int j = 0; j < 12; j++)
-                    for(int k = 0; k < 4; k++){
-                        float value = controlMatrix(j,k);
-                        if(value != 0){
-                            constraintMatrix.insert(12*(i+1)+j, 4*i+k+12*(mpcWindow + 1)) = value;
-                        }
-                    }
-
-            for(int i = 0; i<12*(mpcWindow+1) + 4*mpcWindow; i++){
-                constraintMatrix.insert(i+(mpcWindow+1)*12,i) = 1;
-            }
-        }
-
-        void castMPCToQPConstraintVectors(const Eigen::Matrix<double, 12, 1> &xMax, const Eigen::Matrix<double, 12, 1> &xMin,
-                                        const Eigen::Matrix<double, 4, 1> &uMax, const Eigen::Matrix<double, 4, 1> &uMin,
-                                        const Eigen::Matrix<double, 12, 1> &x0,
-                                        int mpcWindow, Eigen::VectorXd &lowerBound, Eigen::VectorXd &upperBound)
-        {
-            // evaluate the lower and the upper inequality vectors
-            Eigen::VectorXd lowerInequality = Eigen::MatrixXd::Zero(12*(mpcWindow+1) +  4 * mpcWindow, 1);
-            Eigen::VectorXd upperInequality = Eigen::MatrixXd::Zero(12*(mpcWindow+1) +  4 * mpcWindow, 1);
-            for(int i=0; i<mpcWindow+1; i++){
-                lowerInequality.block(12*i,0,12,1) = xMin;
-                upperInequality.block(12*i,0,12,1) = xMax;
-            }
-            for(int i=0; i<mpcWindow; i++){
-                lowerInequality.block(4 * i + 12 * (mpcWindow + 1), 0, 4, 1) = uMin;
-                upperInequality.block(4 * i + 12 * (mpcWindow + 1), 0, 4, 1) = uMax;
-            }
-
-            // evaluate the lower and the upper equality vectors
-            Eigen::VectorXd lowerEquality = Eigen::MatrixXd::Zero(12*(mpcWindow+1),1 );
-            Eigen::VectorXd upperEquality;
-            lowerEquality.block(0,0,12,1) = -x0;
-            upperEquality = lowerEquality;
-            lowerEquality = lowerEquality;
-
-            // merge inequality and equality vectors
-            lowerBound << lowerEquality,
-                          lowerInequality;
-
-            upperBound << upperEquality,
-                          upperInequality;
         }
 
         void setConstraintMatrix(Eigen::Matrix<double, 51, 51> &A, int N, int Kplus1) {
@@ -798,9 +637,7 @@ namespace dynamic_gap {
             Eigen::Matrix<double, 51, 50> A_N; //(Kplus1, N);
             Eigen::Matrix<double, 51, 1> A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
             Eigen::Matrix<double, 51, 1> w_0 = Eigen::MatrixXd::Zero(Kplus1, 1);
-            // Eigen::VectorXd zero_vect(1, 1);
             Eigen::VectorXd neg_one_vect(1, 1);
-            // zero_vect << 0.0;
             neg_one_vect << -1.0;
 
             for (int i = 0; i < N; i++) {

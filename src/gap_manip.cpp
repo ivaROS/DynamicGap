@@ -554,7 +554,7 @@ namespace dynamic_gap {
             return;
         }
 
-        ROS_INFO_STREAM( "running radialExtendGap");
+        ROS_INFO_STREAM("running radialExtendGap");
 
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         int half_num_scan = gap.half_scan; // changing this
@@ -584,12 +584,12 @@ namespace dynamic_gap {
         Eigen::Vector2f eB = (eL + eR) / 2;
         eB /= eB.norm();
         // angular size of gap
-        ROS_INFO_STREAM("eB: " << eB[0] << ", " << eB[1]);
+        // ROS_INFO_STREAM("eB: " << eB[0] << ", " << eB[1]);
         float gap_size = std::acos(eL.dot(eR));
 
         // minSafeDist is the minimum distance within the laser scan 
         float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
-        ROS_INFO_STREAM("min safe dist: " << s);
+        // ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
         Eigen::Vector2f qB = -s * eB;
@@ -604,14 +604,14 @@ namespace dynamic_gap {
 
         // angular difference between right and left
         float phiB = pRp(1) - pLp(1);
-        ROS_INFO_STREAM("phiB: " << phiB);
+        // ROS_INFO_STREAM("phiB: " << phiB);
 
         Eigen::Vector2f pB = car2pol(-qB);
 
         float thL = pB(1) - gap_size / 4; // left side 1/2 throgh
         float thR = pB(1) + gap_size / 4; // right side 1/2 through
 
-        ROS_INFO_STREAM("thL: " << thL << ", " << "thR");
+        // ROS_INFO_STREAM("thL: " << thL << ", " << "thR");
         Eigen::Vector2f pLn = pTheta(thL, phiB, pLp, pRp);
         Eigen::Vector2f pRn = pTheta(thR, phiB, pLp, pRp);
 
@@ -625,7 +625,7 @@ namespace dynamic_gap {
         int new_left_idx = std::floor(polqLn(1) / M_PI * half_num_scan + half_num_scan);
         int new_right_idx = std::ceil(polqRn(1) / M_PI * half_num_scan + half_num_scan);
 
-        ROS_INFO_STREAM("new_left_idx: " << new_left_idx << ", new_right_idx: " << new_right_idx);
+        // ROS_INFO_STREAM("new_left_idx: " << new_left_idx << ", new_right_idx: " << new_right_idx);
 
         if (new_left_idx == new_right_idx) {
             // ROS_INFO_STREAM( "post-RE, indices are the same");
