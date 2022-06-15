@@ -87,24 +87,24 @@ namespace dynamic_gap{
             }
             */
             
+            Eigen::Vector2f qB = (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
             if (selectedGap.mode.convex) {
-                //ROS_INFO_STREAM("radially extending with qB: (" << selectedGap.qB(0) << ", " << selectedGap.qB(1) << ")");
-                selectedGap.goal.x -= selectedGap.qB(0);
-                selectedGap.goal.y -= selectedGap.qB(1);
-                selectedGap.terminal_goal.x -= selectedGap.qB(0);
-                selectedGap.terminal_goal.y -= selectedGap.qB(1);
+                selectedGap.goal.x -= qB(0);
+                selectedGap.goal.y -= qB(1);
+                selectedGap.terminal_goal.x -= qB(0);
+                selectedGap.terminal_goal.y -= qB(1);
 
-                x1 -= selectedGap.qB(0);
-                x2 -= selectedGap.qB(0);
-                y1 -= selectedGap.qB(1);
-                y2 -= selectedGap.qB(1);
-                term_x1 -= selectedGap.qB(0);
-                term_x2 -= selectedGap.qB(0);
-                term_y1 -= selectedGap.qB(1);
-                term_y2 -= selectedGap.qB(1);
+                x1 -= qB(0);
+                x2 -= qB(0);
+                y1 -= qB(1);
+                y2 -= qB(1);
+                term_x1 -= qB(0);
+                term_x2 -= qB(0);
+                term_y1 -= qB(1);
+                term_y2 -= qB(1);
         
-                ego_x[0] -= selectedGap.qB(0);
-                ego_x[1] -= selectedGap.qB(1);
+                ego_x[0] -= qB(0);
+                ego_x[1] -= qB(1);
                 /*
                 x = {- selectedGap.qB(0) - 1e-6, 
                     - selectedGap.qB(1) + 1e-6,
@@ -152,14 +152,20 @@ namespace dynamic_gap{
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
 
+            double left_vel_x = ((term_x_left - x_left) / selectedGap.gap_lifespan);
+            double left_vel_y = ((term_y_left - y_left) / selectedGap.gap_lifespan);
+
+            double right_vel_x = ((term_x_right - x_right) / selectedGap.gap_lifespan);
+            double right_vel_y = ((term_y_right - y_right) / selectedGap.gap_lifespan);
+
             Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
                                                 y_left - ego_x[1],
-                                                ((term_x_left - x_left) / selectedGap.gap_lifespan) - curr_vel.linear.x,
-                                                ((term_y_left - y_left) / selectedGap.gap_lifespan) - curr_vel.linear.y);
+                                                left_vel_x - curr_vel.linear.x,
+                                                left_vel_y - curr_vel.linear.y);
             Eigen::Vector4d manip_right_cart_state(x_right - ego_x[0],
                                                 y_right - ego_x[1],
-                                                ((term_x_right - x_right) / selectedGap.gap_lifespan) - curr_vel.linear.x,
-                                                ((term_y_right - y_right) / selectedGap.gap_lifespan) - curr_vel.linear.y);
+                                                right_vel_x - curr_vel.linear.x,
+                                                right_vel_y - curr_vel.linear.y);
             //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
             //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
 
@@ -256,14 +262,18 @@ namespace dynamic_gap{
             Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
             Eigen::Vector2d right_pt_0(x_right, y_right);
             Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
-            Eigen::Vector2d left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
-            Eigen::Vector2d right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
+            Eigen::Vector2d nonrel_left_vel(left_vel_x, left_vel_y);
+            Eigen::Vector2d nonrel_right_vel(right_vel_x, right_vel_y);
+            Eigen::Vector2d rel_left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
+            Eigen::Vector2d rel_right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
+
             Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
             Eigen::Vector2d gap_origin(0.0, 0.0);
             reachable_gap_APF reachable_gap_APF_inte(gap_origin, left_pt_0, left_pt_1,
                                                     right_pt_0, right_pt_1,
-                                                    left_vel, right_vel,
+                                                    nonrel_left_vel, nonrel_right_vel,
+                                                    rel_left_vel, rel_right_vel,
                                                     nom_vel, goal_pt_1,
                                                     cfg_->gap_manip.sigma, cfg_->gap_manip.K_acc,
                                                     cfg_->control.vx_absmax, a_lin_max);   
@@ -281,8 +291,8 @@ namespace dynamic_gap{
             //ROS_WARN_STREAM("start: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << ", goal " << selectedGap.goal.x*coefs << ", " << selectedGap.goal.y*coefs << ", finish " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << ", length: " << posearr.poses.size());
             if (selectedGap.mode.convex) {
                 for (auto & p : posearr.poses) {
-                    p.position.x += selectedGap.qB(0);
-                    p.position.y += selectedGap.qB(1);
+                    p.position.x += qB(0);
+                    p.position.y += qB(1);
                 }
             }
             //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 

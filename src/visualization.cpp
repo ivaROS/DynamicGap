@@ -10,6 +10,8 @@ namespace dynamic_gap{
         gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 1000);
         gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 100);
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
+        reachable_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
+
         gapmodel_pos_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
         gapmodel_vel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
 
@@ -147,6 +149,114 @@ namespace dynamic_gap{
     
     }
 
+    void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
+        double num_curve_points = 25;
+
+        float half_num_scan = g.half_scan;
+        float x_right, x_left, y_right, y_left;
+        x_right = (g.convex.convex_ldist) * cos(-((float) half_num_scan - g.convex.convex_lidx) / half_num_scan * M_PI);
+        y_right = (g.convex.convex_ldist) * sin(-((float) half_num_scan - g.convex.convex_lidx) / half_num_scan * M_PI);
+        x_left = (g.convex.convex_rdist) * cos(-((float) half_num_scan - g.convex.convex_ridx) / half_num_scan * M_PI);
+        y_left = (g.convex.convex_rdist) * sin(-((float) half_num_scan - g.convex.convex_ridx) / half_num_scan * M_PI);
+
+        float term_x_right, term_x_left, term_y_right, term_y_left;
+        term_x_right = (g.convex.terminal_ldist) * cos(-((float) half_num_scan - g.convex.terminal_lidx) / half_num_scan * M_PI);
+        term_y_right = (g.convex.terminal_ldist) * sin(-((float) half_num_scan - g.convex.terminal_lidx) / half_num_scan * M_PI);
+        term_x_left = (g.convex.terminal_rdist) * cos(-((float) half_num_scan - g.convex.terminal_ridx) / half_num_scan * M_PI);
+        term_y_left = (g.convex.terminal_rdist) * sin(-((float) half_num_scan - g.convex.terminal_ridx) / half_num_scan * M_PI);
+
+
+        Eigen::Vector2d left_pt_0(x_left, y_left);
+        Eigen::Vector2d right_pt_0(x_right, y_right);
+        Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
+        Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
+
+        double left_vel_x = ((term_x_left - x_left) / g.gap_lifespan);
+        double left_vel_y = ((term_y_left - y_left) / g.gap_lifespan);
+
+        double right_vel_x = ((term_x_right - x_right) / g.gap_lifespan);
+        double right_vel_y = ((term_y_right - y_right) / g.gap_lifespan);
+
+        Eigen::Vector2d left_vel(left_vel_x, left_vel_y);
+        Eigen::Vector2d right_vel(right_vel_x, right_vel_y);
+        Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
+        Eigen::Vector2d gap_origin(0.0, 0.0);
+
+        double left_weight = left_vel.norm() / nom_vel.norm();
+        double right_weight = right_vel.norm() / nom_vel.norm();
+
+        // model gives: left_pt - rbt.
+        Eigen::Vector2d weighted_left_pt = left_weight * left_pt_0;
+        Eigen::Vector2d weighted_right_pt = right_weight * right_pt_0;
+
+        visualization_msgs::Marker this_marker;
+        this_marker.header.frame_id = g._frame;
+        this_marker.header.stamp = ros::Time();
+        this_marker.ns = "manip_initial";
+        this_marker.type = visualization_msgs::Marker::POINTS;
+        this_marker.action = visualization_msgs::Marker::ADD;
+
+        auto color_value = colormap.find("manip_initial");
+        if (color_value == colormap.end()) {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }        
+        this_marker.colors = color_value->second;
+        this_marker.scale.x = 0.05;
+        this_marker.scale.y = 0.05;
+        // this_marker.scale.z = 0.1;
+
+        int id = (int) vis_arr.markers.size();
+        double s;
+        for (double i = 0; i < num_curve_points; i++) {
+            s = (i + 1.0) / num_curve_points;
+            //ROS_INFO_STREAM("i: " << i << ", s: " << s);
+            double pos_val0 = (1 - s) * (1 - s);
+            double pos_val1 = 2*(1 - s)*s;
+            double pos_val2 = s*s;
+
+            Eigen::Vector2d left_pt = pos_val0 * gap_origin + pos_val1*weighted_left_pt + pos_val2*left_pt_1;
+            Eigen::Vector2d right_pt = pos_val0 * gap_origin + pos_val1*weighted_right_pt + pos_val2*right_pt_1;
+            
+            geometry_msgs::Point linel;
+            geometry_msgs::Point liner;
+            std::vector<geometry_msgs::Point> lines;
+
+            lines.clear();
+            linel.x = left_pt[0];
+            linel.y = left_pt[1];
+
+            liner.x = right_pt[0];
+            liner.y = right_pt[1];
+            lines.push_back(linel);
+            lines.push_back(liner);
+
+            this_marker.points = lines;
+            this_marker.id = id++;
+            this_marker.lifetime = ros::Duration(0.2);
+
+            vis_arr.markers.push_back(this_marker);       
+        }
+    }
+
+    void GapVisualizer::drawReachableGaps(std::vector<dynamic_gap::Gap> g) {
+        if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = "clear";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gaparc_publisher.publish(clear_arr);
+
+        visualization_msgs::MarkerArray vis_arr;
+        for (auto gap : g) {
+            drawReachableGap(vis_arr, gap);
+        }
+        reachable_gap_publisher.publish(vis_arr);
+    }
 
     void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, std::string ns, bool initial) {
         // ROS_INFO_STREAM(g._left_idx << ", " << g._ldist << ", " << g._right_idx << ", " << g._rdist << ", " << g._frame);
@@ -290,7 +400,6 @@ namespace dynamic_gap{
             */
         }
         gaparc_publisher.publish(vis_arr);
-        prev_num_gaps = g.size();
     }
 
     void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
@@ -654,7 +763,7 @@ namespace dynamic_gap{
         bool circle = false;
         for (auto gap : vec) {
             drawManipGap(vis_arr, gap, circle, ns, true);
-            // drawManipGap(vis_arr, gap, circle, ns, false);
+            drawManipGap(vis_arr, gap, circle, ns, false);
         }
         gapside_publisher.publish(vis_arr);
         prev_num_manip_gaps = 2*vec.size();

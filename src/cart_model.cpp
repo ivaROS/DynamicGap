@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,6 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";
     }
 
     void cart_model::copy_model() {
@@ -346,7 +347,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-
+        /*
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
@@ -362,7 +363,7 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-
+        */
     }
 
     void cart_model::plot_states() {
@@ -396,7 +397,7 @@ namespace dynamic_gap {
         plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_positions.png");
+        plt::save(plot_dir + std::to_string(index) + "_positions.png");
         plt::close();
 
         //std::cout << "velocity plot" << std::endl;
@@ -409,7 +410,7 @@ namespace dynamic_gap {
         //plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ego_ang"}});
         plt::xlim(0, 15);
         plt::legend();
-        plt::save("/home/masselmeier/Desktop/Research/cart_model_plots/" + std::to_string(index) + "_velocities.png");
+        plt::save(plot_dir + std::to_string(index) + "_velocities.png");
         plt::close();
         plotted = true;
     }

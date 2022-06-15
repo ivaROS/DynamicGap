@@ -154,7 +154,7 @@ namespace dynamic_gap
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         curr_timestamp = msg.get()->header.stamp;
-        ROS_INFO_STREAM("laserscanCB time stamp difference: " << (curr_timestamp - prev_timestamp).toSec());
+        // ROS_INFO_STREAM("laserscanCB time stamp difference: " << (curr_timestamp - prev_timestamp).toSec());
         prev_timestamp = curr_timestamp;
         double start_time = ros::WallTime::now().toSec();
         //std::cout << "laser scan rate: " << 1.0 / (curr_time - prev_scan_time) << std::endl;
@@ -1019,6 +1019,7 @@ namespace dynamic_gap
             chosen_gap = dynamic_gap::Gap();
         }
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
+        gapvisualizer->drawReachableGaps(manip_gap_set);        
         goalvisualizer->drawGapGoals(manip_gap_set);
 
         // ROS_INFO_STREAM("starting compareToOldTraj");

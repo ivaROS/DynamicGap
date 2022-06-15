@@ -42,6 +42,10 @@ namespace dynamic_gap
             void drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns);
             void drawGapsModels(std::vector<dynamic_gap::Gap> g);
             void drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
+            void drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
+            void drawReachableGaps(std::vector<dynamic_gap::Gap> g);
+
+
 
         private:
             std::map<std::string, std::vector<std_msgs::ColorRGBA>> colormap;
@@ -50,6 +54,8 @@ namespace dynamic_gap
             ros::Publisher gapgoal_publisher;
             ros::Publisher gapmodel_pos_publisher;
             ros::Publisher gapmodel_vel_publisher;
+            ros::Publisher reachable_gap_publisher;
+
             double prev_num_gaps;
             double prev_num_manip_gaps;
             double prev_num_models;
