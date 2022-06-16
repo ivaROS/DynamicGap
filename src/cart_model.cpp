@@ -39,8 +39,8 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Bigger R: better performance with static things (weighting robot's motion more)
         // I think 0.1 is roughly the minimum we can do. Otherwise, measurements get really noisy
-        R << 0.025, 0.0,
-             0.0, 0.025;
+        R << 0.10, 0.0,
+             0.0, 0.10;
 
         // PROCESS NOISE
         // Bigger Q: Better with dynamic things (weighting measurements more)
@@ -57,10 +57,10 @@ namespace dynamic_gap {
         // larger P_0 helps with GT values that are non-zero
         // larger P_0 gives more weight to measurements (behaves like Q)
         // Could initialize off-diagonal terms, not sure if helps
-        P << 0.5, 0.0, 0.0, 0.0,
-             0.0, 0.5, 0.0, 0.0,
-             0.0, 0.0, 1.0, 0.0,
-             0.0, 0.0, 0.0, 1.0;
+        P << 1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 2.5, 0.0,
+             0.0, 0.0, 0.0, 2.5;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -359,10 +359,24 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        /*
+        
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
-            std::vector<double> ground_truths{x_tilde[0], x_tilde[1], agent_vel.vector.x - v_ego[0], agent_vel.vector.y - v_ego[1]};
+            std::vector<double> ground_truths{x_tilde[0], x_tilde[1], 0.0, 0.0};
+
+            double robot0_odom_dist = sqrt(pow(robot0_odom.position.x - x[0], 2) + pow(robot0_odom.position.y - x[1], 2));
+            double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
+        
+            //ROS_INFO_STREAM("distance: " << robot0_odom_dist);
+
+            if (robot0_odom_dist < 0.3) {
+                ground_truths[2] = robot0_vel.vector.x - v_ego[0];
+                ground_truths[3] = robot0_vel.vector.y - v_ego[1];
+            } else if (robot1_odom_dist < 0.3) {
+                ground_truths[2] = robot1_vel.vector.x - v_ego[0];
+                ground_truths[3] = robot1_vel.vector.y - v_ego[1];  
+            }
+                          
             std::vector<double> ego_vels{v_ego[0], v_ego[1], v_ego[2]};
             std::vector<double> ego_accels{a_ego[0], a_ego[1], a_ego[2]};
         
@@ -375,7 +389,7 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        */
+        
     }
 
     void cart_model::plot_states() {
@@ -431,7 +445,7 @@ namespace dynamic_gap {
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x;
+        // Eigen::Vector4d return_x;
 
         // ROS_INFO_STREAM("robot0_odom: " << robot0_odom.position.x << ", " << robot0_odom.position.y);
         //ROS_INFO_STREAM("x,y: " << x[0] << ", " << x[1]);
@@ -440,7 +454,7 @@ namespace dynamic_gap {
         double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
         
         //ROS_INFO_STREAM("distance: " << robot0_odom_dist);
-
+        /*
         if (robot0_odom_dist < 0.3) {
             // ROS_INFO_STREAM("fixing velocity");
             x[2] = robot0_vel.vector.x - v_ego[0];
@@ -449,6 +463,7 @@ namespace dynamic_gap {
             x[2] = robot1_vel.vector.x - v_ego[0];
             x[3] = robot1_vel.vector.y - v_ego[1];            
         }
+        */
         /*
         if (life_time > life_time_threshold) {
             return_x = x;

@@ -352,10 +352,10 @@ namespace dynamic_gap{
             Psi = comp(2);
 
             ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
-            if(Psi >= 0 && PO_dot_prod_check <= 0)
+            if(Psi >= 0 && PO_dot_prod_check >= 0)
             {
-                cmd_vel_x_safe = Psi * PO_dot_prod_check * - comp(0);
-                cmd_vel_y_safe = Psi * PO_dot_prod_check * - comp(1);
+                cmd_vel_x_safe = - Psi * PO_dot_prod_check * comp(0);
+                cmd_vel_y_safe = - Psi * PO_dot_prod_check * comp(1);
                 ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
             }
 
@@ -457,12 +457,12 @@ namespace dynamic_gap{
         float r_min = cfg_->projection.r_min;
         float r_norm = cfg_->projection.r_norm;
 
-        float min_dist = sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2));
+        float min_dist = sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
         float Psi = (r_min / min_dist - r_min / r_norm) / (1.0 - r_min / r_norm);
         float base_const = pow(min_dist, 3) * (r_min - r_norm);
         float up_const = r_min * r_norm;
-        float Psi_der_x = up_const * - min_diff_x / base_const;
-        float Psi_der_y = up_const * - min_diff_y / base_const;
+        float Psi_der_x = up_const * min_diff_x / base_const;
+        float Psi_der_y = up_const * min_diff_y / base_const;
 
         float norm_Psi_der = sqrt(pow(Psi_der_x, 2) + pow(Psi_der_y, 2));
         float norm_Psi_der_x = Psi_der_x / norm_Psi_der;
