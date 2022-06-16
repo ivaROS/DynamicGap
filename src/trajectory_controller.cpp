@@ -367,7 +367,7 @@ namespace dynamic_gap{
                 res.action = visualization_msgs::Marker::ADD;
                 res.pose.position.x = 0;
                 res.pose.position.y = 0;
-                res.pose.position.z = 0.0001;
+                res.pose.position.z = 0.5;
                 double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
                 tf2::Quaternion dir_quat;
                 dir_quat.setRPY(0, 0, dir);
@@ -425,8 +425,8 @@ namespace dynamic_gap{
             v_lin_x_fb = (abs(theta_error) > M_PI/3 && Psi < 0)? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
             v_lin_y_fb = (abs(theta_error) > M_PI/3 && Psi < 0) ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * cmd_vel_y_safe;
 
-            if(v_lin_x_fb < 0)
-                v_lin_x_fb = 0;
+            // if(v_lin_x_fb < 0)
+            //     v_lin_x_fb = 0;
 
             ROS_INFO_STREAM("ultimate command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         }

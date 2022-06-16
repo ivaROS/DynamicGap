@@ -133,10 +133,9 @@ namespace dynamic_gap {
                 raw_gaps[0].setLDist(result);
                 // ROS_INFO_STREAM("revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")");
                 // ROS_INFO_STREAM("revised last gap: (" << raw_gaps[raw_gaps.size() - 1].LIdx() << ", " << raw_gaps[raw_gaps.size() - 1].LDist() << ") to (" << raw_gaps[raw_gaps.size() - 1].RIdx() << ", " << raw_gaps[raw_gaps.size() - 1].RDist()  << ")");
-                                
-                //raw_gaps[last_raw_gap_idx].addRightInformation(start_side_idx, start_side_dist);
-                //std::cout << "merging into last gap: (" << raw_gaps[last_raw_gap_idx].LIdx() << ", " << raw_gaps[last_raw_gap_idx].LDist() << ") to (" << raw_gaps[last_raw_gap_idx].RIdx() << ", " << raw_gaps[last_raw_gap_idx].RDist()  << ")" << std::endl;
 
+                //std::cout << "merging into last gap: (" << raw_gaps[last_raw_gap_idx].LIdx() << ", " << raw_gaps[last_raw_gap_idx].LDist() << ") to (" << raw_gaps[last_raw_gap_idx].RIdx() << ", " << raw_gaps[last_raw_gap_idx].RDist()  << ")" << std::endl;
+                //raw_gaps[last_raw_gap_idx].addRightInformation(start_side_idx, start_side_dist);
                 //raw_gaps.erase(raw_gaps.begin(), raw_gaps.begin() + 1);
                 //std::cout << "revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")" << std::endl;
             }

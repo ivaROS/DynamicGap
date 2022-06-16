@@ -61,10 +61,11 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> x_update;
             std::string plot_dir;
 
-            geometry_msgs::Pose robot0_odom;
-            geometry_msgs::Vector3Stamped robot0_vel;
-            geometry_msgs::Pose robot1_odom;
-            geometry_msgs::Vector3Stamped robot1_vel;
+            geometry_msgs::Pose robot0_odom, robot1_odom;
+            geometry_msgs::Vector3Stamped robot0_vel, robot1_vel;
+
+            bool bridge_model;
+
         public:
 
             cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
@@ -95,7 +96,8 @@ namespace dynamic_gap {
                                 geometry_msgs::Pose robot0_odom,
                                 geometry_msgs::Vector3Stamped robot0_vel,
                                 geometry_msgs::Pose robot1_odom,
-                                geometry_msgs::Vector3Stamped robot1_vel);
+                                geometry_msgs::Vector3Stamped robot1_vel,
+                                bool _bridge_model);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

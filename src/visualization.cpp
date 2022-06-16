@@ -1009,8 +1009,8 @@ namespace dynamic_gap{
 
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : gs) {
-            drawGapGoal(vis_arr, gap, true);
-            //drawGapGoal(vis_arr, gap, false);
+            //drawGapGoal(vis_arr, gap, true);
+            drawGapGoal(vis_arr, gap, false);
         }
         gapwp_pub.publish(vis_arr);
         return;

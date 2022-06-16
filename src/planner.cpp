@@ -282,19 +282,25 @@ namespace dynamic_gap
 				                 beta_tilde;
         // std::cout << "y_tilde: " << y_tilde << std::endl;
 
+        sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
+        bool gap_bridged = (_observed_gaps[0].LIdx() == 0 && _observed_gaps[_observed_gaps.size() - 1].RIdx() == (stored_scan_msgs.ranges.size() - 1));
+        bool bridge_model = gap_bridged && (i == 0 || i == 2*_observed_gaps.size() - 1);
+
+
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel, bridge_model);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel, bridge_model);
         }
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
+        
         double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
@@ -500,8 +506,8 @@ namespace dynamic_gap
             manip_set.at(i).initManipIndices();
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
-            gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
             gapManip->inflateGapSides(manip_set.at(i), true); // inflate gap radially
+            gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
 
 
@@ -514,11 +520,12 @@ namespace dynamic_gap
             
             
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
-            //if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
-            gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
-            gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
-            gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
+            if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
+                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
+                gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
+            }
             gapManip->inflateGapSides(manip_set.at(i), false); // inflate gap radially
+            gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
         }
 
@@ -734,7 +741,7 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            double oscillation_pen = counts; // * std::exp(-(curr_time - prev_traj_switch_time)/5.0);
+            double oscillation_pen = counts * std::exp(-(curr_time - prev_traj_switch_time)/2.0);
             if (incom_subscore > (curr_subscore + oscillation_pen)) {
                 ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: swapping trajectory");
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);

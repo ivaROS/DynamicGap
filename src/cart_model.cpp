@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,7 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/Desktop/Research/cart_model_plots/";
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";
         robot0_odom = geometry_msgs::Pose();
         robot0_vel = geometry_msgs::Vector3Stamped();
         robot1_odom = geometry_msgs::Pose();
@@ -243,14 +243,14 @@ namespace dynamic_gap {
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                     Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, 
-                                    bool print, geometry_msgs::Pose _robot0_odom,
-                                    geometry_msgs::Vector3Stamped _robot0_vel, 
-                                    geometry_msgs::Pose _robot1_odom,
-                                    geometry_msgs::Vector3Stamped _robot1_vel) {
+                                    bool print, geometry_msgs::Pose _robot0_odom, geometry_msgs::Vector3Stamped _robot0_vel, 
+                                    geometry_msgs::Pose _robot1_odom, geometry_msgs::Vector3Stamped _robot1_vel,
+                                    bool _bridge_model) {
         robot0_odom = _robot0_odom;
         robot0_vel = _robot0_vel;
         robot1_odom = _robot1_odom;
         robot1_vel = _robot1_vel;
+        bridge_model = _bridge_model;
                 
         t = ros::Time::now().toSec();
         dt = t - t0;
@@ -359,7 +359,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
         
-        
+        /*
         if (life_time <= 15.0 && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_tilde[0], x_tilde[1], 0.0, 0.0};
@@ -389,7 +389,7 @@ namespace dynamic_gap {
         if (life_time > 15.0 && !plotted) {
             plot_states();
         }
-        
+        */
     }
 
     void cart_model::plot_states() {
@@ -445,13 +445,13 @@ namespace dynamic_gap {
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        // Eigen::Vector4d return_x;
+        Eigen::Vector4d return_x;
 
         // ROS_INFO_STREAM("robot0_odom: " << robot0_odom.position.x << ", " << robot0_odom.position.y);
         //ROS_INFO_STREAM("x,y: " << x[0] << ", " << x[1]);
         
-        double robot0_odom_dist = sqrt(pow(robot0_odom.position.x - x[0], 2) + pow(robot0_odom.position.y - x[1], 2));
-        double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
+        // double robot0_odom_dist = sqrt(pow(robot0_odom.position.x - x[0], 2) + pow(robot0_odom.position.y - x[1], 2));
+        // double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
         
         //ROS_INFO_STREAM("distance: " << robot0_odom_dist);
         /*
@@ -464,13 +464,14 @@ namespace dynamic_gap {
             x[3] = robot1_vel.vector.y - v_ego[1];            
         }
         */
-        /*
-        if (life_time > life_time_threshold) {
-            return_x = x;
-        } else {
+        
+        if (bridge_model) {
             return_x << x[0], x[1], -v_ego[0], -v_ego[1];
-        }*/
-        return x;
+        } else {
+            return_x = x;
+        }
+
+        return return_x;
     }
 
     Eigen::Vector4d cart_model::get_frozen_cartesian_state() {

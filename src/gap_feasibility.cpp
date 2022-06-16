@@ -146,7 +146,7 @@ namespace dynamic_gap {
         //std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
-        if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
+        if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= (0.5 * cfg_->control.vx_absmax)) {
             return crossing_time;
         } else {
             return -1.0;
@@ -220,9 +220,10 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
-            idx_left = (int) std::ceil((beta_left - egocircle.angle_min) / egocircle.angle_increment);
-            idx_right = (int) std::floor((beta_right - egocircle.angle_min) / egocircle.angle_increment);
-
+            // double init_idx_left = (beta_left - egocircle.angle_min) / egocircle.angle_increment;
+            // double init_idx_right = (beta_right - egocircle.angle_min) / egocircle.angle_increment;
+            // idx_left = std::min((int) std::ceil(init_idx_left), 511);
+            // idx_right = std::max((int) std::floor(init_idx_right), 0);
             // clipping distance by current laser scan
             //min_dist = std::min(1.0 / left_frozen_state[0], (double) egocircle.ranges[idx_left]);
             //left_frozen_state[0] = 1.0 / min_dist;
@@ -279,17 +280,9 @@ namespace dynamic_gap {
                             gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
                             gap.setClosingPoint(left_cross_pt[0], left_cross_pt[1]);
                         }
-                        float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
-                        float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
-            
-                        int left_idx = (int) std::ceil((prev_beta_left - egocircle.angle_min) / egocircle.angle_increment);
-                        float left_dist = (1.0 / prev_left_frozen_state[0]);
-                        int right_idx = (int) std::floor((prev_beta_right - egocircle.angle_min) / egocircle.angle_increment);
-                        float right_dist = (1.0 / prev_right_frozen_state[0]);
+                        generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
 
-                        gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
                         gap.gap_closed = true;
-                        // gap.gap_crossed = true;
                         return t;
                     } else {
                         // I think crossing may still be a little fraught. More so at trajectory generation 
@@ -301,14 +294,9 @@ namespace dynamic_gap {
                             ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
                             gap.setCrossingPoint(mid_x, mid_y);
                             first_cross = false;
-                            float prev_beta_left = prev_left_frozen_state[1]; // std::atan2(prev_left_frozen_state[1], prev_left_frozen_state[2]);
-                            float prev_beta_right = prev_right_frozen_state[1]; // std::atan2(prev_right_frozen_state[1], prev_right_frozen_state[2]);
-            
-                            int left_idx = (int) std::ceil((prev_beta_left - egocircle.angle_min) / egocircle.angle_increment);
-                            float left_dist = (1.0 / prev_left_frozen_state[0]);
-                            int right_idx = (int) std::floor((prev_beta_right - egocircle.angle_min) / egocircle.angle_increment);
-                            float right_dist = (1.0 / prev_right_frozen_state[0]);
-                            gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
+
+                            generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
+
                             gap.gap_crossed = true;
                         }
                     }
@@ -324,21 +312,28 @@ namespace dynamic_gap {
         if (!gap.gap_crossed && !gap.gap_closed) {
             left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
             right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-            //left_frozen_state = left_model->get_frozen_modified_polar_state();
-            //right_frozen_state = right_model->get_frozen_modified_polar_state();
-            beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
-            beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
-            
             ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")");
-            int left_idx = (int) std::ceil((beta_left - egocircle.angle_min) / egocircle.angle_increment);
-            float left_dist = (1.0 / left_frozen_state[0]);
-            int right_idx = (int) std::floor((beta_right - egocircle.angle_min) / egocircle.angle_increment);
-            float right_dist = (1.0 / right_frozen_state[0]);
 
-            gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
-            gap.gap_crossed = false;
+            generateTerminalPoints(gap, left_frozen_state[1], left_frozen_state[0], right_frozen_state[1], right_frozen_state[0]);
         }
 
         return cfg_->traj.integrate_maxt;
     }
+
+    void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 
+                                                                                 double terminal_beta_right, double terminal_reciprocal_range_right) {
+        auto egocircle = *msg.get();        
+        
+        float init_left_idx = (terminal_beta_left - egocircle.angle_min) / egocircle.angle_increment;
+        int left_idx = std::min((int) std::ceil(init_left_idx), 511);
+        float left_dist = (1.0 / terminal_reciprocal_range_left);
+
+        float init_right_idx = (terminal_beta_right - egocircle.angle_min) / egocircle.angle_increment;
+        int right_idx = std::max((int) std::floor(init_right_idx), 0);
+        float right_dist = (1.0 / terminal_reciprocal_range_right);
+        // if (left_idx == right_idx) right_idx++;
+
+        gap.setTerminalPoints(right_idx, right_dist, left_idx, left_dist);
+    }
+
 }

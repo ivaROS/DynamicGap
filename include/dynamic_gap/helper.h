@@ -475,12 +475,12 @@ namespace dynamic_gap {
                             Eigen::VectorXd upperBound; //(Kplus1, 1);
                             upperBound = Eigen::MatrixXd::Zero(Kplus1, 1);
 
-                            Eigen::Matrix<double, 51, 1> w_0;
-                            w_0 = Eigen::MatrixXd::Constant(Kplus1, 1, 1.0);
+                            // Eigen::Matrix<double, 51, 1> w_0;
+                            // w_0 = Eigen::MatrixXd::Constant(Kplus1, 1, 1.0);
                             
                             for (int i = 0; i < Kplus1; i++) {
                                 lowerBound(i, 0) = -OsqpEigen::INFTY;
-                                upperBound(i, 0) = -0.0001; // this leads to non-zero weights. Closer to zero this number goes, closer to zero the weights go. This makes sense
+                                upperBound(i, 0) = -0.0000001; // this leads to non-zero weights. Closer to zero this number goes, closer to zero the weights go. This makes sense
                             }
 
                             for (int i = 0; i < Kplus1; i++) {
@@ -521,8 +521,13 @@ namespace dynamic_gap {
                             // get the controller input
                             Eigen::MatrixXd raw_weights = solver.getSolution();
 
-                            weights = raw_weights / raw_weights.norm();
+                            weights = raw_weights / raw_weights.norm();                                
 
+                            // if(!solver.setPrimalVariable(w_0)) return;
+                            
+                            // solve the QP problem
+
+                            /*
                             ROS_INFO_STREAM("current solution: "); 
                             
                             std::string weights_string;
@@ -530,7 +535,7 @@ namespace dynamic_gap {
                                 weights_string += (std::to_string(weights.coeff(i, 0)) + ", "); 
                             }
                             ROS_INFO_STREAM(weights_string);
-                            
+                            */
                         }
 
         state_type adjust_state(const state_type &x) {

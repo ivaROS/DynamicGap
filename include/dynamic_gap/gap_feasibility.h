@@ -29,7 +29,8 @@ namespace dynamic_gap {
             double gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             double indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_);
-
+            void generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 
+                                                                                 double terminal_beta_right, double terminal_reciprocal_range_right);
         private:
             boost::shared_ptr<sensor_msgs::LaserScan const> msg;
             const DynamicGapConfig* cfg_;
