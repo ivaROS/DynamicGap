@@ -80,7 +80,8 @@ namespace dynamic_gap
         ros::Publisher dyn_egocircle_pub;
         
         ros::Subscriber rbt_accel_sub;
-        ros::Subscriber agent_vel_sub;
+        ros::Subscriber agent0_vel_sub;
+        ros::Subscriber agent1_vel_sub;
         // ros::Subscriber rbt_vel_sub;
 
         std::vector<int> simp_association;
@@ -186,7 +187,6 @@ namespace dynamic_gap
         double prev_pose_time;
         double prev_scan_time;
 
-        geometry_msgs::Vector3Stamped current_agent_vel;
         bool first_traj;
         double max_range = 4.9;
 
@@ -195,6 +195,11 @@ namespace dynamic_gap
 
         double max_scan_time_elapsed;
 
+        geometry_msgs::Pose robot0_odom;
+        geometry_msgs::Vector3Stamped robot0_vel;
+
+        geometry_msgs::Pose robot1_odom;
+        geometry_msgs::Vector3Stamped robot1_vel;
     public:
         Planner();
 
@@ -355,7 +360,8 @@ namespace dynamic_gap
 
         std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck();
 
-        void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
+        void robot0OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
+        void robot1OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
     };
 }
 

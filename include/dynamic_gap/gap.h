@@ -204,6 +204,18 @@ namespace dynamic_gap
                 goal_within = goal_dist < _ldist && goal_dist < _rdist;
             }
 
+            void initManipIndices() {
+                convex.convex_lidx = _left_idx;
+                convex.convex_ldist = _ldist;
+                convex.convex_ridx = _right_idx;
+                convex.convex_rdist = _rdist;
+
+                convex.terminal_lidx = terminal_lidx;
+                convex.terminal_ldist = terminal_ldist;
+                convex.terminal_ridx = terminal_ridx;
+                convex.terminal_rdist = terminal_rdist;
+            }
+
             // Getter and Setter for if side is an obstacle
             void setLeftObs() {
                 left_obs = false;

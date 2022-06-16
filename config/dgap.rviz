@@ -11,10 +11,13 @@ Panels:
         - /Axes2
         - /Marker1
         - /Marker2
+        - /MarkerArray2
+        - /MarkerArray3
         - /LaserScan1
         - /MarkerArray7
         - /PoseArray2
         - /LaserScan2
+        - /MarkerArray8
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -58,7 +61,7 @@ Visualization Manager:
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        gap_goal: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -96,8 +99,7 @@ Visualization Manager:
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        raw: true
-        simp: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -105,7 +107,7 @@ Visualization Manager:
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        manip: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -181,7 +183,7 @@ Visualization Manager:
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        allTraj: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -448,7 +450,7 @@ Visualization Manager:
       Marker Topic: /reachable_gaps
       Name: MarkerArray
       Namespaces:
-        manip_initial: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -486,9 +488,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.3605568408966064
-        Y: -4.162052631378174
-        Z: -35.83750915527344
+        X: 1.8689672946929932
+        Y: -4.771913051605225
+        Z: -35.838104248046875
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

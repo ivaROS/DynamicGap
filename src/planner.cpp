@@ -41,7 +41,10 @@ namespace dynamic_gap
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
+        agent0_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::robot0OdomCB, this);
+        agent1_vel_sub = nh.subscribe("robot1/odom", 100, &Planner::robot1OdomCB, this);
+
+        // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -186,7 +189,7 @@ namespace dynamic_gap
 
         previous_raw_gaps = associated_raw_gaps;
         raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
-        associated_raw_gaps = raw_gaps;
+        // associated_raw_gaps = raw_gaps;
         
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
         raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
@@ -198,7 +201,7 @@ namespace dynamic_gap
         // double observed_gaps_start_time = ros::WallTime::now().toSec();
         previous_gaps = associated_observed_gaps;
         observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-        associated_observed_gaps = observed_gaps;
+        // associated_observed_gaps = observed_gaps;
         
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
@@ -256,11 +259,11 @@ namespace dynamic_gap
         //std::cout << "obtaining gap pt vector" << std::endl;
 		// THIS VECTOR IS IN THE ROBOT FRAME
 		if (i % 2 == 0) {
-			gap_pt_vector_rbt_frame.vector.x = (g.convex.convex_ldist) * cos(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = (g.convex.convex_ldist) * sin(-((float) g.half_scan - g.convex.convex_lidx) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.x = g.LDist() * cos(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.y = g.LDist() * sin(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
 		} else {
-			gap_pt_vector_rbt_frame.vector.x = (g.convex.convex_rdist) * cos(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = (g.convex.convex_rdist) * sin(-((float) g.half_scan - g.convex.convex_ridx) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.x = g.RDist() * cos(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.y = g.RDist() * sin(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
 		}
 
         range_vector_rbt_frame.vector.x = gap_pt_vector_rbt_frame.vector.x - rbt_in_cam.pose.position.x;
@@ -282,10 +285,10 @@ namespace dynamic_gap
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, current_agent_vel);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, current_agent_vel);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel);
         }
     }
 
@@ -340,8 +343,52 @@ namespace dynamic_gap
         
     }
     
-    
-    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
+    void Planner::robot1OdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
+
+        // I need BOTH odom and vel in robot2 frame
+        //std::cout << "odom msg is not in odom frame" << std::endl;
+        geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
+
+        geometry_msgs::PoseStamped in_pose, out_pose;
+        in_pose.header = msg->header;
+        in_pose.pose = msg->pose.pose;
+
+        //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+
+        tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
+        robot1_odom = out_pose.pose;
+
+
+        std::string source_frame = "robot1";
+        // std::cout << "in agentOdomCB" << std::endl;
+        // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
+        geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
+        geometry_msgs::Vector3Stamped in_vel, out_vel;
+        in_vel.header = msg->header;
+        in_vel.header.frame_id = source_frame;
+        in_vel.vector = msg->twist.twist.linear;
+        // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
+        tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
+        // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
+
+        robot1_vel = out_vel;
+    }
+
+    void Planner::robot0OdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
+
+        // I need BOTH odom and vel in robot2 frame
+        //std::cout << "odom msg is not in odom frame" << std::endl;
+        geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
+
+        geometry_msgs::PoseStamped in_pose, out_pose;
+        in_pose.header = msg->header;
+        in_pose.pose = msg->pose.pose;
+
+        //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+
+        tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
+        robot0_odom = out_pose.pose;
+
 
         std::string source_frame = "robot0";
         // std::cout << "in agentOdomCB" << std::endl;
@@ -355,9 +402,8 @@ namespace dynamic_gap
         tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
         // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
 
-        current_agent_vel = out_vel;
+        robot0_vel = out_vel;
     }
-    
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
     {
@@ -451,6 +497,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
             // MANIPULATE POINTS AT T=0
+            manip_set.at(i).initManipIndices();
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
             gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
@@ -928,6 +975,9 @@ namespace dynamic_gap
         //std::cout << "pulled current simplified associations:" << std::endl;
         //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
         
+        ROS_INFO_STREAM("current raw gaps:");
+        printGapModels(curr_raw_gaps);
+
         ROS_INFO_STREAM("current simplified gaps:");
         printGapModels(curr_observed_gaps);
 
@@ -1067,14 +1117,18 @@ namespace dynamic_gap
     }
 
     void Planner::printGapModels(std::vector<dynamic_gap::Gap> gaps) {
+        // THIS IS NOT FOR MANIPULATED GAPS
+        float x,y;
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            ROS_INFO_STREAM("gap " << i);
             dynamic_gap::Gap g = gaps.at(i);
+            ROS_INFO_STREAM("gap " << i << ", indices: " << g.LIdx() << " to "  << g.RIdx());
             Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
+            g.getLCartesian(x, y);
+            ROS_INFO_STREAM("left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
             Matrix<double, 4, 1> right_state = g.right_model->get_cartesian_state();
-            ROS_INFO_STREAM("left idx: " << g.LIdx() << ", left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            ROS_INFO_STREAM("right idx: " << g.RIdx() << ", right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
+            g.getRCartesian(x, y);            
+            ROS_INFO_STREAM("right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
         }
     }
 

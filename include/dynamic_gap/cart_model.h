@@ -61,6 +61,10 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> x_update;
             std::string plot_dir;
 
+            geometry_msgs::Pose robot0_odom;
+            geometry_msgs::Vector3Stamped robot0_vel;
+            geometry_msgs::Pose robot1_odom;
+            geometry_msgs::Vector3Stamped robot1_vel;
         public:
 
             cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
@@ -88,7 +92,10 @@ namespace dynamic_gap {
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, 
                                 bool print,
-                                geometry_msgs::Vector3Stamped agent_vel);
+                                geometry_msgs::Pose robot0_odom,
+                                geometry_msgs::Vector3Stamped robot0_vel,
+                                geometry_msgs::Pose robot1_odom,
+                                geometry_msgs::Vector3Stamped robot1_vel);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

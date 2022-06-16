@@ -230,7 +230,7 @@ namespace dynamic_gap{
         Eigen::Vector2d Psi_der;
         double Psi;
         Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
-
+        ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
 
         if (inflated_egocircle.ranges.size() < 500) {
             ROS_FATAL_STREAM("Scan range incorrect controlLaw");

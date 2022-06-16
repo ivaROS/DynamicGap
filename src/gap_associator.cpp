@@ -26,6 +26,7 @@ namespace dynamic_gap {
 			//std::cout << "adding left points" << std::endl;
 			//std::cout << "convex l dist: " << g.convex.convex_ldist << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.convex_lidx << std::endl;
 			//std::cout << "convex r dist: " << g.convex.convex_rdist << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.convex_ridx << std::endl;
+			// std::string print_string;
 			if (isnan(g.convex.convex_ldist)) {
 				// rarely, a gap will be sent into association with NaN left and right points. This breaks the asscn. so I am just
 				// setting this point to 100/100 and -100/-100
@@ -59,10 +60,10 @@ namespace dynamic_gap {
 				points[count][0] = right_x;
 				points[count][1] = right_y;
 			}
-			// std::cout << "left: (" << points[count - 1][0] << ", " << points[count - 1][1] << "), right: (" << points[count][0] << ", " << points[count][1] << "), ";
+			// print_string += ("left: (" + std::to_string(points[count - 1][0]) + ", " + std::to_string(points[count - 1][1]) + "), right: (" + std::to_string(points[count][0]) + ", " + std::to_string(points[count][1]) + "), ");
 			count++;
+			// ROS_INFO_STREAM(print_string);
         }
-		// std::cout << "" << std::endl;
 		return points;
 	}
 
@@ -72,15 +73,15 @@ namespace dynamic_gap {
 		double start_time = ros::Time::now().toSec(); 
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
-		//std::cout << "getting previous points:" << std::endl;
+		// ROS_INFO_STREAM("getting previous points:");
 		previous_gap_points = obtainGapPoints(previous_gaps, ns, true);
-		//std::cout << "getting current points:" << std::endl;
+		// ROS_INFO_STREAM("getting current points:");
         observed_gap_points = obtainGapPoints(observed_gaps, ns, false);
         
 		vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
-		// std::cout << "populating distance matrix" << std::endl;
+		// ROS_INFO_STREAM("Distance matrix: ");
         for (int i = 0; i < distMatrix.size(); i++) {
             for (int j = 0; j < distMatrix[i].size(); j++) {
                 double accum = 0;
@@ -91,9 +92,9 @@ namespace dynamic_gap {
                 }
                 //std::cout << "accum: " << accum << std::endl;
                 distMatrix[i][j] = sqrt(accum);
-                //std::cout << distMatrix[i][j] << ", ";
+                // ROS_INFO_STREAM(distMatrix[i][j] << ", ");
             }
-			//std::cout << "" << std::endl;
+			// ROS_INFO_STREAM("" << std::endl;
         }
 
 		return distMatrix;
