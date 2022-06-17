@@ -84,6 +84,7 @@ namespace dynamic_gap {
         
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
+        nh.param("num_obsts", rbt.num_obsts, rbt.num_obsts);
 
     }
 
@@ -166,6 +167,7 @@ namespace dynamic_gap {
         man.line = cfg.line;
 
         rbt.r_inscr = cfg.r_inscr;
+        rbt.num_obsts = cfg.num_obsts;
     }
 
 

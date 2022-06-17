@@ -240,6 +240,7 @@ namespace dynamic_gap{
         if(projection_operator)
         {
             // iterates through current egocircle and finds the minimum distance to the robot's pose
+            ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
             std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
             for (int i = 0; i < min_dist_arr.size(); i++) {
                 float angle = i * inflated_egocircle.angle_increment - M_PI;
@@ -293,10 +294,10 @@ namespace dynamic_gap{
 
             // find minimum ego circle distance
             min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
-            float min_x = min_dist * cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
-            float min_y = min_dist * sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
+            float min_x = min_dist * std::cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
+            float min_y = min_dist * std::sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
             min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));
-
+            ROS_INFO_STREAM("min_dist_idx: " << min_idx << ", min_dist_ang: "<< min_dist_ang << ", min_dist: " << min_dist);
             ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
 
             if (cfg_->man.line && vec.size() > 0) {

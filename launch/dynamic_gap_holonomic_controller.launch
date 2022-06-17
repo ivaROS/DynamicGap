@@ -2,6 +2,7 @@
   <arg name="use_recovery_behaviors" default="true"/>
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius"/>
+  <arg name="num_obsts"/>
 
   <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)" />
 
@@ -24,7 +25,6 @@
   <arg name="full_fov" default="$(optenv GM_PARAM_FULL_FOV false)"/>
   <arg name="inf_ratio" value="1.2" unless="$(arg planning_inflated)"/>
   <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
-
 
   <arg name="debug" default="false"/>
 
@@ -72,11 +72,13 @@
       <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_params_holonomic.yaml" command="load"/>
       
       <!-- remapping for obstacles -->
-      <!-- <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" /> -->
+      <param name="DynamicGapPlanner/num_obsts" value="$(arg num_obsts)" />
+      <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
+      
   </node>
 
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/>

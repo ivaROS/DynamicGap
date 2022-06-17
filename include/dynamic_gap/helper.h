@@ -1174,6 +1174,7 @@ namespace dynamic_gap {
         {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = _frame_id;
+            // if this _coefs is not 1.0, will cause jump between initial and next poses
             pose.pose.position.x = x[0] / _coefs;
             pose.pose.position.y = x[1] / _coefs;
             pose.pose.position.z = 0;

@@ -40,9 +40,7 @@ namespace dynamic_gap
         dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
-        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 100, &Planner::robotAccCB, this);
-        agent0_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::robot0OdomCB, this);
-        agent1_vel_sub = nh.subscribe("robot1/odom", 100, &Planner::robot1OdomCB, this);
+        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 10, &Planner::robotAccCB, this);
 
         // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
@@ -95,6 +93,14 @@ namespace dynamic_gap
         curr_timestamp = ros::Time::now();
 
         final_goal_rbt = geometry_msgs::PoseStamped();
+        num_obsts = cfg.rbt.num_obsts;
+
+        agent_odoms = std::vector<geometry_msgs::Pose>(num_obsts);
+        agent_vels = std::vector<geometry_msgs::Vector3Stamped>(num_obsts);
+        for (int i = 0; i < num_obsts; i++) {
+            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 5, &Planner::agentOdomCB, this);
+            agent_odom_subscribers.push_back(temp_odom_sub);
+        }
         return true;
     }
 
@@ -290,10 +296,10 @@ namespace dynamic_gap
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel, bridge_model);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, bridge_model, agent_odoms, agent_vels);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, robot0_odom, robot0_vel, robot1_odom, robot1_vel, bridge_model);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, bridge_model, agent_odoms, agent_vels);
         }
     }
 
@@ -349,66 +355,49 @@ namespace dynamic_gap
         
     }
     
-    void Planner::robot1OdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
+    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
+        std::string robot_namespace = msg->child_frame_id;
+        // ROS_INFO_STREAM("robot_namespace: " << robot_namespace);
+        robot_namespace.erase(0,5); // removing "robot"
+        char *robot_name_char = strdup(robot_namespace.c_str());
+        int robot_id = std::atoi(robot_name_char);
+        // ROS_INFO_STREAM("robot_id: " << robot_id);
         // I need BOTH odom and vel in robot2 frame
         //std::cout << "odom msg is not in odom frame" << std::endl;
-        geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
+        try {
+            // transforming Odometry message from map_static to robotN
+            geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
 
-        geometry_msgs::PoseStamped in_pose, out_pose;
-        in_pose.header = msg->header;
-        in_pose.pose = msg->pose.pose;
+            geometry_msgs::PoseStamped in_pose, out_pose;
+            in_pose.header = msg->header;
+            in_pose.pose = msg->pose.pose;
 
-        //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
 
-        tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
-        robot1_odom = out_pose.pose;
+            tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
+            agent_odoms[robot_id] = out_pose.pose;
+        } catch (tf2::TransformException &ex) {
+            ROS_INFO_STREAM("Odometry transform failed for " << robot_namespace);
+        }
+        
+        try {
+            std::string source_frame = msg->child_frame_id; 
+            // std::cout << "in agentOdomCB" << std::endl;
+            // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
+            geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
+            geometry_msgs::Vector3Stamped in_vel, out_vel;
+            in_vel.header = msg->header;
+            in_vel.header.frame_id = source_frame;
+            in_vel.vector = msg->twist.twist.linear;
+            // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
+            tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
+            // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
 
-
-        std::string source_frame = "robot1";
-        // std::cout << "in agentOdomCB" << std::endl;
-        // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
-        geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
-        geometry_msgs::Vector3Stamped in_vel, out_vel;
-        in_vel.header = msg->header;
-        in_vel.header.frame_id = source_frame;
-        in_vel.vector = msg->twist.twist.linear;
-        // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
-        tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
-        // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
-
-        robot1_vel = out_vel;
-    }
-
-    void Planner::robot0OdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
-
-        // I need BOTH odom and vel in robot2 frame
-        //std::cout << "odom msg is not in odom frame" << std::endl;
-        geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
-
-        geometry_msgs::PoseStamped in_pose, out_pose;
-        in_pose.header = msg->header;
-        in_pose.pose = msg->pose.pose;
-
-        //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-
-        tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
-        robot0_odom = out_pose.pose;
-
-
-        std::string source_frame = "robot0";
-        // std::cout << "in agentOdomCB" << std::endl;
-        // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
-        geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, source_frame, ros::Time(0));
-        geometry_msgs::Vector3Stamped in_vel, out_vel;
-        in_vel.header = msg->header;
-        in_vel.header.frame_id = source_frame;
-        in_vel.vector = msg->twist.twist.linear;
-        // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
-        tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
-        // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
-
-        robot0_vel = out_vel;
+            agent_vels[robot_id] = out_vel;
+        } catch (tf2::TransformException &ex) {
+            ROS_INFO_STREAM("Velocity transform failed for " << robot_namespace);
+        }            
     }
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan)
@@ -726,7 +715,6 @@ namespace dynamic_gap
             viz_traj.at(1) = reduced_curr_rbt;
             trajvisualizer->pubAllScore(viz_traj, ret_traj_scores);
 
-            ROS_DEBUG_STREAM("Curr Score: " << curr_subscore << ", incom Score:" << incom_subscore);
 
 
             if (curr_subscore == -std::numeric_limits<double>::infinity() && incom_subscore == -std::numeric_limits<double>::infinity()) {
@@ -741,8 +729,11 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
-            double oscillation_pen = counts * std::exp(-(curr_time - prev_traj_switch_time)/2.0);
-            if (incom_subscore > (curr_subscore + oscillation_pen)) {
+            double oscillation_pen = counts * std::exp(-2*(curr_time - prev_traj_switch_time));
+            double curr_score_with_pen = curr_subscore + oscillation_pen;
+            ROS_DEBUG_STREAM("Curr Score: " << curr_score_with_pen << ", incom Score:" << incom_subscore);
+
+            if (incom_subscore > curr_score_with_pen) {
                 ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: swapping trajectory");
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);

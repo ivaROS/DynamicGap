@@ -200,6 +200,12 @@ namespace dynamic_gap
 
         geometry_msgs::Pose robot1_odom;
         geometry_msgs::Vector3Stamped robot1_vel;
+        int num_obsts;
+
+        vector<ros::Subscriber> agent_odom_subscribers;
+        std::vector<geometry_msgs::Pose> agent_odoms;
+        std::vector<geometry_msgs::Vector3Stamped> agent_vels;
+
     public:
         Planner();
 
@@ -362,6 +368,7 @@ namespace dynamic_gap
 
         void robot0OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
         void robot1OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
+        void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
     };
 }
 

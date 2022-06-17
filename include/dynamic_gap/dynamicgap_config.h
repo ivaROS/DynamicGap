@@ -100,6 +100,7 @@ namespace dynamic_gap {
 
             struct Robot {
                 float r_inscr;
+                int num_obsts;
             } rbt;
 
             struct ManualControl {
@@ -188,6 +189,7 @@ namespace dynamic_gap {
             man.line = false;
 
             rbt.r_inscr = 0.2;
+            rbt.num_obsts = 0;
         }
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);

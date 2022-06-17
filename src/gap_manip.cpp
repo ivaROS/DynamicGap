@@ -576,32 +576,32 @@ namespace dynamic_gap {
         Eigen::Vector2f left_point(x1, y1);
         Eigen::Vector2f right_point(x2, y2);
 
-        ROS_INFO_STREAM("left_point: (" << x1 << ", " << y1 << ") , right_point: (" << x2 << ", " << y2 << ")");
+        // ROS_INFO_STREAM("left_point: (" << x1 << ", " << y1 << ") , right_point: (" << x2 << ", " << y2 << ")");
 
         Eigen::Vector2f eL = left_point / left_point.norm();
         Eigen::Vector2f eR = right_point / right_point.norm();
 
-        ROS_INFO_STREAM("eL: (" << eL[0] << ", " << eL[1] << ") , eR: (" << eR[0] << ", " << eR[1] << ")");
+        // ROS_INFO_STREAM("eL: (" << eL[0] << ", " << eL[1] << ") , eR: (" << eR[0] << ", " << eR[1] << ")");
 
         double beta_left = std::atan2(eL[1], eL[0]);
         double beta_right = std::atan2(eR[1], eR[0]);
         double beta_center = (beta_left + beta_right) / 2.0;
         // middle of gap direction
         Eigen::Vector2f eB(std::cos(beta_center), std::sin(beta_center));
-        ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
+        // ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
 
         eB /= eB.norm();
         // angular size of gap
-        ROS_INFO_STREAM("normalized eB: " << eB[0] << ", " << eB[1]);
+        // ROS_INFO_STREAM("normalized eB: " << eB[0] << ", " << eB[1]);
         float gap_size = (ridx - lidx) * M_PI / half_num_scan; // std::acos(eL.dot(eR));
-        ROS_INFO_STREAM("gap_size: " << gap_size);
+        // ROS_INFO_STREAM("gap_size: " << gap_size);
         // minSafeDist is the minimum distance within the laser scan 
         float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
-        ROS_INFO_STREAM("min safe dist: " << s);
+        // ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
         Eigen::Vector2f qB = -s * eB;
-        ROS_INFO_STREAM("qB: " << qB);
+        // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
         if (initial) {
             gap.qB = qB;
         } else {

@@ -12,6 +12,7 @@ namespace dynamic_gap{
             write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
+            ROS_INFO_STREAM("coefs:" << coefs);
             // flipping models here to be from robot's POV
             // dynamic_gap::cart_model* left_model = selectedGap.right_model;
             // dynamic_gap::cart_model* right_model = selectedGap.left_model;
@@ -88,6 +89,8 @@ namespace dynamic_gap{
             */
             
             Eigen::Vector2f qB = (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
+            ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
+
             if (selectedGap.mode.convex) {
                 selectedGap.goal.x -= qB(0);
                 selectedGap.goal.y -= qB(1);
@@ -321,6 +324,7 @@ namespace dynamic_gap{
     }
         
 
+    // If i try to delete this DGap breaks
     [[deprecated("Use single trajectory generation")]]
     std::vector<geometry_msgs::PoseArray> GapTrajGenerator::generateTrajectory(std::vector<dynamic_gap::Gap> gapset) {
         std::vector<geometry_msgs::PoseArray> traj_set(gapset.size());
@@ -379,19 +383,20 @@ namespace dynamic_gap{
         std::vector<double> shortened_time_arr;
         shortened.push_back(old_pose);
         shortened_time_arr.push_back(0.0);
+        double threshold = 0.1;
+        // ROS_INFO_STREAM("pose[0]: " << pose_arr.poses[0].position.x << ", " << pose_arr.poses[0].position.y);
         for (int i = 1; i < pose_arr.poses.size(); i++) {
             auto pose = pose_arr.poses[i];
             dx = pose.position.x - shortened.back().position.x;
             dy = pose.position.y - shortened.back().position.y;
             result = sqrt(pow(dx, 2) + pow(dy, 2));
-            if (result > 0.05) {
-                //ROS_WARN_STREAM("result kept at " << result);
-                // std::cout << "keeping: " << pose.position.x << ", " << pose.position.y << std::endl;
+            if (result > threshold) {
+                // ROS_INFO_STREAM("result " << i << " kept at " << result);
                 shortened.push_back(pose);
                 shortened_time_arr.push_back(time_arr[i]);
 
             } else {
-                //ROS_WARN_STREAM("result cut at " << result);
+                // ROS_INFO_STREAM("result " << i << " cut at " << result);
             }
         }
         // std::cout << "leaving at : " << shortened.size() << std::endl;

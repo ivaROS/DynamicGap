@@ -106,11 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";
-        robot0_odom = geometry_msgs::Pose();
-        robot0_vel = geometry_msgs::Vector3Stamped();
-        robot1_odom = geometry_msgs::Pose();
-        robot1_vel = geometry_msgs::Vector3Stamped();        
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";   
     }
 
     void cart_model::copy_model() {
@@ -243,14 +239,12 @@ namespace dynamic_gap {
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                     Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, 
-                                    bool print, geometry_msgs::Pose _robot0_odom, geometry_msgs::Vector3Stamped _robot0_vel, 
-                                    geometry_msgs::Pose _robot1_odom, geometry_msgs::Vector3Stamped _robot1_vel,
-                                    bool _bridge_model) {
-        robot0_odom = _robot0_odom;
-        robot0_vel = _robot0_vel;
-        robot1_odom = _robot1_odom;
-        robot1_vel = _robot1_vel;
+                                    bool print, bool _bridge_model,
+                                    std::vector<geometry_msgs::Pose> _agent_odoms,
+                                    std::vector<geometry_msgs::Vector3Stamped> _agent_vels) {
         bridge_model = _bridge_model;
+        agent_odoms = _agent_odoms;
+        agent_vels = _agent_vels;
                 
         t = ros::Time::now().toSec();
         dt = t - t0;
@@ -445,7 +439,7 @@ namespace dynamic_gap {
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x;
+        Eigen::Vector4d return_x = x;
 
         // ROS_INFO_STREAM("robot0_odom: " << robot0_odom.position.x << ", " << robot0_odom.position.y);
         //ROS_INFO_STREAM("x,y: " << x[0] << ", " << x[1]);
@@ -454,22 +448,33 @@ namespace dynamic_gap {
         // double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
         
         //ROS_INFO_STREAM("distance: " << robot0_odom_dist);
-        /*
-        if (robot0_odom_dist < 0.3) {
+        
+        double robot_i_odom_dist;
+        double min_dist = 100;
+        int min_idx;
+        for (int i = 0; i < agent_odoms.size(); i++) {
+            robot_i_odom_dist = sqrt(pow(agent_odoms[i].position.x - x[0], 2) + pow(agent_odoms[i].position.y - x[1], 2));
+            if (robot_i_odom_dist < min_dist) {
+                min_dist = robot_i_odom_dist;
+                min_idx = i;
+            }
+        }
+        
+        if (min_dist < 0.4) {
             // ROS_INFO_STREAM("fixing velocity");
-            x[2] = robot0_vel.vector.x - v_ego[0];
-            x[3] = robot0_vel.vector.y - v_ego[1];
-        } else if (robot1_odom_dist < 0.3) {
-            x[2] = robot1_vel.vector.x - v_ego[0];
-            x[3] = robot1_vel.vector.y - v_ego[1];            
+            return_x[2] = agent_vels[min_idx].vector.x - v_ego[0];
+            return_x[3] = agent_vels[min_idx].vector.y - v_ego[1];
+        } else {
+            return_x[2] = -v_ego[0];
+            return_x[3] = -v_ego[1];
+        }
+
+        /*
+        if (bridge_model) {
+            return_x[2] = -v_ego[0];
+            return_x[3] = -v_ego[1];
         }
         */
-        
-        if (bridge_model) {
-            return_x << x[0], x[1], -v_ego[0], -v_ego[1];
-        } else {
-            return_x = x;
-        }
 
         return return_x;
     }
