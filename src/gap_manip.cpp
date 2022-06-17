@@ -585,7 +585,17 @@ namespace dynamic_gap {
 
         double beta_left = std::atan2(eL[1], eL[0]);
         double beta_right = std::atan2(eR[1], eR[0]);
-        double beta_center = (beta_left + beta_right) / 2.0;
+
+        double det = eR[0]*eL[1] - eR[1]*eL[0];      
+        double dot = eR[0]*eL[0] + eR[1]*eL[1];
+        double swept_check = -std::atan2(det, dot); // this value is the angle swept clockwise from L to R (ranging from -pi to pi)
+        double L_to_R_angle = swept_check;
+
+        if (L_to_R_angle < 0) {
+            L_to_R_angle += 2*M_PI; 
+        }
+        double beta_center = beta_right -= (L_to_R_angle / 2.0);
+
         // middle of gap direction
         Eigen::Vector2f eB(std::cos(beta_center), std::sin(beta_center));
         ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
@@ -593,7 +603,10 @@ namespace dynamic_gap {
         eB /= eB.norm();
         // angular size of gap
         ROS_INFO_STREAM("normalized eB: " << eB[0] << ", " << eB[1]);
-        float gap_size = (ridx - lidx) * M_PI / half_num_scan; // std::acos(eL.dot(eR));
+        float gap_size = beta_right - beta_left; // std::acos(eL.dot(eR));
+        if (gap_size < 0) {
+            gap_size += 2*M_PI;
+        }
         ROS_INFO_STREAM("gap_size: " << gap_size);
         // minSafeDist is the minimum distance within the laser scan 
         float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
@@ -754,22 +767,18 @@ namespace dynamic_gap {
 
         float new_l_range = new_l.norm();
         float new_l_theta = std::atan2(new_l[1], new_l[0]);
-        float original_new_l_idx = (gap.half_scan * new_l_theta / M_PI) + gap.half_scan;
 
         float new_r_range = new_r.norm();
         float new_r_theta = std::atan2(new_r[1], new_r[0]);
-        float original_new_r_idx = (gap.half_scan * new_r_theta / M_PI) + gap.half_scan;
 
         ROS_INFO_STREAM("new_l_theta: " << new_l_theta << ", new_r_theta: " << new_r_theta);
-        ROS_INFO_STREAM("float values, left: " << original_new_l_idx << ", right: " << original_new_r_idx);
-        int new_l_idx = std::max((int) std::floor(original_new_l_idx), 0);
-        int new_r_idx = std::min((int) std::ceil(original_new_r_idx), 511);
+        int new_l_idx = std::max((int) std::floor(gap.half_scan * new_l_theta / M_PI + gap.half_scan), 0);
+        int new_r_idx = std::min((int) std::ceil(gap.half_scan * new_r_theta / M_PI + gap.half_scan), 511);
         ROS_INFO_STREAM("int values, left: " << new_l_idx << ", right: " << new_r_idx);
         
         if (new_l_idx > new_r_idx) {
             return;
         }
-        
 
         if (new_l_idx == new_r_idx) {
             ROS_INFO_STREAM("manipulated indices are same");

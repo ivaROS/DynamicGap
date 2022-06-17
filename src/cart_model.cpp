@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,7 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";
+        plot_dir = "/home/masselmeier/Desktop/Research/cart_model_plots/";
         robot0_odom = geometry_msgs::Pose();
         robot0_vel = geometry_msgs::Vector3Stamped();
         robot1_odom = geometry_msgs::Pose();

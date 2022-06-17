@@ -613,7 +613,7 @@ namespace dynamic_gap
 
         if (result_score.at(idx) == -std::numeric_limits<double>::infinity()) {
             
-            std::cout << "all -infinity" << std::endl;
+            ROS_INFO_STREAM("all -infinity");
             ROS_WARN_STREAM("No executable trajectory, values: ");
             for (auto val : result_score) {
                 ROS_INFO_STREAM("Score: " << val);
