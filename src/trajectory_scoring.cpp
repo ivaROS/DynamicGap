@@ -228,7 +228,7 @@ namespace dynamic_gap {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-                 
+        /*
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
@@ -247,7 +247,7 @@ namespace dynamic_gap {
             count++;
             model->freeze_robot_vel();
         }
-        
+        */
         
         // std::cout << "num models: " << raw_models.size() << std::endl;
         std::vector<double> dynamic_cost_val(traj.poses.size());

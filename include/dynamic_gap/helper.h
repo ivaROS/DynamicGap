@@ -451,6 +451,7 @@ namespace dynamic_gap {
                             nonrel_left_vel(nonrel_left_vel), nonrel_right_vel(nonrel_right_vel), rel_left_vel(rel_left_vel), rel_right_vel(rel_right_vel), nom_vel(nom_vel), goal_pt_1(goal_pt_1), _sigma(_sigma),
                             K_acc(K_acc), rot_angle(M_PI/2.), num_curve_points(25), v_lin_max(v_lin_max), a_lin_max(a_lin_max)
                         {
+                            double start_time = ros::WallTime::now().toSec();
                             N = 2*num_curve_points;
                             Kplus1 = 2*num_curve_points + 1;
 
@@ -536,6 +537,7 @@ namespace dynamic_gap {
                             }
                             ROS_INFO_STREAM(weights_string);
                             */
+                            ROS_INFO_STREAM("optimization time elapsed: " << ros::WallTime::now().toSec() - start_time);
                         }
 
         state_type adjust_state(const state_type &x) {
