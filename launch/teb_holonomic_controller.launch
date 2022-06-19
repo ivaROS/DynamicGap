@@ -66,7 +66,7 @@
       <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
 
-      <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" if="$(arg egocircle)"/>
+      <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" />
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/include_dynamic_obstacles" value="true"/>
       <param name="TebLocalPlannerROS/gap_h_signature" value="$(arg egocircle)"/>
@@ -90,6 +90,6 @@
 
   </node>
 
-  <!-- node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
+  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
 
 </launch>

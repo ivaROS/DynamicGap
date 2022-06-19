@@ -426,8 +426,8 @@ namespace dynamic_gap{
             v_lin_x_fb = (abs(theta_error) > M_PI/3 && Psi < 0)? 0 : v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
             v_lin_y_fb = (abs(theta_error) > M_PI/3 && Psi < 0) ? 0 : v_lin_y_fb + v_lin_y_const + k_po_ * cmd_vel_y_safe;
 
-            // if(v_lin_x_fb < 0)
-            //     v_lin_x_fb = 0;
+            if(v_lin_x_fb < 0)
+                 v_lin_x_fb = 0;
 
             ROS_INFO_STREAM("ultimate command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         }
@@ -450,7 +450,7 @@ namespace dynamic_gap{
 
         cmd_vel.linear.x = std::max(-cfg_->control.vx_absmax, std::min(cfg_->control.vx_absmax, v_lin_x_fb));
         cmd_vel.linear.y = std::max(-cfg_->control.vy_absmax, std::min(cfg_->control.vy_absmax, v_lin_y_fb));
-        cmd_vel.angular.z = std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
+        cmd_vel.angular.z = v_ang_fb; //std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
         return cmd_vel;
     }
 

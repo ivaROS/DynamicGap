@@ -50,6 +50,9 @@ TebLocalPlannerROS:
     costmap_obstacles_behind_robot_dist: 1.0
     obstacle_poses_affected: 30 #only has effect if using legacy obstacle mode
     inflation_dist: 0.6
+    dynamic_obstacle_inflation_dist: 0.6
+    include_dynamic_obstacles: True
+
     costmap_converter_plugin: ""
     costmap_converter_spin_thread: True
     costmap_converter_rate: 5
@@ -72,7 +75,9 @@ TebLocalPlannerROS:
     weight_kinematics_turning_radius: 1
     weight_optimaltime: 1
     weight_obstacle: 500
-    weight_dynamic_obstacle: 10 # not in use yet
+    weight_inflation: 0.2
+    weight_dynamic_obstacle: 50 # not in use yet
+    weight_dynamic_obstacle_inflation: 0.2
     selection_alternative_time_cost: False # not in use yet
 
     # Homotopy Class Planner

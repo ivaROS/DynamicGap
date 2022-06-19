@@ -12,7 +12,7 @@ namespace dynamic_gap{
             write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
-            ROS_INFO_STREAM("coefs:" << coefs);
+            // ROS_INFO_STREAM("coefs:" << coefs);
             // flipping models here to be from robot's POV
             // dynamic_gap::cart_model* left_model = selectedGap.right_model;
             // dynamic_gap::cart_model* right_model = selectedGap.left_model;
@@ -58,38 +58,9 @@ namespace dynamic_gap{
             //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
             //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
             
-            /*
-            if (selectedGap.goal.goalwithin) {
-                state_type x = {ego_x[0], 
-                            ego_x[1],
-                            ego_x[2],
-                            ego_x[3],
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            initial_goal_x,
-                            initial_goal_y};
-                // ROS_INFO_STREAM("Goal to Goal");
-                g2g inte_g2g(
-                    selectedGap.goal.x * coefs,
-                    selectedGap.goal.y * coefs);
-                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-                inte_g2g, x, 0.0,
-                cfg_->traj.integrate_maxt,
-                cfg_->traj.integrate_stept,
-                corder);
-                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-                return return_tuple;
-            }
-            */
             
             Eigen::Vector2f qB = (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
-            ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
+            // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
 
             if (selectedGap.mode.convex) {
                 selectedGap.goal.x -= qB(0);
@@ -154,6 +125,23 @@ namespace dynamic_gap{
 
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
+
+            if (selectedGap.artificial) {
+                state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
+                            0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0,0.0,
+                            initial_goal_x, initial_goal_y};
+                // ROS_INFO_STREAM("Goal to Goal");
+                g2g inte_g2g(goal_vel_x, goal_vel_y, cfg_->control.vx_absmax);
+                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+                inte_g2g, x, 0.0,
+                cfg_->traj.integrate_maxt,
+                cfg_->traj.integrate_stept,
+                corder);
+                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+                return return_tuple;
+            }
+
 
             double left_vel_x = ((term_x_left - x_left) / selectedGap.gap_lifespan);
             double left_vel_y = ((term_y_left - y_left) / selectedGap.gap_lifespan);

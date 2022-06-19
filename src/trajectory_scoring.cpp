@@ -297,6 +297,7 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
         // }
 
+        /*
         int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
         //std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
         for (int i = 0; i < counts; i++) {
@@ -305,6 +306,7 @@ namespace dynamic_gap {
                 ROS_INFO_STREAM("-inf at pose " << i << " of " << cost_val.size() << " with distance of: " << getClosestDist(traj.poses.at(i)));
             }
         }
+        */
 
 
         if (cost_val.size() > 0) 

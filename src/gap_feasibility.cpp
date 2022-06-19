@@ -72,6 +72,11 @@ namespace dynamic_gap {
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setCategory("expanding");
+        } else if (subtracted_left_betadot == 0) {
+            // static
+            feasible = true;
+            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.setCategory("static");
         } else {
             if (crossing_time >= 0) {
                 feasible = true;
