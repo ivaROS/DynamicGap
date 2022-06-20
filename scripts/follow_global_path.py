@@ -30,11 +30,11 @@ class Agent:
         self.plan_publishers = {}
         for i in range(0, num_obsts):
             robot_namespace = "robot" + str(i)
-            self.odom_subs[robot_namespace] = rospy.Subscriber(robot_namespace + "/odom", Odometry, self.odom_CB, queue_size=5)
-            self.cmd_vel_pubs[robot_namespace] = rospy.Publisher(robot_namespace + "/cmd_vel", Twist, queue_size=5)
+            self.odom_subs[robot_namespace] = rospy.Subscriber(robot_namespace + "/odom", Odometry, self.odom_CB, queue_size=1)
+            self.cmd_vel_pubs[robot_namespace] = rospy.Publisher(robot_namespace + "/cmd_vel", Twist, queue_size=1)
             self.need_plan[robot_namespace] = True
             self.plan_indices[robot_namespace] = 0
-            self.plan_publishers[robot_namespace] = rospy.Publisher(robot_namespace + "/global_path", PoseArray, queue_size=5)
+            self.plan_publishers[robot_namespace] = rospy.Publisher(robot_namespace + "/global_path", PoseArray, queue_size=1)
         '''
         self.start = PoseStamped()
         self.start.header.frame_id = "known_map"

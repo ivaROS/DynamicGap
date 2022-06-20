@@ -196,8 +196,8 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
         Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
 
-        ROS_INFO_STREAM("starting frozen left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
-        ROS_INFO_STREAM("starting frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
+        // ROS_INFO_STREAM("starting frozen left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
+        // ROS_INFO_STREAM("starting frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
 
         // double beta_left, beta_right, beta_center;
        

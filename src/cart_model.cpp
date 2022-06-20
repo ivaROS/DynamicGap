@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,7 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/Desktop/Research/cart_model_plots/";   
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";   
     }
 
     void cart_model::copy_model() {
@@ -448,7 +448,7 @@ namespace dynamic_gap {
         // double robot1_odom_dist = sqrt(pow(robot1_odom.position.x - x[0], 2) + pow(robot1_odom.position.y - x[1], 2));
         
         //ROS_INFO_STREAM("distance: " << robot0_odom_dist);
-        /*
+        
         double robot_i_odom_dist;
         double min_dist = 100;
         int min_idx;
@@ -468,12 +468,13 @@ namespace dynamic_gap {
             return_x[2] = -v_ego[0];
             return_x[3] = -v_ego[1];
         }
-        */
         
+        /*
         if (bridge_model) {
             return_x[2] = -v_ego[0];
             return_x[3] = -v_ego[1];
         }
+        */
         
 
         return return_x;

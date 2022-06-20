@@ -33,14 +33,14 @@ namespace dynamic_gap
 
         // Visualization Setup
         // Fix this later
-        local_traj_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_traj", 500);
-        trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("pg_traj", 10);
-        gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("gaps", 1);
-        selected_gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("sel_gaps", 1);
-        dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 5);
+        local_traj_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_traj", 1);
+        trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("pg_traj", 1);
+        // gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("gaps", 1);
+        // selected_gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("sel_gaps", 1);
+        dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 1);
 
         //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
-        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 10, &Planner::robotAccCB, this);
+        rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 1, &Planner::robotAccCB, this);
 
         // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
@@ -98,7 +98,7 @@ namespace dynamic_gap
         agent_odoms = std::vector<geometry_msgs::Pose>(num_obsts);
         agent_vels = std::vector<geometry_msgs::Vector3Stamped>(num_obsts);
         for (int i = 0; i < num_obsts; i++) {
-            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 5, &Planner::agentOdomCB, this);
+            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 1, &Planner::agentOdomCB, this);
             agent_odom_subscribers.push_back(temp_odom_sub);
         }
         return true;

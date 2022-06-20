@@ -46,10 +46,10 @@ namespace dynamic_gap
         // pnh: planner node handle?
         ros::NodeHandle pnh("~/" + planner_name);
 
-        laser_sub = pnh.subscribe("/point_scan", 3, &Planner::laserScanCB, &planner);
-        // inflated_laser_sub = pnh.subscribe("/inflated_point_scan", 100, &Planner::inflatedlaserScanCB, &planner);
-        // feasi_laser_sub = pnh.subscribe("/inflated_point_scan", 100, &Planner::inflatedlaserScanCB, &planner);
-        pose_sub = pnh.subscribe("/odom",10, &Planner::poseCB, &planner);
+        laser_sub = pnh.subscribe("/point_scan", 1, &Planner::laserScanCB, &planner);
+        // inflated_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
+        // feasi_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
+        pose_sub = pnh.subscribe("/odom", 1, &Planner::poseCB, &planner);
         planner.initialize(pnh);
         initialized = true;
 

@@ -171,7 +171,7 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
         bool goal_vis = checkGoalVisibility(localgoal, stored_scan_msgs);
         bool goal_in_range = checkGoalWithinGapAngleRange(gap, local_goal_idx, lidx, ridx);
-        ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
+        // ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
         
         if (goal_vis && goal_in_range) {
             ROS_INFO_STREAM("Option 2: local goal");

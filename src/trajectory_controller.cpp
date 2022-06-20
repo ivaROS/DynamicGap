@@ -379,9 +379,9 @@ namespace dynamic_gap{
                 res.scale.z = 0.01;
                 
                 res.color.a = 1;
-                res.color.r = 0.9;
-                res.color.g = 0.9;
-                res.color.b = 0.9;
+                res.color.r = 0.0;
+                res.color.g = 0.0;
+                res.color.b = 0.0;
                 res.id = 0;
                 res.lifetime = ros::Duration(0.1);
                 projection_viz.publish(res);
