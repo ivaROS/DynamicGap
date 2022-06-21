@@ -29,11 +29,10 @@ namespace dynamic_gap {
     }
 
     bool compareModelBearings(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
-        Matrix<double, 4, 1> state_one = model_one->get_cartesian_state();
-        Matrix<double, 4, 1> state_two = model_two->get_cartesian_state();
+        Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
+        Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
-        return state_one[1] < state_two[1];
-        // return atan2(state_one[1], state_one[2]) < atan2(state_two[1], state_two[2]);
+        return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
 
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan) {
@@ -45,7 +44,7 @@ namespace dynamic_gap {
         //sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         //dynamic_laser_scan.set_ranges_size(2*gap.half_scan);
 
-
+        ROS_INFO_STREAM("propagating egocircle from " << t_i << " to " << t_iplus1);
         // iterate
         // std::cout << "propagating models" << std::endl;
         double interval = t_iplus1 - t_i;
@@ -71,7 +70,7 @@ namespace dynamic_gap {
         dynamic_gap::cart_model * model = NULL;
         Matrix<double, 4, 1> left_state, model_state;
         double curr_beta;
-        int curr_idx;
+        int curr_idx, left_idx, right_idx;
 
         // std::cout << "iterating through models" << std::endl;
         for (int j = 0; j < raw_models.size(); j++) {
@@ -80,9 +79,10 @@ namespace dynamic_gap {
             model_state = model->get_frozen_modified_polar_state();
             curr_beta = model_state[1]; // atan2(model_state[1], model_state[2]);
             curr_idx = (int) ((curr_beta + M_PI) / msg.get()->angle_increment);
-            //std::cout << "candidate model with idx: " << curr_idx << std::endl;
 
-            if (model->get_side() == "left") {
+            ROS_INFO_STREAM("candidate model with idx: " << curr_idx);
+
+            if (model->get_side() == "left") { // this is left from laser scan
 
                 if (start) {
                     first_left = model;
@@ -92,41 +92,40 @@ namespace dynamic_gap {
                 if (searching_for_left) {
                     searching_for_left = false;
                     curr_left = model;
-                    //std::cout << "setting current left index to " << curr_idx << std::endl;
+                    ROS_INFO_STREAM("setting current left index to " << curr_idx);
                 } else {
                     left_state = curr_left->get_frozen_modified_polar_state();
                     if (model_state[0] > left_state[0]) {
-                        //std::cout << "swapping current left to" << curr_idx << std::endl;
+                        ROS_INFO_STREAM("swapping current left to" << curr_idx);
                         curr_left = model;
+                    } else {
+                        ROS_INFO_STREAM("rejecting swap to " << curr_idx);
                     }
                 }
 
                 if (curr_right != nullptr && curr_left != nullptr) {
-                    //std::cout << "obstacle space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
                     populateDynamicLaserScan(curr_left, curr_right, dynamic_laser_scan, 0);
                 }
             } else if (model->get_side() == "right") {
 
-                //std::cout << "setting current right to " << curr_idx << std::endl;
+                ROS_INFO_STREAM("setting current right to " << curr_idx);
                 curr_right = model;
                 if (first_right == nullptr) {
                     first_right = model;
                 }
                 if (curr_right != nullptr && curr_left != nullptr) {
-                    //std::cout << "free space between left: " << left_idx << " and right: " << right_idx <<  ", left beta: " << left_beta << ", right beta: " << right_beta << std::endl;
                     populateDynamicLaserScan(curr_left, curr_right, dynamic_laser_scan, 1);
                     searching_for_left = true;
                 }
             }
         }
 
+        ROS_INFO_STREAM("wrapping");
         if (last_model->get_side() == "left") {
             // wrapping around last free space
-            //std::cout << "wrapped free space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
             populateDynamicLaserScan(last_model, first_right, dynamic_laser_scan, 1);
         } else {
             // wrapping around last obstacle space
-            //std::cout << "wrapped obstacle space between right: " << right_idx << " and left: " << left_idx << ", right beta: " << right_beta << ", left beta: " << left_beta << std::endl;
             populateDynamicLaserScan(first_left, last_model, dynamic_laser_scan, 0);
         }
         
@@ -152,11 +151,13 @@ namespace dynamic_gap {
             end_idx = right_idx;
             start_range = left_range;
             end_range = right_range;
+            ROS_INFO_STREAM("free space between left: (" << left_idx << ",  " << left_range << ") and right: (" << right_idx << ", " << right_range << ")");
         } else {
             start_idx = right_idx;
             end_idx = left_idx;
             start_range = right_range;
             end_range = left_range;
+            ROS_INFO_STREAM("obstacle space between right: " << right_idx << ", " << right_range << ") and left: (" << left_idx << ", " << left_range << ")");
         }
 
         int idx_span, entry_idx;
@@ -228,7 +229,6 @@ namespace dynamic_gap {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-        /*
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.left_model);
@@ -247,7 +247,6 @@ namespace dynamic_gap {
             count++;
             model->freeze_robot_vel();
         }
-        */
         
         // std::cout << "num models: " << raw_models.size() << std::endl;
         std::vector<double> dynamic_cost_val(traj.poses.size());
@@ -271,7 +270,7 @@ namespace dynamic_gap {
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
-        /*
+
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
@@ -286,16 +285,15 @@ namespace dynamic_gap {
             cost_val = dynamic_cost_val;
             ROS_INFO_STREAM("dynamic pose-wise cost: " << dynamic_total_val);
         } else {
-            */
-        for (int i = 0; i < static_cost_val.size(); i++) {
-            // std::cout << "regular range at " << i << ": ";
-            static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+            for (int i = 0; i < static_cost_val.size(); i++) {
+                // std::cout << "regular range at " << i << ": ";
+                static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+            }
+            auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
+            total_val = static_total_val;
+            cost_val = static_cost_val;
+            ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
         }
-        auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-        total_val = static_total_val;
-        cost_val = static_cost_val;
-        ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
-        // }
 
         /*
         int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
@@ -371,7 +369,7 @@ namespace dynamic_gap {
         auto iter = std::min_element(dist.begin(), dist.end());
         double theta = std::distance(dist.begin(), iter) * dynamic_laser_scan.angle_increment - M_PI;
         double range = dynamic_laser_scan.ranges.at(std::distance(dist.begin(), iter) );
-        //std::cout << "closest point: (" << x << ", " << y << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
+        // std::cout << "closest point: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
         double cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
         // std::cout << "dynamic cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest position: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;

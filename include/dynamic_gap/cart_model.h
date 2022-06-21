@@ -65,6 +65,7 @@ namespace dynamic_gap {
             std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
             bool bridge_model;
+            bool perfect;
 
         public:
 

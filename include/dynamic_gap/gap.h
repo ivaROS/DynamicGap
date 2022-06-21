@@ -282,10 +282,6 @@ namespace dynamic_gap
                 }
             }
 
-            bool isTerminalLeftType() {
-                return terminal_left_type;
-            }
-
             void resetFrame(std::string frame) {
                 _frame = frame;
             }
@@ -341,6 +337,10 @@ namespace dynamic_gap
                 terminal_ldist = _terminal_ldist;
                 terminal_ridx = _terminal_ridx;
                 terminal_rdist = _terminal_rdist;
+                ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: (" << terminal_ridx << ", " << terminal_rdist << ")");
+                if (terminal_ridx < terminal_lidx) {
+                    ROS_INFO_STREAM("potentially incorrect terminal points");
+                }
             }
 
             void printCartesianPoints(bool initial, bool simplified) {

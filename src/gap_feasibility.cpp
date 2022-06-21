@@ -219,8 +219,6 @@ namespace dynamic_gap {
 
             left_frozen_state = left_model->get_frozen_modified_polar_state();
             right_frozen_state = right_model->get_frozen_modified_polar_state();
-            left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();  
-            right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();          
             // ROS_INFO_STREAM("frozen left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
             // ROS_INFO_STREAM("frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
@@ -267,14 +265,16 @@ namespace dynamic_gap {
                 if (bearing_crossing_check) {
                     //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
                     //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-                    left_cross_pt << (1.0 / left_frozen_state[0])*std::cos(left_frozen_state[1]), (1.0 / left_frozen_state[0])*std::sin(left_frozen_state[1]);
-                    right_cross_pt << (1.0 / right_frozen_state[0])*std::cos(right_frozen_state[1]), (1.0 / right_frozen_state[0])*std::sin(right_frozen_state[1]);
+                    left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
+                                     (1.0 / prev_left_frozen_state[0])*std::sin(prev_left_frozen_state[1]);
+                    right_cross_pt << (1.0 / prev_right_frozen_state[0])*std::cos(prev_right_frozen_state[1]), 
+                                      (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
 
-                    range_closing_check = std::sqrt(pow(left_frozen_cartesian_state[0] - right_frozen_cartesian_state[0], 2) + 
-                                                    pow(left_frozen_cartesian_state[1] - right_frozen_cartesian_state[1], 2)) < 3*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                    range_closing_check = std::sqrt(pow(left_cross_pt[0] - right_cross_pt[0], 2) + pow(left_cross_pt[1] - right_cross_pt[1], 2)) 
+                                          < 6*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
                     if (range_closing_check) {
                         ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
-                        if ((1.0 / left_frozen_state[0]) < (1.0 / right_frozen_state[0])) {
+                        if (left_cross_pt.norm() < right_cross_pt.norm()) {
                             //std::cout << "setting right equal to cross" << std::endl;
                             //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
                             gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
@@ -315,9 +315,11 @@ namespace dynamic_gap {
         }
 
         if (!gap.gap_crossed && !gap.gap_closed) {
-            left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-            right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-            ROS_INFO_STREAM("no close, final swept points at: (" << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << "), (" << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ")");
+            left_frozen_state = left_model->get_frozen_modified_polar_state();
+            right_frozen_state = right_model->get_frozen_modified_polar_state();
+            left_cross_pt << (1.0 / left_frozen_state[0])*std::cos(left_frozen_state[1]), (1.0 / left_frozen_state[0])*std::sin(left_frozen_state[1]);
+            right_cross_pt << (1.0 / right_frozen_state[0])*std::cos(right_frozen_state[1]), (1.0 / right_frozen_state[0])*std::sin(right_frozen_state[1]);
+            ROS_INFO_STREAM("no close, final swept points at: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), (" << right_cross_pt[0] << ", " << right_cross_pt[1] << ")");
 
             generateTerminalPoints(gap, left_frozen_state[1], left_frozen_state[0], right_frozen_state[1], right_frozen_state[0]);
         }

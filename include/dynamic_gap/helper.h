@@ -39,9 +39,30 @@ namespace dynamic_gap {
         bool mode_agc, pivoted_left, _axial;
         double rbt_x_0, rbt_y_0;    
         double K_acc;
+        double v_lin_max, a_lin_max;
 
-        polar_gap_field(double x1, double x2, double y1, double y2, double gx, double gy, bool mode_agc, bool pivoted_left, bool axial, double sigma, double rbt_x_0, double rbt_y_0, double K_acc)
-            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), rbt_y_0(rbt_y_0), K_acc(K_acc) {}
+        polar_gap_field(double x1, double x2, double y1, double y2, double gx, 
+                        double gy, bool mode_agc, bool pivoted_left, bool axial, 
+                        double sigma, double rbt_x_0, double rbt_y_0, double K_acc,
+                        double v_lin_max, double a_lin_max)
+            : x1(x1), x2(x2), y1(y1), y2(y2), gx(gx), gy(gy), mode_agc(mode_agc), 
+              pivoted_left(pivoted_left), _axial(axial), _sigma(sigma), rbt_x_0(rbt_x_0), 
+              rbt_y_0(rbt_y_0), K_acc(K_acc), v_lin_max(v_lin_max), a_lin_max(a_lin_max) {}
+
+        Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
+            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+            Eigen::Vector2d original_vel(x_vel, y_vel);
+            double abs_x_vel = std::abs(x_vel);
+            double abs_y_vel = std::abs(y_vel);
+            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+                // std::cout << "not clipping" << std::endl;
+                return original_vel;
+            } else {
+                // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
+                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                return clipped_vel;
+            }
+        }
 
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
@@ -116,24 +137,25 @@ namespace dynamic_gap {
             {
                 double coeffs = past_gap_points ? 0.0 : 1.0;
 
-                double vec_1_norm = vec_1.norm();
-                double vec_2_norm = vec_2.norm();
-                double w1 = vec_2_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
-                double w2 = vec_1_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
-                Eigen::Vector2d weighted_circulation_sum = w1*c1 + w2*c2;
+                //double vec_1_norm = vec_1.norm();
+                //double vec_2_norm = vec_2.norm();
+                //double w1 = vec_2_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
+                //double w2 = vec_1_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
+                Eigen::Vector2d weighted_circulation_sum = c1 + c2;
                 Eigen::Vector2d circulation_field = coeffs * weighted_circulation_sum / weighted_circulation_sum.norm();
-                Eigen::Vector2d attraction_field = 0.5 * sub_goal_vec / sub_goal_vec.norm();
-                //std::cout << "inte_t: " << t << std::endl;
+                Eigen::Vector2d attraction_field = sub_goal_vec / sub_goal_vec.norm();
+                // std::cout << "inte_t: " << t << std::endl;
                 //std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
                 //std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
                 //std::cout << "left weight: " << w2 << ", left circulation component: (" << c2[0] << ", " << c2[1] << "), right weight: " << w1 << ", right circulation component: (" << c1[0] << ", " << c1[1] << ")" << std::endl;  
-                //std::cout << "circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")" << std::endl;
+                // std::cout << "circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")" << std::endl;
                 //std::cout << "robot to goal: (" << goal_vec[0] << ", " << goal_vec[1] << ")" << std::endl;
-                //std::cout << "attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")" << std::endl;
+                // std::cout << "attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")" << std::endl;
                 vel_des = circulation_field + attraction_field;
             }
-
+            vel_des = clip_velocities(vel_des[0], vel_des[1], v_lin_max);
             Eigen::Vector2d acc(K_acc*(vel_des(0) - x[2]), K_acc*(vel_des(1) - x[3]));
+            acc = clip_velocities(acc[0], acc[1], a_lin_max);
 
             dxdt[0] = x[2];
             dxdt[1] = x[3];

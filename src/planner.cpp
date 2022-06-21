@@ -215,8 +215,6 @@ namespace dynamic_gap
         associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        // need to have here for models
-        gapvisualizer->drawGapsModels(associated_observed_gaps);
         // ROS_INFO_STREAM("Time elapsed after drawing models: " << (ros::WallTime::now().toSec() - start_time));
 
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
@@ -320,6 +318,7 @@ namespace dynamic_gap
     
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
+        updateTF();
         //double curr_time = ros::WallTime::now().toSec();
         //std::cout << "pose rate: " << 1.0 / (curr_time - prev_pose_time) << std::endl;
         //prev_pose_time = curr_time;
@@ -498,14 +497,6 @@ namespace dynamic_gap
             gapManip->inflateGapSides(manip_set.at(i), true); // inflate gap radially
             gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
-
-
-            /*
-            if (curr_raw_gaps.size() > 0) {
-                trajArbiter->recoverDynamicEgoCircle(0.0, manip_set.at(i).gap_lifespan, curr_raw_gaps, dynamic_laser_scan);
-            }
-            dynamic_laser_scan.range_min = *std::min_element(dynamic_laser_scan.ranges.begin(), dynamic_laser_scan.ranges.end());
-            */
             
             
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
@@ -516,6 +507,7 @@ namespace dynamic_gap
             gapManip->inflateGapSides(manip_set.at(i), false); // inflate gap radially
             gapManip->radialExtendGap(manip_set.at(i), false); // extend behind robot
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal()); // incorporating dynamic gap type
+            
         }
 
         return manip_set;
@@ -745,11 +737,7 @@ namespace dynamic_gap
                 return incoming;
             }
 
-            //bool left_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentLeftGapIndex());
-            //bool right_index_count = std::count(feasible_gap_model_indices.begin(), feasible_gap_model_indices.end(), getCurrentRightGapIndex());
-            // std::cout << "left index count: " << left_index_count << ", right index count: " << right_index_count << std::endl; 
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
-            
             bool curr_gap_feasible;
             for (dynamic_gap::Gap g : feasible_gaps) {
                 if (g.left_model->get_index() == getCurrentLeftGapIndex() && g.right_model->get_index() == getCurrentRightGapIndex()) {
@@ -973,8 +961,8 @@ namespace dynamic_gap
         //std::cout << "pulled current simplified associations:" << std::endl;
         //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
         
-        ROS_INFO_STREAM("current raw gaps:");
-        printGapModels(curr_raw_gaps);
+        // ROS_INFO_STREAM("current raw gaps:");
+        // printGapModels(curr_raw_gaps);
 
         ROS_INFO_STREAM("current simplified gaps:");
         printGapModels(curr_observed_gaps);
@@ -992,53 +980,21 @@ namespace dynamic_gap
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
             }
         }
-
-        // I am putting these here because running them in the call back gets a bit exhaustive
-        // ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
-        gapvisualizer->drawGaps(curr_raw_gaps, std::string("raw"));
-        // ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
-        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
-
         return feasible_gap_set;
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         double getPlan_start_time = ros::WallTime::now().toSec();
-        updateTF();
 
         // ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
         // ROS_INFO_STREAM("time elapsed after gapSetFeasibilityCheck: " << ros::WallTime::now().toSec() - getPlan_start_time);
 
-        //std::vector<dynamic_gap::Gap> feasible_gap_set = associated_observed_gaps;
-        //std::cout << "FINISHED GAP FEASIBILITY CHECK" << std::endl;
-
         // ROS_INFO_STREAM("starting gapManipulate");        
         auto manip_gap_set = gapManipulate(feasible_gap_set);
+        visualizeComponents(manip_gap_set);
+
         // ROS_INFO_STREAM("time elapsed after gapManipulate: " << ros::WallTime::now().toSec() - getPlan_start_time);
-
-
-        //std::cout << "FINISHED GAP MANIPULATE" << std::endl;
-
-        /*
-        std::cout << "SIMPLIFIED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
-        for (size_t i = 0; i < feasible_gap_set.size(); i++)
-        {
-            std::cout << "gap " << i << " initial: ";
-            feasible_gap_set[i].printCartesianPoints(true, true);
-            std::cout << "gap " << i << " terminal: ";
-            feasible_gap_set[i].printCartesianPoints(false, true);
-        } 
-
-        std::cout << "MANIPULATED INITIAL AND TERMINAL POINTS FOR FEASIBLE GAPS" << std::endl;
-        for (size_t i = 0; i < manip_gap_set.size(); i++)
-        {
-            std::cout << "gap " << i << " initial: ";
-            manip_gap_set[i].printCartesianPoints(false, true);
-            std::cout << "gap " << i << " terminal: ";
-            manip_gap_set[i].printCartesianPoints (false, false);
-        } 
-        */
 
         // ROS_INFO_STREAM("starting initialTrajGen");
         std::vector<geometry_msgs::PoseArray> traj_set;
@@ -1066,10 +1022,6 @@ namespace dynamic_gap
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
         }
-        gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
-        gapvisualizer->drawReachableGaps(manip_gap_set);        
-        goalvisualizer->drawGapGoals(manip_gap_set);
-
         // ROS_INFO_STREAM("starting compareToOldTraj");
         // start_time = ros::WallTime::now().toSec();
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
@@ -1077,6 +1029,24 @@ namespace dynamic_gap
         
         // ROS_INFO_STREAM("getPlan time elapsed: " << ros::WallTime::now().toSec() - getPlan_start_time);
         return final_traj;
+    }
+
+    void Planner::visualizeComponents(std::vector<dynamic_gap::Gap> manip_gap_set) {
+        boost::mutex::scoped_lock gapset(gapset_mutex);
+        //std::cout << "PULLING MODELS TO ACT ON" << std::endl;
+        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
+        std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
+        
+        // ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
+        gapvisualizer->drawGaps(curr_raw_gaps, std::string("raw"));
+        // ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
+        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
+        // need to have here for models
+        gapvisualizer->drawGapsModels(curr_observed_gaps);
+
+        gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
+        gapvisualizer->drawReachableGaps(manip_gap_set);        
+        goalvisualizer->drawGapGoals(manip_gap_set);
     }
 
     void Planner::printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association) {

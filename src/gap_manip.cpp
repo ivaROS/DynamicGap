@@ -375,7 +375,7 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("pre-AGC gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         ROS_INFO_STREAM("pre-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
         
-        bool left = initial ? gap.isLeftType() : gap.isTerminalLeftType();
+        bool left = gap.isLeftType(initial);
         // Extend of rotation to the radial gap 
         // amp-ed by a **small** ratio to ensure the local goal does not exactly fall on the visibility line
         // we are pivoting around the closer point?
@@ -500,7 +500,7 @@ namespace dynamic_gap {
         auto farside_iter = std::min_element(dist.begin(), dist.end());
         float min_dist = *farside_iter;
 
-        ROS_INFO_STREAM("min dist: " << min_dist);         
+        ROS_INFO_STREAM("from " << init_search_idx << " to " << final_search_idx << ", min dist of " << min_dist << " at " << init_search_idx + std::distance(dist.begin(), farside_iter));         
 
         // pivoting around near point, pointing towards far point or something?
         Eigen::Matrix3f far_near = near_rbt.inverse() * far_rbt;

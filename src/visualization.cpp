@@ -32,6 +32,11 @@ namespace dynamic_gap{
         std::vector<std_msgs::ColorRGBA> manip_initial;
         std::vector<std_msgs::ColorRGBA> manip_terminal;
 
+        prev_num_gaps = 0;
+        prev_num_reachable_gaps = 0;
+        prev_num_manip_gaps = 0;
+        prev_num_models = 0;
+
         // Raw Therefore Alpha halved
         // RAW: RED
         // RAW RADIAL
@@ -201,13 +206,20 @@ namespace dynamic_gap{
             ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
             return;
         }        
-        this_marker.colors = color_value->second;
+
+        std::vector<std_msgs::ColorRGBA> color_values(2*num_curve_points, color_value->second[0]);
+        this_marker.colors = color_values;
         this_marker.scale.x = 0.05;
         this_marker.scale.y = 0.05;
         // this_marker.scale.z = 0.1;
 
         int id = (int) vis_arr.markers.size();
         double s;
+        geometry_msgs::Point linel;
+        geometry_msgs::Point liner;
+        std::vector<geometry_msgs::Point> lines;
+
+        lines.clear();
         for (double i = 0; i < num_curve_points; i++) {
             s = (i + 1.0) / num_curve_points;
             //ROS_INFO_STREAM("i: " << i << ", s: " << s);
@@ -218,39 +230,36 @@ namespace dynamic_gap{
             Eigen::Vector2d left_pt = pos_val0 * gap_origin + pos_val1*weighted_left_pt + pos_val2*left_pt_1;
             Eigen::Vector2d right_pt = pos_val0 * gap_origin + pos_val1*weighted_right_pt + pos_val2*right_pt_1;
             
-            geometry_msgs::Point linel;
-            geometry_msgs::Point liner;
-            std::vector<geometry_msgs::Point> lines;
-
-            lines.clear();
+            
             linel.x = left_pt[0];
             linel.y = left_pt[1];
+            this_marker.points.push_back(linel);
 
             liner.x = right_pt[0];
             liner.y = right_pt[1];
-            lines.push_back(linel);
-            lines.push_back(liner);
-
-            this_marker.points = lines;
-            this_marker.id = id++;
-            this_marker.lifetime = ros::Duration(0.2);
-
-            vis_arr.markers.push_back(this_marker);       
+            this_marker.points.push_back(liner);
         }
+
+
+        this_marker.id = id;
+        this_marker.lifetime = ros::Duration(100.0);
+
+        vis_arr.markers.push_back(this_marker);           
     }
 
     void GapVisualizer::drawReachableGaps(std::vector<dynamic_gap::Gap> g) {
         if (!cfg_->gap_viz.debug_viz) return;
-
-        // First, clearing topic.
+        
         visualization_msgs::MarkerArray clear_arr;
         visualization_msgs::Marker clear_marker;
         clear_marker.id = 0;
         clear_marker.ns = "clear";
         clear_marker.action = visualization_msgs::Marker::DELETEALL;
         clear_arr.markers.push_back(clear_marker);
-        gaparc_publisher.publish(clear_arr);
+        reachable_gap_publisher.publish(clear_arr);
 
+        // First, clearing topic.
+        
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : g) {
             drawReachableGap(vis_arr, gap);
@@ -357,7 +366,7 @@ namespace dynamic_gap{
 
             this_marker.points = lines;
             this_marker.id = id++;
-            this_marker.lifetime = ros::Duration(0.2);
+            this_marker.lifetime = ros::Duration(100.0);
 
             vis_arr.markers.push_back(this_marker);
         }
@@ -373,7 +382,7 @@ namespace dynamic_gap{
         lines.push_back(liner);
         this_marker.points = lines;
         this_marker.id = id++;
-        this_marker.lifetime = ros::Duration(0.2);
+        this_marker.lifetime = ros::Duration(100.0);
         vis_arr.markers.push_back(this_marker);
     }
     
@@ -448,7 +457,7 @@ namespace dynamic_gap{
         left_model_pt.color.a = 1.0;
         left_model_pt.color.r = 1.0;
         left_model_pt.color.b = 1.0;
-        left_model_pt.lifetime = ros::Duration(0.2);
+        left_model_pt.lifetime = ros::Duration(100.0);
         model_arr.markers.push_back(left_model_pt);
         visualization_msgs::Marker right_model_pt;
         // std::cout << "model frame: " << g._frame << std::endl;
@@ -469,7 +478,7 @@ namespace dynamic_gap{
         right_model_pt.color.a = 1.0;
         right_model_pt.color.r = 1.0;
         right_model_pt.color.b = 1.0;
-        right_model_pt.lifetime = ros::Duration(0.2);
+        right_model_pt.lifetime = ros::Duration(100.0);
         model_arr.markers.push_back(right_model_pt);
 
         visualization_msgs::Marker left_model_vel_pt;
@@ -497,7 +506,7 @@ namespace dynamic_gap{
         left_model_vel_pt.color.a = 1.0;
         left_model_vel_pt.color.r = 1.0;
         left_model_vel_pt.color.b = 1.0;
-        left_model_vel_pt.lifetime = ros::Duration(0.2);
+        left_model_vel_pt.lifetime = ros::Duration(100.0);
         gap_vel_arr.markers.push_back(left_model_vel_pt);
         // std::cout << "left velocity end point: " << left_vel_pt.x << ", " << left_vel_pt.y << std::endl;
 
@@ -525,7 +534,7 @@ namespace dynamic_gap{
         right_model_vel_pt.color.a = 1.0;
         right_model_vel_pt.color.r = 1.0;
         right_model_vel_pt.color.b = 1.0;
-        right_model_vel_pt.lifetime = ros::Duration(0.2);
+        right_model_vel_pt.lifetime = ros::Duration(100.0);
         gap_vel_arr.markers.push_back(right_model_vel_pt);
         // std::cout << "right velocity end point: " << right_vel_pt.x << ", " << right_vel_pt.y << std::endl;
     }
@@ -629,7 +638,7 @@ namespace dynamic_gap{
         int id = (int) vis_arr.markers.size();
         // ROS_INFO_STREAM("ID: "<< id);
 
-        this_marker.lifetime = ros::Duration(0.2);
+        this_marker.lifetime = ros::Duration(100.0);
 
         for (int i = 0; i < num_segments - 1; i++)
         {
@@ -659,7 +668,7 @@ namespace dynamic_gap{
         this_marker.scale.x = thickness;
         this_marker.points = lines;
         this_marker.id = id++;
-        this_marker.lifetime = ros::Duration(0.2);
+        this_marker.lifetime = ros::Duration(100.0);
         vis_arr.markers.push_back(this_marker);
         
         // MAX: removing just for visualizing
@@ -688,7 +697,7 @@ namespace dynamic_gap{
                     this_marker.points = lines;
                     this_marker.colors = convex_color; //convex_color;
                     this_marker.id = id++;
-                    this_marker.lifetime = ros::Duration(0.2);
+                    this_marker.lifetime = ros::Duration(100.0);
                     vis_arr.markers.push_back(this_marker);
                 }
                 circle = true;
@@ -717,7 +726,7 @@ namespace dynamic_gap{
                                     this_marker.points = lines;
                                     this_marker.colors = convex_color;
                                     this_marker.id = id;
-                                    this_marker.lifetime = ros::Duration(0.2);
+                                    this_marker.lifetime = ros::Duration(100.0);
                                     vis_arr.markers.push_back(this_marker);
                                 };
 
@@ -851,7 +860,7 @@ namespace dynamic_gap{
         lg_marker.color.r = 1;
         lg_marker.color.g = 1;
         lg_marker.color.b = 1;
-        lg_marker.lifetime = ros::Duration(0.2);
+        lg_marker.lifetime = ros::Duration(100.0);
 
 
         ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
@@ -909,7 +918,7 @@ namespace dynamic_gap{
         lg_marker.color.a = 1;
         lg_marker.color.b = 1.0;
         lg_marker.color.g = 1.0;
-        lg_marker.lifetime = ros::Duration(0.2);
+        lg_marker.lifetime = ros::Duration(100.0);
 
         for (auto & arr : prr) {
             for (auto pose : arr.poses) {
@@ -990,7 +999,7 @@ namespace dynamic_gap{
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;
         lg_marker.scale.z = 0.1;
-        lg_marker.lifetime = ros::Duration(0.2);
+        lg_marker.lifetime = ros::Duration(100.0);
         vis_arr.markers.push_back(lg_marker);
     }
 
