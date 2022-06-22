@@ -749,15 +749,16 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("left_pos: " << abs_left_pos[0] << ", " << abs_left_pos[1]);            
             // ROS_INFO_STREAM("right_pos: " << abs_right_pos[0] << ", " << abs_right_pos[1]);
             // ROS_INFO_STREAM("goal_pos: " << abs_goal_pos[0] << ", " << abs_goal_pos[1]);            
-            
+            /*
             int left_idx = (int) half_num_scan*std::atan2(abs_left_pos[1], abs_left_pos[0]) / M_PI + half_num_scan;
             int right_idx = (int) half_num_scan*std::atan2(abs_right_pos[1], abs_right_pos[0]) / M_PI + half_num_scan;
             int rbt_idx = (int) half_num_scan*std::atan2(rbt[1], rbt[0]) / M_PI + half_num_scan;
+            
             if (left_idx < rbt_idx || right_idx > rbt_idx) {
                 ROS_INFO_STREAM("potential exit at " << t);
                 ROS_INFO_STREAM("rbt_idx: " << rbt_idx << ", left_idx: " << left_idx << ", right_idx: " << right_idx);
             }
-            
+            */
             // APF
             rg = rel_goal_pos.norm();
             theta_right = atan2(abs_right_pos[1], abs_right_pos[0]);
