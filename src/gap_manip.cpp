@@ -401,7 +401,7 @@ namespace dynamic_gap {
             gap.pivoted_left = true;
         }
 
-        // ROS_INFO_STREAM( "near point in polar: " << near_idx << ", " << near_dist << ", far point in polar: " << far_idx << ", " << far_dist);
+        ROS_INFO_STREAM( "near point in polar: " << near_idx << ", " << near_dist << ", far point in polar: " << far_idx << ", " << far_dist);
         
         Eigen::Matrix3f rot_mat;
         // rot_mat: SE(3) matrix that represents desired rotation amount
@@ -448,9 +448,12 @@ namespace dynamic_gap {
         int init_search_idx = left ? ridx : idx;
         // upperbound: pivoted right index or original left  
         int final_search_idx = left ? idx : lidx;
-        // ROS_INFO_STREAM("init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx);
-        int size = final_search_idx - init_search_idx; // Max: changed
+        int size = std::abs(final_search_idx - init_search_idx); // Max: changed
+        ROS_INFO_STREAM("init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx);
 
+        if (final_search_idx < init_search_idx) {
+            ROS_INFO_STREAM("convert axial gap for behind gap");
+        }
 
         if (size < 3) {
             // Arbitrary value
@@ -468,8 +471,8 @@ namespace dynamic_gap {
         final_search_idx = std::min(final_search_idx, num_of_scan - 1);
 
         // ROS_INFO_STREAM("wrapped init_search_idx: " << init_search_idx << ", wrapped final_search_idx: " << final_search_idx);
-        size = final_search_idx - init_search_idx;
-        std::vector<float> dist(final_search_idx - init_search_idx);
+        size = std::abs(final_search_idx - init_search_idx);
+        std::vector<float> dist(size);
 
         if (size == 0) {
             // This shouldn't happen
@@ -484,13 +487,13 @@ namespace dynamic_gap {
         // using the law of cosines to find the index between init/final indices
         // that's shortest distance between near point and laser scan
         float range;
-        float max_range = 5.0;
         try{
             for (int i = 0; i < dist.size(); i++) {
                 //ROS_INFO_STREAM('stored scan msg range: ' << stored_scan_msgs.ranges.at(i + init_search_idx));
-                range = stored_scan_msgs.ranges.at(i + init_search_idx);
+                int check_idx = (i + init_search_idx) % int(2 * gap.half_scan);
+                range = stored_scan_msgs.ranges.at(check_idx);
                 dist.at(i) = sqrt(pow(near_dist, 2) + pow(range, 2) -
-                    2 * near_dist * range * cos((i + init_search_idx - near_idx) * stored_scan_msgs.angle_increment));
+                    2 * near_dist * range * cos((check_idx - near_idx) * stored_scan_msgs.angle_increment));
                 //ROS_INFO_STREAM( "dist at " << i << ": " << dist.at(i) << std::endl;
             }
         } catch(...) {

@@ -53,15 +53,19 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
         Matrix<double, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
 
-        double left_betadot = frozen_left_model_state[3];
-        double right_betadot = frozen_right_model_state[3];
+        double frozen_left_betadot = frozen_left_model_state[3];
+        double frozen_right_betadot = frozen_right_model_state[3];
+
+        ROS_INFO_STREAM("frozen_left_betadot: " << frozen_left_betadot);
+        ROS_INFO_STREAM("frozen_right_betadot: " << frozen_right_betadot);
+
         // double start_time = ros::Time::now().toSec();
         double crossing_time = gapSplinecheck(gap, left_model, right_model);
         // ROS_INFO_STREAM("gapSplinecheck time elapsed:" << ros::Time::now().toSec() - start_time);
 
-        double min_betadot = std::min(left_betadot, right_betadot);
-        double subtracted_left_betadot = left_betadot - min_betadot;
-        double subtracted_right_betadot = right_betadot - min_betadot;
+        double min_betadot = std::min(frozen_left_betadot, frozen_right_betadot);
+        double subtracted_left_betadot = frozen_left_betadot - min_betadot;
+        double subtracted_right_betadot = frozen_right_betadot - min_betadot;
 
         if (gap.artificial) {
             feasible = true;
@@ -69,15 +73,18 @@ namespace dynamic_gap {
             gap.setTerminalPoints(gap.LIdx(), gap.LDist(), gap.RIdx(), gap.RDist());
         } else if (subtracted_left_betadot > 0) {
             // expanding
+            ROS_INFO_STREAM("gap is expanding");
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setCategory("expanding");
-        } else if (subtracted_left_betadot == 0) {
+        } else if (subtracted_left_betadot == 0 && subtracted_right_betadot == 0) {
             // static
+            ROS_INFO_STREAM("gap is static");
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setCategory("static");
         } else {
+            ROS_INFO_STREAM("gap is closing");
             if (crossing_time >= 0) {
                 feasible = true;
                 gap.gap_lifespan = crossing_time;
@@ -115,9 +122,11 @@ namespace dynamic_gap {
         Eigen::Vector2f starting_vel(left_model->get_v_ego()[0], left_model->get_v_ego()[1]);
         
         Eigen::Vector2f ending_vel(0.0, 0.0);
+        /*
         if (crossing_pt.norm() > 0) {
             ending_vel << starting_vel.norm() * crossing_pt[0] / crossing_pt.norm(), starting_vel.norm() * crossing_pt[1] / crossing_pt.norm();
         } 
+        */
         //std::cout << "starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1] << std::endl;
         //std::cout << "ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1] << std::endl;
         
@@ -134,7 +143,15 @@ namespace dynamic_gap {
         Eigen::Vector4f coeffs = A_x.partialPivLu().solve(b_x);
         // std::cout << "x coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
         double peak_velocity_x = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
-        // std::cout << "peak velocity x: " << peak_velocity_x << std::endl;
+        /*
+        ROS_INFO_STREAM("peak velocity x: " << peak_velocity_x);
+        double vel_x;
+        for (double t = 0.0; t < crossing_time; t += (crossing_time / 15)) {
+            vel_x = 3*coeffs[3]*pow(t, 2) + 2*coeffs[2]*t + coeffs[1];
+            ROS_INFO_STREAM("at time " << t << ", x velocity is: " << vel_x);
+        }
+        */
+        
         Eigen::MatrixXf A_y = MatrixXf::Random(4,4);
         Eigen::VectorXf b_y = VectorXf::Random(4);
         A_y << 1.0, 0.0, 0.0, 0.0,
@@ -148,9 +165,9 @@ namespace dynamic_gap {
         coeffs = A_y.partialPivLu().solve(b_y);
         //std::cout << "y coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
         double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
-        //std::cout << "peak velocity: " << peak_velocity_x << ", " << peak_velocity_y << std::endl;
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
+        ROS_INFO_STREAM("peak velocity: " << peak_velocity_x << ", " << peak_velocity_y);
         if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= (0.5 * cfg_->control.vx_absmax)) {
             return crossing_time;
         } else {
@@ -196,8 +213,8 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
         Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
 
-        // ROS_INFO_STREAM("starting frozen left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
-        // ROS_INFO_STREAM("starting frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
+        ROS_INFO_STREAM("starting frozen cartesian left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
+        ROS_INFO_STREAM("starting frozen cartesian right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
 
         // double beta_left, beta_right, beta_center;
        
