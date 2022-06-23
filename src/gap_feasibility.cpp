@@ -168,7 +168,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
         ROS_INFO_STREAM("peak velocity: " << peak_velocity_x << ", " << peak_velocity_y);
-        if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= (0.5 * cfg_->control.vx_absmax)) {
+        if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
             return crossing_time;
         } else {
             return -1.0;
