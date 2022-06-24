@@ -900,7 +900,10 @@ namespace dynamic_gap
         }
 
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, stored_scan_msgs, rbt_in_cam_lc);
+        auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
+                                                  stored_scan_msgs, rbt_in_cam_lc,
+                                                  current_rbt_vel, rbt_accel,
+                                                  curr_left_model, curr_right_model);
         //geometry_msgs::Twist cmd_vel;
         //cmd_vel.linear.x = 0.25;
         return cmd_vel;

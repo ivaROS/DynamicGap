@@ -26,11 +26,14 @@ namespace dynamic_gap {
         public:
 
             TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            geometry_msgs::Twist controlLaw(geometry_msgs::Pose, nav_msgs::Odometry, sensor_msgs::LaserScan, geometry_msgs::PoseStamped);
+            geometry_msgs::Twist controlLaw(geometry_msgs::Pose current, nav_msgs::Odometry desired,
+                                            sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
+                                            geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
+                                            dynamic_gap::cart_model * curr_left_model, dynamic_gap::cart_model * curr_right_model);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
             int targetPoseIdx(geometry_msgs::Pose curr_pose, dynamic_gap::TrajPlan ref_pose);
             dynamic_gap::TrajPlan trajGen(geometry_msgs::PoseArray);
-
+            
         private:
             Eigen::Matrix2cd getComplexMatrix(double, double, double, double);
             Eigen::Matrix2cd getComplexMatrix(double, double, double);
@@ -45,6 +48,18 @@ namespace dynamic_gap {
 
             Eigen::Vector2d car2pol(Eigen::Vector2d a);
             Eigen::Vector2d pol2car(Eigen::Vector2d a);
+            void run_projection_operator(sensor_msgs::LaserScan inflated_egocircle,  geometry_msgs::PoseStamped rbt_in_cam_lc,
+                                         Eigen::Vector2d cmd_vel_fb, Eigen::Vector2d & Psi_der,
+                                         double & Psi, float & cmd_vel_x_safe, float & cmd_vel_y_safe,
+                                         float & min_dist_ang, float & min_dist);
+            void run_bearing_rate_barrier_function(Eigen::Vector4d state, 
+                                                   Eigen::Vector4d left_rel_model, Eigen::Vector4d right_rel_model,
+                                                   Eigen::Vector2d rbt_accel, float & cmd_vel_x_safe, float & cmd_vel_y_safe);
+            double cbf_left(Eigen::Vector4d left_rel_model);
+            Eigen::Vector4d cbf_partials_left(Eigen::Vector4d left_rel_model);
+            double cbf_right(Eigen::Vector4d right_rel_model);
+            Eigen::Vector4d cbf_partials_right(Eigen::Vector4d right_rel_model);
+
             Eigen::Vector3d projection_method(float min_diff_x, float min_diff_y);
 
             double thres;

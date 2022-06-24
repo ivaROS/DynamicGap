@@ -136,8 +136,10 @@ namespace dynamic_gap{
 
     geometry_msgs::Twist TrajectoryController::controlLaw(
         geometry_msgs::Pose current, nav_msgs::Odometry desired,
-        sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc
-    ) {
+        sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
+        geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
+        dynamic_gap::cart_model * curr_left_model, dynamic_gap::cart_model * curr_right_model) {
+        
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
         bool holonomic = cfg_->planning.holonomic;
@@ -151,9 +153,6 @@ namespace dynamic_gap{
         float v_ang_const = cfg_->control.v_ang_const;
         float v_lin_x_const = cfg_->control.v_lin_x_const;
         float v_lin_y_const = cfg_->control.v_lin_y_const;
-        float r_min = cfg_->projection.r_min;
-        float r_norm = cfg_->projection.r_norm;
-        float r_norm_offset = cfg_->projection.r_norm_offset; 
         float k_po_turn_ = cfg_->projection.k_po_turn;
 
         // ROS_INFO_STREAM("r_min: " << r_min);
@@ -196,9 +195,6 @@ namespace dynamic_gap{
         float x_error = g_error.real()(0, 1);
         float y_error = g_error.imag()(0, 1);
 
-
-        float cmd_vel_x_safe = 0;
-        float cmd_vel_y_safe = 0;
         double v_ang_fb = 0;
         double v_lin_x_fb = 0;
         double v_lin_y_fb = 0;
@@ -217,16 +213,10 @@ namespace dynamic_gap{
 
         ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
 
+        // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
         float min_dist_ang = 0;
         float min_dist = 0;
 
-        float min_diff_x = 0;
-        float min_diff_y = 0;
-
-        // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
-        
-        Eigen::Vector3d comp;
-        double PO_dot_prod_check;
         Eigen::Vector2d Psi_der;
         double Psi;
         Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
@@ -237,182 +227,21 @@ namespace dynamic_gap{
         }
 
         // applies PO
+        float cmd_vel_x_safe = 0;
+        float cmd_vel_y_safe = 0;
         if(projection_operator)
         {
-            // iterates through current egocircle and finds the minimum distance to the robot's pose
-            ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
-            std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
-            for (int i = 0; i < min_dist_arr.size(); i++) {
-                float angle = i * inflated_egocircle.angle_increment - M_PI;
-                float dist = inflated_egocircle.ranges.at(i);
-                min_dist_arr.at(i) = dist2Pose(angle, dist, rbt_in_cam_lc.pose);
-            }
-            int min_idx = std::min_element( min_dist_arr.begin(), min_dist_arr.end() ) - min_dist_arr.begin();
-
-            // ROS_INFO_STREAM("Local Line Start");
-            std::vector<geometry_msgs::Point> vec = findLocalLine(min_idx);
-            // ROS_INFO_STREAM("Local Line End");
             /*
-            if (vec.size() > 1) {
-                // Visualization and Recenter
-                vec.at(0).x -= rbt_in_cam_lc.pose.position.x;
-                vec.at(0).y -= rbt_in_cam_lc.pose.position.y;
-                vec.at(1).x -= rbt_in_cam_lc.pose.position.x;
-                vec.at(1).y -= rbt_in_cam_lc.pose.position.y;
-
-                std::vector<std_msgs::ColorRGBA> color;
-                std_msgs::ColorRGBA std_color;
-                std_color.a = 1;
-                std_color.r = 1;
-                std_color.g = 0.1;
-                std_color.b = 0.1;
-                color.push_back(std_color);
-                color.push_back(std_color);
-                visualization_msgs::Marker line_viz;
-                line_viz.header.frame_id = cfg_->robot_frame_id;
-                line_viz.type = visualization_msgs::Marker::LINE_STRIP;
-                line_viz.action = visualization_msgs::Marker::ADD;
-                line_viz.points = vec;
-                line_viz.colors = color;
-                line_viz.scale.x = 0.01;
-                line_viz.scale.y = 0.1;
-                line_viz.scale.z = 0.1;
-                line_viz.id = 10;
-                projection_viz.publish(line_viz);
-            }
+            run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
+                                    cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
+                                    min_dist_ang, min_dist);
             */
-
-            // ROS_DEBUG_STREAM("Elapsed: " << (ros::Time::now() - last_time).toSec());
-            last_time = ros::Time::now();
-            float r_max = r_norm + r_norm_offset;
-            min_dist = (float) min_dist_arr.at(min_idx);
-            min_dist = min_dist >= r_max ? r_max : min_dist;
-            if (min_dist <= 0) 
-                ROS_INFO_STREAM("Min dist <= 0, : " << min_dist);
-            min_dist = min_dist <= 0 ? 0.01 : min_dist;
-            // min_dist -= cfg_->rbt.r_inscr / 2;
-
-            // find minimum ego circle distance
-            min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
-            float min_x = min_dist * std::cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
-            float min_y = min_dist * std::sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
-            min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));
-            ROS_INFO_STREAM("min_dist_idx: " << min_idx << ", min_dist_ang: "<< min_dist_ang << ", min_dist: " << min_dist);
-            ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
-
-            if (cfg_->man.line && vec.size() > 0) {
-                // Dist to 
-                Eigen::Vector2d pt1(vec.at(0).x, vec.at(0).y);
-                Eigen::Vector2d pt2(vec.at(1).x, vec.at(1).y);
-                Eigen::Vector2d rbt(0, 0);
-                Eigen::Vector2d a = rbt - pt1;
-                Eigen::Vector2d b = pt2 - pt1;
-                Eigen::Vector2d c = rbt - pt2;
-                
-                if (a.dot(b) < 0) { // Pt 1 is closer than pt 2
-                    // ROS_INFO_STREAM("Pt1");
-                    min_diff_x = - pt1(0);
-                    min_diff_y = - pt1(1);
-                    comp = projection_method(min_diff_x, min_diff_y);
-                    Psi_der = Eigen::Vector2d(comp(0), comp(1));
-                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-                } else if (c.dot(-b) < 0) { // Pt 2 is closer than pt 1
-                    min_diff_x = - pt2(0);
-                    min_diff_y = - pt2(1);
-                    comp = projection_method(min_diff_x, min_diff_y);
-                    Psi_der = Eigen::Vector2d(comp(0), comp(1));
-                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-                } else { // pt's are equidistant
-                    double line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
-                    double sign;
-                    sign = line_dist < 0 ? -1 : 1;
-                    line_dist *= sign;
-                    
-                    double line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
-                    double line_Psi_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
-                    double line_Psi_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_Psi_der_base;
-                    double line_Psi_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_Psi_der_base;
-                    Eigen::Vector2d der(line_Psi_der_x, line_Psi_der_y);
-                    der /= der.norm();
-                    comp = Eigen::Vector3d(der(0), der(1), line_si);
-                    Psi_der = der;
-                    // Psi_der(1);// /= 3;
-                    PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-                }
-
-            } else {
-                min_diff_x = - min_x;
-                min_diff_y = - min_y;
-                comp = projection_method(min_diff_x, min_diff_y); // return Psi, and Psi_der
-                Psi_der = Eigen::Vector2d(comp(0), comp(1));
-                // Psi_der(1);// /= 3; // deriv wrt y?
-                PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
-            }
-            ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
-
-            Psi = comp(2);
-
-            ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
-            if(Psi >= 0 && PO_dot_prod_check >= 0)
-            {
-                cmd_vel_x_safe = - Psi * PO_dot_prod_check * comp(0);
-                cmd_vel_y_safe = - Psi * PO_dot_prod_check * comp(1);
-                ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
-            }
-
-            // cmd_vel_safe
-            if (cmd_vel_x_safe != 0 || cmd_vel_y_safe != 0) {
-                visualization_msgs::Marker res;
-                res.header.frame_id = cfg_->robot_frame_id;
-                res.type = visualization_msgs::Marker::ARROW;
-                res.action = visualization_msgs::Marker::ADD;
-                res.pose.position.x = 0;
-                res.pose.position.y = 0;
-                res.pose.position.z = 0.5;
-                double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
-                tf2::Quaternion dir_quat;
-                dir_quat.setRPY(0, 0, dir);
-                res.pose.orientation = tf2::toMsg(dir_quat);
-
-                res.scale.x = sqrt(pow(cmd_vel_y_safe, 2) + pow(cmd_vel_x_safe, 2));
-                res.scale.y = 0.01;  
-                res.scale.z = 0.01;
-                
-                res.color.a = 1;
-                res.color.r = 0.0;
-                res.color.g = 0.0;
-                res.color.b = 0.0;
-                res.id = 0;
-                res.lifetime = ros::Duration(0.1);
-                projection_viz.publish(res);
-            }
-
-            /*
-            // Min Direction
-            res.header.frame_id = cfg_->sensor_frame_id;
-            res.scale.x = 1;
-            dir_quat.setRPY(0, 0, min_dist_ang);
-            res.pose.orientation = tf2::toMsg(dir_quat);
-            res.id = 1;
-            res.color.a = 0.5;
-            res.pose.position.z = 0.9;
-            projection_viz.publish(res);
-            */
-            /*
-            res.header.frame_id = cfg_->robot_frame_id;
-            res.type = visualization_msgs::Marker::SPHERE;
-            res.action = visualization_msgs::Marker::ADD;
-            res.pose.position.x = -min_diff_x;
-            res.pose.position.y = -min_diff_y;
-            res.pose.position.z = 1;
-            res.scale.x = 0.1;
-            res.scale.y = 0.1;
-            res.scale.z = 0.1;
-            res.id = 2;
-            // res.color.a = 0.5;
-            // res.pose.position.z = 0.9;
-            projection_viz.publish(res);
-            */
+            Eigen::Vector4d state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
+            Eigen::Vector4d left_rel_model = curr_right_model->get_cartesian_state(); // flipping
+            Eigen::Vector4d right_rel_model = curr_left_model->get_cartesian_state(); // flipping
+            Eigen::Vector2d current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
+            run_bearing_rate_barrier_function(state, left_rel_model, right_rel_model,
+                                              current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe);
         } else {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
@@ -452,6 +281,288 @@ namespace dynamic_gap{
         cmd_vel.linear.y = std::max(-cfg_->control.vy_absmax, std::min(cfg_->control.vy_absmax, v_lin_y_fb));
         cmd_vel.angular.z = std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
         return cmd_vel;
+    }
+
+    void TrajectoryController::run_bearing_rate_barrier_function(Eigen::Vector4d state, 
+                                                                 Eigen::Vector4d left_rel_model,
+                                                                 Eigen::Vector4d right_rel_model,
+                                                                 Eigen::Vector2d rbt_accel,
+                                                                 float & cmd_vel_x_safe, float & cmd_vel_y_safe) {
+        double h_dyn = 0.0;
+        Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
+        
+        double h_dyn_left = cbf_left(left_rel_model);
+        double h_dyn_right = cbf_right(right_rel_model);
+
+        // need to potentially ignore if gap is non-convex
+        ROS_INFO_STREAM("left rel state: " << left_rel_model[0] << ", " << left_rel_model[1] << ", " << left_rel_model[2] << ", " << left_rel_model[3]);
+        ROS_INFO_STREAM("right rel state: " << right_rel_model[0] << ", " << right_rel_model[1] << ", " << right_rel_model[2] << ", " << right_rel_model[3]);
+
+        ROS_INFO_STREAM("left CBF: " << h_dyn_left << ", right CBF: " << h_dyn_right);
+
+        if (h_dyn_left <= h_dyn_right) { // left less than or equal to right
+            h_dyn = h_dyn_left;
+            d_h_dyn_dx = cbf_partials_left(left_rel_model);
+        } else { // right less than left
+            h_dyn = h_dyn_right;
+            d_h_dyn_dx = cbf_partials_right(right_rel_model);
+        }
+
+        // calculate Psi
+        double cbf_param = 1.0;
+        Eigen::Vector4d d_x_dt(state[2], state[3], rbt_accel[0], rbt_accel[1]);
+        double Psi = d_h_dyn_dx.dot(d_x_dt) + cbf_param * h_dyn;
+        
+        // ROS_INFO_STREAM("h_dyn: " << h_dyn << ", Psi: " << Psi);
+
+        Eigen::Vector2d Lg_h(d_h_dyn_dx[0], d_h_dyn_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
+        Eigen::Vector2d cmd_vel_safe = -(Lg_h * std::min(Psi, 0.0)) / (Lg_h.dot(Lg_h));
+        cmd_vel_x_safe = cmd_vel_safe[0];
+        cmd_vel_y_safe = cmd_vel_safe[1];
+
+        ROS_INFO_STREAM("cmd_vel_safe x: " << cmd_vel_x_safe << ", cmd_vel_safe y: " << cmd_vel_y_safe);
+    }
+
+    double TrajectoryController::cbf_left(Eigen::Vector4d left_rel_model) {
+        // current design: h_left = r*betadot
+        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
+        double betadot = (left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2))/pow(r, 2);
+
+        double h_left = betadot;
+
+        return h_left;
+    }
+
+    Eigen::Vector4d TrajectoryController::cbf_partials_left(Eigen::Vector4d left_rel_model) {
+        // current design: h_left = r*betadot
+        Eigen::Vector4d d_h_left_dx;
+        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
+        double r_v_cross_prod = left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2);
+
+        // derivative with respect to r_ox, r_oy, v_ox, v_oy
+        d_h_left_dx(0) = -left_rel_model(3) / pow(r,2) + 2*left_rel_model(0)*r_v_cross_prod / pow(r, 4);
+        d_h_left_dx(1) =  left_rel_model(2) / pow(r,2) + 2*left_rel_model(1)*r_v_cross_prod / pow(r, 4);
+        d_h_left_dx(2) =  left_rel_model(1) / pow(r,2);
+        d_h_left_dx(3) = -left_rel_model(0) / pow(r,2);
+        return d_h_left_dx;
+    }
+
+    double TrajectoryController::cbf_right(Eigen::Vector4d right_rel_model) {
+        // current design: h_right = -r*betadot
+        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
+        double betadot = (right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2))/pow(r,2);
+        
+        double h_right = - betadot;
+        
+        return h_right;
+    }
+
+    Eigen::Vector4d TrajectoryController::cbf_partials_right(Eigen::Vector4d right_rel_model) {
+        // current design: h_right = -r * betadot
+        Eigen::Vector4d d_h_right_dx;
+        
+        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
+        double r_v_cross_prod = right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2);
+        // derivative with respect to r_ox, r_oy, v_ox, v_oy
+        
+        d_h_right_dx(0) =  right_rel_model(3)/pow(r,2) - 2*right_rel_model(0)*r_v_cross_prod/pow(r,4);
+        d_h_right_dx(1) = -right_rel_model(2)/pow(r,2) - 2*right_rel_model(1)*r_v_cross_prod/pow(r,4);
+        d_h_right_dx(2) = -right_rel_model(1) / pow(r,2);
+        d_h_right_dx(3) =  right_rel_model(0) / pow(r,2);
+
+        return d_h_right_dx;
+    }
+
+    void TrajectoryController::run_projection_operator(sensor_msgs::LaserScan inflated_egocircle, 
+                                                        geometry_msgs::PoseStamped rbt_in_cam_lc,
+                                                        Eigen::Vector2d cmd_vel_fb,
+                                                        Eigen::Vector2d & Psi_der, double & Psi,
+                                                        float & cmd_vel_x_safe, float & cmd_vel_y_safe,
+                                                        float & min_dist_ang, float & min_dist) {
+        Eigen::Vector3d comp;
+        double PO_dot_prod_check;
+
+        float min_diff_x = 0;
+        float min_diff_y = 0;
+
+        float r_min = cfg_->projection.r_min;
+        float r_norm = cfg_->projection.r_norm;
+        float r_norm_offset = cfg_->projection.r_norm_offset; 
+        
+
+        // iterates through current egocircle and finds the minimum distance to the robot's pose
+        ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
+        std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
+        for (int i = 0; i < min_dist_arr.size(); i++) {
+            float angle = i * inflated_egocircle.angle_increment - M_PI;
+            float dist = inflated_egocircle.ranges.at(i);
+            min_dist_arr.at(i) = dist2Pose(angle, dist, rbt_in_cam_lc.pose);
+        }
+        int min_idx = std::min_element( min_dist_arr.begin(), min_dist_arr.end() ) - min_dist_arr.begin();
+
+        // ROS_INFO_STREAM("Local Line Start");
+        // ROS_INFO_STREAM("Local Line End");
+        /*
+        if (vec.size() > 1) {
+            // Visualization and Recenter
+            vec.at(0).x -= rbt_in_cam_lc.pose.position.x;
+            vec.at(0).y -= rbt_in_cam_lc.pose.position.y;
+            vec.at(1).x -= rbt_in_cam_lc.pose.position.x;
+            vec.at(1).y -= rbt_in_cam_lc.pose.position.y;
+
+            std::vector<std_msgs::ColorRGBA> color;
+            std_msgs::ColorRGBA std_color;
+            std_color.a = 1;
+            std_color.r = 1;
+            std_color.g = 0.1;
+            std_color.b = 0.1;
+            color.push_back(std_color);
+            color.push_back(std_color);
+            visualization_msgs::Marker line_viz;
+            line_viz.header.frame_id = cfg_->robot_frame_id;
+            line_viz.type = visualization_msgs::Marker::LINE_STRIP;
+            line_viz.action = visualization_msgs::Marker::ADD;
+            line_viz.points = vec;
+            line_viz.colors = color;
+            line_viz.scale.x = 0.01;
+            line_viz.scale.y = 0.1;
+            line_viz.scale.z = 0.1;
+            line_viz.id = 10;
+            projection_viz.publish(line_viz);
+        }
+        */
+
+        // ROS_DEBUG_STREAM("Elapsed: " << (ros::Time::now() - last_time).toSec());
+        last_time = ros::Time::now();
+        float r_max = r_norm + r_norm_offset;
+        min_dist = (float) min_dist_arr.at(min_idx);
+        min_dist = min_dist >= r_max ? r_max : min_dist;
+        if (min_dist <= 0) 
+            ROS_INFO_STREAM("Min dist <= 0, : " << min_dist);
+        min_dist = min_dist <= 0 ? 0.01 : min_dist;
+        // min_dist -= cfg_->rbt.r_inscr / 2;
+
+        // find minimum ego circle distance
+        min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
+        float min_x = min_dist * std::cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
+        float min_y = min_dist * std::sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
+        min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));
+        ROS_INFO_STREAM("min_dist_idx: " << min_idx << ", min_dist_ang: "<< min_dist_ang << ", min_dist: " << min_dist);
+        ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
+        std::vector<geometry_msgs::Point> vec = findLocalLine(min_idx);
+
+        if (cfg_->man.line && vec.size() > 0) {
+            // Dist to 
+            Eigen::Vector2d pt1(vec.at(0).x, vec.at(0).y);
+            Eigen::Vector2d pt2(vec.at(1).x, vec.at(1).y);
+            Eigen::Vector2d rbt(0, 0);
+            Eigen::Vector2d a = rbt - pt1;
+            Eigen::Vector2d b = pt2 - pt1;
+            Eigen::Vector2d c = rbt - pt2;
+            
+            if (a.dot(b) < 0) { // Pt 1 is closer than pt 2
+                // ROS_INFO_STREAM("Pt1");
+                min_diff_x = - pt1(0);
+                min_diff_y = - pt1(1);
+                comp = projection_method(min_diff_x, min_diff_y);
+                Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
+            } else if (c.dot(-b) < 0) { // Pt 2 is closer than pt 1
+                min_diff_x = - pt2(0);
+                min_diff_y = - pt2(1);
+                comp = projection_method(min_diff_x, min_diff_y);
+                Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
+            } else { // pt's are equidistant
+                double line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
+                double sign;
+                sign = line_dist < 0 ? -1 : 1;
+                line_dist *= sign;
+                
+                double line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
+                double line_Psi_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
+                double line_Psi_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                double line_Psi_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                Eigen::Vector2d der(line_Psi_der_x, line_Psi_der_y);
+                der /= der.norm();
+                comp = Eigen::Vector3d(der(0), der(1), line_si);
+                Psi_der = der;
+                // Psi_der(1);// /= 3;
+                PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
+            }
+        } else {
+            min_diff_x = - min_x;
+            min_diff_y = - min_y;
+            comp = projection_method(min_diff_x, min_diff_y); // return Psi, and Psi_der
+            Psi_der = Eigen::Vector2d(comp(0), comp(1));
+            // Psi_der(1);// /= 3; // deriv wrt y?
+            PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
+        }
+        ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
+
+        Psi = comp(2);
+
+        ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
+        if(Psi >= 0 && PO_dot_prod_check >= 0)
+        {
+            cmd_vel_x_safe = - Psi * PO_dot_prod_check * comp(0);
+            cmd_vel_y_safe = - Psi * PO_dot_prod_check * comp(1);
+            ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
+        }
+
+        // cmd_vel_safe
+        if (cmd_vel_x_safe != 0 || cmd_vel_y_safe != 0) {
+            visualization_msgs::Marker res;
+            res.header.frame_id = cfg_->robot_frame_id;
+            res.type = visualization_msgs::Marker::ARROW;
+            res.action = visualization_msgs::Marker::ADD;
+            res.pose.position.x = 0;
+            res.pose.position.y = 0;
+            res.pose.position.z = 0.5;
+            double dir = std::atan2(cmd_vel_y_safe, cmd_vel_x_safe);
+            tf2::Quaternion dir_quat;
+            dir_quat.setRPY(0, 0, dir);
+            res.pose.orientation = tf2::toMsg(dir_quat);
+
+            res.scale.x = sqrt(pow(cmd_vel_y_safe, 2) + pow(cmd_vel_x_safe, 2));
+            res.scale.y = 0.01;  
+            res.scale.z = 0.01;
+            
+            res.color.a = 1;
+            res.color.r = 0.0;
+            res.color.g = 0.0;
+            res.color.b = 0.0;
+            res.id = 0;
+            res.lifetime = ros::Duration(0.1);
+            projection_viz.publish(res);
+        }
+
+        /*
+        // Min Direction
+        res.header.frame_id = cfg_->sensor_frame_id;
+        res.scale.x = 1;
+        dir_quat.setRPY(0, 0, min_dist_ang);
+        res.pose.orientation = tf2::toMsg(dir_quat);
+        res.id = 1;
+        res.color.a = 0.5;
+        res.pose.position.z = 0.9;
+        projection_viz.publish(res);
+        */
+        /*
+        res.header.frame_id = cfg_->robot_frame_id;
+        res.type = visualization_msgs::Marker::SPHERE;
+        res.action = visualization_msgs::Marker::ADD;
+        res.pose.position.x = -min_diff_x;
+        res.pose.position.y = -min_diff_y;
+        res.pose.position.z = 1;
+        res.scale.x = 0.1;
+        res.scale.y = 0.1;
+        res.scale.z = 0.1;
+        res.id = 2;
+        // res.color.a = 0.5;
+        // res.pose.position.z = 0.9;
+        projection_viz.publish(res);
+        */
     }
 
     Eigen::Vector3d TrajectoryController::projection_method(float min_diff_x, float min_diff_y) {
