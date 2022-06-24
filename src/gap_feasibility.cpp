@@ -127,8 +127,8 @@ namespace dynamic_gap {
             ending_vel << starting_vel.norm() * crossing_pt[0] / crossing_pt.norm(), starting_vel.norm() * crossing_pt[1] / crossing_pt.norm();
         } 
         */
-        //std::cout << "starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1] << std::endl;
-        //std::cout << "ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1] << std::endl;
+        ROS_INFO_STREAM("starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1]);
+        ROS_INFO_STREAM("ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1]);
         
         start_time = ros::Time::now().toSec();
         Eigen::MatrixXf A_x = MatrixXf::Random(4,4);
@@ -144,13 +144,12 @@ namespace dynamic_gap {
         // std::cout << "x coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
         double peak_velocity_x = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
         /*
-        ROS_INFO_STREAM("peak velocity x: " << peak_velocity_x);
         double vel_x;
         for (double t = 0.0; t < crossing_time; t += (crossing_time / 15)) {
             vel_x = 3*coeffs[3]*pow(t, 2) + 2*coeffs[2]*t + coeffs[1];
             ROS_INFO_STREAM("at time " << t << ", x velocity is: " << vel_x);
         }
-        */
+        */        
         
         Eigen::MatrixXf A_y = MatrixXf::Random(4,4);
         Eigen::VectorXf b_y = VectorXf::Random(4);
@@ -167,7 +166,17 @@ namespace dynamic_gap {
         double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
+        /*
+        double vel_y;
+        for (double t = 0.0; t < crossing_time; t += (crossing_time / 15)) {
+            vel_y = 3*coeffs[3]*pow(t, 2) + 2*coeffs[2]*t + coeffs[1];
+            ROS_INFO_STREAM("at time " << t << ", y velocity is: " << vel_x);
+        }
+        */
         ROS_INFO_STREAM("peak velocity: " << peak_velocity_x << ", " << peak_velocity_y);
+        gap.peak_velocity_x = peak_velocity_x;
+        gap.peak_velocity_y = peak_velocity_y;
+        
         if (std::max(std::abs(peak_velocity_x), std::abs(peak_velocity_y)) <= cfg_->control.vx_absmax) {
             return crossing_time;
         } else {
@@ -202,7 +211,7 @@ namespace dynamic_gap {
 
         double beta_left = atan2(y2, x2); // std::atan2(left_frozen_state[1], left_frozen_state[2]);
         double beta_right = atan2(y1, x1); // std::atan2(right_frozen_state[1], right_frozen_state[2]);
-        double beta_center = beta_left -= (L_to_R_angle / 2.0);
+        double beta_center = (beta_left - (L_to_R_angle / 2.0));
 
         Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
         
@@ -262,7 +271,7 @@ namespace dynamic_gap {
             if (L_to_R_angle < 0) {
                 L_to_R_angle += 2*M_PI; 
             }
-            beta_center = beta_left -= (L_to_R_angle / 2.0);
+            beta_center = (beta_left - (L_to_R_angle / 2.0));
 
             Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
         
@@ -288,20 +297,21 @@ namespace dynamic_gap {
                                       (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
 
                     range_closing_check = std::sqrt(pow(left_cross_pt[0] - right_cross_pt[0], 2) + pow(left_cross_pt[1] - right_cross_pt[1], 2)) 
-                                          < 6*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                                          < 4*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
                     if (range_closing_check) {
                         ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
                         if (left_cross_pt.norm() < right_cross_pt.norm()) {
                             //std::cout << "setting right equal to cross" << std::endl;
                             //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
                             gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
-                            gap.setClosingPoint(right_cross_pt[0], right_cross_pt[1]);
                         } else {
                             //std::cout << "setting left equal to cross" << std::endl;
                             //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
                             gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
-                            gap.setClosingPoint(left_cross_pt[0], left_cross_pt[1]);
                         }
+
+                        gap_crossing_point += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gap_crossing_point / gap_crossing_point.norm());
+                        gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
                         generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
 
                         gap.gap_closed = true;

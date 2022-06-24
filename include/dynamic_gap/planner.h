@@ -183,6 +183,8 @@ namespace dynamic_gap
 
         dynamic_gap::cart_model * curr_left_model;
         dynamic_gap::cart_model * curr_right_model;
+        double curr_peak_velocity_x;
+        double curr_peak_velocity_y;
 
         double prev_pose_time;
         double prev_scan_time;
@@ -355,6 +357,7 @@ namespace dynamic_gap
 
         void setCurrentLeftModel(dynamic_gap::cart_model * _left_model);
         void setCurrentRightModel(dynamic_gap::cart_model * _right_model);
+        void setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y);
 
         std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);

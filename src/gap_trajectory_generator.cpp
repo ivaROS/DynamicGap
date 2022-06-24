@@ -57,8 +57,25 @@ namespace dynamic_gap{
             //int left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
             //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
             //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
-            
-            
+
+            if (selectedGap.artificial || selectedGap.goal.goalwithin) { //  
+                state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
+                            0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0,0.0,
+                            selectedGap.goal.x * coefs, selectedGap.goal.y * coefs};
+                // ROS_INFO_STREAM("Goal to Goal");
+                g2g inte_g2g(selectedGap.goal.x * coefs, selectedGap.goal.y * coefs,
+                             selectedGap.terminal_goal.x * coefs, selectedGap.terminal_goal.y * coefs,
+                             selectedGap.gap_lifespan, cfg_->control.vx_absmax);
+                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+                inte_g2g, x, 0.0,
+                cfg_->traj.integrate_maxt,
+                cfg_->traj.integrate_stept,
+                corder);
+                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+                return return_tuple;
+            }
+
             Eigen::Vector2f qB = selectedGap.qB; // (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
             // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
 
@@ -79,22 +96,6 @@ namespace dynamic_gap{
         
                 ego_x[0] -= qB(0);
                 ego_x[1] -= qB(1);
-                /*
-                x = {- selectedGap.qB(0) - 1e-6, 
-                    - selectedGap.qB(1) + 1e-6,
-                    curr_vel.linear.x,
-                    curr_vel.linear.y,
-                    manip_left_polar_state[0],
-                    manip_left_polar_state[1],
-                    manip_left_polar_state[2],
-                    manip_left_polar_state[3],
-                    manip_left_polar_state[4],
-                    manip_right_polar_state[0],
-                    manip_right_polar_state[1],
-                    manip_right_polar_state[2],
-                    manip_right_polar_state[3],
-                    manip_right_polar_state[4]};
-                */
             }
 
             // point 1 is right from robot POV
@@ -116,32 +117,15 @@ namespace dynamic_gap{
             terminal_goal_x = selectedGap.terminal_goal.x * coefs;
             terminal_goal_y = selectedGap.terminal_goal.y * coefs;
 
+            double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
+            double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
+
             ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
             ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
             ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), actual initial right point: (" << x_right << ", " << y_right << ")"); 
             ROS_INFO_STREAM("actual terminal left point: (" << term_x_left << ", " << term_y_left << "), actual terminal right point: (" << term_x_right << ", " << term_y_right << ")");
             ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
             ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
-
-            double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
-            double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
-
-            if (selectedGap.artificial) {
-                state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
-                            0.0, 0.0, 0.0, 0.0,
-                            0.0, 0.0, 0.0,0.0,
-                            initial_goal_x, initial_goal_y};
-                // ROS_INFO_STREAM("Goal to Goal");
-                g2g inte_g2g(goal_vel_x, goal_vel_y, cfg_->control.vx_absmax);
-                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-                inte_g2g, x, 0.0,
-                cfg_->traj.integrate_maxt,
-                cfg_->traj.integrate_stept,
-                corder);
-                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-                return return_tuple;
-            }
-
 
             double left_vel_x = ((term_x_left - x_left) / selectedGap.gap_lifespan);
             double left_vel_y = ((term_y_left - y_left) / selectedGap.gap_lifespan);

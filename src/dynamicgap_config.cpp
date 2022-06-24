@@ -128,6 +128,7 @@ namespace dynamic_gap {
         // Projection Params
         projection.k_po = cfg.k_po;
         projection.k_po_turn = cfg.k_po_turn;
+        projection.k_CBF = cfg.k_CBF;
         projection.r_min = cfg.r_min;
         projection.r_norm = cfg.r_norm;
         projection.r_norm_offset = cfg.r_norm_offset;

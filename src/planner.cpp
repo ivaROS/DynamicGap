@@ -618,7 +618,7 @@ namespace dynamic_gap
             double curr_time = ros::WallTime::now().toSec();
             
             // std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
-            //std::cout << "current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex() << std::endl;
+            ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex());
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             //std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
@@ -645,6 +645,7 @@ namespace dynamic_gap
                     setCurrentTimeArr(empty_time_arr);
                     setCurrentLeftModel(incoming_gap.left_model);
                     setCurrentRightModel(incoming_gap.right_model);
+                    setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                     return empty_traj;
                 } else if (incoming.poses.size() == 0) {
                     ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length of 0");        
@@ -653,8 +654,8 @@ namespace dynamic_gap
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
-                    setCurrentLeftModel(NULL);
-                    setCurrentRightModel(NULL);
+                    // setCurrentLeftModel(NULL);
+                    // setCurrentRightModel(NULL);
                     return empty_traj;
                 } else {
                     ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: curr traj length 0, incoming score finite");
@@ -662,6 +663,7 @@ namespace dynamic_gap
                     setCurrentTimeArr(time_arr);
                     setCurrentLeftModel(incoming_gap.left_model);
                     setCurrentRightModel(incoming_gap.right_model);
+                    setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
                     prev_traj_switch_time = curr_time;
@@ -683,6 +685,7 @@ namespace dynamic_gap
                 setCurrentTimeArr(time_arr);
                 setCurrentLeftModel(incoming_gap.left_model);
                 setCurrentRightModel(incoming_gap.right_model);
+                setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                 prev_traj_switch_time = curr_time;
                 return incoming;
             }
@@ -716,8 +719,9 @@ namespace dynamic_gap
                 std::vector<double> empty_time_arr;
                 setCurrentTraj(empty_traj);
                 setCurrentTimeArr(empty_time_arr);
-                setCurrentLeftModel(NULL);
-                setCurrentRightModel(NULL);
+                // setCurrentLeftModel(NULL);
+                // setCurrentRightModel(NULL);
+
                 return empty_traj;
             }
 
@@ -732,6 +736,7 @@ namespace dynamic_gap
                 setCurrentTimeArr(time_arr);
                 setCurrentLeftModel(incoming_gap.left_model);
                 setCurrentRightModel(incoming_gap.right_model);
+                setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
                 return incoming;
@@ -753,6 +758,7 @@ namespace dynamic_gap
                     setCurrentTimeArr(time_arr);
                     setCurrentLeftModel(incoming_gap.left_model);
                     setCurrentRightModel(incoming_gap.right_model);
+                    setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                     trajectory_pub.publish(incoming);
                     prev_traj_switch_time = curr_time;
                     return incoming;   
@@ -761,8 +767,8 @@ namespace dynamic_gap
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
-                    setCurrentLeftModel(NULL);
-                    setCurrentRightModel(NULL);
+                    // setCurrentLeftModel(NULL);
+                    // setCurrentRightModel(NULL);
                     return empty_traj; 
                 }    
             }
@@ -803,6 +809,12 @@ namespace dynamic_gap
     void Planner::setCurrentRightModel(dynamic_gap::cart_model * _right_model) {
         curr_right_model = _right_model;
     }
+
+    void Planner::setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y) {
+        curr_peak_velocity_x = _peak_velocity_x;
+        curr_peak_velocity_y = _peak_velocity_y;
+    }
+
 
     int Planner::getCurrentLeftGapIndex() {
         // std::cout << "get current left" << std::endl;
@@ -903,7 +915,8 @@ namespace dynamic_gap
         auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
                                                   stored_scan_msgs, rbt_in_cam_lc,
                                                   current_rbt_vel, rbt_accel,
-                                                  curr_left_model, curr_right_model);
+                                                  curr_left_model, curr_right_model,
+                                                  curr_peak_velocity_x, curr_peak_velocity_y);
         //geometry_msgs::Twist cmd_vel;
         //cmd_vel.linear.x = 0.25;
         return cmd_vel;
@@ -981,6 +994,7 @@ namespace dynamic_gap
             if (gap_i_feasible) {
                 curr_observed_gaps.at(i).addTerminalRightInformation();
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
+                ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peak_velocity_x << ", " << curr_observed_gaps.at(i).peak_velocity_y);
             }
         }
         return feasible_gap_set;

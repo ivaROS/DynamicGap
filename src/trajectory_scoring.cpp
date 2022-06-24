@@ -381,9 +381,9 @@ namespace dynamic_gap {
         auto iter = std::min_element(dist.begin(), dist.end());
         double theta = std::distance(dist.begin(), iter) * dynamic_laser_scan.angle_increment - M_PI;
         double range = dynamic_laser_scan.ranges.at(std::distance(dist.begin(), iter) );
-        ROS_INFO_STREAM("closest point: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")");
+        // ROS_INFO_STREAM("closest point: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")");
         double cost = chapterScore(*iter);
-        ROS_INFO_STREAM("distance: " << *iter << ", cost: " << cost);
+        // ROS_INFO_STREAM("distance: " << *iter << ", cost: " << cost);
 
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
         return cost;

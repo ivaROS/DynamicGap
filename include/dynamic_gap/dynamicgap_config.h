@@ -60,6 +60,7 @@ namespace dynamic_gap {
                 double r_norm;
                 double r_norm_offset;
                 double k_po_turn;
+                double k_CBF;
             } projection;
 
             struct Waypoint {

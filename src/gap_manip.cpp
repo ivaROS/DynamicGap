@@ -149,16 +149,41 @@ namespace dynamic_gap {
         }
 
         if (thetalr < thetalf || small_gap) {
-            ROS_INFO_STREAM("Option 1: small gap");
+            ROS_INFO_STREAM("Option 1: behind gap or small gap");
+            Eigen::Vector2f left_bearing_norm_vect = pr / pr.norm();
+            Eigen::Vector2f right_bearing_norm_vect = pl / pl.norm();
+            //  ROS_INFO_STREAM("left bearing vector: " << left_bearing_norm_vect[0] << ", " << left_bearing_norm_vect[1]);
+            // ROS_INFO_STREAM("right bearing vector: " << right_bearing_norm_vect[0] << ", " << right_bearing_norm_vect[1]);
+            float beta_left = std::atan2(left_bearing_norm_vect[1], left_bearing_norm_vect[0]);
+            float beta_right = std::atan2(right_bearing_norm_vect[1], right_bearing_norm_vect[0]);
+            float det = left_bearing_norm_vect[0]*right_bearing_norm_vect[1] - left_bearing_norm_vect[1]*right_bearing_norm_vect[0];      
+            float dot = left_bearing_norm_vect[0]*right_bearing_norm_vect[0] + left_bearing_norm_vect[1]*right_bearing_norm_vect[1];
+
+            float swept_check = -std::atan2(det, dot);     
+            float L_to_R_angle = swept_check;
+
+            if (L_to_R_angle < 0) {
+                L_to_R_angle += 2*M_PI; 
+            }
+
+            // ROS_INFO_STREAM("L_to_R_angle: " << L_to_R_angle);
+            float subtract_angle = 0.5f * L_to_R_angle;
+            // ROS_INFO_STREAM("subtract_angle: " << subtract_angle);
+            float beta_center = (beta_left - subtract_angle); 
+            float range_center = (pl.norm() + pr.norm()) / 2.0;
+            float goal_x = range_center * std::cos(beta_center);
+            float goal_y = range_center * std::sin(beta_center);
+            // ROS_INFO_STREAM("beta_left: " << beta_left << ", beta_right: " << beta_right << ", beta_center: " << beta_center);
+
             if (initial) {
                 gap.goal.set = true;
-                gap.goal.x = (x1 + x2) / 2;
-                gap.goal.y = (y1 + y2) / 2;
+                gap.goal.x = goal_x;
+                gap.goal.y = goal_y;
                 ROS_INFO_STREAM("goal: " << gap.goal.x << ", " << gap.goal.y);
             } else {
                 gap.terminal_goal.set = true;
-                gap.terminal_goal.x = (x1 + x2) / 2;
-                gap.terminal_goal.y = (y1 + y2) / 2;
+                gap.terminal_goal.x = goal_x;
+                gap.terminal_goal.y = goal_y;
                 ROS_INFO_STREAM("terminal goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
             }
 
@@ -618,7 +643,7 @@ namespace dynamic_gap {
         if (L_to_R_angle < 0) {
             L_to_R_angle += 2*M_PI; 
         }
-        double beta_center = beta_right -= (L_to_R_angle / 2.0);
+        double beta_center = (beta_right - (L_to_R_angle / 2.0));
 
         // middle of gap direction
         Eigen::Vector2f eB(std::cos(beta_center), std::sin(beta_center));
@@ -776,13 +801,13 @@ namespace dynamic_gap {
                    -1,0;
 
         // pivot "left" point by -r_negpi2
-        Eigen::Vector2f left_angular_inflate = -r_negpi2 * pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        // Eigen::Vector2f left_angular_inflate = -r_negpi2 * pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         // pivot "right" point by r_negpi2
-        Eigen::Vector2f right_angular_inflate = r_negpi2 * pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        // Eigen::Vector2f right_angular_inflate = r_negpi2 * pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
         // inflate upward by radius * infl
-        Eigen::Vector2f left_radial_inflate = pl / pl.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-        Eigen::Vector2f right_radial_inflate = pr / pr.norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        Eigen::Vector2f left_radial_inflate = pl / pl.norm() * 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        Eigen::Vector2f right_radial_inflate = pr / pr.norm() * 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
         Eigen::Vector2f new_l = pl + left_radial_inflate;
         Eigen::Vector2f new_r = pr + right_radial_inflate;

@@ -415,6 +415,8 @@ namespace dynamic_gap
             int swept_ridx = 511;
             float swept_ldist = 5;
             float swept_rdist = 5;
+            double peak_velocity_x = 0.0;
+            double peak_velocity_y = 0.0;
 
             struct converted {
                 int convex_lidx = 0;

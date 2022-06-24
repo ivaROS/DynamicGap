@@ -838,8 +838,14 @@ namespace dynamic_gap {
     
     struct g2g {
         double goal_vel_x, goal_vel_y, v_lin_max;
-        g2g(double goal_vel_x, double goal_vel_y, double v_lin_max)
-        : goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max) {}
+        g2g(double initial_goal_x, double initial_goal_y, 
+            double terminal_goal_x, double terminal_goal_y, 
+            double gap_lifespan, double v_lin_max)
+        : goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max) 
+        {
+            goal_vel_x = (terminal_goal_x - initial_goal_x) / gap_lifespan; // absolute velocity (not relative to robot)
+            goal_vel_y = (terminal_goal_y - initial_goal_y) / gap_lifespan;
+        }
 
         Eigen::Vector2d clip_velocities(double x_vel, double y_vel, double x_lim) {
             // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
@@ -859,7 +865,7 @@ namespace dynamic_gap {
         void operator() ( const state_type &x , state_type &dxdt , const double  t  )
         {
             // std::cout << "x: " << std::endl;
-            // std::cout << x[0] << ", " << x[1] << std::endl;
+            // ROS_INFO_STREAM("x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
             double goal_norm = sqrt(pow(x[12] - x[0], 2) + pow(x[13] - x[1], 2));
             Eigen::Vector2d v_des(0.0, 0.0);
 
@@ -872,15 +878,15 @@ namespace dynamic_gap {
             }
 
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
-
+            // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
             // Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
             // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
         
             dxdt[0] = v_cmd[0]; // rbt_x
             dxdt[1] = v_cmd[1]; // rbt_y
-            dxdt[12] = goal_vel_x;
-            dxdt[13] = goal_vel_y;
+            dxdt[12] = 0.0;
+            dxdt[13] = 0.0;
             return;
         }
     };
