@@ -26,6 +26,7 @@ namespace dynamic_gap {
         public:
 
             TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            geometry_msgs::Twist obstacleAvoidanceControlLaw(sensor_msgs::LaserScan);
             geometry_msgs::Twist controlLaw(geometry_msgs::Pose current, nav_msgs::Odometry desired,
                                             sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
                                             geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
@@ -56,6 +57,8 @@ namespace dynamic_gap {
             void run_bearing_rate_barrier_function(Eigen::Vector4d state, 
                                                    Eigen::Vector4d left_rel_model, Eigen::Vector4d right_rel_model,
                                                    Eigen::Vector2d rbt_accel, float & cmd_vel_x_safe, float & cmd_vel_y_safe, double & Psi_CBF);
+            void clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb);
+
             double cbf_left(Eigen::Vector4d left_rel_model);
             Eigen::Vector4d cbf_partials_left(Eigen::Vector4d left_rel_model);
             double cbf_right(Eigen::Vector4d right_rel_model);

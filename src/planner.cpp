@@ -617,6 +617,16 @@ namespace dynamic_gap
         try {
             double curr_time = ros::WallTime::now().toSec();
             
+            // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
+            bool curr_gap_feasible = false;
+            for (dynamic_gap::Gap g : feasible_gaps) {
+                if (g.left_model->get_index() == getCurrentLeftGapIndex() && g.right_model->get_index() == getCurrentRightGapIndex()) {
+                    curr_gap_feasible = true;
+                    setCurrentGapPeakVelocities(g.peak_velocity_x, g.peak_velocity_y);
+                    break;
+                }
+            }
+
             // std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
             ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex());
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
@@ -635,30 +645,9 @@ namespace dynamic_gap
             auto incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
 
             ROS_INFO_STREAM("incom_subscore: " << incom_subscore);
-            if (curr_traj.poses.size() == 0) {
-                if (incom_subscore == -std::numeric_limits<double>::infinity()) {
-                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming score of -infinity");
-                    ROS_WARN_STREAM("Incoming score of negative infinity");
-                    auto empty_traj = geometry_msgs::PoseArray();
-                    std::vector<double> empty_time_arr;
-                    setCurrentTraj(empty_traj);
-                    setCurrentTimeArr(empty_time_arr);
-                    setCurrentLeftModel(incoming_gap.left_model);
-                    setCurrentRightModel(incoming_gap.right_model);
-                    setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
-                    return empty_traj;
-                } else if (incoming.poses.size() == 0) {
-                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length of 0");        
-                    ROS_WARN_STREAM("Incoming traj length 0");
-                    auto empty_traj = geometry_msgs::PoseArray();
-                    std::vector<double> empty_time_arr;
-                    setCurrentTraj(empty_traj);
-                    setCurrentTimeArr(empty_time_arr);
-                    // setCurrentLeftModel(NULL);
-                    // setCurrentRightModel(NULL);
-                    return empty_traj;
-                } else {
-                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: curr traj length 0, incoming score finite");
+            if (curr_traj.poses.size() == 0 || !curr_gap_feasible) {
+                if (incoming.poses.size() > 0 && incom_subscore != -std::numeric_limits<double>::infinity()) {
+                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: curr traj length 0, incoming score finite");        
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
                     setCurrentLeftModel(incoming_gap.left_model);
@@ -668,6 +657,15 @@ namespace dynamic_gap
                     ROS_WARN_STREAM("Old Traj length 0");
                     prev_traj_switch_time = curr_time;
                     return incoming;
+                } else  {
+                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length of 0");        
+                    auto empty_traj = geometry_msgs::PoseArray();
+                    std::vector<double> empty_time_arr;
+                    setCurrentTraj(empty_traj);
+                    setCurrentTimeArr(empty_time_arr);
+                    // setCurrentLeftModel(NULL);
+                    // setCurrentRightModel(NULL);
+                    return empty_traj;
                 }
             } 
 
@@ -710,8 +708,6 @@ namespace dynamic_gap
             viz_traj.at(1) = reduced_curr_rbt;
             trajvisualizer->pubAllScore(viz_traj, ret_traj_scores);
 
-
-
             if (curr_subscore == -std::numeric_limits<double>::infinity() && incom_subscore == -std::numeric_limits<double>::infinity()) {
                 ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: both -infinity");
                 ROS_WARN_STREAM("Both Failed");
@@ -740,37 +736,6 @@ namespace dynamic_gap
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
                 return incoming;
-            }
-
-            // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
-            bool curr_gap_feasible;
-            for (dynamic_gap::Gap g : feasible_gaps) {
-                if (g.left_model->get_index() == getCurrentLeftGapIndex() && g.right_model->get_index() == getCurrentRightGapIndex()) {
-                    curr_gap_feasible = true;
-                    break;
-                }
-            }
-            if (!curr_gap_feasible) {
-                if (incoming.poses.size() > 0) {
-                    ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: curr exec gap no longer feasible. current left: " <<  getCurrentLeftGapIndex() << ", incoming left: " << incoming_gap.left_model->get_index() << ", current right: " << getCurrentRightGapIndex() << ", incoming right: " << incoming_gap.right_model->get_index());
-                    ROS_WARN_STREAM("Swap to incoming, current trajectory no longer through feasible gap");
-                    setCurrentTraj(incoming);
-                    setCurrentTimeArr(time_arr);
-                    setCurrentLeftModel(incoming_gap.left_model);
-                    setCurrentRightModel(incoming_gap.right_model);
-                    setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
-                    trajectory_pub.publish(incoming);
-                    prev_traj_switch_time = curr_time;
-                    return incoming;   
-                } else {
-                    auto empty_traj = geometry_msgs::PoseArray();
-                    std::vector<double> empty_time_arr;
-                    setCurrentTraj(empty_traj);
-                    setCurrentTimeArr(empty_time_arr);
-                    // setCurrentLeftModel(NULL);
-                    // setCurrentRightModel(NULL);
-                    return empty_traj; 
-                }    
             }
             
             ROS_INFO_STREAM("keeping current trajectory");
@@ -877,9 +842,17 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) {
-        if (traj.poses.size() < 2){
-            ROS_WARN_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 3");
-            return geometry_msgs::Twist();
+        sensor_msgs::LaserScan stored_scan_msgs;
+        if (cfg.planning.projection_inflated) {
+            stored_scan_msgs = *sharedPtr_inflatedlaser.get();
+        } else {
+            stored_scan_msgs = *sharedPtr_laser.get();
+        }
+
+        if (traj.poses.size() < 2) {
+            ROS_WARN_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
+            auto cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
+            return cmd_vel;
         }
 
         // Know Current Pose
@@ -903,13 +876,6 @@ namespace dynamic_gap
         ctrl_target_pose.header = orig_ref.header;
         ctrl_target_pose.pose.pose = orig_ref.poses.at(ctrl_idx);
         ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
-
-        sensor_msgs::LaserScan stored_scan_msgs;
-        if (cfg.planning.projection_inflated) {
-            stored_scan_msgs = *sharedPtr_inflatedlaser.get();
-        } else {
-            stored_scan_msgs = *sharedPtr_laser.get();
-        }
 
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
         auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 

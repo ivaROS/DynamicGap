@@ -52,11 +52,12 @@ namespace dynamic_gap {
             return;
         }
         //std::cout << "time: " << t_iplus1 << std::endl;
-        for (double i = 0.0; i < interval; i += cfg_->traj.integrate_stept) {
-            for (auto & model : raw_models) {
-                model->frozen_state_propagate(cfg_->traj.integrate_stept);
-            }
+        for (auto & model : raw_models) {
+            model->frozen_state_propagate(interval);
         }
+        //for (double i = 0.0; i < interval; i += cfg_->traj.integrate_stept) {
+        //    
+        //}
         // std::cout << "sorting models" << std::endl;
         sort(raw_models.begin(), raw_models.end(), compareModelBearings);
 

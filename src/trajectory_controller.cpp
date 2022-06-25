@@ -134,6 +134,40 @@ namespace dynamic_gap{
         return abs(double(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
     }
 
+    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(
+                                    sensor_msgs::LaserScan inflated_egocircle) {
+        sensor_msgs::LaserScan scan_ = inflated_egocircle;
+        float linear = 0, rotational = 0;
+        
+        for(unsigned int i = 0 ; i < scan_.ranges.size() ; i++) {
+            float real_dist = scan_.ranges[i];
+            linear -= cos(scan_.angle_min + i * scan_.angle_increment) 
+                    / (1.0 + real_dist * real_dist);
+            rotational -= sin(scan_.angle_min + i * scan_.angle_increment) 
+                    / (1.0 + real_dist * real_dist);
+        }
+        geometry_msgs::Twist cmd;
+        
+        linear /= scan_.ranges.size();
+        rotational /= scan_.ranges.size();
+        
+        //~ ROS_ERROR("%f %f",linear,rotational);
+        
+        if(linear > 0.3)
+        {
+        linear = 0.3;
+        }
+        else if(linear < -0.3)
+        {
+        linear = -0.3;
+        }
+
+        cmd.linear.x = 0.3 + linear;
+        cmd.angular.z = rotational;
+
+        return cmd;
+    }
+
     geometry_msgs::Twist TrajectoryController::controlLaw(
         geometry_msgs::Pose current, nav_msgs::Odometry desired,
         sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
@@ -213,7 +247,16 @@ namespace dynamic_gap{
             v_lin_y_fb = y_error * k_drive_y_;
         }
 
+        double peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
+        double cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
+
+        ROS_INFO_STREAM("gap peak velocity x: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
         ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        if (peak_vel_norm > cmd_vel_norm) {
+            v_lin_x_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
+            v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
+            ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
+        }
 
         // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
         float min_dist_ang = 0;
@@ -294,11 +337,7 @@ namespace dynamic_gap{
                 if(v_lin_x_fb < 0)
                     v_lin_x_fb = 0;
             }
-
-            ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
-        }
-        else
-        {
+        } else {
             v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe + v_ang_const;
             v_lin_x_fb = v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
 
@@ -314,13 +353,32 @@ namespace dynamic_gap{
                 v_lin_x_fb = 0;
         }
 
-        cmd_vel.linear.x = std::max(-cfg_->control.vx_absmax, std::min(cfg_->control.vx_absmax, v_lin_x_fb));
-        cmd_vel.linear.y = std::max(-cfg_->control.vy_absmax, std::min(cfg_->control.vy_absmax, v_lin_y_fb));
+        ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
+
+        cmd_vel.linear.x = v_lin_x_fb;
+        cmd_vel.linear.y = v_lin_y_fb;
         cmd_vel.angular.z = v_ang_fb; // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
 
-        ROS_INFO_STREAM("gap peak velocity x: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
-        ROS_INFO_STREAM("ultimate command velocity: " << cmd_vel.linear.x << ", " << cmd_vel.linear.y << ", " << cmd_vel.angular.z);
+        // ROS_INFO_STREAM("ultimate command velocity: " << cmd_vel.linear.x << ", " << cmd_vel.linear.y << ", " << cmd_vel.angular.z);
+
         return cmd_vel;
+    }
+    
+    void TrajectoryController::clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb) {
+        
+        double abs_x_vel = std::abs(v_lin_x_fb);
+        double abs_y_vel = std::abs(v_lin_y_fb);
+        
+        if (abs_x_vel <= cfg_->control.vx_absmax && abs_y_vel <= cfg_->control.vy_absmax) {
+            // std::cout << "not clipping" << std::endl;
+        } else {
+            v_lin_x_fb *= cfg_->control.vx_absmax / std::max(abs_x_vel, abs_y_vel);
+            v_lin_y_fb *= cfg_->control.vy_absmax / std::max(abs_x_vel, abs_y_vel);
+        }
+
+        ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        return;
     }
 
     void TrajectoryController::run_bearing_rate_barrier_function(Eigen::Vector4d state, 
