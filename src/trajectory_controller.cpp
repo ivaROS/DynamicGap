@@ -134,6 +134,10 @@ namespace dynamic_gap{
         return abs(double(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
     }
 
+    /*
+    Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
+
+    */
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(
                                     sensor_msgs::LaserScan inflated_egocircle) {
         sensor_msgs::LaserScan scan_ = inflated_egocircle;
@@ -141,28 +145,26 @@ namespace dynamic_gap{
         
         for(unsigned int i = 0 ; i < scan_.ranges.size() ; i++) {
             float real_dist = scan_.ranges[i];
-            linear -= cos(scan_.angle_min + i * scan_.angle_increment) 
-                    / (1.0 + real_dist * real_dist);
-            rotational -= sin(scan_.angle_min + i * scan_.angle_increment) 
-                    / (1.0 + real_dist * real_dist);
+            float real_idx =  scan_.angle_min + i * scan_.angle_increment;
+            float r_offset = 0.125; // 0.25 cut it pretty close on one example
+            linear -= cos(real_idx) / (r_offset + real_dist * real_dist);
+            rotational -= sin(real_idx) / (r_offset + real_dist * real_dist);
         }
         geometry_msgs::Twist cmd;
         
         linear /= scan_.ranges.size();
         rotational /= scan_.ranges.size();
         
-        //~ ROS_ERROR("%f %f",linear,rotational);
         
-        if(linear > 0.3)
-        {
-        linear = 0.3;
-        }
-        else if(linear < -0.3)
-        {
-        linear = -0.3;
+        if (linear > cfg_->control.vx_absmax) {
+            linear = cfg_->control.vx_absmax;
+        } else if(linear < -cfg_->control.vx_absmax) {
+            linear = -cfg_->control.vx_absmax;
         }
 
-        cmd.linear.x = 0.3 + linear;
+        ROS_INFO_STREAM("Obstacle avoidance cmd vel, v_x: " << linear << ", v_ang: " << rotational);
+
+        cmd.linear.x = linear;
         cmd.angular.z = rotational;
 
         return cmd;

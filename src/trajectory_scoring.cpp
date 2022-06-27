@@ -323,7 +323,7 @@ namespace dynamic_gap {
         if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
-            double w1 = 1;
+            double w1 = 0.5;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 1 && total_val >= -10) {

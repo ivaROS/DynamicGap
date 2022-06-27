@@ -6,6 +6,22 @@ namespace dynamic_gap {
         msg = msg_;
         num_of_scan = (int)(msg.get()->ranges.size());
     }
+
+    void GapManipulator::updateDynamicEgoCircle(std::vector<dynamic_gap::Gap> curr_raw_gaps, 
+                                                dynamic_gap::Gap& gap,
+                                                dynamic_gap::TrajectoryArbiter * trajArbiter) {
+        dynamic_scan = *msg.get();
+        double t_i = 0.0;
+        double t_iplus1 = gap.gap_lifespan;
+
+        std::vector<dynamic_gap::cart_model *> raw_models;
+        for (auto gap : curr_raw_gaps) {
+            raw_models.push_back(gap.left_model);
+            raw_models.push_back(gap.right_model);
+        }
+
+        trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_scan);
+    }
     
     void GapManipulator::setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
         if (gap.getCategory() == "expanding" || gap.getCategory() == "static") { 
@@ -287,6 +303,7 @@ namespace dynamic_gap {
     void GapManipulator::reduceGap(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
         if (!msg) return; 
         // msg is from egocircle
+        // only part of msg used is angle_increment
 
         int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
         int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
@@ -504,7 +521,7 @@ namespace dynamic_gap {
             return;
         }
 
-        sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
+        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
         if (stored_scan_msgs.ranges.size() < 500) {
             ROS_FATAL_STREAM("Scan range incorrect gap manip");
         }
@@ -605,7 +622,7 @@ namespace dynamic_gap {
 
         ROS_INFO_STREAM("running radialExtendGap");
 
-        sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
+        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
         int half_num_scan = gap.half_scan; // changing this
         
         int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;

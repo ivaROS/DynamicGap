@@ -179,7 +179,7 @@ namespace dynamic_gap {
             traj.rmax = 0.3;
             traj.cobs = -1;
             traj.w = 3;
-            traj.inf_ratio = 1.2;
+            traj.inf_ratio = 1.25;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
 

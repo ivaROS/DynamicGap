@@ -1,7 +1,11 @@
  #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
-    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(dynamic_gap::Gap& selectedGap, geometry_msgs::PoseStamped curr_pose, geometry_msgs::Twist curr_vel) {
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(
+                                                    dynamic_gap::Gap& selectedGap, 
+                                                    geometry_msgs::PoseStamped curr_pose, 
+                                                    geometry_msgs::Twist curr_vel,
+                                                    bool run_g2g) {
         try {        
             // return geometry_msgs::PoseArray();
             geometry_msgs::PoseArray posearr;
@@ -58,7 +62,7 @@ namespace dynamic_gap{
             //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
             //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
 
-            if (selectedGap.artificial) { //   || selectedGap.goal.goalwithin
+            if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
                             0.0, 0.0, 0.0, 0.0,
                             0.0, 0.0, 0.0,0.0,

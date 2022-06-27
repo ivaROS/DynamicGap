@@ -500,6 +500,7 @@ namespace dynamic_gap
             
             
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
+            gapManip->updateDynamicEgoCircle(curr_raw_gaps, manip_set.at(i), trajArbiter);
             if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
@@ -530,12 +531,33 @@ namespace dynamic_gap
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple;
                 
                 // TRAJECTORY GENERATED IN RBT FRAME
-                return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel);
-                return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
+                bool run_g2g = (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+                if (run_g2g) {
+                    ROS_INFO_STREAM("running g2g and ahpf");
+                    std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
+                    g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, true);
+                    g2g_tuple = gapTrajSyn->forwardPassTrajectory(g2g_tuple);
+                    std::vector<double> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps);
+                    double g2g_score = std::accumulate(g2g_score_vec.begin(), g2g_score_vec.end(), double(0));
+                    ROS_INFO_STREAM("g2g_score: " << g2g_score);
 
-                ROS_INFO_STREAM("scoring trajectory for gap: " << i);
-                ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps);
-                
+                    std::tuple<geometry_msgs::PoseArray, std::vector<double>> ahpf_tuple;
+                    ahpf_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, false);
+                    ahpf_tuple = gapTrajSyn->forwardPassTrajectory(ahpf_tuple);
+                    std::vector<double> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps);
+                    double ahpf_score = std::accumulate(ahpf_score_vec.begin(), ahpf_score_vec.end(), double(0));
+                    ROS_INFO_STREAM("ahpf_score: " << ahpf_score);
+
+                    return_tuple = (g2g_score > ahpf_score) ? g2g_tuple : ahpf_tuple;
+                    ret_traj_scores.at(i) = (g2g_score > ahpf_score) ? g2g_score_vec : ahpf_score_vec;
+                } else {
+                    return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, false);
+                    return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
+
+                    ROS_INFO_STREAM("scoring trajectory for gap: " << i);
+                    ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps);
+                }
+
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 ret_traj.at(i) = gapTrajSyn->transformBackTrajectory(std::get<0>(return_tuple), cam2odom);
                 ret_time_traj.at(i) = std::get<1>(return_tuple);
@@ -628,7 +650,7 @@ namespace dynamic_gap
             }
 
             // std::cout << "current traj length: " << curr_traj.poses.size() << std::endl;
-            ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex());
+            // ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapIndex() << ", " << getCurrentRightGapIndex());
             //std::cout << "current time length: " << curr_time_arr.size() << std::endl;
             //std::cout << "incoming traj length: " << incoming.poses.size() << std::endl;
             //std::cout << "incoming time length: " << time_arr.size() << std::endl;
@@ -637,7 +659,7 @@ namespace dynamic_gap
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
             // why do we have to rescore here?
-            ROS_INFO_STREAM("~~scoring incoming trajectory~~");
+            ROS_INFO_STREAM("~~~~scoring incoming trajectory~~~~");
             auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, curr_raw_gaps);
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
 
@@ -690,8 +712,7 @@ namespace dynamic_gap
 
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
             // std::cout << "counts: " << counts << std::endl;
-            ROS_INFO_STREAM("~~comparing incoming with current~~"); 
-            ROS_INFO_STREAM("re-scoring incoming trajectory");
+            ROS_INFO_STREAM("~~~~re-scoring incoming trajectory~~~~");
             incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
             ROS_INFO_STREAM("incoming subscore: " << incom_subscore);
 
@@ -960,7 +981,7 @@ namespace dynamic_gap
             if (gap_i_feasible) {
                 curr_observed_gaps.at(i).addTerminalRightInformation();
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
-                ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peak_velocity_x << ", " << curr_observed_gaps.at(i).peak_velocity_y);
+                // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peak_velocity_x << ", " << curr_observed_gaps.at(i).peak_velocity_y);
             }
         }
         return feasible_gap_set;

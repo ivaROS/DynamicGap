@@ -6,6 +6,7 @@
 #include <math.h>
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
+#include <dynamic_gap/trajectory_scoring.h>
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
@@ -24,6 +25,7 @@ namespace dynamic_gap {
             GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
+            void updateDynamicEgoCircle(std::vector<dynamic_gap::Gap>, dynamic_gap::Gap &,dynamic_gap::TrajectoryArbiter *);
 
             void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
             void setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal);
@@ -40,6 +42,7 @@ namespace dynamic_gap {
 
         private:
             boost::shared_ptr<sensor_msgs::LaserScan const> msg;
+            sensor_msgs::LaserScan dynamic_scan;
             const DynamicGapConfig* cfg_;
             int num_of_scan;
             boost::mutex egolock;

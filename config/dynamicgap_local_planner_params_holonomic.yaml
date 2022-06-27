@@ -46,4 +46,4 @@ DynamicGapPlanner:
     follow_the_gap_vis: False
     debug_viz: True
     rmax: 0.5
-    inf_ratio: 1.2
+    inf_ratio: 1.25
