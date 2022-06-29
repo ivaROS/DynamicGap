@@ -42,7 +42,15 @@ namespace dynamic_gap{
         // Full Scoring
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
-        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps);
+        std::vector<double> scoreTrajectory(geometry_msgs::PoseArray traj, 
+                                                           std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
+                                                           std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
+        
+        void recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
+                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                                        std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                        sensor_msgs::LaserScan& dynamic_laser_scan);
         void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan);
         void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
@@ -55,6 +63,7 @@ namespace dynamic_gap{
             geometry_msgs::PoseStamped local_goal;
             boost::mutex gap_mutex, gplan_mutex, egocircle_mutex;
 
+            int sgn_star(float dy);
             double scorePose(geometry_msgs::Pose pose);
             int searchIdx(geometry_msgs::Pose pose);
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);

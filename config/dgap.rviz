@@ -64,7 +64,7 @@ Visualization Manager:
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        gap_goal: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -79,7 +79,7 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot15
+      Reference Frame: robot2
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -102,8 +102,7 @@ Visualization Manager:
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        raw: true
-        simp: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -111,7 +110,7 @@ Visualization Manager:
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        manip: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -135,7 +134,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -143,7 +142,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -219,7 +218,7 @@ Visualization Manager:
       Marker Topic: /robot3/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -227,7 +226,7 @@ Visualization Manager:
       Marker Topic: /robot4/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -235,7 +234,7 @@ Visualization Manager:
       Marker Topic: /robot5/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -243,7 +242,7 @@ Visualization Manager:
       Marker Topic: /robot6/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -251,7 +250,7 @@ Visualization Manager:
       Marker Topic: /robot7/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -259,7 +258,7 @@ Visualization Manager:
       Marker Topic: /robot8/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -267,7 +266,7 @@ Visualization Manager:
       Marker Topic: /robot9/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -275,7 +274,7 @@ Visualization Manager:
       Marker Topic: /robot10/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -283,7 +282,7 @@ Visualization Manager:
       Marker Topic: /robot11/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -291,7 +290,7 @@ Visualization Manager:
       Marker Topic: /robot12/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -299,7 +298,7 @@ Visualization Manager:
       Marker Topic: /robot13/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -307,7 +306,7 @@ Visualization Manager:
       Marker Topic: /robot14/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -315,7 +314,7 @@ Visualization Manager:
       Marker Topic: /robot15/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -446,7 +445,7 @@ Visualization Manager:
       Marker Topic: /reachable_gaps
       Name: MarkerArray
       Namespaces:
-        manip_initial: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -494,9 +493,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.436352252960205
-        Y: -0.9050897359848022
-        Z: -35.83420944213867
+        X: -0.12011522054672241
+        Y: -2.303215742111206
+        Z: -35.83559799194336
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

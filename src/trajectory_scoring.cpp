@@ -35,6 +35,115 @@ namespace dynamic_gap {
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
 
+    int TrajectoryArbiter::sgn_star(float dy) {
+        if (dy < 0) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+    double l2_norm(std::vector<double> const& u) {
+        double accum = 0.;
+        for (int i = 0; i < u.size(); ++i) {
+            accum += u[i] * u[i];
+        }
+        return sqrt(accum);
+    }
+
+    void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
+                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                                        std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                        sensor_msgs::LaserScan& dynamic_laser_scan) {
+        double interval = t_iplus1 - t_i;
+        if (interval <= 0.0) {
+            return;
+        }
+
+        // for EVERY interval, start with static scan
+        dynamic_laser_scan.ranges = msg.get()->ranges;
+        float max_range = 5.0;
+        // propagate poses forward (all odoms and vels are in robot frame)
+        for (int i = 0; i < _agent_odoms.size(); i++) {
+            _agent_odoms[i].position.x += _agent_vels[i].vector.x*interval;
+            _agent_odoms[i].position.y += _agent_vels[i].vector.y*interval;
+        }
+
+        // basically run modify_scan                                                          
+
+        for (int i = 0; i < dynamic_laser_scan.ranges.size(); i++) {
+            float rad = dynamic_laser_scan.angle_min + i*dynamic_laser_scan.angle_increment;
+            // cout << "i: " << i << " rad: " << rad << endl;
+            // cout << "original distance " << modified_laser_scan.ranges[i] << endl;
+            dynamic_laser_scan.ranges[i] = std::min(dynamic_laser_scan.ranges[i], max_range);
+
+            float dist = dynamic_laser_scan.ranges[i];
+            
+            std::vector<float> lidar_range{dist*cos(rad), dist*sin(rad)};
+
+            std::vector<float> pt2 = lidar_range;
+
+            // map<string, vector<double>>::iterator it;
+            //vector<pair<string, vector<double> >> odom_vect = sort_and_prune(odom_map);
+            // TODO: sort map here according to distance from robot. Then, can break after first intersection
+            for (int j = 0; j < _agent_odoms.size(); j++) {
+                geometry_msgs::Pose other_state = _agent_odoms[j];
+                // ROS_INFO_STREAM("ODOM MAP SECOND: " << other_state[0] << ", " << other_state[1]);
+                // int idx_dist = std::distance(odom_map.begin(), it);
+                // ROS_INFO_STREAM("EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
+                // ROS_INFO_STREAM("ODOM VECT SECOND: " << other_state[0] << ", " << other_state[1]);
+
+                std::vector<double> centered_pt1{-other_state.position.x,
+                                            -other_state.position.y}; // centered ego robot state
+
+                std::vector<double> centered_pt2{pt2[0] - other_state.position.x,
+                                            pt2[1] - other_state.position.y}; // static laser scan point
+                // ROS_INFO_STREAM("LASER SCAN PT: " << pt2[0] << ", " << pt2[1]);
+
+                double dx = centered_pt2[0] - centered_pt1[0];
+                double dy = centered_pt2[1] - centered_pt1[1];
+                std::vector<double> dx_dy{dx, dy};
+                double dr = l2_norm(dx_dy);
+
+                double D = centered_pt1[0]*centered_pt2[1] - centered_pt2[0]*centered_pt1[1];
+                double discriminant = pow(r_inscr,2) * pow(dr, 2) - pow(D, 2);
+
+                if (discriminant > 0) {
+                    std::vector<double> intersection0{(D*dy + sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                                (-D * dx + abs(dy)*sqrt(discriminant)) / pow(dr, 2)};
+                                        
+                    std::vector<double> intersection1{(D*dy - sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                                (-D * dx - abs(dy)*sqrt(discriminant)) / pow(dr, 2)};
+                    std::vector<double> int0_min_cent_pt1{intersection0[0] - centered_pt1[0],
+                                                    intersection0[1] - centered_pt1[1]};
+                    double dist0 = l2_norm(int0_min_cent_pt1);
+                    std::vector<double> int1_min_cent_pt1{intersection1[0] - centered_pt1[0],
+                                                    intersection1[1] - centered_pt1[1]};
+                    double dist1 = l2_norm(int1_min_cent_pt1);
+                    std::vector<double> cent_pt2_min_cent_pt1{centered_pt2[0] - centered_pt1[0],
+                                                        centered_pt2[1] - centered_pt1[1]};
+                    if (dist0 < dist1) {
+                        std::vector<double> int0_min_cent_pt2{intersection0[0] - centered_pt2[0],
+                                                        intersection0[1] - centered_pt2[1]};
+                        if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int0_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
+                            // ROS_INFO_STREAM("changed distance from " << modified_laser_scan.ranges[i] << " to " << dist0);
+                            dynamic_laser_scan.ranges[i] = dist0;
+                            // break;
+                        }
+                    } else {
+                        std::vector<double> int1_min_cent_pt2{intersection1[0] - centered_pt2[0], intersection1[1] - centered_pt2[1]};
+                        if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int1_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
+                            // ROS_INFO_STREAM("changed distance from " << modified_laser_scan.ranges[i] << " to " << dist1);                        
+                            dynamic_laser_scan.ranges[i] = dist1;
+                            // break;
+                        }
+                    }
+                }
+            }
+        }
+    
+    }
+
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan) {
         // freeze models
         // std::cout << "num gaps: " << current_raw_gaps.size() << std::endl;
@@ -238,7 +347,10 @@ namespace dynamic_gap {
     }
 
 
-    std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps) {
+    std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, 
+                                                           std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
+                                                           std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels) {
         // Requires LOCAL FRAME
         // Should be no racing condition
 
@@ -288,7 +400,10 @@ namespace dynamic_gap {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
-                recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
+                // need to hook up static scan
+                dynamic_laser_scan.ranges = stored_scan.ranges;
+                recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_laser_scan);
+                // recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
                 if (i == 1) visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
                 dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan) / dynamic_cost_val.size();
                 t_i = t_iplus1;
