@@ -44,7 +44,7 @@ namespace dynamic_gap {
         //sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         //dynamic_laser_scan.set_ranges_size(2*gap.half_scan);
 
-        // ROS_INFO_STREAM("propagating egocircle from " << t_i << " to " << t_iplus1);
+        ROS_INFO_STREAM("propagating egocircle from " << t_i << " to " << t_iplus1);
         // iterate
         // std::cout << "propagating models" << std::endl;
         double interval = t_iplus1 - t_i;
@@ -81,12 +81,12 @@ namespace dynamic_gap {
             curr_beta = model_state[1]; // atan2(model_state[1], model_state[2]);
             curr_idx = (int) ((curr_beta + M_PI) / msg.get()->angle_increment);
 
-            // ROS_INFO_STREAM("candidate model with idx: " << curr_idx);
+            ROS_INFO_STREAM("candidate model with idx: " << curr_idx);
 
             if (model->get_side() == "left") { // this is left from laser scan
 
                 if (first_left == nullptr) {
-                    // ROS_INFO_STREAM("setting first left to " << curr_idx);
+                    ROS_INFO_STREAM("setting first left to " << curr_idx);
                     first_left = model;
                 } 
                 
@@ -99,40 +99,40 @@ namespace dynamic_gap {
                     } else {
                         left_state = curr_left->get_frozen_modified_polar_state();
                         if (model_state[0] > left_state[0]) {
-                            // ROS_INFO_STREAM("swapping current left to" << curr_idx);
+                            ROS_INFO_STREAM("swapping current left to" << curr_idx);
                             curr_left = model;
                         } else {
-                            // ROS_INFO_STREAM("rejecting left swap to " << curr_idx);
+                            ROS_INFO_STREAM("rejecting left swap to " << curr_idx);
                         }                    
                     }
                 } else {
-                    // ROS_INFO_STREAM("setting curr left to " << curr_idx);
+                    ROS_INFO_STREAM("setting curr left to " << curr_idx);
                     curr_left = model;
                 }
 
             } else if (model->get_side() == "right") {
 
                 if (first_right == nullptr) {
-                    // ROS_INFO_STREAM("setting first right to " << curr_idx);
+                    ROS_INFO_STREAM("setting first right to " << curr_idx);
                     first_right = model;
                 }
 
                 if (curr_right != nullptr) {
                     right_state = curr_right->get_frozen_modified_polar_state();
                     if (model_state[0] > right_state[0]) {
-                        // ROS_INFO_STREAM("swapping current right to" << curr_idx);
+                        ROS_INFO_STREAM("swapping current right to" << curr_idx);
                         curr_right = model;
                     } else {
-                        // ROS_INFO_STREAM("rejecting right swap to " << curr_idx);
+                        ROS_INFO_STREAM("rejecting right swap to " << curr_idx);
                     }
                 } else {
-                    // ROS_INFO_STREAM("setting curr right to " << curr_idx);
+                    ROS_INFO_STREAM("setting curr right to " << curr_idx);
                     curr_right = model;
                 }
             }
         }
 
-        // ROS_INFO_STREAM("wrapping");
+        ROS_INFO_STREAM("wrapping");
         if (last_model->get_side() == "left") {
             // wrapping around last free space
             populateDynamicLaserScan(last_model, first_right, dynamic_laser_scan, 1);
@@ -163,13 +163,13 @@ namespace dynamic_gap {
             end_idx = right_idx;
             start_range = left_range;
             end_range = right_range;
-            // ROS_INFO_STREAM("free space between left: (" << left_idx << ",  " << left_range << ") and right: (" << right_idx << ", " << right_range << ")");
+            ROS_INFO_STREAM("free space between left: (" << left_idx << ",  " << left_range << ") and right: (" << right_idx << ", " << right_range << ")");
         } else {
             start_idx = right_idx;
             end_idx = left_idx;
             start_range = right_range;
             end_range = left_range;
-            // ROS_INFO_STREAM("obstacle space between right: (" << right_idx << ", " << right_range << ") and left: (" << left_idx << ", " << left_range << ")");
+            ROS_INFO_STREAM("obstacle space between right: (" << right_idx << ", " << right_range << ") and left: (" << left_idx << ", " << left_range << ")");
         }
 
         int idx_span, entry_idx;

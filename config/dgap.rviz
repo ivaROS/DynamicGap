@@ -179,7 +179,7 @@ Visualization Manager:
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        allTraj: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -487,16 +487,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 47.54352569580078
+      Distance: 53.248748779296875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -9.02336311340332
-        Y: 0.8237636685371399
-        Z: -35.83243179321289
+        X: -3.436352252960205
+        Y: -0.9050897359848022
+        Z: -35.83420944213867
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
