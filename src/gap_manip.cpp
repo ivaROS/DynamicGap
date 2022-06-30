@@ -7,20 +7,32 @@ namespace dynamic_gap {
         num_of_scan = (int)(msg.get()->ranges.size());
     }
 
+    void GapManipulator::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+        boost::mutex::scoped_lock lock(egolock);
+        static_msg = msg_;
+    }
+
     void GapManipulator::updateDynamicEgoCircle(std::vector<dynamic_gap::Gap> curr_raw_gaps, 
                                                 dynamic_gap::Gap& gap,
+                                                std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                                std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                                 dynamic_gap::TrajectoryArbiter * trajArbiter) {
-        dynamic_scan = *msg.get();
+        dynamic_scan = *static_msg.get();
         double t_i = 0.0;
         double t_iplus1 = gap.gap_lifespan;
-
+        /*
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : curr_raw_gaps) {
             raw_models.push_back(gap.left_model);
             raw_models.push_back(gap.right_model);
         }
+        */
 
-        trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_scan);
+        trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_scan, false);
+
+        auto terminal_min_dist = *std::min_element(dynamic_scan.ranges.begin(), dynamic_scan.ranges.end());
+        gap.setTerminalMinSafeDist(terminal_min_dist);
+        // trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_scan);
     }
     
     void GapManipulator::setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
@@ -305,11 +317,16 @@ namespace dynamic_gap {
         // msg is from egocircle
         // only part of msg used is angle_increment
 
-        int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
-        int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
-        float ldist = initial ? gap.LDist() : gap.terminal_ldist;
-        float rdist = initial ? gap.RDist() : gap.terminal_rdist;
+        int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
+        int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
+        float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
+        float rdist = initial ? gap.convex.convex_rdist : gap.convex.terminal_rdist;
+
         double gap_idx_size = (ridx - lidx);
+
+        if (gap_idx_size < 0.0) {
+            gap_idx_size += (2*gap.half_scan);
+        }
 
         double gap_theta_size = gap_idx_size * (msg.get()->angle_increment);
         // ROS_INFO_STREAM( "gap idx size: " << gap_idx_size << std::endl;
@@ -328,15 +345,18 @@ namespace dynamic_gap {
         x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
         y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
 
-        // ROS_INFO_STREAM( "pre-reduce gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
-        // ROS_INFO_STREAM("pre-reduce gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
+        ROS_INFO_STREAM( "pre-reduce gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
+        ROS_INFO_STREAM("pre-reduce gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
 
 
         // the desired size for the reduced gap?
         // target is pi
         int target_idx_size = cfg_->gap_manip.reduction_target / msg.get()->angle_increment;
-        int l_biased_r = lidx + target_idx_size;
+        int l_biased_r = (lidx + target_idx_size) % 2*gap.half_scan;
         int r_biased_l = ridx - target_idx_size;
+        if (r_biased_l < 0) {
+            r_biased_l += 2*gap.half_scan;
+        }
        
         double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         int goal_idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
@@ -376,7 +396,7 @@ namespace dynamic_gap {
 
             x2 = (gap.convex.convex_rdist) * cos(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
             y2 = (gap.convex.convex_rdist) * sin(-((float) gap.half_scan - gap.convex.convex_ridx) / gap.half_scan * M_PI);
-            // ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")");
+            ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.convex.convex_lidx << ", " << gap.convex.convex_ldist << "), right: (" << gap.convex.convex_ridx << ", " << gap.convex.convex_rdist << ")");
         } else {
             gap.convex.terminal_lidx = new_l_idx;
             gap.convex.terminal_ridx = new_r_idx;
@@ -389,9 +409,9 @@ namespace dynamic_gap {
 
             x2 = (gap.convex.terminal_rdist) * cos(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI);
             y2 = (gap.convex.terminal_rdist) * sin(-((float) gap.half_scan - gap.convex.terminal_ridx) / gap.half_scan * M_PI);
-            // ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")");
+            ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.convex.terminal_lidx << ", " << gap.convex.terminal_ldist << "), right: (" << gap.convex.terminal_ridx << ", " << gap.convex.terminal_rdist << ")");
         }
-        // ROS_INFO_STREAM("post-reduce in cart. left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")");
+        ROS_INFO_STREAM("post-reduce in cart. left: (" << x1 << ", " << y1 << "), right: (" << x2 << ", " << y2 << ")");
         return;
     }
 
@@ -402,10 +422,10 @@ namespace dynamic_gap {
         }
         ROS_INFO_STREAM("~running convertAxialGap~");
 
-        int lidx = initial ? gap.LIdx() : gap.terminal_lidx;
-        int ridx = initial ? gap.RIdx() : gap.terminal_ridx;
-        float ldist = initial ? gap.LDist() : gap.terminal_ldist;
-        float rdist = initial ? gap.RDist() : gap.terminal_rdist;
+        int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
+        int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
+        float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
+        float rdist = initial ? gap.convex.convex_rdist : gap.convex.terminal_rdist;
 
         float x1, x2, y1, y2;
         x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
@@ -642,12 +662,12 @@ namespace dynamic_gap {
         Eigen::Vector2f left_point(x1, y1);
         Eigen::Vector2f right_point(x2, y2);
 
-        // ROS_INFO_STREAM("left_point: (" << x1 << ", " << y1 << ") , right_point: (" << x2 << ", " << y2 << ")");
+        ROS_INFO_STREAM("left_point: (" << x1 << ", " << y1 << ") , right_point: (" << x2 << ", " << y2 << ")");
 
         Eigen::Vector2f eL = left_point / left_point.norm();
         Eigen::Vector2f eR = right_point / right_point.norm();
 
-        // ROS_INFO_STREAM("eL: (" << eL[0] << ", " << eL[1] << ") , eR: (" << eR[0] << ", " << eR[1] << ")");
+        ROS_INFO_STREAM("eL: (" << eL[0] << ", " << eL[1] << ") , eR: (" << eR[0] << ", " << eR[1] << ")");
 
         double beta_left = std::atan2(eL[1], eL[0]);
         double beta_right = std::atan2(eR[1], eR[0]);
@@ -664,23 +684,23 @@ namespace dynamic_gap {
 
         // middle of gap direction
         Eigen::Vector2f eB(std::cos(beta_center), std::sin(beta_center));
-        // ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
+        ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
 
-        eB /= eB.norm();
+        Eigen::Vector2f norm_eB = eB / eB.norm();
         // angular size of gap
-        // ROS_INFO_STREAM("normalized eB: " << eB[0] << ", " << eB[1]);
+        ROS_INFO_STREAM("normalized eB: " << norm_eB[0] << ", " << norm_eB[1]);
         float gap_size = beta_right - beta_left; // std::acos(eL.dot(eR));
         if (gap_size < 0) {
             gap_size += 2*M_PI;
         }
-        //  ROS_INFO_STREAM("gap_size: " << gap_size);
+        ROS_INFO_STREAM("gap_size: " << gap_size);
         // minSafeDist is the minimum distance within the laser scan 
-        float s = gap.getMinSafeDist(); // initial ? gap.getMinSafeDist() : dynamic_laser_scan.range_min;
-        // ROS_INFO_STREAM("min safe dist: " << s);
+        float s = initial ? gap.getMinSafeDist() : gap.getTerminalMinSafeDist();
+        ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
-        Eigen::Vector2f qB = -s * eB;
-        // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
+        Eigen::Vector2f qB = -s * norm_eB;
+        ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
         if (initial) {
             gap.qB = qB;
         } else {
@@ -697,15 +717,15 @@ namespace dynamic_gap {
 
         // angular difference between right and left
         float phiB = pRp(1) - pLp(1);
-        // ROS_INFO_STREAM("phiB: " << phiB);
+        ROS_INFO_STREAM("phiB: " << phiB);
 
         Eigen::Vector2f pB = car2pol(-qB);
-        // ROS_INFO_STREAM("pB: " << pB[0] << ", " << pB[1]);
+        ROS_INFO_STREAM("pB: " << pB[0] << ", " << pB[1]);
 
         float thL = pB(1) - gap_size / 4; // left side 1/2 throgh
         float thR = pB(1) + gap_size / 4; // right side 1/2 through
 
-        // ROS_INFO_STREAM("thL: " << thL << ", " << "thR: " << thR);
+        ROS_INFO_STREAM("thL: " << thL << ", " << "thR: " << thR);
         Eigen::Vector2f pLn = pTheta(thL, phiB, pLp, pRp);
         Eigen::Vector2f pRn = pTheta(thR, phiB, pLp, pRp);
 
@@ -719,8 +739,7 @@ namespace dynamic_gap {
         double first_new_left_idx = polqLn(1) / M_PI * half_num_scan + half_num_scan;
         double first_new_right_idx = polqRn(1) / M_PI * half_num_scan + half_num_scan;
 
-        // ROS_INFO_STREAM("new_l_theta: " << polqLn(1) << ", new_r_theta: " << polqRn(1));
-        // ROS_INFO_STREAM("double values, left: " << first_new_left_idx << ", right: " << first_new_right_idx);
+        ROS_INFO_STREAM("new_l_theta: " << polqLn(1) << ", new_r_theta: " << polqRn(1));
                 
         int new_left_idx = std::max((int) std::floor(first_new_left_idx), 0);
         int new_right_idx = std::min((int) std::ceil(first_new_right_idx), 511);

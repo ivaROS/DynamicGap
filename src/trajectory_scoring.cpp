@@ -17,6 +17,12 @@ namespace dynamic_gap {
         boost::mutex::scoped_lock lock(egocircle_mutex);
         msg = msg_;
     }
+
+    void TrajectoryArbiter::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+        boost::mutex::scoped_lock lock(egocircle_mutex);
+        static_msg = msg_;
+    }
+
     void TrajectoryArbiter::updateGapContainer(const std::vector<dynamic_gap::Gap> observed_gaps) {
         boost::mutex::scoped_lock lock(gap_mutex);
         gaps.clear();
@@ -54,19 +60,23 @@ namespace dynamic_gap {
     void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
                                                         std::vector<geometry_msgs::Pose> & _agent_odoms, 
                                                         std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                                        sensor_msgs::LaserScan& dynamic_laser_scan) {
+                                                        sensor_msgs::LaserScan& dynamic_laser_scan,
+                                                        bool print) {
         double interval = t_iplus1 - t_i;
         if (interval <= 0.0) {
             return;
         }
-
+        if (print) ROS_INFO_STREAM("recovering dynamic egocircle with cheat for interval: " << t_i << " to " << t_iplus1);
         // for EVERY interval, start with static scan
-        dynamic_laser_scan.ranges = msg.get()->ranges;
+        dynamic_laser_scan.ranges = static_msg.get()->ranges;
+
         float max_range = 5.0;
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < _agent_odoms.size(); i++) {
+            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
             _agent_odoms[i].position.x += _agent_vels[i].vector.x*interval;
             _agent_odoms[i].position.y += _agent_vels[i].vector.y*interval;
+            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
         }
 
         // basically run modify_scan                                                          
@@ -76,7 +86,7 @@ namespace dynamic_gap {
             // cout << "i: " << i << " rad: " << rad << endl;
             // cout << "original distance " << modified_laser_scan.ranges[i] << endl;
             dynamic_laser_scan.ranges[i] = std::min(dynamic_laser_scan.ranges[i], max_range);
-
+            // ROS_INFO_STREAM("i: " << i << ", rad: " << rad << ", range: " << dynamic_laser_scan.ranges[i]);
             float dist = dynamic_laser_scan.ranges[i];
             
             std::vector<float> lidar_range{dist*cos(rad), dist*sin(rad)};
@@ -93,12 +103,15 @@ namespace dynamic_gap {
                 // ROS_INFO_STREAM("EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
                 // ROS_INFO_STREAM("ODOM VECT SECOND: " << other_state[0] << ", " << other_state[1]);
 
+                // centered ego robot state
                 std::vector<double> centered_pt1{-other_state.position.x,
-                                            -other_state.position.y}; // centered ego robot state
+                                                 -other_state.position.y}; 
+                // ROS_INFO_STREAM("centered_pt1: " << centered_pt1[0] << ", " << centered_pt1[1]);
 
+                // static laser scan point
                 std::vector<double> centered_pt2{pt2[0] - other_state.position.x,
-                                            pt2[1] - other_state.position.y}; // static laser scan point
-                // ROS_INFO_STREAM("LASER SCAN PT: " << pt2[0] << ", " << pt2[1]);
+                                                 pt2[1] - other_state.position.y}; 
+                // ROS_INFO_STREAM("centered_pt2: " << centered_pt2[0] << ", " << centered_pt2[1]);
 
                 double dx = centered_pt2[0] - centered_pt1[0];
                 double dy = centered_pt2[1] - centered_pt1[1];
@@ -126,14 +139,14 @@ namespace dynamic_gap {
                         std::vector<double> int0_min_cent_pt2{intersection0[0] - centered_pt2[0],
                                                         intersection0[1] - centered_pt2[1]};
                         if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int0_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
-                            // ROS_INFO_STREAM("changed distance from " << modified_laser_scan.ranges[i] << " to " << dist0);
+                            if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist0);
                             dynamic_laser_scan.ranges[i] = dist0;
                             // break;
                         }
                     } else {
                         std::vector<double> int1_min_cent_pt2{intersection1[0] - centered_pt2[0], intersection1[1] - centered_pt2[1]};
                         if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int1_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
-                            // ROS_INFO_STREAM("changed distance from " << modified_laser_scan.ranges[i] << " to " << dist1);                        
+                            if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist1);                        
                             dynamic_laser_scan.ranges[i] = dist1;
                             // break;
                         }
@@ -349,10 +362,12 @@ namespace dynamic_gap {
 
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, 
                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
-                                                           std::vector<geometry_msgs::Pose> & _agent_odoms, 
-                                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels) {
+                                                           std::vector<geometry_msgs::Pose> _agent_odoms, 
+                                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                           bool print) {
         // Requires LOCAL FRAME
         // Should be no racing condition
+        double start_time = ros::WallTime::now().toSec();
 
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
@@ -401,11 +416,13 @@ namespace dynamic_gap {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
                 // need to hook up static scan
-                dynamic_laser_scan.ranges = stored_scan.ranges;
-                recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_laser_scan);
+                recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_laser_scan, print);
                 // recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
-                if (i == 1) visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
-                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan) / dynamic_cost_val.size();
+                if (i == 1 && print) {
+                    ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
+                    visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
+                }
+                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan, print); //  / dynamic_cost_val.size()
                 t_i = t_iplus1;
             }
             auto dynamic_total_val = std::accumulate(dynamic_cost_val.begin(), dynamic_cost_val.end(), double(0));
@@ -415,7 +432,7 @@ namespace dynamic_gap {
         } else {
             for (int i = 0; i < static_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
-                static_cost_val.at(i) = scorePose(traj.poses.at(i)) / static_cost_val.size();
+                static_cost_val.at(i) = scorePose(traj.poses.at(i)); //  / static_cost_val.size()
             }
             auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
             total_val = static_total_val;
@@ -450,6 +467,7 @@ namespace dynamic_gap {
             cost_val.at(0) -= terminal_cost;
         }
         
+        ROS_INFO_STREAM("scoreTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         return cost_val;
     }
 
@@ -470,7 +488,7 @@ namespace dynamic_gap {
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
     }
 
-    double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan) {
+    double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print) {
         boost::mutex::scoped_lock lock(egocircle_mutex);
 
         // obtain orientation and idx of pose
@@ -497,8 +515,10 @@ namespace dynamic_gap {
         auto iter = std::min_element(dist.begin(), dist.end());
         double theta = std::distance(dist.begin(), iter) * dynamic_laser_scan.angle_increment - M_PI;
         double range = dynamic_laser_scan.ranges.at(std::distance(dist.begin(), iter) );
-        // ROS_INFO_STREAM("closest point: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")");
-        double cost = chapterScore(*iter);
+        double cost = dynamicChapterScore(*iter);
+        if (print && cost == -std::numeric_limits<double>::infinity()) {
+            ROS_INFO_STREAM("collision at: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")");
+        }
         // ROS_INFO_STREAM("distance: " << *iter << ", cost: " << cost);
 
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
@@ -564,6 +584,19 @@ namespace dynamic_gap {
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
         // std::cout << "static cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest position: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
         return cost;
+    }
+
+    double TrajectoryArbiter::dynamicChapterScore(double d) {
+        // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
+        // std::cout << "in chapterScore with distance: " << d << std::endl;
+        if (d < r_inscr * cfg_->traj.inf_ratio) { //   
+            // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
+            return -std::numeric_limits<double>::infinity();
+        }
+        // if distance is essentially infinity, return 0
+        if (d > rmax) return 0;
+
+        return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio));
     }
 
     double TrajectoryArbiter::chapterScore(double d) {

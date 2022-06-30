@@ -294,6 +294,14 @@ namespace dynamic_gap
                 return min_safe_dist;
             }
 
+            void setTerminalMinSafeDist(float _dist) {
+                terminal_min_safe_dist = _dist;
+            }
+
+            float getTerminalMinSafeDist() {
+                return terminal_min_safe_dist;
+            }
+
             std::string getFrame() {
                 return _frame;
             }
@@ -393,6 +401,7 @@ namespace dynamic_gap
             float convex_ldist;
             float convex_rdist;
             float min_safe_dist = -1;
+            float terminal_min_safe_dist = -1;
             Eigen::Vector2f qB;
             Eigen::Vector2f terminal_qB;
             float half_scan = 256;

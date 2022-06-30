@@ -427,7 +427,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 52; 101; 164
-      Min Color: 52; 101; 164
+      Min Color: 252; 175; 62
       Name: LaserScan
       Position Transformer: XYZ
       Queue Size: 10

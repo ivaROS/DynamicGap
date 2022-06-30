@@ -80,7 +80,7 @@ namespace dynamic_gap{
                 return return_tuple;
             }
 
-            Eigen::Vector2f qB = selectedGap.qB; // (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
+            Eigen::Vector2f qB = selectedGap.terminal_qB; // (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
             // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
 
             if (selectedGap.mode.convex) {
@@ -187,6 +187,7 @@ namespace dynamic_gap{
             */
 
                         
+            Eigen::Vector2d init_rbt_pos(x[0], x[1]);
             Eigen::Vector2d left_pt_0(x_left, y_left);
             Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
             Eigen::Vector2d right_pt_0(x_right, y_right);
@@ -199,7 +200,7 @@ namespace dynamic_gap{
             Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
             Eigen::Vector2d gap_origin(0.0, 0.0);
-            reachable_gap_APF reachable_gap_APF_inte(gap_origin, left_pt_0, left_pt_1,
+            reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, gap_origin, left_pt_0, left_pt_1,
                                                     right_pt_0, right_pt_1,
                                                     nonrel_left_vel, nonrel_right_vel,
                                                     rel_left_vel, rel_right_vel,

@@ -131,6 +131,12 @@ namespace dynamic_gap
         return false;
     }
     
+    void Planner::staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
+        static_scan_ptr = msg;
+        trajArbiter->updateStaticEgoCircle(msg);
+        gapManip->updateStaticEgoCircle(msg);
+    }
+
     void Planner::inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         sharedPtr_inflatedlaser = msg;
@@ -500,7 +506,7 @@ namespace dynamic_gap
             
             
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
-            gapManip->updateDynamicEgoCircle(curr_raw_gaps, manip_set.at(i), trajArbiter);
+            gapManip->updateDynamicEgoCircle(curr_raw_gaps, manip_set.at(i), agent_odoms, agent_vels, trajArbiter);
             if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false); // cut down from non convex 
                 gapManip->convertAxialGap(manip_set.at(i), false); // swing axial inwards
@@ -537,14 +543,14 @@ namespace dynamic_gap
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
                     g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, true);
                     g2g_tuple = gapTrajSyn->forwardPassTrajectory(g2g_tuple);
-                    std::vector<double> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, agent_odoms, agent_vels);
+                    std::vector<double> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, agent_odoms, agent_vels, false);
                     double g2g_score = std::accumulate(g2g_score_vec.begin(), g2g_score_vec.end(), double(0));
                     ROS_INFO_STREAM("g2g_score: " << g2g_score);
 
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> ahpf_tuple;
                     ahpf_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, false);
                     ahpf_tuple = gapTrajSyn->forwardPassTrajectory(ahpf_tuple);
-                    std::vector<double> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, agent_odoms, agent_vels);
+                    std::vector<double> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, agent_odoms, agent_vels, false);
                     double ahpf_score = std::accumulate(ahpf_score_vec.begin(), ahpf_score_vec.end(), double(0));
                     ROS_INFO_STREAM("ahpf_score: " << ahpf_score);
 
@@ -555,7 +561,7 @@ namespace dynamic_gap
                     return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
 
                     ROS_INFO_STREAM("scoring trajectory for gap: " << i);
-                    ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps, agent_odoms, agent_vels);
+                    ret_traj_scores.at(i) = trajArbiter->scoreTrajectory(std::get<0>(return_tuple), std::get<1>(return_tuple), curr_raw_gaps, agent_odoms, agent_vels, false);
                 }
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
@@ -660,7 +666,7 @@ namespace dynamic_gap
             incom_rbt.header.frame_id = cfg.robot_frame_id;
             // why do we have to rescore here?
             ROS_INFO_STREAM("~~~~scoring incoming trajectory~~~~");
-            auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, curr_raw_gaps, agent_odoms, agent_vels);
+            auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, curr_raw_gaps, agent_odoms, agent_vels, false);
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
 
             int counts = std::min(cfg.planning.num_feasi_check, (int) incom_score.size());
@@ -717,7 +723,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("incoming subscore: " << incom_subscore);
 
             ROS_INFO_STREAM("scoring current trajectory");
-            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, agent_odoms, agent_vels);
+            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, agent_odoms, agent_vels, true);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
             ROS_INFO_STREAM("current subscore: " << curr_subscore);
 
@@ -742,6 +748,8 @@ namespace dynamic_gap
                 return empty_traj;
             }
 
+            // commenting this out to prevent switching. Only re-plan when done or collision
+            /*
             double oscillation_pen = counts * std::exp(-2*(curr_time - prev_traj_switch_time));
             double curr_score_with_pen = curr_subscore + oscillation_pen;
             ROS_DEBUG_STREAM("Curr Score: " << curr_score_with_pen << ", incom Score:" << incom_subscore);
@@ -758,7 +766,7 @@ namespace dynamic_gap
                 prev_traj_switch_time = curr_time;
                 return incoming;
             }
-            
+            */
             ROS_INFO_STREAM("keeping current trajectory");
 
             trajectory_pub.publish(curr_traj);
@@ -1003,10 +1011,9 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("starting initialTrajGen");
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-        // start_time = ros::WallTime::now().toSec();
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
-        // ROS_INFO_STREAM("time elapsed after initialTrajGen: " << ros::WallTime::now().toSec() - getPlan_start_time);
+        // ROS_INFO_STREAM("time elapsed during initialTrajGen: " << ros::WallTime::now().toSec() - start_time);
 
         // ROS_INFO_STREAM("starting pickTraj");
         // start_time = ros::WallTime::now().toSec();

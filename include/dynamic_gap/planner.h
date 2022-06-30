@@ -142,6 +142,7 @@ namespace dynamic_gap
 
         geometry_msgs::Pose sharedPtr_pose;
         geometry_msgs::Pose sharedPtr_previous_pose;
+        boost::shared_ptr<sensor_msgs::LaserScan const> static_scan_ptr;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_inflatedlaser;
 
@@ -242,6 +243,8 @@ namespace dynamic_gap
          */
         void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
         void inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
+
+        void staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         void robotAccCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
         // void robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
