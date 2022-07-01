@@ -541,14 +541,14 @@ namespace dynamic_gap
                 if (run_g2g) {
                     ROS_INFO_STREAM("running g2g and ahpf");
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
-                    g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, true);
+                    g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, run_g2g);
                     g2g_tuple = gapTrajSyn->forwardPassTrajectory(g2g_tuple);
                     std::vector<double> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, agent_odoms, agent_vels, false);
                     double g2g_score = std::accumulate(g2g_score_vec.begin(), g2g_score_vec.end(), double(0));
                     ROS_INFO_STREAM("g2g_score: " << g2g_score);
 
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> ahpf_tuple;
-                    ahpf_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, false);
+                    ahpf_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, !run_g2g);
                     ahpf_tuple = gapTrajSyn->forwardPassTrajectory(ahpf_tuple);
                     std::vector<double> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, agent_odoms, agent_vels, false);
                     double ahpf_score = std::accumulate(ahpf_score_vec.begin(), ahpf_score_vec.end(), double(0));
@@ -557,7 +557,7 @@ namespace dynamic_gap
                     return_tuple = (g2g_score > ahpf_score) ? g2g_tuple : ahpf_tuple;
                     ret_traj_scores.at(i) = (g2g_score > ahpf_score) ? g2g_score_vec : ahpf_score_vec;
                 } else {
-                    return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, false);
+                    return_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, run_g2g);
                     return_tuple = gapTrajSyn->forwardPassTrajectory(return_tuple);
 
                     ROS_INFO_STREAM("scoring trajectory for gap: " << i);
@@ -723,7 +723,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("incoming subscore: " << incom_subscore);
 
             ROS_INFO_STREAM("scoring current trajectory");
-            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, agent_odoms, agent_vels, true);
+            auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, agent_odoms, agent_vels, false);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
             ROS_INFO_STREAM("current subscore: " << curr_subscore);
 

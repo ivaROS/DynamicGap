@@ -311,6 +311,21 @@ namespace dynamic_gap {
         return dist2goal < min_val_round_goal;
     }
 
+    // helper functions need to be placed above where they are used
+    bool goal_within(int goal_idx, int idx_lower, int idx_upper, int full_scan) {
+        if (idx_lower < idx_upper) {
+            ROS_INFO_STREAM("no wrapping, is goal idx between " << idx_lower << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < idx_upper); //if no wrapping occurs
+        } else {
+            ROS_INFO_STREAM("wrapping, is goal idx between " << idx_lower << " and " << full_scan << ", or between " << 0 << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < full_scan) || (goal_idx > 0 && goal_idx < idx_upper); // if wrapping occurs
+        }
+    }
+
+    int subtract_wrap(int a, int b) {
+        return (a < 0) ? a+b : a;
+    }
+
     // In place modification
     void GapManipulator::reduceGap(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
         if (!msg) return; 
@@ -325,6 +340,7 @@ namespace dynamic_gap {
         double gap_idx_size = (ridx - lidx);
 
         if (gap_idx_size < 0.0) {
+            ROS_INFO_STREAM("reducing behind gap");
             gap_idx_size += (2*gap.half_scan);
         }
 
@@ -352,37 +368,58 @@ namespace dynamic_gap {
         // the desired size for the reduced gap?
         // target is pi
         int target_idx_size = cfg_->gap_manip.reduction_target / msg.get()->angle_increment;
-        int l_biased_r = (lidx + target_idx_size) % 2*gap.half_scan;
-        int r_biased_l = ridx - target_idx_size;
-        if (r_biased_l < 0) {
-            r_biased_l += 2*gap.half_scan;
-        }
-       
-        double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
-        int goal_idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
+        int orig_l_biased_r = (lidx + target_idx_size); 
+        int orig_r_biased_l = (ridx - target_idx_size);
 
+        int l_biased_r = orig_l_biased_r % num_of_scan; // num_of_scan is int version of 2*half_scan
+        int r_biased_l = subtract_wrap(orig_r_biased_l, num_of_scan);
+
+        ROS_INFO_STREAM("orig_l_biased_r: " << orig_l_biased_r << ", orig_r_biased_l: " << orig_r_biased_l);
+        ROS_INFO_STREAM("l_biased_r: " << l_biased_r << ", r_biased_l: " << r_biased_l);
+
+        double goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+        int goal_idx = goal_orientation / (M_PI / gap.half_scan) + gap.half_scan;
+        ROS_INFO_STREAM("goal_idx: " << goal_idx);
         int acceptable_dist = target_idx_size / 2; // distance in scan indices
 
         //ROS_INFO_STREAM( "goal orientation: " << goal_orientation << ", goal idx: " << goal_idx << ", acceptable distance: " << acceptable_dist << std::endl;
         int new_l_idx, new_r_idx;
-        //ROS_INFO_STREAM( "right greater than left" << std::endl;
-        if (goal_idx + acceptable_dist > ridx){ // r-biased Gap, checking if goal is on the right side of the gap
-            //ROS_INFO_STREAM( "right biased gap" << std::endl;
+
+        int R_minus = subtract_wrap(ridx - acceptable_dist, num_of_scan);
+        int R_plus = (ridx + acceptable_dist) % num_of_scan;
+
+        int L_minus = subtract_wrap(lidx - acceptable_dist, num_of_scan);
+        int L_plus = (lidx + acceptable_dist) % num_of_scan;
+
+        ROS_INFO_STREAM("testing right_biased with lower: " << R_minus << ", " << R_plus);
+        bool right_biased = goal_within(goal_idx, R_minus, R_plus, num_of_scan); 
+        ROS_INFO_STREAM("testing left_biased with lower: " << L_minus << ", " << L_plus);
+        bool left_biased = goal_within(goal_idx, L_minus, L_plus, num_of_scan); 
+        if (right_biased) {
             new_r_idx = ridx;
             new_l_idx = r_biased_l;
-        } else if (goal_idx - acceptable_dist < lidx) { // l-biased gap, checking if goal is on left side of gap?
-            //ROS_INFO_STREAM( "left biased gap" << std::endl;                
+            ROS_INFO_STREAM("creating right-biased gap: " << new_l_idx << ", " << new_r_idx);
+        } else if (left_biased) {
             new_r_idx = l_biased_r;
             new_l_idx = lidx;
+            ROS_INFO_STREAM("creating left-biased gap: " << new_l_idx << ", " << new_r_idx);
         } else { // Lingering in center
             //ROS_INFO_STREAM( "central gap" << std::endl;
-            new_l_idx = goal_idx - acceptable_dist;
-            new_r_idx = goal_idx + acceptable_dist;
+            new_l_idx = subtract_wrap(goal_idx - acceptable_dist, num_of_scan);
+            new_r_idx = (goal_idx + acceptable_dist) % num_of_scan;
+            ROS_INFO_STREAM("creating goal-centered gap: " << new_l_idx << ", " << new_r_idx);
         }
 
         // removed some float casting here
-        float new_ldist = float(new_l_idx - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
-        float new_rdist = float(new_r_idx - lidx) / float(ridx - lidx) * (rdist - ldist) + ldist;
+        float orig_gap_size = float(subtract_wrap(ridx - lidx, num_of_scan));
+        ROS_INFO_STREAM("orig_gap_size: " << orig_gap_size);
+        float new_l_idx_diff = float(subtract_wrap(new_l_idx - lidx, num_of_scan));
+        float new_r_idx_diff = float(subtract_wrap(new_r_idx - lidx, num_of_scan));
+        ROS_INFO_STREAM("new_l_idx_diff: " << new_l_idx_diff << ", new_r_idx_diff: " << new_r_idx_diff);
+
+
+        float new_ldist = new_l_idx_diff / orig_gap_size * (rdist - ldist) + ldist;
+        float new_rdist = new_r_idx_diff / orig_gap_size * (rdist - ldist) + ldist;
         
         if (initial) {
             gap.convex.convex_lidx = new_l_idx;
