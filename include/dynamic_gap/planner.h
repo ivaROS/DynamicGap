@@ -377,6 +377,8 @@ namespace dynamic_gap
         void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
         void visualizeComponents(std::vector<dynamic_gap::Gap> manip_gap_set);
 
+        int get_num_obsts();
+
     };
 }
 

@@ -56,8 +56,8 @@ namespace dynamic_gap {
         double frozen_left_betadot = frozen_left_model_state[3];
         double frozen_right_betadot = frozen_right_model_state[3];
 
-        ROS_INFO_STREAM("frozen_left_betadot: " << frozen_left_betadot);
-        ROS_INFO_STREAM("frozen_right_betadot: " << frozen_right_betadot);
+        ROS_INFO_STREAM("frozen left betadot: " << frozen_left_betadot);
+        ROS_INFO_STREAM("frozen right betadot: " << frozen_right_betadot);
 
         // double start_time = ros::Time::now().toSec();
         double crossing_time = gapSplinecheck(gap, left_model, right_model);
@@ -242,25 +242,18 @@ namespace dynamic_gap {
         for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
-
+            ROS_INFO_STREAM("t: " << t);
             left_frozen_state = left_model->get_frozen_modified_polar_state();
             right_frozen_state = right_model->get_frozen_modified_polar_state();
-            // ROS_INFO_STREAM("frozen left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
-            // ROS_INFO_STREAM("frozen right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
+            // ROS_INFO_STREAM("frozen left MP state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << ", " << left_frozen_state[3]); 
+            // ROS_INFO_STREAM("frozen right MP state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << ", " << right_frozen_state[3]);
             beta_left = left_frozen_state[1]; // std::atan2(left_frozen_state[1], left_frozen_state[2]);
             beta_right = right_frozen_state[1]; // std::atan2(right_frozen_state[1], right_frozen_state[2]);
-            // double init_idx_left = (beta_left - egocircle.angle_min) / egocircle.angle_increment;
-            // double init_idx_right = (beta_right - egocircle.angle_min) / egocircle.angle_increment;
-            // idx_left = std::min((int) std::ceil(init_idx_left), 511);
-            // idx_right = std::max((int) std::floor(init_idx_right), 0);
-            // clipping distance by current laser scan
-            //min_dist = std::min(1.0 / left_frozen_state[0], (double) egocircle.ranges[idx_left]);
-            //left_frozen_state[0] = 1.0 / min_dist;
-            //min_dist = std::min(1.0 / right_frozen_state[0],(double) egocircle.ranges[idx_right]);
-            //right_frozen_state[0] = 1.0 / min_dist;
-
-            // beta_center = (beta_left + beta_right) / 2.0;
-
+            idx_left = (beta_left - egocircle.angle_min) / egocircle.angle_increment;
+            idx_right = (beta_right - egocircle.angle_min) / egocircle.angle_increment;
+            // ROS_INFO_STREAM("egocircle.angle_min: " << egocircle.angle_min << ", egocircle.angle_increment: " << egocircle.angle_increment);
+            // ROS_INFO_STREAM("beta_left: " << beta_left << ", beta_right: " << beta_right);
+            ROS_INFO_STREAM("idx_left: " << idx_left << ", idx_right: " << idx_right);
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
             det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
@@ -275,64 +268,58 @@ namespace dynamic_gap {
 
             Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
         
-
             left_central_dot = left_bearing_vect.dot(prev_central_bearing_vect);
             right_central_dot = right_bearing_vect.dot(prev_central_bearing_vect);
+            bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
 
-
-                        
             //std::cout << "left bearing vect: " << left_bearing_vect[0] << ", " << left_bearing_vect[1] << std::endl;
             //std::cout << "right bearing vect: " << right_bearing_vect[0] << ", " << right_bearing_vect[1] << std::endl;
             //std::cout << "central bearing vect: " << central_bearing_vect[0] << ", " << central_bearing_vect[1] << std::endl;
             //std::cout << "left/center dot: " << left_central_dot << ", right/center dot: " << right_central_dot << std::endl;
             //std::cout << "sweep dt: " << dt << ", swept check: " << swept_check << ". left beta: " << beta_left << ", left range: " << 1.0 / left_frozen_state[0] << ", right beta: " << beta_right << ", right range: " << 1.0 / right_frozen_state[0] << std::endl;
-            if (swept_check < 0) {
-                bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
-                if (bearing_crossing_check) {
-                    //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-                    //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
-                    left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
-                                     (1.0 / prev_left_frozen_state[0])*std::sin(prev_left_frozen_state[1]);
-                    right_cross_pt << (1.0 / prev_right_frozen_state[0])*std::cos(prev_right_frozen_state[1]), 
-                                      (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
+            if (swept_check < 0 && bearing_crossing_check) {
+                //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+                //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+                left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
+                                    (1.0 / prev_left_frozen_state[0])*std::sin(prev_left_frozen_state[1]);
+                right_cross_pt << (1.0 / prev_right_frozen_state[0])*std::cos(prev_right_frozen_state[1]), 
+                                    (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
 
-                    range_closing_check = std::sqrt(pow(left_cross_pt[0] - right_cross_pt[0], 2) + pow(left_cross_pt[1] - right_cross_pt[1], 2)) 
-                                          < 4*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-                    if (range_closing_check) {
-                        ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
-                        if (left_cross_pt.norm() < right_cross_pt.norm()) {
-                            //std::cout << "setting right equal to cross" << std::endl;
-                            //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
-                            gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
-                        } else {
-                            //std::cout << "setting left equal to cross" << std::endl;
-                            //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
-                            gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
-                        }
-
-                        gap_crossing_point += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gap_crossing_point / gap_crossing_point.norm());
-                        gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
-                        generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
-
-                        gap.gap_closed = true;
-                        return t;
+                range_closing_check = std::sqrt(pow(left_cross_pt[0] - right_cross_pt[0], 2) + pow(left_cross_pt[1] - right_cross_pt[1], 2)) 
+                                        < 4*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                if (range_closing_check) {
+                    ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
+                    if (left_cross_pt.norm() < right_cross_pt.norm()) {
+                        //std::cout << "setting right equal to cross" << std::endl;
+                        //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
+                        gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
                     } else {
-                        // I think crossing may still be a little fraught. More so at trajectory generation 
-                        // level, but how do we ensure that robot abides by both sides and then once gap
-                        // crosses, robot then ignores crossing side
-                        if (first_cross) {
-                            double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
-                            double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
-                            ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
-                            gap.setCrossingPoint(mid_x, mid_y);
-                            first_cross = false;
-
-                            generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
-
-                            gap.gap_crossed = true;
-                        }
+                        //std::cout << "setting left equal to cross" << std::endl;
+                        //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
+                        gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
                     }
 
+                    gap_crossing_point += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gap_crossing_point / gap_crossing_point.norm());
+                    gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
+                    generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
+
+                    gap.gap_closed = true;
+                    return t;
+                } else {
+                    // I think crossing may still be a little fraught. More so at trajectory generation 
+                    // level, but how do we ensure that robot abides by both sides and then once gap
+                    // crosses, robot then ignores crossing side
+                    if (first_cross) {
+                        double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
+                        double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
+                        ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
+                        gap.setCrossingPoint(mid_x, mid_y);
+                        first_cross = false;
+
+                        generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
+
+                        gap.gap_crossed = true;
+                    }
                 }
             }
 

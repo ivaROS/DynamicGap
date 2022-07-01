@@ -42,61 +42,17 @@ namespace dynamic_gap {
         } else if (gap.getCategory() == "closing") {
             if (gap.gap_crossed) {
                 ROS_INFO_STREAM("setting terminal goal for crossed closing gap");
-                // get left and right models
-                gap.left_model->freeze_robot_vel();
-                gap.right_model->freeze_robot_vel();
-                gap.left_model->copy_model();
-                gap.right_model->copy_model();
-                Eigen::Vector4d left_model = gap.left_model->get_frozen_modified_polar_state();
-                Eigen::Vector4d right_model = gap.right_model->get_frozen_modified_polar_state();
+                Eigen::Vector2f crossing_pt = gap.getCrossingPoint();
 
-                // ROS_INFO_STREAM("comparing left: (" << left_model[0] << ", " << left_model[1] << ", " << left_model[2] << ", " << left_model[3] << ") to right: (" << right_model[0] << ", " << right_model[1] << ", " << right_model[2] << ", " << right_model[3] << ")");
-                int lidx = gap.convex.terminal_lidx;
-                int ridx = gap.convex.terminal_ridx;
-                float ldist = gap.convex.terminal_ldist;
-                float rdist = gap.convex.terminal_rdist;
-
-                float x1, x2, y1, y2;
-                x1 = (ldist) * cos(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
-                y1 = (ldist) * sin(-((float) gap.half_scan - lidx) / gap.half_scan * M_PI);
-
-                x2 = (rdist) * cos(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
-                y2 = (rdist) * sin(-((float) gap.half_scan - ridx) / gap.half_scan * M_PI);
-                Eigen::Vector2f pl(x1, y1);
-                Eigen::Vector2f pr(x2, y2);
-                
-                auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
-                auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
-                Eigen::Matrix2f r_negpi2;
-                r_negpi2 << 0,1,
-                        -1,0;
-                Eigen::Vector2f offset(0.0, 0.0);
-                // which one has the smallest betadot
-                // pick that manipulated side as anchor
-                Eigen::Vector2f anchor(0.0, 0.0);
-                if (std::abs(left_model[3]) > std::abs(right_model[3])) { // left betadot larger
-                    // ROS_INFO_STREAM("left betadot is larger, setting anchor to right");
-                    anchor << x2, y2;
-                    Eigen::Vector2f norm_lr = lr / lr.norm();
-                    offset = r_negpi2 * norm_lr * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-                } else { // right betadot larger
-                    // ROS_INFO_STREAM("right betadot is larger, setting anchor to left");
-                    anchor << x1, y1;
-                    Eigen::Vector2f norm_lf = lf / lf.norm();
-                    offset = -r_negpi2 * norm_lf * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-                }
-                auto goal_pt = anchor + offset;
-
-                // do what is normally done
-                gap.terminal_goal.x = goal_pt[0];
-                gap.terminal_goal.y = goal_pt[1];
+                gap.terminal_goal.x = crossing_pt[0];
+                gap.terminal_goal.y = crossing_pt[1];
                 gap.terminal_goal.set = true;
             } else if (gap.gap_closed) {
                 ROS_INFO_STREAM("setting terminal goal for closed closing gap");
                 Eigen::Vector2f closing_pt = gap.getClosingPoint();
-                float mult_factor = (closing_pt.norm() + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / closing_pt.norm();
-                gap.terminal_goal.x = closing_pt[0] * mult_factor;
-                gap.terminal_goal.y = closing_pt[1] * mult_factor;
+            
+                gap.terminal_goal.x = closing_pt[0];
+                gap.terminal_goal.y = closing_pt[1];
                 gap.terminal_goal.set = true;
             } else {
                 ROS_INFO_STREAM("setting terminal goal for existent closing gap");
@@ -105,6 +61,17 @@ namespace dynamic_gap {
         }  
     }
 
+
+    // helper functions need to be placed above where they are used
+    bool goal_within(int goal_idx, int idx_lower, int idx_upper, int full_scan) {
+        if (idx_lower < idx_upper) {
+            ROS_INFO_STREAM("no wrapping, is goal idx between " << idx_lower << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < idx_upper); //if no wrapping occurs
+        } else {
+            ROS_INFO_STREAM("wrapping, is goal idx between " << idx_lower << " and " << full_scan << ", or between " << 0 << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < full_scan) || (goal_idx > 0 && goal_idx < idx_upper); // if wrapping occurs
+        }
+    }
 
     void GapManipulator::setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan){
         //ROS_INFO_STREAM( "~running setGapWaypoint" << std::endl;
@@ -127,15 +94,6 @@ namespace dynamic_gap {
         
         ROS_INFO_STREAM("gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         // ROS_INFO_STREAM("gap x/y, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
-        
-        // if agc. then the shorter side need to be further in
-        // lf: front (first one, left from laser scan)
-        // lr: rear (second one, right from laser scan)
-        // what do these do?
-        auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
-        auto thetalf = car2pol(lf)(1);
-        auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
-        auto thetalr = car2pol(lr)(1);
         
         auto left_ori = lidx * msg.get()->angle_increment + msg.get()->angle_min;
         auto right_ori = ridx * msg.get()->angle_increment + msg.get()->angle_min;
@@ -161,7 +119,6 @@ namespace dynamic_gap {
                 gap.terminal_goal.set = true;
                 gap.terminal_goal.goalwithin = true;
                 ROS_INFO_STREAM("terminal goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
-
             }
             return;
         }
@@ -176,7 +133,7 @@ namespace dynamic_gap {
             small_gap = dist < 4 * cfg_->rbt.r_inscr;
         }
 
-        if (thetalr < thetalf || small_gap) {
+        if (small_gap) { // thetalr < thetalf || 
             ROS_INFO_STREAM("Option 1: behind gap or small gap");
             Eigen::Vector2f left_bearing_norm_vect = pr / pr.norm();
             Eigen::Vector2f right_bearing_norm_vect = pl / pl.norm();
@@ -222,8 +179,8 @@ namespace dynamic_gap {
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
         ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
-        bool goal_vis = checkGoalVisibility(localgoal, stored_scan_msgs);
-        bool goal_in_range = checkGoalWithinGapAngleRange(gap, local_goal_idx, lidx, ridx);
+        bool goal_vis = checkGoalVisibility(localgoal, stored_scan_msgs); // is localgoal within scan
+        bool goal_in_range = goal_within(local_goal_idx, lidx, ridx, int(2*half_num_scan)); // is localgoal within gap
         // ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
         
         if (goal_vis && goal_in_range) {
@@ -246,8 +203,30 @@ namespace dynamic_gap {
         }
 
         ROS_INFO_STREAM("Option 3: biasing");
+        // if agc. then the shorter side need to be further in
+        // lf: front (first one, left from laser scan)
+        // lr: rear (second one, right from laser scan)
+        // what do these do?
+        auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
+        auto thetalf = car2pol(lf)(1);
+        auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
+        auto thetalr = car2pol(lr)(1);
+        
+        ROS_INFO_STREAM("thetalf: " << thetalf << ", thetalr: " << thetalr << ", theta_localgoal: " << goal_orientation);
 
-        float confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
+        float confined_theta; //
+        if (thetalf < thetalr) { // gap is not behind
+            confined_theta = std::min(thetalr, std::max(thetalf, goal_orientation));
+        } else { // gap is behind
+            if (goal_orientation > 0) {
+                confined_theta = std::max(thetalf, goal_orientation);
+            } else {
+                confined_theta = std::min(thetalr, goal_orientation);
+            }
+        }
+
+        ROS_INFO_STREAM("confined_theta: " << confined_theta);
+
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
         // ROS_INFO_STREAM("confined idx: " << confined_idx);
         float confined_r = (rdist - ldist) * (confined_theta - thetalf) / (thetalr - thetalf) + ldist;
@@ -309,17 +288,6 @@ namespace dynamic_gap {
         float min_val_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
 
         return dist2goal < min_val_round_goal;
-    }
-
-    // helper functions need to be placed above where they are used
-    bool goal_within(int goal_idx, int idx_lower, int idx_upper, int full_scan) {
-        if (idx_lower < idx_upper) {
-            ROS_INFO_STREAM("no wrapping, is goal idx between " << idx_lower << " and " << idx_upper);
-            return (goal_idx > idx_lower && goal_idx < idx_upper); //if no wrapping occurs
-        } else {
-            ROS_INFO_STREAM("wrapping, is goal idx between " << idx_lower << " and " << full_scan << ", or between " << 0 << " and " << idx_upper);
-            return (goal_idx > idx_lower && goal_idx < full_scan) || (goal_idx > 0 && goal_idx < idx_upper); // if wrapping occurs
-        }
     }
 
     int subtract_wrap(int a, int b) {

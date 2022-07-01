@@ -158,16 +158,18 @@ namespace dynamic_gap{
                             ego_x[1],
                             ego_x[2],
                             ego_x[3],
-                            manip_left_cart_state[0],
-                            manip_left_cart_state[1],
-                            manip_left_cart_state[2],
-                            manip_left_cart_state[3],
-                            manip_right_cart_state[0],
-                            manip_right_cart_state[1],
-                            manip_right_cart_state[2],
-                            manip_right_cart_state[3],
+                            x_left,
+                            y_left,
+                            left_vel_x,
+                            left_vel_y,
+                            x_right,
+                            y_right,
+                            right_vel_x,
+                            right_vel_y,
                             initial_goal_x,
-                            initial_goal_y};
+                            initial_goal_y,
+                            goal_vel_x,
+                            goal_vel_y};
             
             // or if model is invalid?
             //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
@@ -203,7 +205,6 @@ namespace dynamic_gap{
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, gap_origin, left_pt_0, left_pt_1,
                                                     right_pt_0, right_pt_1,
                                                     nonrel_left_vel, nonrel_right_vel,
-                                                    rel_left_vel, rel_right_vel,
                                                     nom_vel, goal_pt_1,
                                                     cfg_->gap_manip.sigma, cfg_->gap_manip.K_acc,
                                                     cfg_->control.vx_absmax, a_lin_max);   

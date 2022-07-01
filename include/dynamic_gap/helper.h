@@ -26,7 +26,7 @@
 #include "OsqpEigen/OsqpEigen.h"
 
 namespace dynamic_gap {
-    typedef boost::array<double, 14> state_type;
+    typedef boost::array<double, 16> state_type;
     //typedef state_type::index_range range;
 
     
@@ -181,7 +181,7 @@ namespace dynamic_gap {
         Eigen::Vector2d init_rbt_pos, gap_origin, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, 
                         weighted_circulation_sum, circulation_field, attraction_field, a_des, a_actual;
-        Eigen::Vector4d cart_left_state, cart_right_state;
+        Eigen::Vector4d abs_left_state, abs_right_state, goal_state;
 
         Eigen::MatrixXd weights, all_centers;
 
@@ -189,7 +189,6 @@ namespace dynamic_gap {
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d gap_origin, Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1,
                           Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1,
                           Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel,
-                          Eigen::Vector2d rel_left_vel, Eigen::Vector2d rel_right_vel,
                           Eigen::Vector2d nom_vel, Eigen::Vector2d goal_pt_1,
                           double _sigma, double K_acc,
                           double v_lin_max, double a_lin_max) 
@@ -501,17 +500,19 @@ namespace dynamic_gap {
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {             
             state_type new_x = adjust_state(x);
-            cart_left_state << new_x[4], new_x[5], new_x[6], new_x[7];  
-            cart_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
+            abs_left_state << new_x[4], new_x[5], new_x[6], new_x[7];  
+            abs_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
+            goal_state << new_x[12], new_x[13], new_x[14], new_x[15];
                
             // Just use the same state to be able to make these past checks
             rbt << new_x[0], new_x[1];
-            rel_right_pos << cart_right_state[0], cart_right_state[1];
-            rel_left_pos << cart_left_state[0], cart_left_state[1];
-            abs_goal_pos = goal_pt_1;
-            abs_left_pos = rel_left_pos + rbt;
-            abs_right_pos = rel_right_pos + rbt;
-            rel_goal_pos = goal_pt_1 - rbt; // goal does not move, we just use terminal goal here. Should goal move?
+            abs_left_pos << abs_left_state[0], abs_left_state[1];
+            abs_right_pos << abs_right_state[0], abs_right_state[1];
+            abs_goal_pos << goal_state[0], goal_state[1];
+
+            rel_left_pos = abs_left_pos - rbt;
+            rel_right_pos = abs_right_pos - rbt;
+            rel_goal_pos = abs_goal_pos - rbt;
 
             past_goal = abs_goal_pos.dot(rel_goal_pos) < 0; 
             past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
@@ -560,11 +561,10 @@ namespace dynamic_gap {
 
             double eps = 0.0000001;
             Eigen::Matrix<double, 2, 51> gradient_of_pti_wrt_centers; // (Kplus1, 2);
-            Eigen::Vector2d rbt_pos(new_x[0], new_x[1]);
             for (int i = 0; i < Kplus1; i++) {
 
                 Eigen::Vector2d center_i = all_centers.row(i);
-                Eigen::Vector2d diff = rbt_pos - center_i;
+                Eigen::Vector2d diff = rbt - center_i;
 
                 Eigen::Vector2d gradient = diff / pow(diff.norm(), 2);
                 gradient_of_pti_wrt_centers.col(i) = gradient;
@@ -595,6 +595,7 @@ namespace dynamic_gap {
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
+            /*
             a_des << K_acc*(v_cmd[0] - new_x[2]), K_acc*(v_cmd[1] - new_x[3]);
             a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
             // ROS_INFO_STREAM("a_des: " << a_des[0] << ", " << a_des[1]);
@@ -603,23 +604,25 @@ namespace dynamic_gap {
 
             double a_x_rel = 0 - a_x_rbt;
             double a_y_rel = 0 - a_y_rbt;
+            */
+            dxdt[0] = v_cmd[0]; // rbt_x
+            dxdt[1] = v_cmd[1]; // rbt_y
+            dxdt[2] = 0.0; // rbt_v_x
+            dxdt[3] = 0.0; // rbt_v_y
 
-            dxdt[0] = new_x[2]; // rbt_x
-            dxdt[1] = new_x[3]; // rbt_y
-            dxdt[2] = a_x_rbt; // rbt_v_x
-            dxdt[3] = a_y_rbt; // rbt_v_y
+            dxdt[4] = new_x[6]; // left point r_x (absolute)
+            dxdt[5] = new_x[7]; // left point r_y (absolute)
+            dxdt[6] = 0.0; // left point v_x (absolute) 
+            dxdt[7] = 0.0; // left point v_y (absolute)
 
-            dxdt[4] = new_x[6]; // r_x left
-            dxdt[5] = new_x[7]; // r_y left
-            dxdt[6] = a_x_rel; // v_x left
-            dxdt[7] = a_y_rel; // v_y left
-
-            dxdt[8] = new_x[10]; // r_x right
-            dxdt[9] = new_x[11]; // r_y right
-            dxdt[10] = a_x_rel; // v_x right
-            dxdt[11] = a_y_rel; // v_y right
-            dxdt[12] = 0.0;
-            dxdt[13] = 0.0;
+            dxdt[8] = new_x[10]; // right point r_x (absolute)
+            dxdt[9] = new_x[11]; // right point r_y (absolute)
+            dxdt[10] = 0.0; // right point v_x (absolute)
+            dxdt[11] = 0.0; // right point v_y (absolute)
+            dxdt[12] = new_x[14]; // goal point r_x (absolute)
+            dxdt[13] = new_x[15]; // goal point r_y (absolute)
+            dxdt[14] = 0.0; // goal point v_x (absolute)
+            dxdt[15] = 0.0; // goal point v_y (absolute)
         }
     };
     

@@ -109,6 +109,10 @@ namespace dynamic_gap
         return _initialized;
     }
 
+    int Planner::get_num_obsts() {
+        return num_obsts;
+    }
+
     bool Planner::isGoalReached()
     {
         current_pose_ = sharedPtr_pose;

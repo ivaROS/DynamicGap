@@ -120,23 +120,23 @@ namespace dynamic_gap {
                 // Both ends
                 // currently only changing distances?
                 float start_side_dist = raw_gaps[0].RDist();
-                float end_side_dist = raw_gaps[last_raw_gap_idx].LDist();
                 int start_side_idx = raw_gaps[0].RIdx();
+                float end_side_dist = raw_gaps[last_raw_gap_idx].LDist();
                 int end_side_idx = raw_gaps[last_raw_gap_idx].LIdx();
                 // ROS_INFO_STREAM("original first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")");
                 // ROS_INFO_STREAM("original last gap: (" << raw_gaps[raw_gaps.size() - 1].LIdx() << ", " << raw_gaps[raw_gaps.size() - 1].LDist() << ") to (" << raw_gaps[raw_gaps.size() - 1].RIdx() << ", " << raw_gaps[raw_gaps.size() - 1].RDist()  << ")");
-                int total_size = (stored_scan_msgs.ranges.size() - 1) - end_side_idx + start_side_idx;
-                float result = (end_side_dist - start_side_dist) * (float (start_side_idx) / float (total_size)) + start_side_dist;
-                raw_gaps[0].setLeftObs();
-                raw_gaps[raw_gaps.size() - 1].setRightObs();
-                raw_gaps[raw_gaps.size() - 1].addRightInformation(511, result);
-                raw_gaps[0].setLDist(result);
+                // int total_size = (stored_scan_msgs.ranges.size() - 1) - end_side_idx + start_side_idx;
+                // float result = (end_side_dist - start_side_dist) * (float (start_side_idx) / float (total_size)) + start_side_dist;
+                // raw_gaps[0].setLeftObs();
+                // raw_gaps[raw_gaps.size() - 1].setRightObs();
+                // raw_gaps[raw_gaps.size() - 1].addRightInformation(511, result);
+                // raw_gaps[0].setLDist(result);
                 // ROS_INFO_STREAM("revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")");
                 // ROS_INFO_STREAM("revised last gap: (" << raw_gaps[raw_gaps.size() - 1].LIdx() << ", " << raw_gaps[raw_gaps.size() - 1].LDist() << ") to (" << raw_gaps[raw_gaps.size() - 1].RIdx() << ", " << raw_gaps[raw_gaps.size() - 1].RDist()  << ")");
 
                 //std::cout << "merging into last gap: (" << raw_gaps[last_raw_gap_idx].LIdx() << ", " << raw_gaps[last_raw_gap_idx].LDist() << ") to (" << raw_gaps[last_raw_gap_idx].RIdx() << ", " << raw_gaps[last_raw_gap_idx].RDist()  << ")" << std::endl;
-                //raw_gaps[last_raw_gap_idx].addRightInformation(start_side_idx, start_side_dist);
-                //raw_gaps.erase(raw_gaps.begin(), raw_gaps.begin() + 1);
+                raw_gaps[last_raw_gap_idx].addRightInformation(start_side_idx, start_side_dist);
+                raw_gaps.erase(raw_gaps.begin(), raw_gaps.begin() + 1);
                 //std::cout << "revised first gap: (" << raw_gaps[0].LIdx() << ", " << raw_gaps[0].LDist() << ") to (" << raw_gaps[0].RIdx() << ", " << raw_gaps[0].RDist()  << ")" << std::endl;
             }
         }

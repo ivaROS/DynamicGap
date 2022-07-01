@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,7 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/Desktop/Research/cart_model_plots/";   
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";   
         perfect = true;
     }
 
@@ -489,13 +489,8 @@ namespace dynamic_gap {
     Eigen::Vector4d cart_model::get_frozen_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x;
-        if (life_time > life_time_threshold) {
-            return_x = frozen_x;
-        } else {
-            return_x << x[0], x[1], 0.0, 0.0;
-        }
-        return frozen_x;
+        Eigen::Vector4d return_x = frozen_x;
+        return return_x;
     }
 
     Eigen::Vector4d cart_model::get_modified_polar_state() {
