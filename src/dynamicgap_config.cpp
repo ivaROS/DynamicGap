@@ -17,6 +17,9 @@ namespace dynamic_gap {
         nh.param("viz_jitter", gap_viz.viz_jitter, gap_viz.viz_jitter);
         nh.param("debug_viz", gap_viz.debug_viz, gap_viz.debug_viz);
 
+        // Gap Association
+        nh.param("assoc_thresh", gap_assoc.assoc_thresh, gap_assoc.assoc_thresh);
+
         // Gap Manipulation
         nh.param("gap_diff", gap_manip.gap_diff, gap_manip.gap_diff);
         nh.param("epsilon2", gap_manip.epsilon2, gap_manip.epsilon2);
@@ -98,6 +101,9 @@ namespace dynamic_gap {
         gap_viz.fig_gen = cfg.fig_gen;
         gap_viz.viz_jitter = cfg.viz_jitter;
         gap_viz.debug_viz = cfg.debug_viz;
+
+        // Gap Association
+        gap_assoc.assoc_thresh = cfg.assoc_thresh;
 
         // Gap Manipulation
         gap_manip.gap_diff = cfg.gap_diff;

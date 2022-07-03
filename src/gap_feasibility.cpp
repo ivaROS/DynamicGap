@@ -242,7 +242,7 @@ namespace dynamic_gap {
         for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
             left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
             right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
-            ROS_INFO_STREAM("t: " << t);
+            // ROS_INFO_STREAM("t: " << t);
             left_frozen_state = left_model->get_frozen_modified_polar_state();
             right_frozen_state = right_model->get_frozen_modified_polar_state();
             // ROS_INFO_STREAM("frozen left MP state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << ", " << left_frozen_state[3]); 
@@ -253,7 +253,7 @@ namespace dynamic_gap {
             idx_right = (beta_right - egocircle.angle_min) / egocircle.angle_increment;
             // ROS_INFO_STREAM("egocircle.angle_min: " << egocircle.angle_min << ", egocircle.angle_increment: " << egocircle.angle_increment);
             // ROS_INFO_STREAM("beta_left: " << beta_left << ", beta_right: " << beta_right);
-            ROS_INFO_STREAM("idx_left: " << idx_left << ", idx_right: " << idx_right);
+            // ROS_INFO_STREAM("idx_left: " << idx_left << ", idx_right: " << idx_right);
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
             det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
@@ -346,11 +346,11 @@ namespace dynamic_gap {
         auto egocircle = *msg.get();        
         
         float init_left_idx = (terminal_beta_left - egocircle.angle_min) / egocircle.angle_increment;
-        int left_idx = std::min((int) std::ceil(init_left_idx), 511);
+        int left_idx = (int) std::floor(init_left_idx);
         float left_dist = (1.0 / terminal_reciprocal_range_left);
 
         float init_right_idx = (terminal_beta_right - egocircle.angle_min) / egocircle.angle_increment;
-        int right_idx = std::max((int) std::floor(init_right_idx), 0);
+        int right_idx = (int) std::floor(init_right_idx);
         float right_dist = (1.0 / terminal_reciprocal_range_right);
         // if (left_idx == right_idx) right_idx++;
 

@@ -47,7 +47,8 @@ namespace dynamic_gap{
                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
                                                            std::vector<geometry_msgs::Pose> _agent_odoms, 
                                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                                           bool print);
+                                                           bool print,
+                                                           bool vis);
         
         void recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
                                                         std::vector<geometry_msgs::Pose> & _agent_odoms, 

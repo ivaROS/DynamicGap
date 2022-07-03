@@ -41,6 +41,10 @@ namespace dynamic_gap {
                 double K_acc;
             } gap_manip;
 
+            struct GapAssociation {
+                double assoc_thresh;
+            } gap_assoc;
+
             struct ControlParams {
                 double k_drive_x;
                 double k_drive_y;
@@ -124,6 +128,8 @@ namespace dynamic_gap {
             gap_viz.fig_gen = false;
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
+
+            gap_assoc.assoc_thresh = 0.5;
 
             gap_manip.gap_diff = 0.1;
             gap_manip.epsilon1 = 0.18;

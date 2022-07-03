@@ -233,12 +233,23 @@ namespace dynamic_gap {
         float xg = confined_r * cos(confined_theta);
         float yg = confined_r * sin(confined_theta);
         Eigen::Vector2f anchor(xg, yg);
-        Eigen::Matrix2f r_negpi2;
-        r_negpi2 << 0,1,
-                   -1,0;
-        auto offset = r_negpi2 * (pr - pl);
+        Eigen::Matrix2f r_pi2, r_negpi2;
+        r_pi2 << 0, -1, 1,0; // PI/2 counter clockwise
+        r_negpi2 = -r_pi2; // PI/2 clockwise;
 
-        auto goal_pt = offset * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + anchor;
+
+        ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
+        Eigen::Vector2f offset(0.0, 0.0);
+        if (confined_theta == thetalf) {
+            offset = r_pi2 * (lf / lf.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        } else if (confined_theta == thetalr) {
+            offset = r_negpi2 * (lr / lr.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        }
+
+        ROS_INFO_STREAM("offset: " << offset[0] << ", " << offset[1]);
+
+
+        auto goal_pt = offset + anchor;
         // ROS_INFO_STREAM("anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")");
         if (initial) {
             gap.goal.x = goal_pt(0);
@@ -427,6 +438,12 @@ namespace dynamic_gap {
         }
         ROS_INFO_STREAM("~running convertAxialGap~");
 
+        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
+        if (stored_scan_msgs.ranges.size() != 512) {
+            ROS_FATAL_STREAM("Scan range incorrect gap manip");
+        }
+
+
         int lidx = initial ? gap.convex.convex_lidx : gap.convex.terminal_lidx;
         int ridx = initial ? gap.convex.convex_ridx : gap.convex.terminal_ridx;
         float ldist = initial ? gap.convex.convex_ldist : gap.convex.terminal_ldist;
@@ -442,6 +459,13 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("pre-AGC gap in polar. left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         ROS_INFO_STREAM("pre-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
         
+        int gap_idx_size = (ridx - lidx);
+        if (gap_idx_size < 0) {
+            gap_idx_size += int(2*gap.half_scan);
+        }
+
+        ROS_INFO_STREAM("gap_idx_size: " << gap_idx_size);
+
         bool left = gap.isLeftType(initial);
         // Extend of rotation to the radial gap 
         // amp-ed by a **small** ratio to ensure the local goal does not exactly fall on the visibility line
@@ -497,16 +521,10 @@ namespace dynamic_gap {
 
         // radius and index representing desired pivot point
         // float r = float(sqrt(pow(rot_rbt(0, 2), 2) + pow(rot_rbt(1, 2), 2)));
-        int idx;
-        if (left) {
-            // pivoting the right
-            idx = int(std::ceil(half_num_scan * std::atan2(rot_rbt(1, 2), rot_rbt(0, 2)) / M_PI) + half_num_scan);
-        } else {
-            // pivoting the left
-            idx = int(std::floor(half_num_scan * std::atan2(rot_rbt(1, 2), rot_rbt(0, 2)) / M_PI) + half_num_scan);
-        }
+        float pivoted_theta = std::atan2(rot_rbt(1, 2), rot_rbt(0, 2));
+        int idx = int(std::floor((pivoted_theta + M_PI) / stored_scan_msgs.angle_increment));
 
-        // ROS_INFO_STREAM("idx: " << idx);
+        ROS_INFO_STREAM("idx: " << idx);
 
         // Rotation Completed
         // Get minimum dist range val between initial gap point and pivoted gap point
@@ -515,14 +533,17 @@ namespace dynamic_gap {
         int init_search_idx = left ? ridx : idx;
         // upperbound: pivoted right index or original left  
         int final_search_idx = left ? idx : lidx;
-        int size = std::abs(final_search_idx - init_search_idx); // Max: changed
+        int search_size = final_search_idx - init_search_idx;
+        if (search_size < 0) {
+            search_size += 2*int(gap.half_scan);
+        }
         ROS_INFO_STREAM("init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx);
 
         if (final_search_idx < init_search_idx) {
             ROS_INFO_STREAM("convert axial gap for behind gap");
         }
 
-        if (size < 3) {
+        if (search_size < 3) {
             // Arbitrary value
             ROS_INFO_STREAM("setting discard to true");
             if (initial) {
@@ -537,40 +558,41 @@ namespace dynamic_gap {
         init_search_idx = std::max(init_search_idx, 0);
         final_search_idx = std::min(final_search_idx, num_of_scan - 1);
 
-        // ROS_INFO_STREAM("wrapped init_search_idx: " << init_search_idx << ", wrapped final_search_idx: " << final_search_idx);
-        size = std::abs(final_search_idx - init_search_idx);
-        std::vector<float> dist(size);
+        ROS_INFO_STREAM("wrapped init_search_idx: " << init_search_idx << ", wrapped final_search_idx: " << final_search_idx);
+        search_size = final_search_idx - init_search_idx;
+        if (search_size < 0) {
+            search_size += int(2*gap.half_scan);
+        }
 
-        if (size == 0) {
+        std::vector<float> dist(search_size);
+
+        if (search_size == 0) {
             // This shouldn't happen
             return;
         }
 
-        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
-        if (stored_scan_msgs.ranges.size() < 500) {
-            ROS_FATAL_STREAM("Scan range incorrect gap manip");
-        }
-
         // using the law of cosines to find the index between init/final indices
         // that's shortest distance between near point and laser scan
-        float range;
+        // ROS_INFO_STREAM("ranges size: " << stored_scan_msgs.ranges.size());
         try{
             for (int i = 0; i < dist.size(); i++) {
-                //ROS_INFO_STREAM('stored scan msg range: ' << stored_scan_msgs.ranges.at(i + init_search_idx));
                 int check_idx = (i + init_search_idx) % int(2 * gap.half_scan);
-                range = stored_scan_msgs.ranges.at(check_idx);
+                ROS_INFO_STREAM("ranges at idx: " << check_idx);
+                float range = stored_scan_msgs.ranges.at(check_idx);
+                float diff_in_idx = gap_idx_size + (search_size - i);
                 dist.at(i) = sqrt(pow(near_dist, 2) + pow(range, 2) -
-                    2 * near_dist * range * cos((check_idx - near_idx) * stored_scan_msgs.angle_increment));
-                //ROS_INFO_STREAM( "dist at " << i << ": " << dist.at(i) << std::endl;
+                    2.0 * near_dist * range * cos(diff_in_idx * stored_scan_msgs.angle_increment));
+                // ROS_INFO_STREAM("checking idx: " << check_idx << ", range of: " << range << ", diff in idx: " << diff_in_idx << ", dist of " << dist.at(i));
             }
         } catch(...) {
             ROS_FATAL_STREAM("convertAxialGap outofBound");
         }
 
         auto farside_iter = std::min_element(dist.begin(), dist.end());
+        int min_dist_idx = (init_search_idx + std::distance(dist.begin(), farside_iter)) % int(2*gap.half_scan);
         float min_dist = *farside_iter;
 
-        ROS_INFO_STREAM("from " << init_search_idx << " to " << final_search_idx << ", min dist of " << min_dist << " at " << init_search_idx + std::distance(dist.begin(), farside_iter));         
+        ROS_INFO_STREAM("from " << init_search_idx << " to " << final_search_idx << ", min dist of " << min_dist << " at " << min_dist_idx);         
 
         // pivoting around near point, pointing towards far point or something?
         Eigen::Matrix3f far_near = near_rbt.inverse() * far_rbt;
@@ -585,15 +607,9 @@ namespace dynamic_gap {
         Eigen::Matrix3f short_pt = near_rbt * (rot_mat * far_near);
 
         float r = float(sqrt(pow(short_pt(0, 2), 2) + pow(short_pt(1, 2), 2)));
-        float pivoted_theta = std::atan2(short_pt(1, 2), short_pt(0, 2));
+        float final_theta = std::atan2(short_pt(1, 2), short_pt(0, 2));
         // idx = int (half_num_scan * pivoted_theta / M_PI) + half_num_scan;
-        if (left) {
-            // pivoting the right
-            idx = (int) std::ceil(half_num_scan * pivoted_theta / M_PI) + half_num_scan;
-        } else {
-            // pivoting the left
-            idx = (int) std::floor(half_num_scan * pivoted_theta / M_PI) + half_num_scan;
-        }
+        idx = (int) std::floor((final_theta + M_PI) / stored_scan_msgs.angle_increment);
 
         // Recalculate end point location based on length
         if (initial) {
@@ -622,21 +638,6 @@ namespace dynamic_gap {
             gap.mode.terminal_agc = true;
         }
         ROS_INFO_STREAM( "post-AGC gap in cart. left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
-    }
-
-    void GapManipulator::clipGapByLaserScan(dynamic_gap::Gap& gap) {
-        ROS_INFO_STREAM( "~running clipGapByLaserScan");
-        sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
-        double laserscan_left_dist = 0.8 * stored_scan_msgs.ranges.at(gap.convex.terminal_lidx);
-        if (gap.convex.terminal_ldist > laserscan_left_dist) {
-            ROS_INFO_STREAM( "clipping left dist from " << gap.convex.terminal_ldist << " to " << laserscan_left_dist);
-            gap.convex.terminal_ldist = laserscan_left_dist;
-        }
-        double laserscan_right_dist = 0.8 * stored_scan_msgs.ranges.at(gap.convex.terminal_ridx);
-        if (gap.convex.terminal_rdist > laserscan_right_dist) {
-            ROS_INFO_STREAM( "clipping right dist from " << gap.convex.terminal_rdist << " to " << laserscan_right_dist);
-            gap.convex.terminal_rdist = laserscan_right_dist;
-        }
     }
 
     void GapManipulator::radialExtendGap(dynamic_gap::Gap& gap, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
@@ -853,16 +854,12 @@ namespace dynamic_gap {
         Eigen::Vector2f new_l = pl + left_radial_inflate;
         Eigen::Vector2f new_r = pr + right_radial_inflate;
 
-        float new_l_range = new_l.norm();
-        float new_l_theta = std::atan2(new_l[1], new_l[0]);
-
-        float new_r_range = new_r.norm();
-        float new_r_theta = std::atan2(new_r[1], new_r[0]);
-
+        // float new_l_theta = std::atan2(new_l[1], new_l[0]);
+        // float new_r_theta = std::atan2(new_r[1], new_r[0]);
+        int new_l_idx = lidx; // std::max((int) std::floor(gap.half_scan * new_l_theta / M_PI + gap.half_scan), 0);
+        int new_r_idx = ridx; // std::min((int) std::ceil(gap.half_scan * new_r_theta / M_PI + gap.half_scan), 511);
         // ROS_INFO_STREAM("new_l_theta: " << new_l_theta << ", new_r_theta: " << new_r_theta);
-        int new_l_idx = std::max((int) std::floor(gap.half_scan * new_l_theta / M_PI + gap.half_scan), 0);
-        int new_r_idx = std::min((int) std::ceil(gap.half_scan * new_r_theta / M_PI + gap.half_scan), 511);
-        // ROS_INFO_STREAM("int values, left: " << new_l_idx << ", right: " << new_r_idx);
+        ROS_INFO_STREAM("int values, left: " << new_l_idx << ", right: " << new_r_idx);
         
         if (new_l_idx > new_r_idx) {
             return;
@@ -872,6 +869,11 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("manipulated indices are same");
             new_r_idx++;
         }
+
+        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
+        float new_l_range = std::min(new_l.norm(), stored_scan_msgs.ranges.at(new_l_idx)); // should this be ranges.at - r_infl? 
+        float new_r_range = std::min(new_r.norm(), stored_scan_msgs.ranges.at(new_r_idx));
+
 
 
         if (initial) {

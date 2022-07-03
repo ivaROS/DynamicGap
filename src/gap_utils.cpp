@@ -149,7 +149,10 @@ namespace dynamic_gap {
         if (final_goal_dist > 0) {
             double final_goal_theta = std::atan2(final_goal_rbt.pose.position.y, final_goal_rbt.pose.position.x);
             int half_num_scan = stored_scan_msgs.ranges.size() / 2;
-            int final_goal_idx = int(half_num_scan * final_goal_theta / M_PI) + half_num_scan;
+            
+            double final_goal_idx_double = (final_goal_theta + M_PI) / stored_scan_msgs.angle_increment;
+            int final_goal_idx = int(std::floor(final_goal_idx_double));
+            ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
             double scan_dist = stored_scan_msgs.ranges.at(final_goal_idx);
             
             if (final_goal_dist < scan_dist) {
@@ -184,6 +187,7 @@ namespace dynamic_gap {
         int left_idx = std::max(final_goal_idx - half_gap_span, 0);
         int right_idx = std::min(final_goal_idx + half_gap_span, 2*half_num_scan - 1);
         ROS_INFO_STREAM("creating gap " << left_idx << ", to " << right_idx);
+
         dynamic_gap::Gap detected_gap(frame, left_idx, stored_scan_msgs.ranges.at(left_idx), true, half_num_scan);
         detected_gap.addRightInformation(right_idx, stored_scan_msgs.ranges.at(right_idx));
         detected_gap.setMinSafeDist(min_dist);
@@ -239,7 +243,8 @@ namespace dynamic_gap {
                             int erase_counter = 0;
                             int last_mergable = -1;
 
-                            float coefs = cfg_->planning.planning_inflated ? 0 : 2;
+                            float coefs = cfg_->planning.planning_inflated ? 0 : 2; // MAX: changed
+                            // if coefs = 0. as long as raw_gap's rdist is less than or equal to curr_gaps' ldist, we will merge
                             // iterating backwards through simplified gaps to see if they can be merged
                             // ROS_INFO_STREAM("attempting merge with raw gap: (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ") to (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ")");
                             for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
@@ -251,6 +256,7 @@ namespace dynamic_gap {
                                 auto farside_iter = std::min_element(stored_scan_msgs.ranges.begin() + start_idx, stored_scan_msgs.ranges.begin() + end_idx);
                                 float min_dist = *farside_iter;
                                 // second test is checking if simplified gap dist is less than current min dist of raw gap
+                                // Changed this from - to + to make merging easier
                                 bool simp_left_raw_right_dist_test = curr_rdist <= (min_dist - coefs * cfg_->rbt.r_inscr) && 
                                                    simplified_gaps[j].LDist() <= (min_dist - coefs * cfg_->rbt.r_inscr);
                                 
