@@ -94,6 +94,7 @@ namespace dynamic_gap
 
         final_goal_rbt = geometry_msgs::PoseStamped();
         num_obsts = cfg.rbt.num_obsts;
+        ROS_INFO_STREAM("num_obsts: " << num_obsts);
 
         agent_odoms = std::vector<geometry_msgs::Pose>(num_obsts);
         agent_vels = std::vector<geometry_msgs::Vector3Stamped>(num_obsts);

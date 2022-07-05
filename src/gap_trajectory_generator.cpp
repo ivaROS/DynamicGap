@@ -81,9 +81,9 @@ namespace dynamic_gap{
             }
 
             Eigen::Vector2f qB = selectedGap.terminal_qB; // (selectedGap.qB + selectedGap.terminal_qB) / 2.0;
-            // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
 
             if (selectedGap.mode.convex) {
+                ROS_INFO_STREAM("applying qB: " << qB[0] << ", " << qB[1]);
                 selectedGap.goal.x -= qB(0);
                 selectedGap.goal.y -= qB(1);
                 selectedGap.terminal_goal.x -= qB(0);

@@ -317,11 +317,12 @@ namespace dynamic_gap{
         if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
         int viz_offset = 0;
-        double viz_jitter = cfg_->gap_viz.viz_jitter;
-
+        double viz_jitter = 0.0; // cfg_->gap_viz.viz_jitter;
+        /*
         if (viz_jitter > 0 && g.isAxial(initial)) {
             viz_offset = g.isLeftType(initial) ? -2 : 2;
         }
+        */
 
         int lidx = initial ? g.LIdx() : g.terminal_lidx;
         int ridx = initial ? g.RIdx() : g.terminal_ridx;
@@ -400,12 +401,12 @@ namespace dynamic_gap{
         for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
-            linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            linel.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            linel.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(2*g.half_scan);
             sub_gap_ldist += dist_step;
-            liner.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            liner.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            liner.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            liner.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             lines.push_back(linel);
             lines.push_back(liner);
 
@@ -419,10 +420,10 @@ namespace dynamic_gap{
         // close the last
         // this_marker.scale.x = 10*thickness;
         lines.clear();
-        linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        liner.x = (rdist + viz_jitter) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
-        liner.y = (rdist + viz_jitter) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        linel.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+        linel.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+        liner.x = (rdist) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        liner.y = (rdist) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
         lines.push_back(linel);
         lines.push_back(liner);
         this_marker.points = lines;
@@ -493,7 +494,7 @@ namespace dynamic_gap{
         left_model_pt.action = visualization_msgs::Marker::ADD;
         left_model_pt.pose.position.x = g.left_model->get_cartesian_state()[0];
         left_model_pt.pose.position.y = g.left_model->get_cartesian_state()[1];
-        left_model_pt.pose.position.z = 0.5;
+        left_model_pt.pose.position.z = 0.0001;
         //std::cout << "left point: " << left_model_pt.pose.position.x << ", " << left_model_pt.pose.position.y << std::endl;
         left_model_pt.pose.orientation.w = 1.0;
         left_model_pt.scale.x = 0.1;
@@ -514,7 +515,7 @@ namespace dynamic_gap{
         right_model_pt.action = visualization_msgs::Marker::ADD;
         right_model_pt.pose.position.x = g.right_model->get_cartesian_state()[0];
         right_model_pt.pose.position.y = g.right_model->get_cartesian_state()[1];
-        right_model_pt.pose.position.z = 0.5;
+        right_model_pt.pose.position.z = 0.0001;
         // std::cout << "right point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
         right_model_pt.pose.orientation.w = 1.0;
         right_model_pt.scale.x = 0.1;
@@ -537,7 +538,7 @@ namespace dynamic_gap{
         geometry_msgs::Point left_vel_pt;
         left_vel_pt.x = left_model_pt.pose.position.x;
         left_vel_pt.y = left_model_pt.pose.position.y;
-        left_vel_pt.z = 0.5;
+        left_vel_pt.z = 0.000001;
         left_model_vel_pt.points.push_back(left_vel_pt);
         Eigen::Vector2d left_vel(g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
                                  g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
@@ -565,7 +566,7 @@ namespace dynamic_gap{
         geometry_msgs::Point right_vel_pt;
         right_vel_pt.x = right_model_pt.pose.position.x;
         right_vel_pt.y = right_model_pt.pose.position.y;
-        right_vel_pt.z = 0.5;
+        right_vel_pt.z = 0.000001;
         right_model_vel_pt.points.push_back(right_vel_pt);
         Eigen::Vector2d right_vel(g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
                                  g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
@@ -595,11 +596,13 @@ namespace dynamic_gap{
             return;
         }
 
-        float viz_jitter = (float) cfg_->gap_viz.viz_jitter;
+        float viz_jitter = 0.0; // (float) cfg_->gap_viz.viz_jitter;
         int viz_offset = 0;
+        /*
         if (viz_jitter > 0 && g.isAxial(initial)){
             viz_offset = g.isLeftType(initial) ? -2 : 2;
         }
+        */
 
         int lidx = initial ? g.convex.convex_lidx : g.convex.terminal_lidx;
         int ridx = initial ? g.convex.convex_ridx : g.convex.terminal_ridx;
@@ -649,7 +652,7 @@ namespace dynamic_gap{
             gap_idx_size += int(2*g.half_scan);
         }
 
-        int num_segments = std::abs(gap_idx_size) / cfg_->gap_viz.min_resoln + 1;
+        int num_segments = gap_idx_size / cfg_->gap_viz.min_resoln + 1;
         float dist_step = (rdist - ldist) / num_segments;
         int sub_gap_lidx = lidx + viz_offset;
         float sub_gap_ldist = ldist;
@@ -688,12 +691,12 @@ namespace dynamic_gap{
         for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
-            linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            linel.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            linel.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(g.half_scan * 2);
             sub_gap_ldist += dist_step;
-            liner.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            liner.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            liner.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            liner.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
             lines.push_back(linel);
             lines.push_back(liner);
 
@@ -704,10 +707,10 @@ namespace dynamic_gap{
 
         // close the last
         lines.clear();
-        linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        liner.x = (rdist + viz_jitter) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
-        liner.y = (rdist + viz_jitter) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        linel.x = (sub_gap_ldist) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+        linel.y = (sub_gap_ldist) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+        liner.x = (rdist) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        liner.y = (rdist) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
         lines.push_back(linel);
         lines.push_back(liner);
         this_marker.scale.x = thickness;

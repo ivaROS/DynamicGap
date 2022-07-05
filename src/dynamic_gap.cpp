@@ -45,15 +45,14 @@ namespace dynamic_gap
         planner_name = name;
         // pnh: planner node handle?
         ros::NodeHandle pnh("~/" + planner_name);
+        planner.initialize(pnh);
 
         laser_sub = pnh.subscribe("/point_scan", 1, &Planner::laserScanCB, &planner);
         std::string static_laser_topic = "/robot" + std::to_string(planner.get_num_obsts()) + "/laser_0";
         static_laser_sub = pnh.subscribe(static_laser_topic, 1, &Planner::staticLaserScanCB, &planner);
-
         // inflated_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
         // feasi_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
         pose_sub = pnh.subscribe("/odom", 1, &Planner::poseCB, &planner);
-        planner.initialize(pnh);
         initialized = true;
 
         // Setup dynamic reconfigure
