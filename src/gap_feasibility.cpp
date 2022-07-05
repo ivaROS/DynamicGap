@@ -196,18 +196,10 @@ namespace dynamic_gap {
         x2 = (gap.RDist()) * cos(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
         y2 = (gap.RDist()) * sin(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
        
-        Matrix<double, 2, 1> left_bearing_vect(x2 / gap.RDist(), y2 / gap.RDist());
-        Matrix<double, 2, 1> right_bearing_vect(x1 / gap.LDist(), y1 / gap.LDist());
+        Eigen::Vector2d left_bearing_vect(x2 / gap.RDist(), y2 / gap.RDist());
+        Eigen::Vector2d right_bearing_vect(x1 / gap.LDist(), y1 / gap.LDist());
 
-        double det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
-        double dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
-
-        double swept_check = -std::atan2(det, dot);     
-        double L_to_R_angle = swept_check;
-
-        if (L_to_R_angle < 0) {
-            L_to_R_angle += 2*M_PI; 
-        }
+        double L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
 
         double beta_left = atan2(y2, x2); // std::atan2(left_frozen_state[1], left_frozen_state[2]);
         double beta_right = atan2(y1, x1); // std::atan2(right_frozen_state[1], right_frozen_state[2]);
@@ -256,15 +248,8 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("idx_left: " << idx_left << ", idx_right: " << idx_right);
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
-            det = left_bearing_vect[0]*right_bearing_vect[1] - left_bearing_vect[1]*right_bearing_vect[0];      
-            dot = left_bearing_vect[0]*right_bearing_vect[0] + left_bearing_vect[1]*right_bearing_vect[1];
-            swept_check = -std::atan2(det, dot); // this value is the angle swept clockwise from L to R (ranging from -pi to pi)
-            L_to_R_angle = swept_check;
-
-            if (L_to_R_angle < 0) {
-                L_to_R_angle += 2*M_PI; 
-            }
-            beta_center = (beta_left - (L_to_R_angle / 2.0));
+            L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
+            beta_center = (beta_left - 0.5 * L_to_R_angle);
 
             Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
         
@@ -277,7 +262,7 @@ namespace dynamic_gap {
             //std::cout << "central bearing vect: " << central_bearing_vect[0] << ", " << central_bearing_vect[1] << std::endl;
             //std::cout << "left/center dot: " << left_central_dot << ", right/center dot: " << right_central_dot << std::endl;
             //std::cout << "sweep dt: " << dt << ", swept check: " << swept_check << ". left beta: " << beta_left << ", left range: " << 1.0 / left_frozen_state[0] << ", right beta: " << beta_right << ", right range: " << 1.0 / right_frozen_state[0] << std::endl;
-            if (swept_check < 0 && bearing_crossing_check) {
+            if (L_to_R_angle > M_PI && bearing_crossing_check) {
                 //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
                 //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
                 left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
@@ -339,6 +324,20 @@ namespace dynamic_gap {
         }
 
         return cfg_->traj.integrate_maxt;
+    }
+
+    // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
+    double GapFeasibilityChecker::getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) {
+        double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
+        double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+
+        double left_to_right_angle = std::atan2(determinant, dot_product);
+        
+        if (left_to_right_angle < 0) {
+            left_to_right_angle += 2*M_PI; 
+        }
+
+        return left_to_right_angle;
     }
 
     void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 

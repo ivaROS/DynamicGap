@@ -51,6 +51,8 @@ namespace dynamic_gap {
             int num_of_scan;
             boost::mutex egolock;
 
+            float atanThetaWrap(float theta);
+            float getLeftToRightAngle(Eigen::Vector2f, Eigen::Vector2f);
             Eigen::Vector2f car2pol(Eigen::Vector2f);
             Eigen::Vector2f pol2car(Eigen::Vector2f);
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);

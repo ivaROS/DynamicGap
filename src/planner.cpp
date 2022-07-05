@@ -503,6 +503,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
+            
             gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // cut down from non convex 
             gapManip->convertAxialGap(manip_set.at(i), true); // swing axial inwards
             gapManip->inflateGapSides(manip_set.at(i), true); // inflate gap radially
@@ -654,10 +655,10 @@ namespace dynamic_gap
             double curr_time = ros::WallTime::now().toSec();
             
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
-            ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapIndex() << ", current right gap index: " << getCurrentRightGapIndex());
+            // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapIndex() << ", current right gap index: " << getCurrentRightGapIndex());
             bool curr_gap_feasible = false;
             for (dynamic_gap::Gap g : feasible_gaps) {
-                ROS_INFO_STREAM("feasible left gap index: " << g.left_model->get_index() << ", feasible right gap index: " << g.right_model->get_index());
+                // ROS_INFO_STREAM("feasible left gap index: " << g.left_model->get_index() << ", feasible right gap index: " << g.right_model->get_index());
                 if (g.left_model->get_index() == getCurrentLeftGapIndex() && g.right_model->get_index() == getCurrentRightGapIndex()) {
                     curr_gap_feasible = true;
                     setCurrentGapPeakVelocities(g.peak_velocity_x, g.peak_velocity_y);
@@ -1027,7 +1028,6 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("starting gapManipulate");        
         auto manip_gap_set = gapManipulate(feasible_gap_set);
-        visualizeComponents(manip_gap_set);
 
         // ROS_INFO_STREAM("time elapsed after gapManipulate: " << ros::WallTime::now().toSec() - getPlan_start_time);
 
@@ -1035,6 +1035,8 @@ namespace dynamic_gap
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
+
+        visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
         // ROS_INFO_STREAM("time elapsed during initialTrajGen: " << ros::WallTime::now().toSec() - start_time);
 

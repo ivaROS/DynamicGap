@@ -479,6 +479,9 @@ namespace dynamic_gap
             bool pivoted_left = false;
             bool artificial = false;
             bool behind_gap = false;
+
+            double left_weight = 0.0;
+            double right_weight = 0.0;
         // private:
     };
 }

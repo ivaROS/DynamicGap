@@ -36,6 +36,8 @@ namespace dynamic_gap {
             const DynamicGapConfig* cfg_;
             int num_of_scan;
             boost::mutex egolock;
+            double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
+
     };
 }
 
