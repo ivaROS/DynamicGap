@@ -197,10 +197,10 @@ namespace dynamic_gap {
         // lf: front (first one, left from laser scan)
         // lr: rear (second one, right from laser scan)
         // what do these do?
-        auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl;
-        auto thetalf = car2pol(lf)(1);
-        auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
-        auto thetalr = car2pol(lr)(1);
+        // auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl; // why are we doing this? we are inflating already.
+        auto thetalf = std::atan2(pl[1], pl[0]);
+        // auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
+        auto thetalr = std::atan2(pr[1], pr[0]);
         
         ROS_INFO_STREAM("thetalf: " << thetalf << ", thetalr: " << thetalr << ", theta_localgoal: " << goal_orientation);
 
@@ -219,8 +219,8 @@ namespace dynamic_gap {
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
         // ROS_INFO_STREAM("confined idx: " << confined_idx);
 
-        auto left_vect_robotPOV = lr / lr.norm();
-        auto right_vect_robotPOV = lf / lf.norm();
+        auto left_vect_robotPOV = pr / pr.norm();
+        auto right_vect_robotPOV = pl / pl.norm();
         float L_to_R_angle = getLeftToRightAngle(left_vect_robotPOV, right_vect_robotPOV);
 
         Eigen::Vector2f confined_theta_vect(std::cos(confined_theta), std::sin(confined_theta));
@@ -244,9 +244,9 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
         Eigen::Vector2f offset(0.0, 0.0);
         if (confined_theta == thetalf) {
-            offset = r_pi2 * (lf / lf.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            offset = r_pi2 * (pl / pl.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         } else if (confined_theta == thetalr) {
-            offset = r_negpi2 * (lr / lr.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            offset = r_negpi2 * (pr / pr.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         }
 
         ROS_INFO_STREAM("offset: " << offset[0] << ", " << offset[1]);
@@ -822,15 +822,18 @@ namespace dynamic_gap {
         float theta_left_infl = (2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pl.norm(); // using s = r*theta
         float new_l_theta = theta_l + theta_left_infl;
         new_l_theta = atanThetaWrap(new_l_theta);
+        ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_left_infl: " << theta_left_infl << ", new_l_theta: " << new_l_theta);
 
         float theta_r = std::atan2(pr[1], pr[0]);
         float theta_right_infl = (2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pr.norm(); // using s = r*theta
         float new_r_theta = theta_r - theta_right_infl;
         new_r_theta = atanThetaWrap(new_r_theta);
+        ROS_INFO_STREAM("theta_r: " << theta_r << ", theta_right_infl: " << theta_right_infl << ", new_r_theta: " << new_r_theta);
 
         Eigen::Vector2f new_left_norm_vect_robotPOV(std::cos(new_r_theta), std::sin(new_r_theta));
         Eigen::Vector2f new_right_norm_vect_robotPOV(std::cos(new_l_theta), std::sin(new_l_theta));
         float new_L_to_R_angle = getLeftToRightAngle(new_left_norm_vect_robotPOV, new_right_norm_vect_robotPOV);
+        ROS_INFO_STREAM("new_L_to_R_angle: " << new_L_to_R_angle);
 
         // need to make sure L/R don't cross each other
         sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;

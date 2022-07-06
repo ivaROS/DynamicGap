@@ -104,6 +104,7 @@ namespace dynamic_gap{
 
             // point 1 is right from robot POV
             // point 2 is left from robot POV
+            // FLIPPING TO POV HERE
             float x_left, y_left, x_right, y_right;
             x_left = x2*coefs;
             y_left = y2*coefs;
@@ -208,6 +209,9 @@ namespace dynamic_gap{
             Eigen::MatrixXd all_inward_norms(2*num_curve_points, 2);
 
             Eigen::MatrixXd left_right_centers(2*num_curve_points, 2);
+
+            bool left_side_closing = manip_left_polar_state[4] < 0.0; // is betadot_left < 0
+            bool right_side_closing = manip_right_polar_state[4] > 0.0; // is betadot_right > 0
             Eigen::MatrixXd all_centers(2*num_curve_points + 1, 2);
             
             double left_weight, right_weight;
@@ -217,7 +221,8 @@ namespace dynamic_gap{
                              all_inward_norms, left_right_centers, all_centers,
                              nonrel_left_vel, nonrel_right_vel, nom_vel, 
                              left_pt_0, left_pt_1, right_pt_0, right_pt_1, 
-                             gap_origin, goal_pt_1, left_weight, right_weight, num_curve_points, init_rbt_pos);
+                             gap_origin, goal_pt_1, left_weight, right_weight, num_curve_points, init_rbt_pos,
+                             left_side_closing, right_side_closing);
 
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
             selectedGap.left_weight = left_weight;
@@ -268,7 +273,7 @@ namespace dynamic_gap{
                                             Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
                                             Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
                                             Eigen::Vector2d gap_origin, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
-                                            double num_curve_points, Eigen::Vector2d init_rbt_pos) {  
+                                            double num_curve_points, Eigen::Vector2d init_rbt_pos, bool left_side_closing, bool right_side_closing) {  
         ROS_INFO_STREAM("building bezier curve");
         ROS_INFO_STREAM("gap_origin: " << gap_origin[0] << ", " << gap_origin[1]);
         ROS_INFO_STREAM("init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
@@ -293,8 +298,8 @@ namespace dynamic_gap{
 
         left_weight = orig_left_weight;
         right_weight = orig_right_weight;
-        double left_weight_increment = left_weight / 10.0;
-        double right_weight_increment = right_weight / 10.0;
+        double left_weight_increment = 0.05;
+        double right_weight_increment = 0.05;
         double eps = 0.0000001;
         double offset = 0.25;
 
@@ -367,7 +372,14 @@ namespace dynamic_gap{
             
             bool need_to_break;
             if (left_inward_dot > 0) {
-                double new_left_weight = std::max(left_weight - left_weight_increment, 0.0);
+                double new_left_weight = std::max(left_weight - left_weight_increment, 0.0); // bias more towards terminal point
+                /*
+                if (left_side_closing) {
+                    new_left_weight = std::min(left_weight + left_weight_increment, 1.0); // bias more towards initial point
+                } else {
+                    new_left_weight = std::max(left_weight - left_weight_increment, 0.0); // bias more towards terminal point
+                }
+                */
                 ROS_INFO_STREAM("outside left curve, changing left_weight from: " << left_weight << " to " << new_left_weight);
                 left_weight = new_left_weight;
                 ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
@@ -382,16 +394,23 @@ namespace dynamic_gap{
                 */
             } else {
                 ROS_INFO_STREAM("keeping left_weight of: " << left_weight);
-                ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
-                ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
-                ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
+                // ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
+                // ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
+                // ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
             }
 
             Eigen::Vector2d min_rbt_to_right_pt_norm = min_rbt_to_right_pt / min_rbt_to_right_pt.norm();
             right_inward_dot = min_right_inward_norm.dot(min_rbt_to_right_pt_norm);
             
             if (right_inward_dot > 0) {
-                double new_right_weight = std::max(right_weight - right_weight_increment, 0.0);
+                double new_right_weight = std::max(right_weight - right_weight_increment, 0.0); // bias more towards terminal point
+                /*
+                if (right_side_closing) {
+                    new_right_weight = std::min(right_weight + right_weight_increment, 1.0); // bias more towards initial point
+                } else {
+                    new_right_weight = std::max(right_weight - right_weight_increment, 0.0); // bias more towards terminal point
+                }
+                */
                 ROS_INFO_STREAM("outside right curve, changing right_weight from: " << right_weight << " to " << new_right_weight);
                 right_weight = new_right_weight;
                 ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
@@ -406,9 +425,9 @@ namespace dynamic_gap{
                 */
             } else {
                 ROS_INFO_STREAM("keeping right_weight of: " << right_weight);
-                ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
-                ROS_INFO_STREAM("min_rbt_to_right_pt_norm: " << min_rbt_to_right_pt_norm[0] << ", " << min_rbt_to_right_pt_norm[1]);
-                ROS_INFO_STREAM("min_right_inward_norm: " << min_right_inward_norm[0] << ", " << min_right_inward_norm[1]);
+                // ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
+                // ROS_INFO_STREAM("min_rbt_to_right_pt_norm: " << min_rbt_to_right_pt_norm[0] << ", " << min_rbt_to_right_pt_norm[1]);
+                // ROS_INFO_STREAM("min_right_inward_norm: " << min_right_inward_norm[0] << ", " << min_right_inward_norm[1]);
             }
 
             //if (need_to_break) {

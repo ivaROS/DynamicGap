@@ -62,7 +62,7 @@ namespace dynamic_gap {
                                   Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
                                   Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
                                   Eigen::Vector2d gap_origin, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
-                                  double num_curve_points, Eigen::Vector2d init_rbt_pos);
+                                  double num_curve_points, Eigen::Vector2d init_rbt_pos, bool left_side_closing, bool right_side_closing);
 
         private: 
             geometry_msgs::TransformStamped planning2odom;
