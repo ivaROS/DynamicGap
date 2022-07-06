@@ -19,8 +19,14 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
-            {};
+            Gap(std::string frame, int left_idx, float ldist, bool axial = false, float half_scan = 256) : 
+                _frame(frame), _left_idx(left_idx), _ldist(ldist), _axial(axial), half_scan(half_scan)
+            {
+                qB << 0.0, 0.0;
+                terminal_qB << 0.0, 0.0;
+                left_bezier_origin << 0.0, 0.0;
+                right_bezier_origin << 0.0, 0.0;
+            };
 
             ~Gap() {};
             
@@ -404,6 +410,8 @@ namespace dynamic_gap
             float terminal_min_safe_dist = -1;
             Eigen::Vector2f qB;
             Eigen::Vector2f terminal_qB;
+            Eigen::Vector2f left_bezier_origin;
+            Eigen::Vector2f right_bezier_origin;
             float half_scan = 256;
 
             int agc_lidx;
@@ -482,6 +490,7 @@ namespace dynamic_gap
 
             double left_weight = 0.0;
             double right_weight = 0.0;
+            Eigen::MatrixXd left_right_centers;
         // private:
     };
 }

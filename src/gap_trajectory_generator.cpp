@@ -227,6 +227,8 @@ namespace dynamic_gap{
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
             selectedGap.left_weight = left_weight;
             selectedGap.right_weight = right_weight;
+            selectedGap.left_right_centers = left_right_centers;
+
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
                                                     cfg_->control.vx_absmax, a_lin_max, num_curve_points,
                                                     all_curve_pts, all_centers, all_inward_norms, left_weight, right_weight);   
@@ -304,125 +306,103 @@ namespace dynamic_gap{
         double offset = 0.25;
 
         // model gives: left_pt - rbt.
-        Eigen::Vector2d weighted_left_pt, weighted_right_pt;
-
         // populating the quadratic weighted bezier
 
         double left_inward_dot = 1.0;
         double right_inward_dot = 1.0;
 
-        while (left_inward_dot > 0.0 || right_inward_dot > 0.0) {
+        // while (left_inward_dot > 0.0 || right_inward_dot > 0.0) {
 
-            double s, min_left_s, min_right_s;    
-            double min_dist_left = std::numeric_limits<double>::infinity();
-            double min_dist_right = std::numeric_limits<double>::infinity();
-            Eigen::Vector2d min_rbt_to_left_pt, min_rbt_to_right_pt;
-            Eigen::Vector2d min_left_inward_norm, min_right_inward_norm;
-            Eigen::Vector2d min_left_pt, min_right_pt;
+        double s, min_left_s, min_right_s;    
+        double min_dist_left = std::numeric_limits<double>::infinity();
+        double min_dist_right = std::numeric_limits<double>::infinity();
+        Eigen::Vector2d min_rbt_to_left_pt, min_rbt_to_right_pt;
+        Eigen::Vector2d min_left_inward_norm, min_right_inward_norm;
+        Eigen::Vector2d min_left_pt, min_right_pt;
 
-            weighted_left_pt = left_weight * left_pt_0;
-            weighted_right_pt = right_weight * right_pt_0;
-            for (double i = 0; i < num_curve_points; i++) {
-                s = (i + 1.0) / num_curve_points;
-                //ROS_INFO_STREAM("i: " << i << ", s: " << s);
-                double pos_val0 = (1 - s) * (1 - s);
-                double pos_val1 = 2*(1 - s)*s;
-                double pos_val2 = s*s;
+        Eigen::Vector2d weighted_left_pt_0 = left_weight * left_pt_0;
+        Eigen::Vector2d weighted_right_pt_0 = right_weight * right_pt_0;
+        for (double i = 0; i < num_curve_points; i++) {
+            s = (i) / num_curve_points;
+            //ROS_INFO_STREAM("i: " << i << ", s: " << s);
+            double pos_val0 = (1 - s) * (1 - s);
+            double pos_val1 = 2*(1 - s)*s;
+            double pos_val2 = s*s;
 
-                double vel_val0 = (1 - 2*s);
-                double vel_val1 = (2 - 4*s);
-                double vel_val2 = 2*s;
-                Eigen::Vector2d curr_left_pt = pos_val0 * gap_origin + pos_val1*weighted_left_pt + pos_val2*left_pt_1;
-                Eigen::Vector2d curr_left_vel = vel_val0 * gap_origin + vel_val1 * weighted_left_pt + vel_val2 * left_pt_1;
-                Eigen::Vector2d rotated_curr_left_vel = neg_rpi2 * curr_left_vel;
-                Eigen::Vector2d left_inward_norm = rotated_curr_left_vel / (rotated_curr_left_vel.norm() + eps);
-                left_curve.row(i) = curr_left_pt;
-                left_curve_vel.row(i) = curr_left_vel;
-                left_curve_inward_norm.row(i) = left_inward_norm;
+            double vel_val0 = (1 - 2*s);
+            double vel_val1 = (2 - 4*s);
+            double vel_val2 = 2*s;
+            Eigen::Vector2d curr_left_pt = pos_val0 * gap_origin + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
+            Eigen::Vector2d curr_left_vel = vel_val0 * gap_origin + vel_val1*weighted_left_pt_0 + vel_val2*left_pt_1;
+            Eigen::Vector2d rotated_curr_left_vel = neg_rpi2 * curr_left_vel;
+            Eigen::Vector2d left_inward_norm = rotated_curr_left_vel / (rotated_curr_left_vel.norm() + eps);
+            left_curve.row(i) = curr_left_pt;
+            left_curve_vel.row(i) = curr_left_vel;
+            left_curve_inward_norm.row(i) = left_inward_norm;
 
-                Eigen::Vector2d rbt_to_left_pt = (curr_left_pt - init_rbt_pos);
-                if (rbt_to_left_pt.norm() < min_dist_left) {
-                    min_left_s = s;
-                    min_left_pt = curr_left_pt;
-                    min_dist_left = rbt_to_left_pt.norm();
-                    min_rbt_to_left_pt = rbt_to_left_pt;
-                    min_left_inward_norm = left_inward_norm;
-                }
-                
-                Eigen::Vector2d curr_right_pt = pos_val0 * gap_origin + pos_val1*weighted_right_pt + pos_val2*right_pt_1;
-                Eigen::Vector2d curr_right_vel = vel_val0 * gap_origin + vel_val1 * weighted_right_pt + vel_val2*right_pt_1;
-                Eigen::Vector2d rotated_curr_right_vel = r_pi2 * curr_right_vel;
-                Eigen::Vector2d right_inward_norm = rotated_curr_right_vel / (rotated_curr_right_vel.norm() + eps);
-                right_curve.row(i) = curr_right_pt;
-                right_curve_vel.row(i) = curr_right_vel;
-                right_curve_inward_norm.row(i) = right_inward_norm;
-
-                Eigen::Vector2d rbt_to_right_pt = (curr_right_pt - init_rbt_pos);
-                if (rbt_to_right_pt.norm() < min_dist_right) {
-                    min_right_s = s;
-                    min_right_pt = curr_right_pt;
-                    min_dist_right = rbt_to_right_pt.norm();
-                    min_rbt_to_right_pt = rbt_to_right_pt;
-                    min_right_inward_norm = right_inward_norm;
-                }
+            Eigen::Vector2d rbt_to_left_pt = (curr_left_pt - init_rbt_pos);
+            /*
+            if (rbt_to_left_pt.norm() < min_dist_left) {
+                min_left_s = s;
+                min_left_pt = curr_left_pt;
+                min_dist_left = rbt_to_left_pt.norm();
+                min_rbt_to_left_pt = rbt_to_left_pt;
+                min_left_inward_norm = left_inward_norm;
             }
+            */
 
-            Eigen::Vector2d min_rbt_to_left_pt_norm = min_rbt_to_left_pt / min_rbt_to_left_pt.norm();
-            left_inward_dot = min_left_inward_norm.dot(min_rbt_to_left_pt_norm);
-            
-            bool need_to_break;
-            if (left_inward_dot > 0) {
-                double new_left_weight = std::max(left_weight - left_weight_increment, 0.0); // bias more towards terminal point
-                /*
-                if (left_side_closing) {
-                    new_left_weight = std::min(left_weight + left_weight_increment, 1.0); // bias more towards initial point
-                } else {
-                    new_left_weight = std::max(left_weight - left_weight_increment, 0.0); // bias more towards terminal point
-                }
-                */
-                ROS_INFO_STREAM("outside left curve, changing left_weight from: " << left_weight << " to " << new_left_weight);
-                left_weight = new_left_weight;
-                ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
-                ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
-                ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
+            Eigen::Vector2d curr_right_pt = pos_val0 * gap_origin + pos_val1*weighted_right_pt_0 + pos_val2*right_pt_1;
+            Eigen::Vector2d curr_right_vel = vel_val0 * gap_origin + vel_val1*weighted_right_pt_0 + vel_val2*right_pt_1;
+            Eigen::Vector2d rotated_curr_right_vel = r_pi2 * curr_right_vel;
+            Eigen::Vector2d right_inward_norm = rotated_curr_right_vel / (rotated_curr_right_vel.norm() + eps);
+            right_curve.row(i) = curr_right_pt;
+            right_curve_vel.row(i) = curr_right_vel;
+            right_curve_inward_norm.row(i) = right_inward_norm;
 
-                /*
-                if (left_weight == 0.0) {
-                    need_to_break = true;
-                    left_weight = orig_left_weight;
-                }
-                */
-            } else {
-                ROS_INFO_STREAM("keeping left_weight of: " << left_weight);
-                // ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
-                // ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
-                // ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
+            Eigen::Vector2d rbt_to_right_pt = (curr_right_pt - init_rbt_pos);
+            /*
+            if (rbt_to_right_pt.norm() < min_dist_right) {
+                min_right_s = s;
+                min_right_pt = curr_right_pt;
+                min_dist_right = rbt_to_right_pt.norm();
+                min_rbt_to_right_pt = rbt_to_right_pt;
+                min_right_inward_norm = right_inward_norm;
             }
+            */
+        }
+        /*
+        Eigen::Vector2d min_rbt_to_left_pt_norm = min_rbt_to_left_pt / min_rbt_to_left_pt.norm();
+        left_inward_dot = min_left_inward_norm.dot(min_rbt_to_left_pt_norm);
+        
+        bool need_to_break;
+        if (left_inward_dot > 0) {
+            double new_left_weight = std::max(left_weight - left_weight_increment, 0.0); // bias more towards terminal point
 
-            Eigen::Vector2d min_rbt_to_right_pt_norm = min_rbt_to_right_pt / min_rbt_to_right_pt.norm();
-            right_inward_dot = min_right_inward_norm.dot(min_rbt_to_right_pt_norm);
-            
-            if (right_inward_dot > 0) {
-                double new_right_weight = std::max(right_weight - right_weight_increment, 0.0); // bias more towards terminal point
-                /*
-                if (right_side_closing) {
-                    new_right_weight = std::min(right_weight + right_weight_increment, 1.0); // bias more towards initial point
-                } else {
-                    new_right_weight = std::max(right_weight - right_weight_increment, 0.0); // bias more towards terminal point
-                }
-                */
-                ROS_INFO_STREAM("outside right curve, changing right_weight from: " << right_weight << " to " << new_right_weight);
-                right_weight = new_right_weight;
-                ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
-                ROS_INFO_STREAM("min_rbt_to_right_pt_norm: " << min_rbt_to_right_pt_norm[0] << ", " << min_rbt_to_right_pt_norm[1]);
-                ROS_INFO_STREAM("min_right_inward_norm: " << min_right_inward_norm[0] << ", " << min_right_inward_norm[1]);
+            ROS_INFO_STREAM("outside left curve, changing left_weight from: " << left_weight << " to " << new_left_weight);
+            left_weight = new_left_weight;
+            ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
+            ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
+            ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
 
-                /*
-                if (right_weight == 0.0) {
-                    need_to_break = true;
-                    right_weight = orig_right_weight;
-                }
-                */
+        } else {
+            ROS_INFO_STREAM("keeping left_weight of: " << left_weight);
+            // ROS_INFO_STREAM("min_left_s: " << min_left_s << ", min_left pt: " << min_left_pt[0] << ", " << min_left_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
+            // ROS_INFO_STREAM("min_rbt_to_left_pt_norm: " << min_rbt_to_left_pt_norm[0] << ", " << min_rbt_to_left_pt_norm[1]);
+            // ROS_INFO_STREAM("min_left_inward_norm: " << min_left_inward_norm[0] << ", " << min_left_inward_norm[1]);
+        }
+
+        Eigen::Vector2d min_rbt_to_right_pt_norm = min_rbt_to_right_pt / min_rbt_to_right_pt.norm();
+        right_inward_dot = min_right_inward_norm.dot(min_rbt_to_right_pt_norm);
+        
+        if (right_inward_dot > 0) {
+            double new_right_weight = std::max(right_weight - right_weight_increment, 0.0); // bias more towards terminal point
+
+            ROS_INFO_STREAM("outside right curve, changing right_weight from: " << right_weight << " to " << new_right_weight);
+            right_weight = new_right_weight;
+            ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
+            ROS_INFO_STREAM("min_rbt_to_right_pt_norm: " << min_rbt_to_right_pt_norm[0] << ", " << min_rbt_to_right_pt_norm[1]);
+            ROS_INFO_STREAM("min_right_inward_norm: " << min_right_inward_norm[0] << ", " << min_right_inward_norm[1]);
+
             } else {
                 ROS_INFO_STREAM("keeping right_weight of: " << right_weight);
                 // ROS_INFO_STREAM("min_right_s: " << min_right_s << ", min_right pt: " << min_right_pt[0] << ", " << min_right_pt[1] << ", init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
@@ -434,7 +414,7 @@ namespace dynamic_gap{
             //    break;
             //}
         }
-
+        */
         all_curve_pts << left_curve, right_curve;
         all_inward_norms << left_curve_inward_norm, right_curve_inward_norm;
 

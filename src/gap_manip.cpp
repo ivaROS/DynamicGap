@@ -578,7 +578,7 @@ namespace dynamic_gap {
         try{
             for (int i = 0; i < dist.size(); i++) {
                 int check_idx = (i + init_search_idx) % int(2 * gap.half_scan);
-                ROS_INFO_STREAM("ranges at idx: " << check_idx);
+                // ROS_INFO_STREAM("ranges at idx: " << check_idx);
                 float range = stored_scan_msgs.ranges.at(check_idx);
                 float diff_in_idx = gap_idx_size + (search_size - i);
                 dist.at(i) = sqrt(pow(near_dist, 2) + pow(range, 2) -
@@ -705,11 +705,27 @@ namespace dynamic_gap {
         } else {
             gap.terminal_qB = qB;
         }
+        Eigen::Vector2f fwd_qB = -qB; 
 
+        if (initial) {
+            Eigen::Vector2f qLp = left_point - qB;
+            float theta_btw_qLp_and_qB = std::acos(fwd_qB.dot(qLp) / (fwd_qB.norm() * qLp.norm()));
+            float length_along_qLp = fwd_qB.norm() / cos(theta_btw_qLp_and_qB);
+            ROS_INFO_STREAM("theta between qLp and qB: " << theta_btw_qLp_and_qB);
+            Eigen::Vector2f left_hypotenuse = length_along_qLp * qLp / qLp.norm();        
+            ROS_INFO_STREAM("length along qLp: " << length_along_qLp << ", left_hypotenuse: " << left_hypotenuse[0] << ", " << left_hypotenuse[1]);
+            gap.left_bezier_origin = left_hypotenuse + qB;
+
+            Eigen::Vector2f qRp = right_point - qB;
+            float theta_btw_qRp_and_qB = std::acos(fwd_qB.dot(qRp) / (fwd_qB.norm() * qRp.norm()));
+            float length_along_qRp = fwd_qB.norm() / cos(theta_btw_qRp_and_qB);
+            ROS_INFO_STREAM("theta between qRp and qB: " << theta_btw_qRp_and_qB);
+            Eigen::Vector2f right_hypotenuse = length_along_qRp * qRp / qRp.norm();        
+            ROS_INFO_STREAM("length along qRp: " << length_along_qRp << ", right_hypotenuse: " << right_hypotenuse[0] << ", " << right_hypotenuse[1]);
+            gap.right_bezier_origin = right_hypotenuse + qB;
+        }
         /*
         // push out left and right points
-        Eigen::Vector2f qLp = left_point - qB;
-        Eigen::Vector2f qRp = right_point - qB;
 
         // (x,y) to (r, theta) 
         Eigen::Vector2f pLp = car2pol(qLp);
@@ -835,17 +851,15 @@ namespace dynamic_gap {
         float new_L_to_R_angle = getLeftToRightAngle(new_left_norm_vect_robotPOV, new_right_norm_vect_robotPOV);
         ROS_INFO_STREAM("new_L_to_R_angle: " << new_L_to_R_angle);
 
+        if (new_L_to_R_angle < 0) {
+            ROS_INFO_STREAM("inflation caused gap to cross:");
+            return;
+        }
+        
         // need to make sure L/R don't cross each other
         sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
         int new_l_idx = int((new_l_theta + M_PI) / stored_scan_msgs.angle_increment);
         int new_r_idx = int((new_r_theta + M_PI) / stored_scan_msgs.angle_increment);
-        
-        if (new_L_to_R_angle < 0) { // new_l_idx > new_r_idx || 
-            ROS_INFO_STREAM("inflation caused gap to cross:");
-            ROS_INFO_STREAM("lidx: " << lidx << ", ridx: " << ridx);
-            ROS_INFO_STREAM("new_l_idx: " << new_l_idx << ", new_r_idx: " << new_r_idx);
-            return;
-        }
         
         float ldist_robotPOV = rdist;
         float rdist_robotPOV = ldist;

@@ -459,6 +459,14 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /reachable_gap_centers
+      Name: MarkerArray
+      Namespaces:
+        reachable_gap_centers: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -494,9 +502,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.0021098852157593
-        Y: -2.752164602279663
-        Z: -35.83608627319336
+        X: 2.9632439613342285
+        Y: -1.7961747646331787
+        Z: -35.835140228271484
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
