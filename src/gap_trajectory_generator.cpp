@@ -36,17 +36,17 @@ namespace dynamic_gap{
             // get gap points in cartesian
             float x1, x2, y1, y2;
             float half_num_scan = selectedGap.half_scan;
-            x1 = (selectedGap.convex.convex_ldist) * cos(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-            y1 = (selectedGap.convex.convex_ldist) * sin(-((float) half_num_scan - selectedGap.convex.convex_lidx) / half_num_scan * M_PI);
-            x2 = (selectedGap.convex.convex_rdist) * cos(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-            y2 = (selectedGap.convex.convex_rdist) * sin(-((float) half_num_scan - selectedGap.convex.convex_ridx) / half_num_scan * M_PI);
-
+            x1 = selectedGap.cvx_RDistPOV() * cos(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y1 = selectedGap.cvx_RDistPOV() * sin(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            x2 = selectedGap.cvx_LDistPOV() * cos(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y2 = selectedGap.cvx_LDistPOV() * sin(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            
             float term_x1, term_x2, term_y1, term_y2;
-            term_x1 = (selectedGap.convex.terminal_ldist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
-            term_y1 = (selectedGap.convex.terminal_ldist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_lidx) / half_num_scan * M_PI);
-            term_x2 = (selectedGap.convex.terminal_rdist) * cos(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
-            term_y2 = (selectedGap.convex.terminal_rdist) * sin(-((float) half_num_scan - selectedGap.convex.terminal_ridx) / half_num_scan * M_PI);
-
+            term_x1 = selectedGap.cvx_term_RDistPOV() * cos(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y1 = selectedGap.cvx_term_RDistPOV() * sin(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_x2 = selectedGap.cvx_term_LDistPOV() * cos(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y2 = selectedGap.cvx_term_LDistPOV() * sin(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            
             // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
             //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
             //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;

@@ -171,19 +171,19 @@ namespace dynamic_gap{
 
         float half_num_scan = g.half_scan;
         float x_right, x_left, y_right, y_left;
-        x_right = (g.convex.convex_ldist) * cos(-((float) half_num_scan - g.convex.convex_lidx) / half_num_scan * M_PI);
-        y_right = (g.convex.convex_ldist) * sin(-((float) half_num_scan - g.convex.convex_lidx) / half_num_scan * M_PI);
-        x_left = (g.convex.convex_rdist) * cos(-((float) half_num_scan - g.convex.convex_ridx) / half_num_scan * M_PI);
-        y_left = (g.convex.convex_rdist) * sin(-((float) half_num_scan - g.convex.convex_ridx) / half_num_scan * M_PI);
+        x_right = g.cvx_RDistPOV() * cos(((float) g.cvx_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        y_right = g.cvx_RDistPOV() * sin(((float) g.cvx_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        x_left = g.cvx_LDistPOV() * cos(((float) g.cvx_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        y_left = g.cvx_LDistPOV() * sin(((float) g.cvx_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
 
         float term_x_right, term_x_left, term_y_right, term_y_left;
-        term_x_right = (g.convex.terminal_ldist) * cos(-((float) half_num_scan - g.convex.terminal_lidx) / half_num_scan * M_PI);
-        term_y_right = (g.convex.terminal_ldist) * sin(-((float) half_num_scan - g.convex.terminal_lidx) / half_num_scan * M_PI);
-        term_x_left = (g.convex.terminal_rdist) * cos(-((float) half_num_scan - g.convex.terminal_ridx) / half_num_scan * M_PI);
-        term_y_left = (g.convex.terminal_rdist) * sin(-((float) half_num_scan - g.convex.terminal_ridx) / half_num_scan * M_PI);
+        term_x_right = g.cvx_term_RDistPOV() * cos(((float) g.cvx_term_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        term_y_right = g.cvx_term_RDistPOV() * sin(((float) g.cvx_term_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        term_x_left = g.cvx_term_LDistPOV() * cos(((float) g.cvx_term_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        term_y_left = g.cvx_term_LDistPOV() * sin(((float) g.cvx_term_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
 
-        Eigen::Vector2f left_gap_origin = g.right_bezier_origin;
-        Eigen::Vector2f right_gap_origin = g.left_bezier_origin;
+        Eigen::Vector2f left_gap_origin = g.left_pov_bezier_origin;
+        Eigen::Vector2f right_gap_origin = g.right_pov_bezier_origin;
 
         Eigen::Vector2f left_pt_0(x_left, y_left);
         Eigen::Vector2f right_pt_0(x_right, y_right);
@@ -440,10 +440,10 @@ namespace dynamic_gap{
             viz_offset = g.isLeftType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? g.LIdx() : g.terminal_lidx;
-        int ridx = initial ? g.RIdx() : g.terminal_ridx;
-        float ldist = initial ? g.LDist() : g.terminal_ldist;
-        float rdist = initial ? g.RDist() : g.terminal_rdist;
+        int lidx = initial ? g.RIdxPOV() : g.term_RIdxPOV();
+        int ridx = initial ? g.LIdxPOV() : g.term_LIdxPOV();
+        float ldist = initial ? g.RDistPOV() : g.term_RDistPOV();
+        float rdist = initial ? g.LDistPOV() : g.term_LDistPOV();
 
         //ROS_INFO_STREAM("lidx: " << lidx << ", ldist: " << ldist << ", ridx: " << ridx << ", rdist: " << rdist);
         int gap_idx_size = (ridx - lidx);
@@ -601,106 +601,107 @@ namespace dynamic_gap{
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
         int model_id = (int) model_arr.markers.size();
-        visualization_msgs::Marker left_model_pt;
+        visualization_msgs::Marker right_model_pov_pt;
         // VISUALIZING THE GAP-ONLY DYNAMICS (ADDING THE EGO VELOCITY)
         
         // std::cout << "model frame: " << g._frame << std::endl;
-        left_model_pt.header.frame_id = g._frame;
-        left_model_pt.header.stamp = ros::Time();
-        left_model_pt.ns = ns;
-        left_model_pt.id = model_id++;
-        left_model_pt.type = visualization_msgs::Marker::CYLINDER;
-        left_model_pt.action = visualization_msgs::Marker::ADD;
-        left_model_pt.pose.position.x = g.left_model->get_cartesian_state()[0];
-        left_model_pt.pose.position.y = g.left_model->get_cartesian_state()[1];
-        left_model_pt.pose.position.z = 0.0001;
-        //std::cout << "left point: " << left_model_pt.pose.position.x << ", " << left_model_pt.pose.position.y << std::endl;
-        left_model_pt.pose.orientation.w = 1.0;
-        left_model_pt.scale.x = 0.1;
-        left_model_pt.scale.y = 0.1;
-        left_model_pt.scale.z = 0.000001;
-        left_model_pt.color.a = 1.0;
-        left_model_pt.color.r = 1.0;
-        left_model_pt.color.b = 1.0;
-        left_model_pt.lifetime = ros::Duration(100.0);
-        model_arr.markers.push_back(left_model_pt);
-        visualization_msgs::Marker right_model_pt;
+        right_model_pov_pt.header.frame_id = g._frame;
+        right_model_pov_pt.header.stamp = ros::Time();
+        right_model_pov_pt.ns = ns;
+        right_model_pov_pt.id = model_id++;
+        right_model_pov_pt.type = visualization_msgs::Marker::CYLINDER;
+        right_model_pov_pt.action = visualization_msgs::Marker::ADD;
+        right_model_pov_pt.pose.position.x = g.right_model_pov->get_cartesian_state()[0];
+        right_model_pov_pt.pose.position.y = g.right_model_pov->get_cartesian_state()[1];
+        right_model_pov_pt.pose.position.z = 0.0001;
+        //std::cout << "left point: " << right_model_pov_pt.pose.position.x << ", " << right_model_pov_pt.pose.position.y << std::endl;
+        right_model_pov_pt.pose.orientation.w = 1.0;
+        right_model_pov_pt.scale.x = 0.1;
+        right_model_pov_pt.scale.y = 0.1;
+        right_model_pov_pt.scale.z = 0.000001;
+        right_model_pov_pt.color.a = 1.0;
+        right_model_pov_pt.color.r = 1.0;
+        right_model_pov_pt.color.b = 1.0;
+        right_model_pov_pt.lifetime = ros::Duration(100.0);
+        model_arr.markers.push_back(right_model_pov_pt);
+
+        visualization_msgs::Marker left_model_pov_pt;
         // std::cout << "model frame: " << g._frame << std::endl;
-        right_model_pt.header.frame_id = g._frame;
-        right_model_pt.header.stamp = ros::Time();
-        right_model_pt.ns = ns;
-        right_model_pt.id = model_id++;
-        right_model_pt.type = visualization_msgs::Marker::CYLINDER;
-        right_model_pt.action = visualization_msgs::Marker::ADD;
-        right_model_pt.pose.position.x = g.right_model->get_cartesian_state()[0];
-        right_model_pt.pose.position.y = g.right_model->get_cartesian_state()[1];
-        right_model_pt.pose.position.z = 0.0001;
-        // std::cout << "right point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
-        right_model_pt.pose.orientation.w = 1.0;
-        right_model_pt.scale.x = 0.1;
-        right_model_pt.scale.y = 0.1;
-        right_model_pt.scale.z = 0.000001;
-        right_model_pt.color.a = 1.0;
-        right_model_pt.color.r = 1.0;
-        right_model_pt.color.b = 1.0;
-        right_model_pt.lifetime = ros::Duration(100.0);
-        model_arr.markers.push_back(right_model_pt);
+        left_model_pov_pt.header.frame_id = g._frame;
+        left_model_pov_pt.header.stamp = ros::Time();
+        left_model_pov_pt.ns = ns;
+        left_model_pov_pt.id = model_id++;
+        left_model_pov_pt.type = visualization_msgs::Marker::CYLINDER;
+        left_model_pov_pt.action = visualization_msgs::Marker::ADD;
+        left_model_pov_pt.pose.position.x = g.left_model_pov->get_cartesian_state()[0];
+        left_model_pov_pt.pose.position.y = g.left_model_pov->get_cartesian_state()[1];
+        left_model_pov_pt.pose.position.z = 0.0001;
+        // std::cout << "right point: " << left_model_pov_pt.pose.position.x << ", " << left_model_pov_pt.pose.position.y << std::endl;
+        left_model_pov_pt.pose.orientation.w = 1.0;
+        left_model_pov_pt.scale.x = 0.1;
+        left_model_pov_pt.scale.y = 0.1;
+        left_model_pov_pt.scale.z = 0.000001;
+        left_model_pov_pt.color.a = 1.0;
+        left_model_pov_pt.color.r = 1.0;
+        left_model_pov_pt.color.b = 1.0;
+        left_model_pov_pt.lifetime = ros::Duration(100.0);
+        model_arr.markers.push_back(left_model_pov_pt);
 
-        visualization_msgs::Marker left_model_vel_pt;
-        // gap_vel_arr.markers.push_back(left_model_pt);
-        left_model_vel_pt.header.frame_id = g._frame;
-        left_model_vel_pt.header.stamp = ros::Time();
-        left_model_vel_pt.ns = ns;
-        left_model_vel_pt.id = model_id++;
-        left_model_vel_pt.type = visualization_msgs::Marker::ARROW;
-        left_model_vel_pt.action = visualization_msgs::Marker::ADD;
-        geometry_msgs::Point left_vel_pt;
-        left_vel_pt.x = left_model_pt.pose.position.x;
-        left_vel_pt.y = left_model_pt.pose.position.y;
-        left_vel_pt.z = 0.000001;
-        left_model_vel_pt.points.push_back(left_vel_pt);
-        Eigen::Vector2d left_vel(g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
-                                 g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
-        //std::cout << "visualizing left gap only vel: " << left_vel[0] << ", " << left_vel[1] << std::endl;
-        left_vel_pt.x = left_model_pt.pose.position.x + left_vel[0];
-        left_vel_pt.y = left_model_pt.pose.position.y + left_vel[1];
-        left_model_vel_pt.points.push_back(left_vel_pt);
-        left_model_vel_pt.scale.x = 0.1;
-        left_model_vel_pt.scale.y = 0.1;
-        left_model_vel_pt.scale.z = 0.1;
-        left_model_vel_pt.color.a = 1.0;
-        left_model_vel_pt.color.r = 1.0;
-        left_model_vel_pt.color.b = 1.0;
-        left_model_vel_pt.lifetime = ros::Duration(100.0);
-        gap_vel_arr.markers.push_back(left_model_vel_pt);
-        // std::cout << "left velocity end point: " << left_vel_pt.x << ", " << left_vel_pt.y << std::endl;
+        visualization_msgs::Marker right_model_vel_pov_pt;
+        // gap_vel_arr.markers.push_back(right_model_pov_pt);
+        right_model_vel_pov_pt.header.frame_id = g._frame;
+        right_model_vel_pov_pt.header.stamp = ros::Time();
+        right_model_vel_pov_pt.ns = ns;
+        right_model_vel_pov_pt.id = model_id++;
+        right_model_vel_pov_pt.type = visualization_msgs::Marker::ARROW;
+        right_model_vel_pov_pt.action = visualization_msgs::Marker::ADD;
+        geometry_msgs::Point right_pov_vel_pt;
+        right_pov_vel_pt.x = right_model_pov_pt.pose.position.x;
+        right_pov_vel_pt.y = right_model_pov_pt.pose.position.y;
+        right_pov_vel_pt.z = 0.000001;
+        right_model_vel_pov_pt.points.push_back(right_pov_vel_pt);
+        Eigen::Vector2d right_pov_vel(g.right_model_pov->get_cartesian_state()[2] + g.right_model_pov->get_v_ego()[0],
+                                 g.right_model_pov->get_cartesian_state()[3] + g.right_model_pov->get_v_ego()[1]);
+        //std::cout << "visualizing left gap only vel: " << right_pov_vel_pt[0] << ", " << right_pov_vel_pt[1] << std::endl;
+        right_pov_vel_pt.x = right_model_pov_pt.pose.position.x + right_pov_vel[0];
+        right_pov_vel_pt.y = right_model_pov_pt.pose.position.y + right_pov_vel[1];
+        right_model_vel_pov_pt.points.push_back(right_pov_vel_pt);
+        right_model_vel_pov_pt.scale.x = 0.1;
+        right_model_vel_pov_pt.scale.y = 0.1;
+        right_model_vel_pov_pt.scale.z = 0.1;
+        right_model_vel_pov_pt.color.a = 1.0;
+        right_model_vel_pov_pt.color.r = 1.0;
+        right_model_vel_pov_pt.color.b = 1.0;
+        right_model_vel_pov_pt.lifetime = ros::Duration(100.0);
+        gap_vel_arr.markers.push_back(right_model_vel_pov_pt);
+        // std::cout << "left velocity end point: " << right_pov_vel_pt.x << ", " << right_pov_vel_pt.y << std::endl;
 
-        visualization_msgs::Marker right_model_vel_pt;
-        right_model_vel_pt.header.frame_id = g._frame;
-        right_model_vel_pt.header.stamp = ros::Time();
-        right_model_vel_pt.ns = ns;
-        right_model_vel_pt.id = model_id++;
-        right_model_vel_pt.type = visualization_msgs::Marker::ARROW;
-        right_model_vel_pt.action = visualization_msgs::Marker::ADD;
-        geometry_msgs::Point right_vel_pt;
-        right_vel_pt.x = right_model_pt.pose.position.x;
-        right_vel_pt.y = right_model_pt.pose.position.y;
-        right_vel_pt.z = 0.000001;
-        right_model_vel_pt.points.push_back(right_vel_pt);
-        Eigen::Vector2d right_vel(g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
-                                 g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
-        // std::cout << "visualizing right gap only vel: " << right_vel[0] << ", " << right_vel[1] << std::endl;
-        right_vel_pt.x = right_model_pt.pose.position.x + right_vel[0];
-        right_vel_pt.y = right_model_pt.pose.position.y + right_vel[1];
-        right_model_vel_pt.points.push_back(right_vel_pt);
-        right_model_vel_pt.scale.x = 0.1;
-        right_model_vel_pt.scale.y = 0.1;
-        right_model_vel_pt.scale.z = 0.1;
-        right_model_vel_pt.color.a = 1.0;
-        right_model_vel_pt.color.r = 1.0;
-        right_model_vel_pt.color.b = 1.0;
-        right_model_vel_pt.lifetime = ros::Duration(100.0);
-        gap_vel_arr.markers.push_back(right_model_vel_pt);
+        visualization_msgs::Marker left_model_vel_pov_pt;
+        left_model_vel_pov_pt.header.frame_id = g._frame;
+        left_model_vel_pov_pt.header.stamp = ros::Time();
+        left_model_vel_pov_pt.ns = ns;
+        left_model_vel_pov_pt.id = model_id++;
+        left_model_vel_pov_pt.type = visualization_msgs::Marker::ARROW;
+        left_model_vel_pov_pt.action = visualization_msgs::Marker::ADD;
+        geometry_msgs::Point left_vel_pov_pt;
+        left_vel_pov_pt.x = left_model_pov_pt.pose.position.x;
+        left_vel_pov_pt.y = left_model_pov_pt.pose.position.y;
+        left_vel_pov_pt.z = 0.000001;
+        left_model_vel_pov_pt.points.push_back(left_vel_pov_pt);
+        Eigen::Vector2d right_vel(g.left_model_pov->get_cartesian_state()[2] + g.left_model_pov->get_v_ego()[0],
+                                  g.left_model_pov->get_cartesian_state()[3] + g.left_model_pov->get_v_ego()[1]);
+        // std::cout << "visualizing right gap only vel: " << left_vel_pov_pt[0] << ", " << left_vel_pov_pt[1] << std::endl;
+        left_vel_pov_pt.x = left_model_pov_pt.pose.position.x + right_vel[0];
+        left_vel_pov_pt.y = left_model_pov_pt.pose.position.y + right_vel[1];
+        left_model_vel_pov_pt.points.push_back(left_vel_pov_pt);
+        left_model_vel_pov_pt.scale.x = 0.1;
+        left_model_vel_pov_pt.scale.y = 0.1;
+        left_model_vel_pov_pt.scale.z = 0.1;
+        left_model_vel_pov_pt.color.a = 1.0;
+        left_model_vel_pov_pt.color.r = 1.0;
+        left_model_vel_pov_pt.color.b = 1.0;
+        left_model_vel_pov_pt.lifetime = ros::Duration(100.0);
+        gap_vel_arr.markers.push_back(left_model_vel_pov_pt);
         // std::cout << "right velocity end point: " << right_vel_pt.x << ", " << right_vel_pt.y << std::endl;
     }
 
@@ -721,12 +722,11 @@ namespace dynamic_gap{
         if (viz_jitter > 0 && g.isAxial(initial)){
             viz_offset = g.isLeftType(initial) ? -2 : 2;
         }
-        
 
-        int lidx = initial ? g.convex.convex_lidx : g.convex.terminal_lidx;
-        int ridx = initial ? g.convex.convex_ridx : g.convex.terminal_ridx;
-        float ldist = initial ? g.convex.convex_ldist : g.convex.terminal_ldist;
-        float rdist = initial ? g.convex.convex_rdist : g.convex.terminal_rdist;
+        int lidx = initial ? g.cvx_RIdxPOV() : g.cvx_term_RIdxPOV();
+        int ridx = initial ? g.cvx_LIdxPOV() : g.cvx_term_LIdxPOV();
+        float ldist = initial ? g.cvx_RDistPOV() : g.cvx_term_RDistPOV();
+        float rdist = initial ? g.cvx_LDistPOV() : g.cvx_term_LDistPOV();
 
         /*
         std::string ns;
@@ -840,7 +840,7 @@ namespace dynamic_gap{
         
         // MAX: removing just for visualizing
         /*
-        if ((g.mode.convex || g.mode.terminal_convex) && g.gap_chosen) {
+        if ((g.mode.convex || g.mode.terminal_convex)) {
             float r = g.getMinSafeDist();
             if (r < 0) {
                 ROS_WARN_STREAM("Gap min safe dist not recorded");

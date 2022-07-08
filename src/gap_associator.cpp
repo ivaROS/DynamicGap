@@ -26,40 +26,30 @@ namespace dynamic_gap {
 			//std::cout << "adding left points" << std::endl;
 			//std::cout << "convex l dist: " << g.convex.convex_ldist << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.convex_lidx << std::endl;
 			//std::cout << "convex r dist: " << g.convex.convex_rdist << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.convex_ridx << std::endl;
-			// std::string print_string;
-			if (isnan(g.convex.convex_ldist)) {
-				// rarely, a gap will be sent into association with NaN left and right points. This breaks the asscn. so I am just
-				// setting this point to 100/100 and -100/-100
-				points[count][0] = 100;
-				points[count][1] = 100;
-				count++;
-				points[count][0] = -100;
-				points[count][1] = -100;
-			} else {					
-				float left_x, left_y, right_x, right_y;
-				if (previous) {
-					Eigen::Vector4d left_state = g.left_model->get_cartesian_state();
-					Eigen::Vector4d right_state = g.right_model->get_cartesian_state();
-					left_x = left_state[0];
-					left_y = left_state[1];
-					right_x = right_state[0];
-					right_y = right_state[1];
-				} else {
-					int lidx = g.LIdx();
-					int ridx = g.RIdx();
-					float ldist = g.LDist();
-					float rdist = g.RDist();
-					left_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-					left_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-					right_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-					right_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);				
-				}
-				points[count][0] = left_x;
-				points[count][1] = left_y;
-				count++;
-				points[count][0] = right_x;
-				points[count][1] = right_y;
+			// std::string print_string;					
+			float left_x, left_y, right_x, right_y;
+			if (previous) {
+				Eigen::Vector4d right_state_pov = g.right_model_pov->get_cartesian_state();
+				Eigen::Vector4d left_state_pov = g.left_model_pov->get_cartesian_state();
+				left_x = right_state_pov[0];
+				left_y = right_state_pov[1];
+				right_x = left_state_pov[0];
+				right_y = left_state_pov[1];
+			} else {
+				int lidx = g.RIdxPOV();
+				int ridx = g.LIdxPOV();
+				float ldist = g.RDistPOV();
+				float rdist = g.LDistPOV();
+				left_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
+				left_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
+				right_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
+				right_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);				
 			}
+			points[count][0] = left_x;
+			points[count][1] = left_y;
+			count++;
+			points[count][0] = right_x;
+			points[count][1] = right_y;
 			// print_string += ("left: (" + std::to_string(points[count - 1][0]) + ", " + std::to_string(points[count - 1][1]) + "), right: (" + std::to_string(points[count][0]) + ", " + std::to_string(points[count][1]) + "), ");
 			count++;
 			// ROS_INFO_STREAM(print_string);
@@ -118,9 +108,9 @@ namespace dynamic_gap {
 			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].right_model_pov = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].left_model_pov = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego);
 			}
 			*model_idx += 1;
 		}
@@ -142,15 +132,15 @@ namespace dynamic_gap {
 				//std::cout << "distance under threshold" << std::endl;
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
-						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
+						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model_pov = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model_pov;
 					} else { // prev right;
-						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
+						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model_pov = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model_pov;
 					}
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
-						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
+						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model_pov = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model_pov;
 					} else { // prev right
-						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
+						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model_pov = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model_pov;
 					}
 				} 
 			} 
@@ -198,14 +188,14 @@ namespace dynamic_gap {
                 int current_gap_idx = int(std::floor(pair[0] / 2.0));
                 int previous_gap_idx = int(std::floor(pair[1] / 2.0));
                 if (pair[0] % 2 == 0) {  // curr left
-                    current_gaps.at(current_gap_idx).getSimplifiedLCartesian(curr_x, curr_y);
+                    current_gaps.at(current_gap_idx).getSimplifiedRCartesianPOV(curr_x, curr_y);
                 } else { // curr right
-                    current_gaps.at(current_gap_idx).getSimplifiedRCartesian(curr_x, curr_y);
+                    current_gaps.at(current_gap_idx).getSimplifiedLCartesianPOV(curr_x, curr_y);
                 }
                 if (pair[1] % 2 == 0) { // prev left
-                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
+                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesianPOV(prev_x, prev_y);
                 } else { // prev right
-                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesian(prev_x, prev_y);
+                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesianPOV(prev_x, prev_y);
                 }
                 std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
             } else {

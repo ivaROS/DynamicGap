@@ -182,8 +182,8 @@ namespace dynamic_gap
         double prev_traj_switch_time;
         double init_time;
 
-        dynamic_gap::cart_model * curr_left_model;
-        dynamic_gap::cart_model * curr_right_model;
+        dynamic_gap::cart_model * curr_right_model_pov;
+        dynamic_gap::cart_model * curr_left_model_pov;
         double curr_peak_velocity_x;
         double curr_peak_velocity_y;
 
@@ -323,8 +323,8 @@ namespace dynamic_gap
         std::vector<double> getCurrentTimeArr();
 
         void setCurrentGapIndices(int _left_idx, int _right_idx);
-        int getCurrentLeftGapIndex();
-        int getCurrentRightGapIndex();
+        int getCurrentRightPOVGapIndex();
+        int getCurrentLeftPOVGapIndex();
 
 
         /**
@@ -358,8 +358,8 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 
-        void setCurrentLeftModel(dynamic_gap::cart_model * _left_model);
-        void setCurrentRightModel(dynamic_gap::cart_model * _right_model);
+        void setCurrentRightModelPOV(dynamic_gap::cart_model * _right_model_pov);
+        void setCurrentLeftModelPOV(dynamic_gap::cart_model * _left_model_pov);
         void setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y);
 
         std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
