@@ -274,11 +274,11 @@ namespace dynamic_gap
         //std::cout << "obtaining gap pt vector" << std::endl;
 		// THIS VECTOR IS IN THE ROBOT FRAME
 		if (i % 2 == 0) {
-			gap_pt_vector_rbt_frame.vector.x = g.RDistPOV() * cos(-((float) g.half_scan - g.RIdxPOV()) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = g.RDistPOV() * sin(-((float) g.half_scan - g.RIdxPOV()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.x = g.RDist() * cos(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.y = g.RDist() * sin(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
 		} else {
-			gap_pt_vector_rbt_frame.vector.x = g.LDistPOV() * cos(-((float) g.half_scan - g.LIdxPOV()) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = g.LDistPOV() * sin(-((float) g.half_scan - g.LIdxPOV()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.x = g.LDist() * cos(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
+			gap_pt_vector_rbt_frame.vector.y = g.LDist() * sin(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
 		}
 
         range_vector_rbt_frame.vector.x = gap_pt_vector_rbt_frame.vector.x - rbt_in_cam.pose.position.x;
@@ -298,17 +298,17 @@ namespace dynamic_gap
         // std::cout << "y_tilde: " << y_tilde << std::endl;
 
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        // bool gap_bridged = (_observed_gaps[0].RIdxPOV() == 0 && _observed_gaps[_observed_gaps.size() - 1].LIdxPOV() == (stored_scan_msgs.ranges.size() - 1));
+        // bool gap_bridged = (_observed_gaps[0].RIdx() == 0 && _observed_gaps[_observed_gaps.size() - 1].LIdx() == (stored_scan_msgs.ranges.size() - 1));
         // bool bridge_model = gap_bridged && (i == 0 || i == 2*_observed_gaps.size() - 1);
 
 
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.right_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.left_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
         }
     }
 
@@ -659,7 +659,7 @@ namespace dynamic_gap
             bool curr_gap_feasible = false;
             for (dynamic_gap::Gap g : feasible_gaps) {
                 // ROS_INFO_STREAM("feasible left gap index: " << g.left_model->get_index() << ", feasible right gap index: " << g.right_model->get_index());
-                if (g.right_model_pov->get_index() == getCurrentRightPOVGapIndex() && g.left_model_pov->get_index() == getCurrentLeftPOVGapIndex()) {
+                if (g.right_model->get_index() == getCurrentRightPOVGapIndex() && g.left_model->get_index() == getCurrentLeftPOVGapIndex()) {
                     curr_gap_feasible = true;
                     setCurrentGapPeakVelocities(g.peak_velocity_x, g.peak_velocity_y);
                     break;
@@ -697,8 +697,8 @@ namespace dynamic_gap
                     }
                     setCurrentTraj(incoming);
                     setCurrentTimeArr(time_arr);
-                    setCurrentRightModelPOV(incoming_gap.right_model_pov);
-                    setCurrentLeftModelPOV(incoming_gap.left_model_pov);
+                    setCurrentRightModelPOV(incoming_gap.right_model);
+                    setCurrentLeftModelPOV(incoming_gap.left_model);
                     setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                     trajectory_pub.publish(incoming);
                     ROS_WARN_STREAM("Old Traj length 0");
@@ -732,8 +732,8 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Old Traj short");
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
-                setCurrentRightModelPOV(incoming_gap.right_model_pov);
-                setCurrentLeftModelPOV(incoming_gap.left_model_pov);
+                setCurrentRightModelPOV(incoming_gap.right_model);
+                setCurrentLeftModelPOV(incoming_gap.left_model);
                 setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                 prev_traj_switch_time = curr_time;
                 return incoming;
@@ -782,8 +782,8 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
-                setCurrentRightModelPOV(incoming_gap.right_model_pov);
-                setCurrentLeftModelPOV(incoming_gap.left_model_pov);
+                setCurrentRightModelPOV(incoming_gap.right_model);
+                setCurrentLeftModelPOV(incoming_gap.left_model);
                 setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
@@ -1094,16 +1094,16 @@ namespace dynamic_gap
             int previous_gap_idx = int(std::floor(pair[1] / 2.0));
 
             if (pair[0] % 2 == 0) {  // curr left
-                    current_gaps.at(current_gap_idx).getSimplifiedRCartesianPOV(curr_x, curr_y);
+                    current_gaps.at(current_gap_idx).getSimplifiedRCartesian(curr_x, curr_y);
                 } else { // curr right
-                    current_gaps.at(current_gap_idx).getSimplifiedLCartesianPOV(curr_x, curr_y);
+                    current_gaps.at(current_gap_idx).getSimplifiedLCartesian(curr_x, curr_y);
             }
             
             if (i >= 0 && association[i] >= 0) {
                 if (pair[1] % 2 == 0) { // prev left
-                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesianPOV(prev_x, prev_y);
+                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesian(prev_x, prev_y);
                 } else { // prev right
-                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesianPOV(prev_x, prev_y);
+                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
                 }
                 std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
             } else {
@@ -1118,12 +1118,12 @@ namespace dynamic_gap
         for (size_t i = 0; i < gaps.size(); i++)
         {
             dynamic_gap::Gap g = gaps.at(i);
-            ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdxPOV() << " to "  << g.LIdxPOV());
-            Matrix<double, 4, 1> left_state_pov = g.left_model_pov->get_cartesian_state();
-            g.getLCartesianPOV(x, y);            
+            ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx());
+            Matrix<double, 4, 1> left_state_pov = g.left_model->get_cartesian_state();
+            g.getLCartesian(x, y);            
             ROS_INFO_STREAM("left_pov point: (" << x << ", " << y << "), left_pov model: (" << left_state_pov[0] << ", " << left_state_pov[1] << ", " << left_state_pov[2] << ", " << left_state_pov[3] << ")");
-            Matrix<double, 4, 1> right_state_pov = g.right_model_pov->get_cartesian_state();
-            g.getRCartesianPOV(x, y);
+            Matrix<double, 4, 1> right_state_pov = g.right_model->get_cartesian_state();
+            g.getRCartesian(x, y);
             ROS_INFO_STREAM("right_pov point: (" << x << ", " << y << "), right_pov model: (" << right_state_pov[0] << ", " << right_state_pov[1] << ", " << right_state_pov[2] << ", " << right_state_pov[3] << ")");
            
         }

@@ -3,7 +3,7 @@
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius"/>
   <arg name="num_obsts"/>
-
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
   <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)" />
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
@@ -32,9 +32,6 @@
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
 
   <!-- xterm -e gdb -ex run - -args -->
-  
-  
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
 
   <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>

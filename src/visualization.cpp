@@ -165,25 +165,25 @@ namespace dynamic_gap{
     }
 
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
-        ROS_INFO_STREAM("in drawReachableGap");
+        // ROS_INFO_STREAM("in drawReachableGap");
 
-        float num_curve_points = 25.0f;
-
+        float num_curve_points = 25.0;
+        float num_qB_points = 5.0;
         float half_num_scan = g.half_scan;
         float x_right, x_left, y_right, y_left;
-        x_right = g.cvx_RDistPOV() * cos(((float) g.cvx_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        y_right = g.cvx_RDistPOV() * sin(((float) g.cvx_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        x_left = g.cvx_LDistPOV() * cos(((float) g.cvx_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        y_left = g.cvx_LDistPOV() * sin(((float) g.cvx_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        x_right = g.cvx_RDist() * cos(((float) g.cvx_RIdx() - half_num_scan) / half_num_scan * M_PI);
+        y_right = g.cvx_RDist() * sin(((float) g.cvx_RIdx() - half_num_scan) / half_num_scan * M_PI);
+        x_left = g.cvx_LDist() * cos(((float) g.cvx_LIdx() - half_num_scan) / half_num_scan * M_PI);
+        y_left = g.cvx_LDist() * sin(((float) g.cvx_LIdx() - half_num_scan) / half_num_scan * M_PI);
 
         float term_x_right, term_x_left, term_y_right, term_y_left;
-        term_x_right = g.cvx_term_RDistPOV() * cos(((float) g.cvx_term_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        term_y_right = g.cvx_term_RDistPOV() * sin(((float) g.cvx_term_RIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        term_x_left = g.cvx_term_LDistPOV() * cos(((float) g.cvx_term_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
-        term_y_left = g.cvx_term_LDistPOV() * sin(((float) g.cvx_term_LIdxPOV() - half_num_scan) / half_num_scan * M_PI);
+        term_x_right = g.cvx_term_RDist() * cos(((float) g.cvx_term_RIdx() - half_num_scan) / half_num_scan * M_PI);
+        term_y_right = g.cvx_term_RDist() * sin(((float) g.cvx_term_RIdx() - half_num_scan) / half_num_scan * M_PI);
+        term_x_left = g.cvx_term_LDist() * cos(((float) g.cvx_term_LIdx() - half_num_scan) / half_num_scan * M_PI);
+        term_y_left = g.cvx_term_LDist() * sin(((float) g.cvx_term_LIdx() - half_num_scan) / half_num_scan * M_PI);
 
-        Eigen::Vector2f left_gap_origin = g.left_pov_bezier_origin;
-        Eigen::Vector2f right_gap_origin = g.right_pov_bezier_origin;
+        Eigen::Vector2f left_gap_origin = g.left_bezier_origin;
+        Eigen::Vector2f right_gap_origin = g.right_bezer_origin;
 
         Eigen::Vector2f left_pt_0(x_left, y_left);
         Eigen::Vector2f right_pt_0(x_right, y_right);
@@ -206,11 +206,11 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("in drawReachableGap, left weight: " << left_weight << ", right_weight: " << right_weight);
 
         // model gives: left_pt - rbt.
-        Eigen::Vector2f weighted_left_pt_0 = left_pt_0; // left_weight * 
-        Eigen::Vector2f weighted_right_pt_0 = right_pt_0; // right_weight * 
+        Eigen::Vector2f weighted_left_pt_0 = left_gap_origin + left_weight * (left_pt_0 - left_gap_origin); // 
+        Eigen::Vector2f weighted_right_pt_0 = right_gap_origin + right_weight * (right_pt_0 - right_gap_origin); // 
 
-        ROS_INFO_STREAM("left_gap_origin: (" << left_gap_origin[0] << ", " << left_gap_origin[1] << "), left_pt_0: (" << left_pt_0[0] << ", " << left_pt_0[1] << "), weighted_left_pt_0: (" << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1] << "), left_pt_1: (" << left_pt_1[0] << ", " << left_pt_1[1] << ")");
-        ROS_INFO_STREAM("right_gap_origin: (" << right_gap_origin[0] << ", " << right_gap_origin[1] << "), right_pt_0: (" << right_pt_0[0] << ", " << right_pt_0[1] << "), weighted_right_pt_0: (" << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1] << "), right_pt_1: (" << right_pt_1[0] << ", " << right_pt_1[1] << ")");
+        // ROS_INFO_STREAM("left_gap_origin: (" << left_gap_origin[0] << ", " << left_gap_origin[1] << "), left_pt_0: (" << left_pt_0[0] << ", " << left_pt_0[1] << "), weighted_left_pt_0: (" << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1] << "), left_pt_1: (" << left_pt_1[0] << ", " << left_pt_1[1] << ")");
+        // ROS_INFO_STREAM("right_gap_origin: (" << right_gap_origin[0] << ", " << right_gap_origin[1] << "), right_pt_0: (" << right_pt_0[0] << ", " << right_pt_0[1] << "), weighted_right_pt_0: (" << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1] << "), right_pt_1: (" << right_pt_1[0] << ", " << right_pt_1[1] << ")");
 
         visualization_msgs::Marker this_marker;
         this_marker.header.frame_id = g._frame;
@@ -244,6 +244,43 @@ namespace dynamic_gap{
         // populate left curve
         int id = (int) vis_arr.markers.size();
         this_marker.lifetime = ros::Duration(100.0);
+
+        lines.clear();  
+        // ROS_INFO_STREAM("i: " << i << ", s: " << s);
+        Eigen::Vector2f left_pt = g.qB;
+        
+        linel.x = left_pt[0];
+        linel.y = left_pt[1];
+        lines.push_back(linel);
+
+        left_pt = left_gap_origin;
+        
+        linel.x = left_pt[0];
+        linel.y = left_pt[1];
+        lines.push_back(linel);
+
+        this_marker.points = lines;
+        this_marker.id = id++;
+        vis_arr.markers.push_back(this_marker);
+
+        // populate right curve
+        lines.clear();  
+        // ROS_INFO_STREAM("i: " << i << ", s: " << s);
+        Eigen::Vector2f right_pt = g.qB;
+        
+        liner.x = right_pt[0];
+        liner.y = right_pt[1];
+        lines.push_back(liner);
+
+        right_pt = right_gap_origin;
+        
+        liner.x = right_pt[0];
+        liner.y = right_pt[1];
+        lines.push_back(liner);
+
+        this_marker.points = lines;
+        this_marker.id = id++;
+        vis_arr.markers.push_back(this_marker);
 
         for (float i = 0.0f; i < num_curve_points; i++) {
             lines.clear();  
@@ -437,13 +474,13 @@ namespace dynamic_gap{
         double viz_jitter = cfg_->gap_viz.viz_jitter;
         
         if (viz_jitter > 0 && g.isAxial(initial)) {
-            viz_offset = g.isRightPOVType(initial) ? -2 : 2;
+            viz_offset = g.isRightType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? g.RIdxPOV() : g.term_RIdxPOV();
-        int ridx = initial ? g.LIdxPOV() : g.term_LIdxPOV();
-        float ldist = initial ? g.RDistPOV() : g.term_RDistPOV();
-        float rdist = initial ? g.LDistPOV() : g.term_LDistPOV();
+        int lidx = initial ? g.RIdx() : g.term_RIdx();
+        int ridx = initial ? g.LIdx() : g.term_LIdx();
+        float ldist = initial ? g.RDist() : g.term_RDist();
+        float rdist = initial ? g.LDist() : g.term_LDist();
 
         //ROS_INFO_STREAM("lidx: " << lidx << ", ldist: " << ldist << ", ridx: " << ridx << ", rdist: " << rdist);
         int gap_idx_size = (ridx - lidx);
@@ -467,7 +504,7 @@ namespace dynamic_gap{
         std::string local_ns = ns;
         // for compare, 0 is true?
         
-        float z_val = (ns.compare("raw") != 0) ? 0.0001 : 0.0002;
+        float z_val = (ns == "raw") ? 0.0001 : 0.001;
         /*
         if (ns.compare("raw") != 0) {
             if (g.getCategory().compare("expanding") == 0) {
@@ -611,8 +648,8 @@ namespace dynamic_gap{
         right_model_pov_pt.id = model_id++;
         right_model_pov_pt.type = visualization_msgs::Marker::CYLINDER;
         right_model_pov_pt.action = visualization_msgs::Marker::ADD;
-        right_model_pov_pt.pose.position.x = g.right_model_pov->get_cartesian_state()[0];
-        right_model_pov_pt.pose.position.y = g.right_model_pov->get_cartesian_state()[1];
+        right_model_pov_pt.pose.position.x = g.right_model->get_cartesian_state()[0];
+        right_model_pov_pt.pose.position.y = g.right_model->get_cartesian_state()[1];
         right_model_pov_pt.pose.position.z = 0.0001;
         //std::cout << "left point: " << right_model_pov_pt.pose.position.x << ", " << right_model_pov_pt.pose.position.y << std::endl;
         right_model_pov_pt.pose.orientation.w = 1.0;
@@ -633,8 +670,8 @@ namespace dynamic_gap{
         left_model_pov_pt.id = model_id++;
         left_model_pov_pt.type = visualization_msgs::Marker::CYLINDER;
         left_model_pov_pt.action = visualization_msgs::Marker::ADD;
-        left_model_pov_pt.pose.position.x = g.left_model_pov->get_cartesian_state()[0];
-        left_model_pov_pt.pose.position.y = g.left_model_pov->get_cartesian_state()[1];
+        left_model_pov_pt.pose.position.x = g.left_model->get_cartesian_state()[0];
+        left_model_pov_pt.pose.position.y = g.left_model->get_cartesian_state()[1];
         left_model_pov_pt.pose.position.z = 0.0001;
         // std::cout << "right point: " << left_model_pov_pt.pose.position.x << ", " << left_model_pov_pt.pose.position.y << std::endl;
         left_model_pov_pt.pose.orientation.w = 1.0;
@@ -660,8 +697,8 @@ namespace dynamic_gap{
         right_pov_vel_pt.y = right_model_pov_pt.pose.position.y;
         right_pov_vel_pt.z = 0.000001;
         right_model_vel_pov_pt.points.push_back(right_pov_vel_pt);
-        Eigen::Vector2d right_pov_vel(g.right_model_pov->get_cartesian_state()[2] + g.right_model_pov->get_v_ego()[0],
-                                 g.right_model_pov->get_cartesian_state()[3] + g.right_model_pov->get_v_ego()[1]);
+        Eigen::Vector2d right_pov_vel(g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
+                                 g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1]);
         //std::cout << "visualizing left gap only vel: " << right_pov_vel_pt[0] << ", " << right_pov_vel_pt[1] << std::endl;
         right_pov_vel_pt.x = right_model_pov_pt.pose.position.x + right_pov_vel[0];
         right_pov_vel_pt.y = right_model_pov_pt.pose.position.y + right_pov_vel[1];
@@ -688,8 +725,8 @@ namespace dynamic_gap{
         left_vel_pov_pt.y = left_model_pov_pt.pose.position.y;
         left_vel_pov_pt.z = 0.000001;
         left_model_vel_pov_pt.points.push_back(left_vel_pov_pt);
-        Eigen::Vector2d right_vel(g.left_model_pov->get_cartesian_state()[2] + g.left_model_pov->get_v_ego()[0],
-                                  g.left_model_pov->get_cartesian_state()[3] + g.left_model_pov->get_v_ego()[1]);
+        Eigen::Vector2d right_vel(g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
+                                  g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1]);
         // std::cout << "visualizing right gap only vel: " << left_vel_pov_pt[0] << ", " << left_vel_pov_pt[1] << std::endl;
         left_vel_pov_pt.x = left_model_pov_pt.pose.position.x + right_vel[0];
         left_vel_pov_pt.y = left_model_pov_pt.pose.position.y + right_vel[1];
@@ -720,13 +757,13 @@ namespace dynamic_gap{
         int viz_offset = 0;
         
         if (viz_jitter > 0 && g.isAxial(initial)){
-            viz_offset = g.isRightPOVType(initial) ? -2 : 2;
+            viz_offset = g.isRightType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? g.cvx_RIdxPOV() : g.cvx_term_RIdxPOV();
-        int ridx = initial ? g.cvx_LIdxPOV() : g.cvx_term_LIdxPOV();
-        float ldist = initial ? g.cvx_RDistPOV() : g.cvx_term_RDistPOV();
-        float rdist = initial ? g.cvx_LDistPOV() : g.cvx_term_LDistPOV();
+        int lidx = initial ? g.cvx_RIdx() : g.cvx_term_RIdx();
+        int ridx = initial ? g.cvx_LIdx() : g.cvx_term_LIdx();
+        float ldist = initial ? g.cvx_RDist() : g.cvx_term_RDist();
+        float rdist = initial ? g.cvx_LDist() : g.cvx_term_LDist();
 
         /*
         std::string ns;

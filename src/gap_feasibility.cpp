@@ -15,10 +15,10 @@ namespace dynamic_gap {
         auto half_num_scan = gap.half_scan;
         float x_r_pov, x_l_pov, y_r_pov, y_l_pov;
 
-        x_r_pov = gap.cvx_RDistPOV() * cos(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        y_r_pov = gap.cvx_RDistPOV() * sin(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        x_l_pov = gap.cvx_LDistPOV() * cos(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        y_l_pov = gap.cvx_LDistPOV() * sin(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
+        x_r_pov = gap.cvx_RDist() * cos(((float) gap.cvx_RIdx() - gap.half_scan) / gap.half_scan * M_PI);
+        y_r_pov = gap.cvx_RDist() * sin(((float) gap.cvx_RIdx() - gap.half_scan) / gap.half_scan * M_PI);
+        x_l_pov = gap.cvx_LDist() * cos(((float) gap.cvx_LIdx() - gap.half_scan) / gap.half_scan * M_PI);
+        y_l_pov = gap.cvx_LDist() * sin(((float) gap.cvx_LIdx() - gap.half_scan) / gap.half_scan * M_PI);
             
         Eigen::Vector2f pl(x_r_pov, y_r_pov);
         Eigen::Vector2f pr(x_l_pov, y_l_pov);
@@ -26,8 +26,8 @@ namespace dynamic_gap {
 
         // FLIPPING MODELS HERE
         //std::cout << "FLIPPING MODELS TO GET L/R FROM ROBOT POV" << std::endl;
-        dynamic_gap::cart_model* left_model_pov = gap.left_model_pov;
-        dynamic_gap::cart_model* right_model_pov = gap.right_model_pov;
+        dynamic_gap::cart_model* left_model_pov = gap.left_model;
+        dynamic_gap::cart_model* right_model_pov = gap.right_model;
 
         // FEASIBILITY CHECK
         // std::cout << "left ori: " << left_ori << ", right_ori: " << right_ori << std::endl;
@@ -65,7 +65,7 @@ namespace dynamic_gap {
         if (gap.artificial) {
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
-            gap.setTerminalPoints(gap.RIdxPOV(), gap.RDistPOV(), gap.LIdxPOV(), gap.LDistPOV());
+            gap.setTerminalPoints(gap.RIdx(), gap.RDist(), gap.LIdx(), gap.LDist());
         } else if (subtracted_left_betadot > 0) {
             // expanding
             ROS_INFO_STREAM("gap is expanding");
@@ -170,14 +170,14 @@ namespace dynamic_gap {
 
         double x_r_pov, x_l_pov, y_r_pov, y_l_pov;
 
-        x_r_pov = (gap.RDistPOV()) * cos(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
-        y_r_pov = (gap.RDistPOV()) * sin(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
+        x_r_pov = (gap.RDist()) * cos(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
+        y_r_pov = (gap.RDist()) * sin(-((double) gap.half_scan - gap.RIdx()) / gap.half_scan * M_PI);
 
-        x_l_pov = (gap.LDistPOV()) * cos(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
-        y_l_pov = (gap.LDistPOV()) * sin(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
+        x_l_pov = (gap.LDist()) * cos(-((double) gap.half_scan - gap.LIdx()) / gap.half_scan * M_PI);
+        y_l_pov = (gap.LDist()) * sin(-((double) gap.half_scan - gap.LIdx()) / gap.half_scan * M_PI);
        
-        Eigen::Vector2d left_bearing_vect(x_l_pov / gap.LDistPOV(), y_l_pov / gap.LDistPOV());
-        Eigen::Vector2d right_bearing_vect(x_r_pov / gap.RDistPOV(), y_r_pov / gap.RDistPOV());
+        Eigen::Vector2d left_bearing_vect(x_l_pov / gap.LDist(), y_l_pov / gap.LDist());
+        Eigen::Vector2d right_bearing_vect(x_r_pov / gap.RDist(), y_r_pov / gap.RDist());
 
         double L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
 

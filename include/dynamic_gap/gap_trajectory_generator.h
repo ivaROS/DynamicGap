@@ -56,13 +56,13 @@ namespace dynamic_gap {
             void determineLeftRightModels(Matrix<double, 5, 1>&, Matrix<double, 5, 1>&, dynamic_gap::Gap&, double);
             Matrix<double, 5, 1> cartesian_to_polar(Eigen::Vector4d x);
             void buildBezierCurve(Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
-                                  Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel, 
-                                  Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
-                                  Eigen::MatrixXd & all_inward_norms, Eigen::MatrixXd & left_right_centers, Eigen::MatrixXd & all_centers,
-                                  Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
-                                  Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
-                                  Eigen::Vector2d gap_origin, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
-                                  double num_curve_points, Eigen::Vector2d init_rbt_pos, bool left_side_closing, bool right_side_closing);
+                                Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
+                                Eigen::MatrixXd & all_inward_norms, Eigen::MatrixXd & left_right_centers, Eigen::MatrixXd & all_centers,
+                                Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
+                                Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
+                                Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
+                                double num_curve_points, double num_qB_points, Eigen::Vector2d init_rbt_pos,
+                                Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin);
 
         private: 
             geometry_msgs::TransformStamped planning2odom;

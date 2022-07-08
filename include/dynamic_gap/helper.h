@@ -170,7 +170,7 @@ namespace dynamic_gap {
                         goal_pt_0, goal_pt_1;
         std::vector<std::vector <double>> left_curve, right_curve;
 
-        int num_curve_points, N, Kplus1, half_num_scan;
+        int num_curve_points, num_qB_points, N, Kplus1, half_num_scan;
         double v_lin_max, a_lin_max, K_acc,
                rg, theta_right, theta_left, thetax, thetag, new_theta, ang_diff_right, ang_diff_left, 
                coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
@@ -185,43 +185,37 @@ namespace dynamic_gap {
 
 
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
-                          double v_lin_max, double a_lin_max, int num_curve_points, 
+                          double v_lin_max, double a_lin_max, int num_curve_points, int num_qB_points,
                           Eigen::MatrixXd all_curve_pts,  Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms,
                           double left_weight, double right_weight) 
                           : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1), K_acc(K_acc), 
-                            v_lin_max(v_lin_max), a_lin_max(a_lin_max), num_curve_points(num_curve_points), 
+                            v_lin_max(v_lin_max), a_lin_max(a_lin_max), num_curve_points(num_curve_points), num_qB_points(num_qB_points),
                             all_curve_pts(all_curve_pts), all_centers(all_centers), all_inward_norms(all_inward_norms), 
                             left_weight(left_weight), right_weight(right_weight)
-                        {
+                        { 
                             double start_time = ros::WallTime::now().toSec();
                             half_num_scan = 256;
-                            N = 2*num_curve_points;
-                            Kplus1 = 2*num_curve_points + 1;
+                            N = 2*(num_curve_points + num_qB_points);
+                            Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
 
-                            Eigen::Matrix<double, 51, 51> A; // (Kplus1, N+1);
+                            Eigen::MatrixXd A(Kplus1, N+1);
                             setConstraintMatrix(A, N, Kplus1);
                             // ROS_INFO_STREAM("A: " << A);
-
-                            Eigen::Matrix<double, 51, 1> b = Eigen::MatrixXd::Zero(Kplus1, 1);
+                            
+                            Eigen::MatrixXd b = Eigen::MatrixXd::Zero(Kplus1, 1);
 
                             Eigen::SparseMatrix<double> hessian;
                             hessian.resize(Kplus1, Kplus1);
 
-                            Eigen::VectorXd gradient;
-                            gradient = Eigen::VectorXd::Zero(Kplus1, 1);
+                            Eigen::VectorXd gradient = Eigen::VectorXd::Zero(Kplus1, 1);
 
                             Eigen::SparseMatrix<double> linearMatrix; //Kplus1, Kplus1);
                             linearMatrix.resize(Kplus1, Kplus1);
 
-                            Eigen::VectorXd lowerBound; //(Kplus1, 1);
-                            lowerBound = Eigen::MatrixXd::Zero(Kplus1, 1);
+                            Eigen::VectorXd lowerBound = Eigen::MatrixXd::Zero(Kplus1, 1);
 
-                            Eigen::VectorXd upperBound; //(Kplus1, 1);
-                            upperBound = Eigen::MatrixXd::Zero(Kplus1, 1);
+                            Eigen::VectorXd upperBound = Eigen::MatrixXd::Zero(Kplus1, 1);
 
-                            // Eigen::Matrix<double, 51, 1> w_0;
-                            // w_0 = Eigen::MatrixXd::Constant(Kplus1, 1, 1.0);
-                            
                             for (int i = 0; i < Kplus1; i++) {
                                 lowerBound(i, 0) = -OsqpEigen::INFTY;
                                 upperBound(i, 0) = -0.0000001; // this leads to non-zero weights. Closer to zero this number goes, closer to zero the weights go. This makes sense
@@ -270,19 +264,59 @@ namespace dynamic_gap {
                             // if(!solver.setPrimalVariable(w_0)) return;
                             
                             // solve the QP problem
-
                             /*
                             ROS_INFO_STREAM("current solution: "); 
                             
                             std::string weights_string;
                             for (int i = 0; i < Kplus1; i++) {
-                               ROS_INFO_STREAM(weights.coeff(i, 0)); 
+                                ROS_INFO_STREAM(weights.coeff(i, 0)); 
                             }
                             
                             ROS_INFO_STREAM("optimization time elapsed: " << ros::WallTime::now().toSec() - start_time);
                             */
                         }
 
+        void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1) {
+            double eps = 0.0000001;
+
+            Eigen::MatrixXd gradient_of_pti_wrt_centers(2, Kplus1);
+            Eigen::MatrixXd A_N(Kplus1, N);
+            Eigen::MatrixXd A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
+            Eigen::MatrixXd w_0 = Eigen::MatrixXd::Zero(Kplus1, 1);
+            Eigen::VectorXd neg_one_vect(1, 1);
+            neg_one_vect << -1.0;
+
+            for (int i = 0; i < N; i++) {
+                Eigen::Vector2d boundary_pt_i = all_curve_pts.row(i);
+                Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);
+
+                for (int j = 0; j < Kplus1; j++) {                    
+                    Eigen::Vector2d center_j = all_centers.row(j);
+                    // ROS_INFO_STREAM("boundary_pt_i: " << boundary_pt_i);
+                    // ROS_INFO_STREAM("center_j: " << center_j);
+                    Eigen::Vector2d diff = boundary_pt_i - center_j;
+                    // ROS_INFO_STREAM("diff: " << diff);
+                    Eigen::Vector2d gradient = diff / pow(diff.norm() + eps, 2);
+                    gradient_of_pti_wrt_centers.col(j) = gradient;
+                }
+                //ROS_INFO_STREAM("inward_norm_vector: " << inward_norm_vector);
+                //ROS_INFO_STREAM("gradient_of_pti: " << gradient_of_pti_wrt_centers);
+
+                Eigen::MatrixXd A_pi = inward_norm_vector * gradient_of_pti_wrt_centers;
+                // ROS_INFO_STREAM("inward_norm_vector size: " << inward_norm_vector.rows() << ", " << inward_norm_vector.cols());
+                // ROS_INFO_STREAM("gradient_of_pti_wrt_centers size: " << gradient_of_pti_wrt_centers.rows() << ", " << gradient_of_pti_wrt_centers.cols());
+                // ROS_INFO_STREAM("A_pi size: " << A_pi.rows() << ", " << A_pi.cols());
+
+                // ROS_INFO_STREAM("A_pi: " << A_pi);
+                A_N.col(i) = A_pi.transpose();
+                // dotting inward norm (Kplus1 rows, 2 columns) with gradient of pti (Kplus1 rows, 2 columns) to get (Kplus1 rows, 1 column)
+            }
+
+            A_S.row(0) = neg_one_vect;
+
+            A << A_N, A_S;
+        }
+        
         state_type adjust_state(const state_type &x) {
             // clipping velocities
             // taking norm of sin/cos norm vector
@@ -308,48 +342,8 @@ namespace dynamic_gap {
                 return clipped_vel;
             }
         }
-
-        void setConstraintMatrix(Eigen::Matrix<double, 51, 51> &A, int N, int Kplus1) {
-            double eps = 0.0000001;
-
-            Eigen::Matrix<double, 1, 2> inward_norm_vector; //(Kplus1, 2);
-            Eigen::Matrix<double, 2, 51> gradient_of_pti_wrt_centers; // (Kplus1, 2);
-            Eigen::Matrix<double, 51, 50> A_N; //(Kplus1, N);
-            Eigen::Matrix<double, 51, 1> A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
-            Eigen::Matrix<double, 51, 1> w_0 = Eigen::MatrixXd::Zero(Kplus1, 1);
-            Eigen::VectorXd neg_one_vect(1, 1);
-            neg_one_vect << -1.0;
-
-            for (int i = 0; i < N; i++) {
-                Eigen::Vector2d boundary_pt_i = all_curve_pts.row(i);
-                inward_norm_vector = all_inward_norms.row(i);
-
-                for (int j = 0; j < Kplus1; j++) {                    
-                    Eigen::Vector2d center_j = all_centers.row(j);
-                    // ROS_INFO_STREAM("boundary_pt_i: " << boundary_pt_i);
-                    // ROS_INFO_STREAM("center_j: " << center_j);
-                    Eigen::Vector2d diff = boundary_pt_i - center_j;
-                    // ROS_INFO_STREAM("diff: " << diff);
-                    Eigen::Vector2d gradient = diff / pow(diff.norm() + eps, 2);
-                    gradient_of_pti_wrt_centers.col(j) = gradient;
-                }
-                //ROS_INFO_STREAM("inward_norm_vector: " << inward_norm_vector);
-                //ROS_INFO_STREAM("gradient_of_pti: " << gradient_of_pti_wrt_centers);
-
-                Eigen::Matrix<double, 1, 51> A_pi;
-                A_pi = inward_norm_vector * gradient_of_pti_wrt_centers;
-                // ROS_INFO_STREAM("A_pi: " << A_pi);
-                A_N.col(i) = A_pi;
-                // dotting inward norm (Kplus1 rows, 2 columns) with gradient of pti (Kplus1 rows, 2 columns) to get (Kplus1 rows, 1 column)
-            }
-
-            A_S.row(0) = neg_one_vect;
-
-            A << A_N, A_S;
-        }
-
         void operator()(const state_type &x, state_type &dxdt, const double t)
-        {             
+        { 
             state_type new_x = adjust_state(x);
             abs_left_state << new_x[4], new_x[5], new_x[6], new_x[7];  
             abs_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
@@ -383,8 +377,8 @@ namespace dynamic_gap {
                 return;
             } 
 
-            ROS_INFO_STREAM("t: " << t);
-            ROS_INFO_STREAM("rbt state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3]);
+            // ROS_INFO_STREAM("t: " << t);
+            // ROS_INFO_STREAM("rbt state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3]);
             // ROS_INFO_STREAM("left_pos: " << abs_left_pos[0] << ", " << abs_left_pos[1]);            
             // ROS_INFO_STREAM("right_pos: " << abs_right_pos[0] << ", " << abs_right_pos[1]);
             // ROS_INFO_STREAM("goal_pos: " << abs_goal_pos[0] << ", " << abs_goal_pos[1]);            
@@ -399,6 +393,7 @@ namespace dynamic_gap {
             }
             */
             // APF
+
             rg = rel_goal_pos.norm();
             theta_right = atan2(abs_right_pos[1], abs_right_pos[0]);
             theta_left = atan2(abs_left_pos[1], abs_left_pos[0]);
@@ -411,7 +406,7 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("attractive term: " << attractive_term);
 
             double eps = 0.0000001;
-            Eigen::Matrix<double, 2, 51> gradient_of_pti_wrt_centers; // (Kplus1, 2);
+            Eigen::MatrixXd gradient_of_pti_wrt_centers(2, Kplus1);
             for (int i = 0; i < Kplus1; i++) {
 
                 Eigen::Vector2d center_i = all_centers.row(i);
@@ -419,32 +414,24 @@ namespace dynamic_gap {
 
                 Eigen::Vector2d gradient = diff / pow(diff.norm() + eps, 2);
                 gradient_of_pti_wrt_centers.col(i) = gradient;
-                /*
-                if (i == 0) {
-                    ROS_INFO_STREAM("goal point: (" << center_i[0] << ", " << center_i[1] << "), gradient: (" << gradient[0] << ", " << gradient[1] << "), weight: " << weights.coeff(i,0) << ", term: (" << attractive_term * weights.coeff(i,0) * gradient[0] << ", " << attractive_term * weights.coeff(i,0) * gradient[1] << ")");
-                } else if (i >= 1 && i <= 25) {
-                    ROS_INFO_STREAM("left point: (" << center_i[0] << ", " << center_i[1] << "), gradient: (" << gradient[0] << ", " << gradient[1] <<  "), weight: " << weights.coeff(i,0) << ", term: (" << attractive_term * weights.coeff(i,0) * gradient[0] << ", " << attractive_term * weights.coeff(i,0) * gradient[1] << ")");
-                } else {
-                    ROS_INFO_STREAM("right point: (" << center_i[0] << ", " << center_i[1] << "), gradient: (" << gradient[0] << ", " << gradient[1] <<  "), weight: " << weights.coeff(i,0) << ", term: (" << attractive_term * weights.coeff(i,0) * gradient[0] << ", " << attractive_term * weights.coeff(i,0) * gradient[1] << ")");
-                }
-                */
             }
 
+            int num_pts_per_side = num_curve_points + num_qB_points;
             Eigen::Vector2d weighted_goal_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 0, 2, 1) * weights.coeff(0, 0);
-            Eigen::Vector2d weighted_left_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 1, 2, 25) * weights.block(1, 0, 25, 1);
-            Eigen::Vector2d weighted_right_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 26, 2, 25) * weights.block(26, 0, 25, 1);
-
-            ROS_INFO_STREAM("weighted_goal_term: " << weighted_goal_term[0] << ", " << weighted_goal_term[1]);
-            ROS_INFO_STREAM("weighted_left_term: " << weighted_left_term[0] << ", " << weighted_left_term[1]);
-            ROS_INFO_STREAM("weighted_right_term: " << weighted_right_term[0] << ", " << weighted_right_term[1]);
-
+            Eigen::Vector2d weighted_left_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 1, 2, num_pts_per_side) * weights.block(1, 0, num_pts_per_side, 1);
+            Eigen::Vector2d weighted_right_term = attractive_term * gradient_of_pti_wrt_centers.block(0, num_pts_per_side+1, 2, num_pts_per_side) * weights.block(num_pts_per_side+1, 0, num_pts_per_side, 1);
+            
+            // ROS_INFO_STREAM("weighted_goal_term: " << weighted_goal_term[0] << ", " << weighted_goal_term[1]);
+            // ROS_INFO_STREAM("weighted_left_term: " << weighted_left_term[0] << ", " << weighted_left_term[1]);
+            // ROS_INFO_STREAM("weighted_right_term: " << weighted_right_term[0] << ", " << weighted_right_term[1]);
+            
+            // rel_goal_pos; // 
             Eigen::Vector2d v_des = weighted_goal_term + weighted_left_term + weighted_right_term;
-            ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
+            // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
 
-            // Eigen::Vector2d v_cmd = v_des / v_des.norm();
             // CLIPPING DESIRED VELOCITIES
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
-            ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
+            // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
             /*
             a_des << K_acc*(v_cmd[0] - new_x[2]), K_acc*(v_cmd[1] - new_x[3]);

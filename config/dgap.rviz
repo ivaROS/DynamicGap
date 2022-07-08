@@ -79,14 +79,14 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot2
+      Reference Frame: robot0
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /robot0/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -94,7 +94,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -102,8 +102,8 @@ Visualization Manager:
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
+        fin: true
         raw: true
-        simp: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -111,7 +111,10 @@ Visualization Manager:
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
-        manip: true
+        extent_line: true
+        fin_agc: true
+        fin_extent: true
+        orig_line: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -135,7 +138,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -143,7 +146,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        gap_models: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -211,7 +214,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -446,7 +449,7 @@ Visualization Manager:
       Marker Topic: /reachable_gaps
       Name: MarkerArray
       Namespaces:
-        manip_initial: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -464,7 +467,7 @@ Visualization Manager:
       Marker Topic: /reachable_gap_centers
       Name: MarkerArray
       Namespaces:
-        reachable_gap_centers: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -495,16 +498,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 46.8588981628418
+      Distance: 50.98136520385742
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.9632439613342285
-        Y: -1.7961747646331787
-        Z: -35.835140228271484
+        X: -3.279512405395508
+        Y: 0.6071921586990356
+        Z: -35.83274459838867
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

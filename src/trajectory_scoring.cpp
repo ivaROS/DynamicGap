@@ -341,8 +341,8 @@ namespace dynamic_gap {
         ROS_DEBUG_STREAM(local_goal.pose.position);
         auto costFn = [](dynamic_gap::Gap g, int goal_idx) -> double
         {
-            int leftdist = std::abs(g.RIdxPOV() - goal_idx);
-            int rightdist = std::abs(g.LIdxPOV() - goal_idx);
+            int leftdist = std::abs(g.RIdx() - goal_idx);
+            int rightdist = std::abs(g.LIdx() - goal_idx);
             return std::min(leftdist, rightdist);
         };
 
@@ -372,8 +372,8 @@ namespace dynamic_gap {
 
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : current_raw_gaps) {
-            raw_models.push_back(gap.right_model_pov);
-            raw_models.push_back(gap.left_model_pov);
+            raw_models.push_back(gap.right_model);
+            raw_models.push_back(gap.left_model);
         }
         
         
