@@ -322,7 +322,6 @@ namespace dynamic_gap
         void setCurrentTimeArr(std::vector<double>);
         std::vector<double> getCurrentTimeArr();
 
-        void setCurrentGapIndices(int _left_idx, int _right_idx);
         int getCurrentRightPOVGapIndex();
         int getCurrentLeftPOVGapIndex();
 

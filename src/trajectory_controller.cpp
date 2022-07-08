@@ -174,7 +174,7 @@ namespace dynamic_gap{
         geometry_msgs::Pose current, nav_msgs::Odometry desired,
         sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
         geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
-        dynamic_gap::cart_model * curr_left_model, dynamic_gap::cart_model * curr_right_model,
+        dynamic_gap::cart_model * curr_rightpov_model, dynamic_gap::cart_model * curr_leftpov_model,
         double curr_peak_velocity_x, double curr_peak_velocity_y) {
         
         // Setup Vars
@@ -278,17 +278,17 @@ namespace dynamic_gap{
         float cmd_vel_x_safe = 0;
         float cmd_vel_y_safe = 0;
         
-        if (projection_operator && (curr_left_model != nullptr && curr_right_model != nullptr))
+        if (projection_operator && (curr_rightpov_model != nullptr && curr_leftpov_model != nullptr))
         {
             //run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
             //                        cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
             //                        min_dist_ang, min_dist);
             
             Eigen::Vector4d state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-            Eigen::Vector4d left_rel_model = curr_left_model->get_cartesian_state(); // flipping
-            Eigen::Vector4d right_rel_model = curr_right_model->get_cartesian_state(); // flipping
+            Eigen::Vector4d leftpov_rel_model = curr_leftpov_model->get_cartesian_state(); // flipping
+            Eigen::Vector4d rightpov_rel_model = curr_rightpov_model->get_cartesian_state(); // flipping
             Eigen::Vector2d current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
-            run_bearing_rate_barrier_function(state, left_rel_model, right_rel_model,
+            run_bearing_rate_barrier_function(state, rightpov_rel_model, leftpov_rel_model,
                                               current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
         } else {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
@@ -384,31 +384,31 @@ namespace dynamic_gap{
     }
 
     void TrajectoryController::run_bearing_rate_barrier_function(Eigen::Vector4d state, 
-                                                                 Eigen::Vector4d left_rel_model,
-                                                                 Eigen::Vector4d right_rel_model,
+                                                                 Eigen::Vector4d rightpov_rel_model,
+                                                                 Eigen::Vector4d leftpov_rel_model,
                                                                  Eigen::Vector2d rbt_accel,
                                                                  float & cmd_vel_x_safe, float & cmd_vel_y_safe, double & Psi_CBF) {
         double h_dyn = 0.0;
         Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
         
-        double h_dyn_left = cbf_left(left_rel_model);
-        double h_dyn_right = cbf_right(right_rel_model);
-        Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(left_rel_model);
-        Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(right_rel_model);
+        double h_dyn_rightpov = cbf_right_pov(rightpov_rel_model);
+        double h_dyn_leftpov = cbf_left_pov(leftpov_rel_model);
+        Eigen::Vector4d d_h_dyn_rightpov_dx = cbf_partials_rightpov(rightpov_rel_model);
+        Eigen::Vector4d d_h_dyn_leftpov_dx = cbf_partials_leftpov(leftpov_rel_model);
 
         // need to potentially ignore if gap is non-convex
         ROS_INFO_STREAM("rbt velocity: " << state[2] << ", " << state[3] << ", rbt_accel: " << rbt_accel[0] << ", " << rbt_accel[1]);
-        ROS_INFO_STREAM("left rel state: " << left_rel_model[0] << ", " << left_rel_model[1] << ", " << left_rel_model[2] << ", " << left_rel_model[3]);
-        ROS_INFO_STREAM("right rel state: " << right_rel_model[0] << ", " << right_rel_model[1] << ", " << right_rel_model[2] << ", " << right_rel_model[3]);
+        ROS_INFO_STREAM("right_pov rel state: " << rightpov_rel_model[0] << ", " << rightpov_rel_model[1] << ", " << rightpov_rel_model[2] << ", " << rightpov_rel_model[3]);
+        ROS_INFO_STREAM("left_pov rel state: " << leftpov_rel_model[0] << ", " << leftpov_rel_model[1] << ", " << leftpov_rel_model[2] << ", " << leftpov_rel_model[3]);
 
-        Eigen::Vector2d left_bearing_vect(left_rel_model[0], left_rel_model[1]);
-        Eigen::Vector2d right_bearing_vect(right_rel_model[0], right_rel_model[1]);
+        Eigen::Vector2d rightpov_bearing_vect(rightpov_rel_model[0], rightpov_rel_model[1]);
+        Eigen::Vector2d leftpov_bearing_vect(leftpov_rel_model[0], leftpov_rel_model[1]);
 
-        Eigen::Vector2d left_bearing_norm_vect = left_bearing_vect / left_bearing_vect.norm();
-        Eigen::Vector2d right_bearing_norm_vect = right_bearing_vect / right_bearing_vect.norm();
+        Eigen::Vector2d rightpov_bearing_norm_vect = rightpov_bearing_vect / rightpov_bearing_vect.norm();
+        Eigen::Vector2d leftpov_bearing_norm_vect = leftpov_bearing_vect / leftpov_bearing_vect.norm();
 
-        double det = left_bearing_norm_vect[0]*right_bearing_norm_vect[1] - left_bearing_norm_vect[1]*right_bearing_norm_vect[0];      
-        double dot = left_bearing_norm_vect[0]*right_bearing_norm_vect[0] + left_bearing_norm_vect[1]*right_bearing_norm_vect[1];
+        double det = rightpov_bearing_norm_vect[0]*leftpov_bearing_norm_vect[1] - rightpov_bearing_norm_vect[1]*leftpov_bearing_norm_vect[0];      
+        double dot = rightpov_bearing_norm_vect[0]*leftpov_bearing_norm_vect[0] + rightpov_bearing_norm_vect[1]*leftpov_bearing_norm_vect[1];
 
         double swept_check = -std::atan2(det, dot);     
         double L_to_R_angle = swept_check;
@@ -418,96 +418,96 @@ namespace dynamic_gap{
         }
 
         ROS_INFO_STREAM("L_to_R angle: " << L_to_R_angle);
-        ROS_INFO_STREAM("left CBF: " << h_dyn_left);
-        ROS_INFO_STREAM("left CBF partials: " << d_h_dyn_left_dx[0] << ", " << d_h_dyn_left_dx[1] << ", " << d_h_dyn_left_dx[2] << ", " << d_h_dyn_left_dx[3]);
-        ROS_INFO_STREAM("right CBF: " << h_dyn_right);
-        ROS_INFO_STREAM("right CBF partials: " << d_h_dyn_right_dx[0] << ", " << d_h_dyn_right_dx[1] << ", " << d_h_dyn_right_dx[2] << ", " << d_h_dyn_right_dx[3]);
+        ROS_INFO_STREAM("left_pov CBF: " << h_dyn_leftpov);
+        ROS_INFO_STREAM("left_pov CBF partials: " << d_h_dyn_leftpov_dx[0] << ", " << d_h_dyn_leftpov_dx[1] << ", " << d_h_dyn_leftpov_dx[2] << ", " << d_h_dyn_leftpov_dx[3]);
 
+        ROS_INFO_STREAM("right_pov CBF: " << h_dyn_rightpov);
+        ROS_INFO_STREAM("right_pov CBF partials: " << d_h_dyn_rightpov_dx[0] << ", " << d_h_dyn_rightpov_dx[1] << ", " << d_h_dyn_rightpov_dx[2] << ", " << d_h_dyn_rightpov_dx[3]);
 
         double cbf_param = 1.0;
         bool cvx_gap = L_to_R_angle < M_PI;
         Eigen::Vector4d d_x_dt(state[2], state[3], rbt_accel[0], rbt_accel[1]);
-        double Psi_CBF_left = d_h_dyn_left_dx.dot(d_x_dt) + cbf_param * h_dyn_left;
-        double Psi_CBF_right = d_h_dyn_right_dx.dot(d_x_dt) + cbf_param * h_dyn_right;
+        double Psi_cbf_left_pov = d_h_dyn_leftpov_dx.dot(d_x_dt) + cbf_param * h_dyn_leftpov;
+        double Psi_cbf_right_pov = d_h_dyn_rightpov_dx.dot(d_x_dt) + cbf_param * h_dyn_rightpov;
         
-        ROS_INFO_STREAM("Psi_CBF_left: " << Psi_CBF_left << ", Psi_CBF_right: " << Psi_CBF_right);
-        double cmd_vel_x_safe_left = 0;
-        double cmd_vel_y_safe_left = 0;
-        double cmd_vel_x_safe_right = 0;
-        double cmd_vel_y_safe_right = 0;
+        ROS_INFO_STREAM("Psi_cbf_left_pov: " << Psi_cbf_left_pov << ", Psi_cbf_right_pov: " << Psi_cbf_right_pov);
+        double cmd_vel_x_safe_rightpov = 0;
+        double cmd_vel_y_safe_rightpov = 0;
+        double cmd_vel_x_safe_leftpov = 0;
+        double cmd_vel_y_safe_leftpov = 0;
 
-        if (cvx_gap && Psi_CBF_left < 0) { // left less than or equal to right
-            Eigen::Vector2d Lg_h_left(d_h_dyn_left_dx[0], d_h_dyn_left_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2d cmd_vel_safe_left = -(Lg_h_left * Psi_CBF_left) / (Lg_h_left.dot(Lg_h_left));
-            cmd_vel_x_safe_left = cmd_vel_safe_left[0];
-            cmd_vel_y_safe_left = cmd_vel_safe_left[1];      
+        if (cvx_gap && Psi_cbf_right_pov < 0) { // left less than or equal to right
+            Eigen::Vector2d Lg_h_rightpov(d_h_dyn_rightpov_dx[0], d_h_dyn_rightpov_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
+            Eigen::Vector2d cmd_vel_safe_rightpov = -(Lg_h_rightpov * Psi_cbf_right_pov) / (Lg_h_rightpov.dot(Lg_h_rightpov));
+            cmd_vel_x_safe_rightpov = cmd_vel_safe_rightpov[0];
+            cmd_vel_y_safe_rightpov = cmd_vel_safe_rightpov[1];      
         }
         
-        if (cvx_gap && Psi_CBF_right < 0) { // right less than left
-            Eigen::Vector2d Lg_h_right(d_h_dyn_right_dx[0], d_h_dyn_right_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2d cmd_vel_safe_right = -(Lg_h_right * Psi_CBF_right) / (Lg_h_right.dot(Lg_h_right));
-            cmd_vel_x_safe_right = cmd_vel_safe_right[0];
-            cmd_vel_y_safe_right = cmd_vel_safe_right[1];    
+        if (cvx_gap && Psi_cbf_left_pov < 0) { // right less than left
+            Eigen::Vector2d Lg_h_leftpov(d_h_dyn_leftpov_dx[0], d_h_dyn_leftpov_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
+            Eigen::Vector2d cmd_vel_safe_leftpov = -(Lg_h_leftpov * Psi_cbf_left_pov) / (Lg_h_leftpov.dot(Lg_h_leftpov));
+            cmd_vel_x_safe_leftpov = cmd_vel_safe_leftpov[0];
+            cmd_vel_y_safe_leftpov = cmd_vel_safe_leftpov[1];    
         }
 
-        cmd_vel_x_safe = cmd_vel_x_safe_left + cmd_vel_x_safe_right;
-        cmd_vel_y_safe = cmd_vel_y_safe_left + cmd_vel_y_safe_right;
+        cmd_vel_x_safe = cmd_vel_x_safe_rightpov + cmd_vel_x_safe_leftpov;
+        cmd_vel_y_safe = cmd_vel_y_safe_rightpov + cmd_vel_y_safe_leftpov;
         
         if (cmd_vel_x_safe != 0 || cmd_vel_y_safe != 0) {
-            ROS_INFO_STREAM("cmd_vel_safe left: " << cmd_vel_x_safe_left << ", " << cmd_vel_y_safe_left);
-            ROS_INFO_STREAM("cmd_vel_safe right: " << cmd_vel_x_safe_right << ", " << cmd_vel_x_safe_right);
+            ROS_INFO_STREAM("cmd_vel_safe right_pov: " << cmd_vel_x_safe_rightpov << ", " << cmd_vel_y_safe_rightpov);
+            ROS_INFO_STREAM("cmd_vel_safe left_pov: " << cmd_vel_x_safe_leftpov << ", " << cmd_vel_x_safe_leftpov);
             ROS_INFO_STREAM("cmd_vel_safe x: " << cmd_vel_x_safe << ", cmd_vel_safe y: " << cmd_vel_y_safe);
         }
     }
 
-    double TrajectoryController::cbf_left(Eigen::Vector4d left_rel_model) {
+    double TrajectoryController::cbf_right_pov(Eigen::Vector4d rightpov_rel_model) {
         // current design: h_left = betadot
-        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
-        double betadot = (left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2))/pow(r, 2);
+        double r = sqrt(pow(rightpov_rel_model(0), 2) + pow(rightpov_rel_model(1), 2));
+        double betadot = (rightpov_rel_model(0)*rightpov_rel_model(3) - rightpov_rel_model(1)*rightpov_rel_model(2))/pow(r, 2);
 
         double h_left = betadot;
 
         return h_left;
     }
 
-    Eigen::Vector4d TrajectoryController::cbf_partials_left(Eigen::Vector4d left_rel_model) {
+    Eigen::Vector4d TrajectoryController::cbf_partials_rightpov(Eigen::Vector4d rightpov_rel_model) {
         // current design: h_left = betadot
-        Eigen::Vector4d d_h_left_dx;
-        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
-        double r_v_cross_prod = left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2);
+        Eigen::Vector4d d_h_rightpov_dx;
+        double r = sqrt(pow(rightpov_rel_model(0), 2) + pow(rightpov_rel_model(1), 2));
+        double r_v_cross_prod = rightpov_rel_model(0)*rightpov_rel_model(3) - rightpov_rel_model(1)*rightpov_rel_model(2);
 
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
-        d_h_left_dx(0) = -left_rel_model(3) / pow(r,2) + 2*left_rel_model(0)*r_v_cross_prod / pow(r, 4);
-        d_h_left_dx(1) =  left_rel_model(2) / pow(r,2) + 2*left_rel_model(1)*r_v_cross_prod / pow(r, 4);
-        d_h_left_dx(2) =  left_rel_model(1) / pow(r,2);
-        d_h_left_dx(3) = -left_rel_model(0) / pow(r,2);
-        return d_h_left_dx;
+        d_h_rightpov_dx(0) = -rightpov_rel_model(3) / pow(r,2) + 2*rightpov_rel_model(0)*r_v_cross_prod / pow(r, 4);
+        d_h_rightpov_dx(1) =  rightpov_rel_model(2) / pow(r,2) + 2*rightpov_rel_model(1)*r_v_cross_prod / pow(r, 4);
+        d_h_rightpov_dx(2) =  rightpov_rel_model(1) / pow(r,2);
+        d_h_rightpov_dx(3) = -rightpov_rel_model(0) / pow(r,2);
+        return d_h_rightpov_dx;
     }
 
-    double TrajectoryController::cbf_right(Eigen::Vector4d right_rel_model) {
+    double TrajectoryController::cbf_left_pov(Eigen::Vector4d leftpov_rel_model) {
         // current design: h_right = -betadot
-        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
-        double betadot = (right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2))/pow(r,2);
+        double r = sqrt(pow(leftpov_rel_model(0), 2) + pow(leftpov_rel_model(1), 2));
+        double betadot = (leftpov_rel_model(0)*leftpov_rel_model(3) - leftpov_rel_model(1)*leftpov_rel_model(2))/pow(r,2);
         
         double h_right = - betadot;
         
         return h_right;
     }
 
-    Eigen::Vector4d TrajectoryController::cbf_partials_right(Eigen::Vector4d right_rel_model) {
+    Eigen::Vector4d TrajectoryController::cbf_partials_leftpov(Eigen::Vector4d leftpov_rel_model) {
         // current design: h_right = -betadot
-        Eigen::Vector4d d_h_right_dx;
+        Eigen::Vector4d d_h_leftpov_dx;
         
-        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
-        double r_v_cross_prod = right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2);
+        double r = sqrt(pow(leftpov_rel_model(0), 2) + pow(leftpov_rel_model(1), 2));
+        double r_v_cross_prod = leftpov_rel_model(0)*leftpov_rel_model(3) - leftpov_rel_model(1)*leftpov_rel_model(2);
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
         
-        d_h_right_dx(0) =  right_rel_model(3)/pow(r,2) - 2*right_rel_model(0)*r_v_cross_prod/pow(r,4);
-        d_h_right_dx(1) = -right_rel_model(2)/pow(r,2) - 2*right_rel_model(1)*r_v_cross_prod/pow(r,4);
-        d_h_right_dx(2) = -right_rel_model(1) / pow(r,2);
-        d_h_right_dx(3) =  right_rel_model(0) / pow(r,2);
+        d_h_leftpov_dx(0) =  leftpov_rel_model(3)/pow(r,2) - 2*leftpov_rel_model(0)*r_v_cross_prod/pow(r,4);
+        d_h_leftpov_dx(1) = -leftpov_rel_model(2)/pow(r,2) - 2*leftpov_rel_model(1)*r_v_cross_prod/pow(r,4);
+        d_h_leftpov_dx(2) = -leftpov_rel_model(1) / pow(r,2);
+        d_h_leftpov_dx(3) =  leftpov_rel_model(0) / pow(r,2);
 
-        return d_h_right_dx;
+        return d_h_leftpov_dx;
     }
 
     void TrajectoryController::run_projection_operator(sensor_msgs::LaserScan inflated_egocircle, 

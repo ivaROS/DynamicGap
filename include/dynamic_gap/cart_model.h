@@ -94,7 +94,6 @@ namespace dynamic_gap {
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, 
                                 bool print,
-                                bool _bridge_model,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
             void set_side(std::string _side);

@@ -298,17 +298,17 @@ namespace dynamic_gap
         // std::cout << "y_tilde: " << y_tilde << std::endl;
 
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        bool gap_bridged = (_observed_gaps[0].RIdxPOV() == 0 && _observed_gaps[_observed_gaps.size() - 1].LIdxPOV() == (stored_scan_msgs.ranges.size() - 1));
-        bool bridge_model = gap_bridged && (i == 0 || i == 2*_observed_gaps.size() - 1);
+        // bool gap_bridged = (_observed_gaps[0].RIdxPOV() == 0 && _observed_gaps[_observed_gaps.size() - 1].LIdxPOV() == (stored_scan_msgs.ranges.size() - 1));
+        // bool bridge_model = gap_bridged && (i == 0 || i == 2*_observed_gaps.size() - 1);
 
 
         // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.right_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, bridge_model, agent_odoms, agent_vels);
+            g.right_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.left_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, bridge_model, agent_odoms, agent_vels);
+            g.left_model_pov->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
         }
     }
 
@@ -684,7 +684,7 @@ namespace dynamic_gap
             int counts = std::min(cfg.planning.num_feasi_check, (int) incom_score.size());
             auto incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
 
-            ROS_INFO_STREAM("incom_subscore: " << incom_subscore);
+            ROS_INFO_STREAM("subscore: " << incom_subscore);
             bool curr_traj_length_zero = curr_traj.poses.size() == 0;
             bool curr_gap_not_feasible = !curr_gap_feasible;
             if (curr_traj_length_zero || curr_gap_not_feasible) {
@@ -743,13 +743,13 @@ namespace dynamic_gap
             // std::cout << "counts: " << counts << std::endl;
             ROS_INFO_STREAM("~~~~re-scoring incoming trajectory~~~~");
             incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
-            ROS_INFO_STREAM("incoming subscore: " << incom_subscore);
+            ROS_INFO_STREAM("subscore: " << incom_subscore);
 
-            ROS_INFO_STREAM("scoring current trajectory");
+            ROS_INFO_STREAM("~~~~scoring current trajectory~~~~~");
             auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, 
                                                            agent_odoms, agent_vels, false, false);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
-            ROS_INFO_STREAM("current subscore: " << curr_subscore);
+            ROS_INFO_STREAM("subscore: " << curr_subscore);
 
             std::vector<std::vector<double>> ret_traj_scores(2);
             ret_traj_scores.at(0) = incom_score;
@@ -773,24 +773,22 @@ namespace dynamic_gap
             }
 
             // commenting this out to prevent switching. Only re-plan when done or collision
-            /*
             double oscillation_pen = counts * std::exp(-2*(curr_time - prev_traj_switch_time));
             double curr_score_with_pen = curr_subscore + oscillation_pen;
             ROS_DEBUG_STREAM("Curr Score: " << curr_score_with_pen << ", incom Score:" << incom_subscore);
 
-            if (incom_subscore > curr_score_with_pen) {
-                ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: swapping trajectory");
+            if (curr_subscore == -std::numeric_limits<double>::infinity()) {
+                ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: swapping trajectory due to collision");
                 ROS_WARN_STREAM("Swap to new for better score: " << incom_subscore << " > " << curr_subscore << " + " << oscillation_pen);
                 setCurrentTraj(incoming);
                 setCurrentTimeArr(time_arr);
-                setCurrentLeftModel(incoming_gap.left_model);
-                setCurrentRightModel(incoming_gap.right_model);
+                setCurrentRightModelPOV(incoming_gap.right_model_pov);
+                setCurrentLeftModelPOV(incoming_gap.left_model_pov);
                 setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
                 trajectory_pub.publish(incoming);
                 prev_traj_switch_time = curr_time;
                 return incoming;
             }
-            */
             ROS_INFO_STREAM("keeping current trajectory");
 
             trajectory_pub.publish(curr_traj);
@@ -812,12 +810,6 @@ namespace dynamic_gap
         auto min_element_iter = std::min_element(pose_diff.begin(), pose_diff.end());
         int closest_pose = std::distance(pose_diff.begin(), min_element_iter) + 1;
         return std::min(closest_pose, int(curr.poses.size() - 1));
-    }
-
-    void Planner::setCurrentGapIndices(int _left_idx, int _right_idx) {
-        curr_exec_left_idx = _left_idx;
-        curr_exec_right_idx = _right_idx;
-        return;
     }
 
     void Planner::setCurrentRightModelPOV(dynamic_gap::cart_model * _right_model_pov) {
@@ -1127,12 +1119,13 @@ namespace dynamic_gap
         {
             dynamic_gap::Gap g = gaps.at(i);
             ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdxPOV() << " to "  << g.LIdxPOV());
-            Matrix<double, 4, 1> right_state_pov = g.right_model_pov->get_cartesian_state();
-            g.getRCartesianPOV(x, y);
-            ROS_INFO_STREAM("left point: (" << x << ", " << y << "), left model: (" << right_state_pov[0] << ", " << right_state_pov[1] << ", " << right_state_pov[2] << ", " << right_state_pov[3] << ")");
             Matrix<double, 4, 1> left_state_pov = g.left_model_pov->get_cartesian_state();
             g.getLCartesianPOV(x, y);            
-            ROS_INFO_STREAM("right point: (" << x << ", " << y << "), right model: (" << left_state_pov[0] << ", " << left_state_pov[1] << ", " << left_state_pov[2] << ", " << left_state_pov[3] << ")");
+            ROS_INFO_STREAM("left_pov point: (" << x << ", " << y << "), left_pov model: (" << left_state_pov[0] << ", " << left_state_pov[1] << ", " << left_state_pov[2] << ", " << left_state_pov[3] << ")");
+            Matrix<double, 4, 1> right_state_pov = g.right_model_pov->get_cartesian_state();
+            g.getRCartesianPOV(x, y);
+            ROS_INFO_STREAM("right_pov point: (" << x << ", " << y << "), right_pov model: (" << right_state_pov[0] << ", " << right_state_pov[1] << ", " << right_state_pov[2] << ", " << right_state_pov[3] << ")");
+           
         }
     }
 

@@ -36,14 +36,14 @@ namespace dynamic_gap {
 				right_x = left_state_pov[0];
 				right_y = left_state_pov[1];
 			} else {
-				int lidx = g.RIdxPOV();
-				int ridx = g.LIdxPOV();
-				float ldist = g.RDistPOV();
-				float rdist = g.LDistPOV();
-				left_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-				left_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-				right_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-				right_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);				
+				int ridx_pov = g.RIdxPOV();
+				int lidx_pov = g.LIdxPOV();
+				float rdist_pov = g.RDistPOV();
+				float ldist_pov = g.LDistPOV();
+				left_x = rdist_pov * cos(-((float) g.half_scan - ridx_pov) / g.half_scan * M_PI);
+				left_y = rdist_pov * sin(-((float) g.half_scan - ridx_pov) / g.half_scan * M_PI);
+				right_x = ldist_pov * cos(-((float) g.half_scan - lidx_pov) / g.half_scan * M_PI);
+				right_y = ldist_pov * sin(-((float) g.half_scan - lidx_pov) / g.half_scan * M_PI);				
 			}
 			points[count][0] = left_x;
 			points[count][1] = left_y;
@@ -108,9 +108,9 @@ namespace dynamic_gap {
 			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].right_model_pov = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].right_model_pov = new dynamic_gap::cart_model("right_pov", *model_idx, init_r, init_beta, v_ego);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].left_model_pov = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, v_ego);
+				observed_gaps[int(std::floor(i / 2.0))].left_model_pov = new dynamic_gap::cart_model("left_pov", *model_idx, init_r, init_beta, v_ego);
 			}
 			*model_idx += 1;
 		}

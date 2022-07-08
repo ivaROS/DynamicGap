@@ -59,10 +59,10 @@ namespace dynamic_gap {
                                                    Eigen::Vector2d rbt_accel, float & cmd_vel_x_safe, float & cmd_vel_y_safe, double & Psi_CBF);
             void clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb);
 
-            double cbf_left(Eigen::Vector4d left_rel_model);
-            Eigen::Vector4d cbf_partials_left(Eigen::Vector4d left_rel_model);
-            double cbf_right(Eigen::Vector4d right_rel_model);
-            Eigen::Vector4d cbf_partials_right(Eigen::Vector4d right_rel_model);
+            double cbf_right_pov(Eigen::Vector4d);
+            Eigen::Vector4d cbf_partials_rightpov(Eigen::Vector4d);
+            double cbf_left_pov(Eigen::Vector4d);
+            Eigen::Vector4d cbf_partials_leftpov(Eigen::Vector4d);
 
             Eigen::Vector3d projection_method(float min_diff_x, float min_diff_y);
 

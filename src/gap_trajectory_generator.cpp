@@ -34,34 +34,19 @@ namespace dynamic_gap{
             */
 
             // get gap points in cartesian
-            float x1, x2, y1, y2;
+            float x_r_pov, x_l_pov, y_r_pov, y_l_pov;
             float half_num_scan = selectedGap.half_scan;
-            x1 = selectedGap.cvx_RDistPOV() * cos(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y1 = selectedGap.cvx_RDistPOV() * sin(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            x2 = selectedGap.cvx_LDistPOV() * cos(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y2 = selectedGap.cvx_LDistPOV() * sin(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            x_r_pov = selectedGap.cvx_RDistPOV() * cos(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_r_pov = selectedGap.cvx_RDistPOV() * sin(((float) selectedGap.cvx_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            x_l_pov = selectedGap.cvx_LDistPOV() * cos(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_l_pov = selectedGap.cvx_LDistPOV() * sin(((float) selectedGap.cvx_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
             
-            float term_x1, term_x2, term_y1, term_y2;
-            term_x1 = selectedGap.cvx_term_RDistPOV() * cos(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y1 = selectedGap.cvx_term_RDistPOV() * sin(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_x2 = selectedGap.cvx_term_LDistPOV() * cos(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y2 = selectedGap.cvx_term_LDistPOV() * sin(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            float term_x_r_pov, term_x_l_pov, term_y_r_pov, term_y_l_pov;
+            term_x_r_pov = selectedGap.cvx_term_RDistPOV() * cos(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_r_pov = selectedGap.cvx_term_RDistPOV() * sin(((float) selectedGap.cvx_term_RIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_x_l_pov = selectedGap.cvx_term_LDistPOV() * cos(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_l_pov = selectedGap.cvx_term_LDistPOV() * sin(((float) selectedGap.cvx_term_LIdxPOV() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
             
-            // std::cout << "is gap axial: " << selectedGap.isAxial() << std::endl;
-            //std::cout << "original initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")" << std::endl;
-            //std::cout << "original inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")" << std::endl;
-            //std::cout << "original initial goal: (" << selectedGap.goal.x << ", " << selectedGap.goal.y << ")" << std::endl; 
-            //std::cout << "original terminal goal: (" << selectedGap.terminal_goal.x << ", " << selectedGap.terminal_goal.y << ")" << std::endl; 
-            //std::cout << "original initial left point: (" << x2 << ", " << y2 << "), original initial right point: (" << x1 << ", " << y1 << ")" << std::endl; 
-            //std::cout << "original terminal left point: (" << term_x2 << ", " << term_y2 << "), original terminal right point: (" << term_x1 << ", " << term_y1 << ")" << std::endl;
-            
-            //std::cout << "starting left model state: " << left_model_state[0] << ", " <<  left_model_state[1] << ", " <<  left_model_state[2] << ", " <<  left_model_state[3] << ", " <<  left_model_state[4] << std::endl;
-            //std::cout << "starting right model state: " << right_model_state[0] << ", " <<  right_model_state[1] << ", " <<  right_model_state[2] << ", " <<  right_model_state[3] << ", " <<  right_model_state[4] << std::endl;
-            //int rbt_idx = int((std::atan2(ego_x[1],ego_x[0]) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-            //int left_idx = int((std::atan2(y1,x1) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-            //int right_idx = int((std::atan2(y2,x2) - (-M_PI)) / (M_PI / selectedGap.half_scan));
-            //std::cout << "original rbt index: " << rbt_idx << ", original left index: " << left_idx << ", original right index: " << right_idx << std::endl;
-
             if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
                             0.0, 0.0, 0.0, 0.0,
@@ -89,14 +74,14 @@ namespace dynamic_gap{
                 selectedGap.terminal_goal.x -= qB(0);
                 selectedGap.terminal_goal.y -= qB(1);
 
-                x1 -= qB(0);
-                x2 -= qB(0);
-                y1 -= qB(1);
-                y2 -= qB(1);
-                term_x1 -= qB(0);
-                term_x2 -= qB(0);
-                term_y1 -= qB(1);
-                term_y2 -= qB(1);
+                x_r_pov -= qB(0);
+                x_l_pov -= qB(0);
+                y_r_pov -= qB(1);
+                y_l_pov -= qB(1);
+                term_x_r_pov -= qB(0);
+                term_x_l_pov -= qB(0);
+                term_y_r_pov -= qB(1);
+                term_y_l_pov -= qB(1);
         
                 ego_x[0] -= qB(0);
                 ego_x[1] -= qB(1);
@@ -106,15 +91,15 @@ namespace dynamic_gap{
             // point 2 is left from robot POV
             // FLIPPING TO POV HERE
             float x_left, y_left, x_right, y_right;
-            x_left = x2*coefs;
-            y_left = y2*coefs;
-            x_right = x1*coefs;
-            y_right = y1*coefs;
+            x_left = x_l_pov*coefs;
+            y_left = y_l_pov*coefs;
+            x_right = x_r_pov*coefs;
+            y_right = y_r_pov*coefs;
             float term_x_left, term_y_left, term_x_right, term_y_right;
-            term_x_left = term_x2*coefs;
-            term_y_left = term_y2*coefs;
-            term_x_right = term_x1*coefs;
-            term_y_right = term_y1*coefs;
+            term_x_left = term_x_l_pov*coefs;
+            term_y_left = term_y_l_pov*coefs;
+            term_x_right = term_x_r_pov*coefs;
+            term_y_right = term_y_r_pov*coefs;
 
             double initial_goal_x, initial_goal_y, terminal_goal_x, terminal_goal_y;
             initial_goal_x = selectedGap.goal.x * coefs;

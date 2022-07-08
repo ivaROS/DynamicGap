@@ -37,6 +37,7 @@ namespace dynamic_gap {
             int num_of_scan;
             boost::mutex egolock;
             double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
+            double atanThetaWrap(double theta);
 
     };
 }

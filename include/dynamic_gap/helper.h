@@ -175,7 +175,7 @@ namespace dynamic_gap {
                rg, theta_right, theta_left, thetax, thetag, new_theta, ang_diff_right, ang_diff_left, 
                coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
                r_reach, theta, r_inscr, left_weight, right_weight; 
-        bool mode_agc, pivoted_left, _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
+        bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, 
                         weighted_circulation_sum, circulation_field, attraction_field, a_des, a_actual;

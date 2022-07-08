@@ -229,7 +229,7 @@ namespace dynamic_gap
                 _axial = false;
             }
 
-            bool isLeftType(bool initial = true)
+            bool isRightPOVType(bool initial = true)
             {
                 if (initial) { 
                     return right_type_pov;
@@ -308,35 +308,35 @@ namespace dynamic_gap
             }
 
             void printCartesianPoints(bool initial, bool simplified) {
-                float x1,y1,x2,y2;
+                float x_r_pov,y_r_pov,x_l_pov,y_l_pov;
 
                 if (initial) {
                     if (simplified) {
-                        x1 = (_rdist_pov) * cos(-((float) half_scan - _right_idx_pov) / half_scan * M_PI);
-                        y1 = (_rdist_pov) * sin(-((float) half_scan - _right_idx_pov) / half_scan * M_PI);
-                        x2 = (_ldist_pov) * cos(-((float) half_scan - _left_idx_pov) / half_scan * M_PI);
-                        y2 = (_ldist_pov) * sin(-((float) half_scan - _left_idx_pov) / half_scan * M_PI);
+                        x_r_pov = (_rdist_pov) * cos(-((float) half_scan - _right_idx_pov) / half_scan * M_PI);
+                        y_r_pov = (_rdist_pov) * sin(-((float) half_scan - _right_idx_pov) / half_scan * M_PI);
+                        x_l_pov = (_ldist_pov) * cos(-((float) half_scan - _left_idx_pov) / half_scan * M_PI);
+                        y_l_pov = (_ldist_pov) * sin(-((float) half_scan - _left_idx_pov) / half_scan * M_PI);
                     } else {
-                        x1 = (convex.convex_rdist_pov) * cos(-((float) half_scan - convex.convex_ridx_pov) / half_scan * M_PI);
-                        y1 = (convex.convex_rdist_pov) * sin(-((float) half_scan - convex.convex_ridx_pov) / half_scan * M_PI);
-                        x2 = (convex.convex_ldist_pov) * cos(-((float) half_scan - convex.convex_lidx_pov) / half_scan * M_PI);
-                        y2 = (convex.convex_ldist_pov) * sin(-((float) half_scan - convex.convex_lidx_pov) / half_scan * M_PI);
+                        x_r_pov = (convex.convex_rdist_pov) * cos(-((float) half_scan - convex.convex_ridx_pov) / half_scan * M_PI);
+                        y_r_pov = (convex.convex_rdist_pov) * sin(-((float) half_scan - convex.convex_ridx_pov) / half_scan * M_PI);
+                        x_l_pov = (convex.convex_ldist_pov) * cos(-((float) half_scan - convex.convex_lidx_pov) / half_scan * M_PI);
+                        y_l_pov = (convex.convex_ldist_pov) * sin(-((float) half_scan - convex.convex_lidx_pov) / half_scan * M_PI);
                     }
                 } else {
                     if (simplified) {
-                        x1 = (terminal_rdist_pov) * cos(-((float) half_scan - terminal_ridx_pov) / half_scan * M_PI);
-                        y1 = (terminal_rdist_pov) * sin(-((float) half_scan - terminal_ridx_pov) / half_scan * M_PI);
-                        x2 = (terminal_ldist_pov) * cos(-((float) half_scan - terminal_lidx_pov) / half_scan * M_PI);
-                        y2 = (terminal_ldist_pov) * sin(-((float) half_scan - terminal_lidx_pov) / half_scan * M_PI);
+                        x_r_pov = (terminal_rdist_pov) * cos(-((float) half_scan - terminal_ridx_pov) / half_scan * M_PI);
+                        y_r_pov = (terminal_rdist_pov) * sin(-((float) half_scan - terminal_ridx_pov) / half_scan * M_PI);
+                        x_l_pov = (terminal_ldist_pov) * cos(-((float) half_scan - terminal_lidx_pov) / half_scan * M_PI);
+                        y_l_pov = (terminal_ldist_pov) * sin(-((float) half_scan - terminal_lidx_pov) / half_scan * M_PI);
                     } else {
-                        x1 = (convex.terminal_rdist_pov) * cos(-((float) half_scan - convex.terminal_ridx_pov) / half_scan * M_PI);
-                        y1 = (convex.terminal_rdist_pov) * sin(-((float) half_scan - convex.terminal_ridx_pov) / half_scan * M_PI);
-                        x2 = (convex.terminal_ldist_pov) * cos(-((float) half_scan - convex.terminal_lidx_pov) / half_scan * M_PI);
-                        y2 = (convex.terminal_ldist_pov) * sin(-((float) half_scan - convex.terminal_lidx_pov) / half_scan * M_PI);
+                        x_r_pov = (convex.terminal_rdist_pov) * cos(-((float) half_scan - convex.terminal_ridx_pov) / half_scan * M_PI);
+                        y_r_pov = (convex.terminal_rdist_pov) * sin(-((float) half_scan - convex.terminal_ridx_pov) / half_scan * M_PI);
+                        x_l_pov = (convex.terminal_ldist_pov) * cos(-((float) half_scan - convex.terminal_lidx_pov) / half_scan * M_PI);
+                        y_l_pov = (convex.terminal_ldist_pov) * sin(-((float) half_scan - convex.terminal_lidx_pov) / half_scan * M_PI);
                     }
                 }
 
-                ROS_INFO_STREAM("x1,y1: (" << x1 << ", " << y1 << "), x2,y2: (" << x2 << ", " << y2 << ")");
+                ROS_INFO_STREAM("x_l_pov, y_l_pov: (" << x_l_pov << ", " << y_l_pov << "), x_r_pov,y_r_pov: (" << x_r_pov << ", " << y_r_pov << ")");
             }   
             
             double gap_lifespan = 5.0   ;
@@ -411,7 +411,7 @@ namespace dynamic_gap
             bool gap_crossed = false;
             bool gap_closed = false;
 
-            bool pivoted_left = false;
+            bool pivoted_right_pov = false;
             bool artificial = false;
 
             double left_weight = 0.0;

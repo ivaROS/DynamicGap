@@ -437,7 +437,7 @@ namespace dynamic_gap{
         double viz_jitter = cfg_->gap_viz.viz_jitter;
         
         if (viz_jitter > 0 && g.isAxial(initial)) {
-            viz_offset = g.isLeftType(initial) ? -2 : 2;
+            viz_offset = g.isRightPOVType(initial) ? -2 : 2;
         }
 
         int lidx = initial ? g.RIdxPOV() : g.term_RIdxPOV();
@@ -720,7 +720,7 @@ namespace dynamic_gap{
         int viz_offset = 0;
         
         if (viz_jitter > 0 && g.isAxial(initial)){
-            viz_offset = g.isLeftType(initial) ? -2 : 2;
+            viz_offset = g.isRightPOVType(initial) ? -2 : 2;
         }
 
         int lidx = initial ? g.cvx_RIdxPOV() : g.cvx_term_RIdxPOV();

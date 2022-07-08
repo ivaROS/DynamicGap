@@ -13,15 +13,15 @@ namespace dynamic_gap {
         // std::cout << "FEASIBILITY CHECK" << std::endl;
         bool feasible;
         auto half_num_scan = gap.half_scan;
-        float x1, x2, y1, y2;
+        float x_r_pov, x_l_pov, y_r_pov, y_l_pov;
 
-        x1 = gap.cvx_RDistPOV() * cos(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        y1 = gap.cvx_RDistPOV() * sin(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        x2 = gap.cvx_LDistPOV() * cos(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
-        y2 = gap.cvx_LDistPOV() * sin(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
+        x_r_pov = gap.cvx_RDistPOV() * cos(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
+        y_r_pov = gap.cvx_RDistPOV() * sin(((float) gap.cvx_RIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
+        x_l_pov = gap.cvx_LDistPOV() * cos(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
+        y_l_pov = gap.cvx_LDistPOV() * sin(((float) gap.cvx_LIdxPOV() - gap.half_scan) / gap.half_scan * M_PI);
             
-        Eigen::Vector2f pl(x1, y1);
-        Eigen::Vector2f pr(x2, y2);
+        Eigen::Vector2f pl(x_r_pov, y_r_pov);
+        Eigen::Vector2f pr(x_l_pov, y_l_pov);
         Eigen::Vector2f pg = (pl + pr) / 2.0;
 
         // FLIPPING MODELS HERE
@@ -168,21 +168,21 @@ namespace dynamic_gap {
         //std::cout << "determining crossing point" << std::endl;
         auto egocircle = *msg.get();
 
-        double x1, x2, y1, y2;
+        double x_r_pov, x_l_pov, y_r_pov, y_l_pov;
 
-        x1 = (gap.RDistPOV()) * cos(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
-        y1 = (gap.RDistPOV()) * sin(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
+        x_r_pov = (gap.RDistPOV()) * cos(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
+        y_r_pov = (gap.RDistPOV()) * sin(-((double) gap.half_scan - gap.RIdxPOV()) / gap.half_scan * M_PI);
 
-        x2 = (gap.LDistPOV()) * cos(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
-        y2 = (gap.LDistPOV()) * sin(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
+        x_l_pov = (gap.LDistPOV()) * cos(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
+        y_l_pov = (gap.LDistPOV()) * sin(-((double) gap.half_scan - gap.LIdxPOV()) / gap.half_scan * M_PI);
        
-        Eigen::Vector2d left_bearing_vect(x2 / gap.LDistPOV(), y2 / gap.LDistPOV());
-        Eigen::Vector2d right_bearing_vect(x1 / gap.RDistPOV(), y1 / gap.RDistPOV());
+        Eigen::Vector2d left_bearing_vect(x_l_pov / gap.LDistPOV(), y_l_pov / gap.LDistPOV());
+        Eigen::Vector2d right_bearing_vect(x_r_pov / gap.RDistPOV(), y_r_pov / gap.RDistPOV());
 
         double L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
 
-        double beta_left = atan2(y2, x2); // std::atan2(left_frozen_state[1], left_frozen_state[2]);
-        double beta_right = atan2(y1, x1); // std::atan2(right_frozen_state[1], right_frozen_state[2]);
+        double beta_left = atan2(y_l_pov, x_l_pov); // std::atan2(left_frozen_state[1], left_frozen_state[2]);
+        double beta_right = atan2(y_r_pov, x_r_pov); // std::atan2(right_frozen_state[1], right_frozen_state[2]);
         double beta_center = (beta_left - (L_to_R_angle / 2.0));
 
         Matrix<double, 2, 1> central_bearing_vect(std::cos(beta_center), std::sin(beta_center));
@@ -320,14 +320,31 @@ namespace dynamic_gap {
         return left_to_right_angle;
     }
 
+    double GapFeasibilityChecker::atanThetaWrap(double theta) {
+        double new_theta = theta;
+        while (new_theta <= -M_PI) {
+            new_theta += 2*M_PI;
+            ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+        } 
+        
+        while (new_theta >= M_PI) {
+            new_theta -= 2*M_PI;
+            ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+        }
+
+        return new_theta;
+    }
+
     void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 
                                                                                  double terminal_beta_right, double terminal_reciprocal_range_right) {
         auto egocircle = *msg.get();        
         
+        double wrapped_term_beta_left = atanThetaWrap(terminal_beta_left);
         float init_left_idx = (terminal_beta_left - egocircle.angle_min) / egocircle.angle_increment;
         int left_idx = (int) std::floor(init_left_idx);
         float left_dist = (1.0 / terminal_reciprocal_range_left);
 
+        double wrapped_term_beta_right = atanThetaWrap(terminal_beta_right);
         float init_right_idx = (terminal_beta_right - egocircle.angle_min) / egocircle.angle_increment;
         int right_idx = (int) std::floor(init_right_idx);
         float right_dist = (1.0 / terminal_reciprocal_range_right);

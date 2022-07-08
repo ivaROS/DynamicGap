@@ -220,9 +220,9 @@ namespace dynamic_gap {
         {
             // ROS_INFO_STREAM("raw gap " << i << " of " << num_raw_gaps << ": ");
             // ROS_INFO_STREAM("points: (" << raw_gaps[i].RIdxPOV() << ", " << raw_gaps[i].RDistPOV() << ") to (" << raw_gaps[i].LIdxPOV() << ", " << raw_gaps[i].LDistPOV() << ")");
-            // ROS_INFO_STREAM("axial: " << raw_gaps[i].isAxial() << ", left: " << raw_gaps[i].isLeftType());
+            // ROS_INFO_STREAM("axial: " << raw_gaps[i].isAxial() << ", left: " << raw_gaps[i].isRightPOVType());
             // if we are starting merging, this raw gap is swept, and left dist < right dist, then we may be able to merge
-            if (mark_to_start && raw_gaps.at(i).isAxial() && raw_gaps.at(i).isLeftType())
+            if (mark_to_start && raw_gaps.at(i).isAxial() && raw_gaps.at(i).isRightPOVType())
             {   
                 mark_to_start = false;
                 // ROS_INFO_STREAM("adding first swept left raw gap: (" << raw_gaps[i].RIdxPOV() << ", " << raw_gaps[i].RDistPOV() << ") to (" << raw_gaps[i].LIdxPOV() << ", " << raw_gaps[i].LDistPOV() << ")");
@@ -232,7 +232,7 @@ namespace dynamic_gap {
                 {
                     if (raw_gaps.at(i).isAxial()) // if gap is axial
                     {
-                        if (raw_gaps.at(i).isLeftType()) // if l_dist < r_dist
+                        if (raw_gaps.at(i).isRightPOVType()) // if l_dist < r_dist
                         {
                             // ROS_INFO_STREAM("adding a raw gap (swept, left): (" << raw_gaps[i].RIdxPOV() << ", " << raw_gaps[i].RDistPOV() << ") to (" << raw_gaps[i].LIdxPOV() << ", " << raw_gaps[i].LDistPOV() << ")");
                             simplified_gaps.push_back(raw_gaps[i]);
@@ -261,7 +261,7 @@ namespace dynamic_gap {
                                                                      simplified_gaps[j].RDistPOV() <= (min_dist - coefs * cfg_->rbt.r_inscr);
                                 
                                 // left type just means if left side distance is less than right side distance
-                                bool left_or_radial = simplified_gaps[j].isLeftType() || !simplified_gaps[j].isAxial();
+                                bool left_or_radial = simplified_gaps[j].isRightPOVType() || !simplified_gaps[j].isAxial();
                                 // making sure that this merged gap is not too large? max_idx_diff is 256 I'm pretty sure
                                 bool idx_diff = raw_gaps[i].LIdxPOV() - simplified_gaps[j].RIdxPOV() < cfg_->gap_manip.max_idx_diff;
                                 // ROS_INFO_STREAM("simp_left_raw_right_dist_test: " << simp_left_raw_right_dist_test << ", left_or_radial: " << left_or_radial << ", idx_diff: " << idx_diff);
@@ -285,7 +285,7 @@ namespace dynamic_gap {
                     { // If current raw gap is radial
                         float curr_rdist = raw_gaps.at(i).LDistPOV();
                         // ROS_INFO_STREAM("comparing raw right dist of " << curr_rdist << " to simplified left dist of " << simplified_gaps.back().RDistPOV());
-                        if (std::abs(curr_rdist - simplified_gaps.back().RDistPOV()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isLeftType())
+                        if (std::abs(curr_rdist - simplified_gaps.back().RDistPOV()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isRightPOVType())
                         {
                             // ROS_INFO_STREAM("adjusting simplifed gap to (" << simplified_gaps.back().RIdxPOV() << ", " << simplified_gaps.back().RDistPOV() << ") to (" << simplified_gaps.back().LIdxPOV() << ", " << simplified_gaps.back().LDistPOV() << ")");
                             simplified_gaps.back().addLeftPOVInformation(raw_gaps[i].LIdxPOV(), raw_gaps[i].LDistPOV());
@@ -304,7 +304,7 @@ namespace dynamic_gap {
                     // ROS_INFO_STREAM("before marking start, adding raw gap: (" << raw_gaps[i].RIdxPOV() << ", " << raw_gaps[i].RDistPOV() << ") to (" << raw_gaps[i].LIdxPOV() << ", " << raw_gaps[i].LDistPOV() << ")");                            
                 }
             }
-            last_type_left = raw_gaps[i].isLeftType();
+            last_type_left = raw_gaps[i].isRightPOVType();
             // ROS_INFO_STREAM("---");
         }
         //ROS_INFO_STREAM("mergeGapsOneGo time elapsed: " << ros::Time::now().toSec() - start_time); 

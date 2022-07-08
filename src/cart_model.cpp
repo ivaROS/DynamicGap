@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
 using namespace Eigen;
 namespace plt = matplotlibcpp;
@@ -106,7 +106,7 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/Desktop/Research/cart_model_plots/";   
+        plot_dir = "/home/masselmeier3/Desktop/Research/cart_model_plots/";   
         perfect = true;
     }
 
@@ -240,10 +240,9 @@ namespace dynamic_gap {
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                     Matrix<double, 1, 3> _a_ego, Matrix<double, 1, 3> _v_ego, 
-                                    bool print, bool _bridge_model,
+                                    bool print,
                                     std::vector<geometry_msgs::Pose> _agent_odoms,
                                     std::vector<geometry_msgs::Vector3Stamped> _agent_vels) {
-        bridge_model = _bridge_model;
         agent_odoms = _agent_odoms;
         agent_vels = _agent_vels;
                 
@@ -474,14 +473,6 @@ namespace dynamic_gap {
             return_x[2] = -v_ego[0];
             return_x[3] = -v_ego[1];
         }
-        
-        /*
-        if (bridge_model) {
-            return_x[2] = -v_ego[0];
-            return_x[3] = -v_ego[1];
-        }
-        */
-        
 
         return return_x;
     }
