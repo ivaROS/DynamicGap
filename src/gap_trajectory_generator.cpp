@@ -303,6 +303,9 @@ namespace dynamic_gap{
 
         Eigen::Vector2d weighted_left_pt_0 = left_bezier_origin + left_weight * (left_pt_0 - left_bezier_origin);
         Eigen::Vector2d weighted_right_pt_0 = right_bezier_origin + right_weight * (right_pt_0 - right_bezier_origin);
+
+        ROS_INFO_STREAM("weighted_left_pt_0: " << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1]);
+        ROS_INFO_STREAM("weighted_right_pt_0: " << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1]);
         for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
             s = (i - num_qB_points) / num_curve_points;
             //ROS_INFO_STREAM("i: " << i << ", s: " << s);
