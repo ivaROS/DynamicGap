@@ -100,7 +100,7 @@ namespace dynamic_gap {
             double ang_diff_2 = std::abs(theta2 - thetax);
             //double new_sigma = 0.05;
 
-            Eigen::Vector2d c1 = r_pi2     * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
+            Eigen::Vector2d c1 = r_pi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
             Eigen::Vector2d c2 = neg_r_pi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
 
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
@@ -174,7 +174,7 @@ namespace dynamic_gap {
         double v_lin_max, a_lin_max, K_acc,
                rg, theta_right, theta_left, thetax, thetag, new_theta, ang_diff_right, ang_diff_left, 
                coeffs, rel_right_pos_norm, rel_left_pos_norm, w_left, w_right, a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
-               r_reach, theta, r_inscr, left_weight, right_weight; 
+               r_reach, theta, r_inscr, left_weight, right_weight, gap_lifespan; 
         bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, 
@@ -187,11 +187,11 @@ namespace dynamic_gap {
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
                           double v_lin_max, double a_lin_max, int num_curve_points, int num_qB_points,
                           Eigen::MatrixXd all_curve_pts,  Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms,
-                          double left_weight, double right_weight) 
+                          double left_weight, double right_weight, double gap_lifespan) 
                           : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1), K_acc(K_acc), 
                             v_lin_max(v_lin_max), a_lin_max(a_lin_max), num_curve_points(num_curve_points), num_qB_points(num_qB_points),
                             all_curve_pts(all_curve_pts), all_centers(all_centers), all_inward_norms(all_inward_norms), 
-                            left_weight(left_weight), right_weight(right_weight)
+                            left_weight(left_weight), right_weight(right_weight), gap_lifespan(gap_lifespan)
                         { 
                             double start_time = ros::WallTime::now().toSec();
                             half_num_scan = 256;
@@ -429,6 +429,12 @@ namespace dynamic_gap {
             Eigen::Vector2d v_des = weighted_goal_term + weighted_left_term + weighted_right_term;
             // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
 
+            double v_req_norm = (rg / (gap_lifespan - t)); 
+            if (v_des.norm() < v_req_norm) {
+                double K_p_mod = (v_req_norm / v_des.norm()) * 1.5;
+                v_des *= K_p_mod;
+                // ROS_INFO_STREAM("modified v_des: " << v_des[0] << ", " << v_des[1]);            
+            }
             // CLIPPING DESIRED VELOCITIES
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);

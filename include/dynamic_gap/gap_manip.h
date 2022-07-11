@@ -56,7 +56,7 @@ namespace dynamic_gap {
             Eigen::Vector2f car2pol(Eigen::Vector2f);
             Eigen::Vector2f pol2car(Eigen::Vector2f);
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
-            bool checkGoalVisibility(geometry_msgs::PoseStamped,  sensor_msgs::LaserScan const scan);
+            bool checkGoalVisibility(geometry_msgs::PoseStamped, float theta_r, float theta_l, float rdist, float ldist, sensor_msgs::LaserScan const scan);
             bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx, float lidx, float ridx);
             bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
             double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model*, dynamic_gap::cart_model*);

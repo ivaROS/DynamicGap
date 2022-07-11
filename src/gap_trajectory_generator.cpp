@@ -16,37 +16,23 @@ namespace dynamic_gap{
             write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
-            // ROS_INFO_STREAM("coefs:" << coefs);
-            // flipping models here to be from robot's POV
-            // dynamic_gap::cart_model* left_model = selectedGap.right_model;
-            // dynamic_gap::cart_model* right_model = selectedGap.left_model;
-
-            // Matrix<double, 4, 1> left_model_state = left_model->get_modified_polar_state();
-            // Matrix<double, 4, 1> right_model_state = right_model->get_modified_polar_state();
-
-            // curr_pose is in sensor frame, gaps are in robot frame?, curr_vel is in robot frame
             Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
-                                    curr_vel.linear.x, curr_vel.linear.y);
-            /*
-            state_type x = {                 
-                            left_model_state[0], left_model_state[1], left_model_state[2], left_model_state[3], left_model_state[4],
-                            right_model_state[0], right_model_state[1], right_model_state[2], right_model_state[3], right_model_state[4]}; 
-            */
+                                  curr_vel.linear.x, curr_vel.linear.y);
 
             // get gap points in cartesian
-            float x_r_pov, x_l_pov, y_r_pov, y_l_pov;
+            float x_r, x_l, y_r, y_l;
             float half_num_scan = selectedGap.half_scan;
-            x_r_pov = selectedGap.cvx_RDist() * cos(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y_r_pov = selectedGap.cvx_RDist() * sin(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            x_l_pov = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y_l_pov = selectedGap.cvx_LDist() * sin(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            
-            float term_x_r_pov, term_x_l_pov, term_y_r_pov, term_y_l_pov;
-            term_x_r_pov = selectedGap.cvx_term_RDist() * cos(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y_r_pov = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_x_l_pov = selectedGap.cvx_term_LDist() * cos(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y_l_pov = selectedGap.cvx_term_LDist() * sin(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            
+            x_l = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_l = selectedGap.cvx_LDist() * sin(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            x_r = selectedGap.cvx_RDist() * cos(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_r = selectedGap.cvx_RDist() * sin(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+
+            float term_x_r, term_x_l, term_y_r, term_y_l;
+            term_x_l = selectedGap.cvx_term_LDist() * cos(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_l = selectedGap.cvx_term_LDist() * sin(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_x_r = selectedGap.cvx_term_RDist() * cos(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_r = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+
             if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
                             0.0, 0.0, 0.0, 0.0,
@@ -67,45 +53,45 @@ namespace dynamic_gap{
 
             Eigen::Vector2f qB = selectedGap.qB; // (selectedGap.qB + selectedGap.terminal_qB) / 2.0
 
+            Eigen::Vector2d initial_goal(selectedGap.goal.x, selectedGap.goal.y);
+            Eigen::Vector2d terminal_goal(selectedGap.terminal_goal.x, selectedGap.terminal_goal.y);
+
             if (selectedGap.mode.convex) {
                 ROS_INFO_STREAM("applying qB: " << qB[0] << ", " << qB[1]);
-                selectedGap.goal.x -= qB(0);
-                selectedGap.goal.y -= qB(1);
-                selectedGap.terminal_goal.x -= qB(0);
-                selectedGap.terminal_goal.y -= qB(1);
+                initial_goal[0] -= qB(0);
+                initial_goal[1] -= qB(1);
+                terminal_goal[0] -= qB(0);
+                terminal_goal[1] -= qB(1);
 
-                x_r_pov -= qB(0);
-                x_l_pov -= qB(0);
-                y_r_pov -= qB(1);
-                y_l_pov -= qB(1);
-                term_x_r_pov -= qB(0);
-                term_x_l_pov -= qB(0);
-                term_y_r_pov -= qB(1);
-                term_y_l_pov -= qB(1);
+                x_r -= qB(0);
+                x_l -= qB(0);
+                y_r -= qB(1);
+                y_l -= qB(1);
+                term_x_r -= qB(0);
+                term_x_l -= qB(0);
+                term_y_r -= qB(1);
+                term_y_l -= qB(1);
         
                 ego_x[0] -= qB(0);
                 ego_x[1] -= qB(1);
             }
 
-            // point 1 is right from robot POV
-            // point 2 is left from robot POV
-            // FLIPPING TO POV HERE
             float x_left, y_left, x_right, y_right;
-            x_left = x_l_pov*coefs;
-            y_left = y_l_pov*coefs;
-            x_right = x_r_pov*coefs;
-            y_right = y_r_pov*coefs;
+            x_left = x_l*coefs;
+            y_left = y_l*coefs;
+            x_right = x_r*coefs;
+            y_right = y_r*coefs;
             float term_x_left, term_y_left, term_x_right, term_y_right;
-            term_x_left = term_x_l_pov*coefs;
-            term_y_left = term_y_l_pov*coefs;
-            term_x_right = term_x_r_pov*coefs;
-            term_y_right = term_y_r_pov*coefs;
+            term_x_left = term_x_l*coefs;
+            term_y_left = term_y_l*coefs;
+            term_x_right = term_x_r*coefs;
+            term_y_right = term_y_r*coefs;
 
             double initial_goal_x, initial_goal_y, terminal_goal_x, terminal_goal_y;
-            initial_goal_x = selectedGap.goal.x * coefs;
-            initial_goal_y = selectedGap.goal.y * coefs;
-            terminal_goal_x = selectedGap.terminal_goal.x * coefs;
-            terminal_goal_y = selectedGap.terminal_goal.y * coefs;
+            initial_goal_x = initial_goal[0] * coefs;
+            initial_goal_y = initial_goal[1] * coefs;
+            terminal_goal_x = terminal_goal[0] * coefs;
+            terminal_goal_y = terminal_goal[1] * coefs;
 
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
@@ -216,7 +202,8 @@ namespace dynamic_gap{
 
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
                                                     cfg_->control.vx_absmax, a_lin_max, num_curve_points, num_qB_points,
-                                                    all_curve_pts, all_centers, all_inward_norms, left_weight, right_weight);   
+                                                    all_curve_pts, all_centers, all_inward_norms, 
+                                                    left_weight, right_weight, selectedGap.gap_lifespan);   
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, 

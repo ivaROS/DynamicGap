@@ -272,6 +272,7 @@ namespace dynamic_gap
             }
 
             void setCrossingPoint(float x, float y) {
+                ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
                 crossing_pt << x,y;
             }
 
@@ -280,6 +281,7 @@ namespace dynamic_gap
             }
 
             void setClosingPoint(float x, float y) {
+                ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
                 closing_pt << x,y;
             }
 

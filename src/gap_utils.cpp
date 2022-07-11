@@ -27,14 +27,13 @@ namespace dynamic_gap {
         std::string frame = stored_scan_msgs.header.frame_id;
         // starting the left point of the gap at front facing value
         // std::cout << "max laser scan range: " << stored_scan_msgs.range_max << std::endl;
-        int gap_ridx_pov = 0;
-        float gap_rdist_pov = stored_scan_msgs.ranges[0];
+        int gap_ridx = 0;
+        float gap_rdist = stored_scan_msgs.ranges[0];
         // last as in previous scan
         float last_scan = stored_scan_msgs.ranges[0];
-        bool prev_lgap = gap_rdist_pov >= max_scan_dist;
+        bool prev_lgap = gap_rdist >= max_scan_dist;
         float scan_dist;
         float scan_diff;
-        int wrap = 0;
 
         // iterating through scan
         //std::cout << "finding raw gaps: " << std::endl;
@@ -72,10 +71,10 @@ namespace dynamic_gap {
                 if (prev_lgap)
                 {
                     prev_lgap = false;
-                    dynamic_gap::Gap detected_gap(frame, gap_ridx_pov, gap_rdist_pov, false, half_scan);
+                    dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan);
                     detected_gap.addLeftInformation(it, scan_dist);
                     detected_gap.setMinSafeDist(min_dist);
-                    //std::cout << "candidate swept gap from (" << gap_ridx_pov << ", " << gap_rdist_pov << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                    //std::cout << "candidate swept gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
                     if (detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
@@ -85,8 +84,8 @@ namespace dynamic_gap {
                 }
                 else // signals the beginning of a gap
                 {
-                    gap_ridx_pov = it - 1;
-                    gap_rdist_pov = last_scan;
+                    gap_ridx = it - 1;
+                    gap_rdist = last_scan;
                     prev_lgap = true;
                 }
             }
@@ -97,12 +96,12 @@ namespace dynamic_gap {
         if (prev_lgap) 
         {
             //std::cout << "catching last gap" << std::endl;
-            dynamic_gap::Gap detected_gap(frame, gap_ridx_pov, gap_rdist_pov, false, half_scan);
+            dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan);
             int last_scan_idx = stored_scan_msgs.ranges.size() - 1;
             double last_scan_dist = *(stored_scan_msgs.ranges.end() - 1);
             detected_gap.addLeftInformation(last_scan_idx, last_scan_dist);
             detected_gap.setMinSafeDist(min_dist);
-            //std::cout << "candidate last gap from (" << gap_ridx_pov << ", " << gap_rdist_pov << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
+            //std::cout << "candidate last gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
             if (detected_gap.LIdx() - detected_gap.RIdx() > 500 || detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr) {
                 //std::cout << "adding candidate last gap" << std::endl;
                 raw_gaps.push_back(detected_gap);
@@ -184,12 +183,12 @@ namespace dynamic_gap {
 
         std::string frame = stored_scan_msgs.header.frame_id;
         int half_gap_span = half_num_scan / 12;
-        int right_idx_pov = std::max(final_goal_idx - half_gap_span, 0);
-        int left_idx_pov = std::min(final_goal_idx + half_gap_span, 2*half_num_scan - 1);
-        ROS_INFO_STREAM("creating gap " << right_idx_pov << ", to " << left_idx_pov);
+        int right_idx = std::max(final_goal_idx - half_gap_span, 0);
+        int left_idx = std::min(final_goal_idx + half_gap_span, 2*half_num_scan - 1);
+        ROS_INFO_STREAM("creating gap " << right_idx << ", to " << left_idx);
 
-        dynamic_gap::Gap detected_gap(frame, right_idx_pov, stored_scan_msgs.ranges.at(right_idx_pov), true, half_num_scan);
-        detected_gap.addLeftInformation(left_idx_pov, stored_scan_msgs.ranges.at(left_idx_pov));
+        dynamic_gap::Gap detected_gap(frame, right_idx, stored_scan_msgs.ranges.at(right_idx), true, half_num_scan);
+        detected_gap.addLeftInformation(left_idx, stored_scan_msgs.ranges.at(left_idx));
         detected_gap.setMinSafeDist(min_dist);
         detected_gap.artificial = true;
         raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        

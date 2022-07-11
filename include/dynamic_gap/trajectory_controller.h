@@ -30,7 +30,7 @@ namespace dynamic_gap {
             geometry_msgs::Twist controlLaw(geometry_msgs::Pose current, nav_msgs::Odometry desired,
                                             sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
                                             geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
-                                            dynamic_gap::cart_model * curr_right_model_pov, dynamic_gap::cart_model * curr_right_model,
+                                            dynamic_gap::cart_model * curr_right_model, dynamic_gap::cart_model * curr_left_model,
                                             double curr_peak_velocity_x, double curr_peak_velocity_y);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
             int targetPoseIdx(geometry_msgs::Pose curr_pose, dynamic_gap::TrajPlan ref_pose);
@@ -59,10 +59,10 @@ namespace dynamic_gap {
                                                    Eigen::Vector2d rbt_accel, float & cmd_vel_x_safe, float & cmd_vel_y_safe, double & Psi_CBF);
             void clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb);
 
-            double cbf_right_pov(Eigen::Vector4d);
-            Eigen::Vector4d cbf_partials_rightpov(Eigen::Vector4d);
-            double cbf_left_pov(Eigen::Vector4d);
-            Eigen::Vector4d cbf_partials_leftpov(Eigen::Vector4d);
+            double cbf_right(Eigen::Vector4d);
+            Eigen::Vector4d cbf_partials_right(Eigen::Vector4d);
+            double cbf_left(Eigen::Vector4d);
+            Eigen::Vector4d cbf_partials_left(Eigen::Vector4d);
 
             Eigen::Vector3d projection_method(float min_diff_x, float min_diff_y);
 

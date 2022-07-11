@@ -390,7 +390,9 @@ namespace dynamic_gap {
         }
         
         // std::cout << "num models: " << raw_models.size() << std::endl;
+        std::vector<std::vector<double>> dynamic_min_dist_pts(traj.poses.size());
         std::vector<double> dynamic_cost_val(traj.poses.size());
+        std::vector<std::vector<double>> static_min_dist_pts(traj.poses.size());
         std::vector<double> static_cost_val(traj.poses.size());
         double total_val = 0.0;
         std::vector<double> cost_val;
@@ -411,7 +413,9 @@ namespace dynamic_gap {
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
+        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
 
+        int min_dist_idx;
         if (current_raw_gaps.size() > 0) {
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
@@ -419,39 +423,41 @@ namespace dynamic_gap {
                 // need to hook up static scan
                 recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_laser_scan, print);
                 // recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
+                /*
                 if (i == 1 && vis) {
                     ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
                     visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
                 }
-                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), dynamic_laser_scan, print); //  / dynamic_cost_val.size()
+                */
+
+                min_dist_idx = dynamicGetMinDistIndex(traj.poses.at(i), dynamic_laser_scan, print);
+                // add point to min_dist_array
+                double theta = min_dist_idx * dynamic_laser_scan.angle_increment + dynamic_laser_scan.angle_min;
+                double range = dynamic_laser_scan.ranges.at(min_dist_idx);
+                std::vector<double> min_dist_pt{range*std::cos(theta), range*std::sin(theta)};
+                dynamic_min_dist_pts.at(i) = min_dist_pt;
+
+                // get cost of point
+                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
+                if (dynamic_cost_val.at(i) < -0.5) {
+                    ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << ", robot pose: " << 
+                                    traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1]);
+                }
+                
                 t_i = t_iplus1;
             }
-            auto dynamic_total_val = std::accumulate(dynamic_cost_val.begin(), dynamic_cost_val.end(), double(0));
-            total_val = dynamic_total_val;
+            total_val = std::accumulate(dynamic_cost_val.begin(), dynamic_cost_val.end(), double(0));
             cost_val = dynamic_cost_val;
-            ROS_INFO_STREAM("dynamic pose-wise cost: " << dynamic_total_val);
+            ROS_INFO_STREAM("dynamic pose-wise cost: " << total_val);
         } else {
             for (int i = 0; i < static_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 static_cost_val.at(i) = scorePose(traj.poses.at(i)); //  / static_cost_val.size()
             }
-            auto static_total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-            total_val = static_total_val;
+            total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
             cost_val = static_cost_val;
-            ROS_INFO_STREAM("static pose-wise cost: " << static_total_val);
+            ROS_INFO_STREAM("static pose-wise cost: " << total_val);
         }
-
-        
-        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
-        //std::cout << "r_inscr: " << r_inscr << ", inf_ratio: " << cfg_->traj.inf_ratio << std::endl;
-        for (int i = 0; i < counts; i++) {
-            // std::cout << "regular range at " << i << ": ";
-            if (cost_val.at(i) == -std::numeric_limits<double>::infinity()) {
-                ROS_INFO_STREAM("-inf at pose " << i << " of " << cost_val.size() << " with distance of: " << getClosestDist(traj.poses.at(i)));
-            }
-        }
-        
-
 
         if (cost_val.size() > 0) 
         {
@@ -489,7 +495,7 @@ namespace dynamic_gap {
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
     }
 
-    double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print) {
+    int TrajectoryArbiter::dynamicGetMinDistIndex(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print) {
         boost::mutex::scoped_lock lock(egocircle_mutex);
 
         // obtain orientation and idx of pose
@@ -514,43 +520,16 @@ namespace dynamic_gap {
         }
 
         auto iter = std::min_element(dist.begin(), dist.end());
-        double theta = std::distance(dist.begin(), iter) * dynamic_laser_scan.angle_increment - M_PI;
-        double range = dynamic_laser_scan.ranges.at(std::distance(dist.begin(), iter) );
-        double cost = dynamicChapterScore(*iter);
-        if (print && cost == -std::numeric_limits<double>::infinity()) {
-            ROS_INFO_STREAM("collision at: (" << range * std::cos(theta) << ", " << range * std::sin(theta) << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")");
-        }
-        // ROS_INFO_STREAM("distance: " << *iter << ", cost: " << cost);
-
-        //std::cout << *iter << ", regular cost: " << cost << std::endl;
-        return cost;
+        int min_dist_index = std::distance(dist.begin(), iter);
+        return min_dist_index;
     }
 
-    double TrajectoryArbiter::getClosestDist(geometry_msgs::Pose pose) {
-        boost::mutex::scoped_lock lock(egocircle_mutex);
-        sensor_msgs::LaserScan stored_scan = *msg.get();
+    double TrajectoryArbiter::dynamicScorePose(geometry_msgs::Pose pose, double theta, double range) {
+        
+        double dist = dist2Pose(theta, range, pose);
+        double cost = dynamicChapterScore(dist);
 
-        int scan_size = (int) stored_scan.ranges.size();
-        // dist is size of scan
-        std::vector<double> dist(scan_size);
-
-        // This size **should** be ensured
-        if (stored_scan.ranges.size() < 500) {
-            ROS_FATAL_STREAM("Scan range incorrect scorePose");
-        }
-
-        // iterate through ranges and obtain the distance from the egocircle point and the pose
-        // Meant to find where is really small
-        for (int i = 0; i < dist.size(); i++) {
-            float this_dist = stored_scan.ranges.at(i);
-            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
-            dist.at(i) = dist2Pose(i * stored_scan.angle_increment - M_PI,
-                this_dist, pose);
-        }
-
-        auto iter = std::min_element(dist.begin(), dist.end());
-
-        return *iter;
+        return cost;
     }
 
     double TrajectoryArbiter::scorePose(geometry_msgs::Pose pose) {
