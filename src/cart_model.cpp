@@ -14,10 +14,10 @@
 #include <Eigen/Dense>
 #include <limits>
 #include <sstream>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+// #include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+// namespace plt = matplotlibcpp;
 
 using namespace Eigen;
-namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
@@ -391,6 +391,7 @@ namespace dynamic_gap {
         */
     }
 
+    /*
     void cart_model::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
@@ -439,7 +440,7 @@ namespace dynamic_gap {
         plt::close();
         plotted = true;
     }
-    
+    */
 
     Eigen::Vector4d cart_model::get_cartesian_state() {
         // x state:

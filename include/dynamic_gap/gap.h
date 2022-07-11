@@ -418,7 +418,7 @@ namespace dynamic_gap
 
             double left_weight = 0.0;
             double right_weight = 0.0;
-            Eigen::MatrixXd left_right_centers;
+            Eigen::MatrixXd left_right_centers, all_curve_pts;
         // private:
     };
 }

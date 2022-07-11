@@ -1073,7 +1073,7 @@ namespace dynamic_gap
 
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
         gapvisualizer->drawReachableGaps(manip_gap_set);        
-        // gapvisualizer->drawReachableGapsCenters(manip_gap_set); 
+        gapvisualizer->drawReachableGapsCenters(manip_gap_set); 
         goalvisualizer->drawGapGoals(manip_gap_set);
     }
 

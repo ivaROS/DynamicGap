@@ -244,28 +244,29 @@ namespace dynamic_gap {
         float rdist_robot = rdist;
 
         float confined_r = (rdist_robot - ldist_robot) * L_to_conf_angle / L_to_R_angle + ldist_robot;
-        float xg = confined_r * cos(confined_theta);
-        float yg = confined_r * sin(confined_theta);
-        Eigen::Vector2f anchor(xg, yg);
+        Eigen::Vector2f anchor(confined_r * cos(confined_theta), confined_r * sin(confined_theta));
         Eigen::Matrix2f r_pi2, r_negpi2;
         r_pi2 << 0, -1, 1,0; // PI/2 counter clockwise
         r_negpi2 = -r_pi2; // PI/2 clockwise;
 
 
         ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
-        Eigen::Vector2f offset(0.0, 0.0);
+        Eigen::Vector2f radial_offset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * anchor / anchor.norm();
+
+        Eigen::Vector2f angular_offset(0.0, 0.0); 
         if (confined_theta == theta_r) {
-            offset = r_pi2 * (pt_r / pt_r.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            angular_offset = r_pi2 * (pt_r / pt_r.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         } else if (confined_theta == theta_l) {
-            offset = r_negpi2 * (pt_l / pt_l.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            angular_offset = r_negpi2 * (pt_l / pt_l.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
         } else { // confined_theta == localgoal_theta
             if (L_to_conf_angle / L_to_R_angle < 0.1) { // pretty close to left side
-                offset = r_negpi2 * (pt_l / pt_l.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;    
+                angular_offset = r_negpi2 * (pt_l / pt_l.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;    
             } else if (L_to_conf_angle / L_to_R_angle > 0.9) { // pretty close to right side
-                offset = r_pi2 * (pt_r / pt_r.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                angular_offset = r_pi2 * (pt_r / pt_r.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
             }
         }
 
+        Eigen::Vector2d offset = radial_offset + angular_offset;
         ROS_INFO_STREAM("offset: " << offset[0] << ", " << offset[1]);
 
         auto goal_pt = offset + anchor;

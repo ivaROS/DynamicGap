@@ -170,44 +170,11 @@ namespace dynamic_gap{
         float num_curve_points = 25.0;
         float num_qB_points = 5.0;
         float half_num_scan = g.half_scan;
-        float x_right, x_left, y_right, y_left;
-        x_right = g.cvx_RDist() * cos(((float) g.cvx_RIdx() - half_num_scan) / half_num_scan * M_PI);
-        y_right = g.cvx_RDist() * sin(((float) g.cvx_RIdx() - half_num_scan) / half_num_scan * M_PI);
-        x_left = g.cvx_LDist() * cos(((float) g.cvx_LIdx() - half_num_scan) / half_num_scan * M_PI);
-        y_left = g.cvx_LDist() * sin(((float) g.cvx_LIdx() - half_num_scan) / half_num_scan * M_PI);
 
-        float term_x_right, term_x_left, term_y_right, term_y_left;
-        term_x_right = g.cvx_term_RDist() * cos(((float) g.cvx_term_RIdx() - half_num_scan) / half_num_scan * M_PI);
-        term_y_right = g.cvx_term_RDist() * sin(((float) g.cvx_term_RIdx() - half_num_scan) / half_num_scan * M_PI);
-        term_x_left = g.cvx_term_LDist() * cos(((float) g.cvx_term_LIdx() - half_num_scan) / half_num_scan * M_PI);
-        term_y_left = g.cvx_term_LDist() * sin(((float) g.cvx_term_LIdx() - half_num_scan) / half_num_scan * M_PI);
-
-        Eigen::Vector2f left_gap_origin = g.left_bezier_origin;
-        Eigen::Vector2f right_gap_origin = g.right_bezer_origin;
-
-        Eigen::Vector2f left_pt_0(x_left, y_left);
-        Eigen::Vector2f right_pt_0(x_right, y_right);
-        Eigen::Vector2f left_pt_1(term_x_left, term_y_left);
-        Eigen::Vector2f right_pt_1(term_x_right, term_y_right);
-
-        float left_vel_x = ((term_x_left - x_left) / g.gap_lifespan);
-        float left_vel_y = ((term_y_left - y_left) / g.gap_lifespan);
-
-        float right_vel_x = ((term_x_right - x_right) / g.gap_lifespan);
-        float right_vel_y = ((term_y_right - y_right) / g.gap_lifespan);
-
-        Eigen::Vector2f left_vel(left_vel_x, left_vel_y);
-        Eigen::Vector2f right_vel(right_vel_x, right_vel_y);
-        Eigen::Vector2f nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
-
-        float left_weight = g.left_weight;
-        float right_weight = g.right_weight;
-
-        // ROS_INFO_STREAM("in drawReachableGap, left weight: " << left_weight << ", right_weight: " << right_weight);
-
-        // model gives: left_pt - rbt.
-        Eigen::Vector2f weighted_left_pt_0 = left_gap_origin + left_weight * (left_pt_0 - left_gap_origin); // 
-        Eigen::Vector2f weighted_right_pt_0 = right_gap_origin + right_weight * (right_pt_0 - right_gap_origin); // 
+        Eigen::Vector2f left_gap_origin(g.left_bezier_origin[0],       
+                                        g.left_bezier_origin[1]);
+        Eigen::Vector2f right_gap_origin(g.right_bezer_origin[0],
+                                        g.right_bezer_origin[1]);
 
         // ROS_INFO_STREAM("left_gap_origin: (" << left_gap_origin[0] << ", " << left_gap_origin[1] << "), left_pt_0: (" << left_pt_0[0] << ", " << left_pt_0[1] << "), weighted_left_pt_0: (" << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1] << "), left_pt_1: (" << left_pt_1[0] << ", " << left_pt_1[1] << ")");
         // ROS_INFO_STREAM("right_gap_origin: (" << right_gap_origin[0] << ", " << right_gap_origin[1] << "), right_pt_0: (" << right_pt_0[0] << ", " << right_pt_0[1] << "), weighted_right_pt_0: (" << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1] << "), right_pt_1: (" << right_pt_1[0] << ", " << right_pt_1[1] << ")");
@@ -240,10 +207,10 @@ namespace dynamic_gap{
         liner.z = 0.0005;
 
         std::vector<geometry_msgs::Point> lines;
-
-        // populate left curve
         int id = (int) vis_arr.markers.size();
         this_marker.lifetime = ros::Duration(100.0);
+
+        // populate left curve
 
         lines.clear();  
         // ROS_INFO_STREAM("i: " << i << ", s: " << s);
@@ -281,28 +248,18 @@ namespace dynamic_gap{
         this_marker.points = lines;
         this_marker.id = id++;
         vis_arr.markers.push_back(this_marker);
-
-        for (float i = 0.0f; i < num_curve_points; i++) {
+        
+        int num_pts_per_side = g.all_curve_pts.rows() / 2;
+        for (int i = num_qB_points; i < (num_pts_per_side - 1); i++) {            
             lines.clear();  
-            s = (i) / num_curve_points;
-            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-            float pos_val0 = (1 - s) * (1 - s);
-            float pos_val1 = 2*(1 - s)*s;
-            float pos_val2 = s*s;
 
-            Eigen::Vector2f left_pt = pos_val0 * left_gap_origin + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
+            Eigen::Vector2d left_pt = g.all_curve_pts.row(i);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
             lines.push_back(linel);
 
-            s = (i + 1.0f) / num_curve_points;
-            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-            pos_val0 = (1 - s) * (1 - s);
-            pos_val1 = 2*(1 - s)*s;
-            pos_val2 = s*s;
-
-            left_pt = pos_val0 * left_gap_origin + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
+            left_pt = g.all_curve_pts.row(i + 1);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -314,27 +271,16 @@ namespace dynamic_gap{
         }
 
         //populate right curve
-        for (float i = 0.0f; i < num_curve_points; i++) {
+        for (int i = (num_pts_per_side + num_qB_points); i < (2*num_pts_per_side - 1); i++) {
             lines.clear();  
-            s = (i) / num_curve_points;
-            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-            float pos_val0 = (1 - s) * (1 - s);
-            float pos_val1 = 2*(1 - s)*s;
-            float pos_val2 = s*s;
 
-            Eigen::Vector2f right_pt = pos_val0 * right_gap_origin + pos_val1*weighted_right_pt_0 + pos_val2*right_pt_1;
+            Eigen::Vector2d right_pt = g.all_curve_pts.row(i);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
             lines.push_back(liner);
 
-            s = (i + 1.0f) / num_curve_points;
-            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-            pos_val0 = (1 - s) * (1 - s);
-            pos_val1 = 2*(1 - s)*s;
-            pos_val2 = s*s;
-
-            right_pt = pos_val0 * right_gap_origin + pos_val1*weighted_right_pt_0 + pos_val2*right_pt_1;
+            right_pt = g.all_curve_pts.row(i + 1);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
@@ -370,6 +316,8 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("in drawReachableGapCenters");
         // ROS_INFO_STREAM("left right centers number of rows: " << g.left_right_centers.rows());
 
+        float num_curve_points = 25.0;
+        float num_qB_points = 5.0;
         visualization_msgs::Marker this_marker;
         this_marker.header.frame_id = g._frame;
         this_marker.header.stamp = ros::Time();
