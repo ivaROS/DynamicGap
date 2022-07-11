@@ -425,6 +425,8 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("weighted_left_term: " << weighted_left_term[0] << ", " << weighted_left_term[1]);
             ROS_INFO_STREAM("weighted_right_term: " << weighted_right_term[0] << ", " << weighted_right_term[1]);
             
+            Eigen::Vector2d total_term = attractive_term * gradient_of_pti_wrt_centers * weights;
+            ROS_INFO_STREAM("total_term: " << total_term[0] << ", " << total_term[1]);
             // rel_goal_pos; // 
             Eigen::Vector2d v_des = weighted_goal_term + weighted_left_term + weighted_right_term;
             ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
