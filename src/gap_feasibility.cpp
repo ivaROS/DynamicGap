@@ -245,52 +245,54 @@ namespace dynamic_gap {
             right_central_dot = right_bearing_vect.dot(prev_central_bearing_vect);
             bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
 
-            // CLOSING GAP CHECK
-            left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
-                                (1.0 / prev_left_frozen_state[0])*std::sin(prev_left_frozen_state[1]);
-            right_cross_pt << (1.0 / prev_right_frozen_state[0])*std::cos(prev_right_frozen_state[1]), 
-                                (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
-            diff_pt = (left_cross_pt - right_cross_pt);
-            // ROS_INFO_STREAM("diff_pt: " << diff_pt << ", diff_pt.norm: " << diff_pt.norm());
-
-            range_closing_check = (left_cross_pt - right_cross_pt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            if (gap.getCategory() == "closing" && range_closing_check) {
-                ROS_INFO_STREAM("gap closes at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
-                gap_crossing_point << (left_cross_pt[0] + right_cross_pt[0])/2.0, (left_cross_pt[1] + right_cross_pt[1])/2.0;
-                gap_crossing_point += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gap_crossing_point / gap_crossing_point.norm());
-                gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
-                generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
-
-                gap.gap_closed = true;
-                return t;
-            } 
-
-            //std::cout << "left bearing vect: " << left_bearing_vect[0] << ", " << left_bearing_vect[1] << std::endl;
-            //std::cout << "right bearing vect: " << right_bearing_vect[0] << ", " << right_bearing_vect[1] << std::endl;
-            //std::cout << "central bearing vect: " << central_bearing_vect[0] << ", " << central_bearing_vect[1] << std::endl;
-            //std::cout << "left/center dot: " << left_central_dot << ", right/center dot: " << right_central_dot << std::endl;
-            //std::cout << "sweep dt: " << dt << ", swept check: " << swept_check << ". left beta: " << beta_left << ", left range: " << 1.0 / left_frozen_state[0] << ", right beta: " << beta_right << ", right range: " << 1.0 / right_frozen_state[0] << std::endl;
-            // GAP CROSSING CHECK
             if (L_to_R_angle > M_PI && bearing_crossing_check) {
-                //left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-                //right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+                ROS_INFO_STREAM("bearing cross at " << t);
+                // CLOSING GAP CHECK
+                left_cross_pt << (1.0 / prev_left_frozen_state[0])*std::cos(prev_left_frozen_state[1]), 
+                                    (1.0 / prev_left_frozen_state[0])*std::sin(prev_left_frozen_state[1]);
+                right_cross_pt << (1.0 / prev_right_frozen_state[0])*std::cos(prev_right_frozen_state[1]), 
+                                    (1.0 / prev_right_frozen_state[0])*std::sin(prev_right_frozen_state[1]);
+                diff_pt = (left_cross_pt - right_cross_pt);
+                // ROS_INFO_STREAM("diff_pt: " << diff_pt << ", diff_pt.norm: " << diff_pt.norm());
 
-                // I think crossing may still be a little fraught. More so at trajectory generation 
-                // level, but how do we ensure that robot abides by both sides and then once gap
-                // crosses, robot then ignores crossing side
-                if (first_cross) {
-                    double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
-                    double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
-                    ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
-                    gap.setCrossingPoint(mid_x, mid_y);
-                    first_cross = false;
+                range_closing_check = (left_cross_pt - right_cross_pt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
+                // IF POINTS ARE SUFFICIENTLY CLOSE TOGETHER, GAP HAS CLOSED
+                if (range_closing_check) {
+                    
+                    if (left_cross_pt.norm() < right_cross_pt.norm()) {
+                        //std::cout << "setting right equal to cross" << std::endl;
+                        //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
+                        gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
+                    } else {
+                        //std::cout << "setting left equal to cross" << std::endl;
+                        //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
+                        gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
+                    }
 
-                    generateTerminalPoints(gap, prev_left_frozen_state[1], prev_left_frozen_state[0], prev_right_frozen_state[1], prev_right_frozen_state[0]);
+                    gap_crossing_point += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gap_crossing_point / gap_crossing_point.norm());
+                    gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
+                    double ending_time = generateCrossedGapTerminalPoints(t, gap, left_model, right_model);
+                    ROS_INFO_STREAM("considering gap closed at " << ending_time); 
 
-                    gap.gap_crossed = true;
+                    gap.gap_closed = true;
+                    return ending_time;
+                } else {
+                    if (first_cross) {
+                        double mid_x = (left_cross_pt[0] + right_cross_pt[0]) / 2;
+                        double mid_y = (left_cross_pt[1] + right_cross_pt[1]) / 2;
+                        //  ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << left_cross_pt[0] << ", " << left_cross_pt[1] << ", right point at " << right_cross_pt[0] << ", " << right_cross_pt[1]); 
+
+                        gap.setCrossingPoint(mid_x, mid_y);
+                        first_cross = false;
+
+                        double ending_time = generateCrossedGapTerminalPoints(t, gap, left_model, right_model);
+                        ROS_INFO_STREAM("considering gap crossed at " << ending_time); 
+
+                        gap.gap_crossed = true;
+                    }
                 }
             }
-
+            
             prev_left_frozen_state = left_frozen_state;
             prev_right_frozen_state = right_frozen_state;
             prev_central_bearing_vect = central_bearing_vect;
@@ -308,6 +310,56 @@ namespace dynamic_gap {
 
         return cfg_->traj.integrate_maxt;
     }
+
+    double GapFeasibilityChecker::generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
+        
+        Matrix<double, 4, 1> left_frozen_state = left_model->get_frozen_modified_polar_state();        
+        Matrix<double, 4, 1> right_frozen_state = right_model->get_frozen_modified_polar_state();
+        Eigen::Vector2d left_cross_pt, right_cross_pt, diff_pt;
+
+        // REWINDING THE GAP FROM ITS CROSSED CONFIGURATION UNTIL THE GAP IS SUFFICIENTLY OPEN
+        for (double t_rew = t; t >= 0.0; t -= cfg_->traj.integrate_stept) {
+            left_model->frozen_state_propagate(-1 * cfg_->traj.integrate_stept);
+            right_model->frozen_state_propagate(-1 * cfg_->traj.integrate_stept);
+            // ROS_INFO_STREAM("t: " << t);
+            left_frozen_state = left_model->get_frozen_modified_polar_state();
+            right_frozen_state = right_model->get_frozen_modified_polar_state();
+            double beta_left = left_frozen_state[1];
+            double beta_right = right_frozen_state[1]; 
+            Eigen::Vector2d left_bearing_vect(std::cos(beta_left), std::sin(beta_left));
+            Eigen::Vector2d right_bearing_vect(std::cos(beta_right), std::sin(beta_right));
+            double L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
+            
+            double range_left = (1.0 / left_frozen_state[0]);
+            double range_right = (1.0 / right_frozen_state[0]);
+            double r_min = std::min(range_left, range_right);
+
+            if (r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
+                auto egocircle = *msg.get();        
+                
+                double wrapped_beta_left = atanThetaWrap(beta_left);
+                double init_left_idx = (wrapped_beta_left - egocircle.angle_min) / egocircle.angle_increment;
+                int left_idx = (int) std::floor(init_left_idx);
+
+                double wrapped_term_beta_right = atanThetaWrap(beta_right);
+                double init_right_idx = (wrapped_term_beta_right - egocircle.angle_min) / egocircle.angle_increment;
+                int right_idx = (int) std::floor(init_right_idx);
+                left_cross_pt << range_left*std::cos(wrapped_beta_left), 
+                                range_left*std::sin(wrapped_beta_left);
+                right_cross_pt << range_right*std::cos(wrapped_term_beta_right), 
+                                range_right*std::sin(wrapped_term_beta_right);
+                generateTerminalPoints(gap, wrapped_beta_left, left_frozen_state[0], wrapped_term_beta_right, right_frozen_state[0]);
+                ROS_INFO_STREAM("terminal points at time " << t << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
+                return t;
+            }
+            
+        }
+
+        // should never fall out of this?
+
+    }
+
+
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     double GapFeasibilityChecker::getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) {

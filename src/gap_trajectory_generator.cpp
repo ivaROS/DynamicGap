@@ -283,7 +283,7 @@ namespace dynamic_gap{
         rpi2 << std::cos(rot_val), -std::sin(rot_val), std::sin(rot_val), std::cos(rot_val);
         neg_rpi2 << std::cos(-rot_val), -std::sin(-rot_val), std::sin(-rot_val), std::cos(-rot_val);
 
-        ROS_INFO_STREAM("radial extensions: ");
+        // ROS_INFO_STREAM("radial extensions: ");
         // ADDING DISCRETE POINTS FOR RADIAL GAP EXTENSION
         for (double i = 0; i < num_qB_points; i++) {
             s = (i) / num_qB_points;
@@ -301,9 +301,9 @@ namespace dynamic_gap{
             right_curve.row(i) = curr_right_pt;
             right_curve_inward_norm.row(i) = right_inward_norm_vect;
 
-            ROS_INFO_STREAM("left_pt " << i << ": " << curr_left_pt[0] << ", " << curr_left_pt[1]);
+            // ROS_INFO_STREAM("left_pt " << i << ": " << curr_left_pt[0] << ", " << curr_left_pt[1]);
             // ROS_INFO_STREAM("left_vel " << i << ": " << curr_left_vel[0] << ", " << curr_left_vel[1]);
-            ROS_INFO_STREAM("left_inward_norm " << i << ": " << left_inward_norm_vect[0] << ", " << left_inward_norm_vect[1]);
+            // ROS_INFO_STREAM("left_inward_norm " << i << ": " << left_inward_norm_vect[0] << ", " << left_inward_norm_vect[1]);
         }
 
         double eps = 0.0000001;
@@ -312,10 +312,10 @@ namespace dynamic_gap{
         // model gives: left_pt - rbt.
         // populating the quadratic weighted bezier
 
-        ROS_INFO_STREAM("bezier curves");
+        // ROS_INFO_STREAM("bezier curves");
         for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
             s = (i - num_qB_points) / num_curve_points; // will go from (0 to 24)
-            ROS_INFO_STREAM("i: " << i << ", s: " << s);
+            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
             double pos_val0 = (1 - s) * (1 - s);
             double pos_val1 = 2*(1 - s)*s;
             double pos_val2 = s*s;
@@ -337,10 +337,10 @@ namespace dynamic_gap{
             right_curve.row(i) = curr_right_pt;
             right_curve_inward_norm.row(i) = right_inward_norm;
 
-            ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);
+            // ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);
             // ROS_INFO_STREAM("left_vel " << i << ": " << curr_left_vel[0] << ", " << curr_left_vel[1]);
-            ROS_INFO_STREAM("left_inward_norm: " << left_inward_norm[0] << ", " << left_inward_norm[1]);
-            ROS_INFO_STREAM("left_center: " << (curr_left_pt[0] - left_inward_norm[0]*offset) << ", " << (curr_left_pt[1] - left_inward_norm[1]*offset));
+            // ROS_INFO_STREAM("left_inward_norm: " << left_inward_norm[0] << ", " << left_inward_norm[1]);
+            // ROS_INFO_STREAM("left_center: " << (curr_left_pt[0] - left_inward_norm[0]*offset) << ", " << (curr_left_pt[1] - left_inward_norm[1]*offset));
 
             // ROS_INFO_STREAM("curr_right_pt: " << curr_right_pt[0] << ", " << curr_right_pt[1]);
         }

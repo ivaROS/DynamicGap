@@ -266,7 +266,7 @@ namespace dynamic_gap {
             }
         }
 
-        Eigen::Vector2d offset = radial_offset + angular_offset;
+        Eigen::Vector2f offset = radial_offset + angular_offset;
         ROS_INFO_STREAM("offset: " << offset[0] << ", " << offset[1]);
 
         auto goal_pt = offset + anchor;

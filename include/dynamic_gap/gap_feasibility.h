@@ -38,6 +38,7 @@ namespace dynamic_gap {
             boost::mutex egolock;
             double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
             double atanThetaWrap(double theta);
+            double generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
 
     };
 }
