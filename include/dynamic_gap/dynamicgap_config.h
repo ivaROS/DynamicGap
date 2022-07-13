@@ -138,7 +138,7 @@ namespace dynamic_gap {
             gap_manip.rot_ratio = 1.5;
             gap_manip.reduction_threshold = M_PI;
             gap_manip.reduction_target = M_PI;
-            gap_manip.radial_extend = false;
+            gap_manip.radial_extend = true;
             gap_manip.axial_convert = true;
             gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
