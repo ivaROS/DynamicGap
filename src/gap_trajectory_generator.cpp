@@ -10,8 +10,8 @@ namespace dynamic_gap{
             // return geometry_msgs::PoseArray();
             geometry_msgs::PoseArray posearr;
             std::vector<double> timearr;
+            double gen_traj_start_time = ros::Time::now().toSec();
             posearr.header.stamp = ros::Time::now();
-            double start_time = ros::Time::now().toSec();
             double coefs = cfg_->traj.scale;
             write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
@@ -178,6 +178,7 @@ namespace dynamic_gap{
             
             double left_weight, right_weight;
             // THIS IS BUILT WITH EXTENDED POINTS. 
+            double start_time = ros::Time::now().toSec();
             buildBezierCurve(left_curve, right_curve, all_curve_pts, 
                              left_curve_inward_norm, right_curve_inward_norm, 
                              all_inward_norms, left_right_centers, all_centers,
@@ -185,7 +186,7 @@ namespace dynamic_gap{
                              left_pt_0, left_pt_1, right_pt_0, right_pt_1, 
                              gap_radial_extension, goal_pt_1, left_weight, right_weight, num_curve_points, num_qB_points, 
                              init_rbt_pos, left_bezier_origin, right_bezier_origin);
-
+            ROS_INFO_STREAM("buildBezierCurve time elapsed: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
             selectedGap.left_weight = left_weight;
             selectedGap.right_weight = right_weight;
@@ -207,10 +208,12 @@ namespace dynamic_gap{
                                                     cfg_->control.vx_absmax, a_lin_max, num_curve_points, num_qB_points,
                                                     all_curve_pts, all_centers, all_inward_norms, 
                                                     left_weight, right_weight, selectedGap.gap_lifespan);   
-
+            
+            start_time = ros::Time::now().toSec();
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, 
                                                     cfg_->traj.integrate_stept, corder);
+            ROS_INFO_STREAM("integration time elapsed: " << (ros::Time::now().toSec() - start_time));
 
             /*
             if (selectedGap.mode.convex) {
@@ -222,7 +225,7 @@ namespace dynamic_gap{
             */
 
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - start_time);
+            ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - gen_traj_start_time);
             return return_tuple;
             
         } catch (...) {
@@ -252,6 +255,8 @@ namespace dynamic_gap{
                                             Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
                                             double num_curve_points, double num_qB_points, Eigen::Vector2d init_rbt_pos,
                                             Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin) {  
+        
+        /*
         ROS_INFO_STREAM("building bezier curve");
         ROS_INFO_STREAM("gap_radial_extension: " << gap_radial_extension[0] << ", " << gap_radial_extension[1]);
         ROS_INFO_STREAM("init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
@@ -267,16 +272,16 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("right_vel: " << nonrel_right_vel[0] << ", " << nonrel_right_vel[1]);
 
         ROS_INFO_STREAM("nom_vel: " << nom_vel[0] << ", " << nom_vel[1]);
-
+        */
         left_weight = nonrel_left_vel.norm() / nom_vel.norm(); // capped at 1, we can scale down towards 0 until initial constraints are met?
         right_weight = nonrel_right_vel.norm() / nom_vel.norm();
 
         Eigen::Vector2d weighted_left_pt_0 = left_bezier_origin + left_weight * (left_pt_0 - left_bezier_origin);
         Eigen::Vector2d weighted_right_pt_0 = right_bezier_origin + right_weight * (right_pt_0 - right_bezier_origin);
-
+        /*
         ROS_INFO_STREAM("weighted_left_pt_0: " << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1]);
         ROS_INFO_STREAM("weighted_right_pt_0: " << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1]);
-
+        */
         Eigen::Matrix2d rpi2, neg_rpi2;
         double rot_val = M_PI/2;
         double s;
