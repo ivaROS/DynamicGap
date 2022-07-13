@@ -206,6 +206,7 @@ namespace dynamic_gap
 
         previous_raw_gaps = associated_raw_gaps;
         raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
+        ROS_INFO_STREAM("post hybridScanGap, raw_gaps size: " << raw_gaps.size());
         // associated_raw_gaps = raw_gaps;
         
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
@@ -988,8 +989,8 @@ namespace dynamic_gap
         //std::cout << "pulled current simplified associations:" << std::endl;
         //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
         
-        // ROS_INFO_STREAM("current raw gaps:");
-        // printGapModels(curr_raw_gaps);
+        ROS_INFO_STREAM("current raw gaps:");
+        printGapModels(curr_raw_gaps);
 
         ROS_INFO_STREAM("current simplified gaps:");
         printGapModels(curr_observed_gaps);
@@ -1014,29 +1015,30 @@ namespace dynamic_gap
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         double getPlan_start_time = ros::WallTime::now().toSec();
 
-        // ROS_INFO_STREAM("starting gapSetFeasibilityCheck");        
+        // ROS_INFO_STREAM("starting gapSetFeasibilityCheck");  
+        // double start_time = ros::WallTime::now().toSec();      
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
-        // ROS_INFO_STREAM("time elapsed after gapSetFeasibilityCheck: " << ros::WallTime::now().toSec() - getPlan_start_time);
+        // int gaps_size = feasible_gap_set.size();
+        // ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        // ROS_INFO_STREAM("starting gapManipulate");        
+        // start_time = ros::WallTime::now().toSec();
         auto manip_gap_set = gapManipulate(feasible_gap_set);
+        // ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        // ROS_INFO_STREAM("time elapsed after gapManipulate: " << ros::WallTime::now().toSec() - getPlan_start_time);
-
-        // ROS_INFO_STREAM("starting initialTrajGen");
+        // start_time = ros::WallTime::now().toSec();
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
+        // ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;
         // ROS_INFO_STREAM("time elapsed during initialTrajGen: " << ros::WallTime::now().toSec() - start_time);
 
-        // ROS_INFO_STREAM("starting pickTraj");
         // start_time = ros::WallTime::now().toSec();
         auto traj_idx = pickTraj(traj_set, score_set);
-        // ROS_INFO_STREAM("time elapsed after pickTraj: " << ros::WallTime::now().toSec() - getPlan_start_time);
-        // ROS_INFO_STREAM("PICK TRAJ");
+        // ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+
 
         geometry_msgs::PoseArray chosen_traj;
         std::vector<double> chosen_time_arr;
@@ -1049,12 +1051,12 @@ namespace dynamic_gap
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
         }
-        // ROS_INFO_STREAM("starting compareToOldTraj");
+
         // start_time = ros::WallTime::now().toSec();
         auto final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
-        // ROS_INFO_STREAM("compareToOldTraj time elapsed: " << ros::WallTime::now().toSec() - start_time);                
+        // ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
         
-        // ROS_INFO_STREAM("getPlan time elapsed: " << ros::WallTime::now().toSec() - getPlan_start_time);
+        // ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
         return final_traj;
     }
 

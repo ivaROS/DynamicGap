@@ -11,7 +11,7 @@ namespace dynamic_gap {
 
     std::vector<dynamic_gap::Gap> GapUtils::hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, geometry_msgs::PoseStamped final_goal_rbt)
     {
-        //std::cout << "running hybridScanGap" << std::endl;
+        // ROS_INFO_STREAM("running hybridScanGap");
         // clear gaps
         double start_time = ros::Time::now().toSec();
         std::vector<dynamic_gap::Gap> raw_gaps;
@@ -40,9 +40,9 @@ namespace dynamic_gap {
         for (std::vector<float>::size_type it = 1; it < stored_scan_msgs.ranges.size(); ++it)
         {
             scan_dist = stored_scan_msgs.ranges[it];
+            // ROS_INFO_STREAM("iter: " << it << ", dist: " << scan_dist);
             // difference in distance between current and previous rays
             scan_diff = scan_dist - last_scan;
-            
             // Arbitrary small threshold for a range difference to be considered
             if (std::abs(scan_diff) > 0.2) 
             {
@@ -70,6 +70,7 @@ namespace dynamic_gap {
                 // Signals the ending of a gap
                 if (prev_lgap)
                 {
+                    // ROS_INFO_STREAM("gap ending: infinity to finite");
                     prev_lgap = false;
                     dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan);
                     detected_gap.addLeftInformation(it, scan_dist);
@@ -77,13 +78,15 @@ namespace dynamic_gap {
                     //std::cout << "candidate swept gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
+                    // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
+                    if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
                         //std::cout << "adding candidate swept gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
                 }
                 else // signals the beginning of a gap
                 {
+                    // ROS_INFO_STREAM("gap starting: finite to infinity");
                     gap_ridx = it - 1;
                     gap_rdist = last_scan;
                     prev_lgap = true;
@@ -95,15 +98,20 @@ namespace dynamic_gap {
         // Catch the last gap (could be in the middle of a swept gap but laser scan ends)
         if (prev_lgap) 
         {
-            //std::cout << "catching last gap" << std::endl;
+            // ROS_INFO_STREAM("catching last gap");
             dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan);
             int last_scan_idx = stored_scan_msgs.ranges.size() - 1;
             double last_scan_dist = *(stored_scan_msgs.ranges.end() - 1);
             detected_gap.addLeftInformation(last_scan_idx, last_scan_dist);
+            // ROS_INFO_STREAM("gap_ridx: " << gap_ridx << ", gap_rdist: " << gap_rdist);
+            // ROS_INFO_STREAM("last_scan_idx: " << last_scan_idx << ", last_scan_dist: " << last_scan_dist);
             detected_gap.setMinSafeDist(min_dist);
+            // ROS_INFO_STREAM("lidx: " << detected_gap.LIdx() << ", ridx: " << detected_gap.RIdx());
+            float gap_dist_side = detected_gap.get_dist_side();
+            // ROS_INFO_STREAM("gap side dist: " << gap_dist_side);
             //std::cout << "candidate last gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
-            if (detected_gap.LIdx() - detected_gap.RIdx() > 500 || detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr) {
-                //std::cout << "adding candidate last gap" << std::endl;
+            if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || gap_dist_side > 4 * cfg_->rbt.r_inscr) {
+                // ROS_INFO_STREAM("adding candidate last gap");
                 raw_gaps.push_back(detected_gap);
             }
         }
@@ -111,6 +119,7 @@ namespace dynamic_gap {
         // Bridge the last gap around
         if (raw_gaps.size() > 1)
         {
+            // ROS_INFO_STREAM("bridging");
             int last_raw_gap_idx = raw_gaps.size() - 1;
             //std::cout << "checking: " << raw_gaps[0].RIdx() << " and " << raw_gaps[raw_gaps.size() - 1].LIdx() << std::endl;
             if (raw_gaps[0].RIdx() == 0 && raw_gaps[last_raw_gap_idx].LIdx() == (stored_scan_msgs.ranges.size() - 1)) // Magic number?
@@ -151,7 +160,7 @@ namespace dynamic_gap {
             
             double final_goal_idx_double = (final_goal_theta + M_PI) / stored_scan_msgs.angle_increment;
             int final_goal_idx = int(std::floor(final_goal_idx_double));
-            ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
+            // ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
             double scan_dist = stored_scan_msgs.ranges.at(final_goal_idx);
             
             if (final_goal_dist < scan_dist) {

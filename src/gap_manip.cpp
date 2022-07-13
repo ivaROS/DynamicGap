@@ -177,10 +177,10 @@ namespace dynamic_gap {
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
         double local_goal_idx = std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
         ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
-        bool goal_in_range = goal_within(local_goal_idx, ridx, lidx, int(2*half_num_scan)); // is localgoal within gap angle
+        bool goal_within_gap_angle = goal_within(local_goal_idx, ridx, lidx, int(2*half_num_scan)); // is localgoal within gap angle
         // ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
         
-        if (goal_in_range) {
+        if (goal_within_gap_angle) {
             bool goal_vis = checkGoalVisibility(localgoal, theta_r, theta_l, rdist, ldist, stored_scan_msgs); // is localgoal within gap range
             if (goal_vis) {
                 ROS_INFO_STREAM("Option 2: local goal");

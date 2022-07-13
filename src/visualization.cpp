@@ -168,7 +168,7 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("in drawReachableGap");
 
         float num_curve_points = 25.0;
-        float num_qB_points = 5.0;
+        float num_qB_points = (cfg_->gap_manip.radial_extend) ? 5.0 : 0.0;
         float half_num_scan = g.half_scan;
 
         Eigen::Vector2f left_gap_origin(g.left_bezier_origin[0],       

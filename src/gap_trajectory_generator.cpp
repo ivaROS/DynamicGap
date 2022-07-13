@@ -162,7 +162,7 @@ namespace dynamic_gap{
                                                 selectedGap.right_bezer_origin[1]);
 
             int num_curve_points = 25;
-            int num_qB_points = 5;
+            int num_qB_points = (cfg_->gap_manip.radial_extend) ? 5 : 0;
 
             Eigen::MatrixXd left_curve(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve(num_curve_points + num_qB_points, 2);
