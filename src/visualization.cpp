@@ -167,7 +167,7 @@ namespace dynamic_gap{
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
         // ROS_INFO_STREAM("in drawReachableGap");
 
-        float num_curve_points = 25.0;
+        float num_curve_points = 10.0;
         float num_qB_points = (cfg_->gap_manip.radial_extend) ? 5.0 : 0.0;
         float half_num_scan = g.half_scan;
 

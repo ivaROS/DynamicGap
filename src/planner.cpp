@@ -1014,22 +1014,22 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
         double getPlan_start_time = ros::WallTime::now().toSec();
+        double start_time = ros::WallTime::now().toSec();      
 
         // ROS_INFO_STREAM("starting gapSetFeasibilityCheck");  
-        // double start_time = ros::WallTime::now().toSec();      
         std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
-        // int gaps_size = feasible_gap_set.size();
+        int gaps_size = feasible_gap_set.size();
         // ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         // start_time = ros::WallTime::now().toSec();
         auto manip_gap_set = gapManipulate(feasible_gap_set);
         // ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        // start_time = ros::WallTime::now().toSec();
+        start_time = ros::WallTime::now().toSec();
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
-        // ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;

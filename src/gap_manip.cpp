@@ -879,7 +879,7 @@ namespace dynamic_gap {
         float new_L_to_R_angle = getLeftToRightAngle(new_left_norm_vect_robot, new_right_norm_vect_robot);
         ROS_INFO_STREAM("new_L_to_R_angle: " << new_L_to_R_angle);
 
-        sensor_msgs::LaserScan stored_scan_msgs = initial ? *msg.get() : dynamic_scan;
+        sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_scan;
         int new_r_idx, new_l_idx;
         float range_l_p, range_r_p;
         if (new_L_to_R_angle < 0) {
