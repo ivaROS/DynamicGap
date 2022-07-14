@@ -46,6 +46,9 @@ namespace dynamic_gap
             void drawReachableGaps(std::vector<dynamic_gap::Gap> g);
             void drawReachableGapsCenters(std::vector<dynamic_gap::Gap> g);
             void drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
+            void drawGapSplines(std::vector<dynamic_gap::Gap> g);
+            void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
+
 
 
         private:
@@ -57,6 +60,7 @@ namespace dynamic_gap
             ros::Publisher gapmodel_vel_publisher;
             ros::Publisher reachable_gap_publisher;     
             ros::Publisher reachable_gap_centers_publisher;
+            ros::Publisher gap_spline_publisher;
 
             int prev_num_gaps;  
             int prev_num_manip_gaps;

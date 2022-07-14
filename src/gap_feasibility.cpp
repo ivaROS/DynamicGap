@@ -128,9 +128,13 @@ namespace dynamic_gap {
         //std::cout << "A_x: " << A_x << std::endl;
         b_x << starting_pos[0], starting_vel[0], crossing_pt[0], ending_vel[0];
         //std::cout << "b_x: " << b_x << std::endl;
-        Eigen::Vector4f coeffs = A_x.partialPivLu().solve(b_x);
+        gap.spline_x_coefs = A_x.partialPivLu().solve(b_x);
+
         // std::cout << "x coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
-        double peak_velocity_x = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
+        double peak_velocity_time = crossing_time/2.0;
+        double peak_velocity_x = 3*gap.spline_x_coefs[3]*pow(peak_velocity_time, 2) + 
+                                 2*gap.spline_x_coefs[2]*peak_velocity_time + 
+                                 gap.spline_x_coefs[1];
         /*
         double vel_x;
         for (double t = 0.0; t < crossing_time; t += (crossing_time / 15)) {
@@ -149,9 +153,11 @@ namespace dynamic_gap {
         //std::cout << "A_y: " << A_y << std::endl;
         //std::cout << "b_y: " << b_y << std::endl;
         
-        coeffs = A_y.partialPivLu().solve(b_y);
+        gap.spline_y_coefs = A_y.partialPivLu().solve(b_y);
         //std::cout << "y coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
-        double peak_velocity_y = 3*coeffs[3]*pow(crossing_time/2.0, 2) + 2*coeffs[2]*crossing_time/2.0 + coeffs[1];
+        double peak_velocity_y = 3*gap.spline_y_coefs[3]*pow(peak_velocity_time, 2) + 
+                                 2*gap.spline_y_coefs[2]*peak_velocity_time + 
+                                 gap.spline_y_coefs[1];
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
         /*

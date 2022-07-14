@@ -12,6 +12,7 @@ namespace dynamic_gap{
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
         reachable_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
         reachable_gap_centers_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
+        gap_spline_publisher = nh.advertise<visualization_msgs::MarkerArray>("gap_splines", 10);
 
         gapmodel_pos_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
         gapmodel_vel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
@@ -33,6 +34,7 @@ namespace dynamic_gap{
         std::vector<std_msgs::ColorRGBA> manip_initial;
         std::vector<std_msgs::ColorRGBA> manip_terminal;
         std::vector<std_msgs::ColorRGBA> reachable_gap_centers;
+        std::vector<std_msgs::ColorRGBA> gap_splines;
 
         prev_num_gaps = 0;
         prev_num_reachable_gaps = 0;
@@ -146,7 +148,12 @@ namespace dynamic_gap{
         std_color.b = 0;
         reachable_gap_centers.push_back(std_color);
         reachable_gap_centers.push_back(std_color);
-        
+
+        std_color.r = 0.8;
+        std_color.g = 1;
+        std_color.b = 0;
+        gap_splines.push_back(std_color);
+        gap_splines.push_back(std_color);        
 
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw", raw));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_expanding", simp_expanding));
@@ -161,8 +168,102 @@ namespace dynamic_gap{
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_initial", manip_initial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_terminal", manip_terminal));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("reachable_gap_centers", reachable_gap_centers));
+        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("gap_splines", gap_splines));
 
     }
+
+    void GapVisualizer::drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
+
+        // discretize gap lifespan
+
+        // plug in x/y coefficients to get list of points
+
+        visualization_msgs::Marker this_marker;
+        this_marker.header.frame_id = g._frame;
+        this_marker.header.stamp = ros::Time();
+        this_marker.ns = "gap_splines";
+        this_marker.type = visualization_msgs::Marker::LINE_STRIP;
+        this_marker.action = visualization_msgs::Marker::ADD;
+
+        auto color_value = colormap.find("gap_splines");
+        if (color_value == colormap.end()) {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }        
+
+        this_marker.colors = color_value->second;
+        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        this_marker.scale.x = thickness;
+        this_marker.scale.y = 0.1;
+        this_marker.scale.z = 0.1;
+
+        geometry_msgs::Point line;
+        line.z = 0.0005;
+
+        std::vector<geometry_msgs::Point> lines;
+        int id = (int) vis_arr.markers.size();
+        this_marker.lifetime = ros::Duration(100.0);
+
+        double num_spline_pts = 15.0;
+        double t, x, y;
+        for (int i = 0.0; i < (num_spline_pts - 1); i++) {            
+            lines.clear();  
+
+            t = (i / num_spline_pts) * g.gap_lifespan;
+            x = g.spline_x_coefs[3] * pow(t, 3) + 
+                       g.spline_x_coefs[2] * pow(t, 2) + 
+                       g.spline_x_coefs[1] * t +
+                       g.spline_x_coefs[0];
+            y = g.spline_y_coefs[3] * pow(t, 3) + 
+                       g.spline_y_coefs[2] * pow(t, 2) + 
+                       g.spline_y_coefs[1] * t +
+                       g.spline_y_coefs[0];
+            
+            line.x = x;
+            line.y = y;
+            lines.push_back(line);
+
+            t = ((i + 1) / num_spline_pts) * g.gap_lifespan;
+            x = g.spline_x_coefs[3] * pow(t, 3) + 
+                       g.spline_x_coefs[2] * pow(t, 2) + 
+                       g.spline_x_coefs[1] * t +
+                       g.spline_x_coefs[0];
+            y = g.spline_y_coefs[3] * pow(t, 3) + 
+                       g.spline_y_coefs[2] * pow(t, 2) + 
+                       g.spline_y_coefs[1] * t +
+                       g.spline_y_coefs[0];            
+            line.x = x;
+            line.y = y;
+            lines.push_back(line);
+
+            this_marker.points = lines;
+            this_marker.id = id++;
+            vis_arr.markers.push_back(this_marker);
+        }
+    }
+
+
+    void GapVisualizer::drawGapSplines(std::vector<dynamic_gap::Gap> g) {
+        if (!cfg_->gap_viz.debug_viz) return;
+        
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clear_arr;
+        visualization_msgs::Marker clear_marker;
+        clear_marker.id = 0;
+        clear_marker.ns = "clear";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        clear_arr.markers.push_back(clear_marker);
+        gap_spline_publisher.publish(clear_arr);
+        
+        visualization_msgs::MarkerArray vis_arr;
+        for (auto gap : g) {
+            if (gap.gap_crossed || gap.gap_closed) {
+                drawGapSpline(vis_arr, gap);
+            }
+        }
+        gap_spline_publisher.publish(vis_arr);
+    }
+
 
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
         // ROS_INFO_STREAM("in drawReachableGap");
