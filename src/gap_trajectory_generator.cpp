@@ -20,27 +20,26 @@ namespace dynamic_gap{
                                   curr_vel.linear.x, curr_vel.linear.y);
 
             // get gap points in cartesian
-            float x_r, x_l, y_r, y_l;
-            float half_num_scan = selectedGap.half_scan;
-            x_l = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y_l = selectedGap.cvx_LDist() * sin(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            x_r = selectedGap.cvx_RDist() * cos(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            y_r = selectedGap.cvx_RDist() * sin(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            float x_right, x_left, y_right, y_left;
+            x_left = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_left = selectedGap.cvx_LDist() * sin(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            x_right = selectedGap.cvx_RDist() * cos(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            y_right = selectedGap.cvx_RDist() * sin(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
 
-            float term_x_r, term_x_l, term_y_r, term_y_l;
-            term_x_l = selectedGap.cvx_term_LDist() * cos(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y_l = selectedGap.cvx_term_LDist() * sin(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_x_r = selectedGap.cvx_term_RDist() * cos(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            term_y_r = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            float term_x_right, term_x_left, term_y_right, term_y_left;
+            term_x_left = selectedGap.cvx_term_LDist() * cos(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_left = selectedGap.cvx_term_LDist() * sin(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_x_right = selectedGap.cvx_term_RDist() * cos(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            term_y_right = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
 
             if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
                             0.0, 0.0, 0.0, 0.0,
                             0.0, 0.0, 0.0,0.0,
-                            selectedGap.goal.x * coefs, selectedGap.goal.y * coefs};
+                            selectedGap.goal.x, selectedGap.goal.y};
                 // ROS_INFO_STREAM("Goal to Goal");
-                g2g inte_g2g(selectedGap.goal.x * coefs, selectedGap.goal.y * coefs,
-                             selectedGap.terminal_goal.x * coefs, selectedGap.terminal_goal.y * coefs,
+                g2g inte_g2g(selectedGap.goal.x, selectedGap.goal.y,
+                             selectedGap.terminal_goal.x, selectedGap.terminal_goal.y,
                              selectedGap.gap_lifespan, cfg_->control.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                 inte_g2g, x, 0.0,
@@ -78,22 +77,11 @@ namespace dynamic_gap{
             }
             */
 
-            float x_left, y_left, x_right, y_right;
-            x_left = x_l*coefs;
-            y_left = y_l*coefs;
-            x_right = x_r*coefs;
-            y_right = y_r*coefs;
-            float term_x_left, term_y_left, term_x_right, term_y_right;
-            term_x_left = term_x_l*coefs;
-            term_y_left = term_y_l*coefs;
-            term_x_right = term_x_r*coefs;
-            term_y_right = term_y_r*coefs;
-
             double initial_goal_x, initial_goal_y, terminal_goal_x, terminal_goal_y;
-            initial_goal_x = initial_goal[0] * coefs;
-            initial_goal_y = initial_goal[1] * coefs;
-            terminal_goal_x = terminal_goal[0] * coefs;
-            terminal_goal_y = terminal_goal[1] * coefs;
+            initial_goal_x = initial_goal[0];
+            initial_goal_y = initial_goal[1];
+            terminal_goal_x = terminal_goal[0];
+            terminal_goal_y = terminal_goal[1];
 
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
@@ -105,28 +93,11 @@ namespace dynamic_gap{
             ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
             ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
 
-            double left_vel_x = ((term_x_left - x_left) / selectedGap.gap_lifespan);
-            double left_vel_y = ((term_y_left - y_left) / selectedGap.gap_lifespan);
+            double left_vel_x = (term_x_left - x_left) / selectedGap.gap_lifespan;
+            double left_vel_y = (term_y_left - y_left) / selectedGap.gap_lifespan;
 
-            double right_vel_x = ((term_x_right - x_right) / selectedGap.gap_lifespan);
-            double right_vel_y = ((term_y_right - y_right) / selectedGap.gap_lifespan);
-
-            Eigen::Vector4d manip_left_cart_state(x_left - ego_x[0], 
-                                                y_left - ego_x[1],
-                                                left_vel_x - curr_vel.linear.x,
-                                                left_vel_y - curr_vel.linear.y);
-            Eigen::Vector4d manip_right_cart_state(x_right - ego_x[0],
-                                                y_right - ego_x[1],
-                                                right_vel_x - curr_vel.linear.x,
-                                                right_vel_y - curr_vel.linear.y);
-            //std::cout << "manipulated left cartesian model: " << manip_left_cart_state[0] << ", " << manip_left_cart_state[1] << ", " << manip_left_cart_state[2] << ", " << manip_left_cart_state[3] << std::endl;
-            //std::cout << "manipulated right cartesian model: " << manip_right_cart_state[0] << ", " << manip_right_cart_state[1] << ", " << manip_right_cart_state[2] << ", " << manip_right_cart_state[3] << std::endl;
-
-            Matrix<double, 5, 1> manip_left_polar_state = cartesian_to_polar(manip_left_cart_state);
-            Matrix<double, 5, 1> manip_right_polar_state = cartesian_to_polar(manip_right_cart_state);
-
-            //std::cout << "manipulated left polar model: " << manip_left_polar_state[0] << ", " << std::atan2(manip_left_polar_state[1], manip_left_polar_state[2]) << ", " << manip_left_polar_state[3] << ", " << manip_left_polar_state[4] << std::endl;
-            //std::cout << "manipulated right polar model: " << manip_right_polar_state[0] << ", " << std::atan2(manip_right_polar_state[1], manip_right_polar_state[2]) << ", " << manip_right_polar_state[3] << ", " << manip_right_polar_state[4] << std::endl;
+            double right_vel_x = (term_x_right - x_right) / selectedGap.gap_lifespan;
+            double right_vel_y = (term_y_right - y_right) / selectedGap.gap_lifespan;
 
             state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
                             x_left, y_left, left_vel_x, left_vel_y,
@@ -140,9 +111,7 @@ namespace dynamic_gap{
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
                 return return_tuple;
             }
-            
-            double a_lin_max = 1.5;      
-                        
+                      
             Eigen::Vector2d init_rbt_pos(x[0], x[1]);
             Eigen::Vector2d left_pt_0(x_left, y_left);
             Eigen::Vector2d left_pt_1(term_x_left, term_y_left);
@@ -150,10 +119,9 @@ namespace dynamic_gap{
             Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
             Eigen::Vector2d nonrel_left_vel(left_vel_x, left_vel_y);
             Eigen::Vector2d nonrel_right_vel(right_vel_x, right_vel_y);
-            Eigen::Vector2d rel_left_vel(manip_left_cart_state[2], manip_left_cart_state[3]);
-            Eigen::Vector2d rel_right_vel(manip_right_cart_state[2], manip_right_cart_state[3]);
 
             Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
+            Eigen::Vector2d nom_acc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
             Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
             Eigen::Vector2d gap_radial_extension(qB[0], qB[1]);
             Eigen::Vector2d left_bezier_origin(selectedGap.left_bezier_origin[0],
@@ -161,8 +129,8 @@ namespace dynamic_gap{
             Eigen::Vector2d right_bezier_origin(selectedGap.right_bezer_origin[0],
                                                 selectedGap.right_bezer_origin[1]);
 
-            int num_curve_points = 10;
-            int num_qB_points = (cfg_->gap_manip.radial_extend) ? 5 : 0;
+            int num_curve_points = cfg_->traj.num_curve_points;
+            int num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
 
             Eigen::MatrixXd left_curve(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve(num_curve_points + num_qB_points, 2);            
@@ -171,7 +139,6 @@ namespace dynamic_gap{
             Eigen::MatrixXd left_curve_vel(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_vel(num_curve_points + num_qB_points, 2);
             
-
             Eigen::MatrixXd left_curve_inward_norm(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_inward_norm(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd all_inward_norms(2*(num_curve_points + num_qB_points), 2);
@@ -197,20 +164,9 @@ namespace dynamic_gap{
             selectedGap.right_weight = right_weight;
             selectedGap.left_right_centers = left_right_centers;
             selectedGap.all_curve_pts = all_curve_pts;
-            /*  
-            g2g inte_g2g(selectedGap.goal.x * coefs, selectedGap.goal.y * coefs,
-                             selectedGap.terminal_goal.x * coefs, selectedGap.terminal_goal.y * coefs,
-                             selectedGap.gap_lifespan, cfg_->control.vx_absmax);
-            
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-            inte_g2g, x, 0.0,
-            cfg_->traj.integrate_maxt,
-            cfg_->traj.integrate_stept,
-            corder);
-            */
 
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
-                                                    cfg_->control.vx_absmax, a_lin_max, num_curve_points, num_qB_points,
+                                                    cfg_->control.vx_absmax, nom_acc, num_curve_points, num_qB_points,
                                                     all_curve_pts, all_centers, all_inward_norms, 
                                                     left_weight, right_weight, selectedGap.gap_lifespan);   
             

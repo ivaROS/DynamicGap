@@ -48,6 +48,9 @@ namespace dynamic_gap {
         nh.param("vx_absmax",control.vx_absmax, control.vx_absmax);
         nh.param("vy_absmax",control.vy_absmax, control.vy_absmax);
         nh.param("vang_absmax", control.vang_absmax, control.vang_absmax);
+        nh.param("ax_absmax",control.ax_absmax, control.ax_absmax);
+        nh.param("ay_absmax",control.ay_absmax, control.ay_absmax);
+        nh.param("aang_absmax", control.aang_absmax, control.aang_absmax);
 
         // Projection Params
         nh.param("k_po", projection.k_po, projection.k_po);
@@ -84,7 +87,9 @@ namespace dynamic_gap {
         nh.param("inf_ratio", traj.inf_ratio, traj.inf_ratio);
         nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
         nh.param("waypoint_ratio", traj.waypoint_ratio, traj.waypoint_ratio);
-        
+        nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
+        nh.param("num_qB_points", traj.num_qB_points, traj.num_qB_points);
+
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
         nh.param("num_obsts", rbt.num_obsts, rbt.num_obsts);
@@ -130,6 +135,9 @@ namespace dynamic_gap {
         control.vx_absmax = cfg.vx_absmax;
         control.vy_absmax = cfg.vy_absmax;
         control.vang_absmax = cfg.vang_absmax;
+        control.ax_absmax = cfg.ax_absmax;
+        control.ay_absmax = cfg.ay_absmax;
+        control.aang_absmax = cfg.aang_absmax;
 
         // Projection Params
         projection.k_po = cfg.k_po;
@@ -166,7 +174,9 @@ namespace dynamic_gap {
         traj.inf_ratio = cfg.inf_ratio;
         traj.terminal_weight = cfg.terminal_weight;
         traj.waypoint_ratio = cfg.waypoint_ratio;
-
+        traj.num_curve_points = cfg.num_curve_points;
+        traj.num_qB_points = cfg.num_qB_points;
+        
         man.man_ctrl = cfg.man_ctrl;
         man.man_x = cfg.man_x;
         man.man_y = cfg.man_y;

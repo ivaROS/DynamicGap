@@ -26,23 +26,15 @@ namespace dynamic_gap
             return true;
         }
 
-        // std::vector<int> association;
-
         // Config Setup
         cfg.loadRosParamFromNodeHandle(unh);
 
         // Visualization Setup
-        // Fix this later
         local_traj_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_traj", 1);
         trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("pg_traj", 1);
-        // gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("gaps", 1);
-        // selected_gap_vis_pub = nh.advertise<visualization_msgs::MarkerArray>("sel_gaps", 1);
         dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 1);
 
-        //std::cout << "ROBOT FRAME ID: " << cfg.robot_frame_id << std::endl;
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 1, &Planner::robotAccCB, this);
-
-        // agent_vel_sub = nh.subscribe("robot0/odom", 100, &Planner::agentOdomCB, this);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -94,7 +86,6 @@ namespace dynamic_gap
 
         final_goal_rbt = geometry_msgs::PoseStamped();
         num_obsts = cfg.rbt.num_obsts;
-        ROS_INFO_STREAM("num_obsts: " << num_obsts);
 
         agent_odoms = std::vector<geometry_msgs::Pose>(num_obsts);
         agent_vels = std::vector<geometry_msgs::Vector3Stamped>(num_obsts);
@@ -147,6 +138,9 @@ namespace dynamic_gap
         sharedPtr_inflatedlaser = msg;
     }
 
+    /*
+    Acceleration message comes in in robot frame 
+    */
     void Planner::robotAccCB(boost::shared_ptr<geometry_msgs::Twist const> msg)
     {
         rbt_accel = *msg;
@@ -163,16 +157,10 @@ namespace dynamic_gap
         */
     }
 
-    /*
-    void Planner::robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg) {
-        current_rbt_vel = *msg;
-        // std::cout << "from STDR, vel in robot frame: " << msg->linear.x << ", " << msg->linear.y << std::endl;
-    }
-    */
-
     // running at point_scan rate which is around 8-9 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
+        boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
         curr_timestamp = msg.get()->header.stamp;
         // ROS_INFO_STREAM("laserscanCB time stamp difference: " << (curr_timestamp - prev_timestamp).toSec());
         prev_timestamp = curr_timestamp;
@@ -186,20 +174,10 @@ namespace dynamic_gap
             msg = sharedPtr_inflatedlaser;
         }
 
-
-        // try {
-        // ROS_INFO_STREAM("Time elapsed before scoped_lock: " << (ros::WallTime::now().toSec() - start_time));
-        boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
-        //  ROS_INFO_STREAM("Time elapsed after scoped_lock: " << (ros::WallTime::now().toSec() - start_time));
-
-        Matrix<double, 1, 3> rbt_vel_t(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-        Matrix<double, 1, 3> rbt_acc_t(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
-
+        Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+        Matrix<double, 1, 3> a_ego(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
         //Matrix<double, 1, 3> rbt_vel_tmin1(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
         //Matrix<double, 1, 3> rbt_acc_tmin1(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
-
-        Matrix<double, 1, 3> v_ego = rbt_vel_t;
-        Matrix<double, 1, 3> a_ego = rbt_acc_t;
 
         // ROS_INFO_STREAM("RAW GAP ASSOCIATING");
         // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
@@ -293,17 +271,8 @@ namespace dynamic_gap
         double beta_tilde = std::atan2(range_vector_rbt_frame.vector.y, range_vector_rbt_frame.vector.x);
 		double range_tilde = std::sqrt(std::pow(range_vector_rbt_frame.vector.x, 2) + pow(range_vector_rbt_frame.vector.y, 2));
 		
-		Matrix<double, 2, 1> laserscan_measurement;
-		laserscan_measurement << range_tilde, 
-				                 beta_tilde;
-        // std::cout << "y_tilde: " << y_tilde << std::endl;
+		Matrix<double, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
 
-        sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        // bool gap_bridged = (_observed_gaps[0].RIdx() == 0 && _observed_gaps[_observed_gaps.size() - 1].LIdx() == (stored_scan_msgs.ranges.size() - 1));
-        // bool bridge_model = gap_bridged && (i == 0 || i == 2*_observed_gaps.size() - 1);
-
-
-        // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
             g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
@@ -317,7 +286,7 @@ namespace dynamic_gap
     std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
         
-        double start_time = ros::WallTime::now().toSec();
+        // double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
             update_model(i, associated_observed_gaps, _v_ego, _a_ego, print);
@@ -480,9 +449,7 @@ namespace dynamic_gap
 
     std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
-        std::vector<dynamic_gap::Gap> manip_set;
-        manip_set = _observed_gaps;
-
+        std::vector<dynamic_gap::Gap> manip_set = _observed_gaps;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
 
         // we want to change the models in here

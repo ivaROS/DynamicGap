@@ -5,11 +5,19 @@ namespace dynamic_gap {
         boost::mutex::scoped_lock lock(egolock);
         msg = msg_;
         num_of_scan = (int)(msg.get()->ranges.size());
+        half_num_scan = num_of_scan / 2;
+        angle_min = static_msg.get()->angle_min;
+        angle_increment = static_msg.get()->angle_increment;
     }
 
     void GapManipulator::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
         boost::mutex::scoped_lock lock(egolock);
         static_msg = msg_;
+        num_of_scan = (int)(static_msg.get()->ranges.size());
+        half_num_scan = num_of_scan / 2;
+
+        angle_min = static_msg.get()->angle_min;
+        angle_increment = static_msg.get()->angle_increment;
     }
 
     void GapManipulator::updateDynamicEgoCircle(std::vector<dynamic_gap::Gap> curr_raw_gaps, 
@@ -21,6 +29,7 @@ namespace dynamic_gap {
         double t_i = 0.0;
         double t_iplus1 = gap.gap_lifespan;
         /*
+
         std::vector<dynamic_gap::cart_model *> raw_models;
         for (auto gap : curr_raw_gaps) {
             raw_models.push_back(gap.left_model);
@@ -77,7 +86,6 @@ namespace dynamic_gap {
 
     void GapManipulator::setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan){
         ROS_INFO_STREAM( "~running setGapWaypoint");
-        auto half_num_scan = gap.half_scan;
 
         int ridx = initial ? gap.cvx_RIdx() : gap.cvx_term_RIdx();
         int lidx = initial ? gap.cvx_LIdx() : gap.cvx_term_LIdx();
@@ -85,18 +93,21 @@ namespace dynamic_gap {
         float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
 
         float x_r, x_l, y_r, y_l;
-        x_l = (ldist) * cos(-((float) half_num_scan - lidx) / half_num_scan * M_PI);
-        y_l = (ldist) * sin(-((float) half_num_scan - lidx) / half_num_scan * M_PI);
-        x_r = (rdist) * cos(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
-        y_r = (rdist) * sin(-((float) half_num_scan - ridx) / half_num_scan * M_PI);
+        float theta_left = ((float) lidx - half_num_scan) * M_PI / half_num_scan;
+        float theta_right = ((float) ridx - half_num_scan) * M_PI / half_num_scan;
+
+        x_l = (ldist) * cos(theta_left);
+        y_l = (ldist) * sin(theta_left);
+        x_r = (rdist) * cos(theta_right);
+        y_r = (rdist) * sin(theta_right);
 
         Eigen::Vector2f pt_r(x_r, y_r);
         Eigen::Vector2f pt_l(x_l, y_l);
 
         // auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
-        auto theta_l = std::atan2(pt_l[1], pt_l[0]);
+        // auto theta_l = std::atan2(pt_l[1], pt_l[0]);
         // auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl; // why are we doing this? we are inflating already.
-        auto theta_r = std::atan2(pt_r[1], pt_r[0]);
+        // auto theta_r = std::atan2(pt_r[1], pt_r[0]);
 
         ROS_INFO_STREAM("gap index/dist, left: (" << lidx << ", " << ldist << ") , right: (" << ridx << ", " << rdist << ")");
         // ROS_INFO_STREAM("gap x/y, left: (" << x1 << ", " << y1 << ") , right: (" << x2 << ", " << y2 << ")");
@@ -349,7 +360,7 @@ namespace dynamic_gap {
             gap_idx_size += (2*gap.half_scan);
         }
 
-        double gap_theta_size = gap_idx_size * (msg.get()->angle_increment);
+        double gap_theta_size = gap_idx_size * angle_increment;
         // ROS_INFO_STREAM( "gap idx size: " << gap_idx_size << std::endl;
 
         // threshold = pi right now

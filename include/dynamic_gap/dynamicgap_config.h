@@ -56,6 +56,9 @@ namespace dynamic_gap {
                 double vx_absmax;
                 double vy_absmax;
                 double vang_absmax;
+                double ax_absmax;
+                double ay_absmax;
+                double aang_absmax;
             } control;
             
             struct ProjectionParam {
@@ -101,6 +104,8 @@ namespace dynamic_gap {
                 double inf_ratio;
                 double terminal_weight;
                 double waypoint_ratio;
+                int num_curve_points;
+                int num_qB_points;
             } traj;
 
             struct Robot {
@@ -154,6 +159,9 @@ namespace dynamic_gap {
             control.vx_absmax = 0.5;
             control.vy_absmax = 0.5;
             control.vang_absmax = 0.5;
+            control.ax_absmax = 0.5;
+            control.ay_absmax = 0.5;
+            control.aang_absmax = 0.5;
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
@@ -188,6 +196,8 @@ namespace dynamic_gap {
             traj.inf_ratio = 1.25;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
+            traj.num_curve_points = 10;
+            traj.num_qB_points = 5;
 
             man.man_ctrl = false;
             man.man_x = 0;

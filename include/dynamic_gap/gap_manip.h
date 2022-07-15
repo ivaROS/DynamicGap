@@ -49,6 +49,9 @@ namespace dynamic_gap {
             sensor_msgs::LaserScan dynamic_scan;
             const DynamicGapConfig* cfg_;
             int num_of_scan;
+            int half_num_scan;
+            double angle_min;
+            double angle_increment; 
             boost::mutex egolock;
 
             float atanThetaWrap(float theta);

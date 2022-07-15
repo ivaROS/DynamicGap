@@ -204,7 +204,7 @@ namespace dynamic_gap{
         int id = (int) vis_arr.markers.size();
         this_marker.lifetime = ros::Duration(100.0);
 
-        double num_spline_pts = 15.0;
+        double num_spline_pts = double(cfg_->traj.num_curve_points + cfg_->traj.num_qB_points);
         double t, x, y;
         for (int i = 0.0; i < (num_spline_pts - 1); i++) {            
             lines.clear();  

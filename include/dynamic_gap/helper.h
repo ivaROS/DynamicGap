@@ -177,18 +177,18 @@ namespace dynamic_gap {
         bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_gain, 
-                        a_des, a_actual;
+                        a_des, a_actual, nom_acc;
         Eigen::Vector4d abs_left_state, abs_right_state, goal_state;
 
         Eigen::MatrixXd weights, all_centers, all_curve_pts, all_inward_norms, gradient_of_pti_wrt_rbt, test_diff;
         Eigen::VectorXd rowwise_sq_norms;
 
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
-                          double v_lin_max, double a_lin_max, int num_curve_points, int num_qB_points,
-                          Eigen::MatrixXd all_curve_pts,  Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms,
+                          double v_lin_max, Eigen::Vector2d nom_acc, int num_curve_points, int num_qB_points,
+                          Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms,
                           double left_weight, double right_weight, double gap_lifespan) 
                           : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1), K_acc(K_acc), 
-                            v_lin_max(v_lin_max), a_lin_max(a_lin_max), num_curve_points(num_curve_points), num_qB_points(num_qB_points),
+                            v_lin_max(v_lin_max), nom_acc(nom_acc), num_curve_points(num_curve_points), num_qB_points(num_qB_points),
                             all_curve_pts(all_curve_pts), all_centers(all_centers), all_inward_norms(all_inward_norms), 
                             left_weight(left_weight), right_weight(right_weight), gap_lifespan(gap_lifespan)
                         { 
