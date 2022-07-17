@@ -298,12 +298,12 @@ namespace dynamic_gap
                 return sqrt(pow(_rdist, 2) + pow(_ldist, 2) - 2 * _rdist * _ldist * (cos(float(idx_diff) / float(half_scan) * M_PI)));
             }
 
-            void setTerminalPoints(float _terminal_ridx, float _terminal_rdist, float _terminal_lidx, float _terminal_ldist) {
-                terminal_ridx = _terminal_ridx;
-                terminal_rdist = _terminal_rdist;
+            void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
                 terminal_lidx = _terminal_lidx;
                 terminal_ldist = _terminal_ldist;
-                ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_ridx << ", " << terminal_rdist << "), right: (" << terminal_lidx << ", " << terminal_ldist << ")");
+                terminal_ridx = _terminal_ridx;
+                terminal_rdist = _terminal_rdist;
+                ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
                 if (terminal_lidx < terminal_ridx) {
                     ROS_INFO_STREAM("potentially incorrect terminal points");
                 }
@@ -412,6 +412,7 @@ namespace dynamic_gap
 
             bool gap_crossed = false;
             bool gap_closed = false;
+            bool gap_crossed_behind = false;
 
             bool pivoted_right = false;
             bool artificial = false;

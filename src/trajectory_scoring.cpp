@@ -81,71 +81,72 @@ namespace dynamic_gap {
 
         // basically run modify_scan                                                          
 
+        Eigen::Vector2d pt2, centered_pt1, centered_pt2, dx_dy, intersection0, intersection1, 
+                        int0_min_cent_pt1, int0_min_cent_pt2, int1_min_cent_pt1, int1_min_cent_pt2, 
+                        cent_pt2_min_cent_pt1;
+        double rad, dist, dx, dy, dr, D, discriminant, dist0, dist1;
+        geometry_msgs::Pose other_state;
         for (int i = 0; i < dynamic_laser_scan.ranges.size(); i++) {
-            float rad = dynamic_laser_scan.angle_min + i*dynamic_laser_scan.angle_increment;
+            rad = dynamic_laser_scan.angle_min + i*dynamic_laser_scan.angle_increment;
             // cout << "i: " << i << " rad: " << rad << endl;
             // cout << "original distance " << modified_laser_scan.ranges[i] << endl;
             dynamic_laser_scan.ranges[i] = std::min(dynamic_laser_scan.ranges[i], max_range);
             // ROS_INFO_STREAM("i: " << i << ", rad: " << rad << ", range: " << dynamic_laser_scan.ranges[i]);
-            float dist = dynamic_laser_scan.ranges[i];
+            dist = dynamic_laser_scan.ranges[i];
             
-            std::vector<float> lidar_range{dist*cos(rad), dist*sin(rad)};
-
-            std::vector<float> pt2 = lidar_range;
+            pt2 << dist*cos(rad), dist*sin(rad);
 
             // map<string, vector<double>>::iterator it;
             //vector<pair<string, vector<double> >> odom_vect = sort_and_prune(odom_map);
             // TODO: sort map here according to distance from robot. Then, can break after first intersection
             for (int j = 0; j < _agent_odoms.size(); j++) {
-                geometry_msgs::Pose other_state = _agent_odoms[j];
+                other_state = _agent_odoms[j];
                 // ROS_INFO_STREAM("ODOM MAP SECOND: " << other_state[0] << ", " << other_state[1]);
                 // int idx_dist = std::distance(odom_map.begin(), it);
                 // ROS_INFO_STREAM("EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
                 // ROS_INFO_STREAM("ODOM VECT SECOND: " << other_state[0] << ", " << other_state[1]);
 
                 // centered ego robot state
-                std::vector<double> centered_pt1{-other_state.position.x,
-                                                 -other_state.position.y}; 
+                centered_pt1 << -other_state.position.x, -other_state.position.y; 
                 // ROS_INFO_STREAM("centered_pt1: " << centered_pt1[0] << ", " << centered_pt1[1]);
 
                 // static laser scan point
-                std::vector<double> centered_pt2{pt2[0] - other_state.position.x,
-                                                 pt2[1] - other_state.position.y}; 
+                centered_pt2 << pt2[0] - other_state.position.x, pt2[1] - other_state.position.y; 
                 // ROS_INFO_STREAM("centered_pt2: " << centered_pt2[0] << ", " << centered_pt2[1]);
 
-                double dx = centered_pt2[0] - centered_pt1[0];
-                double dy = centered_pt2[1] - centered_pt1[1];
-                std::vector<double> dx_dy{dx, dy};
-                double dr = l2_norm(dx_dy);
+                dx = centered_pt2[0] - centered_pt1[0];
+                dy = centered_pt2[1] - centered_pt1[1];
+                dx_dy << dx, dy;
+                dr = dx_dy.norm();
 
-                double D = centered_pt1[0]*centered_pt2[1] - centered_pt2[0]*centered_pt1[1];
-                double discriminant = pow(r_inscr,2) * pow(dr, 2) - pow(D, 2);
+                D = centered_pt1[0]*centered_pt2[1] - centered_pt2[0]*centered_pt1[1];
+                discriminant = pow(r_inscr,2) * pow(dr, 2) - pow(D, 2);
 
                 if (discriminant > 0) {
-                    std::vector<double> intersection0{(D*dy + sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
-                                                (-D * dx + abs(dy)*sqrt(discriminant)) / pow(dr, 2)};
+                    intersection0 << (D*dy + sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                     (-D * dx + abs(dy)*sqrt(discriminant)) / pow(dr, 2);
                                         
-                    std::vector<double> intersection1{(D*dy - sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
-                                                (-D * dx - abs(dy)*sqrt(discriminant)) / pow(dr, 2)};
-                    std::vector<double> int0_min_cent_pt1{intersection0[0] - centered_pt1[0],
-                                                    intersection0[1] - centered_pt1[1]};
-                    double dist0 = l2_norm(int0_min_cent_pt1);
-                    std::vector<double> int1_min_cent_pt1{intersection1[0] - centered_pt1[0],
-                                                    intersection1[1] - centered_pt1[1]};
-                    double dist1 = l2_norm(int1_min_cent_pt1);
-                    std::vector<double> cent_pt2_min_cent_pt1{centered_pt2[0] - centered_pt1[0],
-                                                        centered_pt2[1] - centered_pt1[1]};
+                    intersection1 << (D*dy - sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                     (-D * dx - abs(dy)*sqrt(discriminant)) / pow(dr, 2);
+                    int0_min_cent_pt1 = intersection0 - centered_pt1;
+                    int1_min_cent_pt1 = intersection1 - centered_pt1;
+                    cent_pt2_min_cent_pt1 = centered_pt2 - centered_pt1;
+
+                    dist0 = int0_min_cent_pt1.norm();
+                    dist1 = int1_min_cent_pt1.norm();
+                    
                     if (dist0 < dist1) {
-                        std::vector<double> int0_min_cent_pt2{intersection0[0] - centered_pt2[0],
-                                                        intersection0[1] - centered_pt2[1]};
-                        if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int0_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
+                        int0_min_cent_pt2 = intersection0 - centered_pt2;
+
+                        if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < cent_pt2_min_cent_pt1.norm() && int0_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
                             if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist0);
                             dynamic_laser_scan.ranges[i] = dist0;
                             // break;
                         }
                     } else {
-                        std::vector<double> int1_min_cent_pt2{intersection1[0] - centered_pt2[0], intersection1[1] - centered_pt2[1]};
-                        if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < l2_norm(cent_pt2_min_cent_pt1) && l2_norm(int1_min_cent_pt2) < l2_norm(cent_pt2_min_cent_pt1)) {
+                        int1_min_cent_pt2 = intersection1 - centered_pt2;
+
+                        if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < cent_pt2_min_cent_pt1.norm() && int1_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
                             if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist1);                        
                             dynamic_laser_scan.ranges[i] = dist1;
                             // break;

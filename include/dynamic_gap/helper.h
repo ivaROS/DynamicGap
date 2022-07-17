@@ -173,10 +173,10 @@ namespace dynamic_gap {
         double v_lin_max, a_lin_max, K_acc, rg, 
                theta_right, theta_left, thetax, thetag, new_theta, 
                a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
-               theta, left_weight, right_weight, gap_lifespan, eps; 
+               theta, left_weight, right_weight, gap_lifespan, eps, K_att, K_des; 
         bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
-                        abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_gain, 
+                        abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
                         a_des, a_actual, nom_acc;
         Eigen::Vector4d abs_left_state, abs_right_state, goal_state;
 
@@ -194,6 +194,7 @@ namespace dynamic_gap {
                         { 
                             num_pts_per_side = num_curve_points + num_qB_points;
                             eps = 0.0000001;
+                            K_des = 0.5;
                             // half_num_scan = 256;
                             N = 2*(num_curve_points + num_qB_points);
                             Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
@@ -255,11 +256,11 @@ namespace dynamic_gap {
                             // if(!solver.setPrimalVariable(w_0)) return;
                             
                             // solve the QP problem
-                            start_time = ros::Time::now().toSec();
+                            // start_time = ros::Time::now().toSec();
                             if(solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
                             // get the controller input
                             weights = solver.getSolution();
-                            ROS_INFO_STREAM("optimization time elapsed: " << (ros::Time::now().toSec() - start_time));
+                            // ROS_INFO_STREAM("optimization time elapsed: " << (ros::Time::now().toSec() - start_time));
 
                             // weights = raw_weights / raw_weights.norm();                                
 
@@ -287,8 +288,7 @@ namespace dynamic_gap {
             // neg_one_vect << -1.0;       
 
             // all_centers size: (Kplus1 rows, 2 cols)
-            Eigen::Vector2d boundary_pt_i, inward_norm_vector, center_j, diff;
-
+            Eigen::Vector2d boundary_pt_i, inward_norm_vector;
             Eigen::MatrixXd test_diff, new_gradients;
             Eigen::VectorXd rowwise_sq_norms;
             for (int i = 0; i < N; i++) {
@@ -422,8 +422,8 @@ namespace dynamic_gap {
 
             new_theta = std::min(std::max(thetag, theta_right), theta_left);
 
-            double attractive_term = - pow(rg, 2);
-            // ROS_INFO_STREAM("attractive term: " << attractive_term);
+            K_att = - pow(rg, 2);
+            // ROS_INFO_STREAM("attractive term: " << K_att);
 
             // Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); //other one used is Kplus1, 2
    
@@ -439,7 +439,7 @@ namespace dynamic_gap {
 
                 Eigen::Vector2d gradient = diff / pow(diff.norm() + eps, 2);
                 gradient_of_pti_wrt_centers.col(i) = gradient;
-                Eigen::Vector2d term = attractive_term * gradient_of_pti_wrt_centers.col(i) * weights.coeff(i, 0);
+                Eigen::Vector2d term = K_att * gradient_of_pti_wrt_centers.col(i) * weights.coeff(i, 0);
 
                 if (i == 0) {
                     ROS_INFO_STREAM("goal term: ");
@@ -455,38 +455,29 @@ namespace dynamic_gap {
 
             // now, gradient_of_pti_wrt_centers is (Kplus1, 2)
             // weights are (Kplus1, 1)
-            // Eigen::Vector2d weighted_goal_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 0, 2, 1) * weights.coeff(0, 0);
-            // Eigen::Vector2d weighted_left_term = attractive_term * gradient_of_pti_wrt_centers.block(0, 1, 2, num_pts_per_side) * weights.block(1, 0, num_pts_per_side, 1);
-            // Eigen::Vector2d weighted_right_term = attractive_term * gradient_of_pti_wrt_centers.block(0, num_pts_per_side+1, 2, num_pts_per_side) * weights.block(num_pts_per_side+1, 0, num_pts_per_side, 1);
+            // Eigen::Vector2d weighted_goal_term = K_att * gradient_of_pti_wrt_centers.block(0, 0, 2, 1) * weights.coeff(0, 0);
+            // Eigen::Vector2d weighted_left_term = K_att * gradient_of_pti_wrt_centers.block(0, 1, 2, num_pts_per_side) * weights.block(1, 0, num_pts_per_side, 1);
+            // Eigen::Vector2d weighted_right_term = K_att * gradient_of_pti_wrt_centers.block(0, num_pts_per_side+1, 2, num_pts_per_side) * weights.block(num_pts_per_side+1, 0, num_pts_per_side, 1);
             
             // ROS_INFO_STREAM("weighted_goal_term: " << weighted_goal_term[0] << ", " << weighted_goal_term[1]);
             // ROS_INFO_STREAM("weighted_left_term: " << weighted_left_term[0] << ", " << weighted_left_term[1]);
             // ROS_INFO_STREAM("weighted_right_term: " << weighted_right_term[0] << ", " << weighted_right_term[1]);
             
-            //Eigen::Vector2d total_term = attractive_term * gradient_of_pti_wrt_centers.transpose() * weights;
-            // Eigen::Vector2d total_term = attractive_term * gradient_of_pti_wrt_centers * weights;
+            //Eigen::Vector2d total_term = K_att * gradient_of_pti_wrt_centers.transpose() * weights;
+            // Eigen::Vector2d total_term = K_att * gradient_of_pti_wrt_centers * weights;
 
             
             // ROS_INFO_STREAM("total_term: " << total_term[0] << ", " << total_term[1]);
             // rel_goal_pos; // 
-            // Eigen::Vector2d v_des = attractive_term * gradient_of_pti_wrt_centers * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
-            v_des = attractive_term * gradient_of_pti_wrt_rbt.transpose() * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
+            // Eigen::Vector2d v_des = K_att * gradient_of_pti_wrt_centers * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
+            v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
             // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
 
-            double gain = 0.50;
-            v_gain = gain * (v_des / v_des.norm());
+            v_des = K_des * (v_raw / v_raw.norm());
             // ROS_INFO_STREAM("v_gain: " << v_gain[0] << ", " << v_gain[1]);
 
-            /*
-            double v_req_norm = (rg / (gap_lifespan - t)); 
-            if (v_des.norm() < v_req_norm) {
-                double K_p_mod = (v_req_norm / v_des.norm()) * 1.5;
-                v_des *= K_p_mod;
-                // ROS_INFO_STREAM("modified v_des: " << v_des[0] << ", " << v_des[1]);            
-            }
-            */
             // CLIPPING DESIRED VELOCITIES
-            v_cmd = clip_velocities(v_gain[0], v_gain[1], v_lin_max);
+            v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
             /*

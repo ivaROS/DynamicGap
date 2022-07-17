@@ -456,18 +456,6 @@ namespace dynamic_gap
 
         for (size_t i = 0; i < manip_set.size(); i++)
         {
-            // a copied pointer still points to same piece of memory, so we need to copy the models
-            // if we want to have a separate model for the manipulated gap
-            
-            /*
-            sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
-            sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
-            dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
-            dynamic_laser_scan.header = stored_scan.header;
-            std::vector<float> dynamic_ranges(stored_scan.ranges.size());
-            dynamic_laser_scan.ranges = dynamic_ranges;
-            */
-
             ROS_INFO_STREAM("MANIPULATING INITIAL GAP " << i);
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
@@ -478,7 +466,7 @@ namespace dynamic_gap
             gapManip->radialExtendGap(manip_set.at(i), true); // extend behind robot
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true); // incorporating dynamic gap types
             
-            
+            // MANIPULATE POINTS AT T=1
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             gapManip->updateDynamicEgoCircle(curr_raw_gaps, manip_set.at(i), agent_odoms, agent_vels, trajArbiter);
             if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
@@ -571,11 +559,12 @@ namespace dynamic_gap
 
         // poses here are in odom frame 
         std::vector<double> result_score(prr.size());
+        int counts;
         try {
             if (omp_get_dynamic()) omp_set_dynamic(0);
             for (size_t i = 0; i < result_score.size(); i++) {
                 // ROS_WARN_STREAM("prr(" << i << "): size " << prr.at(i).poses.size());
-                int counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
+                counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
 
                 result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
                 result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
@@ -963,9 +952,8 @@ namespace dynamic_gap
         printGapModels(curr_observed_gaps);
 
         bool gap_i_feasible;
-        int num_gaps = curr_observed_gaps.size();
         std::vector<dynamic_gap::Gap> feasible_gap_set;
-        for (size_t i = 0; i < num_gaps; i++) {
+        for (size_t i = 0; i < curr_observed_gaps.size(); i++) {
             // obtain crossing point
             ROS_INFO_STREAM("feasibility check for gap " << i); //  ", left index: " << manip_set.at(i).left_model->get_index() << ", right index: " << manip_set.at(i).right_model->get_index() 
             gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));

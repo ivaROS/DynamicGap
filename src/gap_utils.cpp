@@ -209,12 +209,9 @@ namespace dynamic_gap {
         std::vector<dynamic_gap::Gap>& raw_gaps)
     {
         //double start_time = ros::Time::now().toSec();
-
-        int observed_size = (int) raw_gaps.size();
         std::vector<dynamic_gap::Gap> simplified_gaps;
 
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        // Termination Condition
 
         // Insert first
         bool mark_to_start = true;
@@ -223,6 +220,10 @@ namespace dynamic_gap {
         bool changed = true;
 
         int num_raw_gaps = (int) raw_gaps.size();
+        float coefs = cfg_->planning.planning_inflated ? 0 : 2; // MAX: changed
+        float curr_rdist = 0.0;
+        int erase_counter = 0;
+        int last_mergable = -1;
         // ROS_INFO_STREAM("running MergeGapsOneGo: ");
         for (int i = 0; i < num_raw_gaps; i++)
         {
@@ -247,20 +248,20 @@ namespace dynamic_gap {
                         }
                         else
                         {
-                            float curr_rdist = raw_gaps[i].LDist();
-                            int erase_counter = 0;
-                            int last_mergable = -1;
+                            curr_rdist = raw_gaps[i].LDist();
+                            erase_counter = 0;
+                            last_mergable = -1;
 
-                            float coefs = cfg_->planning.planning_inflated ? 0 : 2; // MAX: changed
+                            int start_idx, end_idx;
                             // if coefs = 0. as long as raw_gap's rdist is less than or equal to curr_gaps' ldist, we will merge
                             // iterating backwards through simplified gaps to see if they can be merged
                             // ROS_INFO_STREAM("attempting merge with raw gap: (" << raw_gaps[i].RIdx() << ", " << raw_gaps[i].RDist() << ") to (" << raw_gaps[i].LIdx() << ", " << raw_gaps[i].LDist() << ")");
-                            for (int j = (int) (simplified_gaps.size() - 1); j >= 0; j--)
+                            for (int j = (simplified_gaps.size() - 1); j >= 0; j--)
                             {
                                 // ROS_INFO_STREAM("on simplified gap " << j << " of " << simplified_gaps.size() << ": ");
                                 // ROS_INFO_STREAM("points: (" << simplified_gaps[j].RIdx() << ", " << simplified_gaps[j].RDist() << ") to (" << simplified_gaps[j].LIdx() << ", " << simplified_gaps[j].LDist() << ")");
-                                int start_idx = std::min(simplified_gaps[j].LIdx(), raw_gaps[i].RIdx());
-                                int end_idx = std::max(simplified_gaps[j].LIdx(), raw_gaps[i].RIdx());
+                                start_idx = std::min(simplified_gaps[j].LIdx(), raw_gaps[i].RIdx());
+                                end_idx = std::max(simplified_gaps[j].LIdx(), raw_gaps[i].RIdx());
                                 auto farside_iter = std::min_element(stored_scan_msgs.ranges.begin() + start_idx, stored_scan_msgs.ranges.begin() + end_idx);
                                 float min_dist = *farside_iter;
                                 // second test is checking if simplified gap dist is less than current min dist of raw gap
@@ -291,7 +292,7 @@ namespace dynamic_gap {
                     }
                     else
                     { // If current raw gap is radial
-                        float curr_rdist = raw_gaps.at(i).LDist();
+                        curr_rdist = raw_gaps.at(i).LDist();
                         // ROS_INFO_STREAM("comparing raw right dist of " << curr_rdist << " to simplified left dist of " << simplified_gaps.back().RDist());
                         if (std::abs(curr_rdist - simplified_gaps.back().RDist()) < 0.2 && simplified_gaps.back().isAxial() && simplified_gaps.back().isRightType())
                         {
@@ -317,7 +318,6 @@ namespace dynamic_gap {
         }
         //ROS_INFO_STREAM("mergeGapsOneGo time elapsed: " << ros::Time::now().toSec() - start_time); 
 
-        // raw_gaps.clear();
         return simplified_gaps;
     }
 
