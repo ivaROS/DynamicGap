@@ -202,7 +202,7 @@ namespace dynamic_gap
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-        associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, false);
+        associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         // ROS_INFO_STREAM("Time elapsed after drawing models: " << (ros::WallTime::now().toSec() - start_time));

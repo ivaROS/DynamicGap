@@ -24,12 +24,15 @@ namespace dynamic_gap {
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
             Matrix<double, 4, 1> x; // cartesian state
+            Matrix<double, 4, 1> x_ground_truth; // "ground truth" cartesian state
+
             Matrix<double, 4, 1> frozen_x;
             Matrix<double, 4, 1> copied_x;
             Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
             Matrix<double, 2, 1> x_tilde;
+            Matrix<double, 2, 1> curr_x_tilde;
 
             double t0;
             double t;
@@ -54,7 +57,7 @@ namespace dynamic_gap {
             std::vector< std::vector<double>> previous_ego_vels;
             bool plotted = false;
             double life_time_threshold;
-            Matrix<double, 4, 4> eyes_state;
+            Matrix<double, 4, 4> eyes;
             double check_time1;
             Matrix<double, 4, 4> new_P;
             Matrix<double, 2, 2> inverted_tmp_mat;
@@ -76,6 +79,7 @@ namespace dynamic_gap {
 
             ~cart_model() {};
 
+            Eigen::Vector4d update_ground_truth_cartesian_state();
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_frozen_cartesian_state();
             Eigen::Vector4d get_modified_polar_state();

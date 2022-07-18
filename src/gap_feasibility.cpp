@@ -331,6 +331,9 @@ namespace dynamic_gap {
             
         }
 
+        // if falls out at t=0, just set terminal points equal to initial points? 
+        // Lifespan would be 0, so would be infeasible anyways
+
         // should never fall out of this?
     }
 
