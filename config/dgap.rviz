@@ -21,6 +21,7 @@ Panels:
         - /PoseArray2
         - /LaserScan2
         - /MarkerArray7
+        - /MarkerArray8
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -64,7 +65,7 @@ Visualization Manager:
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_goal: true
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -102,17 +103,18 @@ Visualization Manager:
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        {}
+        raw: true
+        simp: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.30000001192092896
@@ -134,7 +136,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -142,7 +144,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -178,7 +180,7 @@ Visualization Manager:
       Marker Topic: /all_traj_vis
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -441,13 +443,13 @@ Visualization Manager:
       Use rainbow: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /reachable_gaps
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -459,13 +461,13 @@ Visualization Manager:
       Use Timestamp: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /reachable_gap_centers
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /gap_splines
@@ -502,16 +504,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 46.954856872558594
+      Distance: 41.21799087524414
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.7139332294464111
-        Y: -2.687476396560669
-        Z: -35.83617401123047
+        X: 1.4780880212783813
+        Y: -2.875793933868408
+        Z: -35.83641052246094
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

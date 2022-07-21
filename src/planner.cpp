@@ -19,7 +19,7 @@ namespace dynamic_gap
 
     bool Planner::initialize(const ros::NodeHandle& unh)
     {
-            ROS_INFO_STREAM("starting initialize");
+        ROS_INFO_STREAM("starting initialize");
         if (initialized())
         {
             ROS_WARN("DynamicGap Planner already initalized");
@@ -88,7 +88,10 @@ namespace dynamic_gap
         num_obsts = cfg.rbt.num_obsts;
 
         agent_odoms = std::vector<geometry_msgs::Pose>(num_obsts);
+        agent_odom_vects.resize(num_obsts, std::vector<double>(2));
         agent_vels = std::vector<geometry_msgs::Vector3Stamped>(num_obsts);
+        agent_vel_vects.resize(num_obsts, std::vector<double>(2));
+
         for (int i = 0; i < num_obsts; i++) {
             ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 1, &Planner::agentOdomCB, this);
             agent_odom_subscribers.push_back(temp_odom_sub);
@@ -275,10 +278,10 @@ namespace dynamic_gap
 
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
-            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
+            g.right_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odom_vects, agent_vels);
         } else {
             //std::cout << "entering right model update" << std::endl;
-            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odoms, agent_vels);
+            g.left_model->kf_update_loop(laserscan_measurement, _a_ego, _v_ego, print, agent_odom_vects, agent_vels);
         }
     }
 
@@ -352,10 +355,16 @@ namespace dynamic_gap
             geometry_msgs::PoseStamped in_pose, out_pose;
             in_pose.header = msg->header;
             in_pose.pose = msg->pose.pose;
+            // ROS_INFO_STREAM("updating inpose " << robot_namespace << " to: (" << in_pose.pose.position.x << ", " << in_pose.pose.position.y << ")");
 
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
 
             tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
+            // ROS_INFO_STREAM("updating outpose " << robot_namespace << " from: (" << agent_odoms[robot_id].position.x << ", " << agent_odoms[robot_id].position.y << ") to: (" << out_pose.pose.position.x << ", " << out_pose.pose.position.y << ")");
+            ROS_INFO_STREAM("updating " << robot_namespace << " pose from: (" << agent_odom_vects[robot_id][0] << ", " << agent_odom_vects[robot_id][1] << ") to: (" << out_pose.pose.position.x << ", " << out_pose.pose.position.y << ")");
+
+            std::vector<double> odom_vect{out_pose.pose.position.x, out_pose.pose.position.y};
+            agent_odom_vects[robot_id] = odom_vect;
             agent_odoms[robot_id] = out_pose.pose;
         } catch (tf2::TransformException &ex) {
             ROS_INFO_STREAM("Odometry transform failed for " << robot_namespace);
@@ -374,7 +383,13 @@ namespace dynamic_gap
             tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
             // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
 
+            // ROS_INFO_STREAM("updating outvel " << robot_namespace << " from: (" << agent_vels[robot_id].vector.x << ", " << agent_vels[robot_id].vector.y << ") to: (" << out_vel.vector.x << ", " << out_vel.vector.y << ")");
+            // ROS_INFO_STREAM("updating outvel vect " << robot_namespace << " from: (" << agent_vel_vects[robot_id][0] << ", " << agent_vel_vects[robot_id][1] << ") to: (" << out_vel.vector.x << ", " << out_vel.vector.y << ")");
+
+            std::vector<double> vel_vect{out_vel.vector.x, out_vel.vector.y};
+
             agent_vels[robot_id] = out_vel;
+            agent_vel_vects[robot_id] = vel_vect;
         } catch (tf2::TransformException &ex) {
             ROS_INFO_STREAM("Velocity transform failed for " << robot_namespace);
         }            

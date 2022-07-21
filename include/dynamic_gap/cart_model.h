@@ -7,6 +7,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Core>
+#include <random>
 
 
 using namespace Eigen;
@@ -31,8 +32,11 @@ namespace dynamic_gap {
             Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
+
+            Matrix<double, 2, 1> use_x_tilde;
             Matrix<double, 2, 1> x_tilde;
-            Matrix<double, 2, 1> curr_x_tilde;
+            Matrix<double, 2, 1> x_tilde_min1;
+            Matrix<double, 2, 1> x_tilde_min2;
 
             double t0;
             double t;
@@ -41,9 +45,8 @@ namespace dynamic_gap {
             Matrix<double, 1, 3> a_ego;
             Matrix<double, 1, 3> v_ego;
 
-            Matrix<double, 4, 4> A;
-            Matrix<double, 4, 4> Ad;
-            Matrix<double, 4, 4> Ad_transpose;
+            Matrix<double, 4, 4> A; // linearized dynamics matrix
+            Matrix<double, 4, 4> STM; // state transition matrix for a discrete time step dt
             std::string side;
             int index;
             double omega_rbt_prev;
@@ -62,13 +65,16 @@ namespace dynamic_gap {
             Matrix<double, 4, 4> new_P;
             Matrix<double, 2, 2> inverted_tmp_mat;
             Matrix<double, 4, 1> x_update;
+            Matrix<double, 4, 4> Q_1, Q_2, Q_3;
             std::string plot_dir;
 
-            std::vector<geometry_msgs::Pose> agent_odoms;
+            std::vector< std::vector<double>> agent_odoms;
             std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
             bool bridge_model;
             bool perfect;
+
+            std::default_random_engine generator;
 
         public:
 
@@ -90,15 +96,12 @@ namespace dynamic_gap {
             void linearize();
             void discretizeQ();
 
-            void copy_model();
-            void copy_model_propagate(double dt);
-            Matrix<double, 4, 1> get_copy_state();
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, 
                                 bool print,
-                                std::vector<geometry_msgs::Pose> _agent_odoms,
+                                std::vector< std::vector<double>> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
             void set_side(std::string _side);
             std::string get_side();
