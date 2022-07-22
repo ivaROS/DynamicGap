@@ -15,9 +15,9 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <limits>
 #include <sstream>
-#include "matplotlibcpp.h"
+//#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 
-namespace plt = matplotlibcpp;
+//namespace plt = matplotlibcpp;
 
 using namespace Eigen;
 
@@ -289,6 +289,7 @@ namespace dynamic_gap {
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
 
+        /*
         if (life_time <= life_time_threshold && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_ground_truth[0], x_ground_truth[1], x_ground_truth[2], x_ground_truth[3]};
@@ -305,9 +306,10 @@ namespace dynamic_gap {
         if (life_time > life_time_threshold && !plotted) {
             plot_states();
         }
-
+        */
     }
 
+    /*
     void cart_model::plot_states() {;
         int n = previous_states.size();
         std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), 
@@ -361,6 +363,7 @@ namespace dynamic_gap {
 
         plotted = true;
     }
+    */
 
     Eigen::Vector4d cart_model::update_ground_truth_cartesian_state() {
         // x state:
