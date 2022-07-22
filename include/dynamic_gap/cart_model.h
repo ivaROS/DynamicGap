@@ -33,10 +33,9 @@ namespace dynamic_gap {
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
 
-            Matrix<double, 2, 1> use_x_tilde;
             Matrix<double, 2, 1> x_tilde;
-            Matrix<double, 2, 1> x_tilde_min1;
-            Matrix<double, 2, 1> x_tilde_min2;
+            Matrix<double, 2, 1> innovation;
+            Matrix<double, 2, 1> residual;
 
             double t0;
             double t;
@@ -71,9 +70,8 @@ namespace dynamic_gap {
             std::vector< std::vector<double>> agent_odoms;
             std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
-            bool bridge_model;
             bool perfect;
-
+            double alpha_R;
             std::default_random_engine generator;
 
         public:

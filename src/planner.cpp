@@ -210,6 +210,11 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("Time elapsed after drawing models: " << (ros::WallTime::now().toSec() - start_time));
 
+        gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
+        gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
+        gapvisualizer->drawGapsModels(associated_observed_gaps);
+
+
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
         if (sharedPtr_inflatedlaser) {
             tmp = sharedPtr_inflatedlaser;
@@ -1032,16 +1037,6 @@ namespace dynamic_gap
 
     void Planner::visualizeComponents(std::vector<dynamic_gap::Gap> manip_gap_set) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
-        //std::cout << "PULLING MODELS TO ACT ON" << std::endl;
-        std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
-        std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
-        
-        // ROS_INFO_STREAM("drawGaps for curr_raw_gaps");
-        gapvisualizer->drawGaps(curr_raw_gaps, std::string("raw"));
-        // ROS_INFO_STREAM("drawGaps for curr_observed_gaps");
-        gapvisualizer->drawGaps(curr_observed_gaps, std::string("simp"));
-        // need to have here for models
-        gapvisualizer->drawGapsModels(curr_observed_gaps);
 
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
         gapvisualizer->drawReachableGaps(manip_gap_set);        

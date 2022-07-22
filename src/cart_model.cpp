@@ -37,8 +37,8 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Bigger R: better performance with static things (weighting robot's motion more)
         // I think 0.1 is roughly the minimum we can do. Otherwise, measurements get really noisy
-        R << 0.1, 0.0,
-             0.0, 0.1;
+        R << 0.01, 0.0,
+             0.0, 0.01;
 
         // PROCESS NOISE
         // Bigger Q: Better with dynamic things (weighting measurements more)
@@ -56,8 +56,8 @@ namespace dynamic_gap {
         // Could initialize off-diagonal terms, not sure if helps
         P << 0.01, 0.0, 0.0, 0.0,
              0.0, 0.01, 0.0, 0.0,
-             0.0, 0.0, 0.25, 0.0,
-             0.0, 0.0, 0.0, 0.25;
+             0.0, 0.0, 0.4, 0.0,
+             0.0, 0.0, 0.0, 0.4;
 
         double v_rel_x = -_v_ego[0];
         double v_rel_y = -_v_ego[1];
@@ -67,9 +67,8 @@ namespace dynamic_gap {
                                         v_rel_y};
 
         x_tilde << measurement[0], measurement[1];
-        x_tilde_min1 = x_tilde;
-        x_tilde_min2 = x_tilde;
-        use_x_tilde = x_tilde;
+        innovation = x_tilde;
+        residual = x_tilde;
         x << measurement[0], measurement[1], 0.0, 0.0;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0; 
 
@@ -95,7 +94,7 @@ namespace dynamic_gap {
         extended_origin_x << 0.0, 0.0, 0.0, 0.0;
         initialized = true;
         life_time = 0.0;
-        life_time_threshold = 10.0;
+        life_time_threshold = 15.0;
         eyes = MatrixXd::Identity(4,4);
         new_P = eyes;
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
@@ -107,8 +106,10 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";
         perfect = true;
+
+        alpha_R = 1.0;
     }
 
     void cart_model::freeze_robot_vel() {
@@ -144,7 +145,7 @@ namespace dynamic_gap {
     
 
     void cart_model::integrate() {
-        double ang_vel_ego = (v_ego[2] + (v_ego[2] - a_ego[2]*dt)) / 2.0;
+        double ang_vel_ego = v_ego[2];
         double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
         double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
@@ -176,15 +177,15 @@ namespace dynamic_gap {
 
     // this does give off-diagonal terms to Q, so init diagonal Q is fine
     void cart_model::discretizeQ() {
-        /*
-        dQ = Q * dt;
+        double ang_vel_ego = v_ego[2]; //(v_ego[2] + (v_ego[2] - a_ego[2]*dt)) / 2.0;
 
-        Matrix<double, 4, 4> A_dQ_transpose = (A * dQ).transpose();
-        Matrix<double, 4, 4> M2 = 0.5 * dt * (A_dQ_transpose + A * dQ);
-        Matrix<double, 4, 4> M3 = 0.3333 * dt * dt * A_dQ_transpose;
+        double vdot_x_body = a_ego[0] + v_ego[1]*ang_vel_ego;
+        double vdot_y_body = a_ego[1] - v_ego[0]*ang_vel_ego;
 
-        dQ = dQ + M2 + M3;
-        */
+        Q << 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, vdot_x_body*vdot_x_body + 0.00001, 0.0,
+             0.0, 0.0, 0.0, vdot_y_body*vdot_y_body + 0.00001;
 
         Q_1 = Q;
         Q_2 = A * Q_1 + Q_1 * A.transpose();
@@ -215,8 +216,6 @@ namespace dynamic_gap {
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                        range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
-        use_x_tilde = x_tilde; // (x_tilde + x_tilde_min1 + x_tilde_min2) / 3.0;
-        // x_tilde = (curr_x_tilde + x_tilde) / 2.0;
         x_ground_truth = update_ground_truth_cartesian_state();
 
         if (print) {
@@ -263,10 +262,11 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
         }
 
-        // std::cout << "P: " << P << std::endl;
-        x_update = G*(use_x_tilde - H*x);
-        // std::cout << "actual update to x: " << x_update_mat << std::endl;
-        x += x_update;
+        innovation = x_tilde - H*x;
+        x += G*innovation;
+
+        residual = x_tilde - H*x;
+        R = alpha_R*R + (1 - alpha_R)*(residual*residual.transpose() + H*P*H_transpose);
 
         tmp_mat = H*P*H_transpose + R;
         // std::cout << "tmp_mat: " << tmp_mat << std::endl;
@@ -288,9 +288,7 @@ namespace dynamic_gap {
         }
         // std::cout << "P after update: " << P << std::endl;
         t0 = t;
-        x_tilde_min2 = x_tilde_min1;
-        x_tilde_min1 = x_tilde;
-        
+
         if (life_time <= life_time_threshold && !plotted) {
             std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
             std::vector<double> ground_truths{x_ground_truth[0], x_ground_truth[1], x_ground_truth[2], x_ground_truth[3]};
