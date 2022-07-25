@@ -256,7 +256,7 @@ namespace dynamic_gap{
         }
 
         double eps = 0.0000001;
-        double offset = 0.125;
+        double offset = 0.01;
 
         // model gives: left_pt - rbt.
         // populating the quadratic weighted bezier

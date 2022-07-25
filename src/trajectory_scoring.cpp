@@ -57,9 +57,54 @@ namespace dynamic_gap {
         return sqrt(accum);
     }
 
+    struct Comparator {
+
+        bool operator() (std::vector<double> & a, std::vector<double> & b) {
+            double a_dist = pow(a[0], 2) + pow(a[1], 2);
+            double b_dist = pow(b[0], 2) + pow(b[1], 2);
+            return a_dist < b_dist;
+        }
+    };
+
+    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<std::vector<double>> _odom_vects)
+    {
+    
+        // Declare vector of pairs
+        std::vector< std::vector<double> > A;
+        
+        // Copy key-value pair from Map
+        // to vector of pairs
+        double dist;
+        for (int i = 0; i < _odom_vects.size(); i++) {
+            // ROS_INFO_STREAM(it.first);
+            //ROS_INFO_STREAM("pose: " << std::to_string(it.second[0]) << ", " << std::to_string(it.second[1]));
+            //ROS_INFO_STREAM("ego pose: " << pt1[0] << ", " << pt1[1]);
+            dist = sqrt(pow(_odom_vects[i][0], 2) + pow(_odom_vects[i][1], 2));
+            //ROS_INFO_STREAM("dist: " << dist);
+            if (dist < 5.0) {
+                A.push_back(_odom_vects[i]);
+            }
+        }
+        
+        // Sort using comparator function
+        sort(A.begin(), A.end(), Comparator());
+        
+        // ROS_INFO_STREAM("printing pruned vect");
+        // Print the sorted value
+        /*
+        for (auto& it : A) {
+    
+            ROS_INFO_STREAM(it.first << ' ' << it.second[0] << ", " << it.second[1]);
+        }
+        */
+        
+
+        return A;
+    }
+
     void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
-                                                        std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                        std::vector<std::vector<double>> & _agent_odoms, 
+                                                        std::vector<std::vector<double>> _agent_vels,
                                                         sensor_msgs::LaserScan& dynamic_laser_scan,
                                                         bool print) {
         double interval = t_iplus1 - t_i;
@@ -73,10 +118,10 @@ namespace dynamic_gap {
         float max_range = 5.0;
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < _agent_odoms.size(); i++) {
-            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
-            _agent_odoms[i].position.x += _agent_vels[i].vector.x*interval;
-            _agent_odoms[i].position.y += _agent_vels[i].vector.y*interval;
-            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
+            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i][0] << ", " << _agent_odoms[i][1] << ")");
+            _agent_odoms[i][0] += _agent_vels[i][0]*interval;
+            _agent_odoms[i][1] += _agent_vels[i][1]*interval;
+            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i][0] << ", " << _agent_odoms[i][1] << ")");
         }
 
         // basically run modify_scan                                                          
@@ -85,7 +130,10 @@ namespace dynamic_gap {
                         int0_min_cent_pt1, int0_min_cent_pt2, int1_min_cent_pt1, int1_min_cent_pt2, 
                         cent_pt2_min_cent_pt1;
         double rad, dist, dx, dy, dr, D, discriminant, dist0, dist1;
-        geometry_msgs::Pose other_state;
+        std::vector<double> other_state;
+
+        std::vector<std::vector<double>> odom_vect = sort_and_prune(_agent_odoms);
+
         for (int i = 0; i < dynamic_laser_scan.ranges.size(); i++) {
             rad = dynamic_laser_scan.angle_min + i*dynamic_laser_scan.angle_increment;
             // cout << "i: " << i << " rad: " << rad << endl;
@@ -99,19 +147,19 @@ namespace dynamic_gap {
             // map<string, vector<double>>::iterator it;
             //vector<pair<string, vector<double> >> odom_vect = sort_and_prune(odom_map);
             // TODO: sort map here according to distance from robot. Then, can break after first intersection
-            for (int j = 0; j < _agent_odoms.size(); j++) {
-                other_state = _agent_odoms[j];
+            for (int j = 0; j < odom_vect.size(); j++) {
+                other_state = odom_vect[j];
                 // ROS_INFO_STREAM("ODOM MAP SECOND: " << other_state[0] << ", " << other_state[1]);
                 // int idx_dist = std::distance(odom_map.begin(), it);
                 // ROS_INFO_STREAM("EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
                 // ROS_INFO_STREAM("ODOM VECT SECOND: " << other_state[0] << ", " << other_state[1]);
 
                 // centered ego robot state
-                centered_pt1 << -other_state.position.x, -other_state.position.y; 
+                centered_pt1 << -other_state[0], -other_state[1]; 
                 // ROS_INFO_STREAM("centered_pt1: " << centered_pt1[0] << ", " << centered_pt1[1]);
 
                 // static laser scan point
-                centered_pt2 << pt2[0] - other_state.position.x, pt2[1] - other_state.position.y; 
+                centered_pt2 << pt2[0] - other_state[0], pt2[1] - other_state[1]; 
                 // ROS_INFO_STREAM("centered_pt2: " << centered_pt2[0] << ", " << centered_pt2[1]);
 
                 dx = centered_pt2[0] - centered_pt1[0];
@@ -141,7 +189,7 @@ namespace dynamic_gap {
                         if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < cent_pt2_min_cent_pt1.norm() && int0_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
                             if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist0);
                             dynamic_laser_scan.ranges[i] = dist0;
-                            // break;
+                            break;
                         }
                     } else {
                         int1_min_cent_pt2 = intersection1 - centered_pt2;
@@ -149,7 +197,7 @@ namespace dynamic_gap {
                         if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < cent_pt2_min_cent_pt1.norm() && int1_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
                             if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist1);                        
                             dynamic_laser_scan.ranges[i] = dist1;
-                            // break;
+                            break;
                         }
                     }
                 }
@@ -363,8 +411,8 @@ namespace dynamic_gap {
 
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, 
                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
-                                                           std::vector<geometry_msgs::Pose> _agent_odoms, 
-                                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                           std::vector<std::vector<double>> _agent_odoms, 
+                                                           std::vector<std::vector<double>> _agent_vels,
                                                            bool print,
                                                            bool vis) {
         // Requires LOCAL FRAME

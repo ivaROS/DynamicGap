@@ -80,8 +80,6 @@ namespace dynamic_gap
         ros::Publisher dyn_egocircle_pub;
         
         ros::Subscriber rbt_accel_sub;
-        ros::Subscriber agent0_vel_sub;
-        ros::Subscriber agent1_vel_sub;
         // ros::Subscriber rbt_vel_sub;
 
         std::vector<int> simp_association;
@@ -140,8 +138,7 @@ namespace dynamic_gap
         // std::vector<turtlebot_trajectory_generator::ni_state> ctrl;
         int ctrl_idx = 0;
 
-        geometry_msgs::Pose sharedPtr_pose;
-        geometry_msgs::Pose sharedPtr_previous_pose;
+        geometry_msgs::Pose sharedPtr_pose, prev_sharedPtr_pose;
         boost::shared_ptr<sensor_msgs::LaserScan const> static_scan_ptr;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_inflatedlaser;
@@ -166,10 +163,8 @@ namespace dynamic_gap
 
         boost::circular_buffer<double> log_vel_comp;
 
-        geometry_msgs::Twist current_rbt_vel;
-        geometry_msgs::Twist rbt_vel_min1;
-        geometry_msgs::Twist rbt_accel;
-        geometry_msgs::Twist rbt_accel_min1;
+        geometry_msgs::Twist current_rbt_vel, rbt_vel_min1;
+        geometry_msgs::Twist rbt_accel, rbt_accel_min1;
 
         std::string frame;
         double angle_increment;
@@ -198,15 +193,12 @@ namespace dynamic_gap
 
         double max_scan_time_elapsed;
 
-        geometry_msgs::Pose robot0_odom;
-        geometry_msgs::Vector3Stamped robot0_vel;
-
-        geometry_msgs::Pose robot1_odom;
-        geometry_msgs::Vector3Stamped robot1_vel;
         int num_obsts;
 
         vector<ros::Subscriber> agent_odom_subscribers;
+        std::vector< std::vector<double>> agent_odom_vects;
         std::vector<geometry_msgs::Pose> agent_odoms;
+        std::vector< std::vector<double>> agent_vel_vects;        
         std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
     public:
