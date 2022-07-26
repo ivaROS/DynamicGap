@@ -29,14 +29,13 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   message_generation
 )
+
+find_package(PythonLibs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 find_package(osqp REQUIRED)
 find_package(OsqpEigen REQUIRED)
 find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
-
-#  PATHS C:/home/masselmeier3/osqp-eigen
-# find_package(osqp-cpp REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/dg.cfg
@@ -101,9 +100,10 @@ target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
 target_include_directories(dynamic_gap PRIVATE ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
 target_link_libraries(dynamic_gap
-${catkin_LIBRARIES}
-${OpenMP_LIBS}
-osqp::osqp
-OsqpEigen::OsqpEigen
+	${catkin_LIBRARIES}
+	${PYTHON_LIBRARIES}
+	${OpenMP_LIBS}
+	osqp::osqp
+	OsqpEigen::OsqpEigen
 )
 # target_link_libraries(PRIVATE )

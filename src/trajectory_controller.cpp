@@ -177,6 +177,7 @@ namespace dynamic_gap{
         dynamic_gap::cart_model * curr_right_model, dynamic_gap::cart_model * curr_left_model,
         double curr_peak_velocity_x, double curr_peak_velocity_y) {
         
+        ROS_INFO_STREAM("generating control signal");
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
         bool holonomic = cfg_->planning.holonomic;
@@ -196,36 +197,38 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("r_min: " << r_min);
         // auto inflated_egocircle = *msg_.get();
         geometry_msgs::Twist cmd_vel;
-        geometry_msgs::Point position = current.position;
-        geometry_msgs::Quaternion orientation = current.orientation;
+        geometry_msgs::Point curr_position = current.position;
+        geometry_msgs::Quaternion curr_orientation = current.orientation;
 
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         tf::Quaternion q_c(
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w);
+            curr_orientation.x,
+            curr_orientation.y,
+            curr_orientation.z,
+            curr_orientation.w);
         tf::Matrix3x3 m_c(q_c);
         double c_roll, c_pitch, c_yaw;
         m_c.getRPY(c_roll, c_pitch, c_yaw);
 
         // get current x,y,theta
-        Eigen::Matrix2cd g_curr = getComplexMatrix(position.x, position.y, c_yaw);
+        Eigen::Matrix2cd g_curr = getComplexMatrix(curr_position.x, curr_position.y, c_yaw);
+        ROS_INFO_STREAM("current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
 
         // obtaining RPY of desired orientation
-        position = desired.pose.pose.position;
-        orientation = desired.pose.pose.orientation;
+        geometry_msgs::Point des_position = desired.pose.pose.position;
+        geometry_msgs::Quaternion des_orientation = desired.pose.pose.orientation;
         tf::Quaternion q_d(
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w);
+            des_orientation.x,
+            des_orientation.y,
+            des_orientation.z,
+            des_orientation.w);
         tf::Matrix3x3 m_d(q_d);
         double d_roll, d_pitch, d_yaw;
         m_d.getRPY(d_roll, d_pitch, d_yaw);
 
         // get desired x,y,theta
-        Eigen::Matrix2cd g_des = getComplexMatrix(position.x, position.y, d_yaw);
+        ROS_INFO_STREAM("desired pose x: " << des_position.x << ", y: " << des_position.y << ", yaw: " << d_yaw);
+        Eigen::Matrix2cd g_des = getComplexMatrix(des_position.x, des_position.y, d_yaw);
 
         // get x,y,theta error
         Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
@@ -252,8 +255,10 @@ namespace dynamic_gap{
         double peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
         double cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
 
-        ROS_INFO_STREAM("gap peak velocity x: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
+        ROS_INFO_STREAM("x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
         ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        
+        ROS_INFO_STREAM("gap peak velocity x: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
         if (peak_vel_norm > cmd_vel_norm) {
             v_lin_x_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
             v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);

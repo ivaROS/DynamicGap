@@ -19,33 +19,29 @@ namespace dynamic_gap {
             Matrix<double, 2, 4> H; // observation matrix
             Matrix<double, 4, 2> H_transpose;
             Matrix2d R; // measurement noise matrix
-            Matrix<double, 4, 4> Q; // covariance noise matrix
+            Matrix<double, 4, 4> Q, Q_1, Q_2, Q_3; // covariance noise matrix
             Matrix<double, 4, 4> dQ; // discretized covariance noise matrix
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x; // cartesian state
-            Matrix<double, 4, 1> x_ground_truth; // "ground truth" cartesian state
-
+            Matrix<double, 4, 1> x, new_x; // cartesian state
+            Matrix<double, 4, 1> x_ground_truth; //
             Matrix<double, 4, 1> frozen_x;
             Matrix<double, 4, 1> copied_x;
             Matrix<double, 4, 1> extended_origin_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
+            Matrix<double, 2, 1> x_tilde, innovation, residual;
 
-            Matrix<double, 2, 1> x_tilde;
-            Matrix<double, 2, 1> innovation;
-            Matrix<double, 2, 1> residual;
-
-            double t0;
+            double t_min1;
             double t;
             double dt;
 
             Matrix<double, 1, 3> a_ego;
             Matrix<double, 1, 3> v_ego;
 
-            Matrix<double, 4, 4> A; // linearized dynamics matrix
-            Matrix<double, 4, 4> STM; // state transition matrix for a discrete time step dt
+            Matrix<double, 4, 4> A;
+            Matrix<double, 4, 4> STM;
             std::string side;
             int index;
             double omega_rbt_prev;
@@ -67,12 +63,13 @@ namespace dynamic_gap {
             Matrix<double, 4, 4> Q_1, Q_2, Q_3;
             std::string plot_dir;
 
-            std::vector< std::vector<double>> agent_odoms;
-            std::vector<geometry_msgs::Vector3Stamped> agent_vels;
+            std::vector<std::vector<double>> agent_odoms;
+            std::vector<std::vector<double>> agent_vels;
 
             bool perfect;
+            bool print;
             double alpha_R;
-            std::default_random_engine generator;
+            double alpha_Q;
 
         public:
 
@@ -99,8 +96,8 @@ namespace dynamic_gap {
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, 
                                 bool print,
-                                std::vector< std::vector<double>> _agent_odoms,
-                                std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
+                                std::vector<std::vector<double>> _agent_odoms,
+                                std::vector<std::vector<double>> _agent_vels);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();
