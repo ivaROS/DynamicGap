@@ -195,13 +195,11 @@ namespace dynamic_gap
 
         int num_obsts;
 
-        std::vector< std::vector<double>> agent_odom_vects;
         vector<ros::Subscriber> agent_odom_subscribers;
         std::vector< std::vector<double>> agent_odom_vects;
         std::vector<geometry_msgs::Pose> agent_odoms;
         std::vector< std::vector<double>> agent_vel_vects;        
         std::vector<geometry_msgs::Vector3Stamped> agent_vels;
-        std::vector< std::vector<double>> agent_vel_vects;
 
 
     public:

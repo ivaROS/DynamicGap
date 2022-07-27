@@ -206,6 +206,9 @@ namespace dynamic_gap
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
         associated_observed_gaps = update_models(observed_gaps, v_ego, a_ego, true);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+        rbt_vel_min1 = current_rbt_vel;
+        rbt_accel_min1 = rbt_accel;
+
 
         // ROS_INFO_STREAM("Time elapsed after drawing models: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -240,10 +243,6 @@ namespace dynamic_gap
         gapFeasibilityChecker->updateEgoCircle(msg);
         // ROS_INFO_STREAM("Time elapsed after updating rest: " << (ros::WallTime::now().toSec() - start_time));
 
-
-        rbt_vel_min1 = current_rbt_vel;
-        rbt_accel_min1 = rbt_accel;
-        prev_sharedPtr_pose = sharedPtr_pose;
         // ROS_INFO_STREAM("laserscan time elapsed: " << ros::WallTime::now().toSec() - start_time);
     }
     
@@ -679,12 +678,13 @@ namespace dynamic_gap
                     if (curr_traj_length_zero) {
                         ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr traj length 0, incoming traj length 0");        
                     } else {
-                        ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr gap no longer feasible, incoming traj length 0");        
+                        ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: curr gap no longer feasible, incoming score infinite");        
                     }
                     auto empty_traj = geometry_msgs::PoseArray();
                     std::vector<double> empty_time_arr;
                     setCurrentTraj(empty_traj);
                     setCurrentTimeArr(empty_time_arr);
+                    trajectory_pub.publish(empty_traj);
                     // setCurrentLeftModel(NULL);
                     // setCurrentRightModel(NULL);
                     return empty_traj;
@@ -739,6 +739,7 @@ namespace dynamic_gap
                 setCurrentTimeArr(empty_time_arr);
                 // setCurrentLeftModel(NULL);
                 // setCurrentRightModel(NULL);
+                trajectory_pub.publish(empty_traj);
 
                 return empty_traj;
             }

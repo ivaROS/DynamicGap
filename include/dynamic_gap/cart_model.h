@@ -60,7 +60,6 @@ namespace dynamic_gap {
             Matrix<double, 4, 4> new_P;
             Matrix<double, 2, 2> inverted_tmp_mat;
             Matrix<double, 4, 1> x_update;
-            Matrix<double, 4, 4> Q_1, Q_2, Q_3;
             std::string plot_dir;
 
             std::vector<std::vector<double>> agent_odoms;

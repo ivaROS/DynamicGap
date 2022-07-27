@@ -347,10 +347,10 @@ namespace dynamic_gap {
         // msg is from egocircle
         // only part of msg used is angle_increment
 
-        int ridx = initial ? gap.cvx_RIdx() : gap.cvx_term_RIdx();
         int lidx = initial ? gap.cvx_LIdx() : gap.cvx_term_LIdx();
-        float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
+        int ridx = initial ? gap.cvx_RIdx() : gap.cvx_term_RIdx();
         float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
+        float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
 
         double gap_idx_size = (lidx - ridx);
         if (gap_idx_size < 0.0) {
@@ -454,7 +454,7 @@ namespace dynamic_gap {
             y_l = gap.cvx_term_LDist() * sin(((float) gap.cvx_term_LIdx() - gap.half_scan) / gap.half_scan * M_PI);
             x_r = gap.cvx_term_RDist() * cos(((float) gap.cvx_term_RIdx() - gap.half_scan) / gap.half_scan * M_PI);
             y_r = gap.cvx_term_RDist() * sin(((float) gap.cvx_term_RIdx() - gap.half_scan) / gap.half_scan * M_PI);
-            ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.cvx_term_RIdx() << ", " << gap.cvx_term_RDist() << "), right: (" << gap.cvx_term_LIdx() << ", " << gap.cvx_term_LDist() << ")");
+            ROS_INFO_STREAM("post-reduce gap in polar. left: (" << gap.cvx_term_LIdx() << ", " << gap.cvx_term_LDist() << "), right: (" << gap.cvx_term_RIdx() << ", " << gap.cvx_term_RDist() << ")");
         }
         ROS_INFO_STREAM("post-reduce in cart. left: (" << x_l << ", " << y_l << "), right: (" << x_r << ", " << y_r << ")");
         return;
