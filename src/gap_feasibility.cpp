@@ -26,8 +26,8 @@ namespace dynamic_gap {
         double subtracted_left_betadot = frozen_left_betadot - min_betadot;
         double subtracted_right_betadot = frozen_right_betadot - min_betadot;
 
-        ROS_INFO_STREAM("frozen left betadot: " << frozen_left_betadot);
-        ROS_INFO_STREAM("frozen right betadot: " << frozen_right_betadot);
+        // ROS_INFO_STREAM("frozen left betadot: " << frozen_left_betadot);
+        // ROS_INFO_STREAM("frozen right betadot: " << frozen_right_betadot);
 
         // double start_time = ros::Time::now().toSec();
         double crossing_time = gapSplinecheck(gap, left_model, right_model);
@@ -41,19 +41,16 @@ namespace dynamic_gap {
             gap.setTerminalPoints(gap.LIdx(), gap.LDist(), gap.RIdx(), gap.RDist());
         } else if (subtracted_left_betadot > 0) {
             // expanding
-            ROS_INFO_STREAM("gap is expanding");
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setCategory("expanding");
         } else if (subtracted_left_betadot == 0 && subtracted_right_betadot == 0) {
             // static
-            ROS_INFO_STREAM("gap is static");
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setCategory("static");
         } else {
             // closing
-            ROS_INFO_STREAM("gap is closing");
             gap.setCategory("closing"); 
             if (crossing_time >= 0) {
                 feasible = true;
@@ -89,9 +86,9 @@ namespace dynamic_gap {
         Eigen::MatrixXf A_spline = MatrixXf::Random(4,4);
         Eigen::VectorXf b_spline = VectorXf::Random(4);
         A_spline << 1.0, 0.0, 0.0, 0.0,
-             0.0, 1.0, 0.0, 0.0,
-             1.0, crossing_time, pow(crossing_time,2), pow(crossing_time,3),
-             0.0, 1.0, 2*crossing_time, 3*pow(crossing_time,2);
+                    0.0, 1.0, 0.0, 0.0,
+                    1.0, crossing_time, pow(crossing_time,2), pow(crossing_time,3),
+                    0.0, 1.0, 2*crossing_time, 3*pow(crossing_time,2);
         b_spline << starting_pos[0], starting_vel[0], crossing_pt[0], ending_vel[0];
         gap.spline_x_coefs = A_spline.partialPivLu().solve(b_spline);
 
@@ -110,7 +107,7 @@ namespace dynamic_gap {
                                  gap.spline_y_coefs[1];
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
-        ROS_INFO_STREAM("peak velocity: " << peak_velocity_x << ", " << peak_velocity_y);
+        // ROS_INFO_STREAM("peak velocity: " << peak_velocity_x << ", " << peak_velocity_y);
         gap.peak_velocity_x = peak_velocity_x;
         gap.peak_velocity_y = peak_velocity_y;
         
@@ -158,8 +155,8 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
 
         // ROS_INFO_STREAM("gap category: " << gap.getCategory());
-        ROS_INFO_STREAM("starting frozen cartesian left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
-        ROS_INFO_STREAM("starting frozen cartesian right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
+        // ROS_INFO_STREAM("starting frozen cartesian left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
+        // ROS_INFO_STREAM("starting frozen cartesian right: " << right_frozen_cartesian_state[0] << ", " << right_frozen_cartesian_state[1] << ", " << right_frozen_cartesian_state[2] << ", " << right_frozen_cartesian_state[3]);
 
         // double beta_left, beta_right, beta_center;
        
@@ -223,12 +220,8 @@ namespace dynamic_gap {
                 if (range_closing_check) {
                     
                     if (left_cross_pt.norm() < right_cross_pt.norm()) {
-                        //std::cout << "setting right equal to cross" << std::endl;
-                        //std::cout << "right state: " << right_frozen_state[0] << ", " << right_frozen_state[1] << ", " << right_frozen_state[2] << std::endl;
                         gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
                     } else {
-                        //std::cout << "setting left equal to cross" << std::endl;
-                        //std::cout << "left state: " << left_frozen_state[0] << ", " << left_frozen_state[1] << ", " << left_frozen_state[2] << std::endl;
                         gap_crossing_point << left_cross_pt[0], left_cross_pt[1];
                     }
 

@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 using namespace Eigen;
@@ -37,16 +37,16 @@ namespace dynamic_gap {
         // MEASUREMENT NOISE
         // Bigger R: better performance with static things (weighting robot's motion more)
         // I think 0.1 is roughly the minimum we can do. Otherwise, measurements get really noisy
-        R << 0.1, 0.0,
-             0.0, 0.1;
+        R << 0.001, 0.0,
+             0.0, 0.001;
 
         // PROCESS NOISE
         // Bigger Q: Better with dynamic things (weighting measurements more)
         
         Q << 0.0, 0.0, 0.0, 0.0,
-             0.0, 0.00, 0.0, 0.0,
-             0.0, 0.0, 0.50, 0.0,
-             0.0, 0.0, 0.0, 0.50;
+             0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.001, 0.0,
+             0.0, 0.0, 0.0, 0.001;
         
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
@@ -102,11 +102,8 @@ namespace dynamic_gap {
         previous_measurements.push_back(measurement);
         previous_ego_accels.push_back(ego_accels);
         previous_ego_vels.push_back(ego_vels);
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = true;
-
-        // alpha_R = 0.98;
-        // alpha_Q = 0.98;
     }
 
     void cart_model::freeze_robot_vel() {
@@ -129,8 +126,8 @@ namespace dynamic_gap {
         Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0); 
         double frozen_ang_vel_ego = 0.0;
 
-        double vdot_x_body = frozen_linear_acc_ego[0]; // + frozen_linear_vel_ego[1]*frozen_ang_vel_ego;
-        double vdot_y_body = frozen_linear_acc_ego[1]; // - frozen_linear_vel_ego[0]*frozen_ang_vel_ego;
+        double vdot_x_body = frozen_linear_acc_ego[0];
+        double vdot_y_body = frozen_linear_acc_ego[1];
 
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*dt;
@@ -146,8 +143,8 @@ namespace dynamic_gap {
         double p_dot_x = (x[2] + ang_vel_ego*x[1]);
         double p_dot_y = (x[3] - ang_vel_ego*x[0]);
 
-        double vdot_x_body = a_ego[0]; //  + ang_vel_ego*v_ego[1];
-        double vdot_y_body = a_ego[1]; // - ang_vel_ego*v_ego[0];
+        double vdot_x_body = a_ego[0];
+        double vdot_y_body = a_ego[1];
 
         double v_dot_x = (x[3]*ang_vel_ego - vdot_x_body);
         double v_dot_y = (-x[2]*ang_vel_ego - vdot_y_body);
@@ -170,31 +167,16 @@ namespace dynamic_gap {
     }
 
     void cart_model::linearize() {
-        double ang_vel_ego = v_ego[2]; //(v_ego[2] + (v_ego[2] - a_ego[2]*dt)) / 2.0;
+        double ang_vel_ego = v_ego[2];
         
         A << 0.0, ang_vel_ego, 1.0, 0.0,
                 -ang_vel_ego, 0.0, 0.0, 1.0,
                 0.0, 0.0, 0.0, ang_vel_ego,
                 0.0, 0.0, -ang_vel_ego, 0.0;
 
-        STM = (A*dt).exp(); // eyes + A * dt;
-
-        if (print) {
-            ROS_INFO_STREAM("linearizing");
-
-            ROS_INFO_STREAM("A: " << A(0, 0) << ", " << A(0, 1) << ", " << A(0, 2) << ", " << A(0, 3));     
-            ROS_INFO_STREAM("   " << A(1, 0) << ", " << A(1, 1) << ", " << A(1, 2) << ", " << A(1, 3));
-            ROS_INFO_STREAM("   " << A(2, 0) << ", " << A(2, 1) << ", " << A(2, 2) << ", " << A(2, 3));
-            ROS_INFO_STREAM("   " << A(3, 0) << ", " << A(3, 1) << ", " << A(3, 2) << ", " << A(3, 3));
-            
-            ROS_INFO_STREAM("STM: " << STM(0, 0) << ", " << STM(0, 1) << ", " << STM(0, 2) << ", " << STM(0, 3));     
-            ROS_INFO_STREAM("   " << STM(1, 0) << ", " << STM(1, 1) << ", " << STM(1, 2) << ", " << STM(1, 3));
-            ROS_INFO_STREAM("   " << STM(2, 0) << ", " << STM(2, 1) << ", " << STM(2, 2) << ", " << STM(2, 3));
-            ROS_INFO_STREAM("   " << STM(3, 0) << ", " << STM(3, 1) << ", " << STM(3, 2) << ", " << STM(3, 3));
-        }
+        STM = (A*dt).exp();
     }
 
-    // this does give off-diagonal terms to Q, so init diagonal Q is fine
     void cart_model::discretizeQ() {
         /*
         Q << 0.0, 0.0, 0.0, 0.0,
@@ -202,12 +184,6 @@ namespace dynamic_gap {
              0.0, 0.0, pow(a_ego[0], 2) + 0.00001, 0.0,
              0.0, 0.0, 0.0, pow(a_ego[1], 2) + 0.00001;
         */
-        if (print) {
-            ROS_INFO_STREAM("Q: " << Q(0, 0) << ", " << Q(0, 1) << ", " << Q(0, 2) << ", " << Q(0, 3));
-            ROS_INFO_STREAM("   " << Q(1, 0) << ", " << Q(1, 1) << ", " << Q(1, 2) << ", " << Q(1, 3));
-            ROS_INFO_STREAM("   " << Q(2, 0) << ", " << Q(2, 1) << ", " << Q(2, 2) << ", " << Q(2, 3));
-            ROS_INFO_STREAM("   " << Q(3, 0) << ", " << Q(3, 1) << ", " << Q(3, 2) << ", " << Q(3, 3));
-        }
 
         Q_1 = Q;
         Q_2 = A * Q_1 + Q_1 * A.transpose();
@@ -272,17 +248,14 @@ namespace dynamic_gap {
         x = new_x;
 
         residual = x_tilde - H*x;
-        R = (R * alpha_R) + (1 - alpha_R)*(residual*residual.transpose() + H*P*H_transpose);
         
         tmp_mat = H*P*H_transpose + R;
 
         inverted_tmp_mat = tmp_mat.inverse();
 
-        // G = P * H_transpose * inverted_tmp_mat;
+        G = P * H_transpose * inverted_tmp_mat;
 
         P = (eyes - G*H)*P;
-
-        // Q = (Q * alpha_Q) + (1 - alpha_Q) * (G * innovation * innovation.transpose() * G.transpose());
 
         if (print) {
             ROS_INFO_STREAM("x_i+1: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
@@ -295,6 +268,7 @@ namespace dynamic_gap {
 
         t_min1 = t;
         
+        /*
         if (print) {
             if (life_time <= life_time_threshold && !plotted) {
                 std::vector<double> state{life_time, x[0], x[1], x[2], x[3]};
@@ -313,7 +287,7 @@ namespace dynamic_gap {
                 plot_states();
             }
         }
-
+        */
     }
 
     void cart_model::plot_states() {

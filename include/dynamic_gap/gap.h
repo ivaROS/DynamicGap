@@ -263,7 +263,7 @@ namespace dynamic_gap
             }
 
             void setCategory(std::string _category) {
-                //std::cout << "setting category to: " << _category << std::endl;
+                ROS_INFO_STREAM("setting category to: " << _category);
                 category = _category;
             }
 

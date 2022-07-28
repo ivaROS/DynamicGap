@@ -24,7 +24,7 @@ namespace dynamic_gap {
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x, new_x; // cartesian state
+            Matrix<double, 4, 1> x, new_x;
             Matrix<double, 4, 1> x_ground_truth; //
             Matrix<double, 4, 1> frozen_x;
             Matrix<double, 4, 1> copied_x;
@@ -49,10 +49,8 @@ namespace dynamic_gap {
             bool initialized;
             double life_time, start_time;
 
-            std::vector< std::vector<double>> previous_states;
-            std::vector< std::vector<double>> previous_measurements;
-            std::vector< std::vector<double>> previous_ego_accels;
-            std::vector< std::vector<double>> previous_ego_vels;
+            std::vector< std::vector<double>> previous_states, previous_measurements, 
+                                              previous_ego_accels, previous_ego_vels;
             bool plotted = false;
             double life_time_threshold;
             Matrix<double, 4, 4> eyes;
@@ -67,13 +65,10 @@ namespace dynamic_gap {
 
             bool perfect;
             bool print;
-            double alpha_R;
-            double alpha_Q;
 
         public:
 
             cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
-            // cart_model(const dynamic_gap::cart_model &model);
 
             void initialize(double, double, Matrix<double, 1, 3>);
 

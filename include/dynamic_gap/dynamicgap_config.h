@@ -39,6 +39,7 @@ namespace dynamic_gap {
                 double cbf_r_min;
                 double K_des;
                 double K_acc;
+                bool debug_log;
             } gap_manip;
 
             struct GapAssociation {
@@ -106,12 +107,17 @@ namespace dynamic_gap {
                 double waypoint_ratio;
                 int num_curve_points;
                 int num_qB_points;
+                bool debug_log;
             } traj;
 
             struct Robot {
                 float r_inscr;
                 int num_obsts;
             } rbt;
+
+            struct Model {
+                bool debug;
+            } model;
 
             struct ManualControl {
                 bool man_ctrl;
@@ -134,7 +140,7 @@ namespace dynamic_gap {
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
 
-            gap_assoc.assoc_thresh = 0.5;
+            gap_assoc.assoc_thresh = 0.4;
 
             gap_manip.gap_diff = 0.1;
             gap_manip.epsilon1 = 0.18;
@@ -148,6 +154,7 @@ namespace dynamic_gap {
             gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
             gap_manip.K_acc = 3.0;
+            gap_manip.debug_log = true;
             
             control.k_drive_x = 3.5;
             control.k_drive_y = 3.5;
@@ -198,6 +205,7 @@ namespace dynamic_gap {
             traj.waypoint_ratio = 1.5;
             traj.num_curve_points = 10;
             traj.num_qB_points = 5;
+            traj.debug_log = true;
 
             man.man_ctrl = false;
             man.man_x = 0;
@@ -207,6 +215,8 @@ namespace dynamic_gap {
 
             rbt.r_inscr = 0.2;
             rbt.num_obsts = 0;
+
+            model.debug = true;
         }
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);

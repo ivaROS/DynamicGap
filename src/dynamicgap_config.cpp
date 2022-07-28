@@ -35,6 +35,7 @@ namespace dynamic_gap {
         nh.param("cbf_r_min", gap_manip.cbf_r_min, gap_manip.cbf_r_min);
         nh.param("K_des", gap_manip.K_des, gap_manip.K_des);
         nh.param("K_acc", gap_manip.K_acc, gap_manip.K_acc);
+        nh.param("manip_debug_log", gap_manip.debug_log, gap_manip.debug_log);
 
         // Control Params
         nh.param("k_drive_x",control.k_drive_x, control.k_drive_x);
@@ -89,10 +90,14 @@ namespace dynamic_gap {
         nh.param("waypoint_ratio", traj.waypoint_ratio, traj.waypoint_ratio);
         nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
         nh.param("num_qB_points", traj.num_qB_points, traj.num_qB_points);
+        nh.param("traj_debug_log", traj.debug_log, traj.debug_log);
 
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
         nh.param("num_obsts", rbt.num_obsts, rbt.num_obsts);
+
+        // Model
+        nh.param("debug", model.debug, model.debug);
 
     }
 
@@ -123,6 +128,7 @@ namespace dynamic_gap {
         gap_manip.axial_convert = cfg.axial_convert;
         gap_manip.cbf_param = cfg.cbf_param;
         gap_manip.K_des = cfg.K_des;
+        gap_manip.debug_log = cfg.debug_log;
 
         // Control Params
         control.k_drive_x = cfg.k_drive_x;
@@ -176,7 +182,8 @@ namespace dynamic_gap {
         traj.waypoint_ratio = cfg.waypoint_ratio;
         traj.num_curve_points = cfg.num_curve_points;
         traj.num_qB_points = cfg.num_qB_points;
-        
+        traj.debug_log = cfg.debug_log;
+
         man.man_ctrl = cfg.man_ctrl;
         man.man_x = cfg.man_x;
         man.man_y = cfg.man_y;
@@ -185,6 +192,8 @@ namespace dynamic_gap {
 
         rbt.r_inscr = cfg.r_inscr;
         rbt.num_obsts = cfg.num_obsts;
+
+        model.debug = cfg.model_debug;
     }
 
 
