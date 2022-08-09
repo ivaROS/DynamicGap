@@ -72,6 +72,19 @@ namespace dynamic_gap {
             boost::mutex egocircle_l;
             ros::Publisher projection_viz;
             ros::Time last_time;
+
+            bool holonomic;
+            bool full_fov;
+            bool projection_operator;
+            double k_turn_;
+            double k_drive_x_;
+            double k_drive_y_;
+            double k_po_;
+            double k_CBF_;
+            float v_ang_const;
+            float v_lin_x_const;
+            float v_lin_y_const;
+            float k_po_turn_;
     };
 }
 

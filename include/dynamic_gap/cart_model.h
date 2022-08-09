@@ -19,16 +19,12 @@ namespace dynamic_gap {
             Matrix<double, 2, 4> H; // observation matrix
             Matrix<double, 4, 2> H_transpose;
             Matrix2d R; // measurement noise matrix
-            Matrix<double, 4, 4> Q, Q_1, Q_2, Q_3; // covariance noise matrix
+            Matrix<double, 4, 4> Q, Q_1, Q_2, Q_3, new_Q; // covariance noise matrix
             Matrix<double, 4, 4> dQ; // discretized covariance noise matrix
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x, new_x;
-            Matrix<double, 4, 1> x_ground_truth; //
-            Matrix<double, 4, 1> frozen_x;
-            Matrix<double, 4, 1> copied_x;
-            Matrix<double, 4, 1> extended_origin_x;
+            Matrix<double, 4, 1> x, new_x, x_ground_truth, frozen_x;
             Matrix<double, 4, 4> P; // covariance matrix
             Matrix<double, 4, 2> G; // kalman gain
             Matrix<double, 2, 1> x_tilde, innovation, residual;
@@ -36,35 +32,31 @@ namespace dynamic_gap {
             double t_min1;
             double t;
             double dt;
+            double alpha_Q;
 
-            Matrix<double, 1, 3> a_ego;
-            Matrix<double, 1, 3> v_ego;
+            Matrix<double, 1, 3> a_ego, v_ego;
 
-            Matrix<double, 4, 4> A;
-            Matrix<double, 4, 4> STM;
+            Matrix<double, 4, 4> A,  STM;
             std::string side;
             int index;
-            double omega_rbt_prev;
 
             bool initialized;
             double life_time, start_time;
 
             std::vector< std::vector<double>> previous_states, previous_measurements, 
-                                              previous_ego_accels, previous_ego_vels;
-            bool plotted = false;
+                                              previous_ego_accels, previous_ego_vels, previous_times;
             double life_time_threshold;
             Matrix<double, 4, 4> eyes;
-            double check_time1;
             Matrix<double, 4, 4> new_P;
             Matrix<double, 2, 2> inverted_tmp_mat;
-            Matrix<double, 4, 1> x_update;
             std::string plot_dir;
 
-            std::vector<std::vector<double>> agent_odoms;
-            std::vector<std::vector<double>> agent_vels;
+            std::vector<geometry_msgs::Pose> agent_odoms;
+            std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
             bool perfect;
             bool print;
+            bool plotted;
 
         public:
 
@@ -76,22 +68,24 @@ namespace dynamic_gap {
 
             Eigen::Vector4d update_ground_truth_cartesian_state();
             Eigen::Vector4d get_cartesian_state();
+            Eigen::Vector4d get_GT_cartesian_state();
+
             Eigen::Vector4d get_frozen_cartesian_state();
             Eigen::Vector4d get_modified_polar_state();
             Eigen::Vector4d get_frozen_modified_polar_state();
 
             Matrix<double, 3, 1> get_v_ego();
-            void integrate();
+            Matrix<double, 4, 1> integrate();
             void linearize();
             void discretizeQ();
 
             void frozen_state_propagate(double dt);
             void freeze_robot_vel();
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
-                                Matrix<double, 1, 3> a_ego, Matrix<double, 1, 3> v_ego, 
-                                bool print,
-                                std::vector<std::vector<double>> _agent_odoms,
-                                std::vector<std::vector<double>> _agent_vels);
+                                std::vector<geometry_msgs::Twist> intermediate_accs, 
+                                std::vector<geometry_msgs::Twist> intermediate_vels,                                bool print,
+                                std::vector<geometry_msgs::Pose> _agent_odoms,
+                                std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
             void set_side(std::string _side);
             std::string get_side();
             int get_index();

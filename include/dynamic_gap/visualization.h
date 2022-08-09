@@ -48,6 +48,12 @@ namespace dynamic_gap
             void drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
             void drawGapSplines(std::vector<dynamic_gap::Gap> g);
             void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
+            void draw_model_pt_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
+            void draw_model_pt_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
+            void drawGapGroundTruthModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
+            void draw_model_pt_ground_truth_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
+            void draw_model_pt_ground_truth_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
+
 
 
 
@@ -58,6 +64,8 @@ namespace dynamic_gap
             ros::Publisher gapgoal_publisher;
             ros::Publisher gapmodel_pos_publisher;
             ros::Publisher gapmodel_vel_publisher;
+            ros::Publisher gapmodel_pos_GT_publisher;
+            ros::Publisher gapmodel_vel_GT_publisher;
             ros::Publisher reachable_gap_publisher;     
             ros::Publisher reachable_gap_centers_publisher;
             ros::Publisher gap_spline_publisher;

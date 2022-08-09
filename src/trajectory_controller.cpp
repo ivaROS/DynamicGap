@@ -6,6 +6,19 @@ namespace dynamic_gap{
         cfg_ = & cfg;
         thres = 0.1;
         last_time = ros::Time::now();
+
+        holonomic = cfg_->planning.holonomic;
+        full_fov = cfg_->planning.full_fov;
+        projection_operator = cfg_->planning.projection_operator;
+        k_turn_ = (holonomic && full_fov) ? 0.8 : cfg_->control.k_turn;
+        k_drive_x_ = cfg_->control.k_drive_x;
+        k_drive_y_ = cfg_->control.k_drive_y;
+        k_po_ = cfg_->projection.k_po;
+        k_CBF_ = cfg_->projection.k_CBF;
+        v_ang_const = cfg_->control.v_ang_const;
+        v_lin_x_const = cfg_->control.v_lin_x_const;
+        v_lin_y_const = cfg_->control.v_lin_y_const;
+        k_po_turn_ = cfg_->projection.k_po_turn;
     }
 
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
@@ -136,7 +149,6 @@ namespace dynamic_gap{
 
     /*
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
-
     */
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(
                                     sensor_msgs::LaserScan inflated_egocircle) {
@@ -180,19 +192,7 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("generating control signal");
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
-        bool holonomic = cfg_->planning.holonomic;
-        bool full_fov = cfg_->planning.full_fov;
-        bool projection_operator = cfg_->planning.projection_operator;
-        double k_turn_ = cfg_->control.k_turn;
-        if (holonomic && full_fov) k_turn_ = 0.8;
-        double k_drive_x_ = cfg_->control.k_drive_x;
-        double k_drive_y_ = cfg_->control.k_drive_y;
-        double k_po_ = cfg_->projection.k_po;
-        double k_CBF_ = cfg_->projection.k_CBF;
-        float v_ang_const = cfg_->control.v_ang_const;
-        float v_lin_x_const = cfg_->control.v_lin_x_const;
-        float v_lin_y_const = cfg_->control.v_lin_y_const;
-        float k_po_turn_ = cfg_->projection.k_po_turn;
+
 
         // ROS_INFO_STREAM("r_min: " << r_min);
         // auto inflated_egocircle = *msg_.get();
@@ -201,11 +201,7 @@ namespace dynamic_gap{
         geometry_msgs::Quaternion curr_orientation = current.orientation;
 
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
-        tf::Quaternion q_c(
-            curr_orientation.x,
-            curr_orientation.y,
-            curr_orientation.z,
-            curr_orientation.w);
+        tf::Quaternion q_c(curr_orientation.x, curr_orientation.y, curr_orientation.z, curr_orientation.w);
         tf::Matrix3x3 m_c(q_c);
         double c_roll, c_pitch, c_yaw;
         m_c.getRPY(c_roll, c_pitch, c_yaw);
@@ -217,11 +213,7 @@ namespace dynamic_gap{
         // obtaining RPY of desired orientation
         geometry_msgs::Point des_position = desired.pose.pose.position;
         geometry_msgs::Quaternion des_orientation = desired.pose.pose.orientation;
-        tf::Quaternion q_d(
-            des_orientation.x,
-            des_orientation.y,
-            des_orientation.z,
-            des_orientation.w);
+        tf::Quaternion q_d(des_orientation.x, des_orientation.y, des_orientation.z, des_orientation.w);
         tf::Matrix3x3 m_d(q_d);
         double d_roll, d_pitch, d_yaw;
         m_d.getRPY(d_roll, d_pitch, d_yaw);
@@ -363,9 +355,9 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
 
-        cmd_vel.linear.x = v_lin_x_fb;
-        cmd_vel.linear.y = v_lin_y_fb;
-        cmd_vel.angular.z = v_ang_fb; // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
+        cmd_vel.linear.x = 0.4; // v_lin_x_fb;
+        cmd_vel.linear.y = 0.0; // v_lin_y_fb;
+        cmd_vel.angular.z = 0.4; // v_ang_fb; // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
 
         // ROS_INFO_STREAM("ultimate command velocity: " << cmd_vel.linear.x << ", " << cmd_vel.linear.y << ", " << cmd_vel.angular.z);
 

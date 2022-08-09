@@ -32,9 +32,9 @@ namespace dynamic_gap{
 
             if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
-                            0.0, 0.0, 0.0, 0.0,
-                            0.0, 0.0, 0.0,0.0,
-                            selectedGap.goal.x, selectedGap.goal.y};
+                                0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0,0.0,
+                                selectedGap.goal.x, selectedGap.goal.y};
                 // ROS_INFO_STREAM("Goal to Goal");
                 g2g inte_g2g(selectedGap.goal.x, selectedGap.goal.y,
                              selectedGap.terminal_goal.x, selectedGap.terminal_goal.y,

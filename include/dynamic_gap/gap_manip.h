@@ -28,8 +28,8 @@ namespace dynamic_gap {
             void updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
             void updateDynamicEgoCircle(std::vector<dynamic_gap::Gap>, 
                                         dynamic_gap::Gap&,
-                                        std::vector<std::vector<double>>, 
-                                        std::vector<std::vector<double>>,
+                                        std::vector<geometry_msgs::Pose>, 
+                                        std::vector<geometry_msgs::Vector3Stamped>,
                                         dynamic_gap::TrajectoryArbiter *);
 
             void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);

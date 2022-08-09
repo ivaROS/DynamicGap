@@ -113,6 +113,7 @@ namespace dynamic_gap {
             struct Robot {
                 float r_inscr;
                 int num_obsts;
+                double max_range;
             } rbt;
 
             struct Model {
@@ -196,7 +197,7 @@ namespace dynamic_gap {
             traj.synthesized_frame = true;
             traj.scale = 1;
             traj.integrate_maxt = 5;
-            traj.integrate_stept = 0.1;
+            traj.integrate_stept = 0.2;
             traj.rmax = 0.3;
             traj.cobs = -1;
             traj.w = 3;
@@ -215,6 +216,7 @@ namespace dynamic_gap {
 
             rbt.r_inscr = 0.2;
             rbt.num_obsts = 0;
+            rbt.max_range = 4.99;
 
             model.debug = true;
         }

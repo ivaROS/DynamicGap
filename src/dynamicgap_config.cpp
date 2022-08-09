@@ -95,6 +95,7 @@ namespace dynamic_gap {
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
         nh.param("num_obsts", rbt.num_obsts, rbt.num_obsts);
+        nh.param("max_range", rbt.max_range, rbt.max_range);
 
         // Model
         nh.param("debug", model.debug, model.debug);
@@ -192,6 +193,7 @@ namespace dynamic_gap {
 
         rbt.r_inscr = cfg.r_inscr;
         rbt.num_obsts = cfg.num_obsts;
+        rbt.max_range = cfg.max_scan_range;
 
         model.debug = cfg.model_debug;
     }

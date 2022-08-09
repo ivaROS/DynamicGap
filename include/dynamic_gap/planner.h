@@ -166,39 +166,23 @@ namespace dynamic_gap
         geometry_msgs::Twist current_rbt_vel, rbt_vel_min1;
         geometry_msgs::Twist rbt_accel, rbt_accel_min1;
 
-        std::string frame;
-        double angle_increment;
-        double angle_min;
-        double half_scan;
-        double min_safe_dist;
+        std::vector<geometry_msgs::Twist> intermediate_vels;
+        std::vector<geometry_msgs::Twist> intermediate_accs;
 
         int init_val;
         int * model_idx;
         double prev_traj_switch_time;
-        double init_time;
 
-        dynamic_gap::cart_model * curr_right_model;
         dynamic_gap::cart_model * curr_left_model;
-        double curr_peak_velocity_x;
-        double curr_peak_velocity_y;
-
-        double prev_pose_time;
-        double prev_scan_time;
-
-        bool first_traj;
-        double max_range = 4.9;
-
-        ros::Time prev_timestamp;
-        ros::Time curr_timestamp;
-
-        double max_scan_time_elapsed;
+        dynamic_gap::cart_model * curr_right_model;
+        
+        double curr_peak_velocity_x, curr_peak_velocity_y;
 
         int num_obsts;
 
         vector<ros::Subscriber> agent_odom_subscribers;
-        std::vector< std::vector<double>> agent_odom_vects;
+        std::vector< std::vector<double>> agent_odom_vects, agent_vel_vects;
         std::vector<geometry_msgs::Pose> agent_odoms;
-        std::vector< std::vector<double>> agent_vel_vects;        
         std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
 
@@ -344,8 +328,12 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
-        void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print);
-        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 3> _v_ego, Matrix<double, 1, 3> _a_ego, bool print);
+        void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
+                                                         std::vector<geometry_msgs::Twist> intermediate_vels, 
+                                                         std::vector<geometry_msgs::Twist> intermediate_accs, bool print);
+        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
+                                                    std::vector<geometry_msgs::Twist> intermediate_vels, 
+                                                    std::vector<geometry_msgs::Twist> intermediate_accs, bool print);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 

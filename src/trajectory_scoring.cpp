@@ -66,7 +66,7 @@ namespace dynamic_gap {
         }
     };
 
-    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<std::vector<double>> _odom_vects)
+    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<geometry_msgs::Pose> _odom_vects)
     {
     
         // Declare vector of pairs
@@ -79,10 +79,13 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM(it.first);
             //ROS_INFO_STREAM("pose: " << std::to_string(it.second[0]) << ", " << std::to_string(it.second[1]));
             //ROS_INFO_STREAM("ego pose: " << pt1[0] << ", " << pt1[1]);
-            dist = sqrt(pow(_odom_vects[i][0], 2) + pow(_odom_vects[i][1], 2));
+
+            std::vector<double> odom_vect{_odom_vects[i].position.x, _odom_vects[i].position.y};
+            
+            dist = sqrt(pow(odom_vect[0], 2) + pow(odom_vect[1], 2));
             //ROS_INFO_STREAM("dist: " << dist);
-            if (dist < 5.0) {
-                A.push_back(_odom_vects[i]);
+            if (dist < cfg_->rbt.max_range) {
+                A.push_back(odom_vect);
             }
         }
         
@@ -103,8 +106,8 @@ namespace dynamic_gap {
     }
 
     void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                                        std::vector<std::vector<double>> & _agent_odoms, 
-                                                        std::vector<std::vector<double>> _agent_vels,
+                                                        std::vector<geometry_msgs::Pose> _agent_odoms, 
+                                                        std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                                         sensor_msgs::LaserScan& dynamic_laser_scan,
                                                         bool print) {
         double interval = t_iplus1 - t_i;
@@ -115,13 +118,13 @@ namespace dynamic_gap {
         // for EVERY interval, start with static scan
         dynamic_laser_scan.ranges = static_msg.get()->ranges;
 
-        float max_range = 5.0;
+        float max_range = cfg_->rbt.max_range;
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < _agent_odoms.size(); i++) {
-            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i][0] << ", " << _agent_odoms[i][1] << ")");
-            _agent_odoms[i][0] += _agent_vels[i][0]*interval;
-            _agent_odoms[i][1] += _agent_vels[i][1]*interval;
-            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i][0] << ", " << _agent_odoms[i][1] << ")");
+            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
+            _agent_odoms[i].position.x += _agent_vels[i].vector.x*interval;
+            _agent_odoms[i].position.y += _agent_vels[i].vector.y*interval;
+            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
         }
 
         // basically run modify_scan                                                          
@@ -410,11 +413,11 @@ namespace dynamic_gap {
 
 
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, 
-                                                           std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
-                                                           std::vector<std::vector<double>> _agent_odoms, 
-                                                           std::vector<std::vector<double>> _agent_vels,
-                                                           bool print,
-                                                           bool vis) {
+                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,              
+                                                            std::vector<geometry_msgs::Pose> _agent_odoms,
+                                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                            bool print,
+                                                            bool vis) {
         // Requires LOCAL FRAME
         // Should be no racing condition
         double start_time = ros::WallTime::now().toSec();

@@ -284,9 +284,6 @@ namespace dynamic_gap {
             Eigen::MatrixXd A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
             Eigen::MatrixXd neg_one_vect = Eigen::MatrixXd::Constant(1, 1, -1.0);
 
-            // Eigen::VectorXd neg_one_vect(1, 1);
-            // neg_one_vect << -1.0;       
-
             // all_centers size: (Kplus1 rows, 2 cols)
             Eigen::Vector2d boundary_pt_i, inward_norm_vector;
             Eigen::MatrixXd test_diff, new_gradients;
@@ -294,21 +291,8 @@ namespace dynamic_gap {
             for (int i = 0; i < N; i++) {
                 boundary_pt_i = all_curve_pts.row(i);
                 inward_norm_vector = all_inward_norms.row(i);
-                //Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);
-            
-                /*
-                for (int j = 0; j < Kplus1; j++) {                    
-                    center_j = all_centers.row(j);
-                    // ROS_INFO_STREAM("boundary_pt_i: " << boundary_pt_i);
-                    // ROS_INFO_STREAM("center_j: " << center_j);
-                    diff = boundary_pt_i - center_j;
-                    // ROS_INFO_STREAM("diff: " << diff);
-                    gradient_of_pti_wrt_centers.row(j) = diff / pow(diff.norm() + eps, 2);
-                }
-                */
+                //Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);        
                 
-                
-                // trying something vectorized version here. Is it faster?
                 // doing boundary - all_centers
                 test_diff = (-all_centers).rowwise() + boundary_pt_i.transpose();
                 // need to divide rowwise by norm of each row
@@ -430,47 +414,8 @@ namespace dynamic_gap {
             test_diff = (-all_centers).rowwise() + rbt.transpose(); // size Kplus1, 2
             rowwise_sq_norms = test_diff.rowwise().squaredNorm();
             gradient_of_pti_wrt_rbt = test_diff.array().colwise() / (rowwise_sq_norms.array() + eps);          
-
-            /*
-            for (int i = 0; i < Kplus1; i++) {
-
-                Eigen::Vector2d center_i = all_centers.row(i);
-                Eigen::Vector2d diff = rbt - center_i;
-
-                Eigen::Vector2d gradient = diff / pow(diff.norm() + eps, 2);
-                gradient_of_pti_wrt_centers.col(i) = gradient;
-                Eigen::Vector2d term = K_att * gradient_of_pti_wrt_centers.col(i) * weights.coeff(i, 0);
-
-                if (i == 0) {
-                    ROS_INFO_STREAM("goal term: ");
-                } else if (i == 1) {
-                    ROS_INFO_STREAM("left term: ");
-                } else if (i == (num_pts_per_side + 1)) {
-                    ROS_INFO_STREAM("right term: ");
-                }
-
-                ROS_INFO_STREAM("center: " << center_i[0] << ", " << center_i[1] << ", diff: " << diff[0] << ", " << diff[1] << ", term: " << term[0] << ", " << term[1]);
-            }
-            */ 
-
-            // now, gradient_of_pti_wrt_centers is (Kplus1, 2)
-            // weights are (Kplus1, 1)
-            // Eigen::Vector2d weighted_goal_term = K_att * gradient_of_pti_wrt_centers.block(0, 0, 2, 1) * weights.coeff(0, 0);
-            // Eigen::Vector2d weighted_left_term = K_att * gradient_of_pti_wrt_centers.block(0, 1, 2, num_pts_per_side) * weights.block(1, 0, num_pts_per_side, 1);
-            // Eigen::Vector2d weighted_right_term = K_att * gradient_of_pti_wrt_centers.block(0, num_pts_per_side+1, 2, num_pts_per_side) * weights.block(num_pts_per_side+1, 0, num_pts_per_side, 1);
             
-            // ROS_INFO_STREAM("weighted_goal_term: " << weighted_goal_term[0] << ", " << weighted_goal_term[1]);
-            // ROS_INFO_STREAM("weighted_left_term: " << weighted_left_term[0] << ", " << weighted_left_term[1]);
-            // ROS_INFO_STREAM("weighted_right_term: " << weighted_right_term[0] << ", " << weighted_right_term[1]);
-            
-            //Eigen::Vector2d total_term = K_att * gradient_of_pti_wrt_centers.transpose() * weights;
-            // Eigen::Vector2d total_term = K_att * gradient_of_pti_wrt_centers * weights;
-
-            
-            // ROS_INFO_STREAM("total_term: " << total_term[0] << ", " << total_term[1]);
-            // rel_goal_pos; // 
-            // Eigen::Vector2d v_des = K_att * gradient_of_pti_wrt_centers * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
-            v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights; // weighted_goal_term + weighted_left_term + weighted_right_term;
+            v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
             // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
 
             v_des = K_des * (v_raw / v_raw.norm());
