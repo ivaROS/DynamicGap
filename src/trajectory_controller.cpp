@@ -315,10 +315,12 @@ namespace dynamic_gap{
             } else {
                 ROS_INFO_STREAM("Psi_CBF >= 0");
                 ROS_INFO_STREAM("theta_error: " << theta_error);
+                ROS_INFO_STREAM("k_CBF_: " << k_CBF_);
+                ROS_INFO_STREAM("cmd_vel_x_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
                 ROS_INFO_STREAM("weighted_cmd_vel_safe: " << weighted_cmd_vel_x_safe  << ", " << weighted_cmd_vel_y_safe);
                 ROS_INFO_STREAM("v_lin_fb: " << v_lin_x_fb << ", " << v_lin_y_fb);
-                v_lin_x_fb = v_lin_x_fb + weighted_cmd_vel_x_safe; // (abs(theta_error) > M_PI/3) ? 0 : 
-                v_lin_y_fb = v_lin_y_fb + weighted_cmd_vel_y_safe; // (abs(theta_error) > M_PI/3) ? 0 : 
+                v_lin_x_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_x_fb + weighted_cmd_vel_x_safe; // 
+                v_lin_y_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_y_fb + weighted_cmd_vel_y_safe; //
 
                 if(v_lin_x_fb < 0)
                     v_lin_x_fb = 0;

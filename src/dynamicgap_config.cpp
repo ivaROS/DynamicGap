@@ -59,6 +59,7 @@ namespace dynamic_gap {
         nh.param("r_min", projection.r_min, projection.r_min);
         nh.param("r_norm", projection.r_norm, projection.r_norm);
         nh.param("r_norm_offset", projection.r_norm_offset, projection.r_norm_offset);
+        nh.param("k_CBF", projection.k_CBF, projection.k_CBF);
 
         // Waypoint Params
         nh.param("global_plan_lookup_increment", waypoint.global_plan_lookup_increment, waypoint.global_plan_lookup_increment);

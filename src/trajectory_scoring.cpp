@@ -10,7 +10,11 @@ namespace dynamic_gap {
         rmax = cfg_->traj.rmax;
         cobs = cfg_->traj.cobs;
         w = cfg_->traj.w;
-        propagatedEgocirclePublisher = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 500);
+        propagatedEgocirclePublisher = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 1);
+        sensor_msgs::LaserScan tmp_scan = sensor_msgs::LaserScan();
+        for (double t_iplus1 = cfg_->traj.integrate_stept; t_iplus1 < cfg_->traj.integrate_maxt; t_iplus1 += cfg_->traj.integrate_stept) {
+            future_scans.push_back(tmp_scan);
+        }
     }
 
     void TrajectoryArbiter::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
@@ -106,7 +110,7 @@ namespace dynamic_gap {
     }
 
     void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                                        std::vector<geometry_msgs::Pose> _agent_odoms, 
+                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
                                                         std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                                         sensor_msgs::LaserScan& dynamic_laser_scan,
                                                         bool print) {
@@ -411,6 +415,42 @@ namespace dynamic_gap {
         propagatedEgocirclePublisher.publish(dynamic_laser_scan);
     }
 
+    void TrajectoryArbiter::getFutureScans(std::vector<geometry_msgs::Pose> _agent_odoms,
+                                           std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                           bool print) {
+        ROS_INFO_STREAM("running getFutureScans");
+        sensor_msgs::LaserScan stored_scan = *msg.get();
+        sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
+        dynamic_laser_scan.header = stored_scan.header;
+        dynamic_laser_scan.angle_min = stored_scan.angle_min;
+        dynamic_laser_scan.angle_max = stored_scan.angle_max;
+        dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
+        dynamic_laser_scan.time_increment = stored_scan.time_increment;
+        dynamic_laser_scan.scan_time = stored_scan.scan_time;
+        dynamic_laser_scan.range_min = stored_scan.range_min;
+        dynamic_laser_scan.range_max = stored_scan.range_max;
+        dynamic_laser_scan.ranges = stored_scan.ranges;
+        std::vector<float> scan_intensities(stored_scan.ranges.size(), 0.5);
+        dynamic_laser_scan.intensities = scan_intensities;
+
+        double t_i = 0.0;
+        future_scans[0] = dynamic_laser_scan;
+
+        std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
+        std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
+
+        for (double t_iplus1 = cfg_->traj.integrate_stept; t_iplus1 < cfg_->traj.integrate_maxt; t_iplus1 += cfg_->traj.integrate_stept) {
+            dynamic_laser_scan.ranges = stored_scan.ranges;
+
+            recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
+
+            int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
+            // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << future_scan_idx);
+            future_scans[future_scan_idx] = dynamic_laser_scan;
+
+            t_i = t_iplus1;
+        }
+    }
 
     std::vector<double> TrajectoryArbiter::scoreTrajectory(geometry_msgs::PoseArray traj, 
                                                             std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,              
@@ -441,27 +481,10 @@ namespace dynamic_gap {
             model->freeze_robot_vel();
         }
         
-        // std::cout << "num models: " << raw_models.size() << std::endl;
-        std::vector<std::vector<double>> dynamic_min_dist_pts(traj.poses.size());
-        std::vector<double> dynamic_cost_val(traj.poses.size());
-        std::vector<std::vector<double>> static_min_dist_pts(traj.poses.size());
-        std::vector<double> static_cost_val(traj.poses.size());
         double total_val = 0.0;
         std::vector<double> cost_val;
 
-        sensor_msgs::LaserScan stored_scan = *msg.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
-        dynamic_laser_scan.header = stored_scan.header;
-        dynamic_laser_scan.angle_min = stored_scan.angle_min;
-        dynamic_laser_scan.angle_max = stored_scan.angle_max;
-        dynamic_laser_scan.angle_increment = stored_scan.angle_increment;
-        dynamic_laser_scan.time_increment = stored_scan.time_increment;
-        dynamic_laser_scan.scan_time = stored_scan.scan_time;
-        dynamic_laser_scan.range_min = stored_scan.range_min;
-        dynamic_laser_scan.range_max = stored_scan.range_max;
-        dynamic_laser_scan.ranges = stored_scan.ranges;
-        std::vector<float> scan_intensities(stored_scan.ranges.size(), 0.5);
-        dynamic_laser_scan.intensities = scan_intensities;
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
@@ -469,25 +492,27 @@ namespace dynamic_gap {
 
         int min_dist_idx;
         if (current_raw_gaps.size() > 0) {
+            std::vector<double> dynamic_cost_val(traj.poses.size());
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
-                // need to hook up static scan
-                recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_laser_scan, print);
                 // recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
-                /*
-                if (i == 1 && vis) {
-                    ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
-                    visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
-                }
-                */
-
+                int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
+                // ROS_INFO_STREAM("pulling scan for t_iplus1: " << t_iplus1 << " at idx: " << future_scan_idx);
+                dynamic_laser_scan = future_scans[future_scan_idx];
                 min_dist_idx = dynamicGetMinDistIndex(traj.poses.at(i), dynamic_laser_scan, print);
                 // add point to min_dist_array
                 double theta = min_dist_idx * dynamic_laser_scan.angle_increment + dynamic_laser_scan.angle_min;
                 double range = dynamic_laser_scan.ranges.at(min_dist_idx);
                 std::vector<double> min_dist_pt{range*std::cos(theta), range*std::sin(theta)};
-                dynamic_min_dist_pts.at(i) = min_dist_pt;
+ 
+                /*
+                if (t_iplus1 == 2.5 && vis) {
+                    ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
+                    visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
+                }
+                */
+
 
                 // get cost of point
                 dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
@@ -502,6 +527,7 @@ namespace dynamic_gap {
             cost_val = dynamic_cost_val;
             ROS_INFO_STREAM("dynamic pose-wise cost: " << total_val);
         } else {
+            std::vector<double> static_cost_val(traj.poses.size());
             for (int i = 0; i < static_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 static_cost_val.at(i) = scorePose(traj.poses.at(i)); //  / static_cost_val.size()

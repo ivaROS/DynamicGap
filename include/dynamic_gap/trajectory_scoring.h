@@ -51,7 +51,7 @@ namespace dynamic_gap{
                                                            bool vis);
         
         void recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                                        std::vector<geometry_msgs::Pose> _agent_odoms, 
+                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
                                                         std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                                         sensor_msgs::LaserScan& dynamic_laser_scan,
                                                         bool print);
@@ -59,7 +59,9 @@ namespace dynamic_gap{
         void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
         double terminalGoalCost(geometry_msgs::Pose pose);
-
+        void getFutureScans(std::vector<geometry_msgs::Pose> _agent_odoms,
+                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                            bool print);
         private:
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> msg, static_msg;
@@ -80,11 +82,12 @@ namespace dynamic_gap{
 
             void populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
             double setDynamicLaserScanRange(double idx, double idx_span, double start_idx, double end_idx, double start_range, double end_range, bool free);
-
+            
             int search_idx = -1;
 
             double r_inscr, rmax, cobs, w;
             ros::Publisher propagatedEgocirclePublisher;
+            std::vector<sensor_msgs::LaserScan> future_scans;
     };
 }
 

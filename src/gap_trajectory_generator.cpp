@@ -154,7 +154,7 @@ namespace dynamic_gap{
             // ROS_INFO_STREAM("integration time elapsed: " << (ros::Time::now().toSec() - start_time));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            // ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - gen_traj_start_time);
+            ROS_INFO_STREAM("generateTrajectory time taken: " << ros::Time::now().toSec() - gen_traj_start_time);
             return return_tuple;
             
         } catch (...) {

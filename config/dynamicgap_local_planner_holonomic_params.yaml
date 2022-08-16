@@ -28,6 +28,7 @@ DynamicGapPlanner:
     fig_gen: False
     k_po: 1
     k_po_turn: 3
+    k_CBF: 0.2
 
     r_min: 0.50
     r_norm: 1.0

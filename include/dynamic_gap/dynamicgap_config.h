@@ -141,7 +141,7 @@ namespace dynamic_gap {
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
 
-            gap_assoc.assoc_thresh = 0.2;
+            gap_assoc.assoc_thresh = 0.4;
 
             gap_manip.gap_diff = 0.1;
             gap_manip.epsilon1 = 0.18;
@@ -176,6 +176,7 @@ namespace dynamic_gap {
             projection.r_min = 0.75;
             projection.r_norm = 1.25;
             projection.r_norm_offset = 0.5;
+            projection.k_CBF = 0.2;
 
             waypoint.global_plan_lookup_increment = 75;
             waypoint.global_plan_change_tolerance = 0.1;

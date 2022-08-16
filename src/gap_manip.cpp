@@ -37,6 +37,9 @@ namespace dynamic_gap {
         }
         */
 
+        std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
+        std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
+
         trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_scan, false);
 
         auto terminal_min_dist = *std::min_element(dynamic_scan.ranges.begin(), dynamic_scan.ranges.end());

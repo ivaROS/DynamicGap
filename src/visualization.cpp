@@ -7,8 +7,8 @@ namespace dynamic_gap{
 
     void GapVisualizer::initialize(ros::NodeHandle& nh, const DynamicGapConfig& cfg) {
         cfg_ = &cfg;
-        gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 1000);
-        gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 100);
+        gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 10);
+        gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 10);
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
         reachable_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
         reachable_gap_centers_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
@@ -1304,12 +1304,12 @@ namespace dynamic_gap{
             lg_marker.pose.position.x = g.goal.x;
             lg_marker.pose.position.y = g.goal.y;
             lg_marker.color = gapwp_color;
-            ROS_INFO_STREAM("visualizing initial goal: " << g.goal.x << ", " << g.goal.y);
+            //ROS_INFO_STREAM("visualizing initial goal: " << g.goal.x << ", " << g.goal.y);
         } else {
             lg_marker.pose.position.x = g.terminal_goal.x;
             lg_marker.pose.position.y = g.terminal_goal.y; 
-            ROS_INFO_STREAM("visualizing terminal goal: " << g.terminal_goal.x << ", " << g.terminal_goal.y);
             lg_marker.color = terminal_gapwp_color;
+            // ROS_INFO_STREAM("visualizing terminal goal: " << g.terminal_goal.x << ", " << g.terminal_goal.y);
         }
         lg_marker.pose.position.z = 0.5;
         lg_marker.pose.orientation.w = 1;
