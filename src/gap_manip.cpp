@@ -739,7 +739,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
-        Eigen::Vector2f qB = -s * norm_eB;
+        Eigen::Vector2f qB = -0.25 * s * norm_eB;
         // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
         if (initial) {
             gap.qB = qB;
@@ -748,22 +748,29 @@ namespace dynamic_gap {
         }
 
         Eigen::Vector2f fwd_qB = -qB; 
-        if (initial) {
-            Eigen::Vector2f qLp = pt_l - qB;
-            float theta_btw_qLp_and_qB = std::acos(fwd_qB.dot(qLp) / (fwd_qB.norm() * qLp.norm()));
-            float length_along_qLp = fwd_qB.norm() / cos(theta_btw_qLp_and_qB);
-            // ROS_INFO_STREAM("theta between qLp and qB: " << theta_btw_qLp_and_qB);
-            Eigen::Vector2f left_hypotenuse = length_along_qLp * qLp / qLp.norm();        
-            // ROS_INFO_STREAM("length along qLp: " << length_along_qLp << ", left_hypotenuse: " << left_hypotenuse[0] << ", " << left_hypotenuse[1]);
-            gap.left_bezier_origin = left_hypotenuse + qB;
+        Eigen::Matrix2f r_pi2, r_negpi2;
+        r_pi2 << 0, -1,
+                    1, 0;
+        r_negpi2 = -r_pi2;
 
-            Eigen::Vector2f qRp = pt_r - qB;
-            float theta_btw_qRp_and_qB = std::acos(fwd_qB.dot(qRp) / (fwd_qB.norm() * qRp.norm()));
-            float length_along_qRp = fwd_qB.norm() / cos(theta_btw_qRp_and_qB);
+        
+        if (initial) {
+            // Eigen::Vector2f qLp = pt_l - qB;
+            // float theta_btw_qLp_and_qB = std::acos(fwd_qB.dot(qLp) / (fwd_qB.norm() * qLp.norm()));
+            // float length_along_qLp = fwd_qB.norm() / cos(theta_btw_qLp_and_qB);
+            // ROS_INFO_STREAM("theta between qLp and qB: " << theta_btw_qLp_and_qB);
+            //Eigen::Vector2f left_hypotenuse = length_along_qLp * qLp / qLp.norm();        
+            // ROS_INFO_STREAM("length along qLp: " << length_along_qLp << ", left_hypotenuse: " << left_hypotenuse[0] << ", " << left_hypotenuse[1]);
+            
+            gap.left_bezier_origin =  r_negpi2 * qB; // left_hypotenuse + qB;
+
+            // Eigen::Vector2f qRp = pt_r - qB;
+            // float theta_btw_qRp_and_qB = std::acos(fwd_qB.dot(qRp) / (fwd_qB.norm() * qRp.norm()));
+            // float length_along_qRp = fwd_qB.norm() / cos(theta_btw_qRp_and_qB);
             // ROS_INFO_STREAM("theta between qRp and qB: " << theta_btw_qRp_and_qB);
-            Eigen::Vector2f right_hypotenuse = length_along_qRp * qRp / qRp.norm();        
+            // Eigen::Vector2f right_hypotenuse = length_along_qRp * qRp / qRp.norm();        
             // ROS_INFO_STREAM("length along qRp: " << length_along_qRp << ", right_hypotenuse: " << right_hypotenuse[0] << ", " << right_hypotenuse[1]);
-            gap.right_bezer_origin = right_hypotenuse + qB;
+            gap.right_bezer_origin = r_pi2 * qB; // right_hypotenuse + qB;
         }
 
         if (initial) {

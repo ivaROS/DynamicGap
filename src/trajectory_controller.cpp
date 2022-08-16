@@ -15,9 +15,6 @@ namespace dynamic_gap{
         k_drive_y_ = cfg_->control.k_drive_y;
         k_po_ = cfg_->projection.k_po;
         k_CBF_ = cfg_->projection.k_CBF;
-        v_ang_const = cfg_->control.v_ang_const;
-        v_lin_x_const = cfg_->control.v_lin_x_const;
-        v_lin_y_const = cfg_->control.v_lin_y_const;
         k_po_turn_ = cfg_->projection.k_po_turn;
     }
 
@@ -151,35 +148,43 @@ namespace dynamic_gap{
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
     */
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(
-                                    sensor_msgs::LaserScan inflated_egocircle) {
-        sensor_msgs::LaserScan scan_ = inflated_egocircle;
-        float linear = 0, rotational = 0;
-        
-        for(unsigned int i = 0 ; i < scan_.ranges.size() ; i++) {
-            float real_dist = scan_.ranges[i];
-            float real_idx =  scan_.angle_min + i * scan_.angle_increment;
-            float r_offset = 0.125; // 0.25 cut it pretty close on one example
-            linear -= cos(real_idx) / (r_offset + real_dist * real_dist);
-            rotational -= sin(real_idx) / (r_offset + real_dist * real_dist);
-        }
-        geometry_msgs::Twist cmd;
-        
-        linear /= scan_.ranges.size();
-        rotational /= scan_.ranges.size();
-        
-        
-        if (linear > cfg_->control.vx_absmax) {
-            linear = cfg_->control.vx_absmax;
-        } else if(linear < -cfg_->control.vx_absmax) {
-            linear = -cfg_->control.vx_absmax;
+                                    sensor_msgs::LaserScan inflated_egocircle,
+                                    geometry_msgs::PoseStamped rbt_in_cam_lc) {
+
+        float min_dist_ang = 0;
+        float min_dist = 0;
+
+        Eigen::Vector2d Psi_der(0.0, 0.0);
+        double Psi = 0.0;
+        double Psi_CBF = 0.0;
+        Eigen::Vector2d cmd_vel_fb(0.0, 0.0);
+        // ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
+
+        if (inflated_egocircle.ranges.size() < 500) {
+            ROS_FATAL_STREAM("Scan range incorrect controlLaw");
         }
 
-        ROS_INFO_STREAM("Obstacle avoidance cmd vel, v_x: " << linear << ", v_ang: " << rotational);
+        // applies PO
+        float cmd_vel_x_safe = 0;
+        float cmd_vel_y_safe = 0;                                   
+        run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
+                        cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
+                        min_dist_ang, min_dist);
 
-        cmd.linear.x = linear;
-        cmd.angular.z = rotational;
+        double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
+        double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
+        double weighted_cmd_vel_theta_safe = 0.0;
 
-        return cmd;
+        clip_command_velocities(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, weighted_cmd_vel_theta_safe);
+
+        geometry_msgs::Twist cmd_vel;
+        cmd_vel.linear.x = weighted_cmd_vel_x_safe;
+        cmd_vel.linear.y = weighted_cmd_vel_y_safe; 
+        cmd_vel.angular.z = weighted_cmd_vel_theta_safe;    
+
+        visualize_projection_operator(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, projection_viz);
+   
+        return cmd_vel;
     }
 
     geometry_msgs::Twist TrajectoryController::controlLaw(
@@ -261,9 +266,9 @@ namespace dynamic_gap{
         float min_dist_ang = 0;
         float min_dist = 0;
 
-        Eigen::Vector2d Psi_der;
-        double Psi;
-        double Psi_CBF;
+        Eigen::Vector2d Psi_der(0.0, 0.0);
+        double Psi = 0.0;
+        double Psi_CBF = 0.0;
         Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
         // ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
 
@@ -277,16 +282,16 @@ namespace dynamic_gap{
         
         if (projection_operator && (curr_right_model != nullptr && curr_left_model != nullptr))
         {
-            //run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
-            //                        cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
-            //                        min_dist_ang, min_dist);
+            // ROS_INFO_STREAM("running projection operator");
+            run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
+                                    cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
+                                    min_dist_ang, min_dist);
             
-            Eigen::Vector4d state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-            Eigen::Vector4d left_rel_model = curr_left_model->get_cartesian_state(); // flipping
-            Eigen::Vector4d right_rel_model = curr_right_model->get_cartesian_state(); // flipping
-            Eigen::Vector2d current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
-            run_bearing_rate_barrier_function(state, right_rel_model, left_rel_model,
-                                              current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
+            // Eigen::Vector4d state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
+            // Eigen::Vector4d left_rel_model = curr_left_model->get_cartesian_state(); // flipping
+            // Eigen::Vector4d right_rel_model = curr_right_model->get_cartesian_state(); // flipping
+            // Eigen::Vector2d current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
+            // run_bearing_rate_barrier_function(state, right_rel_model, left_rel_model, current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
         } else {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
@@ -298,47 +303,29 @@ namespace dynamic_gap{
         double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
         // cmd_vel_safe
         if (weighted_cmd_vel_x_safe != 0 || weighted_cmd_vel_y_safe != 0) {
-            visualization_msgs::Marker res;
-            res.header.frame_id = cfg_->robot_frame_id;
-            res.type = visualization_msgs::Marker::ARROW;
-            res.action = visualization_msgs::Marker::ADD;
-            res.pose.position.x = 0;
-            res.pose.position.y = 0;
-            res.pose.position.z = 0.5;
-            double dir = std::atan2(weighted_cmd_vel_y_safe, weighted_cmd_vel_x_safe);
-            tf2::Quaternion dir_quat;
-            dir_quat.setRPY(0, 0, dir);
-            res.pose.orientation = tf2::toMsg(dir_quat);
-
-            res.scale.x = sqrt(pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
-            res.scale.y = 0.01;  
-            res.scale.z = 0.01;
-            
-            res.color.a = 1;
-            res.color.r = 0.0;
-            res.color.g = 0.0;
-            res.color.b = 0.0;
-            res.id = 0;
-            res.lifetime = ros::Duration(0.1);
-            projection_viz.publish(res);
+            visualize_projection_operator(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, projection_viz);
         }
 
         if(holonomic)
         {
             if (Psi_CBF < 0) {
-                v_lin_x_fb = v_lin_x_fb + v_lin_x_const + weighted_cmd_vel_x_safe;
-                v_lin_y_fb = v_lin_y_fb + v_lin_y_const + weighted_cmd_vel_y_safe;
+                ROS_INFO_STREAM("Psi_CBF < 0");
+                v_lin_x_fb = v_lin_x_fb + weighted_cmd_vel_x_safe;
+                v_lin_y_fb = v_lin_y_fb + weighted_cmd_vel_y_safe;
             } else {
-                v_ang_fb = v_ang_fb + v_ang_const;
-                v_lin_x_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_x_fb + v_lin_x_const + weighted_cmd_vel_x_safe;
-                v_lin_y_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_y_fb + v_lin_y_const + weighted_cmd_vel_y_safe;
+                ROS_INFO_STREAM("Psi_CBF >= 0");
+                ROS_INFO_STREAM("theta_error: " << theta_error);
+                ROS_INFO_STREAM("weighted_cmd_vel_safe: " << weighted_cmd_vel_x_safe  << ", " << weighted_cmd_vel_y_safe);
+                ROS_INFO_STREAM("v_lin_fb: " << v_lin_x_fb << ", " << v_lin_y_fb);
+                v_lin_x_fb = v_lin_x_fb + weighted_cmd_vel_x_safe; // (abs(theta_error) > M_PI/3) ? 0 : 
+                v_lin_y_fb = v_lin_y_fb + weighted_cmd_vel_y_safe; // (abs(theta_error) > M_PI/3) ? 0 : 
 
                 if(v_lin_x_fb < 0)
                     v_lin_x_fb = 0;
             }
         } else {
-            v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe + v_ang_const;
-            v_lin_x_fb = v_lin_x_fb + v_lin_x_const + k_po_ * cmd_vel_x_safe;
+            v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe;
+            v_lin_x_fb = v_lin_x_fb + k_po_ * cmd_vel_x_safe;
 
             if (projection_operator && min_dist_ang > - M_PI / 4 && min_dist_ang < M_PI / 4 && min_dist < cfg_->rbt.r_inscr)
             {
@@ -355,15 +342,41 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
 
-        cmd_vel.linear.x = 0.4; // v_lin_x_fb;
-        cmd_vel.linear.y = 0.0; // v_lin_y_fb;
-        cmd_vel.angular.z = 0.4; // v_ang_fb; // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
+        cmd_vel.linear.x = v_lin_x_fb;
+        cmd_vel.linear.y = v_lin_y_fb;
+        cmd_vel.angular.z = v_ang_fb;
 
         // ROS_INFO_STREAM("ultimate command velocity: " << cmd_vel.linear.x << ", " << cmd_vel.linear.y << ", " << cmd_vel.angular.z);
 
         return cmd_vel;
     }
     
+    void TrajectoryController::visualize_projection_operator(double weighted_cmd_vel_x_safe, double weighted_cmd_vel_y_safe, ros::Publisher projection_viz) {
+        visualization_msgs::Marker res;
+        res.header.frame_id = cfg_->robot_frame_id;
+        res.type = visualization_msgs::Marker::ARROW;
+        res.action = visualization_msgs::Marker::ADD;
+        res.pose.position.x = 0;
+        res.pose.position.y = 0;
+        res.pose.position.z = 0.5;
+        double dir = std::atan2(weighted_cmd_vel_y_safe, weighted_cmd_vel_x_safe);
+        tf2::Quaternion dir_quat;
+        dir_quat.setRPY(0, 0, dir);
+        res.pose.orientation = tf2::toMsg(dir_quat);
+
+        res.scale.x = sqrt(pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
+        res.scale.y = 0.01;  
+        res.scale.z = 0.01;
+        
+        res.color.a = 1;
+        res.color.r = 0.0;
+        res.color.g = 0.0;
+        res.color.b = 0.0;
+        res.id = 0;
+        res.lifetime = ros::Duration(0.1);
+        projection_viz.publish(res);
+    }
+
     void TrajectoryController::clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb) {
         
         double abs_x_vel = std::abs(v_lin_x_fb);
@@ -376,6 +389,7 @@ namespace dynamic_gap{
             v_lin_y_fb *= cfg_->control.vy_absmax / std::max(abs_x_vel, abs_y_vel);
         }
 
+        // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
         ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         return;
     }

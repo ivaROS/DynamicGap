@@ -168,7 +168,7 @@ namespace dynamic_gap
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-        associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, true);
+        associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
         rbt_vel_min1 = current_rbt_vel;
         rbt_accel_min1 = rbt_accel;
@@ -819,9 +819,10 @@ namespace dynamic_gap
             stored_scan_msgs = *sharedPtr_laser.get();
         }
 
+        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
         if (traj.poses.size() < 2) {
             ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
-            auto cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
+            auto cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs, rbt_in_cam_lc);
             return cmd_vel;
         }
 
@@ -847,7 +848,6 @@ namespace dynamic_gap
         ctrl_target_pose.pose.pose = orig_ref.poses.at(ctrl_idx);
         ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
 
-        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
         auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
                                                   stored_scan_msgs, rbt_in_cam_lc,
                                                   current_rbt_vel, rbt_accel,
@@ -952,7 +952,7 @@ namespace dynamic_gap
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         auto score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
-        ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        // ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
         //std::cout << "FINISHED INITIAL TRAJ GEN/SCORING" << std::endl;

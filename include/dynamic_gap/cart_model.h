@@ -18,15 +18,15 @@ namespace dynamic_gap {
             int n;
             Matrix<double, 2, 4> H; // observation matrix
             Matrix<double, 4, 2> H_transpose;
-            Matrix2d R; // measurement noise matrix
-            Matrix<double, 4, 4> Q, Q_1, Q_2, Q_3, new_Q; // covariance noise matrix
+            Matrix2d R_k; // measurement noise matrix
+            Matrix<double, 4, 4> Q_k, Q_1, Q_2, Q_3, new_Q; // covariance noise matrix
             Matrix<double, 4, 4> dQ; // discretized covariance noise matrix
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x, new_x, x_ground_truth, frozen_x;
-            Matrix<double, 4, 4> P; // covariance matrix
-            Matrix<double, 4, 2> G; // kalman gain
+            Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, new_x, x_ground_truth, frozen_x;
+            Matrix<double, 4, 4> P_kmin1_plus, P_k_minus, P_k_plus; // covariance matrix
+            Matrix<double, 4, 2> G_k; // kalman gain
             Matrix<double, 2, 1> x_tilde, innovation, residual;
 
             double t_min1;
@@ -44,7 +44,8 @@ namespace dynamic_gap {
             double life_time, start_time;
 
             std::vector< std::vector<double>> previous_states, previous_measurements, 
-                                              previous_ego_accels, previous_ego_vels, previous_times;
+                                              previous_ego_accels, previous_ego_vels, previous_times,
+                                              vel_euler_derivatives;
             double life_time_threshold;
             Matrix<double, 4, 4> eyes;
             Matrix<double, 4, 4> new_P;
@@ -57,6 +58,7 @@ namespace dynamic_gap {
             bool perfect;
             bool print;
             bool plotted;
+            std::vector<double> prev_euler_deriv;
 
         public:
 
@@ -83,7 +85,8 @@ namespace dynamic_gap {
             void freeze_robot_vel();
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 std::vector<geometry_msgs::Twist> intermediate_accs, 
-                                std::vector<geometry_msgs::Twist> intermediate_vels,                                bool print,
+                                std::vector<geometry_msgs::Twist> intermediate_vels, 
+                                bool print,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels);
             void set_side(std::string _side);

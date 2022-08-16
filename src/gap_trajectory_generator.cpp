@@ -135,7 +135,7 @@ namespace dynamic_gap{
                              left_pt_0, left_pt_1, right_pt_0, right_pt_1, 
                              gap_radial_extension, goal_pt_1, left_weight, right_weight, num_curve_points, num_qB_points, 
                              init_rbt_pos, left_bezier_origin, right_bezier_origin);
-            ROS_INFO_STREAM("buildBezierCurve time elapsed: " << (ros::Time::now().toSec() - start_time));
+            // ROS_INFO_STREAM("buildBezierCurve time elapsed: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
             selectedGap.left_weight = left_weight;
             selectedGap.right_weight = right_weight;
@@ -151,10 +151,10 @@ namespace dynamic_gap{
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, 
                                                     cfg_->traj.integrate_stept, corder);
-            ROS_INFO_STREAM("integration time elapsed: " << (ros::Time::now().toSec() - start_time));
+            // ROS_INFO_STREAM("integration time elapsed: " << (ros::Time::now().toSec() - start_time));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-            ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - gen_traj_start_time);
+            // ROS_INFO_STREAM("generateTrajectory time elapsed: " << ros::Time::now().toSec() - gen_traj_start_time);
             return return_tuple;
             
         } catch (...) {

@@ -202,7 +202,7 @@ namespace dynamic_gap {
                             Eigen::MatrixXd A(Kplus1, N+1);
                             double start_time = ros::Time::now().toSec();
                             setConstraintMatrix(A, N, Kplus1);
-                            ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
+                            // ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
                             // ROS_INFO_STREAM("A: " << A);
                             
                             // Eigen::MatrixXd b = Eigen::MatrixXd::Zero(Kplus1, 1);
