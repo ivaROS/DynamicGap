@@ -26,7 +26,7 @@ namespace dynamic_gap {
         public:
 
             TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            geometry_msgs::Twist obstacleAvoidanceControlLaw(sensor_msgs::LaserScan, geometry_msgs::PoseStamped rbt_in_cam_lc);
+            geometry_msgs::Twist obstacleAvoidanceControlLaw(sensor_msgs::LaserScan);
             geometry_msgs::Twist controlLaw(geometry_msgs::Pose current, nav_msgs::Odometry desired,
                                             sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
                                             geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,

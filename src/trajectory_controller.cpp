@@ -147,43 +147,44 @@ namespace dynamic_gap{
     /*
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
     */
-    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(
-                                    sensor_msgs::LaserScan inflated_egocircle,
-                                    geometry_msgs::PoseStamped rbt_in_cam_lc) {
+    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(sensor_msgs::LaserScan inflated_egocircle) {
 
-        float min_dist_ang = 0;
-        float min_dist = 0;
+        double cmd_vel_x_safe = 0;
+        double cmd_vel_y_safe = 0;                                   
+        
+        double scan_dist, scan_theta;
+        for (int i = 0; i < inflated_egocircle.ranges.size(); i++) {
+            scan_dist = inflated_egocircle.ranges[i];
+            scan_theta =  inflated_egocircle.angle_min + i * inflated_egocircle.angle_increment;
 
-        Eigen::Vector2d Psi_der(0.0, 0.0);
-        double Psi = 0.0;
-        double Psi_CBF = 0.0;
-        Eigen::Vector2d cmd_vel_fb(0.0, 0.0);
-        // ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
-
-        if (inflated_egocircle.ranges.size() < 500) {
-            ROS_FATAL_STREAM("Scan range incorrect controlLaw");
+            cmd_vel_x_safe += (-std::cos(scan_theta)) / pow(scan_dist, 2);
+            cmd_vel_y_safe += (-std::sin(scan_theta)) / pow(scan_dist, 2);
         }
 
-        // applies PO
-        float cmd_vel_x_safe = 0;
-        float cmd_vel_y_safe = 0;                                   
-        run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
-                        cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
-                        min_dist_ang, min_dist);
+        cmd_vel_x_safe /= inflated_egocircle.ranges.size();
+        cmd_vel_y_safe /= inflated_egocircle.ranges.size();
 
+        ROS_INFO_STREAM("raw safe vels: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
         double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
         double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
         double weighted_cmd_vel_theta_safe = 0.0;
+        ROS_INFO_STREAM("weighted safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
+
 
         clip_command_velocities(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, weighted_cmd_vel_theta_safe);
+
+        double cmd_vel_safe_norm = sqrt( pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
+        if (cmd_vel_safe_norm < 0.1) {
+            weighted_cmd_vel_x_safe += 0.3;
+        }
+
+        ROS_INFO_STREAM("final safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
 
         geometry_msgs::Twist cmd_vel;
         cmd_vel.linear.x = weighted_cmd_vel_x_safe;
         cmd_vel.linear.y = weighted_cmd_vel_y_safe; 
         cmd_vel.angular.z = weighted_cmd_vel_theta_safe;    
 
-        visualize_projection_operator(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, projection_viz);
-   
         return cmd_vel;
     }
 

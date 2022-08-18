@@ -176,7 +176,7 @@ namespace dynamic_gap {
             projection.r_min = 0.75;
             projection.r_norm = 1.25;
             projection.r_norm_offset = 0.5;
-            projection.k_CBF = 0.2;
+            projection.k_CBF = 1.0;
 
             waypoint.global_plan_lookup_increment = 75;
             waypoint.global_plan_change_tolerance = 0.1;

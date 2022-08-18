@@ -821,12 +821,12 @@ namespace dynamic_gap
             stored_scan_msgs = *sharedPtr_laser.get();
         }
 
-        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        if (traj.poses.size() < 2) {
-            ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
-            auto cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs, rbt_in_cam_lc);
-            return cmd_vel;
-        }
+        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
+        //if (traj.poses.size() < 2) {
+            //ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
+        cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
+        return cmd_vel;
+        // }
 
         // Know Current Pose
         geometry_msgs::PoseStamped curr_pose_local;
@@ -850,7 +850,8 @@ namespace dynamic_gap
         ctrl_target_pose.pose.pose = orig_ref.poses.at(ctrl_idx);
         ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
 
-        auto cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
+        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
+        cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
                                                   stored_scan_msgs, rbt_in_cam_lc,
                                                   current_rbt_vel, rbt_accel,
                                                   curr_right_model, curr_left_model,
