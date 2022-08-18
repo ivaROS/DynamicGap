@@ -47,6 +47,7 @@ namespace dynamic_gap{
                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,
                                                            std::vector<geometry_msgs::Pose> _agent_odoms, 
                                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                                           std::vector<sensor_msgs::LaserScan> future_scans,
                                                            bool print,
                                                            bool vis);
         
@@ -59,9 +60,7 @@ namespace dynamic_gap{
         void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
         double terminalGoalCost(geometry_msgs::Pose pose);
-        void getFutureScans(std::vector<geometry_msgs::Pose> _agent_odoms,
-                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                            bool print);
+
         private:
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> msg, static_msg;
@@ -87,7 +86,6 @@ namespace dynamic_gap{
 
             double r_inscr, rmax, cobs, w;
             ros::Publisher propagatedEgocirclePublisher;
-            std::vector<sensor_msgs::LaserScan> future_scans;
     };
 }
 

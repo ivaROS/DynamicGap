@@ -40,7 +40,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -78,14 +78,15 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot25
+      Reference Frame: robot6
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        {}
+        raw: true
+        simp: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -117,7 +118,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -125,7 +126,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -177,7 +178,7 @@ Visualization Manager:
       Marker Topic: /robot0/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -185,7 +186,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -193,7 +194,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -201,7 +202,7 @@ Visualization Manager:
       Marker Topic: /robot3/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -209,7 +210,7 @@ Visualization Manager:
       Marker Topic: /robot4/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -217,7 +218,7 @@ Visualization Manager:
       Marker Topic: /robot5/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -225,7 +226,7 @@ Visualization Manager:
       Marker Topic: /robot6/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -462,7 +463,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos_GT
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_GT_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -470,7 +471,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel_GT
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_GT_models: true
       Queue Size: 100
       Value: true
   Enabled: true

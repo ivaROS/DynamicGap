@@ -20,27 +20,14 @@ namespace dynamic_gap {
         angle_increment = static_msg.get()->angle_increment;
     }
 
-    void GapManipulator::updateDynamicEgoCircle(std::vector<dynamic_gap::Gap> curr_raw_gaps, 
-                                                dynamic_gap::Gap& gap,
-                                                std::vector<geometry_msgs::Pose> _agent_odoms, 
-                                                std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                                dynamic_gap::TrajectoryArbiter * trajArbiter) {
+    void GapManipulator::updateDynamicEgoCircle(dynamic_gap::Gap& gap,
+                                                std::vector<sensor_msgs::LaserScan> future_scans) {
         dynamic_scan = *static_msg.get();
-        double t_i = 0.0;
         double t_iplus1 = gap.gap_lifespan;
-        /*
 
-        std::vector<dynamic_gap::cart_model *> raw_models;
-        for (auto gap : curr_raw_gaps) {
-            raw_models.push_back(gap.left_model);
-            raw_models.push_back(gap.right_model);
-        }
-        */
+        int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
 
-        std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
-        std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
-
-        trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, _agent_odoms, _agent_vels, dynamic_scan, false);
+        dynamic_scan = future_scans[future_scan_idx];
 
         auto terminal_min_dist = *std::min_element(dynamic_scan.ranges.begin(), dynamic_scan.ranges.end());
         gap.setTerminalMinSafeDist(terminal_min_dist);

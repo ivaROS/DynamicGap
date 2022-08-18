@@ -256,7 +256,7 @@ namespace dynamic_gap{
         ROS_INFO_STREAM("x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
         ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         
-        ROS_INFO_STREAM("gap peak velocity x: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
+        ROS_INFO_STREAM("gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
         if (peak_vel_norm > cmd_vel_norm) {
             v_lin_x_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
             v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
@@ -310,16 +310,11 @@ namespace dynamic_gap{
         if(holonomic)
         {
             if (Psi_CBF < 0) {
-                ROS_INFO_STREAM("Psi_CBF < 0");
                 v_lin_x_fb = v_lin_x_fb + weighted_cmd_vel_x_safe;
                 v_lin_y_fb = v_lin_y_fb + weighted_cmd_vel_y_safe;
             } else {
-                ROS_INFO_STREAM("Psi_CBF >= 0");
-                ROS_INFO_STREAM("theta_error: " << theta_error);
-                ROS_INFO_STREAM("k_CBF_: " << k_CBF_);
                 ROS_INFO_STREAM("cmd_vel_x_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
                 ROS_INFO_STREAM("weighted_cmd_vel_safe: " << weighted_cmd_vel_x_safe  << ", " << weighted_cmd_vel_y_safe);
-                ROS_INFO_STREAM("v_lin_fb: " << v_lin_x_fb << ", " << v_lin_y_fb);
                 v_lin_x_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_x_fb + weighted_cmd_vel_x_safe; // 
                 v_lin_y_fb = (abs(theta_error) > M_PI/3) ? 0 : v_lin_y_fb + weighted_cmd_vel_y_safe; //
 

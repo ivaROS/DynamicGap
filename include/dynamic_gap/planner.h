@@ -185,6 +185,9 @@ namespace dynamic_gap
         std::vector<geometry_msgs::Pose> agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
+        std::vector<sensor_msgs::LaserScan> future_scans;
+
+
 
     public:
         Planner();
@@ -355,6 +358,10 @@ namespace dynamic_gap
         void visualizeComponents(std::vector<dynamic_gap::Gap> manip_gap_set);
 
         int get_num_obsts();
+
+        void getFutureScans(std::vector<geometry_msgs::Pose> _agent_odoms,
+                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                            bool print);        
 
     };
 }

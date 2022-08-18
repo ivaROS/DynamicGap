@@ -6,5 +6,8 @@
  	<param name="seed" value = "$(arg seed)" />
 	<param name="start_xs" value = "$(arg start_xs)" />
 	<param name="start_ys" value = "$(arg start_ys)" />
+	<param name="goal_xs" value = "$(arg goal_xs)" />
+	<param name="goal_ys" value = "$(arg goal_ys)" />
+
  </node>
 </launch>
