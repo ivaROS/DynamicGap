@@ -237,7 +237,7 @@ namespace dynamic_gap{
                         curr_right_pt, curr_right_vel, right_inward_vect, rotated_curr_right_vel, right_inward_norm_vect;
         
         for (double i = 0; i < num_qB_points; i++) {
-            s = (i) / num_qB_points;
+            s = (i) / (num_qB_points - 1);
             pos_val0 = (1 - s);
             pos_val1 = s;
             curr_left_pt = pos_val0 * gap_radial_extension + pos_val1 * left_bezier_origin;
@@ -265,7 +265,7 @@ namespace dynamic_gap{
 
         // ROS_INFO_STREAM("bezier curves");
         for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
-            s = (i - num_qB_points) / num_curve_points; // will go from (0 to 24)
+            s = (i - num_qB_points) / (num_curve_points - 1); // will go from (0 to 24)
             // ROS_INFO_STREAM("i: " << i << ", s: " << s);
             pos_val0 = (1 - s) * (1 - s);
             pos_val1 = 2*(1 - s)*s;

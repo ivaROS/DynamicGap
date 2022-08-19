@@ -59,7 +59,9 @@ namespace dynamic_gap {
                 ROS_INFO_STREAM("setting terminal goal for existent closing gap");
                 setGapWaypoint(gap, localgoal, false);
             }
-        }  
+        } else {
+            ROS_INFO_STREAM("gap category not set");
+        } 
     }
 
 
@@ -704,7 +706,7 @@ namespace dynamic_gap {
         if (cfg_->gap_manip.debug_log) {
             ROS_INFO_STREAM("running radialExtendGap");
             ROS_INFO_STREAM("pre-RE gap in polar. left: (" << lidx << ", " << ldist << "), right: (" << ridx << ", " << rdist << ")");
-            ROS_INFO_STREAM("pre-RE gap in cart. left: (" << pt_l[0] << ", " << pt_l[1] << "), right: )" << pt_r[0] << ", " << pt_r[1] << ")");
+            ROS_INFO_STREAM("pre-RE gap in cart. left: (" << pt_l[0] << ", " << pt_l[1] << "), right: (" << pt_r[0] << ", " << pt_r[1] << ")");
         }
         
         // ROS_INFO_STREAM("pt_l: (" << x_l << ", " << y_l << "), pt_r: (" << x_r << ", " << y_r << ")");
@@ -729,7 +731,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
-        Eigen::Vector2f qB = -0.25 * s * norm_eB;
+        Eigen::Vector2f qB =  -std::min(s, float(2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) * norm_eB;
         // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
         if (initial) {
             gap.qB = qB;

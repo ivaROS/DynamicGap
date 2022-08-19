@@ -7,19 +7,11 @@ Panels:
         - /Global Options1
         - /Status1
         - /Map1
-        - /MarkerArray1
         - /Axes1
-        - /Axes2
+        - /MarkerArray1
         - /MarkerArray2
-        - /MarkerArray3
-        - /PoseArray1
         - /MarkerArray4
         - /MarkerArray5
-        - /LaserScan1
-        - /Marker1
-        - /LaserScan2
-        - /MarkerArray7
-        - /Map2
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -58,21 +50,6 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /gap_goals
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Axes
-      Enabled: true
-      Length: 0.5
-      Name: Axes
-      Radius: 0.05000000074505806
-      Reference Frame: robot2
-      Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 0.5
@@ -81,20 +58,59 @@ Visualization Manager:
       Reference Frame: robot6
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /pg_arcs
       Name: MarkerArray
       Namespaces:
-        raw: true
-        simp: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /pg_sides
       Name: MarkerArray
       Namespaces:
         {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gap_goals
+      Name: MarkerArray
+      Namespaces:
+        gap_goal: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /reachable_gaps
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /reachable_gap_centers
+      Name: MarkerArray
+      Namespaces:
+        reachable_gap_centers: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /all_traj_vis
+      Name: MarkerArray
+      Namespaces:
+        allTraj: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gap_splines
+      Name: MarkerArray
+      Namespaces:
+        gap_splines: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -129,6 +145,22 @@ Visualization Manager:
         gap_models: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /dg_model_pos_GT
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /dg_model_vel_GT
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -157,13 +189,33 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Class: rviz/MarkerArray
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
       Enabled: true
-      Marker Topic: /all_traj_vis
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
+      Invert Rainbow: false
+      Max Color: 52; 101; 164
+      Min Color: 252; 175; 62
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /propagated_egocircle
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -404,42 +456,6 @@ Visualization Manager:
       Topic: /move_base/TebLocalPlannerROS/local_plan
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/LaserScan
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 52; 101; 164
-      Min Color: 252; 175; 62
-      Name: LaserScan
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.009999999776482582
-      Style: Flat Squares
-      Topic: /propagated_egocircle
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /reachable_gaps
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -449,30 +465,6 @@ Visualization Manager:
       Topic: /move_base/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /gap_splines
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /dg_model_pos_GT
-      Name: MarkerArray
-      Namespaces:
-        gap_GT_models: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /dg_model_vel_GT
-      Name: MarkerArray
-      Namespaces:
-        gap_GT_models: true
-      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -502,16 +494,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 62.42779541015625
+      Distance: 53.365684509277344
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -10.193507194519043
-        Y: -1.9082716703414917
-        Z: -35.83534622192383
+        X: 1.1467218399047852
+        Y: 5.266655445098877
+        Z: -35.828269958496094
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

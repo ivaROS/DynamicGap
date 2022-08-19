@@ -180,7 +180,7 @@ namespace dynamic_gap {
                         a_des, a_actual, nom_acc;
         Eigen::Vector4d abs_left_state, abs_right_state, goal_state;
 
-        Eigen::MatrixXd weights, all_centers, all_curve_pts, all_inward_norms, gradient_of_pti_wrt_rbt, test_diff;
+        Eigen::MatrixXd weights, all_centers, all_curve_pts, all_inward_norms, gradient_of_pti_wrt_rbt, centers_to_rbt;
         Eigen::VectorXd rowwise_sq_norms;
 
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
@@ -286,7 +286,7 @@ namespace dynamic_gap {
 
             // all_centers size: (Kplus1 rows, 2 cols)
             Eigen::Vector2d boundary_pt_i, inward_norm_vector;
-            Eigen::MatrixXd test_diff, new_gradients;
+            Eigen::MatrixXd cent_to_boundary;
             Eigen::VectorXd rowwise_sq_norms;
             for (int i = 0; i < N; i++) {
                 boundary_pt_i = all_curve_pts.row(i);
@@ -294,11 +294,10 @@ namespace dynamic_gap {
                 //Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);        
                 
                 // doing boundary - all_centers
-                test_diff = (-all_centers).rowwise() + boundary_pt_i.transpose();
+                cent_to_boundary = boundary_pt_i.transpose() - all_centers.rowwise();
                 // need to divide rowwise by norm of each row
-                rowwise_sq_norms = test_diff.rowwise().squaredNorm();
-                // ROS_INFO_STREAM("test_diff size: " << test_diff.rows() << ", " << test_diff.cols() << ", rowwise sq norms: " << rowwise_sq_norms.rows() << ", " << rowwise_sq_norms.cols());
-                gradient_of_pti_wrt_centers = test_diff.array().colwise() / (rowwise_sq_norms.array() + eps);
+                rowwise_sq_norms = cent_to_boundary.rowwise().squaredNorm();
+                gradient_of_pti_wrt_centers = cent_to_boundary.array().colwise() / (rowwise_sq_norms.array() + eps);
                 
                 //ROS_INFO_STREAM("inward_norm_vector: " << inward_norm_vector);
                 //ROS_INFO_STREAM("gradient_of_pti: " << gradient_of_pti_wrt_centers);
@@ -376,13 +375,15 @@ namespace dynamic_gap {
             
             pass_gap = past_gap_points || past_goal;
 
+            // ROS_INFO_STREAM("t: " << t << ", rbt state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3]);
+
             if (pass_gap) {
+                // ROS_INFO_STREAM("past gap");
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; 
                 dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0; dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
                 return;
             } 
 
-            // ROS_INFO_STREAM("t: " << t << ", rbt state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3]);
             // ROS_INFO_STREAM("left_pos: " << abs_left_pos[0] << ", " << abs_left_pos[1]);            
             // ROS_INFO_STREAM("right_pos: " << abs_right_pos[0] << ", " << abs_right_pos[1]);
             // ROS_INFO_STREAM("goal_pos: " << abs_goal_pos[0] << ", " << abs_goal_pos[1]);            
@@ -411,14 +412,15 @@ namespace dynamic_gap {
 
             // Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); //other one used is Kplus1, 2
    
-            test_diff = (-all_centers).rowwise() + rbt.transpose(); // size Kplus1, 2
-            rowwise_sq_norms = test_diff.rowwise().squaredNorm();
-            gradient_of_pti_wrt_rbt = test_diff.array().colwise() / (rowwise_sq_norms.array() + eps);          
+            centers_to_rbt = rbt.transpose() - all_centers.rowwise(); // size Kplus1, 2
+            rowwise_sq_norms = centers_to_rbt.rowwise().squaredNorm();
+            gradient_of_pti_wrt_rbt = centers_to_rbt.array().colwise() / (rowwise_sq_norms.array() + eps);          
             
             v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
-            // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
 
             v_des = K_des * (v_raw / v_raw.norm());
+            // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
+
             // ROS_INFO_STREAM("v_gain: " << v_gain[0] << ", " << v_gain[1]);
 
             // CLIPPING DESIRED VELOCITIES

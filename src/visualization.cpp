@@ -132,8 +132,8 @@ namespace dynamic_gap{
         manip_initial.push_back(std_color);
         manip_initial.push_back(std_color);
 
-        std_color.a = 0.50;
-        std_color.r = 0.0; 
+        std_color.a = 1.0;
+        std_color.r = 1.0; 
         std_color.g = 1.0; 
         std_color.b = 0.0; 
         manip_terminal.push_back(std_color);
@@ -354,6 +354,7 @@ namespace dynamic_gap{
         vis_arr.markers.push_back(this_marker);
         
         int num_pts_per_side = g.all_curve_pts.rows() / 2;
+        // ROS_INFO_STREAM("number of all_curve_pts: " << g.all_curve_pts.rows());
         for (int i = num_qB_points; i < (num_pts_per_side - 1); i++) {            
             lines.clear();  
 
@@ -364,7 +365,9 @@ namespace dynamic_gap{
             lines.push_back(linel);
 
             left_pt = g.all_curve_pts.row(i + 1);
-            
+        
+            // ROS_INFO_STREAM("connecting " << i << " to " << (i + 1));
+
             linel.x = left_pt[0];
             linel.y = left_pt[1];
             lines.push_back(linel);
@@ -683,8 +686,7 @@ namespace dynamic_gap{
         visualization_msgs::MarkerArray gap_pos_arr, gap_vel_arr, gap_pos_GT_arr, gap_vel_GT_arr;
         for (auto gap : g) {
             drawGapModels(gap_pos_arr, gap_vel_arr, gap, "gap_models");
-            drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
-   
+            // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
         gapmodel_pos_publisher.publish(gap_pos_arr);
         gapmodel_vel_publisher.publish(gap_vel_arr);
@@ -874,35 +876,6 @@ namespace dynamic_gap{
         float ldist = initial ? g.cvx_RDist() : g.cvx_term_RDist();
         float rdist = initial ? g.cvx_LDist() : g.cvx_term_LDist();
 
-        /*
-        std::string ns;
-        if (g.mode.reduced) {
-            ns = "fin_radial";
-            viz_jitter += 0.1;
-        }
-        
-        if (g.mode.convex) {
-            ns = "fin_extent";
-        }
-
-        if (g.mode.agc) {
-            ns = "fin_agc";
-        }
-        */
-
-        /*
-        std::string local_ns = ns;
-        // for compare, 0 is true?
-        if (ns.compare("raw") != 0) {
-            if (g.getCategory().compare("expanding") == 0) {
-                local_ns.append("_expanding");
-            } else if (g.getCategory().compare("closing") == 0) {
-                local_ns.append("_closing");
-            } else {
-                local_ns.append("_translating");
-            }
-        }
-        */
         std::string local_ns = ns;
 
         if (initial) {

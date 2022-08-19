@@ -39,6 +39,7 @@ namespace dynamic_gap {
             feasible = true;
             gap.gap_lifespan = cfg_->traj.integrate_maxt;
             gap.setTerminalPoints(gap.LIdx(), gap.LDist(), gap.RIdx(), gap.RDist());
+            gap.setCategory("static");
         } else if (subtracted_left_betadot > 0) {
             // expanding
             feasible = true;
