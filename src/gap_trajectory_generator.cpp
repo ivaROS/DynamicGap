@@ -175,6 +175,104 @@ namespace dynamic_gap{
         return polar_y;
     }
 
+    double num_int(Eigen::Vector2d pt_origin, 
+                   Eigen::Vector2d pt_0, 
+                   Eigen::Vector2d pt_1, 
+                   double t_start, double t_end, double num_points) {
+        double interp_dist = 0.0;
+        double steps = num_points - 1;
+
+        // ROS_INFO_STREAM("performing numerical integration between " << t_start << " and " << t_end);
+        double t_i, t_iplus1, dist;
+        Eigen::Vector2d pt_i, pt_iplus1;
+        for (int i = 0; i < steps; i++) {
+            t_i = t_start + (t_end - t_start) * double(i / steps);
+            t_iplus1 = t_start + (t_end - t_start) * double((i + 1) / steps);
+            // ROS_INFO_STREAM("t_i: " << t_i << ", t_iplus1: " << t_iplus1);
+
+            pt_i = (1 - t_i)*(1 - t_i)*pt_origin + 2*(1 - t_i)*t_i*pt_0 + (t_i)*(t_i)*pt_1;
+            pt_iplus1 = (1 - t_iplus1)*(1 - t_iplus1)*pt_origin + 2*(1 - t_iplus1)*t_iplus1*pt_0 + (t_iplus1)*(t_iplus1)*pt_1;
+            // ROS_INFO_STREAM("pt_i: " << pt_i[0] << ", " << pt_i[1] << ", pt_iplus1: " << pt_iplus1[0] << ", " << pt_iplus1[1]);
+            dist = (pt_iplus1 - pt_i).norm();
+            // ROS_INFO_STREAM("adding dist:" << dist);
+            interp_dist += dist;
+        }
+
+        return interp_dist;
+    }
+
+    Eigen::VectorXd GapTrajGenerator::arclength_sample_bezier(Eigen::Vector2d pt_origin, 
+                                                   Eigen::Vector2d pt_0, 
+                                                   Eigen::Vector2d pt_1, double num_curve_points) {
+        // ROS_INFO_STREAM("running arclength sampling");
+        // ROS_INFO_STREAM("pt_origin: " << pt_origin[0] << ", " << pt_origin[1]);
+        // ROS_INFO_STREAM("pt_0: " << pt_0[0] << ", " << pt_0[1]);
+        // ROS_INFO_STREAM("pt_1: " << pt_1[0] << ", " << pt_1[1]);        
+        double total_approx_dist = num_int(pt_origin, pt_0, pt_1, 0.0, 1.0, num_curve_points);
+
+        double t_kmin1 = 0.0;
+        double num_interp_points = 5.0;
+        Eigen::VectorXd uniform_indices = Eigen::MatrixXd::Zero(int(num_curve_points), 1);
+        int uniform_index_entry = 1;
+        double num_sampled_points = 2 * num_curve_points;
+        double des_dist_interval = total_approx_dist / (num_curve_points - 1);
+        double dist_thresh = des_dist_interval / 100.0;
+
+        // ROS_INFO_STREAM("number of points: " << num_curve_points);
+        // ROS_INFO_STREAM("total distance: " << total_approx_dist);
+        // ROS_INFO_STREAM("desired distance interval: " << des_dist_interval);
+        double t_k, current_dist, t_prev, t_interp, interp_dist, t_high, t_low;
+        for (double t_k = 0.0; t_k <= 1.0; t_k += (1.0 / num_sampled_points)) {
+            current_dist = num_int(pt_origin, pt_0, pt_1, t_kmin1, t_k, num_interp_points);
+            // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_k << ": " << current_dist);
+
+            if (std::abs(current_dist - des_dist_interval) < dist_thresh) {
+                // ROS_INFO_STREAM("adding " << t_k);
+                uniform_indices(uniform_index_entry, 0) = t_k;
+                uniform_index_entry += 1;
+                t_kmin1 = t_k;
+            } else if (current_dist > des_dist_interval) {
+                t_prev = t_k - (1.0 / num_sampled_points);
+                t_interp = (t_k + t_prev) / 2.0;
+                interp_dist = num_int(pt_origin, pt_0, pt_1, t_kmin1, t_interp, num_interp_points);
+
+                // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << interp_dist);
+
+                t_high = t_k;
+                t_low = t_prev;
+                while ( abs(interp_dist - des_dist_interval) > dist_thresh) {
+                    if (interp_dist < des_dist_interval) {
+                        t_low = t_interp;
+                        t_interp = (t_interp + t_high) / 2.0;
+                        // ROS_INFO_STREAM("raising t_interp to: " << t_interp);
+                    } else {
+                        t_high = t_interp;
+                        t_interp = (t_interp + t_low) / 2.0;
+                        // ROS_INFO_STREAM("lowering t_interp to: " << t_interp);
+
+                    }
+                    interp_dist = num_int(pt_origin, pt_0, pt_1, t_kmin1, t_interp, num_interp_points);
+                    // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << interp_dist);
+                }
+                
+                // ROS_INFO_STREAM("adding " << t_interp);
+                uniform_indices(uniform_index_entry, 0) = t_interp;
+                uniform_index_entry += 1;
+                t_kmin1 = t_interp;
+            }   
+        }
+
+        uniform_indices(int(num_curve_points) - 1, 0) = 1.0;
+
+        return uniform_indices;
+        /*
+        ROS_INFO_STREAM("uniform indices: ");
+        for (int i = 0; i < int(num_curve_points); i++) {
+            ROS_INFO_STREAM(uniform_indices(i, 0));
+        }
+        */
+        // ROS_INFO_STREAM("total approx dist: " << total_approx_dist);
+    }
     
     void GapTrajGenerator::buildBezierCurve(Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts,
                                             Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,
@@ -226,7 +324,7 @@ namespace dynamic_gap{
         */
         Eigen::Matrix2d rpi2, neg_rpi2;
         double rot_val = M_PI/2;
-        double s;
+        double s, s_left, s_right;
         rpi2 << std::cos(rot_val), -std::sin(rot_val), std::sin(rot_val), std::cos(rot_val);
         neg_rpi2 << std::cos(-rot_val), -std::sin(-rot_val), std::sin(-rot_val), std::cos(-rot_val);
 
@@ -263,17 +361,25 @@ namespace dynamic_gap{
         // model gives: left_pt - rbt.
         // populating the quadratic weighted bezier
 
-        // ROS_INFO_STREAM("bezier curves");
-        for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
-            s = (i - num_qB_points) / (num_curve_points - 1); // will go from (0 to 24)
-            // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-            pos_val0 = (1 - s) * (1 - s);
-            pos_val1 = 2*(1 - s)*s;
-            pos_val2 = s*s;
+        Eigen::VectorXd left_indices = arclength_sample_bezier(left_bezier_origin, weighted_left_pt_0, left_pt_1, num_curve_points);
+        Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points);
 
-            vel_val0 = (2*s - 2);
-            vel_val1 = (2 - 4*s);
-            vel_val2 = 2*s;
+        int counter = 0;
+        for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
+            // s = (i - num_qB_points) / (num_curve_points - 1);
+            
+            s_left = left_indices(counter, 0);
+            s_right = right_indices(counter, 0);
+            counter++;
+
+            // ROS_INFO_STREAM("s: " << s << ", s_left: " << s_left << ", s_right: " << s_right);
+            pos_val0 = (1 - s_left) * (1 - s_left);
+            pos_val1 = 2*(1 - s_left)*s_left;
+            pos_val2 = s_left*s_left;
+
+            vel_val0 = (2*s_left - 2);
+            vel_val1 = (2 - 4*s_left);
+            vel_val2 = 2*s_left;
             curr_left_pt = pos_val0 * left_bezier_origin + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
             curr_left_vel = vel_val0 * left_bezier_origin + vel_val1*weighted_left_pt_0 + vel_val2*left_pt_1;
             rotated_curr_left_vel = neg_rpi2 * curr_left_vel;
@@ -282,6 +388,13 @@ namespace dynamic_gap{
             left_curve_vel.row(i) = curr_left_vel;
             left_curve_inward_norm.row(i) = left_inward_norm_vect;
 
+            pos_val0 = (1 - s_right) * (1 - s_right);
+            pos_val1 = 2*(1 - s_right)*s_right;
+            pos_val2 = s_right*s_right;
+
+            vel_val0 = (2*s_right - 2);
+            vel_val1 = (2 - 4*s_right);
+            vel_val2 = 2*s_right;
             curr_right_pt = pos_val0 * right_bezier_origin + pos_val1*weighted_right_pt_0 + pos_val2*right_pt_1;
             curr_right_vel = vel_val0 * right_bezier_origin + vel_val1*weighted_right_pt_0 + vel_val2*right_pt_1;
             rotated_curr_right_vel = rpi2 * curr_right_vel;

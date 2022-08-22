@@ -205,7 +205,7 @@ namespace dynamic_gap {
             traj.inf_ratio = 1.25;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
-            traj.num_curve_points = 10;
+            traj.num_curve_points = 20;
             traj.num_qB_points = 3;
             traj.debug_log = true;
 
