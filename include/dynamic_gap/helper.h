@@ -294,7 +294,7 @@ namespace dynamic_gap {
                 //Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);        
                 
                 // doing boundary - all_centers
-                cent_to_boundary = boundary_pt_i.transpose() - all_centers.rowwise();
+                cent_to_boundary = (-all_centers).rowwise() + boundary_pt_i.transpose();
                 // need to divide rowwise by norm of each row
                 rowwise_sq_norms = cent_to_boundary.rowwise().squaredNorm();
                 gradient_of_pti_wrt_centers = cent_to_boundary.array().colwise() / (rowwise_sq_norms.array() + eps);
@@ -412,7 +412,7 @@ namespace dynamic_gap {
 
             // Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); //other one used is Kplus1, 2
    
-            centers_to_rbt = rbt.transpose() - all_centers.rowwise(); // size Kplus1, 2
+            centers_to_rbt = (-all_centers).rowwise() + rbt.transpose(); // size Kplus1, 2
             rowwise_sq_norms = centers_to_rbt.rowwise().squaredNorm();
             gradient_of_pti_wrt_rbt = centers_to_rbt.array().colwise() / (rowwise_sq_norms.array() + eps);          
             
