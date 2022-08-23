@@ -481,10 +481,12 @@ namespace dynamic_gap {
                 // get cost of point
                 dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
                 // ROS_INFO_STREAM("dynamic_cost_val: " << dynamic_cost_val.at(i));
+                /*
                 if (dynamic_cost_val.at(i) < -0.5) {
                     ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << ", robot pose: " << 
                                     traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1]);
                 }
+                */
                 
                 t_i = t_iplus1;
             }
@@ -509,7 +511,7 @@ namespace dynamic_gap {
             double w1 = 0.5;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
-            if (terminal_cost < 1 && total_val >= -10) {
+            if (terminal_cost < 1 && total_val >= 0) {
                 // std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }

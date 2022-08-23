@@ -17,7 +17,7 @@ namespace dynamic_gap{
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
             Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
-                                  curr_vel.linear.x, curr_vel.linear.y);
+                                  0.0, 0.0); // curr_vel.linear.x, curr_vel.linear.y
 
             // get gap points in cartesian
             float x_left = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
@@ -402,6 +402,10 @@ namespace dynamic_gap{
             right_curve.row(i) = curr_right_pt;
             right_curve_vel.row(i) = curr_right_vel;
             right_curve_inward_norm.row(i) = right_inward_norm_vect;
+
+            if (curr_left_pt.norm() > 5.0 || curr_right_pt.norm() > 5.0) {
+                ROS_INFO_STREAM("big point");
+            }
 
             /*
             ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);

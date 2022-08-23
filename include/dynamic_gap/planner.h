@@ -363,6 +363,11 @@ namespace dynamic_gap
                             std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                             bool print);        
 
+        geometry_msgs::PoseArray changeTrajectoryHelper(dynamic_gap::Gap incoming_gap, 
+                                    geometry_msgs::PoseArray incoming, 
+                                    std::vector<double> time_arr, 
+                                    bool switching_to_empty);
+
     };
 }
 

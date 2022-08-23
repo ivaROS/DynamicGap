@@ -731,7 +731,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("min safe dist: " << s);
         
         // point opposite direction of middle of gap, magnitude of min safe dist
-        Eigen::Vector2f qB =  -std::min(s, float(2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) * norm_eB;
+        Eigen::Vector2f qB =  -std::min(s, float(cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) * norm_eB;
         // ROS_INFO_STREAM("qB: " << qB[0] << ", " << qB[1]);
         if (initial) {
             gap.qB = qB;

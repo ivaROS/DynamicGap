@@ -17,7 +17,40 @@
 
 namespace dynamic_gap {
 
-	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps, std::string ns, bool previous) {
+	void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, 
+							  std::vector<dynamic_gap::Gap> previous_gaps, 
+							  std::vector<int> association,
+							  std::vector< std::vector<double> > distMatrix) {
+        // std::cout << "printing associations" << std::endl;
+        // std::cout << "number of current gaps: " << current_gaps.size() << ", number of previous gaps: " << previous_gaps.size() << std::endl;
+
+        float curr_x, curr_y, prev_x, prev_y;
+        for (int i = 0; i < association.size(); i++) {
+            std::vector<int> pair{i, association[i]};
+            // ROS_INFO_STREAM("pair (" << i << ", " << association[i] << ")");
+            if (i >= 0 && association[i] >= 0) {
+                int current_gap_idx = int(std::floor(pair[0] / 2.0));
+                int previous_gap_idx = int(std::floor(pair[1] / 2.0));
+                if (pair[0] % 2 == 0) {  // curr left
+                    current_gaps.at(current_gap_idx).getRCartesian(curr_x, curr_y);
+                } else { // curr right
+                    current_gaps.at(current_gap_idx).getLCartesian(curr_x, curr_y);
+                }
+                if (pair[1] % 2 == 0) { // prev left
+                    previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
+                } else { // prev right
+                    previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
+                }
+                // ROS_INFO_STREAM("From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
+            } 
+			/*else {
+                ROS_INFO_STREAM("From NULL to (" << curr_x << ", " <<  curr_y << ")");
+            }
+			*/
+        }
+    }
+
+	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps) {
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
 		for (auto & g : gaps) {	
@@ -27,24 +60,16 @@ namespace dynamic_gap {
 			//std::cout << "convex l dist: " << g.convex.convex_ldist << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.convex_lidx << std::endl;
 			//std::cout << "convex r dist: " << g.convex.convex_rdist << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.convex_ridx << std::endl;
 			// std::string print_string;					
-			float left_x, left_y, right_x, right_y;
-			if (previous) {
-				Eigen::Vector4d right_state = g.right_model->get_cartesian_state();
-				Eigen::Vector4d left_state = g.left_model->get_cartesian_state();
-				left_x = right_state[0];
-				left_y = right_state[1];
-				right_x = left_state[0];
-				right_y = left_state[1];
-			} else {
-				int ridx = g.RIdx();
-				int lidx = g.LIdx();
-				float rdist = g.RDist();
-				float ldist = g.LDist();
-				left_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-				left_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-				right_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-				right_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);				
-			}
+
+			int lidx = g.LIdx();
+			int ridx = g.RIdx();
+			float ldist = g.LDist();
+			float rdist = g.RDist();
+			float left_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
+			float left_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
+			float right_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
+			float right_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);				
+
 			points[count][0] = left_x;
 			points[count][1] = left_y;
 			count++;
@@ -64,9 +89,9 @@ namespace dynamic_gap {
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
 		// ROS_INFO_STREAM("getting previous points:");
-		previous_gap_points = obtainGapPoints(previous_gaps, ns, true);
+		previous_gap_points = obtainGapPoints(previous_gaps);
 		// ROS_INFO_STREAM("getting current points:");
-        observed_gap_points = obtainGapPoints(observed_gaps, ns, false);
+        observed_gap_points = obtainGapPoints(observed_gaps);
         
 		vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
@@ -114,7 +139,9 @@ namespace dynamic_gap {
 			}
 			*model_idx += 1;
 		}
-		
+
+		printGapAssociations(observed_gaps, previous_gaps, association, distMatrix);
+
 		// ASSOCIATING MODELS
 		// std::cout << "accepting associations" << std::endl;
 		for (int i = 0; i < association.size(); i++) {
@@ -123,31 +150,41 @@ namespace dynamic_gap {
 			int previous_gap_idx = association[i];
 			std::vector<int> pair{i, previous_gap_idx};
 
-			// printGapAssociations(observed_gaps, previous_gaps, association);
-
-			
 			// if current gap pt has valid association and association is under distance threshold
 			if (previous_gaps.size() > int(std::floor(pair[1] / 2.0)) && distMatrix[pair[0]][pair[1]] <= assoc_thresh) {
 				//std::cout << "associating" << std::endl;	
 				//std::cout << "distance under threshold" << std::endl;
+				
 				if (pair[0] % 2 == 0) {  // curr left
 					if (pair[1] % 2 == 0) { // prev left
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_index());
 					} else { // prev right;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].right_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_index());
 					}
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].right_model;
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_index());
 					} else { // prev right
 						observed_gaps[int(std::floor(pair[0] / 2.0))].left_model = previous_gaps[int(std::floor(pair[1] / 2.0))].left_model;
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_index());
 					}
 				} 
-			} 
-			/*else {
-				std::cout << "no assocation" << std::endl;
+			} else {
+				/*
+				if (pair[1] >=0) {
+					if (pair[1] % 2 == 0) { 
+						ROS_INFO_STREAM("rejecting index " << previous_gaps[int(std::floor(pair[1] / 2.0))].right_model->get_index());
+					} else {
+						ROS_INFO_STREAM("rejecting index " << previous_gaps[int(std::floor(pair[1] / 2.0))].left_model->get_index());
+					}
+				} else {
+					ROS_INFO_STREAM("rejecting no index");
+				}
+				*/
 			}
-			*/
 		}
 
 		//ROS_INFO_STREAM("assignModels time elapsed: " << ros::Time::now().toSec() - start_time); 
@@ -169,41 +206,6 @@ namespace dynamic_gap {
 		//ROS_INFO_STREAM("associateGaps time elapsed: " << ros::Time::now().toSec() - start_time);
         return association;
     }
-
-	/*
-	void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association) {
-        std::cout << "current simplified associations" << std::endl;
-        std::cout << "number of gaps: " << current_gaps.size() << ", number of previous gaps: " << previous_gaps.size() << std::endl;
-        std::cout << "association size: " << association.size() << std::endl;
-        for (int i = 0; i < association.size(); i++) {
-            std::cout << association[i] << ", ";
-        }
-        std::cout << "" << std::endl;
-
-        float curr_x, curr_y, prev_x, prev_y;
-        for (int i = 0; i < association.size(); i++) {
-            std::vector<int> pair{i, association[i]};
-            std::cout << "pair (" << i << ", " << association[i] << "). ";
-            if (i >= 0 && association[i] >= 0) {
-                int current_gap_idx = int(std::floor(pair[0] / 2.0));
-                int previous_gap_idx = int(std::floor(pair[1] / 2.0));
-                if (pair[0] % 2 == 0) {  // curr left
-                    current_gaps.at(current_gap_idx).getSimplifiedRCartesian(curr_x, curr_y);
-                } else { // curr right
-                    current_gaps.at(current_gap_idx).getSimplifiedLCartesian(curr_x, curr_y);
-                }
-                if (pair[1] % 2 == 0) { // prev left
-                    previous_gaps.at(previous_gap_idx).getSimplifiedRCartesian(prev_x, prev_y);
-                } else { // prev right
-                    previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
-                }
-                std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
-            } else {
-                std::cout << "From NULL to (" << curr_x << ", " <<  curr_y << ")";
-            }
-        }
-    }
-	*/
 	
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
