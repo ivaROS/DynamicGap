@@ -914,20 +914,24 @@ namespace dynamic_gap
         ROS_INFO_STREAM("current simplified gaps:");
         printGapModels(curr_observed_gaps);
 
+        /*
         int curr_left_idx = getCurrentLeftGapIndex();
         int curr_right_idx = getCurrentRightGapIndex();
         ROS_INFO_STREAM("current left/right indices: " << curr_left_idx << ", " << curr_right_idx);
-
         bool gap_associated = false;
+        
+        */
 
         bool gap_i_feasible;
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         for (size_t i = 0; i < curr_observed_gaps.size(); i++) {
             // obtain crossing point
+            /*
             if ( curr_observed_gaps.at(i).left_model->get_index() == curr_left_idx && curr_observed_gaps.at(i).right_model->get_index() == curr_right_idx) {
                 gap_associated = true;
             }
             ROS_INFO_STREAM("feasibility check for gap " << i << ", left index: " << curr_observed_gaps.at(i).left_model->get_index() << ", right index: " << curr_observed_gaps.at(i).right_model->get_index());
+            */
             gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));
             
             if (gap_i_feasible) {
@@ -937,11 +941,13 @@ namespace dynamic_gap
             }
         }
 
+        /*
         if (gap_associated) {
             ROS_INFO_STREAM("currently executing gap associated");
         } else {
             ROS_INFO_STREAM("currently executing gap NOT associated");
         }
+        */
 
         return feasible_gap_set;
     }

@@ -403,9 +403,11 @@ namespace dynamic_gap{
             right_curve_vel.row(i) = curr_right_vel;
             right_curve_inward_norm.row(i) = right_inward_norm_vect;
 
+            /*
             if (curr_left_pt.norm() > 5.0 || curr_right_pt.norm() > 5.0) {
                 ROS_INFO_STREAM("big point");
             }
+            */
 
             /*
             ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);
