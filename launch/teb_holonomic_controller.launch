@@ -13,8 +13,6 @@
   <arg name="simple_exploration" default="false"/>
 
   <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
-  
-  <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
   <node name="egocircle_node" pkg="egocircle" type="ego_circle" if="$(arg egocircle)">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
@@ -51,21 +49,15 @@
       <param name="controller_frequency" value="$(arg controller_freq)" />
       <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <!--<remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>-->
       <remap from="cmd_vel" to="$(arg vel_topic)"/>
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
-
-      <!-- Not sure if I should add these. Where do they even come from> -->
-      <param name="TebLocalPlannerROS/map_frame" value="/known_map"/>
-      <param name="TebLocalPlannerROS/robot_frame_id" value="$(arg robot_namespace)"/>
-      <param name="TebLocalPlannerROS/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
-      <!-- Odom frame id? -->
 
       <!-- Approach-specific parameters/remappings/etc -->
       <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
       <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
-      <rosparam file="$(find nav_configs)/config/teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
+      <rosparam file="$(find nav_configs)/config/dyn_teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
 
+      <param name="TebLocalPlannerROS/map_frame" value="known_map"/>
       <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" />
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>
       <param name="TebLocalPlannerROS/include_dynamic_obstacles" value="true"/>
@@ -90,6 +82,6 @@
 
   </node>
 
-  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/> -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz"/>
 
 </launch>

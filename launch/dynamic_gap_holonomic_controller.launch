@@ -52,6 +52,10 @@
       <remap from="cmd_vel" to="$(arg vel_topic)"/>
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
       
+      <!-- Approach-specific parameters/remappings/etc -->
+      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
+      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
+      
       <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
       <param name="DynamicGapPlanner/odom_frame_id" value="map_static"/>
       <param name="DynamicGapPlanner/robot_frame_id" value="$(arg robot_namespace)"/>
@@ -64,10 +68,6 @@
       <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
       <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
 
-      <!-- Approach-specific parameters/remappings/etc -->
-      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
-      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
-      
       <!-- remapping for obstacles -->
       <param name="DynamicGapPlanner/num_obsts" value="$(arg num_obsts)" />
       <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/laser_0" />
