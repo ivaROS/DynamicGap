@@ -12,6 +12,7 @@ namespace dynamic_gap{
         gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
         reachable_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
         reachable_gap_centers_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
+        reachable_gap_no_RGE_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_no_RGE", 10);
         gap_spline_publisher = nh.advertise<visualization_msgs::MarkerArray>("gap_splines", 10);
 
         gapmodel_pos_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
@@ -267,6 +268,108 @@ namespace dynamic_gap{
         gap_spline_publisher.publish(vis_arr);
     }
 
+    void GapVisualizer::drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
+        
+        visualization_msgs::Marker this_marker;
+        this_marker.header.frame_id = g._frame;
+        this_marker.header.stamp = ros::Time();
+        this_marker.ns = "manip_initial";
+        this_marker.type = visualization_msgs::Marker::LINE_STRIP;
+        this_marker.action = visualization_msgs::Marker::ADD;
+
+        auto color_value = colormap.find("manip_initial");
+        if (color_value == colormap.end()) {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }        
+
+        this_marker.colors = color_value->second;
+        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        this_marker.scale.x = thickness;
+        this_marker.scale.y = 0.1;
+        this_marker.scale.z = 0.1;
+
+        // this_marker.scale.y = 0.05;
+        // this_marker.scale.z = 0.1;
+
+        float s;
+        geometry_msgs::Point linel, liner;
+        linel.z = 0.0005;
+        liner.z = 0.0005;
+
+        std::vector<geometry_msgs::Point> lines;
+        int id = (int) vis_arr.markers.size();
+        this_marker.lifetime = ros::Duration(100.0);
+
+        lines.clear();
+
+        int num_curve_points = cfg_->traj.num_curve_points;
+        double pos_val0, pos_val1, pos_val2;
+        Eigen::Vector2d curr_left_pt, curr_right_pt;
+        for (double i = 0; i < (num_curve_points - 1); i++) {
+            lines.clear();  
+            s = (i) / (num_curve_points - 1);
+
+            // ROS_INFO_STREAM("s: " << s << ", s_left: " << s_left << ", s_right: " << s_right);
+            pos_val0 = (1 - s) * (1 - s);
+            pos_val1 = 2*(1 - s)*s;
+            pos_val2 = s*s;
+
+            curr_left_pt = pos_val1*g.left_pt_0 + pos_val2*g.left_pt_1;
+
+            s = ((i+1)) / (num_curve_points - 1);
+            
+            linel.x = curr_left_pt[0];
+            linel.y = curr_left_pt[1];
+            lines.push_back(linel);
+
+            pos_val0 = (1 - s) * (1 - s);
+            pos_val1 = 2*(1 - s)*s;
+            pos_val2 = s*s;
+
+            curr_left_pt = pos_val1*g.left_pt_0 + pos_val2*g.left_pt_1;
+
+            linel.x = curr_left_pt[0];
+            linel.y = curr_left_pt[1];
+            lines.push_back(linel);
+
+            this_marker.points = lines;
+            this_marker.id = id++;
+            vis_arr.markers.push_back(this_marker);
+        }
+
+        for (double i = 0; i < (num_curve_points - 1); i++) {
+            lines.clear();  
+            s = (i) / (num_curve_points - 1);
+
+            // ROS_INFO_STREAM("s: " << s << ", s_left: " << s_left << ", s_right: " << s_right);
+            pos_val0 = (1 - s) * (1 - s);
+            pos_val1 = 2*(1 - s)*s;
+            pos_val2 = s*s;
+
+            curr_right_pt = pos_val1*g.right_pt_0 + pos_val2*g.right_pt_1;
+
+            s = ((i+1)) / (num_curve_points - 1);
+            
+            liner.x = curr_right_pt[0];
+            liner.y = curr_right_pt[1];
+            lines.push_back(liner);
+
+            pos_val0 = (1 - s) * (1 - s);
+            pos_val1 = 2*(1 - s)*s;
+            pos_val2 = s*s;
+
+            curr_right_pt = pos_val1*g.right_pt_0 + pos_val2*g.right_pt_1;
+
+            liner.x = curr_right_pt[0];
+            liner.y = curr_right_pt[1];
+            lines.push_back(liner);
+
+            this_marker.points = lines;
+            this_marker.id = id++;
+            vis_arr.markers.push_back(this_marker);
+        }
+    }
 
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
         // ROS_INFO_STREAM("in drawReachableGap");
@@ -409,14 +512,21 @@ namespace dynamic_gap{
         clear_marker.action = visualization_msgs::Marker::DELETEALL;
         clear_arr.markers.push_back(clear_marker);
         reachable_gap_publisher.publish(clear_arr);
+        // reachable_gap_no_RGE_publisher.publish(clear_arr);
 
         // First, clearing topic.
         
-        visualization_msgs::MarkerArray vis_arr;
+        visualization_msgs::MarkerArray vis_arr, vis_arr1;
+        // int counter = 0;
         for (auto gap : g) {
+            // if (counter == 0) {
             drawReachableGap(vis_arr, gap);
+            //    drawReachableGapNoRGE(vis_arr1, gap);
+            //}
+            // counter++;
         }
         reachable_gap_publisher.publish(vis_arr);
+        reachable_gap_no_RGE_publisher.publish(vis_arr1);
     }
 
     void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
@@ -515,8 +625,12 @@ namespace dynamic_gap{
         // First, clearing topic.
         
         visualization_msgs::MarkerArray vis_arr;
+        // int counter = 0;
         for (auto gap : g) {
+            //if (counter == 0) {
             drawReachableGapCenters(vis_arr, gap);
+            // }
+            // counter++;
         }
         reachable_gap_centers_publisher.publish(vis_arr);
     }

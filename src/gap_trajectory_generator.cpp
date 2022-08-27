@@ -127,7 +127,7 @@ namespace dynamic_gap{
             double left_weight, right_weight;
             // THIS IS BUILT WITH EXTENDED POINTS. 
             double start_time = ros::Time::now().toSec();
-            buildBezierCurve(left_curve, right_curve, all_curve_pts, 
+            buildBezierCurve(selectedGap, left_curve, right_curve, all_curve_pts, 
                              left_curve_vel, right_curve_vel,
                              left_curve_inward_norm, right_curve_inward_norm, 
                              all_inward_norms, left_right_centers, all_centers,
@@ -274,7 +274,7 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("total approx dist: " << total_approx_dist);
     }
     
-    void GapTrajGenerator::buildBezierCurve(Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts,
+    void GapTrajGenerator::buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts,
                                             Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,
                                             Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
                                             Eigen::MatrixXd & all_inward_norms, Eigen::MatrixXd & left_right_centers, Eigen::MatrixXd & all_centers,
@@ -304,7 +304,10 @@ namespace dynamic_gap{
             weighted_right_pt_0 = (0.95 * right_bezier_origin + 0.05 * right_pt_1);
         }
         
-        /*
+        selectedGap.left_pt_0 = weighted_left_pt_0;
+        selectedGap.left_pt_1 = left_pt_1;
+        selectedGap.right_pt_0 = weighted_right_pt_0;
+        selectedGap.right_pt_1 = right_pt_1;        /*
         ROS_INFO_STREAM("gap_radial_extension: " << gap_radial_extension[0] << ", " << gap_radial_extension[1]);
         ROS_INFO_STREAM("init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
 
@@ -402,12 +405,6 @@ namespace dynamic_gap{
             right_curve.row(i) = curr_right_pt;
             right_curve_vel.row(i) = curr_right_vel;
             right_curve_inward_norm.row(i) = right_inward_norm_vect;
-
-            /*
-            if (curr_left_pt.norm() > 5.0 || curr_right_pt.norm() > 5.0) {
-                ROS_INFO_STREAM("big point");
-            }
-            */
 
             /*
             ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);

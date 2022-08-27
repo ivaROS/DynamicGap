@@ -418,6 +418,8 @@ namespace dynamic_gap
             double right_weight = 0.0;
             Eigen::MatrixXd left_right_centers, all_curve_pts;
             Eigen::Vector4f spline_x_coefs, spline_y_coefs;
+
+            Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
         // private:
     };
 }

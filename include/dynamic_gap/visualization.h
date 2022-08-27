@@ -46,6 +46,7 @@ namespace dynamic_gap
             void drawReachableGaps(std::vector<dynamic_gap::Gap> g);
             void drawReachableGapsCenters(std::vector<dynamic_gap::Gap> g);
             void drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
+            void drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
             void drawGapSplines(std::vector<dynamic_gap::Gap> g);
             void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
             void draw_model_pt_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
@@ -68,6 +69,7 @@ namespace dynamic_gap
             ros::Publisher gapmodel_vel_GT_publisher;
             ros::Publisher reachable_gap_publisher;     
             ros::Publisher reachable_gap_centers_publisher;
+            ros::Publisher reachable_gap_no_RGE_publisher;
             ros::Publisher gap_spline_publisher;
 
             int prev_num_gaps;  

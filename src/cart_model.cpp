@@ -96,7 +96,7 @@ namespace dynamic_gap {
 
         alpha_Q = 0.9;
         plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
-        perfect = true;
+        perfect = false;
         plotted = false;
     }
 
