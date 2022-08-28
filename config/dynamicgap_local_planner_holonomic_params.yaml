@@ -4,6 +4,8 @@ DynamicGapPlanner:
     global_plan_lookup_increment: 30
     goal_tolerance: 0.5
     global_plan_change_tolerance: 0.1
+    yaw_goal_tolerance: 3.15  # 0.05  #Changed
+    xy_goal_tolerance: .1  # 0.10  #Changed
     follow_the_gap_visparsing: True
     close_gap_visparsing: True
 

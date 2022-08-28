@@ -34,15 +34,18 @@
   <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true" launch-prefix="$(arg debug_prefix)">
+      <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />      
+      
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
 
       <!-- none of these have to do with frames/ids -->
-      <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="TebLocalPlannerROS"/>
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
+      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
+      <rosparam file="$(find nav_configs)/config/dyn_teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
 
       <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
@@ -53,10 +56,6 @@
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
 
       <!-- Approach-specific parameters/remappings/etc -->
-      <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
-      <rosparam file="$(find dynamic_gap)/config/teb_local_planner_holonomic_params.yaml" command="load"/>
-      <rosparam file="$(find nav_configs)/config/dyn_teb_costmap_converter_params.yaml" command="load" if="$(arg converter)"/>
-
       <param name="TebLocalPlannerROS/map_frame" value="known_map"/>
       <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" />
       <param name="TebLocalPlannerROS/include_egocircle_obstacles" value="$(arg egocircle)"/>

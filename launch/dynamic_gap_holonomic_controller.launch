@@ -34,15 +34,17 @@
   <!-- xterm -e gdb -ex run - -args -->
 
   <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
+      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
+      
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
       <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
       
       <!-- none of these have to do with frames/ids -->
-      <rosparam file="$(find nav_configs)/config/local_planner_common_params.yaml" command="load" ns="DynamicGapPlanner"/>
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
+      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
 
       <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
@@ -51,11 +53,8 @@
 
       <remap from="cmd_vel" to="$(arg vel_topic)"/>
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
-      
-      <!-- Approach-specific parameters/remappings/etc -->
-      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />
-      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
-      
+
+      <!-- Approach-specific parameters/remappings/etc -->      
       <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
       <param name="DynamicGapPlanner/odom_frame_id" value="map_static"/>
       <param name="DynamicGapPlanner/robot_frame_id" value="$(arg robot_namespace)"/>
