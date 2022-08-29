@@ -841,7 +841,7 @@ namespace dynamic_gap {
         int new_r_idx, new_l_idx;
         float range_l_p, range_r_p;
         if (new_L_to_R_angle < 0) {
-            ROS_INFO_STREAM("angular inflation would cause gap to cross, not running:");
+            // ROS_INFO_STREAM("angular inflation would cause gap to cross, not running:");
             new_r_idx = ridx;
             new_l_idx = lidx;
             range_l_p = ldist;
