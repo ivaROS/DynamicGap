@@ -481,12 +481,14 @@ namespace dynamic_gap {
                 // get cost of point
                 dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
                 // ROS_INFO_STREAM("dynamic_cost_val: " << dynamic_cost_val.at(i));
-                /*
-                if (dynamic_cost_val.at(i) < -0.5) {
-                    ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << ", robot pose: " << 
-                                    traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1]);
+                
+                if (dynamic_cost_val.at(i) < 0.0) {
+                    ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << " score of: " << 
+                                    dynamic_cost_val.at(i) << ", robot pose: " << 
+                                    traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << 
+                                    ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1] << ", distance: " << dist2Pose(theta, range, traj.poses.at(i)));
                 }
-                */
+                
                 
                 t_i = t_iplus1;
             }
@@ -619,10 +621,10 @@ namespace dynamic_gap {
             // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
             return -std::numeric_limits<double>::infinity();
         }
-        // if distance is essentially infinity, return 0
+        // if distance is beyond scan, return 0
         if (d > rmax) return 0;
 
-        return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio));
+        return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio) / (rmax - r_inscr * cfg_->traj.inf_ratio));
     }
 
     double TrajectoryArbiter::chapterScore(double d) {

@@ -193,7 +193,7 @@ namespace dynamic_gap
         {
             goalselector->updateEgoCircle(tmp);
             goalselector->updateLocalGoal(map2rbt);
-            local_goal = goalselector->getCurrentLocalGoal(rbt2odom);
+            local_goal = goalselector->transformLocalGoalToOdomFrame(rbt2odom);
             goalvisualizer->localGoal(local_goal);
         }
         // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
@@ -362,7 +362,7 @@ namespace dynamic_gap
         // Obtaining Local Goal by using global plan
         goalselector->updateLocalGoal(map2rbt);
         // return local goal (odom) frame
-        auto new_local_waypoint = goalselector->getCurrentLocalGoal(rbt2odom);
+        auto new_local_waypoint = goalselector->transformLocalGoalToOdomFrame(rbt2odom);
 
         {
             // Plan New

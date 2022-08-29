@@ -1358,6 +1358,7 @@ namespace dynamic_gap{
     void GoalVisualizer::localGoal(geometry_msgs::PoseStamped localGoal)
     {
         if (!cfg_->gap_viz.debug_viz) return;
+
         visualization_msgs::Marker lg_marker;
         lg_marker.header.frame_id = localGoal.header.frame_id;
         lg_marker.header.stamp = ros::Time::now();
@@ -1367,7 +1368,7 @@ namespace dynamic_gap{
         lg_marker.action = visualization_msgs::Marker::ADD;
         lg_marker.pose.position.x = localGoal.pose.position.x;
         lg_marker.pose.position.y = localGoal.pose.position.y;
-        lg_marker.pose.position.z = 2;
+        lg_marker.pose.position.z = 0.0005;
         lg_marker.pose.orientation.w = 1;
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;
@@ -1398,7 +1399,7 @@ namespace dynamic_gap{
             lg_marker.color = terminal_gapwp_color;
             // ROS_INFO_STREAM("visualizing terminal goal: " << g.terminal_goal.x << ", " << g.terminal_goal.y);
         }
-        lg_marker.pose.position.z = 0.5;
+        lg_marker.pose.position.z = 0.0001;
         lg_marker.pose.orientation.w = 1;
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;

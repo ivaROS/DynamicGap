@@ -814,15 +814,23 @@ namespace dynamic_gap {
 
         
         // PERFORMING ANGULAR INFLATION
-        float theta_left_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_l.norm(); // using s = r*theta
-        float new_theta_l = theta_l - theta_left_infl;
-        new_theta_l = atanThetaWrap(new_theta_l);
-        // ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_left_infl: " << theta_left_infl << ", new_theta_l: " << new_theta_l);
+        // float theta_left_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_l.norm(); // using s = r*theta
+        // float new_theta_l = theta_l - theta_left_infl;
+        // new_theta_l = atanThetaWrap(new_theta_l);
+        
+        Eigen::Vector2f new_left_pt = pt_l + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_negpi2 * left_norm_vect_robot;
+        float new_theta_l = std::atan2(new_left_pt[1], new_left_pt[0]);
 
-        float theta_r_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_r.norm(); // using s = r*theta
-        float new_theta_r = theta_r + theta_r_infl;
-        new_theta_r = atanThetaWrap(new_theta_r);
-        // ROS_INFO_STREAM("theta_r: " << theta_r << ", theta_r_infl: " << theta_r_infl << ", new_theta_r: " << new_theta_r);
+        // ROS_INFO_STREAM("theta_l: " << theta_l << ", new_theta_l: " << new_theta_l); // << ", theta_left_infl: " << theta_left_infl
+
+        // float theta_r_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_r.norm(); // using s = r*theta
+        // float new_theta_r = theta_r + theta_r_infl;
+        // new_theta_r = atanThetaWrap(new_theta_r);
+        
+        Eigen::Vector2f new_right_pt = pt_r + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_pi2 * right_norm_vect_robot;
+        float new_theta_r = std::atan2(new_right_pt[1], new_right_pt[0]);
+
+        // ROS_INFO_STREAM("theta_r: " << theta_r << ", new_theta_r: " << new_theta_r); // ", theta_r_infl: " << theta_r_infl << 
 
         Eigen::Vector2f new_left_norm_vect_robot(std::cos(new_theta_l), std::sin(new_theta_l));
         Eigen::Vector2f new_right_norm_vect_robot(std::cos(new_theta_r), std::sin(new_theta_r));
@@ -833,7 +841,7 @@ namespace dynamic_gap {
         int new_r_idx, new_l_idx;
         float range_l_p, range_r_p;
         if (new_L_to_R_angle < 0) {
-            // ROS_INFO_STREAM("angular inflation would cause gap to cross, not running:");
+            ROS_INFO_STREAM("angular inflation would cause gap to cross, not running:");
             new_r_idx = ridx;
             new_l_idx = lidx;
             range_l_p = ldist;
@@ -850,20 +858,21 @@ namespace dynamic_gap {
             float L_to_Rp_angle = getLeftToRightAngle(left_norm_vect_robot, new_right_norm_vect_robot);
             range_l_p = (rdist_robot - ldist_robot) * L_to_Lp_angle / L_to_R_angle + ldist_robot;
             range_r_p = (rdist_robot - ldist_robot) * L_to_Rp_angle / L_to_R_angle + ldist_robot;
-            // ROS_INFO_STREAM("after angular inflation, left idx: " << new_l_idx << ", left_range: " << range_l_p << ", right idx: " << new_r_idx << ", right range: " << range_r_p << "");
+            ROS_INFO_STREAM("post-angular-inflation gap, left: " << new_l_idx << ", : " << range_l_p << ", right: " << new_r_idx << ", : " << range_r_p << "");
         }
 
-        if (cfg_->gap_manip.debug_log) {
-            if (initial) {
-                ROS_INFO_STREAM("post-angular-inflate gap in polar. left: (" << new_l_idx << ", " << range_l_p << "), right: (" << new_r_idx << ", " << range_r_p << ")");
-            } else {
-                ROS_INFO_STREAM( "post-angular-inflate gap in polar. left: (" << new_l_idx << ", " << range_l_p << "), right: (" << new_r_idx << ", " << range_r_p << ")");
-            }
-            ROS_INFO_STREAM( "post-inflate gap in cart. left: (" << x_l << ", " << y_l << "), right: (" << x_r << ", " << y_r << ")");
-        }
         // PERFORMING RADIAL INFLATION
-        range_l_p += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-        range_r_p += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        float new_range_l_p = range_l_p + 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        if (stored_scan_msgs.ranges.at(new_l_idx) - new_range_l_p < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
+            // reject the change
+            new_range_l_p = stored_scan_msgs.ranges.at(new_l_idx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        }
+
+        float new_range_r_p = range_r_p + 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        if (stored_scan_msgs.ranges.at(new_r_idx) - new_range_r_p < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
+            // reject the change
+            new_range_r_p = stored_scan_msgs.ranges.at(new_r_idx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        }
 
         // ROS_INFO_STREAM("new_l_theta: " << new_l_theta << ", new_r_theta: " << new_r_theta);
         // ROS_INFO_STREAM("int values, left: " << new_l_idx << ", right: " << new_r_idx);

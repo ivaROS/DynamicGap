@@ -34,7 +34,7 @@ namespace dynamic_gap
             bool setGoal(const std::vector<geometry_msgs::PoseStamped> &);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
             void updateLocalGoal(geometry_msgs::TransformStamped map2rbt);
-            geometry_msgs::PoseStamped getCurrentLocalGoal(geometry_msgs::TransformStamped rbt2odom);
+            geometry_msgs::PoseStamped transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom);
             geometry_msgs::PoseStamped rbtFrameLocalGoal() {return local_goal;};
             std::vector<geometry_msgs::PoseStamped> getOdomGlobalPlan();
             std::vector<geometry_msgs::PoseStamped> getRelevantGlobalPlan(geometry_msgs::TransformStamped);

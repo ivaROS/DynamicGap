@@ -33,29 +33,40 @@ namespace dynamic_gap {
 
         boost::mutex::scoped_lock glock(goal_select_mutex);
         boost::mutex::scoped_lock llock(lscan_mutex);
+
+        // ROS_INFO_STREAM("running updateLocalGoal");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
         auto local_gplan = getRelevantGlobalPlan(map2rbt);
-        if (local_gplan.size() < 1) return;
+        if (local_gplan.size() < 1) {
+            // ROS_INFO_STREAM("exiting early");
+            return;
+        }
 
 
         // finding first place in global plan where we are visible/obstructed 
+        // going from END to BEGIN to find the first place that we are visible or unobstructed
         auto result_rev = std::find_if(local_gplan.rbegin(), local_gplan.rend(), 
             std::bind1st(std::mem_fun(&GoalSelector::VisibleOrPossiblyObstructed), this));
 
 
         // finding first place where we are not visible?
+        // going from BEGIN to END to find the first place that is NOT visible or is possibly obstructed
         auto result_fwd = std::find_if(local_gplan.begin(), local_gplan.end(), 
             std::bind1st(std::mem_fun(&GoalSelector::NoTVisibleOrPossiblyObstructed), this));
 
         if (cfg_->planning.far_feasible) {
             // if we have gotten all the way to the end of the snippet, set that as the local goal
             // if whole snippet is not visible/ possibly obstructed?
-            if (result_rev == local_gplan.rend()) result_rev = std::prev(result_rev); 
+            if (result_rev == local_gplan.rend()) {
+                result_rev = std::prev(result_rev); 
+            }
             local_goal = *result_rev;
         } else {
-            result_fwd = result_fwd == local_gplan.end() ? result_fwd - 1 : result_fwd;
+            result_fwd = (result_fwd == local_gplan.end()) ? result_fwd - 1 : result_fwd;
             local_goal = local_gplan.at(result_fwd - local_gplan.begin());
         }
+
+        // ROS_INFO_STREAM("setting local goal (in robot frame) to " << local_goal.pose.position.x << ", " << local_goal.pose.position.y); 
     }
 
     bool GoalSelector::NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) {
@@ -175,10 +186,11 @@ namespace dynamic_gap {
         return dist <= 0.0;
     }
 
-    geometry_msgs::PoseStamped GoalSelector::getCurrentLocalGoal(geometry_msgs::TransformStamped rbt2odom) {
+    // This should return something in odom frame
+    geometry_msgs::PoseStamped GoalSelector::transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom) {
         geometry_msgs::PoseStamped result;
         tf2::doTransform(local_goal, result, rbt2odom);
-        // This should return something in odom frame
+        
         return result;
     }
 
