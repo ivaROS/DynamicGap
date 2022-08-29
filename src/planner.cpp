@@ -90,8 +90,8 @@ namespace dynamic_gap
         for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
             future_scans.push_back(tmp_scan);
         }
-        ROS_INFO_STREAM("future_scans size: " << future_scans.size());
-        ROS_INFO_STREAM("done initializing");
+        // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
+        // ROS_INFO_STREAM("done initializing");
         return true;
     }
 

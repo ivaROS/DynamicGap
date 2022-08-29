@@ -109,7 +109,7 @@ namespace dynamic_gap{
         gap_model.push_back(std_color);
 
         std_color.r = 1;
-        std_color.g = 1;
+        std_color.g = 0.65;
         std_color.b = 0;
         reachable_gap_centers.push_back(std_color);
         reachable_gap_centers.push_back(std_color);
@@ -228,11 +228,11 @@ namespace dynamic_gap{
         visualization_msgs::Marker this_marker;
         this_marker.header.frame_id = g._frame;
         this_marker.header.stamp = ros::Time();
-        this_marker.ns = "manip_initial";
+        this_marker.ns = "reachable_gap_centers";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
 
-        auto color_value = colormap.find("manip_initial");
+        auto color_value = colormap.find("reachable_gap_centers");
         if (color_value == colormap.end()) {
             ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
             return;
@@ -482,14 +482,14 @@ namespace dynamic_gap{
         visualization_msgs::MarkerArray vis_arr, vis_arr1;
         // int counter = 0;
         for (auto gap : g) {
-            // if (counter == 0) {
+            // if (counter == 1) {
             drawReachableGap(vis_arr, gap);
-            //    drawReachableGapNoRGE(vis_arr1, gap);
-            //}
+                // drawReachableGapNoRGE(vis_arr1, gap);
+            // }
             // counter++;
         }
         reachable_gap_publisher.publish(vis_arr);
-        reachable_gap_no_RGE_publisher.publish(vis_arr1);
+        // reachable_gap_no_RGE_publisher.publish(vis_arr1);
     }
 
     void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
@@ -891,7 +891,7 @@ namespace dynamic_gap{
         model_pt.action = visualization_msgs::Marker::ADD;
         model_pt.pose.position.x = (left) ? g.left_model->get_cartesian_state()[0] : g.right_model->get_cartesian_state()[0];
         model_pt.pose.position.y = (left) ? g.left_model->get_cartesian_state()[1] : g.right_model->get_cartesian_state()[1];
-        model_pt.pose.position.z = 0.0001;
+        model_pt.pose.position.z = 0.0005;
         //std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
         model_pt.pose.orientation.w = 1.0;
         model_pt.scale.x = 0.1;

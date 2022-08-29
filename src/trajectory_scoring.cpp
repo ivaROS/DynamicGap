@@ -50,14 +50,6 @@ namespace dynamic_gap {
         }
     }
 
-    double l2_norm(std::vector<double> const& u) {
-        double accum = 0.;
-        for (int i = 0; i < u.size(); ++i) {
-            accum += u[i] * u[i];
-        }
-        return sqrt(accum);
-    }
-
     struct Comparator {
 
         bool operator() (std::vector<double> & a, std::vector<double> & b) {
