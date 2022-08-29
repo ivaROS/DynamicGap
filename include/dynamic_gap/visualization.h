@@ -60,7 +60,8 @@ namespace dynamic_gap
 
         private:
             std::map<std::string, std::vector<std_msgs::ColorRGBA>> colormap;
-            ros::Publisher gaparc_publisher;
+            ros::Publisher raw_gap_publisher;
+            ros::Publisher simp_gap_publisher;
             ros::Publisher gapside_publisher;
             ros::Publisher gapgoal_publisher;
             ros::Publisher gapmodel_pos_publisher;
@@ -82,14 +83,17 @@ namespace dynamic_gap
             using Visualizer::Visualizer;
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void globalPlanRbtFrame(const std::vector<geometry_msgs::PoseStamped> & );
+            void drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan);
             // void trajScore(geometry_msgs::PoseArray, std::vector<double>);
             void pubAllTraj(std::vector<geometry_msgs::PoseArray> prr);
             void pubAllScore(std::vector<geometry_msgs::PoseArray>, std::vector<std::vector<double>>);
+            void drawRelevantGlobalPlanSnippet(std::vector<geometry_msgs::PoseStamped> traj);
+
         private: 
-            ros::Publisher goal_selector_traj_vis;
+            ros::Publisher entire_global_plan_pub;
             ros::Publisher trajectory_score;
             ros::Publisher all_traj_viz;
+            ros::Publisher relevant_global_plan_snippet_pub;
             double prev_num_trajs;
     };
 

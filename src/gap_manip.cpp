@@ -814,12 +814,12 @@ namespace dynamic_gap {
 
         
         // PERFORMING ANGULAR INFLATION
-        float theta_left_infl = (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_l.norm(); // using s = r*theta
+        float theta_left_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_l.norm(); // using s = r*theta
         float new_theta_l = theta_l - theta_left_infl;
         new_theta_l = atanThetaWrap(new_theta_l);
         // ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_left_infl: " << theta_left_infl << ", new_theta_l: " << new_theta_l);
 
-        float theta_r_infl = (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_r.norm(); // using s = r*theta
+        float theta_r_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_r.norm(); // using s = r*theta
         float new_theta_r = theta_r + theta_r_infl;
         new_theta_r = atanThetaWrap(new_theta_r);
         // ROS_INFO_STREAM("theta_r: " << theta_r << ", theta_r_infl: " << theta_r_infl << ", new_theta_r: " << new_theta_r);
@@ -852,8 +852,18 @@ namespace dynamic_gap {
             range_r_p = (rdist_robot - ldist_robot) * L_to_Rp_angle / L_to_R_angle + ldist_robot;
             // ROS_INFO_STREAM("after angular inflation, left idx: " << new_l_idx << ", left_range: " << range_l_p << ", right idx: " << new_r_idx << ", right range: " << range_r_p << "");
         }
-        range_r_p += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+
+        if (cfg_->gap_manip.debug_log) {
+            if (initial) {
+                ROS_INFO_STREAM("post-angular-inflate gap in polar. left: (" << new_l_idx << ", " << range_l_p << "), right: (" << new_r_idx << ", " << range_r_p << ")");
+            } else {
+                ROS_INFO_STREAM( "post-angular-inflate gap in polar. left: (" << new_l_idx << ", " << range_l_p << "), right: (" << new_r_idx << ", " << range_r_p << ")");
+            }
+            ROS_INFO_STREAM( "post-inflate gap in cart. left: (" << x_l << ", " << y_l << "), right: (" << x_r << ", " << y_r << ")");
+        }
+        // PERFORMING RADIAL INFLATION
         range_l_p += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+        range_r_p += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
         // ROS_INFO_STREAM("new_l_theta: " << new_l_theta << ", new_r_theta: " << new_r_theta);
         // ROS_INFO_STREAM("int values, left: " << new_l_idx << ", right: " << new_r_idx);

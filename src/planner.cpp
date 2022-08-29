@@ -30,9 +30,8 @@ namespace dynamic_gap
         cfg.loadRosParamFromNodeHandle(unh);
 
         // Visualization Setup
-        local_traj_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_traj", 1);
-        trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("pg_traj", 1);
-        dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 1);
+        trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
+        // dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 1);
 
         rbt_accel_sub = nh.subscribe(cfg.robot_frame_id + "/acc", 1, &Planner::robotAccCB, this);
 
@@ -360,8 +359,6 @@ namespace dynamic_gap
         // Store New Global Plan to Goal Selector
         goalselector->setGoal(plan);
         
-        trajvisualizer->globalPlanRbtFrame(goalselector->getOdomGlobalPlan());
-
         // Obtaining Local Goal by using global plan
         goalselector->updateLocalGoal(map2rbt);
         // return local goal (odom) frame
@@ -381,20 +378,9 @@ namespace dynamic_gap
         trajArbiter->updateLocalGoal(local_waypoint_odom, odom2rbt);
 
         // Visualization only
-        try { 
-            auto traj = goalselector->getRelevantGlobalPlan(map2rbt);
-            geometry_msgs::PoseArray pub_traj;
-            if (traj.size() > 0) {
-                // Should be safe with this check
-                pub_traj.header = traj.at(0).header;
-            }
-            for (auto trajpose : traj) {
-                pub_traj.poses.push_back(trajpose.pose);
-            }
-            local_traj_pub.publish(pub_traj);
-        } catch (...) {
-            ROS_FATAL_STREAM("getRelevantGlobalPlan");
-        }
+        std::vector<geometry_msgs::PoseStamped> traj = goalselector->getRelevantGlobalPlan(map2rbt);
+        trajvisualizer->drawRelevantGlobalPlanSnippet(traj);
+        // trajvisualizer->drawEntireGlobalPlan(goalselector->getOdomGlobalPlan());
 
         return true;
     }

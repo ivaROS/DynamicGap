@@ -7,9 +7,11 @@ namespace dynamic_gap{
 
     void GapVisualizer::initialize(ros::NodeHandle& nh, const DynamicGapConfig& cfg) {
         cfg_ = &cfg;
-        gaparc_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_arcs", 10);
-        gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_sides", 10);
-        gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
+        raw_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gaps", 10);
+        simp_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gaps", 10);
+
+        gapside_publisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gaps", 10);
+        // gapgoal_publisher = nh.advertise<visualization_msgs::MarkerArray>("pg_markers", 10);
         reachable_gap_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
         reachable_gap_centers_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
         reachable_gap_no_RGE_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_no_RGE", 10);
@@ -63,46 +65,6 @@ namespace dynamic_gap{
         std_color.b = 0.0; //std_color.b = 0.1;
         raw.push_back(std_color);
         raw.push_back(std_color);
-        
-        // SIMPLIFIED EXPANDING
-        std_color.a = 0.5;
-        std_color.r = 1.0; //std_color.r = 1;
-        std_color.g = 0.0; //std_color.g = 0.9;
-        std_color.b = 0.0; //std_color.b = 0.3;
-        simp_expanding.push_back(std_color);
-        simp_expanding.push_back(std_color);
-        // SIMPLIFIED CLOSING
-        std_color.r = 0.0; //std_color.r = 0.4;
-        std_color.g = 1.0; //std_color.g = 0;
-        std_color.b = 0.0; //std_color.b = 0.9;
-        simp_closing.push_back(std_color);
-        simp_closing.push_back(std_color);
-        // SIMPLIFIED TRANSLATING
-        std_color.r = 0.0; //std_color.r = 0.4;
-        std_color.g = 0.0; //std_color.g = 0;
-        std_color.b = 1.0; //std_color.b = 0.9;
-        simp_translating.push_back(std_color);
-        simp_translating.push_back(std_color);
-
-        // MANIPULATED EXPANDING
-        std_color.a = 1.0;
-        std_color.r = 1.0; //std_color.r = 1;
-        std_color.g = 0.0; //std_color.g = 0.9;
-        std_color.b = 0.0; //std_color.b = 0.3;
-        manip_expanding.push_back(std_color);
-        manip_expanding.push_back(std_color);
-        // MANIPULATED CLOSING
-        std_color.r = 0.0; //std_color.r = 0.4;
-        std_color.g = 1.0; //std_color.g = 0;
-        std_color.b = 0.0; //std_color.b = 0.9;
-        manip_closing.push_back(std_color);
-        manip_closing.push_back(std_color);
-        // MANIPULATED TRANSLATING
-        std_color.r = 0.0; //std_color.r = 0.4;
-        std_color.g = 0.0; //std_color.g = 0;
-        std_color.b = 1.0; //std_color.b = 0.9;
-        manip_translating.push_back(std_color);
-        manip_translating.push_back(std_color);
 
         std_color.a = 1.0;
         std_color.r = 0.0; //std_color.r = 0.6;
@@ -110,7 +72,6 @@ namespace dynamic_gap{
         std_color.b = 0.0; //std_color.b = 0.1;
         raw_initial.push_back(std_color);
         raw_initial.push_back(std_color);
-        
         
         std_color.a = 1.0;
         std_color.r = 1.0;
@@ -133,8 +94,8 @@ namespace dynamic_gap{
         manip_initial.push_back(std_color);
         manip_initial.push_back(std_color);
 
-        std_color.a = 1.0;
-        std_color.r = 1.0; 
+        std_color.a = 0.5;
+        std_color.r = 0.0; 
         std_color.g = 1.0; 
         std_color.b = 0.0; 
         manip_terminal.push_back(std_color);
@@ -160,12 +121,6 @@ namespace dynamic_gap{
         gap_splines.push_back(std_color);        
 
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw", raw));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_expanding", simp_expanding));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_closing", simp_closing));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_translating", simp_translating));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_expanding", manip_expanding));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_closing", manip_closing));
-        colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("manip_translating", manip_translating));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("raw_initial", raw_initial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_initial", simp_initial));
         colormap.insert(std::pair<std::string, std::vector<std_msgs::ColorRGBA>>("simp_terminal", simp_terminal));
@@ -392,6 +347,14 @@ namespace dynamic_gap{
         this_marker.ns = "manip_initial";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
+
+        this_marker.pose.position.x = 0.0;
+        this_marker.pose.position.y = 0.0;
+        this_marker.pose.position.z = 0.0;
+        this_marker.pose.orientation.x = 0.0;
+        this_marker.pose.orientation.y = 0.0;
+        this_marker.pose.orientation.z = 0.0;
+        this_marker.pose.orientation.w = 1.0;
 
         auto color_value = colormap.find("manip_initial");
         if (color_value == colormap.end()) {
@@ -669,6 +632,14 @@ namespace dynamic_gap{
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
 
+        this_marker.pose.position.x = 0.0;
+        this_marker.pose.position.y = 0.0;
+        this_marker.pose.position.z = 0.0;
+        this_marker.pose.orientation.x = 0.0;
+        this_marker.pose.orientation.y = 0.0;
+        this_marker.pose.orientation.z = 0.0;
+        this_marker.pose.orientation.w = 1.0;
+
         // std::cout << "ns coming in: " << ns << std::endl;
         std::string local_ns = ns;
         // for compare, 0 is true?
@@ -767,19 +738,20 @@ namespace dynamic_gap{
         clear_marker.ns = ns;
         clear_marker.action = visualization_msgs::Marker::DELETEALL;
         clear_arr.markers.push_back(clear_marker);
-        gaparc_publisher.publish(clear_arr);
 
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : g) {
             drawGap(vis_arr, gap, ns, true);
-            
-            /*
-            if (ns.compare("raw") != 0) {
-                drawGap(vis_arr, gap, ns, false);
-            }
-            */
         }
-        gaparc_publisher.publish(vis_arr);
+        
+        if (ns == "raw") {
+            raw_gap_publisher.publish(clear_arr);
+            raw_gap_publisher.publish(vis_arr);
+        } else if (ns == "simp") {
+            simp_gap_publisher.publish(clear_arr);
+            simp_gap_publisher.publish(vis_arr);
+        }
+
     }
 
     void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
@@ -941,26 +913,32 @@ namespace dynamic_gap{
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
         geometry_msgs::Point vel_pt;
-        vel_pt.x = model_pt.pose.position.x;
-        vel_pt.y = model_pt.pose.position.y;
-        vel_pt.z = 0.000001;
-        model_vel_pt.points.push_back(vel_pt);
+        model_vel_pt.pose.position.x = model_pt.pose.position.x;
+        model_vel_pt.pose.position.y = model_pt.pose.position.y;
+        model_vel_pt.pose.position.z = model_pt.pose.position.z;
+   
         Eigen::Vector2d vel;
-        
-        if (left)
+        if (left) {
             vel << g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
                    g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1];
-        else {
-            vel << g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0],
+        } else {
+            vel << g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0], 
                    g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1];
         }
 
-        vel_pt.x = model_pt.pose.position.x + vel[0];
-        vel_pt.y = model_pt.pose.position.y + vel[1];
-        model_vel_pt.points.push_back(vel_pt);
-        model_vel_pt.scale.x = 0.1;
+        double model_vel_theta = std::atan2(vel[1], vel[0]);
+        tf2::Quaternion quat;
+        quat.setRPY(0.0, 0.0, model_vel_theta);
+
+        model_vel_pt.pose.orientation.x = quat.getX();
+        model_vel_pt.pose.orientation.y = quat.getY();
+        model_vel_pt.pose.orientation.z = quat.getZ();
+        model_vel_pt.pose.orientation.w = quat.getW();
+
+        model_vel_pt.scale.x = vel.norm();
         model_vel_pt.scale.y = 0.1;
-        model_vel_pt.scale.z = 0.1;
+        model_vel_pt.scale.z = 0.000001;
+
         model_vel_pt.color.a = 1.0;
         model_vel_pt.color.r = 1.0;
         model_vel_pt.color.b = 1.0;
@@ -1015,6 +993,15 @@ namespace dynamic_gap{
         this_marker.ns = ns;
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
         this_marker.action = visualization_msgs::Marker::ADD;
+
+        this_marker.pose.position.x = 0.0;
+        this_marker.pose.position.y = 0.0;
+        this_marker.pose.position.z = 0.0;
+        this_marker.pose.orientation.x = 0.0;
+        this_marker.pose.orientation.y = 0.0;
+        this_marker.pose.orientation.z = 0.0;
+        this_marker.pose.orientation.w = 1.0;
+
 
         // ROS_INFO_STREAM("drawManipGap local_ns: " << local_ns);
         auto color_value = colormap.find(local_ns);
@@ -1170,25 +1157,23 @@ namespace dynamic_gap{
         visualization_msgs::MarkerArray vis_arr;
 
         bool circle = false;
-        int i = 0;
         for (auto gap : vec) {
-            drawManipGap(vis_arr, gap, circle, ns, true);
-            drawManipGap(vis_arr, gap, circle, ns, false);
-            i++;
+            drawManipGap(vis_arr, gap, circle, ns, true); // initial
+            drawManipGap(vis_arr, gap, circle, ns, false); // false
         }
         gapside_publisher.publish(vis_arr);
-        prev_num_manip_gaps = 2*vec.size();
     }
 
     TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
-        goal_selector_traj_vis = nh.advertise<geometry_msgs::PoseArray>("goal_select_traj", 1000);
-        trajectory_score = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 1000);
-        all_traj_viz = nh.advertise<visualization_msgs::MarkerArray>("all_traj_vis", 1000);
+        entire_global_plan_pub = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
+        trajectory_score = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
+        all_traj_viz = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
+        relevant_global_plan_snippet_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
     }
 
-    void TrajectoryVisualizer::globalPlanRbtFrame(const std::vector<geometry_msgs::PoseStamped> & plan) {
+    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) {
         if (!cfg_->gap_viz.debug_viz) return;
         if (plan.size() < 1) {
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << plan.size() << " < 1");
@@ -1199,7 +1184,7 @@ namespace dynamic_gap{
         for (auto & pose : plan) {
             vis_arr.poses.push_back(pose.pose);
         }
-        goal_selector_traj_vis.publish(vis_arr);
+        entire_global_plan_pub.publish(vis_arr);
     }
     /*
     void TrajectoryVisualizer::trajScore(geometry_msgs::PoseArray p_arr, std::vector<double> p_score) {
@@ -1330,14 +1315,29 @@ namespace dynamic_gap{
             }
         }
         all_traj_viz.publish(vis_traj_arr);
+    }
 
+    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(std::vector<geometry_msgs::PoseStamped> traj) {
+        try { 
+            geometry_msgs::PoseArray pub_traj;
+            if (traj.size() > 0) {
+                // Should be safe with this check
+                pub_traj.header = traj.at(0).header;
+            }
+            for (auto trajpose : traj) {
+                pub_traj.poses.push_back(trajpose.pose);
+            }
+            relevant_global_plan_snippet_pub.publish(pub_traj);
+        } catch (...) {
+            ROS_FATAL_STREAM("getRelevantGlobalPlan");
+        }
     }
 
     GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
-        goal_pub = nh.advertise<visualization_msgs::Marker>("goals", 1000);
-        gapwp_pub = nh.advertise<visualization_msgs::MarkerArray>("gap_goals", 1000);
+        goal_pub = nh.advertise<visualization_msgs::Marker>("goals", 10);
+        gapwp_pub = nh.advertise<visualization_msgs::MarkerArray>("gap_goals", 10);
 
         gapwp_color.r = 0.5;
         gapwp_color.g = 1;
