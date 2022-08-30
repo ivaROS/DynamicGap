@@ -411,7 +411,6 @@ namespace dynamic_gap
             bool gap_closed = false;
             bool gap_crossed_behind = false;
 
-            bool pivoted_right = false;
             bool artificial = false;
 
             double left_weight = 0.0;

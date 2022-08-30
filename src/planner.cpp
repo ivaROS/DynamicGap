@@ -235,24 +235,17 @@ namespace dynamic_gap
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
                                 std::vector<geometry_msgs::Twist> intermediate_vels, 
                                 std::vector<geometry_msgs::Twist> intermediate_accs,  bool print) {
-        // boost::mutex::scoped_lock gapset(gapset_mutex);
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
  
-        // UPDATING MODELS
-		geometry_msgs::Vector3Stamped gap_pt_vector_rbt_frame;
-
-		// THIS VECTOR IS IN THE ROBOT FRAME
+        double beta_tilde, range_tilde;
 		if (i % 2 == 0) {
-			gap_pt_vector_rbt_frame.vector.x = g.RDist() * cos(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = g.RDist() * sin(-((float) g.half_scan - g.RIdx()) / g.half_scan * M_PI);
+			beta_tilde = float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
+            range_tilde = g.RDist();
 		} else {
-			gap_pt_vector_rbt_frame.vector.x = g.LDist() * cos(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
-			gap_pt_vector_rbt_frame.vector.y = g.LDist() * sin(-((float) g.half_scan - g.LIdx()) / g.half_scan * M_PI);
+            beta_tilde = float(g.LIdx() - g.half_scan) / g.half_scan * M_PI;
+            range_tilde = g.LDist();
 		}
 
-        double beta_tilde = std::atan2(gap_pt_vector_rbt_frame.vector.y, gap_pt_vector_rbt_frame.vector.x);
-		double range_tilde = std::sqrt(std::pow(gap_pt_vector_rbt_frame.vector.x, 2) + pow(gap_pt_vector_rbt_frame.vector.y, 2));
-		
 		Matrix<double, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
 
         if (i % 2 == 0) {
@@ -408,8 +401,6 @@ namespace dynamic_gap
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<dynamic_gap::Gap> manip_set = _observed_gaps;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
-
-        // we want to change the models in here
 
         for (size_t i = 0; i < manip_set.size(); i++)
         {
@@ -963,12 +954,13 @@ namespace dynamic_gap
         std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
 
+        int future_scan_idx;
         for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
             dynamic_laser_scan.ranges = stored_scan.ranges;
 
             trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
 
-            int future_scan_idx = (int) (t_iplus1 / cfg.traj.integrate_stept);
+            future_scan_idx = (int) (t_iplus1 / cfg.traj.integrate_stept);
             // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << future_scan_idx);
             future_scans[future_scan_idx] = dynamic_laser_scan;
 

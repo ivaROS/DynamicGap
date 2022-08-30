@@ -114,14 +114,21 @@ namespace dynamic_gap {
         float max_range = cfg_->rbt.max_range;
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < _agent_odoms.size(); i++) {
-            if (print) ROS_INFO_STREAM("robot" << i << " moving from (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
+            if (print) {
+                ROS_INFO_STREAM("robot" << i << " moving from (" << 
+                _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
+            }
+
             _agent_odoms[i].position.x += _agent_vels[i].vector.x*interval;
             _agent_odoms[i].position.y += _agent_vels[i].vector.y*interval;
-            if (print) ROS_INFO_STREAM("to (" << _agent_odoms[i].position.x << ", " << _agent_odoms[i].position.y << ")");
+            
+            if (print) {
+                ROS_INFO_STREAM("to (" << _agent_odoms[i].position.x << ", " <<
+                                          _agent_odoms[i].position.y << ")");
+            }
         }
 
         // basically run modify_scan                                                          
-
         Eigen::Vector2d pt2, centered_pt1, centered_pt2, dx_dy, intersection0, intersection1, 
                         int0_min_cent_pt1, int0_min_cent_pt2, int1_min_cent_pt1, int1_min_cent_pt2, 
                         cent_pt2_min_cent_pt1;
@@ -183,7 +190,11 @@ namespace dynamic_gap {
                         int0_min_cent_pt2 = intersection0 - centered_pt2;
 
                         if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < cent_pt2_min_cent_pt1.norm() && int0_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
-                            if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist0);
+                            if (print) {
+                                ROS_INFO_STREAM("at i: " << i << ", changed distance from " << 
+                                                dynamic_laser_scan.ranges[i] << " to " << dist0);
+                            }
+
                             dynamic_laser_scan.ranges[i] = dist0;
                             break;
                         }
@@ -191,7 +202,11 @@ namespace dynamic_gap {
                         int1_min_cent_pt2 = intersection1 - centered_pt2;
 
                         if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < cent_pt2_min_cent_pt1.norm() && int1_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
-                            if (print) ROS_INFO_STREAM("at i: " << i << ", changed distance from " << dynamic_laser_scan.ranges[i] << " to " << dist1);                        
+                            if (print) {
+                                ROS_INFO_STREAM("at i: " << i << ", changed distance from " << 
+                                                dynamic_laser_scan.ranges[i] << " to " << dist1); 
+                            }          
+
                             dynamic_laser_scan.ranges[i] = dist1;
                             break;
                         }
@@ -444,23 +459,25 @@ namespace dynamic_gap {
         double t_iplus1 = 0.0;
         int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
 
-        int min_dist_idx;
+        int min_dist_idx, future_scan_idx;
+        double theta, range;
+        Eigen::Vector2d min_dist_pt(0.0, 0.0);
         if (current_raw_gaps.size() > 0) {
             std::vector<double> dynamic_cost_val(traj.poses.size());
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
                 // recoverDynamicEgoCircle(t_i, t_iplus1, raw_models, dynamic_laser_scan);
-                int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
+                future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
                 // ROS_INFO_STREAM("pulling scan for t_iplus1: " << t_iplus1 << " at idx: " << future_scan_idx);
                 dynamic_laser_scan = future_scans[future_scan_idx];
                 // ROS_INFO_STREAM("pulled scan");
                 min_dist_idx = dynamicGetMinDistIndex(traj.poses.at(i), dynamic_laser_scan, print);
                 // ROS_INFO_STREAM("min_dist_idx: " << min_dist_idx);
                 // add point to min_dist_array
-                double theta = min_dist_idx * dynamic_laser_scan.angle_increment + dynamic_laser_scan.angle_min;
-                double range = dynamic_laser_scan.ranges.at(min_dist_idx);
-                std::vector<double> min_dist_pt{range*std::cos(theta), range*std::sin(theta)};
+                theta = min_dist_idx * dynamic_laser_scan.angle_increment + dynamic_laser_scan.angle_min;
+                range = dynamic_laser_scan.ranges.at(min_dist_idx);
+                min_dist_pt << range*std::cos(theta), range*std::sin(theta);
  
                 /*
                 if (t_iplus1 == 2.5 && vis) {
@@ -553,10 +570,11 @@ namespace dynamic_gap {
 
         // iterate through ranges and obtain the distance from the egocircle point and the pose
         // Meant to find where is really small
+        float curr_dist;
         for (int i = 0; i < dist.size(); i++) {
-            float this_dist = dynamic_laser_scan.ranges.at(i);
-            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
-            dist.at(i) = dist2Pose(i * dynamic_laser_scan.angle_increment - M_PI, this_dist, pose);
+            curr_dist = dynamic_laser_scan.ranges.at(i);
+            curr_dist = (curr_dist == 5) ? curr_dist + cfg_->traj.rmax : curr_dist;
+            dist.at(i) = dist2Pose(i * dynamic_laser_scan.angle_increment - M_PI, curr_dist, pose);
         }
 
         auto iter = std::min_element(dist.begin(), dist.end());
@@ -591,11 +609,11 @@ namespace dynamic_gap {
 
         // iterate through ranges and obtain the distance from the egocircle point and the pose
         // Meant to find where is really small
+        float curr_dist;
         for (int i = 0; i < dist.size(); i++) {
-            float this_dist = stored_scan.ranges.at(i);
-            this_dist = this_dist == 5 ? this_dist + cfg_->traj.rmax : this_dist;
-            dist.at(i) = dist2Pose(i * stored_scan.angle_increment - M_PI,
-                this_dist, pose);
+            curr_dist = stored_scan.ranges.at(i);
+            curr_dist = curr_dist == 5 ? curr_dist + cfg_->traj.rmax : curr_dist;
+            dist.at(i) = dist2Pose(i * stored_scan.angle_increment - M_PI, curr_dist, pose);
         }
 
         auto iter = std::min_element(dist.begin(), dist.end());

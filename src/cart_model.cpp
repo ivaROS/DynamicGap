@@ -16,10 +16,8 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
-
-using namespace Eigen;
 
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
@@ -95,7 +93,7 @@ namespace dynamic_gap {
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
         alpha_Q = 0.9;
-        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = true;
         plotted = false;
     }
@@ -458,7 +456,7 @@ namespace dynamic_gap {
         
         double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
         R_k << sensor_noise_factor, 0.0,
-             0.0, sensor_noise_factor;
+               0.0, sensor_noise_factor;
 
         tmp_mat = H*P_k_minus*H_transpose + R_k;
 
