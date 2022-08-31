@@ -365,7 +365,8 @@ namespace dynamic_gap {
         // msg is from egocircle
         // only part of msg used is angle_increment
 
-        int lidx, ridx, ldist, rdist;
+        int lidx, ridx;
+        float ldist, rdist;
         if (initial) {
             lidx = gap.cvx_LIdx();
             ridx = gap.cvx_RIdx();
