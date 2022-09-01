@@ -32,6 +32,7 @@
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
 
   <!-- xterm -e gdb -ex run - -args -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz" />
 
   <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
       <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
@@ -76,6 +77,4 @@
       <param name="local_costmap/robot_base_frame" value="$(arg robot_namespace)" />
       
   </node>
-
-  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz" /> -->
 </launch>
