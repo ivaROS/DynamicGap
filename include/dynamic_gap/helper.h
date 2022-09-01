@@ -200,7 +200,7 @@ namespace dynamic_gap {
                             Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
 
                             Eigen::MatrixXd A(Kplus1, N+1);
-                            double start_time = ros::Time::now().toSec();
+                            // double start_time = ros::Time::now().toSec();
                             setConstraintMatrix(A, N, Kplus1);
                             // ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
                             // ROS_INFO_STREAM("A: " << A);
@@ -256,11 +256,11 @@ namespace dynamic_gap {
                             // if(!solver.setPrimalVariable(w_0)) return;
                             
                             // solve the QP problem
-                            // start_time = ros::Time::now().toSec();
+                            double start_time = ros::WallTime::now().toSec();
                             if(solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
                             // get the controller input
                             weights = solver.getSolution();
-                            // ROS_INFO_STREAM("optimization time elapsed: " << (ros::Time::now().toSec() - start_time));
+                            ROS_INFO_STREAM("optimization time taken: " << (ros::WallTime::now().toSec() - start_time));
 
                             // weights = raw_weights / raw_weights.norm();                                
 

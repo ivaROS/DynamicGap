@@ -1,4 +1,0 @@
-<launch>
-  <arg name="robot_namespace"/>
-  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="delete $(arg robot_namespace)" />
-</launch>

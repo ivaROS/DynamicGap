@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -39,8 +39,8 @@ namespace dynamic_gap {
         // PROCESS NOISE        
         Q_k << 0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.1, 0.0,
-             0.0, 0.0, 0.0, 0.1;
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0;
         
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -65,6 +65,7 @@ namespace dynamic_gap {
         x_hat_k_minus = x_hat_kmin1_plus; 
         x_hat_k_plus = x_hat_kmin1_plus;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
+        x_ground_truth_gap_only << measurement[0], measurement[1], v_rel_x, v_rel_y;
 
         G_k << 1.0, 1.0,
              1.0, 1.0,
@@ -87,15 +88,16 @@ namespace dynamic_gap {
 
         initialized = true;
         life_time = 0.0;
-        life_time_threshold = 10;
+        life_time_threshold = 8;
         eyes = MatrixXd::Identity(4,4);
         new_P = eyes;
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
-        alpha_Q = 0.9;
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        alpha_Q = 1.0;
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
+        plot = true;
     }
 
     void cart_model::freeze_robot_vel() {
@@ -211,7 +213,11 @@ namespace dynamic_gap {
         int n = previous_states.size();
         std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), 
                             r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n),
-                            v_ego_angs(n), a_ego_angs(n), a_xs(n), a_ys(n), v_x_egos(n), v_y_egos(n), dts(n);
+                            v_ego_angs(n), a_ego_angs(n), a_xs(n), a_ys(n), 
+                            v_x_egos(n), v_y_egos(n), dts(n), gap_only_r_xs(n),
+                            gap_only_r_ys(n), gap_only_v_xs(n), gap_only_v_ys(n),
+                            gap_only_r_xs_GT(n), gap_only_r_ys_GT(n), gap_only_v_xs_GT(n), gap_only_v_ys_GT(n);
+
         for(int i=0; i < previous_states.size(); i++) {
             t.at(i) = previous_times[i][0];
             dts.at(i) = previous_times[i][1];
@@ -220,6 +226,16 @@ namespace dynamic_gap {
             r_ys.at(i) = previous_states[i][1];
             v_xs.at(i) = previous_states[i][2];
             v_ys.at(i) = previous_states[i][3];
+
+            gap_only_r_xs.at(i) = previous_gap_only_states[i][0];
+            gap_only_r_ys.at(i) = previous_gap_only_states[i][1];
+            gap_only_v_xs.at(i) = previous_gap_only_states[i][2];
+            gap_only_v_ys.at(i) = previous_gap_only_states[i][3];
+
+            gap_only_r_xs_GT.at(i) = previous_measurements_gap_only[i][0];
+            gap_only_r_ys_GT.at(i) = previous_measurements_gap_only[i][1];
+            gap_only_v_xs_GT.at(i) = previous_measurements_gap_only[i][2];
+            gap_only_v_ys_GT.at(i) = previous_measurements_gap_only[i][3];            
 
             r_xs_GT.at(i) = previous_measurements[i][0];
             r_ys_GT.at(i) = previous_measurements[i][1];
@@ -250,34 +266,35 @@ namespace dynamic_gap {
         plt::close();
         */
         
-
         plt::figure_size(1200, 780);
-        plt::scatter(t, r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
-        plt::scatter(t, r_xs, 25.0, {{"label", "r_x"}});
+        plt::scatter(t, gap_only_r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
+        plt::scatter(t, gap_only_r_xs, 25.0, {{"label", "r_x"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save(plot_dir + std::to_string(index) + "_r_x.png");
         plt::close();
 
         plt::figure_size(1200, 780);
-        plt::scatter(t, r_ys_GT, 25.0, {{"label", "r_y (GT)"}});
-        plt::scatter(t, r_ys, 25.0, {{"label", "r_y"}});
+        plt::scatter(t, gap_only_r_ys_GT, 25.0, {{"label", "r_y (GT)"}});
+        plt::scatter(t, gap_only_r_ys, 25.0, {{"label", "r_y"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save(plot_dir + std::to_string(index) + "_r_y.png");
         plt::close();
 
         plt::figure_size(1200, 780);
-        plt::scatter(t, v_xs_GT, 25.0, {{"label", "v_x (GT)"}});
-        plt::scatter(t, v_xs, 25.0, {{"label", "v_x"}});
+        plt::scatter(t, gap_only_v_xs_GT, 25.0, {{"label", "v_x (GT)"}});
+        plt::scatter(t, gap_only_v_xs, 25.0, {{"label", "v_x"}});
+        plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ang_ego"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save(plot_dir + std::to_string(index) + "_v_x.png");
         plt::close();
 
         plt::figure_size(1200, 780);
-        plt::scatter(t, v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
-        plt::scatter(t, v_ys, 25.0, {{"label", "v_y"}});
+        plt::scatter(t, gap_only_v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
+        plt::scatter(t, gap_only_v_ys, 25.0, {{"label", "v_y"}});
+        plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ang_ego"}});
         plt::xlim(0, 15);
         plt::legend();
         plt::save(plot_dir + std::to_string(index) + "_v_y.png");
@@ -298,6 +315,8 @@ namespace dynamic_gap {
 
         return_x[0] = x_tilde[0];
         return_x[1] = x_tilde[1];
+        x_ground_truth_gap_only[0] = x_tilde[0];
+        x_ground_truth_gap_only[1] = x_tilde[1];
         
         double robot_i_odom_dist;
         double min_dist = std::numeric_limits<double>::infinity();
@@ -330,6 +349,9 @@ namespace dynamic_gap {
             // return_x[1] = x_tilde[1];
             return_x[2] = agent_vels[min_idx].vector.x - v_ego[0];
             return_x[3] = agent_vels[min_idx].vector.y - v_ego[1];
+
+            x_ground_truth_gap_only[2] = agent_vels[min_idx].vector.x;
+            x_ground_truth_gap_only[3] = agent_vels[min_idx].vector.y;
         } else {
             
             if (print) {
@@ -338,6 +360,9 @@ namespace dynamic_gap {
             
             return_x[2] = -v_ego[0];
             return_x[3] = -v_ego[1];
+
+            x_ground_truth_gap_only[2] = 0.0;
+            x_ground_truth_gap_only[3] = 0.0;            
         }
 
         return return_x;
@@ -508,9 +533,9 @@ namespace dynamic_gap {
 
         tmp_mat = H*P_k_minus*H_transpose + R_k;
 
-        inverted_tmp_mat = tmp_mat.inverse();
+        // inverted_tmp_mat = ;
 
-        G_k = P_k_minus * H_transpose * inverted_tmp_mat;
+        G_k = P_k_minus * H_transpose * tmp_mat.inverse();
 
         P_k_plus = (eyes - G_k*H)*P_k_minus;
         new_Q = alpha_Q * Q_k + (1 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
@@ -526,29 +551,31 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
             ROS_INFO_STREAM("-----------");
         }
+        */
         
-        
-        if (print) {
-            if (life_time <= life_time_threshold && !plotted) {
-                std::vector<double> state{x_hat_k_plus[0], x_hat_k_plus[1], x_hat_k_plus[2], x_hat_k_plus[3]};
+        if (plot && !plotted) {
+            if (life_time <= life_time_threshold) {
+                std::vector<double> rel_state{x_hat_k_plus[0], x_hat_k_plus[1], x_hat_k_plus[2], x_hat_k_plus[3]};
+                std::vector<double> gap_only_state{x_hat_k_plus[0], x_hat_k_plus[1], x_hat_k_plus[2] + v_ego[0], x_hat_k_plus[3] + v_ego[1]};
+     
                 std::vector<double> ground_truths{x_ground_truth[0], x_ground_truth[1], x_ground_truth[2], x_ground_truth[3]};
-                                
+                std::vector<double> ground_truths_gap_only{x_ground_truth_gap_only[0], x_ground_truth_gap_only[1], x_ground_truth_gap_only[2], x_ground_truth_gap_only[3]};
+     
                 std::vector<double> ego_vels{v_ego[0], v_ego[1], v_ego[2]};
                 std::vector<double> ego_accels{a_ego[0], a_ego[1], a_ego[2]};
                 std::vector<double> times{life_time, dt};
   
-                previous_states.push_back(state);
+                previous_states.push_back(rel_state);
+                previous_gap_only_states.push_back(gap_only_state);
                 previous_measurements.push_back(ground_truths);
+                previous_measurements_gap_only.push_back(ground_truths_gap_only);
                 previous_ego_accels.push_back(ego_accels);
                 previous_ego_vels.push_back(ego_vels);
                 previous_times.push_back(times);      
-            }
-
-            if (life_time > life_time_threshold && !plotted) {
+            } else {
                 plot_states();
             }
         }
-        */
         
         x_hat_kmin1_plus = x_hat_k_plus;
         P_kmin1_plus = P_k_plus;

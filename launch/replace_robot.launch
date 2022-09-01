@@ -1,7 +1,0 @@
-<launch>
-  <arg name="robot_namespace"/>
-  <arg name="rbtx" default="$(optenv GM_PARAM_RBT_X 1)"/>
-  <arg name="rbty" default="$(optenv GM_PARAM_RBT_Y 2)"/>
-
-  <node pkg="stdr_robot" type="robot_handler" name="$(anon robot_spawn)" args="replace $(arg robot_namespace) $(arg rbtx) $(arg rbty) 0" />
-</launch>

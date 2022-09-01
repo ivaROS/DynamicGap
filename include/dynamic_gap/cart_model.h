@@ -24,7 +24,7 @@ namespace dynamic_gap {
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, new_x, x_ground_truth, frozen_x, rewind_x;
+            Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
             Matrix<double, 4, 4> P_kmin1_plus, P_k_minus, P_k_plus; // covariance matrix
             Matrix<double, 4, 2> G_k; // kalman gain
             Matrix<double, 2, 1> x_tilde, innovation, residual;
@@ -43,9 +43,9 @@ namespace dynamic_gap {
             bool initialized;
             double life_time, start_time;
 
-            std::vector< std::vector<double>> previous_states, previous_measurements, 
+            std::vector< std::vector<double>> previous_states, previous_measurements, previous_measurements_gap_only,
                                               previous_ego_accels, previous_ego_vels, previous_times,
-                                              vel_euler_derivatives;
+                                              previous_gap_only_states, vel_euler_derivatives;
             double life_time_threshold;
             Matrix<double, 4, 4> eyes;
             Matrix<double, 4, 4> new_P;
@@ -57,6 +57,7 @@ namespace dynamic_gap {
 
             bool perfect;
             bool print;
+            bool plot;
             bool plotted;
             std::vector<double> prev_euler_deriv;
 
