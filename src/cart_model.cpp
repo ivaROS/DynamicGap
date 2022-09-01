@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -93,20 +93,48 @@ namespace dynamic_gap {
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
         alpha_Q = 0.9;
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
-        perfect = true;
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
+        perfect = false;
         plotted = false;
     }
 
     void cart_model::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         
+        // fixing position (otherwise can get bugs)
+        cartesian_state[0] = x_tilde[0];
+        cartesian_state[1] = x_tilde[1];
+
         // update cartesian
         cartesian_state[2] += v_ego[0];
         cartesian_state[3] += v_ego[1];
         frozen_x = cartesian_state;
 
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+    }
+
+    void cart_model::set_rewind_state() {
+        rewind_x = frozen_x;
+    }
+
+    void cart_model::rewind_propagate(double dt) {
+        Matrix<double, 4, 1> new_rewind_x;     
+        new_rewind_x << 0.0, 0.0, 0.0, 0.0;
+
+        Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
+
+        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0); 
+        double frozen_ang_vel_ego = 0.0;
+
+        double vdot_x_body = frozen_linear_acc_ego[0];
+        double vdot_y_body = frozen_linear_acc_ego[1];
+
+        // discrete euler update of state (ignoring rbt acceleration, set as 0)
+        new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*dt;
+        new_rewind_x[1] = rewind_x[1] + (rewind_x[3] - rewind_x[0]*frozen_ang_vel_ego)*dt;
+        new_rewind_x[2] = rewind_x[2] + (rewind_x[3]*frozen_ang_vel_ego - vdot_x_body)*dt;
+        new_rewind_x[3] = rewind_x[3] + (-rewind_x[2]*frozen_ang_vel_ego - vdot_y_body)*dt;
+        rewind_x = new_rewind_x; 
     }
 
     void cart_model::frozen_state_propagate(double dt) {
@@ -337,6 +365,13 @@ namespace dynamic_gap {
         return return_x;
     }
 
+    Eigen::Vector4d cart_model::get_rewind_cartesian_state() {
+        // x state:
+        // [r_x, r_y, v_x, v_y]
+        Eigen::Vector4d return_x = rewind_x;
+        return return_x;
+    }
+
     Eigen::Vector4d cart_model::get_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
@@ -348,6 +383,19 @@ namespace dynamic_gap {
                     (cart_state[0]*cart_state[3] - cart_state[1]*cart_state[2]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2));
         return mp_state;
     }
+
+    Eigen::Vector4d cart_model::get_rewind_modified_polar_state() {
+        // y state:
+        // [1/r, beta, rdot/r, betadot]
+        Eigen::Vector4d rewind_mp_state;
+        Eigen::Vector4d rewind_cart_state = get_rewind_cartesian_state();
+        rewind_mp_state << 1.0 / sqrt(pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
+                           std::atan2(rewind_cart_state[1], rewind_cart_state[0]),
+                           (rewind_cart_state[0]*rewind_cart_state[2] + rewind_cart_state[1]*rewind_cart_state[3]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
+                           (rewind_cart_state[0]*rewind_cart_state[3] - rewind_cart_state[1]*rewind_cart_state[2]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2));
+        return rewind_mp_state;
+    }
+   
 
     Eigen::Vector4d cart_model::get_frozen_modified_polar_state() {
         // y state:

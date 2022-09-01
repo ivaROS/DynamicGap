@@ -417,13 +417,26 @@ namespace dynamic_gap
             // MANIPULATE POINTS AT T=1
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             gapManip->updateDynamicEgoCircle(manip_set.at(i), future_scans);
-            if (!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) {
+            if ((!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) || (manip_set.at(i).gap_crossed_behind)) {
                 gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false);
                 gapManip->convertAxialGap(manip_set.at(i), false);
             }
             gapManip->inflateGapSides(manip_set.at(i), false);
             gapManip->radialExtendGap(manip_set.at(i), false);
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal());
+
+
+            int lidx = manip_set.at(i).cvx_term_LIdx();
+            int ridx = manip_set.at(i).cvx_term_RIdx();
+
+            double gap_idx_size = double(lidx - ridx);
+            if (gap_idx_size < 0.0) {
+                gap_idx_size += (2*manip_set.at(i).half_scan);
+            }
+
+            if (gap_idx_size > manip_set.at(i).half_scan)  {
+                ROS_INFO_STREAM("terminal gap is non-convex");
+            }
         }
 
         return manip_set;
@@ -906,8 +919,10 @@ namespace dynamic_gap
             if ( curr_observed_gaps.at(i).left_model->get_index() == curr_left_idx && curr_observed_gaps.at(i).right_model->get_index() == curr_right_idx) {
                 gap_associated = true;
             }
-            ROS_INFO_STREAM("feasibility check for gap " << i << ", left index: " << curr_observed_gaps.at(i).left_model->get_index() << ", right index: " << curr_observed_gaps.at(i).right_model->get_index());
+            //  << ", left index: " << curr_observed_gaps.at(i).left_model->get_index() << ", right index: " << curr_observed_gaps.at(i).right_model->get_index()
             */
+
+            ROS_INFO_STREAM("feasibility check for gap " << i);
             gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));
             
             if (gap_i_feasible) {
@@ -973,30 +988,54 @@ namespace dynamic_gap
         double start_time = ros::WallTime::now().toSec();      
         
         
-        std::vector<dynamic_gap::Gap> feasible_gap_set = gapSetFeasibilityCheck();
+        std::vector<dynamic_gap::Gap> feasible_gap_set;
+        try { 
+            feasible_gap_set = gapSetFeasibilityCheck();
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in gapSetFeasibilityCheck");
+        }
         int gaps_size = feasible_gap_set.size();
         ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         
         start_time = ros::WallTime::now().toSec();
-        getFutureScans(agent_odoms, agent_vels, false);
+        try {
+            getFutureScans(agent_odoms, agent_vels, false);
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in getFutureScans");
+        }
         ROS_INFO_STREAM("DGap getFutureScans time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
         
         start_time = ros::WallTime::now().toSec();
-        std::vector<dynamic_gap::Gap> manip_gap_set = gapManipulate(feasible_gap_set);
+        std::vector<dynamic_gap::Gap> manip_gap_set;
+        try {
+            manip_gap_set = gapManipulate(feasible_gap_set);
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in gapManipulate");
+        }
         ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         start_time = ros::WallTime::now().toSec();
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
 
-        std::vector<std::vector<double>> score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
+        std::vector<std::vector<double>> score_set; 
+        try {
+            score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in initialTrajGen");
+        }
         ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
 
         start_time = ros::WallTime::now().toSec();
-        int traj_idx = pickTraj(traj_set, score_set);
+        int traj_idx;
+        try {
+            traj_idx = pickTraj(traj_set, score_set);
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in pickTraj");
+        }
         ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         geometry_msgs::PoseArray chosen_traj;
@@ -1012,7 +1051,13 @@ namespace dynamic_gap
         }
 
         start_time = ros::WallTime::now().toSec();
-        geometry_msgs::PoseArray final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
+        geometry_msgs::PoseArray final_traj;
+        
+        try {
+            final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
+        } catch (std::out_of_range) {
+            ROS_FATAL_STREAM("out of range in compareToOldTraj");
+        }
         ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
         
         ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));

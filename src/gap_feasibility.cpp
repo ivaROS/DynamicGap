@@ -248,10 +248,8 @@ namespace dynamic_gap {
                         gap.gap_crossed = true;
                     }
                 }
-            }
-
-            // checking for corner case of gap crossing behind the robot
-            if (prev_L_to_R_angle > (3*M_PI / 4) && L_to_R_angle < (M_PI / 4)) {
+            } else if (prev_L_to_R_angle > (3*M_PI / 4) && L_to_R_angle < (M_PI / 4)) {
+                // checking for corner case of gap crossing behind the robot
                 left_cross_pt << (1.0 / prev_left_frozen_mp_state[0])*std::cos(prev_left_frozen_mp_state[1]), 
                                  (1.0 / prev_left_frozen_mp_state[0])*std::sin(prev_left_frozen_mp_state[1]);
                 right_cross_pt << (1.0 / prev_right_frozen_mp_state[0])*std::cos(prev_right_frozen_mp_state[1]), 
@@ -281,30 +279,37 @@ namespace dynamic_gap {
 
     double GapFeasibilityChecker::generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         
-        Matrix<double, 4, 1> left_frozen_mp_state = left_model->get_frozen_modified_polar_state();        
-        Matrix<double, 4, 1> right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
+        Matrix<double, 4, 1> left_rewind_mp_state = left_model->get_rewind_modified_polar_state();        
+        Matrix<double, 4, 1> right_rewind_mp_state = right_model->get_rewind_modified_polar_state();
         Eigen::Vector2d left_cross_pt, right_cross_pt, left_bearing_vect, right_bearing_vect;
+
+        // instantiate model rewind states
+        left_model->set_rewind_state();
+        right_model->set_rewind_state();
+        // do rewind_propagate
 
         double beta_left, beta_right, range_left, range_right, r_min, L_to_R_angle;
         // REWINDING THE GAP FROM ITS CROSSED CONFIGURATION UNTIL THE GAP IS SUFFICIENTLY OPEN
-        for (double t_rew = t; t >= 0.0; t -= cfg_->traj.integrate_stept) {
-            left_model->frozen_state_propagate(-1 * cfg_->traj.integrate_stept);
-            right_model->frozen_state_propagate(-1 * cfg_->traj.integrate_stept);
-            // ROS_INFO_STREAM("t: " << t);
-            left_frozen_mp_state = left_model->get_frozen_modified_polar_state();
-            right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
-            beta_left = left_frozen_mp_state[1];
-            beta_right = right_frozen_mp_state[1]; 
+        for (double t_rew = t; t_rew >= 0.0; t_rew -= cfg_->traj.integrate_stept) {
+            left_model->rewind_propagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
+            right_model->rewind_propagate(-1 * cfg_->traj.integrate_stept);
+            // ROS_INFO_STREAM("t_rew: " << t_rew);
+            left_rewind_mp_state = left_model->get_rewind_modified_polar_state();
+            right_rewind_mp_state = right_model->get_rewind_modified_polar_state();
+            beta_left = left_rewind_mp_state[1];
+            beta_right = right_rewind_mp_state[1]; 
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
             L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
             
-            range_left = (1.0 / left_frozen_mp_state[0]);
-            range_right = (1.0 / right_frozen_mp_state[0]);
+            range_left = (1.0 / left_rewind_mp_state[0]);
+            range_right = (1.0 / right_rewind_mp_state[0]);
             r_min = std::min(range_left, range_right);
 
             // if gap is sufficiently open
-            if (r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
+            // option 1: arc-length:
+            // first condition, make sure slightly open gap is convex
+            if (t_rew == 0 || r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
                 auto egocircle = *msg.get();        
                 
                 double wrapped_beta_left = atanThetaWrap(beta_left);
@@ -318,12 +323,15 @@ namespace dynamic_gap {
                                 range_left*std::sin(wrapped_beta_left);
                 right_cross_pt << range_right*std::cos(wrapped_term_beta_right), 
                                 range_right*std::sin(wrapped_term_beta_right);
-                ROS_INFO_STREAM("terminal points at time " << t << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
-                generateTerminalPoints(gap, wrapped_beta_left, left_frozen_mp_state[0], wrapped_term_beta_right, right_frozen_mp_state[0]);
-                return t;
+                ROS_INFO_STREAM("terminal points at time " << t_rew << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
+                generateTerminalPoints(gap, wrapped_beta_left, left_rewind_mp_state[0], wrapped_term_beta_right, right_rewind_mp_state[0]);
+                return t_rew;
             }
             
         }
+
+        // gap.setTerminalPoints(float(gap.LIdx()), gap.LDist(), float(gap.RIdx()), gap.RDist());
+        // return 0.0;
 
         // if falls out at t=0, just set terminal points equal to initial points? 
         // Lifespan would be 0, so would be infeasible anyways

@@ -24,7 +24,7 @@ namespace dynamic_gap {
 
             Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
 
-            Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, new_x, x_ground_truth, frozen_x;
+            Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, new_x, x_ground_truth, frozen_x, rewind_x;
             Matrix<double, 4, 4> P_kmin1_plus, P_k_minus, P_k_plus; // covariance matrix
             Matrix<double, 4, 2> G_k; // kalman gain
             Matrix<double, 2, 1> x_tilde, innovation, residual;
@@ -73,8 +73,10 @@ namespace dynamic_gap {
             Eigen::Vector4d get_GT_cartesian_state();
 
             Eigen::Vector4d get_frozen_cartesian_state();
+            Eigen::Vector4d get_rewind_cartesian_state();
             Eigen::Vector4d get_modified_polar_state();
             Eigen::Vector4d get_frozen_modified_polar_state();
+            Eigen::Vector4d get_rewind_modified_polar_state();
 
             Matrix<double, 3, 1> get_v_ego();
             Matrix<double, 4, 1> integrate();
@@ -82,7 +84,10 @@ namespace dynamic_gap {
             void discretizeQ();
 
             void frozen_state_propagate(double dt);
+            void rewind_propagate(double dt);
             void freeze_robot_vel();
+            void set_rewind_state();
+
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 std::vector<geometry_msgs::Twist> intermediate_accs, 
                                 std::vector<geometry_msgs::Twist> intermediate_vels, 

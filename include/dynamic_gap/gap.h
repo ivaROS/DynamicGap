@@ -299,10 +299,16 @@ namespace dynamic_gap
             }
 
             void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
+                
                 terminal_lidx = _terminal_lidx;
                 terminal_ldist = _terminal_ldist;
                 terminal_ridx = _terminal_ridx;
                 terminal_rdist = _terminal_rdist;
+
+                if (terminal_lidx == terminal_ridx) {
+                    ROS_INFO_STREAM("terminal indices are the same");
+                    terminal_lidx = (terminal_lidx + 1) % 512;
+                }
                 ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
             }
 
