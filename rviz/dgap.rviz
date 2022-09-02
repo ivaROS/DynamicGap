@@ -65,40 +65,40 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot0
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /simp_gaps
-      Name: MarkerArray
-      Namespaces:
-        simp: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /manip_gaps
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /gap_goals
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
+      Reference Frame: robot2
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /reachable_gaps
+      Marker Topic: /simp_gaps
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /manip_gaps
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gap_goals
+      Name: MarkerArray
+      Namespaces:
+        gap_goal: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /reachable_gaps
+      Name: MarkerArray
+      Namespaces:
+        manip_initial: true
+      Queue Size: 100
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /reachable_gap_centers
@@ -112,7 +112,7 @@ Visualization Manager:
       Marker Topic: /candidate_trajectories
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -248,7 +248,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -256,7 +256,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -498,7 +498,7 @@ Visualization Manager:
       Axes Radius: 0.009999999776482582
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.07000000029802322
       Head Radius: 0.029999999329447746
       Name: PoseArray
@@ -507,7 +507,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /relevant_global_plan_snippet
       Unreliable: false
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -536,16 +536,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 56.256004333496094
+      Distance: 48.08979415893555
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -6.544431686401367
-        Y: 3.168705940246582
-        Z: -35.83033752441406
+        X: 3.1218767166137695
+        Y: -4.189394950866699
+        Z: -35.83775329589844
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
