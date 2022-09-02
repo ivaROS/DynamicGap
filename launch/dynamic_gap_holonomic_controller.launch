@@ -36,15 +36,15 @@
   <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
       <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
       
-      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="global_costmap"/>
-      <rosparam file="$(find dynamic_gap)/config/common_costmap_params.yaml" command="load" ns="local_costmap"/>
-      <rosparam file="$(find dynamic_gap)/config/local_costmap_params.yaml" command="load"/>
-      <rosparam file="$(find dynamic_gap)/config/global_costmap_params.yaml" command="load"/>
+      <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="global_costmap"/>
+      <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="local_costmap"/>
+      <rosparam file="$(find dynamic_gap)/params/local_costmap_params.yaml" command="load"/>
+      <rosparam file="$(find dynamic_gap)/params/global_costmap_params.yaml" command="load"/>
       
       <!-- none of these have to do with frames/ids -->
       <rosparam file="$(find nav_configs)/config/move_base_params.yaml" command="load"/>
       <rosparam file="$(find nav_configs)/config/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
-      <rosparam file="$(find dynamic_gap)/config/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
+      <rosparam file="$(find dynamic_gap)/params/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
 
       <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
@@ -77,5 +77,5 @@
       
   </node>
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/config/dgap.rviz" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
 </launch>

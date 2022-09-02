@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -94,10 +94,10 @@ namespace dynamic_gap {
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
         alpha_Q = 1.0;
-        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
-        plot = true;
+        plot = false;
     }
 
     void cart_model::freeze_robot_vel() {

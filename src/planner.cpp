@@ -665,7 +665,6 @@ namespace dynamic_gap
             }
 
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
-            // std::cout << "counts: " << counts << std::endl;
             ROS_INFO_STREAM("~~~~re-scoring incoming trajectory~~~~");
             incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
             ROS_INFO_STREAM("subscore: " << incom_subscore);
