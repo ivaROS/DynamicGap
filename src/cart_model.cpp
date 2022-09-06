@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -94,7 +94,7 @@ namespace dynamic_gap {
 
         alpha_Q = 0.9;
         alpha_R = 0.9;
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
         plot = true;
@@ -161,32 +161,32 @@ namespace dynamic_gap {
     
 
     Matrix<double, 4, 1> cart_model::integrate() {
-        ROS_INFO_STREAM("INTEGRATING");
+        // ROS_INFO_STREAM("INTEGRATING");
         Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
         Matrix<double, 4, 1> new_x = x_hat_kmin1_plus;
 
         for (int i = 0; i < intermediate_accs.size(); i++) {
             double ang_vel_ego = intermediate_vels[i].angular.z;
-            ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);
+            // ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);
 
             double p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
             double p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
-            ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
+            // ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
             double vdot_x_body = intermediate_accs[i].twist.linear.x;
             double vdot_y_body = intermediate_accs[i].twist.linear.y;
-            ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
+            // ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
             double v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
             double v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
-            ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
+            // ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
 
             new_x << x_intermediate[0] + p_dot_x*inter_dt, // r_x
                      x_intermediate[1] + p_dot_y*inter_dt, // r_y
                      x_intermediate[2] + v_dot_x*inter_dt, // v_x
                      x_intermediate[3] + v_dot_y*inter_dt; // v_y
             x_intermediate = new_x;
-            ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
+            // ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
         }
     }
 

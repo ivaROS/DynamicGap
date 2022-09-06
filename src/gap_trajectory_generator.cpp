@@ -111,17 +111,17 @@ namespace dynamic_gap{
 
             Eigen::MatrixXd left_curve(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve(num_curve_points + num_qB_points, 2);            
-            Eigen::MatrixXd all_curve_pts(2*(num_curve_points + num_qB_points) + 1, 2);
+            Eigen::MatrixXd all_curve_pts(2*(num_curve_points + num_qB_points), 2);
 
             Eigen::MatrixXd left_curve_vel(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_vel(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd left_curve_inward_norm(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_inward_norm(num_curve_points + num_qB_points, 2);
-            Eigen::MatrixXd all_inward_norms(2*(num_curve_points + num_qB_points) + 1, 2);
+            Eigen::MatrixXd all_inward_norms(2*(num_curve_points + num_qB_points), 2);
 
-            Eigen::MatrixXd left_right_centers(2*(num_curve_points + num_qB_points) + 1, 2);
+            Eigen::MatrixXd left_right_centers(2*(num_curve_points + num_qB_points), 2);
 
-            Eigen::MatrixXd all_centers(2*(num_curve_points + num_qB_points) + 1 + 1, 2);
+            Eigen::MatrixXd all_centers(2*(num_curve_points + num_qB_points) + 1, 2);
             
             double left_weight, right_weight;
             // THIS IS BUILT WITH EXTENDED POINTS. 
@@ -386,7 +386,7 @@ namespace dynamic_gap{
         Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points, des_right_dist);
         Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
         origin << 0.0, 0.0;
-        double offset = (des_left_dist + des_right_dist) / 2.0;
+        double offset = 0.01; // (des_left_dist + des_right_dist) / 2.0;
         // ROS_INFO_STREAM("offset: " << offset);
 
         int counter = 0;
@@ -440,21 +440,21 @@ namespace dynamic_gap{
             */
         }
         
-        Eigen::Vector2d left_origin_inward_norm = left_curve_inward_norm.row(0);
-        Eigen::Vector2d right_origin_inward_norm = right_curve_inward_norm.row(0);
+        // Eigen::Vector2d left_origin_inward_norm = left_curve_inward_norm.row(0);
+        // Eigen::Vector2d right_origin_inward_norm = right_curve_inward_norm.row(0);
 
         // ROS_INFO_STREAM("left_origin_inward_norm: " << left_origin_inward_norm[0] << ", " << left_origin_inward_norm[1]);
         // ROS_INFO_STREAM("right_origin_inward_norm: " << right_origin_inward_norm[0] << ", " << right_origin_inward_norm[1]);
-        double beta_left_origin_inward_norm = std::atan2(left_origin_inward_norm[1], left_origin_inward_norm[0]);
-        double init_L_to_R_angle = getLeftToRightAngle(left_origin_inward_norm, right_origin_inward_norm);
-        double beta_origin_center = beta_left_origin_inward_norm - 0.5 * init_L_to_R_angle;
+        // double beta_left_origin_inward_norm = std::atan2(left_origin_inward_norm[1], left_origin_inward_norm[0]);
+        // double init_L_to_R_angle = getLeftToRightAngle(left_origin_inward_norm, right_origin_inward_norm);
+        // double beta_origin_center = beta_left_origin_inward_norm - 0.5 * init_L_to_R_angle;
         // ROS_INFO_STREAM("init_L_to_R_angle: " << init_L_to_R_angle << ", beta_origin_center: " << beta_origin_center);
-        centered_origin_inward_norm << std::cos(beta_origin_center), std::sin(beta_origin_center);
+        // centered_origin_inward_norm << std::cos(beta_origin_center), std::sin(beta_origin_center);
 
         // ROS_INFO_STREAM("centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
-        all_curve_pts << origin, left_curve, right_curve;
+        all_curve_pts << left_curve, right_curve; // origin, 
         // ROS_INFO_STREAM("all_curve_pts worked");
-        all_inward_norms << centered_origin_inward_norm, left_curve_inward_norm, right_curve_inward_norm;
+        all_inward_norms << left_curve_inward_norm, right_curve_inward_norm; // centered_origin_inward_norm, 
         // ROS_INFO_STREAM("all_inward_norms worked");
         left_right_centers = all_curve_pts - all_inward_norms*offset;
         // ROS_INFO_STREAM("left_right_centers worked");

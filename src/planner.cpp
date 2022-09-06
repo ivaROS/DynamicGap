@@ -139,7 +139,7 @@ namespace dynamic_gap
         boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
         ros::Time curr_time = msg->header.stamp;
         double scan_dt = (curr_time - prev_scan_msg_time).toSec();
-        ROS_INFO_STREAM("time since last scanCB: " << scan_dt);
+        // ROS_INFO_STREAM("time since last scanCB: " << scan_dt);
 
         sharedPtr_laser = msg;
         // planning_inflated is a 0
@@ -171,7 +171,7 @@ namespace dynamic_gap
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
-        associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, true);
+        associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         intermediate_vels.clear();
@@ -271,7 +271,7 @@ namespace dynamic_gap
     void Planner::robotAccCB(boost::shared_ptr<geometry_msgs::TwistStamped const> msg)
     {
         ros::Time curr_time = msg->header.stamp;
-        ROS_INFO_STREAM("time since last accCB: " << (curr_time - prev_acc_msg_time).toSec());
+        // ROS_INFO_STREAM("time since last accCB: " << (curr_time - prev_acc_msg_time).toSec());
         prev_acc_msg_time = curr_time;
 
         rbt_accel = *msg;
@@ -281,7 +281,7 @@ namespace dynamic_gap
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
         ros::Time curr_time = msg->header.stamp;
-        ROS_INFO_STREAM("time since last poseCB: " << (curr_time - prev_pose_msg_time).toSec());
+        // ROS_INFO_STREAM("time since last poseCB: " << (curr_time - prev_pose_msg_time).toSec());
         prev_pose_msg_time = curr_time;
         updateTF();
 
@@ -711,6 +711,11 @@ namespace dynamic_gap
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
                 }
+            }
+
+            if (incom_subscore > curr_subscore) {
+                ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: higher score");
+                changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
             }
           
             ROS_INFO_STREAM("TRAJECTORY MAINTAIN");

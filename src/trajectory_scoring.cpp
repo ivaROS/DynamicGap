@@ -519,7 +519,7 @@ namespace dynamic_gap {
         if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
-            double w1 = 0.5;
+            double w1 = 1.0;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 1 && total_val >= 0) {
@@ -627,7 +627,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::dynamicChapterScore(double d) {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         // std::cout << "in chapterScore with distance: " << d << std::endl;
-        if (d < r_inscr * cfg_->traj.inf_ratio) { //   
+        if (d < r_inscr* cfg_->traj.inf_ratio) { //  
             // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
             return -std::numeric_limits<double>::infinity();
         }

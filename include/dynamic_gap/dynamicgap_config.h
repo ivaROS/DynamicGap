@@ -141,7 +141,7 @@ namespace dynamic_gap {
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
 
-            gap_assoc.assoc_thresh = 0.4;
+            gap_assoc.assoc_thresh = 1.0;
 
             gap_manip.gap_diff = 0.1;
             gap_manip.epsilon1 = 0.18;
@@ -150,7 +150,7 @@ namespace dynamic_gap {
             gap_manip.rot_ratio = 1.5;
             gap_manip.reduction_threshold = M_PI;
             gap_manip.reduction_target = M_PI;
-            gap_manip.radial_extend = false;
+            gap_manip.radial_extend = true;
             gap_manip.axial_convert = true;
             gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
@@ -200,9 +200,9 @@ namespace dynamic_gap {
             traj.integrate_maxt = 5;
             traj.integrate_stept = 0.25;
             traj.rmax = 0.3;
-            traj.cobs = -1;
+            traj.cobs = -0.5;
             traj.w = 5;
-            traj.inf_ratio = 1.25;
+            traj.inf_ratio = 1.15;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
             traj.num_curve_points = 25;
