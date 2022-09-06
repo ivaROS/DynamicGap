@@ -191,7 +191,7 @@ namespace dynamic_gap{
     geometry_msgs::Twist TrajectoryController::controlLaw(
         geometry_msgs::Pose current, nav_msgs::Odometry desired,
         sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
-        geometry_msgs::Twist current_rbt_vel, geometry_msgs::Twist rbt_accel,
+        geometry_msgs::Twist current_rbt_vel, geometry_msgs::TwistStamped rbt_accel,
         dynamic_gap::cart_model * curr_right_model, dynamic_gap::cart_model * curr_left_model,
         double curr_peak_velocity_x, double curr_peak_velocity_y) {
         

@@ -47,12 +47,21 @@ namespace dynamic_gap
         ros::NodeHandle pnh("~/" + planner_name);
         planner.initialize(pnh);
 
-        laser_sub = pnh.subscribe("/point_scan", 1, &Planner::laserScanCB, &planner);
-        std::string static_laser_topic = "/robot" + std::to_string(planner.get_num_obsts()) + "/laser_0";
-        static_laser_sub = pnh.subscribe(static_laser_topic, 1, &Planner::staticLaserScanCB, &planner);
-        // inflated_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
-        // feasi_laser_sub = pnh.subscribe("/inflated_point_scan", 2, &Planner::inflatedlaserScanCB, &planner);
-        pose_sub = pnh.subscribe("/odom", 1, &Planner::poseCB, &planner);
+        laser_sub = pnh.subscribe("/point_scan", 5, &Planner::laserScanCB, &planner);
+        
+        std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
+        static_laser_sub = pnh.subscribe(robot_name + "/laser_0", 5, &Planner::staticLaserScanCB, &planner);
+        
+        rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
+
+        // queue needs to be 3 to not skip any messages
+        pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
+
+        for (int i = 0; i < planner.get_num_obsts(); i++) {
+            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);
+            agent_odom_subscribers.push_back(temp_odom_sub);
+        }
+
         initialized = true;
 
         // Setup dynamic reconfigure

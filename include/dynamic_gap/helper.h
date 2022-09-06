@@ -196,8 +196,9 @@ namespace dynamic_gap {
                             eps = 0.0000001;
                             K_des = 0.5;
                             // half_num_scan = 256;
-                            N = 2*(num_curve_points + num_qB_points);
-                            Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
+                            N = all_curve_pts.rows();
+                            Kplus1 = all_centers.rows();
+                            ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
 
                             Eigen::MatrixXd A(Kplus1, N+1);
                             // double start_time = ros::Time::now().toSec();

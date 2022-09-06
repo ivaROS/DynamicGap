@@ -20,7 +20,7 @@
 
 	<node pkg="tf" type="static_transform_publisher" name="world2map" args="0 0 0 0 0 0  world map 20" />
 	
-	<!-- <include file="$(find stdr_gui)/launch/stdr_gui.launch"/> -->
+	<include file="$(find stdr_gui)/launch/stdr_gui.launch"/>
 	
         <include file="$(find stdr_robot)/launch/robot_manager.launch" />
 

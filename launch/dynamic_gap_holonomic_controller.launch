@@ -28,7 +28,7 @@
 
   <arg name="debug" default="false"/>
 
-  <arg name="debug_prefix" value="" unless="$(arg debug)"/> <!-- valgrind - -tool=callgrind -->
+  <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
 
   <!-- xterm -e gdb -ex run - -args -->

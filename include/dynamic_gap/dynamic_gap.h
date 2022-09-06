@@ -51,9 +51,10 @@ namespace dynamic_gap {
             std::string planner_name;
             ros::NodeHandle nh, pnh;
 
-            ros::Subscriber laser_sub, static_laser_sub, inflated_laser_sub;
+            ros::Subscriber laser_sub, static_laser_sub;
             ros::Subscriber pose_sub;
-            ros::Subscriber feasi_laser_sub;
+            ros::Subscriber rbt_accel_sub;      
+            vector<ros::Subscriber> agent_odom_subscribers;
 
             bool initialized = false;
 

@@ -111,18 +111,17 @@ namespace dynamic_gap{
 
             Eigen::MatrixXd left_curve(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve(num_curve_points + num_qB_points, 2);            
-            Eigen::MatrixXd all_curve_pts(2*(num_curve_points + num_qB_points), 2);
+            Eigen::MatrixXd all_curve_pts(2*(num_curve_points + num_qB_points) + 1, 2);
 
             Eigen::MatrixXd left_curve_vel(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_vel(num_curve_points + num_qB_points, 2);
-            
             Eigen::MatrixXd left_curve_inward_norm(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve_inward_norm(num_curve_points + num_qB_points, 2);
-            Eigen::MatrixXd all_inward_norms(2*(num_curve_points + num_qB_points), 2);
+            Eigen::MatrixXd all_inward_norms(2*(num_curve_points + num_qB_points) + 1, 2);
 
-            Eigen::MatrixXd left_right_centers(2*(num_curve_points + num_qB_points), 2);
+            Eigen::MatrixXd left_right_centers(2*(num_curve_points + num_qB_points) + 1, 2);
 
-            Eigen::MatrixXd all_centers(2*(num_curve_points + num_qB_points) + 1, 2);
+            Eigen::MatrixXd all_centers(2*(num_curve_points + num_qB_points) + 1 + 1, 2);
             
             double left_weight, right_weight;
             // THIS IS BUILT WITH EXTENDED POINTS. 
@@ -203,7 +202,9 @@ namespace dynamic_gap{
 
     Eigen::VectorXd GapTrajGenerator::arclength_sample_bezier(Eigen::Vector2d pt_origin, 
                                                    Eigen::Vector2d pt_0, 
-                                                   Eigen::Vector2d pt_1, double num_curve_points) {
+                                                   Eigen::Vector2d pt_1, 
+                                                   double num_curve_points,
+                                                   double & des_dist_interval) {
         // ROS_INFO_STREAM("running arclength sampling");
         // ROS_INFO_STREAM("pt_origin: " << pt_origin[0] << ", " << pt_origin[1]);
         // ROS_INFO_STREAM("pt_0: " << pt_0[0] << ", " << pt_0[1]);
@@ -215,7 +216,7 @@ namespace dynamic_gap{
         Eigen::VectorXd uniform_indices = Eigen::MatrixXd::Zero(int(num_curve_points), 1);
         int uniform_index_entry = 1;
         double num_sampled_points = 2 * num_curve_points;
-        double des_dist_interval = total_approx_dist / (num_curve_points - 1);
+        des_dist_interval = total_approx_dist / (num_curve_points - 1);
         double dist_thresh = des_dist_interval / 100.0;
 
         // ROS_INFO_STREAM("number of points: " << num_curve_points);
@@ -274,6 +275,22 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("total approx dist: " << total_approx_dist);
     }
     
+    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) {
+        double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
+        double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+
+        double left_to_right_angle = std::atan2(determinant, dot_product);
+        
+        // removing this for inward_norm thing
+        /*
+        if (left_to_right_angle < 0) {
+            left_to_right_angle += 2*M_PI; 
+        }
+        */
+
+        return left_to_right_angle;
+    }
+
     void GapTrajGenerator::buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts,
                                             Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,
                                             Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
@@ -359,13 +376,18 @@ namespace dynamic_gap{
         }
 
         double eps = 0.0000001;
-        double offset = 0.01;
 
         // model gives: left_pt - rbt.
         // populating the quadratic weighted bezier
 
-        Eigen::VectorXd left_indices = arclength_sample_bezier(left_bezier_origin, weighted_left_pt_0, left_pt_1, num_curve_points);
-        Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points);
+        double des_left_dist = 0.01;
+        double des_right_dist = 0.01;
+        Eigen::VectorXd left_indices = arclength_sample_bezier(left_bezier_origin, weighted_left_pt_0, left_pt_1, num_curve_points, des_left_dist);
+        Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points, des_right_dist);
+        Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
+        origin << 0.0, 0.0;
+        double offset = (des_left_dist + des_right_dist) / 2.0;
+        // ROS_INFO_STREAM("offset: " << offset);
 
         int counter = 0;
         for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {
@@ -418,11 +440,24 @@ namespace dynamic_gap{
             */
         }
         
-        all_curve_pts << left_curve, right_curve;
-        all_inward_norms << left_curve_inward_norm, right_curve_inward_norm;
+        Eigen::Vector2d left_origin_inward_norm = left_curve_inward_norm.row(0);
+        Eigen::Vector2d right_origin_inward_norm = right_curve_inward_norm.row(0);
 
+        // ROS_INFO_STREAM("left_origin_inward_norm: " << left_origin_inward_norm[0] << ", " << left_origin_inward_norm[1]);
+        // ROS_INFO_STREAM("right_origin_inward_norm: " << right_origin_inward_norm[0] << ", " << right_origin_inward_norm[1]);
+        double beta_left_origin_inward_norm = std::atan2(left_origin_inward_norm[1], left_origin_inward_norm[0]);
+        double init_L_to_R_angle = getLeftToRightAngle(left_origin_inward_norm, right_origin_inward_norm);
+        double beta_origin_center = beta_left_origin_inward_norm - 0.5 * init_L_to_R_angle;
+        // ROS_INFO_STREAM("init_L_to_R_angle: " << init_L_to_R_angle << ", beta_origin_center: " << beta_origin_center);
+        centered_origin_inward_norm << std::cos(beta_origin_center), std::sin(beta_origin_center);
+
+        // ROS_INFO_STREAM("centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
+        all_curve_pts << origin, left_curve, right_curve;
+        // ROS_INFO_STREAM("all_curve_pts worked");
+        all_inward_norms << centered_origin_inward_norm, left_curve_inward_norm, right_curve_inward_norm;
+        // ROS_INFO_STREAM("all_inward_norms worked");
         left_right_centers = all_curve_pts - all_inward_norms*offset;
-        
+        // ROS_INFO_STREAM("left_right_centers worked");
         // ROS_INFO_STREAM("left_curve points: " << left_curve);
         // ROS_INFO_STREAM("right_curve_points: " << right_curve);
 
@@ -435,6 +470,7 @@ namespace dynamic_gap{
         Eigen::Matrix<double, 1, 2> goal; // (1, 2);
         goal << goal_pt_1[0], goal_pt_1[1];
         all_centers << goal, left_right_centers;
+        // ROS_INFO_STREAM("all_centers worked");
     }
 
     // If i try to delete this DGap breaks
