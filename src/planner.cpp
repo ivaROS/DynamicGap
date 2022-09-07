@@ -426,7 +426,7 @@ namespace dynamic_gap
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
             
-            gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
+            // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             gapManip->convertAxialGap(manip_set.at(i), true); 
             gapManip->inflateGapSides(manip_set.at(i), true);
             gapManip->radialExtendGap(manip_set.at(i), true);
@@ -436,7 +436,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             gapManip->updateDynamicEgoCircle(manip_set.at(i), future_scans);
             if ((!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) || (manip_set.at(i).gap_crossed_behind)) {
-                gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false);
+                // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false);
                 gapManip->convertAxialGap(manip_set.at(i), false);
             }
             gapManip->inflateGapSides(manip_set.at(i), false);
