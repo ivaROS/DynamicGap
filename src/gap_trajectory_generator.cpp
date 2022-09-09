@@ -1,6 +1,59 @@
  #include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
+
+    void GapTrajGenerator::initializeSolver() {
+        ROS_INFO_STREAM("initializing solver");
+
+        int num_curve_points = cfg_->traj.num_curve_points;
+        int num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
+
+        int Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
+        hessian.resize(Kplus1, Kplus1);
+
+        gradient = Eigen::VectorXd::Zero(Kplus1, 1);
+
+        linearMatrix.resize(Kplus1, Kplus1);
+
+        lowerBound = Eigen::MatrixXd::Zero(Kplus1, 1);
+
+        upperBound = Eigen::MatrixXd::Zero(Kplus1, 1);
+
+        for (int i = 0; i < Kplus1; i++) {
+            lowerBound(i, 0) = -OsqpEigen::INFTY;
+            upperBound(i, 0) = -0.0000001; // this leads to non-zero weights. Closer to zero this number goes, closer to zero the weights go. This makes sense
+        }
+
+        solver.settings()->setVerbosity(false);
+        solver.settings()->setWarmStart(true);        
+        solver.data()->setNumberOfVariables(Kplus1);
+        solver.data()->setNumberOfConstraints(Kplus1);
+
+        if (!solver.data()->setHessianMatrix(hessian)) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO SET HESSIAN");
+        } // H ?
+
+        if(!solver.data()->setGradient(gradient)) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO SET GRADIENT");
+        } // f ?
+
+        if(!solver.data()->setLinearConstraintsMatrix(linearMatrix)) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO SET LINEAR MATRIX");
+        }
+
+        if(!solver.data()->setLowerBound(lowerBound)) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO SET LOWER BOUND");
+        }
+
+        if(!solver.data()->setUpperBound(upperBound)) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO SET UPPER BOUND");
+        }
+
+        if(!solver.initSolver()) {
+            ROS_FATAL_STREAM("SOLVER FAILED TO INITIALIZE SOLVER");
+        }
+    }
+
     std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(
                                                     dynamic_gap::Gap& selectedGap, 
                                                     geometry_msgs::PoseStamped curr_pose, 
@@ -141,10 +194,86 @@ namespace dynamic_gap{
             selectedGap.left_right_centers = left_right_centers;
             selectedGap.all_curve_pts = all_curve_pts;
 
+            /*
+            SETTING UP SOLVER
+            */
+            int N = all_curve_pts.rows();
+            int Kplus1 = all_centers.rows();
+            ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
+
+            Eigen::MatrixXd A(Kplus1, N+1);
+            // double start_time = ros::Time::now().toSec();
+            setConstraintMatrix(A, N, Kplus1, all_curve_pts, all_inward_norms, all_centers);
+            // ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
+            // ROS_INFO_STREAM("A: " << A);
+            
+            // Eigen::MatrixXd b = Eigen::MatrixXd::Zero(Kplus1, 1);
+
+            for (int i = 0; i < Kplus1; i++) {
+                for (int j = 0; j < Kplus1; j++) {
+                    if (i == j) {
+                        hessian.coeffRef(i, j) = 1.0;
+                    }
+
+                    // need to transpose A vector, just doing here
+                    linearMatrix.coeffRef(i, j) = A.coeff(j, i);
+                }
+            }
+
+            //ROS_INFO_STREAM("Hessian: " << hessian);
+            //ROS_INFO_STREAM("Gradient: " << gradient);
+            //ROS_INFO_STREAM("linearMatrix: " << linearMatrix);
+            //ROS_INFO_STREAM("lowerBound: " << lowerBound);
+            //ROS_INFO_STREAM("upperBound: " << upperBound);
+
+            // solver.
+            if (!solver.updateHessianMatrix(hessian)) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO UPDATE HESSIAN");
+            } // H ?
+
+            if (!solver.updateGradient(gradient)) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO UPDATE GRADIENT");
+            } // f ?
+
+            if (!solver.updateLinearConstraintsMatrix(linearMatrix)) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO UPDATE LINEAR MATRIX");
+            }
+
+            if (!solver.updateLowerBound(lowerBound)) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO UPDATE LOWER BOUND");
+            }
+
+            if (!solver.updateUpperBound(upperBound)) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO UPDATE UPPER BOUND");
+            }
+
+            // if(!solver.setPrimalVariable(w_0)) return;
+            
+            // solve the QP problem
+            double opt_start_time = ros::WallTime::now().toSec();
+            if(solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) {
+                ROS_FATAL_STREAM("SOLVER FAILED TO SOLVE PROBLEM");
+            }
+            // get the controller input
+            Eigen::MatrixXd weights = solver.getSolution();
+            ROS_INFO_STREAM("optimization time taken: " << (ros::WallTime::now().toSec() - opt_start_time));
+
+            // weights = raw_weights / raw_weights.norm();                                
+
+            // if(!solver.setPrimalVariable(w_0)) return;
+            
+            // solve the QP problem
+            /*
+            ROS_INFO_STREAM("current solution: "); 
+            
+            std::string weights_string;
+            for (int i = 0; i < Kplus1; i++) {
+                ROS_INFO_STREAM(weights.coeff(i, 0)); 
+            } 
+            */  
+
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
-                                                    cfg_->control.vx_absmax, nom_acc, num_curve_points, num_qB_points,
-                                                    all_curve_pts, all_centers, all_inward_norms, 
-                                                    left_weight, right_weight, selectedGap.gap_lifespan);   
+                                                    cfg_->control.vx_absmax, nom_acc, all_centers, weights);   
             
             start_time = ros::Time::now().toSec();
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
@@ -161,6 +290,53 @@ namespace dynamic_gap{
         }
 
     }
+
+    void GapTrajGenerator::setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
+                                               Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd all_centers) {
+
+        Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); // 
+        Eigen::MatrixXd A_N(Kplus1, N);
+        Eigen::MatrixXd A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
+        Eigen::MatrixXd neg_one_vect = Eigen::MatrixXd::Constant(1, 1, -1.0);
+
+        double eps = 0.0000001;
+        // all_centers size: (Kplus1 rows, 2 cols)
+        Eigen::Vector2d boundary_pt_i, inward_norm_vector;
+        Eigen::MatrixXd cent_to_boundary;
+        Eigen::VectorXd rowwise_sq_norms;
+        for (int i = 0; i < N; i++) {
+            boundary_pt_i = all_curve_pts.row(i);
+            inward_norm_vector = all_inward_norms.row(i);
+            //Eigen::Matrix<double, 1, 2> inward_norm_vector = all_inward_norms.row(i);        
+            
+            // doing boundary - all_centers
+            cent_to_boundary = (-all_centers).rowwise() + boundary_pt_i.transpose();
+            // need to divide rowwise by norm of each row
+            rowwise_sq_norms = cent_to_boundary.rowwise().squaredNorm();
+            gradient_of_pti_wrt_centers = cent_to_boundary.array().colwise() / (rowwise_sq_norms.array() + eps);
+            
+            //ROS_INFO_STREAM("inward_norm_vector: " << inward_norm_vector);
+            //ROS_INFO_STREAM("gradient_of_pti: " << gradient_of_pti_wrt_centers);
+
+            A_N.col(i) = gradient_of_pti_wrt_centers * inward_norm_vector; // A_pi;
+
+            // A_N.col(i) = gradient_of_pti_wrt_centers * inward_norm_vector;
+            // ROS_INFO_STREAM("inward_norm_vector size: " << inward_norm_vector.rows() << ", " << inward_norm_vector.cols());
+            // ROS_INFO_STREAM("gradient_of_pti_wrt_centers size: " << gradient_of_pti_wrt_centers.rows() << ", " << gradient_of_pti_wrt_centers.cols());
+            // ROS_INFO_STREAM("A_pi size: " << A_pi.rows() << ", " << A_pi.cols());
+
+            // ROS_INFO_STREAM("A_pi: " << A_pi);
+            // dotting inward norm (Kplus1 rows, 2 columns) with gradient of pti (Kplus1 rows, 2 columns) to get (Kplus1 rows, 1 column)
+        }
+
+        // ROS_INFO_STREAM("A_N: " << A_N);
+        // ROS_INFO_STREAM("A_N_new: " << A_N_new);
+            
+        A_S.row(0) = neg_one_vect;
+
+        A << A_N, A_S;
+    }
+
 
     Matrix<double, 5, 1> GapTrajGenerator::cartesian_to_polar(Eigen::Vector4d x) {
         Matrix<double, 5, 1> polar_y;

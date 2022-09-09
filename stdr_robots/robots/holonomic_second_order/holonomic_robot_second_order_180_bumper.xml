@@ -25,11 +25,11 @@
     </kinematic>
     <laser>
       <laser_specifications>
-        <max_angle>0.7853981</max_angle>
-        <min_angle>-0.7853981</min_angle>
+        <max_angle>1.570796</max_angle>
+        <min_angle>-1.570796</min_angle>
         <max_range>5.0</max_range>
         <min_range>0.0</min_range>
-        <num_rays>640</num_rays>
+        <num_rays>512</num_rays>
         <frequency>30</frequency>
         <frame_id>laser_0</frame_id>
         <pose>

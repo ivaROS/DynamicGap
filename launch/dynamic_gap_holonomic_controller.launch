@@ -23,7 +23,7 @@
   <arg name="planning_inflated" default="$(optenv GM_PARAM_PLANNING_INFLATED false)"/>
   <arg name="far_feasible" default="$(optenv GM_PARAM_FAR_FEASIBLE true)"/>
   <arg name="full_fov" default="$(optenv GM_PARAM_FULL_FOV false)"/>
-  <arg name="inf_ratio" value="1.15" unless="$(arg planning_inflated)"/>
+  <arg name="inf_ratio" value="1.21" unless="$(arg planning_inflated)"/>
   <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
 
   <arg name="debug" default="false"/>
