@@ -84,6 +84,6 @@
 
   </node>
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz"/>
+  <!-- node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz"/> -->
 
 </launch>
