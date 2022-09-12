@@ -164,28 +164,34 @@ namespace dynamic_gap {
         double left_central_dot, right_central_dot;
         bool first_cross = true;
         bool bearing_crossing_check, range_closing_check;    
-        int idx_left, idx_right;
-        double min_dist;
 
+        bool left_opening = (left_frozen_mp_state[3] > 0.0);
+        bool right_opening = (right_frozen_mp_state[3] < 0.0);
         Matrix<double, 4, 1> prev_left_frozen_mp_state = left_frozen_mp_state;        
         Matrix<double, 4, 1> prev_right_frozen_mp_state = right_frozen_mp_state;        
         Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
 
         Eigen::Vector2d left_cross_pt, right_cross_pt, diff_pt;
         for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
-            left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
-            right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
+            // checking to see if left point is reachable
+            bool opening_left_pt_is_reachable = (left_opening && ((1.0 / left_frozen_mp_state[0]) < cfg_->control.vx_absmax * t));
+            if (!opening_left_pt_is_reachable) {
+                // ROS_INFO_STREAM("propagating left");
+                left_model->frozen_state_propagate(cfg_->traj.integrate_stept);
+            }
+            bool opening_right_pt_is_reachable = (right_opening && ((1.0 / right_frozen_mp_state[0]) < cfg_->control.vx_absmax * t));
+            // checking to see if right point is reachable
+            if (!opening_right_pt_is_reachable) {
+                // ROS_INFO_STREAM("propagating right");
+                right_model->frozen_state_propagate(cfg_->traj.integrate_stept);
+            }
             // ROS_INFO_STREAM("t: " << t);
             left_frozen_mp_state = left_model->get_frozen_modified_polar_state();
             right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
             
-            
             beta_left = left_frozen_mp_state[1];
             beta_right = right_frozen_mp_state[1];
-            // idx_left = (beta_left - egocircle.angle_min) / egocircle.angle_increment;
-            // idx_right = (beta_right - egocircle.angle_min) / egocircle.angle_increment;
             // ROS_INFO_STREAM("beta_left: " << beta_left << ", beta_right: " << beta_right);
-            // ROS_INFO_STREAM("idx_left: " << idx_left << ", idx_right: " << idx_right);
             left_bearing_vect << std::cos(beta_left), std::sin(beta_left);
             right_bearing_vect << std::cos(beta_right), std::sin(beta_right);
             L_to_R_angle = getLeftToRightAngle(left_bearing_vect, right_bearing_vect);
