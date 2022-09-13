@@ -57,7 +57,7 @@
 
       <!-- Approach-specific parameters/remappings/etc -->
       <param name="TebLocalPlannerROS/map_frame" value="known_map"/>
-      <param name="TebLocalPlannerROS/include_costmap_obstacles" value="false" />
+      <param name="TebLocalPlannerROS/include_costmap_obstacles" value="true" />
       <param name="TebLocalPlannerROS/include_dynamic_obstacles" value="true"/>
 
       <!-- remapping for obstacles -->
@@ -80,7 +80,6 @@
 
       <!-- Disable the local costmap observation sources if they will not be used -->
       <!-- param name="local_costmap/obstacle_layer/observation_sources" value="false" if="$(arg egocircle)"/> -->
-
 
   </node>
 

@@ -7,7 +7,7 @@ robot_radius: 0.20  # distance a circular robot should be clear of the obstacle 
 map_type: voxel
 
 obstacle_layer:
-  obstacle_range: 4.5 # Needs to be < raytrace_range it seems
+  obstacle_range: 4.9 # Needs to be < raytrace_range it seems
   raytrace_range: 5.0
   enabled:              true
   max_obstacle_height:  1

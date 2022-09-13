@@ -13,9 +13,17 @@
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="true"/>
 
+  <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">
+      <param name="base_frame_id" value="$(arg robot_namespace)"/>
+      <param name="odom_frame_id" value="map_static"/> 
+      <param name="output_scan_topic" value = "static_point_scan" />
+      <remap from="/scan" to="$(arg robot_namespace)/laser_0"/>
+  </node>
+
   <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
-      <param name="odom_frame_id" value="map_static"/>
+      <param name="odom_frame_id" value="map_static"/> 
+      <param name="output_scan_topic" value = "point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
   </node>
   
@@ -27,7 +35,7 @@
   <arg name="inf_ratio" value="1.25" unless="$(arg planning_inflated)"/>
   <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
 
-  <arg name="debug" default="false"/>
+  <arg name="debug" default="true"/>
 
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>

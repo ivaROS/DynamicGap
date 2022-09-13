@@ -25,7 +25,7 @@
   <arg name="radial_extent" default="$(optenv GM_PARAM_RADIAL_EXTEND true)"/>
   <arg name="projection" default="$(optenv GM_PARAM_PROJECTION true)"/>
   <arg name="far_feasible" default="$(optenv GM_PARAM_FAR_FEASIBLE true)"/>
-  <arg name="r_min" default="$(optenv GM_PARAM_R_MIN 0.36)"/>
+  <arg name="r_min" default="$(optenv GM_PARAM_R_MIN 0.24)"/>
   <arg name="k_po" default="$(optenv GM_PARAM_K_PO 1.2)"/>
   <arg name="r_norm" default="$(optenv GM_PARAM_R_NORM 1)"/>
 

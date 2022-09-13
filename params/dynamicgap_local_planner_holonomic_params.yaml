@@ -32,8 +32,8 @@ DynamicGapPlanner:
     k_po_turn: 3
     k_CBF: 1.0
 
-    r_min: 0.36
-    r_norm: 0.50
+    r_min: 0.25
+    r_norm: 0.4
     r_norm_offset: 0
 
     synthesized_frame: True
