@@ -6,8 +6,8 @@ namespace dynamic_gap {
         msg = msg_;
         num_of_scan = (int)(msg.get()->ranges.size());
         half_num_scan = num_of_scan / 2;
-        angle_min = static_msg.get()->angle_min;
-        angle_increment = static_msg.get()->angle_increment;
+        angle_min = msg.get()->angle_min;
+        angle_increment = msg.get()->angle_increment;
     }
 
     void GapManipulator::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
