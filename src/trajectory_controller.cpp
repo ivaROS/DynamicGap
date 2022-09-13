@@ -291,7 +291,7 @@ namespace dynamic_gap{
         
         if (projection_operator && (curr_right_model != nullptr && curr_left_model != nullptr))
         {
-            // ROS_INFO_STREAM("running projection operator");
+            if (cfg_->control.debug_log) ROS_INFO_STREAM("running projection operator");
             run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
                                     cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
                                     min_dist_ang, min_dist);
@@ -310,6 +310,9 @@ namespace dynamic_gap{
 
         double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
         double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
+
+        if (cfg_->control.debug_log) ROS_INFO_STREAM("safe command velocity, v_x:" << weighted_cmd_vel_x_safe << ", v_y: " << weighted_cmd_vel_y_safe);
+
         // cmd_vel_safe
         if (weighted_cmd_vel_x_safe != 0 || weighted_cmd_vel_y_safe != 0) {
             visualize_projection_operator(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, projection_viz);

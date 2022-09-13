@@ -179,8 +179,8 @@ namespace dynamic_gap {
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
-            projection.r_min = 0.25;
-            projection.r_norm = 0.40;
+            projection.r_min = 0.3;
+            projection.r_norm = 1.0;
             projection.r_norm_offset = 0.5;
             projection.k_CBF = 1.0;
 
