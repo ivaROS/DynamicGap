@@ -36,32 +36,32 @@ namespace dynamic_gap {
     
     void GapManipulator::setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal) {
         if (gap.getCategory() == "expanding" || gap.getCategory() == "static") { 
-            ROS_INFO_STREAM("setting terminal goal for expanding gap");
+            if (cfg_->gap_manip.debug_log) ROS_INFO_STREAM("setting terminal goal for expanding gap");
             setGapWaypoint(gap, localgoal, false);
         } else if (gap.getCategory() == "closing") {
+            std::string closing_gap_type;
             if (gap.gap_crossed) {
-                ROS_INFO_STREAM("setting terminal goal for crossed, closing gap");
+                closing_gap_type = "crossed";
                 Eigen::Vector2f crossing_pt = gap.getCrossingPoint();
 
                 gap.terminal_goal.x = crossing_pt[0];
                 gap.terminal_goal.y = crossing_pt[1];
                 gap.terminal_goal.set = true;
-                ROS_INFO_STREAM("goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
             } else if (gap.gap_closed) {
-                ROS_INFO_STREAM("setting terminal goal for closed, closing gap");
+                closing_gap_type = "closed";
+                ROS_INFO_STREAM("setting terminal goal for closed closing gap");
                 Eigen::Vector2f closing_pt = gap.getClosingPoint();
             
                 gap.terminal_goal.x = closing_pt[0];
                 gap.terminal_goal.y = closing_pt[1];
                 gap.terminal_goal.set = true;
-                ROS_INFO_STREAM("goal: " << gap.terminal_goal.x << ", " << gap.terminal_goal.y);
             } else {
-                ROS_INFO_STREAM("setting terminal goal for existent closing gap");
+                closing_gap_type = "existent";
                 setGapWaypoint(gap, localgoal, false);
             }
-        } else {
-            ROS_INFO_STREAM("gap category not set");
-        } 
+
+            if (cfg_->gap_manip.debug_log) ROS_INFO_STREAM("setting terminal goal for " + closing_gap_type + " closing gap");
+        }
     }
 
 
@@ -925,7 +925,7 @@ namespace dynamic_gap {
             float L_to_Rp_angle = getLeftToRightAngle(left_norm_vect_robot, new_right_norm_vect_robot);
             range_l_p = (rdist_robot - ldist_robot) * L_to_Lp_angle / L_to_R_angle + ldist_robot;
             range_r_p = (rdist_robot - ldist_robot) * L_to_Rp_angle / L_to_R_angle + ldist_robot;
-            ROS_INFO_STREAM("post-angular-inflation gap, left: " << new_l_idx << ", : " << range_l_p << ", right: " << new_r_idx << ", : " << range_r_p << "");
+            if (cfg_->gap_manip.debug_log) ROS_INFO_STREAM("post-angular-inflation gap, left: " << new_l_idx << ", : " << range_l_p << ", right: " << new_r_idx << ", : " << range_r_p << "");
         }
 
         // PERFORMING RADIAL INFLATION

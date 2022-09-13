@@ -491,7 +491,7 @@ namespace dynamic_gap {
                 dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
                 // ROS_INFO_STREAM("dynamic_cost_val: " << dynamic_cost_val.at(i));
                 
-                if (dynamic_cost_val.at(i) < 0.0) {
+                if (dynamic_cost_val.at(i) < 0.0 && cfg_->traj.debug_log) {
                     ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << " score of: " << 
                                     dynamic_cost_val.at(i) << ", robot pose: " << 
                                     traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << 
@@ -504,7 +504,7 @@ namespace dynamic_gap {
 
             total_val = std::accumulate(dynamic_cost_val.begin(), dynamic_cost_val.end(), double(0));
             cost_val = dynamic_cost_val;
-            ROS_INFO_STREAM("dynamic pose-wise cost: " << total_val);
+            if (cfg_->traj.debug_log) ROS_INFO_STREAM("dynamic pose-wise cost: " << total_val);
         } else {
             std::vector<double> static_cost_val(traj.poses.size());
             for (int i = 0; i < static_cost_val.size(); i++) {
@@ -513,7 +513,7 @@ namespace dynamic_gap {
             }
             total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
             cost_val = static_cost_val;
-            ROS_INFO_STREAM("static pose-wise cost: " << total_val);
+            if (cfg_->traj.debug_log) ROS_INFO_STREAM("static pose-wise cost: " << total_val);
         }
 
         if (cost_val.size() > 0) 
@@ -527,7 +527,7 @@ namespace dynamic_gap {
                 return std::vector<double>(traj.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
-            ROS_INFO_STREAM("terminal cost: " << -terminal_cost);
+            if (cfg_->traj.debug_log) ROS_INFO_STREAM("terminal cost: " << -terminal_cost);
             cost_val.at(0) -= terminal_cost;
         }
         
@@ -538,7 +538,7 @@ namespace dynamic_gap {
     double TrajectoryArbiter::terminalGoalCost(geometry_msgs::Pose pose) {
         boost::mutex::scoped_lock planlock(gplan_mutex);
         // ROS_INFO_STREAM(pose);
-        ROS_INFO_STREAM("final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << local_goal.pose.position.x << ", " << local_goal.pose.position.y << ")");
+        if (cfg_->traj.debug_log) ROS_INFO_STREAM("final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << local_goal.pose.position.x << ", " << local_goal.pose.position.y << ")");
         double dx = pose.position.x - local_goal.pose.position.x;
         double dy = pose.position.y - local_goal.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));

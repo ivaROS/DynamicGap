@@ -42,6 +42,10 @@ namespace dynamic_gap {
                 bool debug_log;
             } gap_manip;
 
+            struct GapFeasibility {
+                bool debug_log;
+            } gap_feas;
+
             struct GapAssociation {
                 double assoc_thresh;
             } gap_assoc;
@@ -60,6 +64,7 @@ namespace dynamic_gap {
                 double ax_absmax;
                 double ay_absmax;
                 double aang_absmax;
+                bool debug_log;
             } control;
             
             struct ProjectionParam {
@@ -155,7 +160,7 @@ namespace dynamic_gap {
             gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
             gap_manip.K_acc = 3.0;
-            gap_manip.debug_log = true;
+            gap_manip.debug_log = false;
             
             control.k_drive_x = 3.5;
             control.k_drive_y = 3.5;
@@ -170,13 +175,16 @@ namespace dynamic_gap {
             control.ax_absmax = 0.5;
             control.ay_absmax = 0.5;
             control.aang_absmax = 0.5;
+            control.debug_log = false;
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
-            projection.r_min = 0.75;
-            projection.r_norm = 1.25;
+            projection.r_min = 0.36;
+            projection.r_norm = 0.50;
             projection.r_norm_offset = 0.5;
             projection.k_CBF = 1.0;
+
+            gap_feas.debug_log = false;
 
             waypoint.global_plan_lookup_increment = 75;
             waypoint.global_plan_change_tolerance = 0.1;

@@ -136,7 +136,7 @@ namespace dynamic_gap{
             
             // or if model is invalid?
             //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
-            if (selectedGap.goal.discard || selectedGap.terminal_goal.discard) {
+            if (selectedGap.goal.discard || selectedGap.terminal_goal.discard && cfg_->traj.debug_log) {
                 ROS_INFO_STREAM("discarding gap");
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
                 return return_tuple;
@@ -199,7 +199,7 @@ namespace dynamic_gap{
             */
             int N = all_curve_pts.rows();
             int Kplus1 = all_centers.rows();
-            ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
+            // ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
 
             Eigen::MatrixXd A(Kplus1, N+1);
             // double start_time = ros::Time::now().toSec();

@@ -45,6 +45,7 @@ namespace dynamic_gap {
         nh.param("v_lin_x_const",control.v_lin_x_const, control.v_lin_x_const);
         nh.param("v_lin_y_const",control.v_lin_y_const, control.v_lin_y_const);
         nh.param("ctrl_ahead_pose",control.ctrl_ahead_pose, control.ctrl_ahead_pose);
+        nh.param("control_debug_log", control.debug_log, control.debug_log);
 
         nh.param("vx_absmax",control.vx_absmax, control.vx_absmax);
         nh.param("vy_absmax",control.vy_absmax, control.vy_absmax);
@@ -130,7 +131,7 @@ namespace dynamic_gap {
         gap_manip.axial_convert = cfg.axial_convert;
         gap_manip.cbf_param = cfg.cbf_param;
         gap_manip.K_des = cfg.K_des;
-        gap_manip.debug_log = cfg.debug_log;
+        gap_manip.debug_log = cfg.manip_debug_log;
 
         // Control Params
         control.k_drive_x = cfg.k_drive_x;
@@ -146,6 +147,7 @@ namespace dynamic_gap {
         control.ax_absmax = cfg.ax_absmax;
         control.ay_absmax = cfg.ay_absmax;
         control.aang_absmax = cfg.aang_absmax;
+        control.debug_log = cfg.control_debug_log;
 
         // Projection Params
         projection.k_po = cfg.k_po;
@@ -184,7 +186,7 @@ namespace dynamic_gap {
         traj.waypoint_ratio = cfg.waypoint_ratio;
         traj.num_curve_points = cfg.num_curve_points;
         traj.num_qB_points = cfg.num_qB_points;
-        traj.debug_log = cfg.debug_log;
+        traj.debug_log = cfg.traj_debug_log;
 
         man.man_ctrl = cfg.man_ctrl;
         man.man_x = cfg.man_x;

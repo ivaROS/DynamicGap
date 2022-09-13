@@ -164,21 +164,25 @@ namespace dynamic_gap{
         cmd_vel_x_safe /= inflated_egocircle.ranges.size();
         cmd_vel_y_safe /= inflated_egocircle.ranges.size();
 
-        ROS_INFO_STREAM("raw safe vels: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
         double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
         double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
         double weighted_cmd_vel_theta_safe = 0.0;
-        ROS_INFO_STREAM("weighted safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
 
-
+        if (cfg_->control.debug_log) {
+            ROS_INFO_STREAM("raw safe vels: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
+            ROS_INFO_STREAM("weighted safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
+        }
         clip_command_velocities(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, weighted_cmd_vel_theta_safe);
+
 
         double cmd_vel_safe_norm = sqrt( pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
         if (cmd_vel_safe_norm < 0.1) {
             weighted_cmd_vel_x_safe += 0.3;
         }
 
-        ROS_INFO_STREAM("final safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
+        if (cfg_->control.debug_log) {
+            ROS_INFO_STREAM("final safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
+        }
 
         geometry_msgs::Twist cmd_vel;
         cmd_vel.linear.x = weighted_cmd_vel_x_safe;
@@ -195,7 +199,6 @@ namespace dynamic_gap{
         dynamic_gap::cart_model * curr_right_model, dynamic_gap::cart_model * curr_left_model,
         double curr_peak_velocity_x, double curr_peak_velocity_y) {
         
-        ROS_INFO_STREAM("generating control signal");
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
 
@@ -214,7 +217,6 @@ namespace dynamic_gap{
 
         // get current x,y,theta
         Eigen::Matrix2cd g_curr = getComplexMatrix(curr_position.x, curr_position.y, c_yaw);
-        ROS_INFO_STREAM("current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
 
         // obtaining RPY of desired orientation
         geometry_msgs::Point des_position = desired.pose.pose.position;
@@ -225,7 +227,8 @@ namespace dynamic_gap{
         m_d.getRPY(d_roll, d_pitch, d_yaw);
 
         // get desired x,y,theta
-        ROS_INFO_STREAM("desired pose x: " << des_position.x << ", y: " << des_position.y << ", yaw: " << d_yaw);
+
+
         Eigen::Matrix2cd g_des = getComplexMatrix(des_position.x, des_position.y, d_yaw);
 
         // get x,y,theta error
@@ -253,14 +256,19 @@ namespace dynamic_gap{
         double peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
         double cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
 
-        ROS_INFO_STREAM("x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
-        ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        if (cfg_->control.debug_log) {
+            ROS_INFO_STREAM("generating control signal");            
+            ROS_INFO_STREAM("desired pose x: " << des_position.x << ", y: " << des_position.y << ", yaw: " << d_yaw);
+            ROS_INFO_STREAM("current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
+            ROS_INFO_STREAM("x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
+            ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+            ROS_INFO_STREAM("gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);           
+        }
         
-        ROS_INFO_STREAM("gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);
         if (peak_vel_norm > cmd_vel_norm) {
             v_lin_x_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
             v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
-            ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
+            if (cfg_->control.debug_log) ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
         }
 
         // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
@@ -309,18 +317,12 @@ namespace dynamic_gap{
 
         if(holonomic)
         {
-            if (Psi_CBF < 0) {
-                v_lin_x_fb = v_lin_x_fb + weighted_cmd_vel_x_safe;
-                v_lin_y_fb = v_lin_y_fb + weighted_cmd_vel_y_safe;
-            } else {
-                ROS_INFO_STREAM("cmd_vel_x_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
-                ROS_INFO_STREAM("weighted_cmd_vel_safe: " << weighted_cmd_vel_x_safe  << ", " << weighted_cmd_vel_y_safe);
-                v_lin_x_fb = (abs(theta_error) > M_PI/2) ? 0 : v_lin_x_fb + weighted_cmd_vel_x_safe; // 
-                v_lin_y_fb = (abs(theta_error) > M_PI/2) ? 0 : v_lin_y_fb + weighted_cmd_vel_y_safe; //
+            v_lin_x_fb += weighted_cmd_vel_x_safe; // 
+            v_lin_y_fb += weighted_cmd_vel_y_safe; //
 
-                if(v_lin_x_fb < 0)
-                    v_lin_x_fb = 0;
-            }
+            if(v_lin_x_fb < 0)
+                v_lin_x_fb = 0;
+
         } else {
             v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe;
             v_lin_x_fb = v_lin_x_fb + k_po_ * cmd_vel_x_safe;
@@ -337,8 +339,9 @@ namespace dynamic_gap{
                 v_lin_x_fb = 0;
         }
 
-        ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        if (cfg_->control.debug_log) ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
+        if (cfg_->control.debug_log) ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
 
         cmd_vel.linear.x = v_lin_x_fb;
         cmd_vel.linear.y =  v_lin_y_fb;
@@ -388,7 +391,6 @@ namespace dynamic_gap{
         }
 
         // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, v_ang_fb));
-        ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         return;
     }
 
@@ -537,7 +539,7 @@ namespace dynamic_gap{
         
 
         // iterates through current egocircle and finds the minimum distance to the robot's pose
-        ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
+        // ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
         std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
         for (int i = 0; i < min_dist_arr.size(); i++) {
             float angle = i * inflated_egocircle.angle_increment - M_PI;
@@ -593,8 +595,11 @@ namespace dynamic_gap{
         float min_x = min_dist * std::cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
         float min_y = min_dist * std::sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
         min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));
-        ROS_INFO_STREAM("min_dist_idx: " << min_idx << ", min_dist_ang: "<< min_dist_ang << ", min_dist: " << min_dist);
-        ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
+
+        if (cfg_->control.debug_log) {
+            ROS_INFO_STREAM("min_dist_idx: " << min_idx << ", min_dist_ang: "<< min_dist_ang << ", min_dist: " << min_dist);
+            ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
+        }
         std::vector<geometry_msgs::Point> vec = findLocalLine(min_idx);
 
         if (cfg_->man.line && vec.size() > 0) {
@@ -644,16 +649,19 @@ namespace dynamic_gap{
             // Psi_der(1);// /= 3; // deriv wrt y?
             PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
         }
-        ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
 
         Psi = comp(2);
 
-        ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
+        if (cfg_->control.debug_log) {
+            ROS_INFO_STREAM("Psi_der: " << Psi_der[0] << ", " << Psi_der[1]);
+            ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << PO_dot_prod_check);
+        }
+
         if(Psi >= 0 && PO_dot_prod_check >= 0)
         {
             cmd_vel_x_safe = - Psi * PO_dot_prod_check * comp(0);
             cmd_vel_y_safe = - Psi * PO_dot_prod_check * comp(1);
-            ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
+            if (cfg_->control.debug_log) ROS_INFO_STREAM("cmd_vel_safe: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
         }
 
         /*

@@ -263,7 +263,7 @@ namespace dynamic_gap
             }
 
             void setCategory(std::string _category) {
-                ROS_INFO_STREAM("setting category to: " << _category);
+                // ROS_INFO_STREAM("setting category to: " << _category);
                 category = _category;
             }
 
@@ -272,7 +272,7 @@ namespace dynamic_gap
             }
 
             void setCrossingPoint(float x, float y) {
-                ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
+                // ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
                 crossing_pt << x,y;
             }
 
@@ -281,7 +281,7 @@ namespace dynamic_gap
             }
 
             void setClosingPoint(float x, float y) {
-                ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
+                // ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
                 closing_pt << x,y;
             }
 
@@ -306,10 +306,10 @@ namespace dynamic_gap
                 terminal_rdist = _terminal_rdist;
 
                 if (terminal_lidx == terminal_ridx) {
-                    ROS_INFO_STREAM("terminal indices are the same");
+                    // ROS_INFO_STREAM("terminal indices are the same");
                     terminal_lidx = (terminal_lidx + 1) % 512;
                 }
-                ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
+                // ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
             }
 
             void printCartesianPoints(bool initial, bool simplified) {
