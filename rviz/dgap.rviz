@@ -50,7 +50,7 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.699999988079071
+    - Alpha: 1
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
@@ -65,7 +65,7 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot0
+      Reference Frame: robot73
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
@@ -248,7 +248,7 @@ Visualization Manager:
       Marker Topic: /robot1/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -256,7 +256,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -264,7 +264,7 @@ Visualization Manager:
       Marker Topic: /robot3/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -272,7 +272,7 @@ Visualization Manager:
       Marker Topic: /robot4/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -280,7 +280,7 @@ Visualization Manager:
       Marker Topic: /robot5/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -288,7 +288,7 @@ Visualization Manager:
       Marker Topic: /robot6/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -296,7 +296,7 @@ Visualization Manager:
       Marker Topic: /robot7/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -304,7 +304,7 @@ Visualization Manager:
       Marker Topic: /robot8/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -312,7 +312,7 @@ Visualization Manager:
       Marker Topic: /robot9/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -320,7 +320,7 @@ Visualization Manager:
       Marker Topic: /robot10/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -328,7 +328,7 @@ Visualization Manager:
       Marker Topic: /robot11/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -336,7 +336,7 @@ Visualization Manager:
       Marker Topic: /robot12/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -344,7 +344,7 @@ Visualization Manager:
       Marker Topic: /robot13/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -352,7 +352,7 @@ Visualization Manager:
       Marker Topic: /robot14/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -360,7 +360,7 @@ Visualization Manager:
       Marker Topic: /robot15/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -368,7 +368,7 @@ Visualization Manager:
       Marker Topic: /robot16/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -376,7 +376,7 @@ Visualization Manager:
       Marker Topic: /robot17/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -384,7 +384,7 @@ Visualization Manager:
       Marker Topic: /robot18/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -392,7 +392,7 @@ Visualization Manager:
       Marker Topic: /robot19/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -400,7 +400,7 @@ Visualization Manager:
       Marker Topic: /robot20/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -408,7 +408,7 @@ Visualization Manager:
       Marker Topic: /robot21/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -416,7 +416,7 @@ Visualization Manager:
       Marker Topic: /robot22/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -424,7 +424,7 @@ Visualization Manager:
       Marker Topic: /robot23/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -432,7 +432,7 @@ Visualization Manager:
       Marker Topic: /robot24/marker
       Name: Marker
       Namespaces:
-        {}
+        robot_position_markers: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -516,9 +516,32 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /move_base/TebLocalPlannerROS/global_plan
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 238; 238; 236
     Default Light: true
     Fixed Frame: map
     Frame Rate: 30
@@ -544,16 +567,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 51.31073760986328
+      Distance: 58.83991622924805
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 20.28898048400879
-        Y: -12.2023344039917
-        Z: -35.845924377441406
+        X: 15.087565422058105
+        Y: -9.301385879516602
+        Z: -35.84296417236328
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
