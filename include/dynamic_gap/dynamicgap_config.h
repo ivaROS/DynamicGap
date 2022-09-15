@@ -142,7 +142,7 @@ namespace dynamic_gap {
             gap_viz.min_resoln = 1;
             gap_viz.close_gap_vis = false;
             gap_viz.follow_the_gap_vis = false;
-            gap_viz.fig_gen = false;
+            gap_viz.fig_gen = true;
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
 

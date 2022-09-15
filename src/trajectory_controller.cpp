@@ -346,9 +346,9 @@ namespace dynamic_gap{
         clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
         if (cfg_->control.debug_log) ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
 
-        cmd_vel.linear.x = v_lin_x_fb;
-        cmd_vel.linear.y =  v_lin_y_fb;
-        cmd_vel.angular.z = v_ang_fb;
+        cmd_vel.linear.x = 0.0; // v_lin_x_fb;
+        cmd_vel.linear.y =  0.0; // v_lin_y_fb;
+        cmd_vel.angular.z = 0.0; //v_ang_fb;
 
         // ROS_INFO_STREAM("ultimate command velocity: " << cmd_vel.linear.x << ", " << cmd_vel.linear.y << ", " << cmd_vel.angular.z);
 

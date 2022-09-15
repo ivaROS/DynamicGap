@@ -76,14 +76,14 @@ namespace dynamic_gap{
         std_color.a = 1.0;
         std_color.r = 1.0;
         std_color.g = 0.0;
-        std_color.b = 0.0; 
+        std_color.b = 1.0; 
         simp_initial.push_back(std_color);
         simp_initial.push_back(std_color);
 
         std_color.a = 0.50;
         std_color.r = 1.0;
         std_color.g = 0.0; 
-        std_color.b = 0.0; 
+        std_color.b = 1.0; 
         simp_terminal.push_back(std_color);
         simp_terminal.push_back(std_color);
 
@@ -812,7 +812,7 @@ namespace dynamic_gap{
         model_pt.action = visualization_msgs::Marker::ADD;
         model_pt.pose.position.x = (left) ? g.left_model->get_GT_cartesian_state()[0] : g.right_model->get_GT_cartesian_state()[0];
         model_pt.pose.position.y = (left) ? g.left_model->get_GT_cartesian_state()[1] : g.right_model->get_GT_cartesian_state()[1];
-        model_pt.pose.position.z = 0.0001;
+        model_pt.pose.position.z = 0.00001;
         //std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
         model_pt.pose.orientation.w = 1.0;
         model_pt.scale.x = 0.1;
@@ -836,7 +836,7 @@ namespace dynamic_gap{
         geometry_msgs::Point vel_pt;
         vel_pt.x = model_pt.pose.position.x;
         vel_pt.y = model_pt.pose.position.y;
-        vel_pt.z = 0.0000005;
+        vel_pt.z = model_pt.pose.position.z;
         model_vel_pt.points.push_back(vel_pt);
         Eigen::Vector2d vel;
         
@@ -891,7 +891,7 @@ namespace dynamic_gap{
         model_pt.action = visualization_msgs::Marker::ADD;
         model_pt.pose.position.x = (left) ? g.left_model->get_cartesian_state()[0] : g.right_model->get_cartesian_state()[0];
         model_pt.pose.position.y = (left) ? g.left_model->get_cartesian_state()[1] : g.right_model->get_cartesian_state()[1];
-        model_pt.pose.position.z = 0.0005;
+        model_pt.pose.position.z = 0.01;
         //std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
         model_pt.pose.orientation.w = 1.0;
         model_pt.scale.x = 0.1;
@@ -935,7 +935,7 @@ namespace dynamic_gap{
         model_vel_pt.pose.orientation.z = quat.getZ();
         model_vel_pt.pose.orientation.w = quat.getW();
 
-        model_vel_pt.scale.x = vel.norm();
+        model_vel_pt.scale.x = vel.norm() + 0.000001;
         model_vel_pt.scale.y = 0.1;
         model_vel_pt.scale.z = 0.000001;
 
@@ -1339,9 +1339,9 @@ namespace dynamic_gap{
         goal_pub = nh.advertise<visualization_msgs::Marker>("goals", 10);
         gapwp_pub = nh.advertise<visualization_msgs::MarkerArray>("gap_goals", 10);
 
-        gapwp_color.r = 0.5;
-        gapwp_color.g = 1;
-        gapwp_color.b = 0.5;
+        gapwp_color.r = 1.0;
+        gapwp_color.g = 0.666;
+        gapwp_color.b = 0.0;
         gapwp_color.a = 1;
 
         terminal_gapwp_color.r = 0.5;
@@ -1386,7 +1386,7 @@ namespace dynamic_gap{
         lg_marker.header.stamp = ros::Time::now();
         lg_marker.ns = "gap_goal";
         lg_marker.id = int (vis_arr.markers.size());
-        lg_marker.type = visualization_msgs::Marker::SPHERE;
+        lg_marker.type = visualization_msgs::Marker::CYLINDER;
         lg_marker.action = visualization_msgs::Marker::ADD;
         if (initial) {
             lg_marker.pose.position.x = g.goal.x;
@@ -1396,14 +1396,14 @@ namespace dynamic_gap{
         } else {
             lg_marker.pose.position.x = g.terminal_goal.x;
             lg_marker.pose.position.y = g.terminal_goal.y; 
-            lg_marker.color = terminal_gapwp_color;
+            lg_marker.color = gapwp_color;
             // ROS_INFO_STREAM("visualizing terminal goal: " << g.terminal_goal.x << ", " << g.terminal_goal.y);
         }
         lg_marker.pose.position.z = 0.0001;
         lg_marker.pose.orientation.w = 1;
         lg_marker.scale.x = 0.1;
         lg_marker.scale.y = 0.1;
-        lg_marker.scale.z = 0.1;
+        lg_marker.scale.z = 0.000001;
         lg_marker.lifetime = ros::Duration(100.0);
         vis_arr.markers.push_back(lg_marker);
     }

@@ -562,7 +562,7 @@ namespace dynamic_gap{
         Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points, des_right_dist);
         Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
         origin << 0.0, 0.0;
-        double offset = 0.01; // (des_left_dist + des_right_dist) / 2.0;
+        double offset = 0.1; // (des_left_dist + des_right_dist) / 2.0;
         // ROS_INFO_STREAM("offset: " << offset);
 
         int counter = 0;
