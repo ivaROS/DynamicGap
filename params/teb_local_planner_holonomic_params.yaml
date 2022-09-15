@@ -17,7 +17,7 @@ TebLocalPlannerROS:
     # Robot
 
     max_vel_x: 0.5 # Changed! 0.5
-    max_vel_x_backwards: 0.0
+    max_vel_x_backwards: 0.2
     max_vel_y: 0.5 #Max changed from 0.4
     max_vel_theta: 1.5 # Max changed from 5.0, 5.0 causes huge oscillations
     acc_lim_x: 1.5 # Max changed from 1.0
@@ -25,7 +25,7 @@ TebLocalPlannerROS:
     acc_lim_theta: 2.0 # Max changed from 2.0
     min_turning_radius: 0.0
     footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
-        type: "circular"
+        type: "point"
         radius: 0.2 # for type "circular"
         
     # GoalTolerance
@@ -36,8 +36,8 @@ TebLocalPlannerROS:
     # Obstacles
 
     min_obstacle_dist: 0.25
-    inflation_dist: 0.8
-    dynamic_obstacle_inflation_dist: 0.8
+    inflation_dist: 0.6
+    dynamic_obstacle_inflation_dist: 0.6
     include_costmap_obstacles: True
     include_dynamic_obstacles: True
     costmap_obstacles_behind_robot_dist: 1.0
@@ -56,12 +56,12 @@ TebLocalPlannerROS:
     weight_acc_lim_x: 1
     weight_acc_lim_y: 1
     weight_acc_lim_theta: 1
-    weight_kinematics_nh: 8 #1000
-    weight_kinematics_forward_drive: 1000 # changed: was 1. set to ~1000 to prevent driving backwards
+    weight_kinematics_nh: 5 #1000
+    weight_kinematics_forward_drive: 1 # changed: was 1. set to ~1000 to prevent driving backwards
     weight_kinematics_turning_radius: 1
     weight_optimaltime: 1
     weight_obstacle: 50
-    weight_inflation: 0.3
+    weight_inflation: 0.1
     weight_dynamic_obstacle: 50 # not in use yet
     weight_dynamic_obstacle_inflation: 0.3
     weight_adapt_factor: 2
@@ -73,7 +73,7 @@ TebLocalPlannerROS:
     enable_homotopy_class_planning: True
     enable_multithreading: True #True
     # simple_exploration -> True #was False
-    max_number_classes: 20
+    max_number_classes: 4 # 20
     roadmap_graph_no_samples: 15
     roadmap_graph_area_width: 6 #5
     h_signature_prescaler: 1 #0.5 #was 0.5

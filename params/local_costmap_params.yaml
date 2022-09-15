@@ -5,8 +5,8 @@ local_costmap:
    publish_frequency: 10.001
    static_map: false
    rolling_window: true
-   width: 8.0 # needs to be smaller than sensing range
-   height: 8.0 # needs to be smaller than sensing range
+   width: 5.0 # needs to be smaller than sensing range
+   height: 5.0 # needs to be smaller than sensing range
    resolution: 0.05
    transform_tolerance: 0.5
    plugins:

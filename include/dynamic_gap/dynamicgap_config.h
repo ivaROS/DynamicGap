@@ -179,7 +179,7 @@ namespace dynamic_gap {
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
-            projection.r_min = 0.3;
+            projection.r_min = 0.35;
             projection.r_norm = 1.0;
             projection.r_norm_offset = 0.5;
             projection.k_CBF = 1.0;
@@ -210,7 +210,7 @@ namespace dynamic_gap {
             traj.rmax = 0.3;
             traj.cobs = -0.5;
             traj.w = 5;
-            traj.inf_ratio = 1.25;
+            traj.inf_ratio = 1.21;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
             traj.num_curve_points = 25;
