@@ -119,17 +119,12 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("gap cart points, left: (" << x_l << ", " << y_l << ") , right: (" << x_r << ", " << y_r << ")");
         }
 
-        auto left_vect_robot = pt_l / pt_l.norm();
-        auto right_vect_robot = pt_r / pt_r.norm();
-        float L_to_R_angle = getLeftToRightAngle(left_vect_robot, right_vect_robot);
+        Eigen::Vector2f left_vect_robot = pt_l / pt_l.norm();
+        Eigen::Vector2f right_vect_robot = pt_r / pt_r.norm();
+        float L_to_R_angle = getLeftToRightAngle(left_vect_robot, right_vect_robot, true);
 
         // Second condition: if angle smaller than M_PI / 3
         // Check if arc length < 3 robot width
-        if (L_to_R_angle < 0) {
-            // should not happen?
-            // ROS_INFO_STREAM("at setGapWaypoint, gap is non-convex");
-            L_to_R_angle += 2*M_PI;
-        }
 
         if (gap.artificial) {
             if (initial) {
@@ -147,6 +142,15 @@ namespace dynamic_gap {
             if (cfg_->gap_manip.debug_log) {
                 ROS_INFO_STREAM("Option 0: artificial gap");
                 ROS_INFO_STREAM("goal: " << localgoal.pose.position.x << ", " << localgoal.pose.position.y);
+                Eigen::Vector2f goal_vector(localgoal.pose.position.x, localgoal.pose.position.y);
+                Eigen::Vector2f goal_norm_vector = goal_vector / goal_vector.norm();
+                float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, goal_norm_vector, true);
+                if (! (0.0 < L_to_goal_angle && L_to_goal_angle < L_to_R_angle)) {
+                    ROS_INFO_STREAM("goal outside of gap");
+                    ROS_INFO_STREAM("L_to_goal_angle: " << L_to_goal_angle << ", L_to_R_angle: " << L_to_R_angle);
+                    float goal_theta = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+                    ROS_INFO_STREAM("left_theta: " << theta_l << ", goal_theta: " << goal_theta << ", right_theta: " << theta_r);
+                }
             }
             return;
         }
@@ -159,6 +163,7 @@ namespace dynamic_gap {
             // if smaller than M_PI/3
             dist = sqrt(pow(x_l - x_r, 2) + pow(y_l - y_r, 2));
             small_gap = dist < 4 * cfg_->rbt.r_inscr;
+            // need to revise to be purely angle based
         }
 
         if (small_gap) { // thetalr < thetalf || 
@@ -166,7 +171,7 @@ namespace dynamic_gap {
             Eigen::Vector2f left_norm_vect_robot = pt_l / pt_l.norm();
             Eigen::Vector2f right_norm_vect_robot = pt_r / pt_r.norm();
             
-            float L_to_R_angle = getLeftToRightAngle(left_norm_vect_robot, right_norm_vect_robot);
+            float L_to_R_angle = getLeftToRightAngle(left_norm_vect_robot, right_norm_vect_robot, true);
             
             float beta_left = std::atan2(left_norm_vect_robot[1], left_norm_vect_robot[0]);
 
@@ -190,6 +195,15 @@ namespace dynamic_gap {
             if (cfg_->gap_manip.debug_log) {
                 ROS_INFO_STREAM("Option 1: behind gap or small gap");
                 ROS_INFO_STREAM("goal: " << goal_x << ", " << goal_y);
+                Eigen::Vector2f goal_vector(goal_x, goal_y);
+                Eigen::Vector2f goal_norm_vector = goal_vector / goal_vector.norm();
+                float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, goal_norm_vector, true);
+                if (! (0.0 < L_to_goal_angle && L_to_goal_angle < L_to_R_angle)) {
+                    ROS_INFO_STREAM("goal outside of gap");
+                    ROS_INFO_STREAM("L_to_goal_angle: " << L_to_goal_angle << ", L_to_R_angle: " << L_to_R_angle);
+                    float goal_theta = std::atan2(goal_y, goal_x);
+                    ROS_INFO_STREAM("left_theta: " << theta_l << ", goal_theta: " << goal_theta << ", right_theta: " << theta_r);
+                }                
             }
             return;
         }
@@ -225,6 +239,15 @@ namespace dynamic_gap {
                 if (cfg_->gap_manip.debug_log) {
                     ROS_INFO_STREAM("Option 2: local goal");
                     ROS_INFO_STREAM("goal: " << localgoal.pose.position.x << ", " << localgoal.pose.position.y);
+                    Eigen::Vector2f goal_vector(localgoal.pose.position.x, localgoal.pose.position.y);
+                    Eigen::Vector2f goal_norm_vector = goal_vector / goal_vector.norm();
+                    float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, goal_norm_vector, true);
+                    if (! (0.0 < L_to_goal_angle && L_to_goal_angle < L_to_R_angle)) {
+                        ROS_INFO_STREAM("goal outside of gap");
+                        ROS_INFO_STREAM("L_to_goal_angle: " << L_to_goal_angle << ", L_to_R_angle: " << L_to_R_angle);  
+                        float goal_theta = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
+                        ROS_INFO_STREAM("left_theta: " << theta_l << ", goal_theta: " << goal_theta << ", right_theta: " << theta_r);
+                    }                      
                 }
                 return;
             }
@@ -234,13 +257,14 @@ namespace dynamic_gap {
         // lf: front (first one, left from laser scan)
         // lr: rear (second one, right from laser scan)
         // what do these do?
+        if (cfg_->gap_manip.debug_log) ROS_INFO_STREAM("Option 3: biasing");
 
         Eigen::Vector2f local_goal_norm_vect(std::cos(goal_orientation), std::sin(goal_orientation));
-        float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, local_goal_norm_vect);
-        float R_to_goal_angle = getLeftToRightAngle(right_vect_robot, local_goal_norm_vect);
+        float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, local_goal_norm_vect, true);
+        float R_to_goal_angle = getLeftToRightAngle(right_vect_robot, local_goal_norm_vect, true);
  
-        // ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_r: " << theta_r << ", theta_localgoal: " << goal_orientation);
-        // ROS_INFO_STREAM("L_to_R_angle: " << L_to_R_angle << ", L_to_goal_angle: " << L_to_goal_angle << ", R_to_goal_angle: " << R_to_goal_angle);
+        ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_r: " << theta_r << ", theta_localgoal: " << goal_orientation);
+        ROS_INFO_STREAM("L_to_R_angle: " << L_to_R_angle << ", L_to_goal_angle: " << L_to_goal_angle << ", R_to_goal_angle: " << R_to_goal_angle);
 
         float confined_theta; //
         if (theta_r < theta_l) { // gap is not behind
@@ -255,15 +279,16 @@ namespace dynamic_gap {
             }
         }
 
-        // ROS_INFO_STREAM("confined_theta: " << confined_theta);
+        ROS_INFO_STREAM("confined_theta: " << confined_theta);
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
-        // ROS_INFO_STREAM("confined idx: " << confined_idx);
+        ROS_INFO_STREAM("confined idx: " << confined_idx);
 
         Eigen::Vector2f confined_theta_vect(std::cos(confined_theta), std::sin(confined_theta));
 
-        float L_to_conf_angle = getLeftToRightAngle(left_vect_robot, confined_theta_vect); 
+        // needs to be distance between L/confined. Always positive.
+        float L_to_conf_angle = getLeftToRightAngle(left_vect_robot, confined_theta_vect, false); 
 
-        // ROS_INFO_STREAM("L_to_conf_angle: " << L_to_conf_angle << ", L_to_R_angle: " << L_to_R_angle);
+        ROS_INFO_STREAM("L_to_conf_angle: " << L_to_conf_angle << ", L_to_R_angle: " << L_to_R_angle);
 
         float ldist_robot = ldist;
         float rdist_robot = rdist;
@@ -275,7 +300,7 @@ namespace dynamic_gap {
         r_negpi2 = -r_pi2; // PI/2 clockwise;
 
 
-        // ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
+        ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
         Eigen::Vector2f radial_offset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * anchor / anchor.norm();
 
         Eigen::Vector2f angular_offset(0.0, 0.0); 
@@ -292,9 +317,10 @@ namespace dynamic_gap {
         }
 
         Eigen::Vector2f offset = radial_offset + angular_offset;
-        // ROS_INFO_STREAM("offset: " << offset[0] << ", " << offset[1]);
+        ROS_INFO_STREAM("radial_offset: " << radial_offset[0] << ", " << radial_offset[1]);
+        ROS_INFO_STREAM("angular_offset: " << angular_offset[0] << ", " << angular_offset[1]);
 
-        auto goal_pt = offset + anchor;
+        Eigen::Vector2f goal_pt = offset + anchor;
         // ROS_INFO_STREAM("anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")");
         if (initial) {
             gap.goal.x = goal_pt(0);
@@ -307,8 +333,16 @@ namespace dynamic_gap {
         }
 
         if (cfg_->gap_manip.debug_log) {
-            ROS_INFO_STREAM("Option 3: biasing");
             ROS_INFO_STREAM("goal: " << goal_pt(0) << ", " << goal_pt(1)); 
+            Eigen::Vector2f goal_vector = goal_pt;
+            Eigen::Vector2f goal_norm_vector = goal_vector / goal_vector.norm();
+            float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, goal_norm_vector, true);
+            if (! (0.0 < L_to_goal_angle && L_to_goal_angle < L_to_R_angle)) {
+                ROS_INFO_STREAM("goal outside of gap");
+                ROS_INFO_STREAM("L_to_goal_angle: " << L_to_goal_angle << ", L_to_R_angle: " << L_to_R_angle);
+                float goal_theta = std::atan2(goal_norm_vector[1], goal_norm_vector[0]);
+                ROS_INFO_STREAM("left_theta: " << theta_l << ", goal_theta: " << goal_theta << ", right_theta: " << theta_r);         
+            }                     
         }           
     }
 
@@ -339,8 +373,8 @@ namespace dynamic_gap {
         Eigen::Vector2f right_norm_vect(std::cos(theta_r), std::sin(theta_r));
         Eigen::Vector2f goal_norm_vect(std::cos(goal_angle), std::sin(goal_angle));
 
-        float L_to_R_angle = getLeftToRightAngle(left_norm_vect, right_norm_vect);
-        float L_to_goal_angle = getLeftToRightAngle(left_norm_vect, goal_norm_vect);
+        float L_to_R_angle = getLeftToRightAngle(left_norm_vect, right_norm_vect, true);
+        float L_to_goal_angle = getLeftToRightAngle(left_norm_vect, goal_norm_vect, true);
         float localgoal_r = (rdist - ldist) * L_to_goal_angle / L_to_R_angle + ldist;
 
         /*
@@ -768,7 +802,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("pt_l: (" << x_l << ", " << y_l << "), pt_r: (" << x_r << ", " << y_r << ")");
         // ROS_INFO_STREAM("eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
 
-        float L_to_R_angle = getLeftToRightAngle(eL_robot, eR_robot);
+        float L_to_R_angle = getLeftToRightAngle(eL_robot, eR_robot, true);
 
         double beta_left_robot = std::atan2(eL_robot[1], eL_robot[0]);
 
@@ -870,7 +904,7 @@ namespace dynamic_gap {
 
         Eigen::Vector2f left_norm_vect_robot = pt_l / pt_l.norm();
         Eigen::Vector2f right_norm_vect_robot = pt_r / pt_r.norm();
-        float L_to_R_angle = getLeftToRightAngle(left_norm_vect_robot, right_norm_vect_robot);
+        float L_to_R_angle = getLeftToRightAngle(left_norm_vect_robot, right_norm_vect_robot, true);
 
         // inflate inwards by radius * infl
         // rotate by pi/2, norm
@@ -881,10 +915,6 @@ namespace dynamic_gap {
 
         
         // PERFORMING ANGULAR INFLATION
-        // float theta_left_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / pt_l.norm(); // using s = r*theta
-        // float new_theta_l = theta_l - theta_left_infl;
-        // new_theta_l = atanThetaWrap(new_theta_l);
-        
         Eigen::Vector2f new_left_pt = pt_l + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_negpi2 * left_norm_vect_robot;
         float new_theta_l = std::atan2(new_left_pt[1], new_left_pt[0]);
 
@@ -901,7 +931,7 @@ namespace dynamic_gap {
 
         Eigen::Vector2f new_left_norm_vect_robot(std::cos(new_theta_l), std::sin(new_theta_l));
         Eigen::Vector2f new_right_norm_vect_robot(std::cos(new_theta_r), std::sin(new_theta_r));
-        float new_L_to_R_angle = getLeftToRightAngle(new_left_norm_vect_robot, new_right_norm_vect_robot);
+        float new_L_to_R_angle = getLeftToRightAngle(new_left_norm_vect_robot, new_right_norm_vect_robot, false);
         // ROS_INFO_STREAM("new_L_to_R_angle: " << new_L_to_R_angle);
 
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_scan;
@@ -921,11 +951,16 @@ namespace dynamic_gap {
             float ldist_robot = ldist;
             float rdist_robot = rdist;
 
-            float L_to_Lp_angle = getLeftToRightAngle(left_norm_vect_robot, new_left_norm_vect_robot);
-            float L_to_Rp_angle = getLeftToRightAngle(left_norm_vect_robot, new_right_norm_vect_robot);
+            float L_to_Lp_angle = getLeftToRightAngle(left_norm_vect_robot, new_left_norm_vect_robot, false);
+            float L_to_Rp_angle = getLeftToRightAngle(left_norm_vect_robot, new_right_norm_vect_robot, false);
             range_l_p = (rdist_robot - ldist_robot) * L_to_Lp_angle / L_to_R_angle + ldist_robot;
             range_r_p = (rdist_robot - ldist_robot) * L_to_Rp_angle / L_to_R_angle + ldist_robot;
-            if (cfg_->gap_manip.debug_log) ROS_INFO_STREAM("post-angular-inflation gap, left: " << new_l_idx << ", : " << range_l_p << ", right: " << new_r_idx << ", : " << range_r_p << "");
+            if (cfg_->gap_manip.debug_log) {
+                ROS_INFO_STREAM("post-angular-inflation gap, left: " << new_l_idx << ", : " << range_l_p << ", right: " << new_r_idx << ", : " << range_r_p << "");
+                if (range_l_p > 8 || range_r_p > 8) {
+                    ROS_INFO_STREAM("range is too big");
+                }
+            }
         }
 
         // PERFORMING RADIAL INFLATION
@@ -997,12 +1032,18 @@ namespace dynamic_gap {
 
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
-    float GapManipulator::getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect) {
+    float GapManipulator::getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect, bool wrap) {
         float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
 
         float left_to_right_angle = std::atan2(determinant, dot_product);
-        
+
+        // wrapping to 0 < angle < 2pi
+        if (wrap && left_to_right_angle < 0) {
+            ROS_INFO_STREAM("wrapping " << left_to_right_angle);
+            left_to_right_angle += 2*M_PI; 
+        }
+
         return left_to_right_angle;
     }
 
