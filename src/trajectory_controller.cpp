@@ -323,9 +323,6 @@ namespace dynamic_gap{
             v_lin_x_fb += weighted_cmd_vel_x_safe; // 
             v_lin_y_fb += weighted_cmd_vel_y_safe; //
 
-            // if(v_lin_x_fb < 0)
-            //    v_lin_x_fb = 0;
-
         } else {
             v_ang_fb = v_ang_fb + v_lin_y_fb + k_po_turn_ * cmd_vel_y_safe;
             v_lin_x_fb = v_lin_x_fb + k_po_ * cmd_vel_x_safe;

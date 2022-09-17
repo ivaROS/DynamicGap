@@ -160,7 +160,7 @@ namespace dynamic_gap {
             gap_manip.cbf_param = 0.1;
             gap_manip.K_des = 0.5;
             gap_manip.K_acc = 3.0;
-            gap_manip.debug_log = false;
+            gap_manip.debug_log = true;
             
             control.k_drive_x = 3.5;
             control.k_drive_y = 3.5;
@@ -175,7 +175,7 @@ namespace dynamic_gap {
             control.ax_absmax = 0.5;
             control.ay_absmax = 0.5;
             control.aang_absmax = 0.5;
-            control.debug_log = false;
+            control.debug_log = true;
 
             projection.k_po = 0.8;
             projection.k_po_turn = 1;
@@ -184,7 +184,7 @@ namespace dynamic_gap {
             projection.r_norm_offset = 0.5;
             projection.k_CBF = 1.0;
 
-            gap_feas.debug_log = false;
+            gap_feas.debug_log = true;
 
             waypoint.global_plan_lookup_increment = 75;
             waypoint.global_plan_change_tolerance = 0.1;
@@ -194,7 +194,7 @@ namespace dynamic_gap {
             planning.planning_inflated = false;
             planning.holonomic = false;
             planning.full_fov = false;
-            planning.projection_operator = true;
+            planning.projection_operator = false;
             planning.niGen_s = false;
             planning.num_feasi_check = 10;
             planning.far_feasible = false;
