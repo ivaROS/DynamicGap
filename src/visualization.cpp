@@ -350,7 +350,7 @@ namespace dynamic_gap{
 
         this_marker.pose.position.x = 0.0;
         this_marker.pose.position.y = 0.0;
-        this_marker.pose.position.z = 0.0;
+        this_marker.pose.position.z = 0.0075;
         this_marker.pose.orientation.x = 0.0;
         this_marker.pose.orientation.y = 0.0;
         this_marker.pose.orientation.z = 0.0;
@@ -373,8 +373,8 @@ namespace dynamic_gap{
 
         float s;
         geometry_msgs::Point linel, liner;
-        linel.z = 0.0005;
-        liner.z = 0.0005;
+        linel.z = this_marker.pose.position.z;
+        liner.z = this_marker.pose.position.z;
 
         std::vector<geometry_msgs::Point> lines;
         int id = (int) vis_arr.markers.size();
@@ -1300,7 +1300,7 @@ namespace dynamic_gap{
         lg_marker.type = visualization_msgs::Marker::ARROW;
         lg_marker.action = visualization_msgs::Marker::ADD;
         lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = cfg_->gap_viz.fig_gen ? 0.02 : 0.01;// 0.01;
+        lg_marker.scale.y = cfg_->gap_viz.fig_gen ? 0.04 : 0.01;// 0.01;
         lg_marker.scale.z = 0.0001;
         lg_marker.color.a = 1;
         lg_marker.color.b = 1.0;

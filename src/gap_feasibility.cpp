@@ -294,6 +294,7 @@ namespace dynamic_gap {
         left_model->set_rewind_state();
         right_model->set_rewind_state();
         // do rewind_propagate
+        auto egocircle = *msg.get();        
 
         double beta_left, beta_right, range_left, range_right, r_min, L_to_R_angle;
         // REWINDING THE GAP FROM ITS CROSSED CONFIGURATION UNTIL THE GAP IS SUFFICIENTLY OPEN
@@ -313,23 +314,23 @@ namespace dynamic_gap {
             range_right = (1.0 / right_rewind_mp_state[0]);
             r_min = std::min(range_left, range_right);
 
+            double wrapped_beta_left = atanThetaWrap(beta_left);
+            double init_left_idx = (wrapped_beta_left - egocircle.angle_min) / egocircle.angle_increment;
+            int left_idx = (int) std::floor(init_left_idx);
+
+            double wrapped_term_beta_right = atanThetaWrap(beta_right);
+            double init_right_idx = (wrapped_term_beta_right - egocircle.angle_min) / egocircle.angle_increment;
+            int right_idx = (int) std::floor(init_right_idx);
+            left_cross_pt << range_left*std::cos(wrapped_beta_left), 
+                            range_left*std::sin(wrapped_beta_left);
+            right_cross_pt << range_right*std::cos(wrapped_term_beta_right), 
+                            range_right*std::sin(wrapped_term_beta_right);            
+
             // if gap is sufficiently open
             // option 1: arc-length:
-            // first condition, make sure slightly open gap is convex
-            if (t_rew == 0 || r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) {
-                auto egocircle = *msg.get();        
+            if (t_rew == 0 || (left_cross_pt - right_cross_pt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) { // r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio
                 
-                double wrapped_beta_left = atanThetaWrap(beta_left);
-                double init_left_idx = (wrapped_beta_left - egocircle.angle_min) / egocircle.angle_increment;
-                int left_idx = (int) std::floor(init_left_idx);
-
-                double wrapped_term_beta_right = atanThetaWrap(beta_right);
-                double init_right_idx = (wrapped_term_beta_right - egocircle.angle_min) / egocircle.angle_increment;
-                int right_idx = (int) std::floor(init_right_idx);
-                left_cross_pt << range_left*std::cos(wrapped_beta_left), 
-                                range_left*std::sin(wrapped_beta_left);
-                right_cross_pt << range_right*std::cos(wrapped_term_beta_right), 
-                                range_right*std::sin(wrapped_term_beta_right);
+                
                 if (cfg_->gap_feas.debug_log) ROS_INFO_STREAM("terminal points at time " << t_rew << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
                 generateTerminalPoints(gap, wrapped_beta_left, left_rewind_mp_state[0], wrapped_term_beta_right, right_rewind_mp_state[0]);
                 return t_rew;
@@ -392,6 +393,10 @@ namespace dynamic_gap {
         float right_dist = (1.0 / terminal_reciprocal_range_right);
         // if (left_idx == right_idx) right_idx++;
 
+        if (cfg_->gap_feas.debug_log) {
+            ROS_INFO_STREAM("setting terminal points to, left: (" << left_dist * std::cos(wrapped_term_beta_left) << ", " << left_dist * std::sin(wrapped_term_beta_left) << 
+                                                    "), right: (" << right_dist * std::cos(wrapped_term_beta_right) << ", " << right_dist * std::sin(wrapped_term_beta_right) << ")");
+        }
         gap.setTerminalPoints(left_idx, left_dist, right_idx, right_dist);
     }
 
