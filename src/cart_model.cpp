@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -94,7 +94,7 @@ namespace dynamic_gap {
 
         alpha_Q = 0.9;
         alpha_R = 0.9;
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
         plot = true;
@@ -370,8 +370,8 @@ namespace dynamic_gap {
         G_k = P_k_minus * H_transpose * tmp_mat.inverse();
 
         P_k_plus = (eyes - G_k*H)*P_k_minus;
-        // new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
-        // Q_k = new_Q;
+        new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
+        Q_k = new_Q;
 
         
         if (print) {

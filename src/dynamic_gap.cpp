@@ -76,7 +76,7 @@ namespace dynamic_gap
         {
             ros::NodeHandle pnh("~/" + planner_name);
             planner.initialize(pnh);
-            ROS_WARN_STREAM("computerVelocity called before initializing planner");
+            ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
         auto final_traj = planner.getPlanTrajectory();

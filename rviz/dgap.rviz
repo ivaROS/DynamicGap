@@ -90,13 +90,13 @@ Visualization Manager:
       Reference Frame: robot0
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /simp_gaps
       Name: MarkerArray
       Namespaces:
-        {}
+        simp: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /manip_gaps
@@ -122,21 +122,21 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /reachable_gap_centers
       Name: MarkerArray
       Namespaces:
-        {}
+        reachable_gap_centers: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /candidate_trajectories
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /gap_splines
@@ -151,7 +151,7 @@ Visualization Manager:
       Axes Radius: 0.009999999776482582
       Class: rviz/PoseArray
       Color: 32; 74; 135
-      Enabled: false
+      Enabled: true
       Head Length: 0.07000000029802322
       Head Radius: 0.029999999329447746
       Name: PoseArray
@@ -160,7 +160,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /curr_exec_dg_traj
       Unreliable: false
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /dg_model_pos
@@ -254,7 +254,7 @@ Visualization Manager:
       Marker Topic: /po_dir
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -327,7 +327,7 @@ Visualization Manager:
       Marker Topic: /po_dir
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -599,16 +599,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.605940818786621
+      Distance: 15.21426773071289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 21.629573822021484
-        Y: -11.790071487426758
-        Z: -4.226046085357666
+        X: 18.271230697631836
+        Y: -10.468063354492188
+        Z: -4.2247314453125
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

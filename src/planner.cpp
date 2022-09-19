@@ -699,10 +699,12 @@ namespace dynamic_gap
                 }
             }
 
+            /*
             if (incom_subscore > curr_subscore) {
                 if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: higher score");
                 changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
             }
+            */
           
             if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY MAINTAIN");
             trajectory_pub.publish(curr_traj);

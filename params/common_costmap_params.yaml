@@ -45,14 +45,12 @@ obstacle_layer:
     
   # for debugging only, let's you see the entire voxel grid
 
-#cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
-inflation_layer:
-  enabled:              true
-  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
-  inflation_radius:     0.6  # max. distance from an obstacle at which costs are incurred for planning paths.
-
 static_layer:
   enabled:              true
   map_topic:            /known_map
   
+inflation_layer:
+  inflation_radius:     0.6  # max. distance from an obstacle at which costs are incurred for planning paths.
+  cost_scaling_factor:  10.0 # exponential rate at which the obstacle cost drops off (default: 10)
+
 
