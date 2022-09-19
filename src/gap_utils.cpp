@@ -321,4 +321,74 @@ namespace dynamic_gap {
         return simplified_gaps;
     }
 
+    bool compareModelBearingValues(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
+        Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
+        Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        
+        return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
+    }
+
+    void GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
+
+        if (observed_gaps.size() == 0) {
+            return;
+        }
+
+        std::vector<dynamic_gap::cart_model *> obs_models;
+        for (auto gap : observed_gaps) {
+            obs_models.push_back(gap.left_model);
+            obs_models.push_back(gap.right_model);
+        }
+
+        
+        for (auto & model : obs_models) {
+            model->freeze_robot_vel();
+        }
+        
+
+        sort(obs_models.begin(), obs_models.end(), compareModelBearingValues);
+
+        // iterate through models
+        double eps = 0.00001;
+        int prior_idx;
+        Matrix<double, 4, 1> prev_state = obs_models[0]->get_frozen_cartesian_state();
+        Eigen::Vector2d prev_vel(prev_state[2], prev_state[3]);
+        ROS_INFO_STREAM("looping through models");
+        for (int i = 1; i < obs_models.size(); i++) {
+            dynamic_gap::cart_model * curr_model = obs_models[i];
+            // get velocity
+            Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+            Eigen::Vector2d curr_vel(curr_state[2], curr_state[3]);
+
+            Eigen::Vector2d curr_vel_dir = curr_vel / (curr_vel.norm() + eps);
+            Eigen::Vector2d prev_vel_dir = prev_vel / (prev_vel.norm() + eps);
+            ROS_INFO_STREAM("curr_velocity: " << curr_state[2] << ", " << curr_state[3] << 
+                            ", prev_velocity: " << prev_state[2] << ", " << prev_state[3]);
+            ROS_INFO_STREAM("curr_vel_dir: " << curr_vel_dir[0] << ", " << curr_vel_dir[1]);
+            ROS_INFO_STREAM("prev_vel_dir: " << prev_vel_dir[0] << ", " << prev_vel_dir[1]);
+            double dot_prod = curr_vel_dir.dot(prev_vel_dir);
+            ROS_INFO_STREAM("dot product: " << dot_prod);
+            double norm_ratio = prev_vel.norm() / (curr_vel.norm() + eps);
+            ROS_INFO_STREAM("norm ratio: " << norm_ratio);
+
+            if (dot_prod > 0.9 && curr_vel.norm() > 0.05 && std::abs(norm_ratio - 1.0) < 0.1) {
+                ROS_INFO_STREAM("instantiating agent");
+            }
+
+            prev_state = curr_state;
+            prev_vel = curr_vel;
+
+        }
+
+        // check last and first
+        //
+
+        // create a static scan (would need to interpolate to fill in spots where agents are)
+        
+        // create a pose for each agent, forward propagate it, somehow turn that pose into bearings for scan 
+
+        // 
+    }
+
+
 }

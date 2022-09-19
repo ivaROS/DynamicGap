@@ -133,7 +133,6 @@ namespace dynamic_gap
         sharedPtr_inflatedlaser = msg;
     }
 
-    // running at point_scan rate which is around 8-9 Hz
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
@@ -173,6 +172,8 @@ namespace dynamic_gap
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
         associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+
+        finder->staticDynamicScanSeparation(associated_observed_gaps, msg);
 
         intermediate_vels.clear();
         intermediate_accs.clear();
