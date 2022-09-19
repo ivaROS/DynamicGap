@@ -25,7 +25,7 @@
 //#include "/home/masselmeier3/osqp-cpp/include/osqp++.h"
 
 namespace dynamic_gap {
-    typedef boost::array<double, 16> state_type;
+    typedef boost::array<double, 8> state_type;
     //typedef state_type::index_range range;
 
     
@@ -175,16 +175,18 @@ namespace dynamic_gap {
         bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
-                        a_des, a_actual, nom_acc;
+                        a_des, a_actual, nom_acc, nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel;
         Eigen::Vector4d abs_left_state, abs_right_state, goal_state;
 
-        Eigen::MatrixXd weights, all_centers, gradient_of_pti_wrt_rbt, centers_to_rbt;
+        Eigen::MatrixXd weights, all_centers, all_inward_norms, gradient_of_pti_wrt_rbt, centers_to_rbt;
         Eigen::VectorXd rowwise_sq_norms;
 
         reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
-                          double v_lin_max, Eigen::Vector2d nom_acc, Eigen::MatrixXd all_centers, Eigen::MatrixXd weights) 
+                          double v_lin_max, Eigen::Vector2d nom_acc, Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd weights,
+                          Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nonrel_goal_vel) 
                           : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1), K_acc(K_acc), 
-                            v_lin_max(v_lin_max), nom_acc(nom_acc), all_centers(all_centers), weights(weights)
+                            v_lin_max(v_lin_max), nom_acc(nom_acc), all_centers(all_centers), all_inward_norms(all_inward_norms), weights(weights),
+                            nonrel_left_vel(nonrel_left_vel), nonrel_right_vel(nonrel_right_vel), nonrel_goal_vel(nonrel_goal_vel)
                         { 
                             eps = 0.0000001;
                             K_des = 0.5;                    
@@ -217,16 +219,13 @@ namespace dynamic_gap {
         }
         void operator()(const state_type &x, state_type &dxdt, const double t)
         { 
-            state_type new_x = adjust_state(x);
-            abs_left_state << new_x[4], new_x[5], new_x[6], new_x[7];  
-            abs_right_state << new_x[8], new_x[9], new_x[10], new_x[11];
-            goal_state << new_x[12], new_x[13], new_x[14], new_x[15];
+            // state_type new_x = adjust_state(x);
                
             // Just use the same state to be able to make these past checks
-            rbt << new_x[0], new_x[1];
-            abs_left_pos << abs_left_state[0], abs_left_state[1];
-            abs_right_pos << abs_right_state[0], abs_right_state[1];
-            abs_goal_pos << goal_state[0], goal_state[1];
+            rbt << x[0], x[1];
+            abs_left_pos << x[2], x[3];
+            abs_right_pos << x[4], x[5];
+            abs_goal_pos << x[6], x[7];
 
             rel_left_pos = abs_left_pos - rbt;
             rel_right_pos = abs_right_pos - rbt;
@@ -244,12 +243,16 @@ namespace dynamic_gap {
             
             pass_gap = past_gap_points || past_goal;
 
-            // ROS_INFO_STREAM("t: " << t << ", rbt state: " << new_x[0] << ", " << new_x[1] << ", " << new_x[2] << ", " << new_x[3]);
+            // ROS_INFO_STREAM("t: " << t);
+            // ROS_INFO_STREAM("rbt state: " << x[0] << ", " << x[1]);
+            // ROS_INFO_STREAM("left state: " << x[2] << ", " << x[3]);
+            // ROS_INFO_STREAM("right state: " << x[4] << ", " << x[5]);
+            // ROS_INFO_STREAM("goal state: " << x[6] << ", " << x[7]);
 
             if (pass_gap) {
                 // ROS_INFO_STREAM("past gap");
-                dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; 
-                dxdt[7] = 0; dxdt[8] = 0; dxdt[9] = 0; dxdt[10] = 0; dxdt[11] = 0; dxdt[12] = 0; dxdt[13] = 0;
+                dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
+                dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
                 return;
             } 
 
@@ -260,61 +263,59 @@ namespace dynamic_gap {
             // APF
 
             rg = rel_goal_pos.norm();
-            theta_right = atan2(abs_right_pos[1], abs_right_pos[0]);
-            theta_left = atan2(abs_left_pos[1], abs_left_pos[0]);
-            thetax = atan2(new_x[1], new_x[0]);
-            thetag = atan2(rel_goal_pos[1], rel_goal_pos[0]);
-
-            new_theta = std::min(std::max(thetag, theta_right), theta_left);
 
             K_att = - pow(rg, 2);
             // ROS_INFO_STREAM("attractive term: " << K_att);
 
             // Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); //other one used is Kplus1, 2
    
-            centers_to_rbt = (-all_centers).rowwise() + rbt.transpose(); // size Kplus1, 2
+            centers_to_rbt = (-all_centers).rowwise() + rbt.transpose(); // size (r: Kplus1, c: 2)
+
+            Eigen::Index maxIndex;
+            float maxNorm = centers_to_rbt.rowwise().norm().minCoeff(&maxIndex);
+            /*
+            for (int i = 0; i < centers_to_rbt.rows(); i++) {
+                ROS_INFO_STREAM("row " << i << ": " << centers_to_rbt.row(i));
+            }
+            */
+            if (maxIndex > 0) {
+                // ROS_INFO_STREAM("min norm index: " << maxIndex);
+                // ROS_INFO_STREAM("min norm center to rbt dir: " << centers_to_rbt.row(maxIndex));
+                Eigen::Vector2d min_norm_center = all_centers.row(maxIndex);
+                // ROS_INFO_STREAM("min norm center: " << min_norm_center);
+                Eigen::Vector2d min_norm_inward_norm = all_inward_norms.row(maxIndex - 1);
+                // ROS_INFO_STREAM("min norm inward dir: " << min_norm_inward_norm);
+                if (min_norm_center.dot(min_norm_inward_norm) > 0) {
+                    // ROS_INFO_STREAM("out of gap");
+                    dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
+                    dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
+                    return;
+                }
+            }
+
             rowwise_sq_norms = centers_to_rbt.rowwise().squaredNorm();
             gradient_of_pti_wrt_rbt = centers_to_rbt.array().colwise() / (rowwise_sq_norms.array() + eps);          
             
             v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
 
             v_des = K_des * (v_raw / v_raw.norm());
-            // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
-
-            // ROS_INFO_STREAM("v_gain: " << v_gain[0] << ", " << v_gain[1]);
 
             // CLIPPING DESIRED VELOCITIES
             v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
-            /*
-            a_des << K_acc*(v_cmd[0] - new_x[2]), K_acc*(v_cmd[1] - new_x[3]);
-            a_des = clip_velocities(a_des[0], a_des[1], a_lin_max);
-            // ROS_INFO_STREAM("a_des: " << a_des[0] << ", " << a_des[1]);
-            double a_x_rbt = a_des(0); // -K_acc*(x[2] - result(0)); // 
-            double a_y_rbt = a_des(1); // -K_acc*(x[3] - result(1)); // 
 
-            double a_x_rel = 0 - a_x_rbt;
-            double a_y_rel = 0 - a_y_rbt;
-            */
             dxdt[0] = v_cmd[0]; // rbt_x
             dxdt[1] = v_cmd[1]; // rbt_y
-            dxdt[2] = 0.0; // rbt_v_x
-            dxdt[3] = 0.0; // rbt_v_y
 
-            dxdt[4] = new_x[6]; // left point r_x (absolute)
-            dxdt[5] = new_x[7]; // left point r_y (absolute)
-            dxdt[6] = 0.0; // left point v_x (absolute) 
-            dxdt[7] = 0.0; // left point v_y (absolute)
+            dxdt[2] = nonrel_left_vel[0]; // left point r_x (absolute)
+            dxdt[3] = nonrel_left_vel[1]; // left point r_y (absolute)
 
-            dxdt[8] = new_x[10]; // right point r_x (absolute)
-            dxdt[9] = new_x[11]; // right point r_y (absolute)
-            dxdt[10] = 0.0; // right point v_x (absolute)
-            dxdt[11] = 0.0; // right point v_y (absolute)
-            dxdt[12] = new_x[14]; // goal point r_x (absolute)
-            dxdt[13] = new_x[15]; // goal point r_y (absolute)
-            dxdt[14] = 0.0; // goal point v_x (absolute)
-            dxdt[15] = 0.0; // goal point v_y (absolute)
+            dxdt[4] = nonrel_right_vel[0]; // right point r_x (absolute)
+            dxdt[5] = nonrel_right_vel[1]; // right point r_y (absolute)
+
+            dxdt[6] = nonrel_goal_vel[0]; // goal point r_x (absolute)
+            dxdt[7] = nonrel_goal_vel[1]; // goal point r_y (absolute)
         }
     };
     
@@ -348,7 +349,7 @@ namespace dynamic_gap {
         void operator() ( const state_type &x , state_type &dxdt , const double  t  )
         {
             // std::cout << "x: " << std::endl;
-            double goal_norm = sqrt(pow(x[12] - x[0], 2) + pow(x[13] - x[1], 2));
+            double goal_norm = sqrt(pow(x[6] - x[0], 2) + pow(x[7] - x[1], 2));
             Eigen::Vector2d v_des(0.0, 0.0);
 
             // ROS_INFO_STREAM("t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", goal_norm: " << goal_norm);
@@ -360,14 +361,14 @@ namespace dynamic_gap {
 
                 dxdt[0] = 0.0;
                 dxdt[1] = 0.0;
-                dxdt[12] = 0.0;
-                dxdt[13] = 0.0;
+                dxdt[6] = 0.0;
+                dxdt[7] = 0.0;
                 return;
             }
 
 
-            v_des(0) = (x[12] - x[0]);
-            v_des(1) = (x[13] - x[1]);
+            v_des(0) = (x[6] - x[0]);
+            v_des(1) = (x[7] - x[1]);
             
             // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
@@ -379,8 +380,8 @@ namespace dynamic_gap {
         
             dxdt[0] = v_cmd[0]; // rbt_x
             dxdt[1] = v_cmd[1]; // rbt_y
-            dxdt[12] = goal_vel_x;
-            dxdt[13] = goal_vel_y;
+            dxdt[6] = goal_vel_x;
+            dxdt[7] = goal_vel_y;
             return;
         }
     };

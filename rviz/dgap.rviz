@@ -94,7 +94,7 @@ Visualization Manager:
       Marker Topic: /simp_gaps
       Name: MarkerArray
       Namespaces:
-        {}
+        simp: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -106,13 +106,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /gap_goals
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_goal: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /reachable_gaps
@@ -126,7 +126,7 @@ Visualization Manager:
       Marker Topic: /reachable_gap_centers
       Name: MarkerArray
       Namespaces:
-        {}
+        reachable_gap_centers: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -134,7 +134,7 @@ Visualization Manager:
       Marker Topic: /candidate_trajectories
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -166,7 +166,7 @@ Visualization Manager:
       Marker Topic: /dg_model_pos
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -174,7 +174,7 @@ Visualization Manager:
       Marker Topic: /dg_model_vel
       Name: MarkerArray
       Namespaces:
-        {}
+        gap_models: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray

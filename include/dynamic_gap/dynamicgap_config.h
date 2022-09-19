@@ -206,7 +206,7 @@ namespace dynamic_gap {
             traj.synthesized_frame = true;
             traj.scale = 1;
             traj.integrate_maxt = 5;
-            traj.integrate_stept = 0.25;
+            traj.integrate_stept = 0.50;
             traj.rmax = 0.3;
             traj.cobs = -0.5;
             traj.w = 5;

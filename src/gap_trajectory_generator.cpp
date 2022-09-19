@@ -84,10 +84,7 @@ namespace dynamic_gap{
             float term_y_right = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
 
             if (run_g2g) { //   || selectedGap.goal.goalwithin
-                state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
-                                0.0, 0.0, 0.0, 0.0,
-                                0.0, 0.0, 0.0,0.0,
-                                selectedGap.goal.x, selectedGap.goal.y};
+                state_type x = {ego_x[0], ego_x[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x, selectedGap.goal.y};
                 // ROS_INFO_STREAM("Goal to Goal");
                 g2g inte_g2g(selectedGap.goal.x, selectedGap.goal.y,
                              selectedGap.terminal_goal.x, selectedGap.terminal_goal.y,
@@ -129,11 +126,10 @@ namespace dynamic_gap{
             double right_vel_x = (term_x_right - x_right) / selectedGap.gap_lifespan;
             double right_vel_y = (term_y_right - y_right) / selectedGap.gap_lifespan;
 
-            state_type x = {ego_x[0], ego_x[1], ego_x[2], ego_x[3],
-                            x_left, y_left, left_vel_x, left_vel_y,
-                            x_right, y_right, right_vel_x, right_vel_y,
-                            initial_goal_x, initial_goal_y, goal_vel_x, goal_vel_y};
+            state_type x = {ego_x[0], ego_x[1], x_left, y_left, x_right, y_right, initial_goal_x, initial_goal_y};
             
+            ROS_INFO_STREAM("pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+
             // or if model is invalid?
             //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
             if (selectedGap.goal.discard || selectedGap.terminal_goal.discard && cfg_->traj.debug_log) {
@@ -149,6 +145,7 @@ namespace dynamic_gap{
             Eigen::Vector2d right_pt_1(term_x_right, term_y_right);
             Eigen::Vector2d nonrel_left_vel(left_vel_x, left_vel_y);
             Eigen::Vector2d nonrel_right_vel(right_vel_x, right_vel_y);
+            Eigen::Vector2d nonrel_goal_vel(goal_vel_x, goal_vel_y);
 
             Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d nom_acc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
@@ -273,7 +270,8 @@ namespace dynamic_gap{
             */  
 
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
-                                                    cfg_->control.vx_absmax, nom_acc, all_centers, weights);   
+                                                    cfg_->control.vx_absmax, nom_acc, all_centers, all_inward_norms, weights,
+                                                    nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel);   
             
             start_time = ros::Time::now().toSec();
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
