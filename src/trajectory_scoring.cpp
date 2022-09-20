@@ -19,9 +19,9 @@ namespace dynamic_gap {
         msg = msg_;
     }
 
-    void TrajectoryArbiter::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+    void TrajectoryArbiter::updateStaticEgoCircle(sensor_msgs::LaserScan static_scan_) {
         boost::mutex::scoped_lock lock(egocircle_mutex);
-        static_msg = msg_;
+        static_scan = static_scan_;
     }
 
     void TrajectoryArbiter::updateGapContainer(const std::vector<dynamic_gap::Gap> observed_gaps) {
@@ -109,7 +109,7 @@ namespace dynamic_gap {
         }
         if (print) ROS_INFO_STREAM("recovering dynamic egocircle with cheat for interval: " << t_i << " to " << t_iplus1);
         // for EVERY interval, start with static scan
-        dynamic_laser_scan.ranges = static_msg.get()->ranges;
+        dynamic_laser_scan.ranges = static_scan.ranges;
 
         float max_range = cfg_->rbt.max_range;
         // propagate poses forward (all odoms and vels are in robot frame)

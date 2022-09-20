@@ -77,7 +77,7 @@ namespace dynamic_gap
         ros::Publisher ni_traj_pub;
         ros::Publisher ni_traj_pub_other;
 
-        ros::Publisher dyn_egocircle_pub;
+        ros::Publisher static_scan_pub;
         
 
         std::vector<int> simp_association;
@@ -137,9 +137,10 @@ namespace dynamic_gap
         int ctrl_idx = 0;
 
         geometry_msgs::Pose sharedPtr_pose, prev_sharedPtr_pose;
-        boost::shared_ptr<sensor_msgs::LaserScan const> static_scan_ptr;
+        sensor_msgs::LaserScan static_scan;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
         boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_inflatedlaser;
+        boost::shared_ptr<sensor_msgs::LaserScan const> static_scan_ptr;
 
         ros::WallTime last_time;
         dynamic_gap::TrajPlan ni_ref, orig_ref;

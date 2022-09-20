@@ -25,7 +25,7 @@ namespace dynamic_gap {
             GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-            void updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
+            void updateStaticEgoCircle(sensor_msgs::LaserScan);
             void updateDynamicEgoCircle(dynamic_gap::Gap&,
                                         std::vector<sensor_msgs::LaserScan>);
 
@@ -42,8 +42,8 @@ namespace dynamic_gap {
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
 
         private:
-            boost::shared_ptr<sensor_msgs::LaserScan const> msg, static_msg;
-            sensor_msgs::LaserScan dynamic_scan;
+            boost::shared_ptr<sensor_msgs::LaserScan const> msg;
+            sensor_msgs::LaserScan static_scan, dynamic_scan;
             const DynamicGapConfig* cfg_;
             int num_of_scan;
             int half_num_scan;

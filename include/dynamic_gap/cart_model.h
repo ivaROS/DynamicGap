@@ -83,6 +83,8 @@ namespace dynamic_gap {
             Eigen::Vector4d get_frozen_modified_polar_state();
             Eigen::Vector4d get_rewind_modified_polar_state();
 
+            Eigen::Vector2d get_x_tilde();
+
             Matrix<double, 3, 1> get_v_ego();
             Matrix<double, 4, 1> integrate();
             void linearize(int i);

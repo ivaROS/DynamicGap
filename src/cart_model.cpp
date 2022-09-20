@@ -16,7 +16,7 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier3/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
@@ -94,7 +94,7 @@ namespace dynamic_gap {
 
         alpha_Q = 0.9;
         alpha_R = 0.9;
-        plot_dir = "/home/masselmeier3/catkin_ws/src/DynamicGap/estimator_plots/";   
+        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
         plot = true;
@@ -664,5 +664,9 @@ namespace dynamic_gap {
 
     int cart_model::get_index() {
         return index;
+    }
+
+    Eigen::Vector2d cart_model::get_x_tilde() {
+        return x_tilde;
     }
 }

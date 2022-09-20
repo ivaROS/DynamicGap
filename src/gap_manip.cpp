@@ -10,19 +10,19 @@ namespace dynamic_gap {
         angle_increment = msg.get()->angle_increment;
     }
 
-    void GapManipulator::updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+    void GapManipulator::updateStaticEgoCircle(sensor_msgs::LaserScan static_scan_) {
         boost::mutex::scoped_lock lock(egolock);
-        static_msg = msg_;
-        num_of_scan = (int)(static_msg.get()->ranges.size());
+        static_scan = static_scan_;
+        num_of_scan = (int) (static_scan.ranges.size());
         half_num_scan = num_of_scan / 2;
 
-        angle_min = static_msg.get()->angle_min;
-        angle_increment = static_msg.get()->angle_increment;
+        angle_min = static_scan.angle_min;
+        angle_increment = static_scan.angle_increment;
     }
 
     void GapManipulator::updateDynamicEgoCircle(dynamic_gap::Gap& gap,
                                                 std::vector<sensor_msgs::LaserScan> future_scans) {
-        dynamic_scan = *static_msg.get();
+        dynamic_scan = static_scan;
         double t_iplus1 = gap.gap_lifespan;
 
         int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);

@@ -33,7 +33,7 @@ namespace dynamic_gap{
         TrajectoryArbiter(const TrajectoryArbiter &t) {cfg_ = t.cfg_;};
         
         void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-        void updateStaticEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
+        void updateStaticEgoCircle(sensor_msgs::LaserScan);
         void updateGapContainer(const std::vector<dynamic_gap::Gap>);
         void updateLocalGoal(geometry_msgs::PoseStamped, geometry_msgs::TransformStamped);
 
@@ -63,7 +63,8 @@ namespace dynamic_gap{
 
         private:
             const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> msg, static_msg;
+            boost::shared_ptr<sensor_msgs::LaserScan const> msg;
+            sensor_msgs::LaserScan static_scan;
             std::vector<dynamic_gap::Gap> gaps;
             geometry_msgs::PoseStamped local_goal;
             boost::mutex gap_mutex, gplan_mutex, egocircle_mutex;

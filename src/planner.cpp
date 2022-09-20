@@ -31,7 +31,7 @@ namespace dynamic_gap
 
         // Visualization Setup
         trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
-        // dyn_egocircle_pub = nh.advertise<sensor_msgs::LaserScan>("dyn_egocircle", 1);
+        static_scan_pub = nh.advertise<sensor_msgs::LaserScan>("static_scan", 1);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
@@ -86,6 +86,8 @@ namespace dynamic_gap
         prev_pose_msg_time = ros::Time::now();
         prev_acc_msg_time = ros::Time::now();
         prev_scan_msg_time = ros::Time::now();
+
+        static_scan = sensor_msgs::LaserScan();
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
         // ROS_INFO_STREAM("done initializing");
         return true;
@@ -121,12 +123,15 @@ namespace dynamic_gap
         }
         return false;
     }
-    
+
+    /*
     void Planner::staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
         static_scan_ptr = msg;
-        trajArbiter->updateStaticEgoCircle(msg);
-        gapManip->updateStaticEgoCircle(msg);
+        trajArbiter->updateStaticEgoCircle(*static_scan_ptr.get());
+        gapManip->updateStaticEgoCircle(*static_scan_ptr.get());
     }
+    */
+    
 
     void Planner::inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
@@ -173,7 +178,10 @@ namespace dynamic_gap
         associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        finder->staticDynamicScanSeparation(associated_observed_gaps, msg);
+        static_scan = finder->staticDynamicScanSeparation(associated_observed_gaps, msg);
+        static_scan_pub.publish(static_scan);
+        trajArbiter->updateStaticEgoCircle(static_scan);
+        gapManip->updateStaticEgoCircle(static_scan);
 
         intermediate_vels.clear();
         intermediate_accs.clear();
@@ -841,7 +849,7 @@ namespace dynamic_gap
         ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
 
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
+        // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
         cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
                                              static_scan, rbt_in_cam_lc,
                                              current_rbt_vel, rbt_accel,

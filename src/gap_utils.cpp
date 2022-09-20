@@ -328,11 +328,14 @@ namespace dynamic_gap {
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
 
-    void GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
+    sensor_msgs::LaserScan GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
 
+        sensor_msgs::LaserScan curr_scan = *msg.get(); 
         if (observed_gaps.size() == 0) {
-            return;
+            return curr_scan;
         }
+
+        int half_num_scan = curr_scan.ranges.size() / 2;
 
         std::vector<dynamic_gap::cart_model *> obs_models;
         for (auto gap : observed_gaps) {
@@ -340,7 +343,6 @@ namespace dynamic_gap {
             obs_models.push_back(gap.right_model);
         }
 
-        
         for (auto & model : obs_models) {
             model->freeze_robot_vel();
         }
@@ -351,37 +353,84 @@ namespace dynamic_gap {
         // iterate through models
         double eps = 0.00001;
         int prior_idx;
-        Matrix<double, 4, 1> prev_state = obs_models[0]->get_frozen_cartesian_state();
+        dynamic_gap::cart_model * prev_model = obs_models[0];
+        Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         Eigen::Vector2d prev_vel(prev_state[2], prev_state[3]);
-        ROS_INFO_STREAM("looping through models");
+
+        std::vector<Matrix<double, 4, 1> > agents;
+
+
+        // ROS_INFO_STREAM("looping through models");
         for (int i = 1; i < obs_models.size(); i++) {
             dynamic_gap::cart_model * curr_model = obs_models[i];
             // get velocity
             Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+            prev_state = prev_model->get_frozen_cartesian_state();
+            prev_vel << prev_state[2], prev_state[3];
             Eigen::Vector2d curr_vel(curr_state[2], curr_state[3]);
 
             Eigen::Vector2d curr_vel_dir = curr_vel / (curr_vel.norm() + eps);
             Eigen::Vector2d prev_vel_dir = prev_vel / (prev_vel.norm() + eps);
-            ROS_INFO_STREAM("curr_velocity: " << curr_state[2] << ", " << curr_state[3] << 
-                            ", prev_velocity: " << prev_state[2] << ", " << prev_state[3]);
-            ROS_INFO_STREAM("curr_vel_dir: " << curr_vel_dir[0] << ", " << curr_vel_dir[1]);
-            ROS_INFO_STREAM("prev_vel_dir: " << prev_vel_dir[0] << ", " << prev_vel_dir[1]);
+            // ROS_INFO_STREAM("curr_velocity: " << curr_state[2] << ", " << curr_state[3] << ", prev_velocity: " << prev_state[2] << ", " << prev_state[3]);
+            // ROS_INFO_STREAM("curr_vel_dir: " << curr_vel_dir[0] << ", " << curr_vel_dir[1]);
+            // ROS_INFO_STREAM("prev_vel_dir: " << prev_vel_dir[0] << ", " << prev_vel_dir[1]);
             double dot_prod = curr_vel_dir.dot(prev_vel_dir);
-            ROS_INFO_STREAM("dot product: " << dot_prod);
+            // ROS_INFO_STREAM("dot product: " << dot_prod);
             double norm_ratio = prev_vel.norm() / (curr_vel.norm() + eps);
-            ROS_INFO_STREAM("norm ratio: " << norm_ratio);
+            // ROS_INFO_STREAM("norm ratio: " << norm_ratio);
 
-            if (dot_prod > 0.9 && curr_vel.norm() > 0.05 && std::abs(norm_ratio - 1.0) < 0.1) {
-                ROS_INFO_STREAM("instantiating agent");
+            if (dot_prod > 0.9 && curr_vel.norm() > 0.1 && std::abs(norm_ratio - 1.0) < 0.1) {
+
+                Eigen::Vector2d curr_meas = curr_model->get_x_tilde();
+                Eigen::Vector2d prev_meas = prev_model->get_x_tilde();
+                Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
+                agents.push_back(new_agent); 
+                // ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
+                int curr_idx = int(std::round(std::atan2(curr_meas[1], curr_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
+                int prev_idx = int(std::round(std::atan2(prev_meas[1], prev_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
+                // ROS_INFO_STREAM("prev_idx: " << prev_idx << ", curr_idx: " << curr_idx);
+
+                int prev_free_idx, curr_free_idx;
+                float prev_free_dist, curr_free_dist;
+                for (int j = 1; j < 2; j++) {
+                    prev_free_idx = (prev_idx - j);
+                    if (prev_free_idx < 0) {
+                        prev_free_idx += 2*half_num_scan;
+                    }
+                    prev_free_dist = curr_scan.ranges.at(prev_free_idx);
+                    // ROS_INFO_STREAM("range at " << prev_free_idx << ": " << prev_free_dist);
+                }
+
+                for (int j = 1; j < 2; j++) {
+                    curr_free_idx = (curr_idx + j) % (2*half_num_scan);
+                    curr_free_dist = curr_scan.ranges.at(curr_free_idx);
+                    // ROS_INFO_STREAM("range at " << curr_free_idx << ": " << curr_free_dist);
+                }
+
+                // need distance from curr to prev
+                float prev_to_curr_idx_dist = (curr_free_idx - prev_free_idx);
+                if (prev_to_curr_idx_dist < 0) {
+                    prev_to_curr_idx_dist += 2*half_num_scan;
+                }
+                // ROS_INFO_STREAM("prev_to_curr_idx_dist: " << prev_to_curr_idx_dist);
+
+                for (int counter = 1; counter < prev_to_curr_idx_dist; counter++) {
+                    int intermediate_idx = (prev_free_idx + counter) % (2*half_num_scan);
+                    float new_dist = (curr_free_dist - prev_free_dist) * (counter / prev_to_curr_idx_dist) + prev_free_dist;
+                    // ROS_INFO_STREAM("replacing range at " << intermediate_idx << " from " << curr_scan.ranges.at(intermediate_idx) << " to " << new_dist);
+                    curr_scan.ranges.at(intermediate_idx) = new_dist;
+                }
+                // iterate from prev state to curr state, 
+
             }
 
-            prev_state = curr_state;
-            prev_vel = curr_vel;
-
+            prev_model = curr_model;
         }
 
+        return curr_scan;
+
+
         // check last and first
-        //
 
         // create a static scan (would need to interpolate to fill in spots where agents are)
         
