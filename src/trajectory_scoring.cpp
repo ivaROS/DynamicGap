@@ -98,6 +98,45 @@ namespace dynamic_gap {
         return A;
     }
 
+    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<Matrix<double, 4, 1> > _odom_vects)
+    {
+    
+        // Declare vector of pairs
+        std::vector< std::vector<double> > A;
+        
+        // Copy key-value pair from Map
+        // to vector of pairs
+        double dist;
+        for (int i = 0; i < _odom_vects.size(); i++) {
+            // ROS_INFO_STREAM(it.first);
+            //ROS_INFO_STREAM("pose: " << std::to_string(it.second[0]) << ", " << std::to_string(it.second[1]));
+            //ROS_INFO_STREAM("ego pose: " << pt1[0] << ", " << pt1[1]);
+
+            std::vector<double> odom_vect{_odom_vects[i][0], _odom_vects[i][1]};
+            
+            dist = sqrt(pow(odom_vect[0], 2) + pow(odom_vect[1], 2));
+            //ROS_INFO_STREAM("dist: " << dist);
+            if (dist < cfg_->rbt.max_range) {
+                A.push_back(odom_vect);
+            }
+        }
+        
+        // Sort using comparator function
+        sort(A.begin(), A.end(), Comparator());
+        
+        // ROS_INFO_STREAM("printing pruned vect");
+        // Print the sorted value
+        /*
+        for (auto& it : A) {
+    
+            ROS_INFO_STREAM(it.first << ' ' << it.second[0] << ", " << it.second[1]);
+        }
+        */
+        
+
+        return A;
+    }
+
     void TrajectoryArbiter::recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
                                                         std::vector<geometry_msgs::Pose> & _agent_odoms, 
                                                         std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
@@ -217,168 +256,118 @@ namespace dynamic_gap {
     
     }
 
-    void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan) {
-        // freeze models
-        // std::cout << "num gaps: " << current_raw_gaps.size() << std::endl;
-
-        // std::cout << "finished setting sides and freezing velocities" << std::endl;
-
-        //sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
-        //dynamic_laser_scan.set_ranges_size(2*gap.half_scan);
-
-        ROS_INFO_STREAM("propagating egocircle from " << t_i << " to " << t_iplus1);
-        // iterate
-        // std::cout << "propagating models" << std::endl;
+    void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, 
+                                                        std::vector<Matrix<double, 4, 1> > & curr_agents_lc,
+                                                        sensor_msgs::LaserScan& dynamic_laser_scan,
+                                                        bool print) {
+        
         double interval = t_iplus1 - t_i;
         if (interval <= 0.0) {
             return;
         }
-        //std::cout << "time: " << t_iplus1 << std::endl;
-        for (auto & model : raw_models) {
-            model->frozen_state_propagate(interval);
-        }
-        //for (double i = 0.0; i < interval; i += cfg_->traj.integrate_stept) {
-        //    
-        //}
-        // std::cout << "sorting models" << std::endl;
-        sort(raw_models.begin(), raw_models.end(), compareModelBearings);
+        if (print) ROS_INFO_STREAM("recovering dynamic egocircle with cheat for interval: " << t_i << " to " << t_iplus1);
+        // for EVERY interval, start with static scan
+        dynamic_laser_scan.ranges = static_scan.ranges;
 
-        bool searching_for_left = true;
-        bool need_first_left = true;
-        dynamic_gap::cart_model * curr_left = NULL;
-        dynamic_gap::cart_model * curr_right = NULL;
-        dynamic_gap::cart_model * first_left = NULL;
-        dynamic_gap::cart_model * first_right = NULL;
-        dynamic_gap::cart_model * last_model = raw_models[raw_models.size() - 1];
-        dynamic_gap::cart_model * model = NULL;
-        Matrix<double, 4, 1> left_state, right_state, model_state;
-        double curr_beta;
-        int curr_idx, left_idx, right_idx;
+        float max_range = cfg_->rbt.max_range;
+        // propagate poses forward (all odoms and vels are in robot frame)
+        for (int i = 0; i < curr_agents_lc.size(); i++) {
+            if (print) {
+                ROS_INFO_STREAM("robot" << i << " moving from (" << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ")");
+            }
 
-        // std::cout << "iterating through models" << std::endl;
-        for (int j = 0; j < raw_models.size(); j++) {
-            // std::cout << "model " << j << std::endl;
-            model = raw_models[j];
-            model_state = model->get_frozen_modified_polar_state();
-            curr_beta = model_state[1]; // atan2(model_state[1], model_state[2]);
-            curr_idx = (int) ((curr_beta + M_PI) / msg.get()->angle_increment);
-
-            ROS_INFO_STREAM("candidate model with idx: " << curr_idx);
-
-            if (model->get_side() == "left") { // this is left from laser scan
-
-                if (first_left == nullptr) {
-                    ROS_INFO_STREAM("setting first left to " << curr_idx);
-                    first_left = model;
-                } 
-                
-                if (curr_left != nullptr) {
-                    if (curr_right != nullptr) {
-                        populateDynamicLaserScan(curr_left, curr_right, dynamic_laser_scan, 1); // generate free space
-                        populateDynamicLaserScan(model, curr_right, dynamic_laser_scan, 0); // generate occupied space
-                        curr_left = model;
-                        curr_right = NULL;
-                    } else {
-                        left_state = curr_left->get_frozen_modified_polar_state();
-                        if (model_state[0] > left_state[0]) {
-                            ROS_INFO_STREAM("swapping current left to" << curr_idx);
-                            curr_left = model;
-                        } else {
-                            ROS_INFO_STREAM("rejecting left swap to " << curr_idx);
-                        }                    
-                    }
-                } else {
-                    ROS_INFO_STREAM("setting curr left to " << curr_idx);
-                    curr_left = model;
-                }
-
-            } else if (model->get_side() == "right") {
-
-                if (first_right == nullptr) {
-                    ROS_INFO_STREAM("setting first right to " << curr_idx);
-                    first_right = model;
-                }
-
-                if (curr_right != nullptr) {
-                    right_state = curr_right->get_frozen_modified_polar_state();
-                    if (model_state[0] > right_state[0]) {
-                        ROS_INFO_STREAM("swapping current right to" << curr_idx);
-                        curr_right = model;
-                    } else {
-                        ROS_INFO_STREAM("rejecting right swap to " << curr_idx);
-                    }
-                } else {
-                    ROS_INFO_STREAM("setting curr right to " << curr_idx);
-                    curr_right = model;
-                }
+            curr_agents_lc[i][0] += curr_agents_lc[i][2]*interval;
+            curr_agents_lc[i][1] += curr_agents_lc[i][3]*interval;
+            
+            if (print) {
+                ROS_INFO_STREAM("to (" << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ")");
             }
         }
 
-        ROS_INFO_STREAM("wrapping");
-        if (last_model->get_side() == "left") {
-            // wrapping around last free space
-            populateDynamicLaserScan(last_model, first_right, dynamic_laser_scan, 1);
-        } else {
-            // wrapping around last obstacle space
-            populateDynamicLaserScan(first_left, last_model, dynamic_laser_scan, 0);
-        }
-        
-    }
+        // basically run modify_scan                                                          
+        Eigen::Vector2d pt2, centered_pt1, centered_pt2, dx_dy, intersection0, intersection1, 
+                        int0_min_cent_pt1, int0_min_cent_pt2, int1_min_cent_pt1, int1_min_cent_pt2, 
+                        cent_pt2_min_cent_pt1;
+        double rad, dist, dx, dy, dr, D, discriminant, dist0, dist1;
+        std::vector<double> other_state;
 
-    void TrajectoryArbiter::populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free) {
-        // std::cout << "populating part of laser scan" << std::endl;
-        Matrix<double, 4, 1> left_state = left_model->get_frozen_modified_polar_state();
-        Matrix<double, 4, 1> right_state = right_model->get_frozen_modified_polar_state();
-        //std::cout << "left state: " << left_state[0] << ", "  << left_state[1] << ", "  << left_state[2] << ", "  << left_state[3] << ", "  << left_state[4] << std::endl;
-        //std::cout << "right state: " << right_state[0] << ", "  << right_state[1] << ", "  << right_state[2] << ", "  << right_state[3] << ", "  << right_state[4] << std::endl;         
-        double left_beta = left_state[1]; // atan2(left_state[1], left_state[2]);
-        double right_beta = right_state[1]; // atan2(right_state[1], right_state[2]);
-        int left_idx = (int) ((left_beta + M_PI) / msg.get()->angle_increment);
-        int right_idx = (int) ((right_beta + M_PI) / msg.get()->angle_increment);
-        double left_range = 1 / left_state[0];
-        double right_range = 1  / right_state[0];
+        std::vector<std::vector<double>> odom_vect = sort_and_prune(curr_agents_lc);
 
-        int start_idx, end_idx;
-        double start_range, end_range;
-        if (free) {
-            start_idx = left_idx;
-            end_idx = right_idx;
-            start_range = left_range;
-            end_range = right_range;
-            ROS_INFO_STREAM("free space between left: (" << left_idx << ",  " << left_range << ") and right: (" << right_idx << ", " << right_range << ")");
-        } else {
-            start_idx = right_idx;
-            end_idx = left_idx;
-            start_range = right_range;
-            end_range = left_range;
-            ROS_INFO_STREAM("obstacle space between right: (" << right_idx << ", " << right_range << ") and left: (" << left_idx << ", " << left_range << ")");
-        }
+        for (int i = 0; i < dynamic_laser_scan.ranges.size(); i++) {
+            rad = dynamic_laser_scan.angle_min + i*dynamic_laser_scan.angle_increment;
+            // cout << "i: " << i << " rad: " << rad << endl;
+            // cout << "original distance " << modified_laser_scan.ranges[i] << endl;
+            dynamic_laser_scan.ranges[i] = std::min(dynamic_laser_scan.ranges[i], max_range);
+            // ROS_INFO_STREAM("i: " << i << ", rad: " << rad << ", range: " << dynamic_laser_scan.ranges[i]);
+            dist = dynamic_laser_scan.ranges[i];
+            
+            pt2 << dist*cos(rad), dist*sin(rad);
 
-        int idx_span, entry_idx;
-        double new_range;
-        if (start_idx <= end_idx) {
-            idx_span = end_idx - start_idx;
-        } else {
-            idx_span = (512 - start_idx) + end_idx;
-        }
+            // map<string, vector<double>>::iterator it;
+            //vector<pair<string, vector<double> >> odom_vect = sort_and_prune(odom_map);
+            // TODO: sort map here according to distance from robot. Then, can break after first intersection
+            for (int j = 0; j < odom_vect.size(); j++) {
+                other_state = odom_vect[j];
+                // ROS_INFO_STREAM("ODOM MAP SECOND: " << other_state[0] << ", " << other_state[1]);
+                // int idx_dist = std::distance(odom_map.begin(), it);
+                // ROS_INFO_STREAM("EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
+                // ROS_INFO_STREAM("ODOM VECT SECOND: " << other_state[0] << ", " << other_state[1]);
 
-        for (int idx = 0; idx < idx_span; idx++) {
-            new_range = setDynamicLaserScanRange(idx, idx_span, start_idx, end_idx, start_range, end_range, free);
-            entry_idx = (start_idx + idx) % 512;
-            // std::cout << "updating range at " << entry_idx << " to " << new_range << std::endl;
-            dynamic_laser_scan.ranges[entry_idx] = new_range;
-        }
-        // std::cout << "done populating" << std::endl;
-    }
+                // centered ego robot state
+                centered_pt1 << -other_state[0], -other_state[1]; 
+                // ROS_INFO_STREAM("centered_pt1: " << centered_pt1[0] << ", " << centered_pt1[1]);
 
-    double TrajectoryArbiter::setDynamicLaserScanRange(double idx, double idx_span, double start_idx, double end_idx, double start_range, double end_range, bool free) {
-        if (free) {
-            return 5;
-        } else {
-            if (start_idx != end_idx) {
-                return start_range + (end_range - start_range) * (idx / idx_span);
-            } else {
-                return std::min(start_range, end_range);
+                // static laser scan point
+                centered_pt2 << pt2[0] - other_state[0], pt2[1] - other_state[1]; 
+                // ROS_INFO_STREAM("centered_pt2: " << centered_pt2[0] << ", " << centered_pt2[1]);
+
+                dx = centered_pt2[0] - centered_pt1[0];
+                dy = centered_pt2[1] - centered_pt1[1];
+                dx_dy << dx, dy;
+                dr = dx_dy.norm();
+
+                D = centered_pt1[0]*centered_pt2[1] - centered_pt2[0]*centered_pt1[1];
+                discriminant = pow(r_inscr,2) * pow(dr, 2) - pow(D, 2);
+
+                if (discriminant > 0) {
+                    intersection0 << (D*dy + sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                     (-D * dx + abs(dy)*sqrt(discriminant)) / pow(dr, 2);
+                                        
+                    intersection1 << (D*dy - sgn_star(dy) * dx * sqrt(discriminant)) / pow(dr, 2),
+                                     (-D * dx - abs(dy)*sqrt(discriminant)) / pow(dr, 2);
+                    int0_min_cent_pt1 = intersection0 - centered_pt1;
+                    int1_min_cent_pt1 = intersection1 - centered_pt1;
+                    cent_pt2_min_cent_pt1 = centered_pt2 - centered_pt1;
+
+                    dist0 = int0_min_cent_pt1.norm();
+                    dist1 = int1_min_cent_pt1.norm();
+                    
+                    if (dist0 < dist1) {
+                        int0_min_cent_pt2 = intersection0 - centered_pt2;
+
+                        if (dist0 < dynamic_laser_scan.ranges[i] && dist0 < cent_pt2_min_cent_pt1.norm() && int0_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
+                            if (print) {
+                                ROS_INFO_STREAM("at i: " << i << ", changed distance from " << 
+                                                dynamic_laser_scan.ranges[i] << " to " << dist0);
+                            }
+
+                            dynamic_laser_scan.ranges[i] = dist0;
+                            break;
+                        }
+                    } else {
+                        int1_min_cent_pt2 = intersection1 - centered_pt2;
+
+                        if (dist1 < dynamic_laser_scan.ranges[i] && dist1 < cent_pt2_min_cent_pt1.norm() && int1_min_cent_pt2.norm() < cent_pt2_min_cent_pt1.norm() ) {
+                            if (print) {
+                                ROS_INFO_STREAM("at i: " << i << ", changed distance from " << 
+                                                dynamic_laser_scan.ranges[i] << " to " << dist1); 
+                            }          
+
+                            dynamic_laser_scan.ranges[i] = dist1;
+                            break;
+                        }
+                    }
+                }
             }
         }
     }

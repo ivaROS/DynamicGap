@@ -186,7 +186,7 @@ namespace dynamic_gap
         std::vector<sensor_msgs::LaserScan> future_scans;
 
         ros::Time prev_pose_msg_time, prev_scan_msg_time, prev_acc_msg_time;
-
+        std::vector<Matrix<double, 4, 1> > curr_agents;
 
 
     public:

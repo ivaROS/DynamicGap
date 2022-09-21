@@ -168,6 +168,13 @@ namespace dynamic_gap
         associated_raw_gaps = update_models(raw_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
+        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg);
+        static_scan_pub.publish(static_scan);
+        trajArbiter->updateStaticEgoCircle(static_scan);
+        gapManip->updateStaticEgoCircle(static_scan);
+        curr_agents = finder->getCurrAgents();
+
+
         // double observed_gaps_start_time = ros::WallTime::now().toSec();
         previous_gaps = associated_observed_gaps;
         observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
@@ -177,11 +184,6 @@ namespace dynamic_gap
         gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
         associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
-
-        static_scan = finder->staticDynamicScanSeparation(associated_observed_gaps, msg);
-        static_scan_pub.publish(static_scan);
-        trajArbiter->updateStaticEgoCircle(static_scan);
-        gapManip->updateStaticEgoCircle(static_scan);
 
         intermediate_vels.clear();
         intermediate_accs.clear();
@@ -985,11 +987,12 @@ namespace dynamic_gap
         dynamic_laser_scan.intensities = scan_intensities;
 
         double t_i = 0.0;
-        future_scans[0] = dynamic_laser_scan;
+        future_scans[0] = dynamic_laser_scan; // at t = 0.0
 
         std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
-
+        std::vector<Matrix<double, 4, 1> > curr_agents_lc = curr_agents;
+        
         int future_scan_idx;
         for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
             dynamic_laser_scan.ranges = stored_scan.ranges;

@@ -52,11 +52,14 @@ namespace dynamic_gap{
                                                            bool vis);
         
         void recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                                        std::vector<geometry_msgs::Pose> & _agent_odoms, 
-                                                        std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                                        sensor_msgs::LaserScan& dynamic_laser_scan,
-                                                        bool print);
-        void recoverDynamicEgoCircle(double t_i, double t_iplus1, std::vector<dynamic_gap::cart_model *> raw_models, sensor_msgs::LaserScan& dynamic_laser_scan);
+                                            std::vector<geometry_msgs::Pose> & _agent_odoms, 
+                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                            sensor_msgs::LaserScan& dynamic_laser_scan,
+                                            bool print);
+        void recoverDynamicEgoCircle(double t_i, double t_iplus1, 
+                                         std::vector<Matrix<double, 4, 1> > & curr_agents_lc,                            
+                                         sensor_msgs::LaserScan& dynamic_laser_scan,
+                                         bool print);
         void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
         double terminalGoalCost(geometry_msgs::Pose pose);
@@ -69,7 +72,9 @@ namespace dynamic_gap{
             geometry_msgs::PoseStamped local_goal;
             boost::mutex gap_mutex, gplan_mutex, egocircle_mutex;
 
+            std::vector< std::vector<double> > sort_and_prune(std::vector<Matrix<double, 4, 1> > _odom_vects);
             std::vector< std::vector<double> > sort_and_prune(std::vector<geometry_msgs::Pose> _odom_vects);
+            
             int sgn_star(float dy);
             double scorePose(geometry_msgs::Pose pose);
             int dynamicGetMinDistIndex(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print);

@@ -33,11 +33,13 @@ namespace dynamic_gap {
 
         void setMergeThreshold(float);
         void setIdxThreshold(int);
+        std::vector<Matrix<double, 4, 1> > getCurrAgents();
 
         sensor_msgs::LaserScan staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         private:
             const DynamicGapConfig* cfg_;
+            std::vector<Matrix<double, 4, 1> > curr_agents;
 
     };
 
