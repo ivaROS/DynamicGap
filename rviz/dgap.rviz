@@ -44,6 +44,7 @@ Panels:
         - /MarkerArray36
         - /MarkerArray37
         - /MarkerArray38
+        - /Map3
         - /LaserScan3
       Splitter Ratio: 0.5
     Tree Height: 728
@@ -88,7 +89,7 @@ Visualization Manager:
       Length: 0.5
       Name: Axes
       Radius: 0.05000000074505806
-      Reference Frame: robot2
+      Reference Frame: robot0
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
@@ -285,12 +286,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /move_base/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /reachable_gap_no_RGE
@@ -375,7 +376,7 @@ Visualization Manager:
       Marker Topic: /robot2/marker
       Name: MarkerArray
       Namespaces:
-        robot_position_markers: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -600,9 +601,17 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /move_base/TebLocalPlannerROS/teb_markers
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
-    Background Color: 255; 255; 255
+    Background Color: 0; 0; 0
     Default Light: true
     Fixed Frame: map
     Frame Rate: 30
@@ -628,23 +637,23 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.724222183227539
+      Distance: 36.33717346191406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.1723010241985321
-        Y: 1.2604451179504395
-        Z: -4.226807594299316
+        X: 0.772489070892334
+        Y: 1.7269139289855957
+        Z: -4.2263360023498535
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
-      Target Frame: robot2
+      Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 4.710400104522705
     Saved: ~

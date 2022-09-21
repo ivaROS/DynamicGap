@@ -87,10 +87,10 @@ add_library(dynamic_gap
   src/gap_feasibility.cpp
   ) 
 
-#catkin_install_python(PROGRAMS
-#  scripts/follow_global_path.py 
-#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
+catkin_install_python(PROGRAMS
+  scripts/vis_teb_obsts.py 
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 add_dependencies(dynamic_gap ${PROJECT_NAME}_gencfg)
 add_dependencies(dynamic_gap custom_msg_generate_messages_cpp)
