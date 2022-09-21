@@ -915,7 +915,8 @@ namespace dynamic_gap {
 
         
         // PERFORMING ANGULAR INFLATION
-        Eigen::Vector2f new_left_pt = pt_l + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_negpi2 * left_norm_vect_robot;
+        Eigen::Vector2f left_angular_inflation = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_negpi2 * left_norm_vect_robot;
+        Eigen::Vector2f new_left_pt = pt_l + left_angular_inflation;
         float new_theta_l = std::atan2(new_left_pt[1], new_left_pt[0]);
 
         // ROS_INFO_STREAM("theta_l: " << theta_l << ", new_theta_l: " << new_theta_l); // << ", theta_left_infl: " << theta_left_infl
@@ -924,7 +925,8 @@ namespace dynamic_gap {
         // float new_theta_r = theta_r + theta_r_infl;
         // new_theta_r = atanThetaWrap(new_theta_r);
         
-        Eigen::Vector2f new_right_pt = pt_r + cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_pi2 * right_norm_vect_robot;
+        Eigen::Vector2f right_angular_inflation = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * r_pi2 * right_norm_vect_robot;
+        Eigen::Vector2f new_right_pt = pt_r + right_angular_inflation;
         float new_theta_r = std::atan2(new_right_pt[1], new_right_pt[0]);
 
         // ROS_INFO_STREAM("theta_r: " << theta_r << ", new_theta_r: " << new_theta_r); // ", theta_r_infl: " << theta_r_infl << 
