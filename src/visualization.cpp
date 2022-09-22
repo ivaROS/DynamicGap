@@ -1171,6 +1171,34 @@ namespace dynamic_gap{
         trajectory_score = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         all_traj_viz = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
         relevant_global_plan_snippet_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
+        trajectory_switch_pub = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
+    }
+
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, geometry_msgs::PoseArray switch_traj) {
+        
+
+        geometry_msgs::Pose last_pose;
+        if (switch_traj.poses.size() > 0) {
+            last_pose = switch_traj.poses[switch_traj.poses.size() - 1];
+        } else {
+            last_pose = geometry_msgs::Pose();
+        }
+
+        visualization_msgs::Marker marker;
+        marker.header = switch_traj.header;
+        marker.ns = "traj_switch_count";
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position = last_pose.position;
+        marker.pose.orientation = last_pose.orientation;;
+        marker.scale.z = 0.3;
+        marker.color.a = 1.0; // Don't forget to set the alpha!
+        marker.color.r = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+        marker.text = "SWITCH: " + std::to_string(switch_index);
+        trajectory_switch_pub.publish(marker);
     }
 
     void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) {

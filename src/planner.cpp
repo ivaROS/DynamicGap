@@ -90,6 +90,7 @@ namespace dynamic_gap
         static_scan = sensor_msgs::LaserScan();
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
         // ROS_INFO_STREAM("done initializing");
+        switch_index = 0;
         return true;
     }
 
@@ -168,7 +169,7 @@ namespace dynamic_gap
         associated_raw_gaps = update_models(raw_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg);
+        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, true);
         static_scan_pub.publish(static_scan);
         trajArbiter->updateStaticEgoCircle(static_scan);
         gapManip->updateStaticEgoCircle(static_scan);
@@ -188,7 +189,7 @@ namespace dynamic_gap
         intermediate_vels.clear();
         intermediate_accs.clear();
 
-        // gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
+        gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
         gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
         gapvisualizer->drawGapsModels(associated_observed_gaps);
 
@@ -592,7 +593,7 @@ namespace dynamic_gap
             setCurrentRightModel(NULL);
             setCurrentGapPeakVelocities(0.0, 0.0);
             trajectory_pub.publish(empty_traj);
-
+            trajvisualizer->drawTrajectorySwitchCount(switch_index++, empty_traj);
             return empty_traj;
         } else {
             setCurrentTraj(incoming);
@@ -601,6 +602,7 @@ namespace dynamic_gap
             setCurrentRightModel(incoming_gap.right_model);
             setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
             trajectory_pub.publish(incoming);          
+            trajvisualizer->drawTrajectorySwitchCount(switch_index++, incoming);
 
             return incoming;  
         }                       
@@ -656,13 +658,13 @@ namespace dynamic_gap
                 
                 std::string curr_traj_status = (curr_traj_length_zero) ? "curr traj length 0" : "curr traj is not feasible";
                 if (valid_incoming_traj) {
-                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: " << curr_traj_status << ", incoming score finite");
+                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index << " TO INCOMING: " << curr_traj_status << ", incoming score finite");
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
                 } else  {
                     std::string incoming_traj_status = (incoming.poses.size() > 0) ? "incoming traj length 0" : "incoming score infinite";
 
-                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: " << curr_traj_status << ", " << incoming_traj_status);
+                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index <<  " TO EMPTY: " << curr_traj_status << ", " << incoming_traj_status);
                     
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, true);
                 }
@@ -677,7 +679,7 @@ namespace dynamic_gap
             reduced_curr_rbt.poses = std::vector<geometry_msgs::Pose>(curr_rbt.poses.begin() + start_position, curr_rbt.poses.end());
             reduced_curr_time_arr = std::vector<double>(curr_time_arr.begin() + start_position, curr_time_arr.end());
             if (reduced_curr_rbt.poses.size() < 2) {
-                if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: old traj length less than 2");
+                if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index <<  " TO INCOMING: old traj length less than 2");
 
                 return changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
             }
@@ -700,11 +702,11 @@ namespace dynamic_gap
 
             if (curr_subscore == -std::numeric_limits<double>::infinity()) {
                 if (incom_subscore == -std::numeric_limits<double>::infinity()) {
-                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO EMPTY: both -infinity");
+                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index <<  " TO EMPTY: both -infinity");
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, true);
                 } else {
-                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE TO INCOMING: swapping trajectory due to collision");
+                    if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index << " TO INCOMING: swapping trajectory due to collision");
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
                 }
@@ -998,7 +1000,7 @@ namespace dynamic_gap
             dynamic_laser_scan.ranges = stored_scan.ranges;
 
             trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
-
+            // trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, curr_agents_lc, dynamic_laser_scan, print);
             future_scan_idx = (int) (t_iplus1 / cfg.traj.integrate_stept);
             // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << future_scan_idx);
             future_scans[future_scan_idx] = dynamic_laser_scan;
@@ -1025,7 +1027,7 @@ namespace dynamic_gap
         
         start_time = ros::WallTime::now().toSec();
         try {
-            getFutureScans(agent_odoms, agent_vels, false);
+            getFutureScans(agent_odoms, agent_vels, true);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }

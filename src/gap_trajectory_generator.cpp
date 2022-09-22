@@ -5,9 +5,10 @@ namespace dynamic_gap{
     void GapTrajGenerator::initializeSolver() {
         ROS_INFO_STREAM("initializing solver");
 
-        int num_curve_points = cfg_->traj.num_curve_points;
-        int num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
-
+        num_curve_points = cfg_->traj.num_curve_points;
+        num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
+        ROS_INFO_STREAM("num_curve_points: " << num_curve_points);
+        ROS_INFO_STREAM("num_qB_points: " << num_qB_points);
         int Kplus1 = 2*(num_curve_points + num_qB_points) + 1;
         hessian.resize(Kplus1, Kplus1);
 
@@ -156,8 +157,8 @@ namespace dynamic_gap{
             Eigen::Vector2d right_bezier_origin(selectedGap.right_bezer_origin[0],
                                                 selectedGap.right_bezer_origin[1]);
 
-            int num_curve_points = cfg_->traj.num_curve_points;
-            int num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
+            //int num_curve_points = cfg_->traj.num_curve_points;
+            // int num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0;
 
             Eigen::MatrixXd left_curve(num_curve_points + num_qB_points, 2);
             Eigen::MatrixXd right_curve(num_curve_points + num_qB_points, 2);            
@@ -560,8 +561,11 @@ namespace dynamic_gap{
         Eigen::VectorXd right_indices = arclength_sample_bezier(right_bezier_origin, weighted_right_pt_0, right_pt_1, num_curve_points, des_right_dist);
         Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
         origin << 0.0, 0.0;
-        double offset = 0.1; // (des_left_dist + des_right_dist) / 2.0;
+        double offset = 0.01; // (des_left_dist + des_right_dist) / 2.0;
         // ROS_INFO_STREAM("offset: " << offset);
+
+        ROS_INFO_STREAM("true left RGE points: " << std::ceil( (gap_radial_extension - left_bezier_origin).norm() / des_left_dist));
+        ROS_INFO_STREAM("true right RGE points: " << std::ceil( (gap_radial_extension - right_bezier_origin).norm() / des_right_dist));
 
         int counter = 0;
         for (double i = num_qB_points; i < (num_curve_points + num_qB_points); i++) {

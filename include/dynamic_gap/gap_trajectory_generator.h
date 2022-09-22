@@ -77,6 +77,7 @@ namespace dynamic_gap {
             OsqpEigen::Solver solver;
             Eigen::VectorXd gradient, lowerBound, upperBound;
             Eigen::SparseMatrix<double> linearMatrix, hessian;
+            int num_curve_points, num_qB_points;
 
     };
 }

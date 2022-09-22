@@ -347,16 +347,18 @@ namespace dynamic_gap {
         double norm_ratio = prev_vel.norm() / (curr_vel.norm() + eps);
         // ROS_INFO_STREAM("norm ratio: " << norm_ratio);
 
-        return (dot_prod > 0.9 && curr_vel.norm() > 0.1 && std::abs(norm_ratio - 1.0) < 0.1);
+        return (dot_prod > 0.5 && curr_vel.norm() > 0.1 && std::abs(norm_ratio - 1.0) < 0.1);
     }
 
     void createAgentFromModels(dynamic_gap::cart_model * curr_model,    
                                dynamic_gap::cart_model * prev_model,
-                               std::vector<Matrix<double, 4, 1> > & agents) {
+                               std::vector<Matrix<double, 4, 1> > & agents,
+                               bool print) {
         Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
         Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
         Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
+        if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
         agents.push_back(new_agent);                                  
     }
 
@@ -369,7 +371,6 @@ namespace dynamic_gap {
         Eigen::Vector2d curr_meas = curr_model->get_x_tilde();
         Eigen::Vector2d prev_meas = prev_model->get_x_tilde();
 
-        // ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
         int curr_idx = int(std::round(std::atan2(curr_meas[1], curr_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
         int prev_idx = int(std::round(std::atan2(prev_meas[1], prev_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
         // ROS_INFO_STREAM("prev_idx: " << prev_idx << ", curr_idx: " << curr_idx);
@@ -406,7 +407,9 @@ namespace dynamic_gap {
         }
     }
 
-    sensor_msgs::LaserScan GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
+    sensor_msgs::LaserScan GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 
+                                                                boost::shared_ptr<sensor_msgs::LaserScan const> msg,
+                                                                bool print) {
 
         sensor_msgs::LaserScan curr_scan = *msg.get(); 
         if (observed_gaps.size() == 0) {
@@ -437,7 +440,7 @@ namespace dynamic_gap {
 
             if (checkModelSimilarity(curr_model, prev_model)) {
                 clearAgentFromStaticScan(curr_model, prev_model, curr_scan);
-                createAgentFromModels(curr_model, prev_model, agents);
+                createAgentFromModels(curr_model, prev_model, agents, print);
             }
 
             prev_model = curr_model;
@@ -449,7 +452,7 @@ namespace dynamic_gap {
 
         if (checkModelSimilarity(curr_model, prev_model)) {
             clearAgentFromStaticScan(curr_model, prev_model, curr_scan);
-            createAgentFromModels(curr_model, prev_model, agents);
+            createAgentFromModels(curr_model, prev_model, agents, print);
         }
 
         curr_agents = agents;

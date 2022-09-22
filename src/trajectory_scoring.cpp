@@ -265,7 +265,7 @@ namespace dynamic_gap {
         if (interval <= 0.0) {
             return;
         }
-        if (print) ROS_INFO_STREAM("recovering dynamic egocircle with cheat for interval: " << t_i << " to " << t_iplus1);
+        if (print) ROS_INFO_STREAM("recovering dynamic egocircle for interval: " << t_i << " to " << t_iplus1);
         // for EVERY interval, start with static scan
         dynamic_laser_scan.ranges = static_scan.ranges;
 
@@ -273,7 +273,7 @@ namespace dynamic_gap {
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < curr_agents_lc.size(); i++) {
             if (print) {
-                ROS_INFO_STREAM("robot" << i << " moving from (" << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ")");
+                ROS_INFO_STREAM("agent" << i << " moving from (" << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ")");
             }
 
             curr_agents_lc[i][0] += curr_agents_lc[i][2]*interval;
