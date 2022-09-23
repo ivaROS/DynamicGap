@@ -49,8 +49,8 @@ namespace dynamic_gap {
     class GapTrajGenerator : public TrajectoryGenerator {
         using TrajectoryGenerator::TrajectoryGenerator;
         public:
-            GapTrajGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; initializeSolver(); };
-            void initializeSolver();
+            GapTrajGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
+            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A);
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::Twist, bool);
             std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
@@ -66,18 +66,15 @@ namespace dynamic_gap {
                                 Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
                                 Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
                                 Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, double & left_weight, double & right_weight, 
-                                double num_curve_points, double num_qB_points, Eigen::Vector2d init_rbt_pos,
+                                double num_curve_points, Eigen::Vector2d init_rbt_pos,
                                 Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin);
             void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
                                      Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd all_centers);
 
 
         private: 
-            geometry_msgs::TransformStamped planning2odom;
-            OsqpEigen::Solver solver;
-            Eigen::VectorXd gradient, lowerBound, upperBound;
-            Eigen::SparseMatrix<double> linearMatrix, hessian;
-            int num_curve_points, num_qB_points;
+            geometry_msgs::TransformStamped planning2odom;       
+            int num_curve_points;
 
     };
 }
