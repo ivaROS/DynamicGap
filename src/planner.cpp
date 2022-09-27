@@ -985,8 +985,6 @@ namespace dynamic_gap
         dynamic_laser_scan.range_min = stored_scan.range_min;
         dynamic_laser_scan.range_max = stored_scan.range_max;
         dynamic_laser_scan.ranges = stored_scan.ranges;
-        std::vector<float> scan_intensities(stored_scan.ranges.size(), 0.5);
-        dynamic_laser_scan.intensities = scan_intensities;
 
         double t_i = 0.0;
         future_scans[0] = dynamic_laser_scan; // at t = 0.0
@@ -994,13 +992,18 @@ namespace dynamic_gap
         std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
         std::vector<Matrix<double, 4, 1> > curr_agents_lc = curr_agents;
+
+        ROS_INFO_STREAM("detected agents: ");
+        for (int i = 0; i < curr_agents_lc.size(); i++) {
+            ROS_INFO_STREAM("agent" << i << " position: " << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ", velocity: " << curr_agents_lc[i][2] << ", " << curr_agents_lc[i][3]);
+        }
         
         int future_scan_idx;
         for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
             dynamic_laser_scan.ranges = stored_scan.ranges;
 
-            trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
-            // trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, curr_agents_lc, dynamic_laser_scan, print);
+            //trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
+            trajArbiter->recoverDynamicEgoCircle(t_i, t_iplus1, curr_agents_lc, dynamic_laser_scan, print);
             future_scan_idx = (int) (t_iplus1 / cfg.traj.integrate_stept);
             // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << future_scan_idx);
             future_scans[future_scan_idx] = dynamic_laser_scan;
@@ -1027,7 +1030,7 @@ namespace dynamic_gap
         
         start_time = ros::WallTime::now().toSec();
         try {
-            getFutureScans(agent_odoms, agent_vels, true);
+            getFutureScans(agent_odoms, agent_vels, false);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }

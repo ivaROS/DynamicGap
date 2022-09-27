@@ -149,12 +149,12 @@ namespace dynamic_gap {
             if (maxIndex > 0) {
                 // ROS_INFO_STREAM("min norm index: " << maxIndex);
                 // ROS_INFO_STREAM("min norm center to rbt dir: " << centers_to_rbt.row(maxIndex));
-                Eigen::Vector2d min_norm_center = all_centers.row(maxIndex);
+                Eigen::Vector2d min_norm_center_to_rbt = centers_to_rbt.row(maxIndex);
                 // ROS_INFO_STREAM("min norm center: " << min_norm_center);
                 Eigen::Vector2d min_norm_inward_norm = all_inward_norms.row(maxIndex - 1);
                 // ROS_INFO_STREAM("min norm inward dir: " << min_norm_inward_norm);
-                if (min_norm_center.dot(min_norm_inward_norm) > 0) {
-                    ROS_INFO_STREAM("out of gap");
+                if (min_norm_center_to_rbt.dot(min_norm_inward_norm) < 0) {
+                    // ROS_INFO_STREAM("out of gap");
                     dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
                     dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
                     return;

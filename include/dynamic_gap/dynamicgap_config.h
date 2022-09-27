@@ -184,7 +184,7 @@ namespace dynamic_gap {
             projection.r_norm_offset = 0.5;
             projection.k_CBF = 1.0;
 
-            gap_feas.debug_log = true;
+            gap_feas.debug_log = false;
 
             waypoint.global_plan_lookup_increment = 75;
             waypoint.global_plan_change_tolerance = 0.1;

@@ -44,7 +44,7 @@ namespace dynamic_gap {
             // difference in distance between current and previous rays
             scan_diff = scan_dist - last_scan;
             // Arbitrary small threshold for a range difference to be considered
-            if (std::abs(scan_diff) > 0.2) 
+            if (std::abs(scan_diff) > 2 * cfg_->rbt.r_inscr) 
             {
                 // If both current and last values are not infinity, meaning this is not a swept gap
                 if (scan_dist < max_scan_dist && last_scan < max_scan_dist) 
@@ -56,12 +56,11 @@ namespace dynamic_gap {
                     //std::cout << "candiate radial gap from (" << (it-1) << ", " << last_scan << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
-                    if (detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) { 
+                    if (detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) { 
                         //std::cout << "adding candidate radial gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
                 }
-                
             }
 
             // Either previous distance finite and current distance infinite or vice-versa, 
@@ -79,7 +78,7 @@ namespace dynamic_gap {
                     // Inscribed radius gets enforced here, or unless using inflated egocircle,
                     // then no need for range diff
                     // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
-                    if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || detected_gap.get_dist_side() > 4 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
+                    if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || detected_gap.get_dist_side() > 2 * cfg_->rbt.r_inscr || cfg_->planning.planning_inflated) {
                         //std::cout << "adding candidate swept gap" << std::endl;
                         raw_gaps.push_back(detected_gap);
                     }
@@ -110,7 +109,7 @@ namespace dynamic_gap {
             float gap_dist_side = detected_gap.get_dist_side();
             // ROS_INFO_STREAM("gap side dist: " << gap_dist_side);
             //std::cout << "candidate last gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << last_scan_idx << ", " << last_scan_dist << ")" << std::endl;
-            if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || gap_dist_side > 4 * cfg_->rbt.r_inscr) {
+            if (detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan / 2) || gap_dist_side > 2 * cfg_->rbt.r_inscr) {
                 // ROS_INFO_STREAM("adding candidate last gap");
                 raw_gaps.push_back(detected_gap);
             }
@@ -164,16 +163,16 @@ namespace dynamic_gap {
             double scan_dist = stored_scan_msgs.ranges.at(final_goal_idx);
             
             if (final_goal_dist < scan_dist) {
-                raw_gaps = addTerminalGoal(final_goal_idx, raw_gaps, stored_scan_msgs);
+                addTerminalGoal(final_goal_idx, raw_gaps, stored_scan_msgs);
             }
         }
 
         return raw_gaps;
     }
 
-    std::vector<dynamic_gap::Gap> GapUtils::addTerminalGoal(int final_goal_idx,
-                                                            std::vector<dynamic_gap::Gap> &raw_gaps,
-                                                            sensor_msgs::LaserScan stored_scan_msgs) {
+    void GapUtils::addTerminalGoal(int final_goal_idx,
+                                    std::vector<dynamic_gap::Gap> &raw_gaps,
+                                    sensor_msgs::LaserScan stored_scan_msgs) {
         ROS_INFO_STREAM("running addTerminalGoal");
         ROS_INFO_STREAM("final_goal_idx: " << final_goal_idx);
         int gap_idx = 0;
@@ -185,7 +184,7 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("checking against: " << g.RIdx() << " to " << g.LIdx());
             if (final_goal_idx >= g.RIdx() && final_goal_idx <= g.LIdx()) {
                 ROS_INFO_STREAM("final goal is in gap: " << g.RIdx() << ", " << g.LIdx());
-                return raw_gaps;
+                return;
             }
             gap_idx += 1;
         }
@@ -201,7 +200,7 @@ namespace dynamic_gap {
         detected_gap.setMinSafeDist(min_dist);
         detected_gap.artificial = true;
         raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        
-        return raw_gaps;
+        return;
     }    
 
     std::vector<dynamic_gap::Gap> GapUtils::mergeGapsOneGo(
@@ -358,7 +357,7 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
         Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
-        if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
+        // if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
         agents.push_back(new_agent);                                  
     }
 

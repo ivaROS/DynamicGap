@@ -27,9 +27,9 @@ namespace dynamic_gap {
     
         std::vector<dynamic_gap::Gap> mergeGapsOneGo(boost::shared_ptr<sensor_msgs::LaserScan const>, std::vector<dynamic_gap::Gap>&);
 
-        std::vector<dynamic_gap::Gap> addTerminalGoal(int, 
-                                                      std::vector<dynamic_gap::Gap> &, 
-                                                      sensor_msgs::LaserScan);        
+        void addTerminalGoal(int, 
+                                std::vector<dynamic_gap::Gap> &, 
+                                sensor_msgs::LaserScan);        
 
         void setMergeThreshold(float);
         void setIdxThreshold(int);

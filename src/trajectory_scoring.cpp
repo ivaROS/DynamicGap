@@ -258,7 +258,7 @@ namespace dynamic_gap {
 
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, 
                                                         std::vector<Matrix<double, 4, 1> > & curr_agents_lc,
-                                                        sensor_msgs::LaserScan& dynamic_laser_scan,
+                                                        sensor_msgs::LaserScan & dynamic_laser_scan,
                                                         bool print) {
         
         double interval = t_iplus1 - t_i;

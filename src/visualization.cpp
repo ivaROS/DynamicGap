@@ -330,7 +330,7 @@ namespace dynamic_gap{
         // ROS_INFO_STREAM("in drawReachableGap");
 
         float num_curve_points = cfg_->traj.num_curve_points;
-        float num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0.0;
+        // float num_qB_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_qB_points : 0.0;
         float half_num_scan = g.half_scan;
 
         Eigen::Vector2f left_gap_origin(g.left_bezier_origin[0],       
@@ -419,9 +419,10 @@ namespace dynamic_gap{
         this_marker.id = id++;
         vis_arr.markers.push_back(this_marker);
         
-        int num_pts_per_side = g.all_curve_pts.rows() / 2;
+        // int num_pts_per_side = g.all_curve_pts.rows() / 2;
         // ROS_INFO_STREAM("number of all_curve_pts: " << g.all_curve_pts.rows());
-        for (int i = num_qB_points; i < (num_pts_per_side - 1); i++) {            
+        ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points << " to " << g.num_left_rge_points + num_curve_points - 1);
+        for (int i = g.num_left_rge_points; i < (g.num_left_rge_points + num_curve_points - 1); i++) {            
             lines.clear();  
 
             Eigen::Vector2d left_pt = g.all_curve_pts.row(i);
@@ -444,7 +445,8 @@ namespace dynamic_gap{
         }
 
         //populate right curve
-        for (int i = (num_pts_per_side + num_qB_points); i < (2*num_pts_per_side - 1); i++) {
+        ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points + num_curve_points << " to " << g.all_curve_pts.rows() - 1);
+        for (int i = (g.num_left_rge_points + num_curve_points); i < (g.all_curve_pts.rows() - 1); i++) {
             lines.clear();  
 
             Eigen::Vector2d right_pt = g.all_curve_pts.row(i);
