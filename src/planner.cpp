@@ -153,19 +153,16 @@ namespace dynamic_gap
         }
 
         Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-        // Matrix<double, 1, 3> a_ego(rbt_accel.linear.x, rbt_accel.linear.y, rbt_accel.angular.z);
-        // Matrix<double, 1, 3> v_ego(rbt_vel_min1.linear.x, rbt_vel_min1.linear.y, rbt_vel_min1.angular.z);
-        // Matrix<double, 1, 3> a_ego(rbt_accel_min1.linear.x, rbt_accel_min1.linear.y, rbt_accel_min1.angular.z);
 
-        // ROS_INFO_STREAM("RAW GAP ASSOCIATING");
         // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         previous_raw_gaps = associated_raw_gaps;
         raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
         
+        bool raw_gap_assoc_print = false;  
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
         raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
-        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx);
+        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx, raw_gap_assoc_print);
         associated_raw_gaps = update_models(raw_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -179,10 +176,12 @@ namespace dynamic_gap
         // double observed_gaps_start_time = ros::WallTime::now().toSec();
         previous_gaps = associated_observed_gaps;
         observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
-              
+
+        ROS_INFO_STREAM_NAMED("laserScanCB", "SIMPLIFIED GAP ASSOCIATING");    
+        bool simp_gap_assoc_print = true;  
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx);
+        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx, simp_gap_assoc_print);
         associated_observed_gaps = update_models(observed_gaps, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -608,7 +607,12 @@ namespace dynamic_gap
         }                       
     }
 
-    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<dynamic_gap::Gap> feasible_gaps, std::vector<double> time_arr) {
+    geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, 
+                                                       dynamic_gap::Gap incoming_gap, 
+                                                       std::vector<dynamic_gap::Gap> feasible_gaps, 
+                                                       std::vector<double> time_arr,
+                                                       bool curr_exec_gap_assoc,
+                                                       bool curr_exec_gap_feas) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         auto curr_traj = getCurrentTraj();
         auto curr_time_arr = getCurrentTimeArr();
@@ -620,11 +624,11 @@ namespace dynamic_gap
             
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapIndex() << ", current right gap index: " << getCurrentRightGapIndex());
-            bool curr_gap_feasible = false;
+            bool curr_gap_feasible = (curr_exec_gap_assoc && curr_exec_gap_feas);
             for (dynamic_gap::Gap g : feasible_gaps) {
                 // ROS_INFO_STREAM("feasible left gap index: " << g.left_model->get_index() << ", feasible right gap index: " << g.right_model->get_index());
-                if (g.right_model->get_index() == getCurrentRightGapIndex() && g.left_model->get_index() == getCurrentLeftGapIndex()) {
-                    curr_gap_feasible = true;
+                if (g.left_model->get_index() == getCurrentLeftGapIndex() &&
+                    g.right_model->get_index() == getCurrentRightGapIndex()) {
                     setCurrentGapPeakVelocities(g.peak_velocity_x, g.peak_velocity_y);
                     break;
                 }
@@ -640,6 +644,8 @@ namespace dynamic_gap
             auto incom_rbt = gapTrajSyn->transformBackTrajectory(incoming, odom2rbt);
             incom_rbt.header.frame_id = cfg.robot_frame_id;
             // why do we have to rescore here?
+
+            if (cfg.traj.debug_log) ROS_INFO_STREAM("scoring incoming trajectory");
             auto incom_score = trajArbiter->scoreTrajectory(incom_rbt, time_arr, curr_raw_gaps, 
                                                             agent_odoms, agent_vels, future_scans, false, true);
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
@@ -651,12 +657,17 @@ namespace dynamic_gap
             bool curr_traj_length_zero = curr_traj.poses.size() == 0;
             bool curr_gap_not_feasible = !curr_gap_feasible;
 
-
             // CURRENT TRAJECTORY LENGTH ZERO OR IS NOT FEASIBLE
             if (curr_traj_length_zero || curr_gap_not_feasible) {
                 bool valid_incoming_traj = incoming.poses.size() > 0 && incom_subscore > -std::numeric_limits<double>::infinity();
                 
                 std::string curr_traj_status = (curr_traj_length_zero) ? "curr traj length 0" : "curr traj is not feasible";
+                if (!curr_exec_gap_assoc) {
+                    curr_traj_status = "curr exec gap is not associated (left: " + std::to_string(getCurrentLeftGapIndex()) + ", right: " + std::to_string(getCurrentRightGapIndex()) + ")";
+                } else if (!curr_exec_gap_feas) {
+                    curr_traj_status = "curr exec gap is deemed infeasible";
+                }
+                
                 if (valid_incoming_traj) {
                     if (cfg.traj.debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index << " TO INCOMING: " << curr_traj_status << ", incoming score finite");
 
@@ -687,6 +698,7 @@ namespace dynamic_gap
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
             incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
             if (cfg.traj.debug_log) ROS_INFO_STREAM("re-scored incoming trajectory subscore: " << incom_subscore);
+            if (cfg.traj.debug_log) ROS_INFO_STREAM("scoring current trajectory");            
             auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, 
                                                            agent_odoms, agent_vels, future_scans, false, false);
             auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
@@ -891,7 +903,8 @@ namespace dynamic_gap
         return simp_association;
     }
 
-    std::vector<dynamic_gap::Gap> Planner::gapSetFeasibilityCheck() {
+    std::vector<dynamic_gap::Gap> Planner::gapSetFeasibilityCheck(bool & curr_exec_gap_assoc, 
+                                                                  bool & curr_exec_gap_feas) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         //std::cout << "PULLING MODELS TO ACT ON" << std::endl;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
@@ -929,24 +942,17 @@ namespace dynamic_gap
             printGapModels(curr_observed_gaps);
         }
 
-        /*
+        
         int curr_left_idx = getCurrentLeftGapIndex();
         int curr_right_idx = getCurrentRightGapIndex();
         ROS_INFO_STREAM("current left/right indices: " << curr_left_idx << ", " << curr_right_idx);
-        bool gap_associated = false;
-        
-        */
+        curr_exec_gap_assoc = false;
+        curr_exec_gap_feas = false;
 
         bool gap_i_feasible;
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         for (size_t i = 0; i < curr_observed_gaps.size(); i++) {
             // obtain crossing point
-            /*
-            if ( curr_observed_gaps.at(i).left_model->get_index() == curr_left_idx && curr_observed_gaps.at(i).right_model->get_index() == curr_right_idx) {
-                gap_associated = true;
-            }
-            //  << ", left index: " << curr_observed_gaps.at(i).left_model->get_index() << ", right index: " << curr_observed_gaps.at(i).right_model->get_index()
-            */
 
             if (cfg.gap_feas.debug_log) ROS_INFO_STREAM("feasibility check for gap " << i);
             gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));
@@ -955,6 +961,12 @@ namespace dynamic_gap
                 curr_observed_gaps.at(i).addTerminalRightInformation();
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
                 // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peak_velocity_x << ", " << curr_observed_gaps.at(i).peak_velocity_y);
+            }
+
+            if (curr_observed_gaps.at(i).left_model->get_index() == curr_left_idx && 
+                curr_observed_gaps.at(i).right_model->get_index() == curr_right_idx) {
+                curr_exec_gap_assoc = true;
+                curr_exec_gap_feas = true;
             }
         }
 
@@ -1017,17 +1029,17 @@ namespace dynamic_gap
 
         double start_time = ros::WallTime::now().toSec();      
         
+        bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         try { 
-            feasible_gap_set = gapSetFeasibilityCheck();
+            feasible_gap_set = gapSetFeasibilityCheck(curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in gapSetFeasibilityCheck");
         }
         int gaps_size = feasible_gap_set.size();
         ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        
         start_time = ros::WallTime::now().toSec();
         try {
             getFutureScans(agent_odoms, agent_vels, false);
@@ -1084,7 +1096,7 @@ namespace dynamic_gap
         geometry_msgs::PoseArray final_traj;
         
         try {
-            final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr);
+            final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }
@@ -1146,7 +1158,7 @@ namespace dynamic_gap
         for (size_t i = 0; i < gaps.size(); i++)
         {
             dynamic_gap::Gap g = gaps.at(i);
-            ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx());
+            ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx() << ", left model: " << g.left_model->get_index() << ", right_model: " << g.right_model->get_index());
             Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
             g.getLCartesian(x, y);            
             ROS_INFO_STREAM("left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");

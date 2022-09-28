@@ -421,7 +421,7 @@ namespace dynamic_gap{
         
         // int num_pts_per_side = g.all_curve_pts.rows() / 2;
         // ROS_INFO_STREAM("number of all_curve_pts: " << g.all_curve_pts.rows());
-        ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points << " to " << g.num_left_rge_points + num_curve_points - 1);
+        // ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points << " to " << g.num_left_rge_points + num_curve_points - 1);
         for (int i = g.num_left_rge_points; i < (g.num_left_rge_points + num_curve_points - 1); i++) {            
             lines.clear();  
 
@@ -445,7 +445,7 @@ namespace dynamic_gap{
         }
 
         //populate right curve
-        ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points + num_curve_points << " to " << g.all_curve_pts.rows() - 1);
+        // ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points + num_curve_points << " to " << g.all_curve_pts.rows() - 1);
         for (int i = (g.num_left_rge_points + num_curve_points); i < (g.all_curve_pts.rows() - 1); i++) {
             lines.clear();  
 

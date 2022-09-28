@@ -293,7 +293,12 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, dynamic_gap::Gap incoming_gap, std::vector<dynamic_gap::Gap> feasible_gaps, std::vector<double> time_arr);
+        geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, 
+                                                  dynamic_gap::Gap incoming_gap, 
+                                                  std::vector<dynamic_gap::Gap> feasible_gaps, 
+                                                  std::vector<double> time_arr,
+                                                  bool curr_exec_gap_assoc, 
+                                                  bool curr_exec_gap_feas);
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function
@@ -354,7 +359,7 @@ namespace dynamic_gap
 
         std::vector<int> get_simplified_associations();
 
-        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck();
+        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(bool &, bool &);
 
         void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
         void visualizeComponents(std::vector<dynamic_gap::Gap> manip_gap_set);

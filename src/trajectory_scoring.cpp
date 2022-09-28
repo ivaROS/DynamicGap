@@ -481,7 +481,8 @@ namespace dynamic_gap {
                 // ROS_INFO_STREAM("dynamic_cost_val: " << dynamic_cost_val.at(i));
                 
                 if (dynamic_cost_val.at(i) < 0.0 && cfg_->traj.debug_log) {
-                    ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << " score of: " << 
+                    ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << 
+                                    "(t: " << t_iplus1 << "), score of: " << 
                                     dynamic_cost_val.at(i) << ", robot pose: " << 
                                     traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << 
                                     ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1] << ", distance: " << dist2Pose(theta, range, traj.poses.at(i)));

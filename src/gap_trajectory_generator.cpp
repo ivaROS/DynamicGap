@@ -493,10 +493,10 @@ namespace dynamic_gap{
         left_curve_vel = Eigen::MatrixXd(total_num_left_curve_points, 2);
         left_curve_inward_norm = Eigen::MatrixXd(total_num_left_curve_points, 2);
 
-        ROS_INFO_STREAM("true left RGE points: " << true_left_num_rge_points);
+        // ROS_INFO_STREAM("true left RGE points: " << true_left_num_rge_points);
         for (double i = 0; i < true_left_num_rge_points; i++) {
             s = i / true_left_num_rge_points;
-            ROS_INFO_STREAM("s_left_rge: " << s);
+            // ROS_INFO_STREAM("s_left_rge: " << s);
             pos_val0 = (1 - s);
             pos_val1 = s;
             curr_left_pt = pos_val0 * gap_radial_extension + pos_val1 * left_bezier_origin;
@@ -517,10 +517,10 @@ namespace dynamic_gap{
         right_curve_vel = Eigen::MatrixXd(total_num_right_curve_points, 2);
         right_curve_inward_norm = Eigen::MatrixXd(total_num_right_curve_points, 2);
         
-        ROS_INFO_STREAM("true right RGE points: " << true_right_num_rge_points);
+        // ROS_INFO_STREAM("true right RGE points: " << true_right_num_rge_points);
         for (double i = 0; i < true_right_num_rge_points; i++) {
             s = i / true_right_num_rge_points;
-            ROS_INFO_STREAM("s_right_rge: " << s);
+            // ROS_INFO_STREAM("s_right_rge: " << s);
             pos_val0 = (1 - s);
             pos_val1 = s;
             curr_right_pt = pos_val0 * gap_radial_extension + pos_val1 * right_bezier_origin;
@@ -575,7 +575,7 @@ namespace dynamic_gap{
             s_left = left_indices(counter, 0);
             counter++;
 
-            ROS_INFO_STREAM("s_left: " << s_left);
+            // ROS_INFO_STREAM("s_left: " << s_left);
             pos_val0 = (1 - s_left) * (1 - s_left);
             pos_val1 = 2*(1 - s_left)*s_left;
             pos_val2 = s_left*s_left;
@@ -598,7 +598,7 @@ namespace dynamic_gap{
             s_right = right_indices(counter, 0);
             counter++;
 
-            ROS_INFO_STREAM("s_right: " << s_right);
+            // ROS_INFO_STREAM("s_right: " << s_right);
 
             pos_val0 = (1 - s_right) * (1 - s_right);
             pos_val1 = 2*(1 - s_right)*s_right;
