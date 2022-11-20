@@ -41,7 +41,8 @@ namespace dynamic_gap
             void drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns, bool initial);
             void drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns);
             void drawGapsModels(std::vector<dynamic_gap::Gap> g);
-            void drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
+            void drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
+            void drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
             void drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
             void drawReachableGaps(std::vector<dynamic_gap::Gap> g);
             void drawReachableGapsCenters(std::vector<dynamic_gap::Gap> g);
@@ -49,11 +50,7 @@ namespace dynamic_gap
             void drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
             void drawGapSplines(std::vector<dynamic_gap::Gap> g);
             void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g);
-            void draw_model_pt_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
-            void draw_model_pt_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
-            void drawGapGroundTruthModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns);
-            void draw_model_pt_ground_truth_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
-            void draw_model_pt_ground_truth_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns);
+            void draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns, bool ground_truth);
 
 
 

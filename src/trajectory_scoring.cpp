@@ -9,7 +9,7 @@ namespace dynamic_gap {
         r_inscr = cfg_->rbt.r_inscr;
         rmax = cfg_->traj.rmax;
         cobs = cfg_->traj.cobs;
-        w = cfg_->traj.w;
+        pose_exp_weight = cfg_->traj.pose_exp_weight;
         propagatedEgocirclePublisher = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 1);
 
     }
@@ -509,10 +509,10 @@ namespace dynamic_gap {
         if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
-            double w1 = 1.0;
+            double w1 = 0.1;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
-            if (terminal_cost < 1 && total_val >= 0) {
+            if (terminal_cost < 0.25 && total_val >= 0) {
                 // std::cout << "returning really good trajectory" << std::endl;
                 return std::vector<double>(traj.poses.size(), 100);
             }
@@ -624,7 +624,7 @@ namespace dynamic_gap {
         // if distance is beyond scan, return 0
         if (d > rmax) return 0;
 
-        return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio) / (rmax - r_inscr * cfg_->traj.inf_ratio));
+        return cobs * std::exp(- pose_exp_weight * (d - r_inscr * cfg_->traj.inf_ratio) / (rmax - r_inscr * cfg_->traj.inf_ratio));
     }
 
     double TrajectoryArbiter::chapterScore(double d) {
@@ -637,7 +637,7 @@ namespace dynamic_gap {
         // if distance is essentially infinity, return 0
         if (d > rmax) return 0;
 
-        return cobs * std::exp(- w * (d - r_inscr * cfg_->traj.inf_ratio));
+        return cobs * std::exp(- pose_exp_weight * (d - r_inscr * cfg_->traj.inf_ratio));
     }
 
     int TrajectoryArbiter::searchIdx(geometry_msgs::Pose pose) {

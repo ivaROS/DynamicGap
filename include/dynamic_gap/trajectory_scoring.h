@@ -90,7 +90,7 @@ namespace dynamic_gap{
             
             int search_idx = -1;
 
-            double r_inscr, rmax, cobs, w;
+            double r_inscr, rmax, cobs, pose_exp_weight;
             ros::Publisher propagatedEgocirclePublisher;
     };
 }

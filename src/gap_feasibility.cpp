@@ -173,6 +173,7 @@ namespace dynamic_gap {
         Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
 
         Eigen::Vector2d left_cross_pt, right_cross_pt, diff_pt;
+        bool left_range_less_radius, right_range_less_radius, gap_collided_w_rbt;
         for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
             // checking to see if left point is reachable
             bool opening_left_pt_is_reachable = (left_opening && ((1.0 / left_frozen_mp_state[0]) < cfg_->control.vx_absmax * t));
@@ -212,16 +213,26 @@ namespace dynamic_gap {
             right_central_dot = right_bearing_vect.dot(prev_central_bearing_vect);
             bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
 
+            left_range_less_radius = (1.0 / left_frozen_mp_state[0]) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            right_range_less_radius = (1.0 / right_frozen_mp_state[0]) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            gap_collided_w_rbt = (left_range_less_radius || right_range_less_radius);
+
             // checking for bearing crossing conditions for closing and crossing gaps
-            if (L_to_R_angle > M_PI && bearing_crossing_check) {
+            if ( (L_to_R_angle > M_PI && bearing_crossing_check) || gap_collided_w_rbt) {
                 if (cfg_->gap_feas.debug_log) ROS_INFO_STREAM("bearing cross at " << t);
                 // CLOSING GAP CHECK
                 left_cross_pt << (1.0 / prev_left_frozen_mp_state[0])*std::cos(prev_left_frozen_mp_state[1]), 
                                     (1.0 / prev_left_frozen_mp_state[0])*std::sin(prev_left_frozen_mp_state[1]);
                 right_cross_pt << (1.0 / prev_right_frozen_mp_state[0])*std::cos(prev_right_frozen_mp_state[1]), 
                                     (1.0 / prev_right_frozen_mp_state[0])*std::sin(prev_right_frozen_mp_state[1]);
-                diff_pt = (left_cross_pt - right_cross_pt);
-                // ROS_INFO_STREAM("diff_pt: " << diff_pt << ", diff_pt.norm: " << diff_pt.norm());
+
+                if (gap_collided_w_rbt) {
+                    gap_crossing_point << 0.0, 0.0;
+                    gap.setClosingPoint(gap_crossing_point[0], gap_crossing_point[1]);
+                    gap.gap_closed = true;
+
+                    return t;
+                }
 
                 range_closing_check = (left_cross_pt - right_cross_pt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
                 // IF POINTS ARE SUFFICIENTLY CLOSE TOGETHER, GAP HAS CLOSED
@@ -256,7 +267,7 @@ namespace dynamic_gap {
                     }
                 }
             } else if (prev_L_to_R_angle > (3*M_PI / 4) && L_to_R_angle < (M_PI / 4)) {
-                // checking for corner case of gap crossing behind the robot
+                // checking for case of gap crossing behind the robot
                 left_cross_pt << (1.0 / prev_left_frozen_mp_state[0])*std::cos(prev_left_frozen_mp_state[1]), 
                                  (1.0 / prev_left_frozen_mp_state[0])*std::sin(prev_left_frozen_mp_state[1]);
                 right_cross_pt << (1.0 / prev_right_frozen_mp_state[0])*std::cos(prev_right_frozen_mp_state[1]), 

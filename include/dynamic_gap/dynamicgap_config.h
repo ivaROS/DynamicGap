@@ -106,7 +106,7 @@ namespace dynamic_gap {
                 double integrate_stept;
                 double rmax;
                 double cobs;
-                double w;
+                double pose_exp_weight;
                 double inf_ratio;
                 double terminal_weight;
                 double waypoint_ratio;
@@ -208,8 +208,8 @@ namespace dynamic_gap {
             traj.integrate_maxt = 5;
             traj.integrate_stept = 0.50;
             traj.rmax = 0.3;
-            traj.cobs = -0.5;
-            traj.w = 5;
+            traj.cobs = -1.0;
+            traj.pose_exp_weight = 5;
             traj.inf_ratio = 1.21;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;

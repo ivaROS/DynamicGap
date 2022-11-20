@@ -771,63 +771,45 @@ namespace dynamic_gap{
         gapmodel_pos_GT_publisher.publish(clear_arr);
         gapmodel_vel_GT_publisher.publish(clear_arr);
 
-        visualization_msgs::MarkerArray gap_pos_arr, gap_vel_arr, gap_pos_GT_arr, gap_vel_GT_arr;
+        visualization_msgs::MarkerArray gap_vel_arr, gap_pos_GT_arr, gap_vel_GT_arr;
         for (auto gap : g) {
-            drawGapModels(gap_pos_arr, gap_vel_arr, gap, "gap_models");
+            drawGapModels(gap_vel_arr, gap, "gap_models");
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
-        gapmodel_pos_publisher.publish(gap_pos_arr);
+        // gapmodel_pos_publisher.publish(gap_pos_arr);
         gapmodel_vel_publisher.publish(gap_vel_arr);
-        gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
-        gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
+        // gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
+        // gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
         prev_num_models = 2* g.size();
     }
 
-    void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
-        int model_id = (int) model_arr.markers.size();
-        visualization_msgs::Marker left_model_pt, right_model_pt;
-        // VISUALIZING THE GAP-ONLY DYNAMICS (ADDING THE EGO VELOCITY)
-        // std::cout << "model frame: " << g._frame << std::endl;
-
-        draw_model_pt_ground_truth_base(left_model_pt, g, true, model_id, ns);
-        model_arr.markers.push_back(left_model_pt);
-
-        draw_model_pt_ground_truth_base(right_model_pt, g, false, model_id, ns);
-        model_arr.markers.push_back(right_model_pt);
+    void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
+        int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
 
-        draw_model_pt_ground_truth_head(left_model_pt, left_model_vel_pt, g, true, model_id, ns);
+        draw_model_pt_head(left_model_vel_pt, g, true, model_id, ns, true);
         gap_vel_arr.markers.push_back(left_model_vel_pt);
 
-        draw_model_pt_ground_truth_head(right_model_pt, right_model_vel_pt, g, false, model_id, ns);
+        draw_model_pt_head(right_model_vel_pt, g, false, model_id, ns, true);
         gap_vel_arr.markers.push_back(right_model_vel_pt);
     }
 
-    void GapVisualizer::draw_model_pt_ground_truth_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns) {
-        // std::cout << "model frame: " << g._frame << std::endl;
-        model_pt.header.frame_id = g._frame;
-        model_pt.header.stamp = ros::Time();
-        model_pt.ns = ns;
-        model_pt.id = model_id++;
-        model_pt.type = visualization_msgs::Marker::CYLINDER;
-        model_pt.action = visualization_msgs::Marker::ADD;
-        model_pt.pose.position.x = (left) ? g.left_model->get_GT_cartesian_state()[0] : g.right_model->get_GT_cartesian_state()[0];
-        model_pt.pose.position.y = (left) ? g.left_model->get_GT_cartesian_state()[1] : g.right_model->get_GT_cartesian_state()[1];
-        model_pt.pose.position.z = 0.00001;
-        //std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
-        model_pt.pose.orientation.w = 1.0;
-        model_pt.scale.x = 0.1;
-        model_pt.scale.y = 0.1;
-        model_pt.scale.z = 0.0000005;
-        model_pt.color.a = 1.0;
-        model_pt.color.r = 1.0;
-        model_pt.color.g = 0.8;
-        model_pt.lifetime = ros::Duration(100.0);
+    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
+        int model_id = (int) gap_vel_arr.markers.size();
+
+        visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
+
+        draw_model_pt_head(left_model_vel_pt, g, true, model_id, ns, false);
+        gap_vel_arr.markers.push_back(left_model_vel_pt);
+
+        draw_model_pt_head(right_model_vel_pt, g, false, model_id, ns, false);
+        gap_vel_arr.markers.push_back(right_model_vel_pt);
     }
 
-    void GapVisualizer::draw_model_pt_ground_truth_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns) {
-        // gap_vel_arr.markers.push_back(right_model_pt);
+    void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, 
+                                           dynamic_gap::Gap g, bool left, int & model_id, std::string ns,
+                                           bool ground_truth) {
         model_vel_pt.header.frame_id = g._frame;
         model_vel_pt.header.stamp = ros::Time();
         model_vel_pt.ns = ns;
@@ -835,97 +817,21 @@ namespace dynamic_gap{
         model_vel_pt.type = visualization_msgs::Marker::ARROW;
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
-        geometry_msgs::Point vel_pt;
-        vel_pt.x = model_pt.pose.position.x;
-        vel_pt.y = model_pt.pose.position.y;
-        vel_pt.z = model_pt.pose.position.z;
-        model_vel_pt.points.push_back(vel_pt);
-        Eigen::Vector2d vel;
-        
-        if (left)
-            vel << g.left_model->get_GT_cartesian_state()[2] + g.left_model->get_v_ego()[0],
-                   g.left_model->get_GT_cartesian_state()[3] + g.left_model->get_v_ego()[1];
-        else {
-            vel << g.right_model->get_GT_cartesian_state()[2] + g.right_model->get_v_ego()[0],
-                   g.right_model->get_GT_cartesian_state()[3] + g.right_model->get_v_ego()[1];
-        }
-
-        vel_pt.x = model_pt.pose.position.x + vel[0];
-        vel_pt.y = model_pt.pose.position.y + vel[1];
-        model_vel_pt.points.push_back(vel_pt);
-        model_vel_pt.scale.x = 0.1;
-        model_vel_pt.scale.y = 0.1;
-        model_vel_pt.scale.z = 0.1;
-        model_vel_pt.color.a = 1.0;
-        model_vel_pt.color.r = 1.0;
-        model_vel_pt.color.g = 0.8;
-        model_vel_pt.lifetime = ros::Duration(100.0);
-    }
-
-    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & model_arr, visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
-        int model_id = (int) model_arr.markers.size();
-        visualization_msgs::Marker left_model_pt, right_model_pt;
-        // VISUALIZING THE GAP-ONLY DYNAMICS (ADDING THE EGO VELOCITY)
-        // std::cout << "model frame: " << g._frame << std::endl;
-
-        draw_model_pt_base(left_model_pt, g, true, model_id, ns);
-        model_arr.markers.push_back(left_model_pt);
-
-        draw_model_pt_base(right_model_pt, g, false, model_id, ns);
-        model_arr.markers.push_back(right_model_pt);
-
-        visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
-
-        draw_model_pt_head(left_model_pt, left_model_vel_pt, g, true, model_id, ns);
-        gap_vel_arr.markers.push_back(left_model_vel_pt);
-
-        draw_model_pt_head(right_model_pt, right_model_vel_pt, g, false, model_id, ns);
-        gap_vel_arr.markers.push_back(right_model_vel_pt);
-    }
-
-    void GapVisualizer::draw_model_pt_base(visualization_msgs::Marker & model_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns) {
-        // std::cout << "model frame: " << g._frame << std::endl;
-        model_pt.header.frame_id = g._frame;
-        model_pt.header.stamp = ros::Time();
-        model_pt.ns = ns;
-        model_pt.id = model_id++;
-        model_pt.type = visualization_msgs::Marker::CYLINDER;
-        model_pt.action = visualization_msgs::Marker::ADD;
-        model_pt.pose.position.x = (left) ? g.left_model->get_cartesian_state()[0] : g.right_model->get_cartesian_state()[0];
-        model_pt.pose.position.y = (left) ? g.left_model->get_cartesian_state()[1] : g.right_model->get_cartesian_state()[1];
-        model_pt.pose.position.z = 0.01;
-        //std::cout << "left point: " << right_model_pt.pose.position.x << ", " << right_model_pt.pose.position.y << std::endl;
-        model_pt.pose.orientation.w = 1.0;
-        model_pt.scale.x = 0.1;
-        model_pt.scale.y = 0.1;
-        model_pt.scale.z = 0.000001;
-        model_pt.color.a = 1.0;
-        model_pt.color.r = 1.0;
-        model_pt.color.b = 1.0;
-        model_pt.lifetime = ros::Duration(100.0);
-    }
-
-    void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker model_pt, visualization_msgs::Marker & model_vel_pt, dynamic_gap::Gap g, bool left, int & model_id, std::string ns) {
-        // gap_vel_arr.markers.push_back(right_model_pt);
-        model_vel_pt.header.frame_id = g._frame;
-        model_vel_pt.header.stamp = ros::Time();
-        model_vel_pt.ns = ns;
-        model_vel_pt.id = model_id++;
-        model_vel_pt.type = visualization_msgs::Marker::ARROW;
-        model_vel_pt.action = visualization_msgs::Marker::ADD;
+        Eigen::Vector4d left_model_state = (ground_truth) ? g.left_model->get_GT_cartesian_state() : g.left_model->get_cartesian_state();
+        Eigen::Vector4d right_model_state = (ground_truth) ? g.right_model->get_GT_cartesian_state() : g.right_model->get_cartesian_state();
         
         geometry_msgs::Point vel_pt;
-        model_vel_pt.pose.position.x = model_pt.pose.position.x;
-        model_vel_pt.pose.position.y = model_pt.pose.position.y;
-        model_vel_pt.pose.position.z = model_pt.pose.position.z;
+        model_vel_pt.pose.position.x = (left) ? left_model_state[0] : right_model_state[0];
+        model_vel_pt.pose.position.y = (left) ? left_model_state[1] : right_model_state[1];
+        model_vel_pt.pose.position.z = 0.01;
    
         Eigen::Vector2d vel;
         if (left) {
-            vel << g.left_model->get_cartesian_state()[2] + g.left_model->get_v_ego()[0],
-                   g.left_model->get_cartesian_state()[3] + g.left_model->get_v_ego()[1];
+            vel << left_model_state[2] + g.left_model->get_v_ego()[0],
+                   left_model_state[3] + g.left_model->get_v_ego()[1];
         } else {
-            vel << g.right_model->get_cartesian_state()[2] + g.right_model->get_v_ego()[0], 
-                   g.right_model->get_cartesian_state()[3] + g.right_model->get_v_ego()[1];
+            vel << right_model_state[2] + g.right_model->get_v_ego()[0], 
+                   right_model_state[3] + g.right_model->get_v_ego()[1];
         }
 
         double model_vel_theta = std::atan2(vel[1], vel[0]);

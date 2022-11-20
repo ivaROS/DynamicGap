@@ -321,8 +321,8 @@ namespace dynamic_gap{
         if(holonomic)
         {
 
-            v_lin_x_fb = std::max(0.0, (1 - std::abs(theta_error) / (M_PI / 2.))) * (v_lin_x_fb + weighted_cmd_vel_x_safe);
-            v_lin_y_fb = std::max(0.0, (1 - std::abs(theta_error) / (M_PI / 2.))) * (v_lin_y_fb + weighted_cmd_vel_y_safe);
+            v_lin_x_fb += weighted_cmd_vel_x_safe;
+            v_lin_y_fb += weighted_cmd_vel_y_safe;
 
             // do not want robot to drive backwards
             if(v_lin_x_fb < 0)
