@@ -6,7 +6,7 @@ namespace dynamic_gap {
         cfg_ = &cfg;
     }
 
-    bool GoalSelector::setGoal(
+    void GoalSelector::setGoal(
         const std::vector<geometry_msgs::PoseStamped> &plan) {
         // Incoming plan is in map frame
         boost::mutex::scoped_lock lock(goal_select_mutex);

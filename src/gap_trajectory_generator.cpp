@@ -66,13 +66,15 @@ namespace dynamic_gap{
                                                     geometry_msgs::PoseStamped curr_pose, 
                                                     geometry_msgs::Twist curr_vel,
                                                     bool run_g2g) {
+
+        geometry_msgs::PoseArray posearr;
+        std::vector<double> timearr;
+
         try {        
             // return geometry_msgs::PoseArray();
             num_curve_points = cfg_->traj.num_curve_points;
             ROS_INFO_STREAM("num_curve_points: " << num_curve_points);
 
-            geometry_msgs::PoseArray posearr;
-            std::vector<double> timearr;
             double gen_traj_start_time = ros::Time::now().toSec();
             posearr.header.stamp = ros::Time::now();
             double coefs = cfg_->traj.scale;
@@ -259,6 +261,8 @@ namespace dynamic_gap{
             
         } catch (...) {
             ROS_FATAL_STREAM("integrator");
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
+            return return_tuple;
         }
 
     }

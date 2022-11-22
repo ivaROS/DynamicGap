@@ -16,8 +16,8 @@
 #include <limits>
 #include <sstream>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
-namespace plt = matplotlibcpp;
+// #include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
+// namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, Matrix<double, 1, 3> v_ego) {
@@ -165,41 +165,44 @@ namespace dynamic_gap {
         Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
         Matrix<double, 4, 1> new_x = x_hat_kmin1_plus;
 
-        for (int i = 0; i < intermediate_accs.size(); i++) {
-            double ang_vel_ego = intermediate_vels[i].angular.z;
-            // ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);
+        // for (int i = 0; i < intermediate_accs.size(); i++) {
+        double ang_vel_ego = v_ego[2];
+        ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);
 
-            double p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
-            double p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
-            // ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
+        double p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
+        double p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
+        ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
-            double vdot_x_body = intermediate_accs[i].twist.linear.x;
-            double vdot_y_body = intermediate_accs[i].twist.linear.y;
-            // ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
+        double vdot_x_body = a_ego[0];
+        double vdot_y_body = a_ego[1];
+        ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
-            double v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
-            double v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
-            // ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
+        double v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
+        double v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
+        ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
 
-            new_x << x_intermediate[0] + p_dot_x*inter_dt, // r_x
-                     x_intermediate[1] + p_dot_y*inter_dt, // r_y
-                     x_intermediate[2] + v_dot_x*inter_dt, // v_x
-                     x_intermediate[3] + v_dot_y*inter_dt; // v_y
-            x_intermediate = new_x;
-            // ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
-        }
+        new_x << x_intermediate[0] + p_dot_x*dt, // r_x
+                    x_intermediate[1] + p_dot_y*dt, // r_y
+                    x_intermediate[2] + v_dot_x*dt, // v_x
+                    x_intermediate[3] + v_dot_y*dt; // v_y
+        x_intermediate = new_x;
+        ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
+    
+        // }
+
+        return x_intermediate;
     }
 
-    void cart_model::linearize(int i) {
+    void cart_model::linearize(double dt) {
 
-        double ang_vel_ego = intermediate_vels[i].angular.z;
+        double ang_vel_ego = v_ego[2];
         
         A << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
              0.0, 0.0, 0.0, ang_vel_ego,
              0.0, 0.0, -ang_vel_ego, 0.0;
 
-        STM = (A*inter_dt).exp();
+        STM = (A*dt).exp();
     }
 
     void cart_model::discretizeQ() {
@@ -207,12 +210,12 @@ namespace dynamic_gap {
         Q_2 = A * Q_1 + Q_1 * A.transpose();
         Q_3 = A * Q_2 + Q_2 * A.transpose();
 
-        dQ = (Q_1 * inter_dt) + (Q_2 * inter_dt * inter_dt / 2.0) + (Q_3 * inter_dt * inter_dt * inter_dt / 6.0);
+        dQ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
     void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
-                                    std::vector<geometry_msgs::TwistStamped> _intermediate_accs, 
-                                    std::vector<geometry_msgs::Twist> _intermediate_vels, 
+                                    geometry_msgs::Twist _current_rbt_vel, 
+                                    geometry_msgs::TwistStamped _current_rbt_acc, 
                                     bool _print,
                                     std::vector<geometry_msgs::Pose> _agent_odoms,
                                     std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
@@ -225,14 +228,15 @@ namespace dynamic_gap {
         dt = scan_dt;
         life_time += dt;
 
-        intermediate_vels = _intermediate_vels;
-        intermediate_accs = _intermediate_accs;
+        // intermediate_vels = _intermediate_vels;
+        // intermediate_accs = _intermediate_accs;
 
         // acceleration and velocity come in wrt robot frame
 
         if (print) {
             ROS_INFO_STREAM("update for model " << get_index() << ", life_time: " << life_time << ", dt: " << dt);
             ROS_INFO_STREAM("x_hat_kmin1_plus: " << x_hat_kmin1_plus[0] << ", " << x_hat_kmin1_plus[1] << ", " << x_hat_kmin1_plus[2] << ", " << x_hat_kmin1_plus[3]);
+            ROS_INFO_STREAM("current_rbt_vel, x_lin: " << _current_rbt_vel.linear.x << ", y_lin: " << _current_rbt_vel.linear.y << ", z_ang: " << _current_rbt_vel.angular.z);
         }
 
         /*
@@ -264,50 +268,62 @@ namespace dynamic_gap {
         }
         */
 
-        int int_vels_size = intermediate_vels.size();
-        int int_accs_size = intermediate_accs.size();
+        // int int_vels_size = intermediate_vels.size();
+        //int int_accs_size = intermediate_accs.size();
 
+        /*
         if (print) {
             ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
         }
 
         if (int_vels_size == 0) {
-            geometry_msgs::Twist pad_vel = geometry_msgs::Twist();
-            intermediate_vels.push_back(pad_vel);
+            // geometry_msgs::Twist pad_vel = geometry_msgs::Twist();
+            intermediate_vels.push_back(geometry_msgs::Twist());
+            int_vels_size = intermediate_vels.size();
         } 
         
         if (int_accs_size == 0) {
-            geometry_msgs::TwistStamped pad_acc = geometry_msgs::TwistStamped();
-            intermediate_accs.push_back(pad_acc);
+            // geometry_msgs::TwistStamped pad_acc = geometry_msgs::TwistStamped();
+            intermediate_accs.push_back(geometry_msgs::TwistStamped());
+            int_accs_size = intermediate_accs.size();
         }
 
-        if (print) {
-            if (int_vels_size != int_accs_size) {
-                // ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
-                if (int_vels_size > int_accs_size) {
-                    // pad accels
-                    geometry_msgs::TwistStamped pad_acc = intermediate_accs[intermediate_accs.size() - 1];
-                    for (int i = 0; i < (int_vels_size - int_accs_size); i++) {
-                        // ROS_INFO_STREAM("padding accel " << pad_acc.twist.linear.x << ", " << pad_acc.twist.linear.y << ", " << pad_acc.twist.angular.z);
-                        intermediate_accs.push_back(pad_acc);
-                    }
-                } else {
-                    // pad vels
-                    geometry_msgs::Twist pad_vel = intermediate_vels[intermediate_vels.size() - 1];
-                    for (int i = 0; i < (int_accs_size - int_vels_size); i++) {
-                        // ROS_INFO_STREAM("padding with vel " << pad_vel.linear.x << ", " << pad_vel.linear.y << ", " << pad_vel.angular.z);
-                        intermediate_vels.push_back(pad_vel);
-                    }
+        if (int_vels_size != int_accs_size) {
+            // ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
+            if (int_vels_size > int_accs_size) {
+                // pad accels
+                geometry_msgs::TwistStamped pad_acc = intermediate_accs[intermediate_accs.size() - 1];
+                for (int i = 0; i < (int_vels_size - int_accs_size); i++) {
+                    // ROS_INFO_STREAM("padding accel " << pad_acc.twist.linear.x << ", " << pad_acc.twist.linear.y << ", " << pad_acc.twist.angular.z);
+                    intermediate_accs.push_back(pad_acc);
+                }
+            } else {
+                // pad vels
+                geometry_msgs::Twist pad_vel = intermediate_vels[intermediate_vels.size() - 1];
+                for (int i = 0; i < (int_accs_size - int_vels_size); i++) {
+                    // ROS_INFO_STREAM("padding with vel " << pad_vel.linear.x << ", " << pad_vel.linear.y << ", " << pad_vel.angular.z);
+                    intermediate_vels.push_back(pad_vel);
                 }
             }
         }
+        */
+        v_ego[0] = _current_rbt_vel.linear.x;
+        v_ego[1] = _current_rbt_vel.linear.y;
+        v_ego[2] = _current_rbt_vel.angular.z;
+        a_ego[0] = _current_rbt_acc.twist.linear.x;
+        a_ego[1] = _current_rbt_acc.twist.linear.y;
+        a_ego[2] = _current_rbt_acc.twist.angular.z;        
 
+        /*
         // both intermediates should be same size now
         inter_dt = (dt / intermediate_vels.size());
         if (print) {
             ROS_INFO_STREAM("inter_dt: " << inter_dt);
         }
+        */
 
+
+        /*
         if (print) {
             for (int i = 0; i < intermediate_vels.size(); i++) {
                 ROS_INFO_STREAM("revised intermediate_vel: " << intermediate_vels[i].linear.x << ", " << intermediate_vels[i].linear.y << ", " << intermediate_vels[i].angular.z);             
@@ -317,6 +333,7 @@ namespace dynamic_gap {
                 ROS_INFO_STREAM("revised intermediate_acc: " << intermediate_accs[i].twist.linear.x << ", " << intermediate_accs[i].twist.linear.y << ", " << intermediate_accs[i].twist.angular.z);            
             }
         }
+        */
         
         x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
@@ -341,14 +358,14 @@ namespace dynamic_gap {
 
         P_intermediate = P_kmin1_plus;
         new_P = P_kmin1_plus;
-        for (int i = 0; i < intermediate_vels.size(); i++) {
-            linearize(i);
+        //for (int i = 0; i < intermediate_vels.size(); i++) {
+        linearize(dt);
 
-            discretizeQ();
+        discretizeQ();
 
-            new_P = STM * P_intermediate * STM.transpose() + dQ;
-            P_intermediate = new_P;
-        }
+        new_P = STM * P_intermediate * STM.transpose() + dQ;
+        P_intermediate = new_P;
+        // }
         P_k_minus = new_P;
         
         if (print) {
@@ -416,6 +433,7 @@ namespace dynamic_gap {
         return;
     }    
 
+    /*
     void cart_model::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
@@ -459,7 +477,6 @@ namespace dynamic_gap {
             a_ego_angs.at(i) = previous_ego_accels[i][2];
         }
 
-        /*
         plt::figure_size(1200, 780);
         plt::scatter(t, v_x_egos, 25.0, {{"label", "v_x_ego"}});
         // plt::scatter(t, v_y_egos, 25.0, {{"label", "v_y_ego"}});
@@ -472,7 +489,6 @@ namespace dynamic_gap {
         plt::legend();
         plt::save(plot_dir + std::to_string(index) + "_other_info.png");
         plt::close();
-        */
         
         plt::figure_size(1200, 780);
         plt::scatter(t, gap_only_r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
@@ -510,6 +526,7 @@ namespace dynamic_gap {
 
         plotted = true;
     }
+    */
 
     Eigen::Vector4d cart_model::update_ground_truth_cartesian_state() {
         // x state:

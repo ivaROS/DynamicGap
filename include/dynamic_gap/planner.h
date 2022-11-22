@@ -163,7 +163,7 @@ namespace dynamic_gap
         boost::circular_buffer<double> log_vel_comp;
 
         geometry_msgs::Twist current_rbt_vel;
-        geometry_msgs::TwistStamped rbt_accel;
+        geometry_msgs::TwistStamped current_rbt_acc;
 
         std::vector<geometry_msgs::Twist> intermediate_vels;
         std::vector<geometry_msgs::TwistStamped> intermediate_accs;
@@ -339,11 +339,12 @@ namespace dynamic_gap
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
         void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                                                         std::vector<geometry_msgs::Twist> intermediate_vels, 
-                                                         std::vector<geometry_msgs::TwistStamped> intermediate_accs, double scan_dt, bool print);
+                                                         geometry_msgs::Twist current_rbt_vel, 
+                                                         geometry_msgs::TwistStamped current_rbt_acc, double scan_dt, bool print);
         std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
-                                                    std::vector<geometry_msgs::Twist> intermediate_vels, 
-                                                    std::vector<geometry_msgs::TwistStamped> intermediate_accs, double scan_dt, bool print);
+                                                    geometry_msgs::Twist current_rbt_vel, 
+                                                    geometry_msgs::TwistStamped current_rbt_acc, 
+                                                    double scan_dt, bool print);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 

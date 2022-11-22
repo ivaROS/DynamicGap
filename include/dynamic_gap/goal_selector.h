@@ -31,7 +31,7 @@ namespace dynamic_gap
             GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
             // Map Frame
-            bool setGoal(const std::vector<geometry_msgs::PoseStamped> &);
+            void setGoal(const std::vector<geometry_msgs::PoseStamped> &);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
             void updateLocalGoal(geometry_msgs::TransformStamped map2rbt);
             geometry_msgs::PoseStamped transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom);

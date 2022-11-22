@@ -13,14 +13,22 @@
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="false"/>
 
+  <arg name="debug" default="false"/>
+
+  <arg name="debug_prefix" value="" unless="$(arg debug)"/>
+  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
+
+
+  <!-- 
   <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/> 
       <param name="output_scan_topic" value = "static_point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/laser_0"/>
   </node>
+  -->
 
-  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle" launch-prefix="$(arg debug_prefix)">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/> 
       <param name="output_scan_topic" value = "point_scan" />
@@ -35,14 +43,7 @@
   <arg name="inf_ratio" value="1.21" unless="$(arg planning_inflated)"/>
   <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
 
-  <arg name="debug" default="false"/>
-
-  <arg name="debug_prefix" value="" unless="$(arg debug)"/>
-  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
-
-  <!-- xterm -e gdb -ex run - -args -->
-
-  <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
+  <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true">
       <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
       
       <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="global_costmap"/>

@@ -87,7 +87,7 @@ namespace dynamic_gap {
 
             Matrix<double, 3, 1> get_v_ego();
             Matrix<double, 4, 1> integrate();
-            void linearize(int i);
+            void linearize(double dt);
             void discretizeQ();
 
             void frozen_state_propagate(double dt);
@@ -96,8 +96,8 @@ namespace dynamic_gap {
             void set_rewind_state();
 
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
-                                std::vector<geometry_msgs::TwistStamped> intermediate_accs, 
-                                std::vector<geometry_msgs::Twist> intermediate_vels, 
+                                geometry_msgs::Twist current_rbt_vel, 
+                                geometry_msgs::TwistStamped current_rbt_acc, 
                                 bool print,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels,

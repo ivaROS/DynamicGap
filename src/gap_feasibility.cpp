@@ -356,6 +356,7 @@ namespace dynamic_gap {
         // Lifespan would be 0, so would be infeasible anyways
 
         // should never fall out of this?
+        return 0.0;
     }
 
 

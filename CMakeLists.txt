@@ -35,7 +35,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 find_package(osqp REQUIRED)
 find_package(OsqpEigen REQUIRED)
-find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
+# find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
 generate_dynamic_reconfigure_options(
   cfg/dg.cfg
@@ -97,7 +97,7 @@ add_dependencies(dynamic_gap custom_msg_generate_messages_cpp)
 add_dependencies(dynamic_gap ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
 
-target_include_directories(dynamic_gap PRIVATE ${MATPLOTLIB_CPP_INCLUDE_DIRS})
+# target_include_directories(dynamic_gap PRIVATE ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
 target_link_libraries(dynamic_gap
 	${catkin_LIBRARIES}
