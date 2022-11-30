@@ -93,7 +93,6 @@ catkin_install_python(PROGRAMS
 )
 
 add_dependencies(dynamic_gap ${PROJECT_NAME}_gencfg)
-add_dependencies(dynamic_gap custom_msg_generate_messages_cpp)
 add_dependencies(dynamic_gap ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
 

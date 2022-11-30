@@ -77,8 +77,8 @@ namespace dynamic_gap{
 
             double gen_traj_start_time = ros::Time::now().toSec();
             posearr.header.stamp = ros::Time::now();
-            double coefs = cfg_->traj.scale;
-            write_trajectory corder(posearr, cfg_->robot_frame_id, coefs, timearr);
+            double traj_scale = cfg_->traj.scale;
+            write_trajectory corder(posearr, cfg_->robot_frame_id, traj_scale, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
             Eigen::Vector4d ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,
@@ -108,7 +108,7 @@ namespace dynamic_gap{
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
 
-            if (cfg_->traj.debug_log) {
+            if (cfg_->debug.traj_debug_log) {
                 ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
                 ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
                 ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), actual initial right point: (" << x_right << ", " << y_right << ")"); 
@@ -126,16 +126,6 @@ namespace dynamic_gap{
             state_type x = {ego_x[0], ego_x[1], x_left, y_left, x_right, y_right, initial_goal_x, initial_goal_y};
             
             // ROS_INFO_STREAM("pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-
-            // or if model is invalid?
-            //bool invalid_models = left_model_state[0] < 0.01 || right_model_state[0] < 0.01;
-            /*
-            if (selectedGap.goal.discard || selectedGap.terminal_goal.discard && cfg_->traj.debug_log) {
-                ROS_INFO_STREAM("discarding gap");
-                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple(posearr, timearr);
-                return return_tuple;
-            }
-            */
                       
             Eigen::Vector2d init_rbt_pos(x[0], x[1]);
             Eigen::Vector2d left_pt_0(x_left, y_left);
@@ -245,7 +235,7 @@ namespace dynamic_gap{
             } 
             */  
 
-            reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1, cfg_->gap_manip.K_acc,
+            reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1,
                                                     cfg_->control.vx_absmax, nom_acc, all_centers, all_inward_norms, weights,
                                                     nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel);   
             

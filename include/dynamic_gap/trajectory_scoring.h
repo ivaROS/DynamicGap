@@ -34,11 +34,9 @@ namespace dynamic_gap{
         
         void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
         void updateStaticEgoCircle(sensor_msgs::LaserScan);
-        void updateGapContainer(const std::vector<dynamic_gap::Gap>);
         void updateLocalGoal(geometry_msgs::PoseStamped, geometry_msgs::TransformStamped);
 
         std::vector<double> scoreGaps();
-        dynamic_gap::Gap returnAndScoreGaps();
         
         // Full Scoring
         // std::vector<double> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
@@ -51,15 +49,11 @@ namespace dynamic_gap{
                                                            bool print,
                                                            bool vis);
         
-        void recoverDynamicEgocircleCheat(double t_i, double t_iplus1, 
-                                            std::vector<geometry_msgs::Pose> & _agent_odoms, 
-                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                            sensor_msgs::LaserScan& dynamic_laser_scan,
-                                            bool print);
         void recoverDynamicEgoCircle(double t_i, double t_iplus1, 
                                          std::vector<Matrix<double, 4, 1> > & curr_agents_lc,                            
                                          sensor_msgs::LaserScan& dynamic_laser_scan,
                                          bool print);
+        
         void visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan);
 
         double terminalGoalCost(geometry_msgs::Pose pose);
@@ -82,7 +76,6 @@ namespace dynamic_gap{
             double dynamicScorePose(geometry_msgs::Pose pose, double theta, double range);
             double chapterScore(double d);
             double dynamicChapterScore(double d);
-            int searchIdx(geometry_msgs::Pose pose);
             double dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
 
             void populateDynamicLaserScan(dynamic_gap::cart_model * left_model, dynamic_gap::cart_model * right_model, sensor_msgs::LaserScan & dynamic_laser_scan, bool free);
@@ -90,7 +83,6 @@ namespace dynamic_gap{
             
             int search_idx = -1;
 
-            double r_inscr, rmax, cobs, pose_exp_weight;
             ros::Publisher propagatedEgocirclePublisher;
     };
 }

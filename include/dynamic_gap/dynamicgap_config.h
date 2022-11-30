@@ -17,103 +17,10 @@ namespace dynamic_gap {
 
             struct GapVisualization {
                 int min_resoln;
-                bool close_gap_vis;
-                bool follow_the_gap_vis;
                 bool fig_gen;
                 double viz_jitter;
                 bool debug_viz;
             } gap_viz;
-
-            struct GapManipulation {
-                double gap_diff;
-                double epsilon2;
-                double epsilon1;
-                double sigma;
-                double reduction_threshold;
-                double reduction_target;
-                int max_idx_diff;
-                bool radial_extend;
-                bool axial_convert;
-                double rot_ratio;
-                double cbf_param;
-                double cbf_r_min;
-                double K_des;
-                double K_acc;
-                bool debug_log;
-            } gap_manip;
-
-            struct GapFeasibility {
-                bool debug_log;
-            } gap_feas;
-
-            struct GapAssociation {
-                double assoc_thresh;
-            } gap_assoc;
-
-            struct ControlParams {
-                double k_drive_x;
-                double k_drive_y;
-                double k_turn;
-                double v_ang_const;
-                double v_lin_x_const;
-                double v_lin_y_const;
-                int ctrl_ahead_pose;
-                double vx_absmax;
-                double vy_absmax;
-                double vang_absmax;
-                double ax_absmax;
-                double ay_absmax;
-                double aang_absmax;
-                bool debug_log;
-            } control;
-            
-            struct ProjectionParam {
-                double k_po;
-                double r_min;
-                double r_norm;
-                double r_norm_offset;
-                double k_po_turn;
-                double k_CBF;
-            } projection;
-
-            struct Waypoint {
-                int global_plan_lookup_increment;
-                double global_plan_change_tolerance;
-            } waypoint;
-
-            struct PlanningMode {
-                bool feasi_inflated;  
-                bool projection_inflated;
-                bool planning_inflated;
-                bool holonomic;
-                bool full_fov;
-                bool projection_operator;
-                bool niGen_s;
-                bool far_feasible;
-                int num_feasi_check;
-                int halt_size;
-            } planning;
-
-            struct Goal {
-                double goal_tolerance;
-                double waypoint_tolerance;
-            } goal;
-
-            struct Trajectory {
-                bool synthesized_frame;
-                double scale;
-                double integrate_maxt;
-                double integrate_stept;
-                double rmax;
-                double cobs;
-                double pose_exp_weight;
-                double inf_ratio;
-                double terminal_weight;
-                double waypoint_ratio;
-                int num_curve_points;
-                int num_qB_points;
-                bool debug_log;
-            } traj;
 
             struct Robot {
                 float r_inscr;
@@ -121,17 +28,93 @@ namespace dynamic_gap {
                 double max_range;
             } rbt;
 
-            struct Model {
-                bool debug;
-            } model;
+            struct PlanningMode {
+                bool projection_inflated;
+                bool planning_inflated;
+                bool holonomic;
+                bool full_fov;
+                bool projection_operator;
+                bool far_feasible;
+                int num_feasi_check;
+                int halt_size;
+                bool egoircle_prop_cheat;
+            } planning;            
 
             struct ManualControl {
                 bool man_ctrl;
                 float man_x;
                 float man_y;
                 float man_theta;
-                bool line;
             } man;
+
+            struct Goal {
+                double goal_tolerance;
+                double waypoint_tolerance;
+            } goal;
+
+            struct Debug {
+                bool estimator_debug_log;
+                bool feasibility_debug_log;
+                bool manipulation_debug_log;
+                bool traj_debug_log;
+                bool control_debug_log;
+            } debug;
+
+            struct GapAssociation {
+                double assoc_thresh;
+            } gap_assoc;           
+
+            struct GapManipulation {
+                double epsilon1;
+                double epsilon2;
+                double rot_ratio;
+                double reduction_threshold;
+                double reduction_target;
+                int max_idx_diff;
+                bool radial_extend;
+                bool axial_convert;
+            } gap_manip;
+
+            struct Trajectory {
+                bool synthesized_frame;
+                double scale;
+                double integrate_maxt;
+                double integrate_stept;
+                double max_pose_pen_dist;
+                double cobs;
+                double pose_exp_weight;
+                double inf_ratio;
+                double terminal_weight;
+                double waypoint_ratio;
+                int num_curve_points;
+                int num_qB_points;
+            } traj;            
+
+            struct ControlParams {
+                double k_fb_x;
+                double k_fb_y;
+                double k_fb_theta;
+                int ctrl_ahead_pose;
+                double vx_absmax;
+                double vy_absmax;
+                double vang_absmax;
+                double ax_absmax;
+                double ay_absmax;
+                double aang_absmax;
+            } control;
+            
+            struct ProjectionParam {
+                double k_po_x;
+                double k_po_theta;
+
+                double r_min;
+                double r_norm;
+                double r_norm_offset;
+                double cbf_param;                
+                double k_CBF;
+
+                bool line;
+            } projection;
 
         DynamicGapConfig() {
             map_frame_id = "map";
@@ -140,34 +123,64 @@ namespace dynamic_gap {
             sensor_frame_id = "camera_link";
 
             gap_viz.min_resoln = 1;
-            gap_viz.close_gap_vis = false;
-            gap_viz.follow_the_gap_vis = false;
             gap_viz.fig_gen = true;
             gap_viz.viz_jitter = 0.1;
             gap_viz.debug_viz = true;
 
+            rbt.r_inscr = 0.2;
+            rbt.num_obsts = 0;
+            rbt.max_range = 4.99;
+
+            planning.projection_inflated = false;
+            planning.planning_inflated = false;
+            planning.holonomic = false;
+            planning.full_fov = false;
+            planning.projection_operator = false;
+            planning.num_feasi_check = 10;
+            planning.far_feasible = false;
+            planning.halt_size = 5;
+            planning.egoircle_prop_cheat = false;
+
+            man.man_ctrl = false;
+            man.man_x = 0;
+            man.man_y = 0;
+            man.man_theta = 0;
+
+            goal.goal_tolerance = 0.2;
+            goal.waypoint_tolerance = 0.1;
+
+            debug.estimator_debug_log = false;
+            debug.feasibility_debug_log = false;
+            debug.manipulation_debug_log = false;
+            debug.traj_debug_log = false;
+            debug.control_debug_log = false;             
+
             gap_assoc.assoc_thresh = 1.0;
 
-            gap_manip.gap_diff = 0.1;
             gap_manip.epsilon1 = 0.18;
             gap_manip.epsilon2 = 0.18;
-            gap_manip.sigma = 10.0;
             gap_manip.rot_ratio = 1.5;
             gap_manip.reduction_threshold = M_PI;
             gap_manip.reduction_target = M_PI;
             gap_manip.radial_extend = true;
             gap_manip.axial_convert = true;
-            gap_manip.cbf_param = 0.1;
-            gap_manip.K_des = 0.5;
-            gap_manip.K_acc = 3.0;
-            gap_manip.debug_log = true;
+
+            traj.synthesized_frame = true;
+            traj.scale = 1;
+            traj.integrate_maxt = 5;
+            traj.integrate_stept = 0.50;
+            traj.max_pose_pen_dist = 0.3;
+            traj.cobs = -1.0;
+            traj.pose_exp_weight = 5;
+            traj.inf_ratio = 1.21;
+            traj.terminal_weight = 10;
+            traj.waypoint_ratio = 1.5;
+            traj.num_curve_points = 40;
+            traj.num_qB_points = 3;     
             
-            control.k_drive_x = 3.5;
-            control.k_drive_y = 3.5;
-            control.k_turn = 0.5;
-            control.v_ang_const = 0;
-            control.v_lin_x_const = 0;
-            control.v_lin_y_const = 0;
+            control.k_fb_x = 3.5;
+            control.k_fb_y = 3.5;
+            control.k_fb_theta = 0.5;
             control.ctrl_ahead_pose = 2;
             control.vx_absmax = 0.5;
             control.vy_absmax = 0.5;
@@ -175,59 +188,15 @@ namespace dynamic_gap {
             control.ax_absmax = 0.5;
             control.ay_absmax = 0.5;
             control.aang_absmax = 0.5;
-            control.debug_log = true;
 
-            projection.k_po = 0.8;
-            projection.k_po_turn = 1;
+            projection.k_po_x = 0.8;
+            projection.k_po_theta = 1;
             projection.r_min = 0.35;
             projection.r_norm = 1.0;
             projection.r_norm_offset = 0.5;
+            projection.cbf_param = 0.1;
             projection.k_CBF = 1.0;
-
-            gap_feas.debug_log = true;
-
-            waypoint.global_plan_lookup_increment = 75;
-            waypoint.global_plan_change_tolerance = 0.1;
-
-            planning.feasi_inflated = false;
-            planning.projection_inflated = false;
-            planning.planning_inflated = false;
-            planning.holonomic = false;
-            planning.full_fov = false;
-            planning.projection_operator = false;
-            planning.niGen_s = false;
-            planning.num_feasi_check = 10;
-            planning.far_feasible = false;
-            planning.halt_size = 5;
-
-            goal.goal_tolerance = 0.2;
-            goal.waypoint_tolerance = 0.1;
-            
-            traj.synthesized_frame = true;
-            traj.scale = 1;
-            traj.integrate_maxt = 5;
-            traj.integrate_stept = 0.50;
-            traj.rmax = 0.3;
-            traj.cobs = -1.0;
-            traj.pose_exp_weight = 5;
-            traj.inf_ratio = 1.21;
-            traj.terminal_weight = 10;
-            traj.waypoint_ratio = 1.5;
-            traj.num_curve_points = 40;
-            traj.num_qB_points = 3;
-            traj.debug_log = true;
-
-            man.man_ctrl = false;
-            man.man_x = 0;
-            man.man_y = 0;
-            man.man_theta = 0;
-            man.line = false;
-
-            rbt.r_inscr = 0.2;
-            rbt.num_obsts = 0;
-            rbt.max_range = 4.99;
-
-            model.debug = true;
+            projection.line = false;
         }
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);

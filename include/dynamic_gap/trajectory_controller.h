@@ -78,15 +78,12 @@ namespace dynamic_gap {
             bool holonomic;
             bool full_fov;
             bool projection_operator;
-            double k_turn_;
-            double k_drive_x_;
-            double k_drive_y_;
-            double k_po_;
+            double k_fb_theta_;
+            double k_fb_x_;
+            double k_fb_y_;
+            double k_po_x_;
+            double k_po_theta_;            
             double k_CBF_;
-            float v_ang_const;
-            float v_lin_x_const;
-            float v_lin_y_const;
-            float k_po_turn_;
     };
 }
 

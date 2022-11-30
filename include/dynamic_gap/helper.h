@@ -32,10 +32,10 @@ namespace dynamic_gap {
         Eigen::Vector2d rel_left_vel, rel_right_vel, 
                         goal_pt_0, goal_pt_1;
 
-        double v_lin_max, a_lin_max, K_acc, rg, 
+        double v_lin_max, a_lin_max, rg, 
                theta_right, theta_left, thetax, thetag, new_theta, 
                a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
-               theta, eps, K_att, K_des; 
+               theta, eps, K_att; 
         bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
@@ -45,15 +45,14 @@ namespace dynamic_gap {
         Eigen::MatrixXd weights, all_centers, all_inward_norms, gradient_of_pti_wrt_rbt, centers_to_rbt;
         Eigen::VectorXd rowwise_sq_norms;
 
-        reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1, double K_acc,
+        reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1,
                           double v_lin_max, Eigen::Vector2d nom_acc, Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd weights,
                           Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nonrel_goal_vel) 
-                          : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1), K_acc(K_acc), 
+                          : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1),
                             v_lin_max(v_lin_max), nom_acc(nom_acc), all_centers(all_centers), all_inward_norms(all_inward_norms), weights(weights),
                             nonrel_left_vel(nonrel_left_vel), nonrel_right_vel(nonrel_right_vel), nonrel_goal_vel(nonrel_goal_vel)
                         { 
-                            eps = 0.0000001;
-                            K_des = 0.5;                    
+                            eps = 0.0000001;              
                         }
         
         state_type adjust_state(const state_type &x) {
@@ -167,12 +166,14 @@ namespace dynamic_gap {
             gradient_of_pti_wrt_rbt = centers_to_rbt.array().colwise() / (rowwise_sq_norms.array() + eps);          
             // ROS_INFO_STREAM("gradient_of_pti_wrt_rbt size: " << gradient_of_pti_wrt_rbt.rows() << ", " << gradient_of_pti_wrt_rbt.cols());
 
+            // output of AHPF
             v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
 
-            v_des = K_des * (v_raw / v_raw.norm());
+            // Normalizing raw output and scaling by velocity limit
+            v_des = v_lin_max * (v_raw / v_raw.norm());
 
             // CLIPPING DESIRED VELOCITIES
-            v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
+            // v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
 
@@ -238,19 +239,13 @@ namespace dynamic_gap {
             }
 
 
-            v_des(0) = (x[6] - x[0]);
-            v_des(1) = (x[7] - x[1]);
+            v_des[0] = (x[6] - x[0]);
+            v_des[1] = (x[7] - x[1]);
             
-            // ROS_INFO_STREAM("v_des: " << v_des[0] << ", " << v_des[1]);
             Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
-            // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
 
-            // set desired acceleration based on desired velocity
-            // Eigen::Vector2d a_des(-K_acc*(x[2] - v_des(0)), -K_acc*(x[3] - v_des(1)));
-            // std::cout << "v_des: " << v_des(0) << ", " << v_des(1)  << ". a_des: " << a_des(0) << ", " << a_des(1) << std::endl;
-        
-            dxdt[0] = v_cmd[0]; // rbt_x
-            dxdt[1] = v_cmd[1]; // rbt_y
+            dxdt[0] = v_cmd[0];
+            dxdt[1] = v_cmd[1];
             dxdt[6] = goal_vel_x;
             dxdt[7] = goal_vel_y;
             return;
@@ -262,19 +257,20 @@ namespace dynamic_gap {
     {
         geometry_msgs::PoseArray& _posearr;
         std::string _frame_id;
-        double _coefs;
+        double _scale;
         std::vector<double>& _timearr;
 
-        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, double coefs, std::vector<double>& timearr)
-        : _posearr(posearr), _frame_id(frame_id), _coefs(coefs), _timearr(timearr) {}
+        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, 
+                         double scale, std::vector<double>& timearr): 
+                         _posearr(posearr), _frame_id(frame_id), _scale(scale), _timearr(timearr) {}
 
         void operator()( const state_type &x , double t )
         {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = _frame_id;
             // if this _coefs is not 1.0, will cause jump between initial and next poses
-            pose.pose.position.x = x[0] / _coefs;
-            pose.pose.position.y = x[1] / _coefs;
+            pose.pose.position.x = x[0] / _scale;
+            pose.pose.position.y = x[1] / _scale;
             pose.pose.position.z = 0;
 
             pose.pose.orientation.x = 0;
