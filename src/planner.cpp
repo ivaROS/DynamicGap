@@ -1015,7 +1015,7 @@ namespace dynamic_gap
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
         std::vector<Matrix<double, 4, 1> > curr_agents_lc;
         
-        if (cfg.egocircle_prop_cheat) {
+        if (cfg.planning.egocircle_prop_cheat) {
             Matrix<double, 4, 1> agent_i_state;
             curr_agents_lc.clear();
             for (int i = 0; i < num_obsts; i++) {

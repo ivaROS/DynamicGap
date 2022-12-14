@@ -37,7 +37,7 @@ namespace dynamic_gap {
                 bool far_feasible;
                 int num_feasi_check;
                 int halt_size;
-                bool egoircle_prop_cheat;
+                bool egocircle_prop_cheat;
             } planning;            
 
             struct ManualControl {
@@ -139,7 +139,7 @@ namespace dynamic_gap {
             planning.num_feasi_check = 10;
             planning.far_feasible = false;
             planning.halt_size = 5;
-            planning.egoircle_prop_cheat = false;
+            planning.egocircle_prop_cheat = false;
 
             man.man_ctrl = false;
             man.man_x = 0;

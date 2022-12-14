@@ -28,7 +28,7 @@ namespace dynamic_gap {
         nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
         nh.param("num_feasi_check", planning.num_feasi_check, planning.num_feasi_check);
         nh.param("far_feasible", planning.far_feasible, planning.far_feasible);
-        nh.param("egoircle_prop_cheat", planning.egoircle_prop_cheat, planning.egoircle_prop_cheat);
+        nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
 
         // Manual Control
         nh.param("man_ctrl", man.man_ctrl, man.man_ctrl);
@@ -116,7 +116,7 @@ namespace dynamic_gap {
         planning.projection_operator = cfg.projection_operator;
         planning.num_feasi_check = cfg.num_feasi_check;
         planning.far_feasible = cfg.far_feasible;
-        planning.egoircle_prop_cheat = cfg.egoircle_prop_cheat;
+        planning.egocircle_prop_cheat = cfg.egocircle_prop_cheat;
         
         // Manual Control
         man.man_ctrl = cfg.man_ctrl;
