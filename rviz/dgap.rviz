@@ -98,7 +98,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot1
+          Reference Frame: robot0
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -140,7 +140,7 @@ Visualization Manager:
               Marker Topic: /reachable_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip_initial: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -148,7 +148,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -262,7 +262,7 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -346,7 +346,7 @@ Visualization Manager:
           Marker Topic: /robot1/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -579,9 +579,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -7.610896110534668
-        Y: -0.39994949102401733
-        Z: -4.284588813781738
+        X: -11.07636833190918
+        Y: -0.2531382441520691
+        Z: -4.2880473136901855
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

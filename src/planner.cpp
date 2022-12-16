@@ -833,10 +833,10 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) {
-        geometry_msgs::Twist cmd_vel;
-        cmd_vel.linear.y = -0.35;
+        // geometry_msgs::Twist cmd_vel;
+        // cmd_vel.linear.y = -0.35;
         
-        /*
+        
         sensor_msgs::LaserScan stored_scan_msgs;
         if (cfg.planning.projection_inflated) {
             stored_scan_msgs = *sharedPtr_inflatedlaser.get();
@@ -877,12 +877,11 @@ namespace dynamic_gap
         // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
         cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
                                              static_scan, rbt_in_cam_lc,
-                                             current_rbt_vel, rbt_accel,
+                                             current_rbt_vel, current_rbt_acc,
                                              curr_right_model, curr_left_model,
                                              curr_peak_velocity_x, curr_peak_velocity_y);
-        //geometry_msgs::Twist cmd_vel;
-        //cmd_vel.linear.x = 0.25;
-        */
+
+
         return cmd_vel;
     }
 
@@ -1053,7 +1052,6 @@ namespace dynamic_gap
         
         bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
-        /*
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         try { 
             feasible_gap_set = gapSetFeasibilityCheck(curr_exec_gap_assoc, curr_exec_gap_feas);
@@ -1115,19 +1113,19 @@ namespace dynamic_gap
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
         }
-        */
+
         start_time = ros::WallTime::now().toSec();
         geometry_msgs::PoseArray final_traj;
         
-        /*
+        
         try {
             final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }
         ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
-        */
-        // ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
+        
+        ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
         return final_traj;
     }
 

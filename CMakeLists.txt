@@ -5,8 +5,6 @@ add_compile_options(-std=c++17)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 
-# set(osqp-cpp_DIR "/home/masselmeier3/osqp-cpp/")
-
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
   message(STATUS "OPENMP FOUND")
@@ -33,7 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(PythonLibs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
-find_package(osqp REQUIRED)
+# find_package(osqp REQUIRED)
 find_package(OsqpEigen REQUIRED)
 # find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
@@ -47,7 +45,7 @@ include_directories(
   SYSTEM ${EIGEN3_INCLUDE_DIRS}
   include
   ${catkin_INCLUDE_DIRS}
-  ${osqp_INCLUDE_DIR}
+  # ${osqp_INCLUDE_DIR}
 )
 
 add_message_files(DIRECTORY msg
@@ -102,7 +100,7 @@ target_link_libraries(dynamic_gap
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}
 	${OpenMP_LIBS}
-	osqp::osqp
+	# osqp::osqp
 	OsqpEigen::OsqpEigen
 )
 # target_link_libraries(PRIVATE )

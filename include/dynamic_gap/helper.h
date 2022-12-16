@@ -21,9 +21,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "tf/transform_datatypes.h"
 
-//#include "osqp.h"
-//#include "/home/masselmeier3/osqp-cpp/include/osqp++.h"
-
 namespace dynamic_gap {
     typedef boost::array<double, 8> state_type;
     //typedef state_type::index_range range;
@@ -177,8 +174,8 @@ namespace dynamic_gap {
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
 
-            dxdt[0] = v_cmd[0]; // rbt_x
-            dxdt[1] = v_cmd[1]; // rbt_y
+            dxdt[0] = v_des[0]; // rbt_x
+            dxdt[1] = v_des[1]; // rbt_y
 
             dxdt[2] = nonrel_left_vel[0]; // left point r_x (absolute)
             dxdt[3] = nonrel_left_vel[1]; // left point r_y (absolute)

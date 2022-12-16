@@ -387,8 +387,8 @@ namespace dynamic_gap {
         G_k = P_k_minus * H_transpose * tmp_mat.inverse();
 
         P_k_plus = (eyes - G_k*H)*P_k_minus;
-        new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
-        Q_k = new_Q;
+        // new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
+        // Q_k = new_Q;
 
         
         if (print) {
