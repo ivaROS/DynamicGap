@@ -1,4 +1,7 @@
 #include <dynamic_gap/planner.h>
+
+#include <iostream>
+
 #include "tf/transform_datatypes.h"
 #include <tf/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -164,7 +167,7 @@ namespace dynamic_gap
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
         raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
         gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx, raw_gap_assoc_print);
-        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, scan_dt, true);
+        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, true);
@@ -833,54 +836,58 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) {
-        // geometry_msgs::Twist cmd_vel;
-        // cmd_vel.linear.y = -0.35;
-        
-        
-        sensor_msgs::LaserScan stored_scan_msgs;
-        if (cfg.planning.projection_inflated) {
-            stored_scan_msgs = *sharedPtr_inflatedlaser.get();
-        } else {
-            stored_scan_msgs = *sharedPtr_laser.get();
-        }
+        geometry_msgs::Twist raw_cmd_vel = geometry_msgs::Twist();
 
-        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
-        if (traj.poses.size() < 2) {
+        if (cfg.man.man_ctrl) { // MANUAL CONTROL
+            raw_cmd_vel = trajController->manualControlLaw();
+        } else if (traj.poses.size() < 2) { // OBSTACLE AVOIDANCE CONTROL
+            sensor_msgs::LaserScan stored_scan_msgs;
+            if (cfg.planning.projection_inflated) {
+                stored_scan_msgs = *sharedPtr_inflatedlaser.get();
+            } else {
+                stored_scan_msgs = *sharedPtr_laser.get();
+            }
             ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
-            cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
-            return cmd_vel;
+            raw_cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
+            return raw_cmd_vel;
+        } else { // FEEDBACK CONTROL
+            // Know Current Pose
+            geometry_msgs::PoseStamped curr_pose_local;
+            curr_pose_local.header.frame_id = cfg.robot_frame_id;
+            curr_pose_local.pose.orientation.w = 1;
+            geometry_msgs::PoseStamped curr_pose_odom;
+            curr_pose_odom.header.frame_id = cfg.odom_frame_id;
+            tf2::doTransform(curr_pose_local, curr_pose_odom, rbt2odom);
+            geometry_msgs::Pose curr_pose = curr_pose_odom.pose;
+
+            // obtain current robot pose in odom frame
+
+            // traj in odom frame here
+            // returns a TrajPlan (poses and velocities, velocities are zero here)
+            auto orig_ref = trajController->trajGen(traj);
+            
+            // get point along trajectory to target/move towards
+            ctrl_idx = trajController->targetPoseIdx(curr_pose, orig_ref);
+            nav_msgs::Odometry ctrl_target_pose;
+            ctrl_target_pose.header = orig_ref.header;
+            ctrl_target_pose.pose.pose = orig_ref.poses.at(ctrl_idx);
+            ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
+            
+            geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
+            // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
+            
+            raw_cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
+                                                static_scan, rbt_in_cam_lc,
+                                                current_rbt_vel, current_rbt_acc,
+                                                curr_right_model, curr_left_model,
+                                                curr_peak_velocity_x, curr_peak_velocity_y);
         }
-
-        // Know Current Pose
-        geometry_msgs::PoseStamped curr_pose_local;
-        curr_pose_local.header.frame_id = cfg.robot_frame_id;
-        curr_pose_local.pose.orientation.w = 1;
-        geometry_msgs::PoseStamped curr_pose_odom;
-        curr_pose_odom.header.frame_id = cfg.odom_frame_id;
-        tf2::doTransform(curr_pose_local, curr_pose_odom, rbt2odom);
-        geometry_msgs::Pose curr_pose = curr_pose_odom.pose;
-
-        // obtain current robot pose in odom frame
-
-        // traj in odom frame here
-        // returns a TrajPlan (poses and velocities, velocities are zero here)
-        auto orig_ref = trajController->trajGen(traj);
-        
-        // get point along trajectory to target/move towards
-        ctrl_idx = trajController->targetPoseIdx(curr_pose, orig_ref);
-        nav_msgs::Odometry ctrl_target_pose;
-        ctrl_target_pose.header = orig_ref.header;
-        ctrl_target_pose.pose.pose = orig_ref.poses.at(ctrl_idx);
-        ctrl_target_pose.twist.twist = orig_ref.twist.at(ctrl_idx);
-
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
-        // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
-        cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
-                                             static_scan, rbt_in_cam_lc,
-                                             current_rbt_vel, current_rbt_acc,
-                                             curr_right_model, curr_left_model,
-                                             curr_peak_velocity_x, curr_peak_velocity_y);
 
+        geometry_msgs::Twist cmd_vel = trajController->processCmdVel(raw_cmd_vel,
+                        static_scan, rbt_in_cam_lc, 
+                        curr_right_model, curr_left_model,
+                        current_rbt_vel, current_rbt_acc); 
 
         return cmd_vel;
     }
@@ -1046,6 +1053,8 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
+
+        /*
         double getPlan_start_time = ros::WallTime::now().toSec();
 
         double start_time = ros::WallTime::now().toSec();      
@@ -1115,9 +1124,10 @@ namespace dynamic_gap
         }
 
         start_time = ros::WallTime::now().toSec();
+        */
         geometry_msgs::PoseArray final_traj;
         
-        
+        /*
         try {
             final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
@@ -1126,6 +1136,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
         
         ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
+        */
         return final_traj;
     }
 

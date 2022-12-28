@@ -146,11 +146,24 @@ namespace dynamic_gap{
         return abs(double(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
     }
 
+    geometry_msgs::Twist TrajectoryController::manualControlLaw() {
+        ROS_INFO_STREAM("Manual Control");
+
+        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
+
+        cmd_vel.linear.x = cfg_->man.man_x;
+        cmd_vel.linear.y = cfg_->man.man_y;
+        cmd_vel.angular.z = cfg_->man.man_theta;
+
+        return cmd_vel;
+    }
+
+
     /*
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
     */
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(sensor_msgs::LaserScan inflated_egocircle) {
-
+        ROS_INFO_STREAM("obstacle avoidance control");
         double cmd_vel_x_safe = 0;
         double cmd_vel_y_safe = 0;                                   
         
@@ -186,7 +199,7 @@ namespace dynamic_gap{
             ROS_INFO_STREAM("final safe vels: " << weighted_cmd_vel_x_safe << ", " << weighted_cmd_vel_y_safe);
         }
 
-        geometry_msgs::Twist cmd_vel;
+        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
         cmd_vel.linear.x = weighted_cmd_vel_x_safe;
         cmd_vel.linear.y = weighted_cmd_vel_y_safe; 
         cmd_vel.angular.z = weighted_cmd_vel_theta_safe;    
@@ -204,10 +217,13 @@ namespace dynamic_gap{
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
 
+        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
+        double v_lin_x_fb = 0;
+        double v_lin_y_fb = 0;
+        double v_ang_fb = 0;
 
+        ROS_INFO_STREAM("feedback control");
         // ROS_INFO_STREAM("r_min: " << r_min);
-        // auto inflated_egocircle = *msg_.get();
-        geometry_msgs::Twist cmd_vel;
         geometry_msgs::Point curr_position = current.position;
         geometry_msgs::Quaternion curr_orientation = current.orientation;
 
@@ -235,25 +251,14 @@ namespace dynamic_gap{
 
         // get x,y,theta error
         Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
-        float theta_error = std::arg(g_error(0, 0));
         float x_error = g_error.real()(0, 1);
         float y_error = g_error.imag()(0, 1);
-
-        double v_ang_fb = 0;
-        double v_lin_x_fb = 0;
-        double v_lin_y_fb = 0;
+        float theta_error = std::arg(g_error(0, 0));
 
         // obtain feedback velocities
-        if (cfg_->man.man_ctrl) {
-            ROS_INFO_STREAM("Manual Control");
-            v_ang_fb = cfg_->man.man_theta;
-            v_lin_x_fb = cfg_->man.man_x;
-            v_lin_y_fb = cfg_->man.man_y;
-        } else {
-            v_ang_fb = theta_error * k_fb_theta_;
-            v_lin_x_fb = x_error * k_fb_x_;
-            v_lin_y_fb = y_error * k_fb_y_;
-        }
+        v_lin_x_fb = x_error * k_fb_x_;
+        v_lin_y_fb = y_error * k_fb_y_;
+        v_ang_fb = theta_error * k_fb_theta_;
 
         double peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
         double cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
@@ -273,6 +278,23 @@ namespace dynamic_gap{
             if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
         }
 
+        cmd_vel.linear.x = v_lin_x_fb;
+        cmd_vel.linear.y = v_lin_y_fb;
+        cmd_vel.angular.z = v_ang_fb;
+        return cmd_vel;
+    }
+
+    geometry_msgs::Twist TrajectoryController::processCmdVel(geometry_msgs::Twist raw_cmd_vel,
+                        sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc, 
+                        dynamic_gap::cart_model * curr_right_model, dynamic_gap::cart_model * curr_left_model,
+                        geometry_msgs::Twist current_rbt_vel, geometry_msgs::TwistStamped rbt_accel) 
+    {
+        geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
+
+        double v_lin_x_fb = raw_cmd_vel.linear.x;
+        double v_lin_y_fb = raw_cmd_vel.linear.y;
+        double v_ang_fb = raw_cmd_vel.angular.z;
+
         // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
         float min_dist_ang = 0;
         float min_dist = 0;
@@ -280,7 +302,7 @@ namespace dynamic_gap{
         Eigen::Vector2d Psi_der(0.0, 0.0);
         double Psi = 0.0;
         double Psi_CBF = 0.0;
-        Eigen::Vector2d cmd_vel_fb(v_lin_x_fb, v_lin_y_fb);
+        Eigen::Vector2d cmd_vel_fb(raw_cmd_vel.linear.x, raw_cmd_vel.linear.y);
         // ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
 
         if (inflated_egocircle.ranges.size() < 500) {
@@ -315,7 +337,7 @@ namespace dynamic_gap{
 
         if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("safe command velocity, v_x:" << weighted_cmd_vel_x_safe << ", v_y: " << weighted_cmd_vel_y_safe);
 
-        // cmd_v  el_safe
+        // cmd_vel_safe
         if (weighted_cmd_vel_x_safe != 0 || weighted_cmd_vel_y_safe != 0) {
             visualize_projection_operator(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, projection_viz);
         }

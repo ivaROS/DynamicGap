@@ -182,9 +182,10 @@ namespace dynamic_gap {
         ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
 
         new_x << x_intermediate[0] + p_dot_x*dt, // r_x
-                    x_intermediate[1] + p_dot_y*dt, // r_y
-                    x_intermediate[2] + v_dot_x*dt, // v_x
-                    x_intermediate[3] + v_dot_y*dt; // v_y
+                 x_intermediate[1] + p_dot_y*dt, // r_y
+                 x_intermediate[2] + v_dot_x*dt, // v_x
+                 x_intermediate[3] + v_dot_y*dt; // v_y
+        
         x_intermediate = new_x;
         ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
     
@@ -239,6 +240,88 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("current_rbt_vel, x_lin: " << _current_rbt_vel.linear.x << ", y_lin: " << _current_rbt_vel.linear.y << ", z_ang: " << _current_rbt_vel.angular.z);
         }
 
+        v_ego[0] = _current_rbt_vel.linear.x;
+        v_ego[1] = _current_rbt_vel.linear.y;
+        v_ego[2] = _current_rbt_vel.angular.z;
+        a_ego[0] = _current_rbt_acc.twist.linear.x;
+        a_ego[1] = _current_rbt_acc.twist.linear.y;
+        a_ego[2] = _current_rbt_acc.twist.angular.z;        
+        
+        x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
+                   range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
+        
+        
+        if (print) {
+            ROS_INFO_STREAM("linear ego vel: " << v_ego[0] << ", " << v_ego[1] << ", angular ego vel: " << v_ego[2]);
+            ROS_INFO_STREAM("linear ego acceleration: " << a_ego[0] << ", " << a_ego[1] << ", angular ego acc: " << a_ego[2]);
+        }
+        
+
+        x_ground_truth = update_ground_truth_cartesian_state();
+
+        x_hat_k_minus = integrate();
+
+        
+        if (print) {
+            ROS_INFO_STREAM("x_hat_k_minus: " << x_hat_k_minus[0] << ", " << x_hat_k_minus[1] << ", " << x_hat_k_minus[2] << ", " << x_hat_k_minus[3]);
+        }
+        
+
+        // P_intermediate = P_kmin1_plus;
+        // new_P = P_kmin1_plus;
+        //for (int i = 0; i < intermediate_vels.size(); i++) {
+        linearize(dt);
+
+        discretizeQ();
+
+        P_k_minus = STM * P_kmin1_plus * STM.transpose() + dQ;
+        
+        // P_intermediate = new_P;
+        // }
+        // P_k_minus = new_P;
+        
+        if (print) {
+            ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+        }
+        
+        innovation = x_tilde - H*x_hat_k_minus;
+        x_hat_k_plus = x_hat_k_minus + G_k*innovation;
+        residual = x_tilde - H*x_hat_k_plus;
+        
+        double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
+        R_k << sensor_noise_factor, 0.0,
+               0.0, sensor_noise_factor;
+
+        // new_R = (alpha_R * R_k) + (1.0 - alpha_R)*(residual * residual.transpose() + H*P_k_minus*H_transpose);
+        // R_k = new_R;
+
+        tmp_mat = H*P_k_minus*H_transpose + R_k;
+
+        G_k = P_k_minus * H_transpose * tmp_mat.inverse();
+
+        P_k_plus = (eyes - G_k*H)*P_k_minus;
+        
+        // new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
+        // Q_k = new_Q;
+
+        
+        if (print) {
+            ROS_INFO_STREAM("x_hat_k_plus: " << x_hat_k_plus[0] << ", " << x_hat_k_plus[1] << ", " << x_hat_k_plus[2] << ", " << x_hat_k_plus[3]);
+            //ROS_INFO_STREAM("P_i+1: " << P(0, 0) << ", " << P(0, 1) << ", " << P(0, 2) << ", " << P(0, 3));
+            //ROS_INFO_STREAM(P(1, 0) << ", " << P(1, 1) << ", " << P(1, 2) << ", " << P(1, 3));
+            //ROS_INFO_STREAM(P(2, 0) << ", " << P(2, 1) << ", " << P(2, 2) << ", " << P(2, 3));
+            //ROS_INFO_STREAM(P(3, 0) << ", " << P(3, 1) << ", " << P(3, 2) << ", " << P(3, 3));            
+            ROS_INFO_STREAM("x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
+            ROS_INFO_STREAM("-----------");
+        }
+        
+        x_hat_kmin1_plus = x_hat_k_plus;
+        P_kmin1_plus = P_k_plus;
+        t_min1 = t;
+        return;
+    }    
+
+    void cart_model::get_intermediate_vels_accs() {
         /*
         if (intermediate_vels.size() > 0) {
             v_ego << 0.0, 0.0, 0.0;
@@ -307,12 +390,6 @@ namespace dynamic_gap {
             }
         }
         */
-        v_ego[0] = _current_rbt_vel.linear.x;
-        v_ego[1] = _current_rbt_vel.linear.y;
-        v_ego[2] = _current_rbt_vel.angular.z;
-        a_ego[0] = _current_rbt_acc.twist.linear.x;
-        a_ego[1] = _current_rbt_acc.twist.linear.y;
-        a_ego[2] = _current_rbt_acc.twist.angular.z;        
 
         /*
         // both intermediates should be same size now
@@ -334,73 +411,9 @@ namespace dynamic_gap {
             }
         }
         */
-        
-        x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
-                   range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
-        
-        /*
-        if (print) {
-            ROS_INFO_STREAM("linear ego vel: " << v_ego[0] << ", " << v_ego[1] << ", angular ego vel: " << v_ego[2]);
-            ROS_INFO_STREAM("linear ego acceleration: " << a_ego[0] << ", " << a_ego[1] << ", angular ego acc: " << a_ego[2]);
-        }
-        */
-        
+    }
 
-        x_ground_truth = update_ground_truth_cartesian_state();
-
-        x_hat_k_minus = integrate();
-
-        
-        if (print) {
-            ROS_INFO_STREAM("x_hat_k_minus: " << x_hat_k_minus[0] << ", " << x_hat_k_minus[1] << ", " << x_hat_k_minus[2] << ", " << x_hat_k_minus[3]);
-        }
-        
-
-        P_intermediate = P_kmin1_plus;
-        new_P = P_kmin1_plus;
-        //for (int i = 0; i < intermediate_vels.size(); i++) {
-        linearize(dt);
-
-        discretizeQ();
-
-        new_P = STM * P_intermediate * STM.transpose() + dQ;
-        P_intermediate = new_P;
-        // }
-        P_k_minus = new_P;
-        
-        if (print) {
-            ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
-        }
-        
-        innovation = x_tilde - H*x_hat_k_minus;
-        x_hat_k_plus = x_hat_k_minus + G_k*innovation;
-        residual = x_tilde - H*x_hat_k_plus;
-        
-        double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
-        R_k << sensor_noise_factor, 0.0,
-            0.0, sensor_noise_factor;
-        // new_R = (alpha_R * R_k) + (1.0 - alpha_R)*(residual * residual.transpose() + H*P_k_minus*H_transpose);
-        // R_k = new_R;
-
-        tmp_mat = H*P_k_minus*H_transpose + R_k;
-
-        G_k = P_k_minus * H_transpose * tmp_mat.inverse();
-
-        P_k_plus = (eyes - G_k*H)*P_k_minus;
-        // new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
-        // Q_k = new_Q;
-
-        
-        if (print) {
-            ROS_INFO_STREAM("x_hat_k_plus: " << x_hat_k_plus[0] << ", " << x_hat_k_plus[1] << ", " << x_hat_k_plus[2] << ", " << x_hat_k_plus[3]);
-            //ROS_INFO_STREAM("P_i+1: " << P(0, 0) << ", " << P(0, 1) << ", " << P(0, 2) << ", " << P(0, 3));
-            //ROS_INFO_STREAM(P(1, 0) << ", " << P(1, 1) << ", " << P(1, 2) << ", " << P(1, 3));
-            //ROS_INFO_STREAM(P(2, 0) << ", " << P(2, 1) << ", " << P(2, 2) << ", " << P(2, 3));
-            //ROS_INFO_STREAM(P(3, 0) << ", " << P(3, 1) << ", " << P(3, 2) << ", " << P(3, 3));            
-            ROS_INFO_STREAM("x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
-            ROS_INFO_STREAM("-----------");
-        }
-        
+    void cart_model::plot_models() {
         /*
         if (plot && !plotted && print) {
             if (life_time <= life_time_threshold) {
@@ -426,12 +439,7 @@ namespace dynamic_gap {
             }
         }
         */
-        
-        x_hat_kmin1_plus = x_hat_k_plus;
-        P_kmin1_plus = P_k_plus;
-        t_min1 = t;
-        return;
-    }    
+    }
 
     /*
     void cart_model::plot_states() {

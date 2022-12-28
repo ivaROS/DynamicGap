@@ -110,5 +110,7 @@ namespace dynamic_gap {
             void set_initialized(bool _initialized);
             bool get_initialized();
             void plot_states();
+            void get_intermediate_vels_accs();
+            void plot_models();
     };
 }
