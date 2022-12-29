@@ -53,10 +53,14 @@ namespace dynamic_gap
         std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
         // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
-        rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
-
         // queue needs to be 3 to not skip any messages
-        pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
+        // pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
+        // rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
+
+        odom_sub.subscribe(nh, "/odom", 3);
+        acc_sub.subscribe(nh, robot_name + "/acc", 3);
+        sync_.reset(new Sync(MySyncPolicy(10), odom_sub, acc_sub));
+        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner, _1, _2));
 
         for (int i = 0; i < planner.get_num_obsts(); i++) {
             ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);

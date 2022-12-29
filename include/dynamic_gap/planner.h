@@ -15,7 +15,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Header.h>
-#include "nav_msgs/Odometry.h"
+#include <nav_msgs/Odometry.h>
 #include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/helper.h>
 #include <dynamic_gap/gap.h>
@@ -238,6 +238,9 @@ namespace dynamic_gap
          */
         void poseCB(const nav_msgs::Odometry::ConstPtr& msg);
 
+        void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr& odom_msg, const geometry_msgs::TwistStamped::ConstPtr& accel_msg);
+
+
         /**
          * Interface function for receiving global plan
          * @param plan, vector of PoseStamped
@@ -340,10 +343,16 @@ namespace dynamic_gap
     
         void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
                                                          geometry_msgs::Twist current_rbt_vel, 
-                                                         geometry_msgs::TwistStamped current_rbt_acc, double scan_dt, bool print);
+                                                         geometry_msgs::TwistStamped current_rbt_acc, 
+                                                         std::vector<geometry_msgs::Twist> intermediate_vels,
+                                                         std::vector<geometry_msgs::TwistStamped> intermediate_accs,
+                                                         double scan_dt, bool print);
+        
         std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
                                                     geometry_msgs::Twist current_rbt_vel, 
                                                     geometry_msgs::TwistStamped current_rbt_acc, 
+                                                    std::vector<geometry_msgs::Twist> intermediate_vels,
+                                                    std::vector<geometry_msgs::TwistStamped> intermediate_accs,
                                                     double scan_dt, bool print);
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
@@ -352,7 +361,6 @@ namespace dynamic_gap
         void setCurrentLeftModel(dynamic_gap::cart_model * _left_model);
         void setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y);
 
-        std::vector<dynamic_gap::Gap> gapManipulateByCategory(std::vector<dynamic_gap::Gap> _observed_gaps, Matrix<double, 1, 2> v_ego);
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);
         void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association);
 
@@ -375,6 +383,8 @@ namespace dynamic_gap
                                     geometry_msgs::PoseArray incoming, 
                                     std::vector<double> time_arr, 
                                     bool switching_to_empty);
+        
+        void reviseIntermediateValues(bool print);
 
     };
 }

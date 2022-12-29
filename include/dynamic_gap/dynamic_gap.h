@@ -17,6 +17,13 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
+
+#include <message_filters/subscriber.h>
+// #include <message_filters/time_synchronizer.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 #include <boost/numeric/odeint.hpp>
 
 #include <dynamic_gap/planner.h>
@@ -56,6 +63,13 @@ namespace dynamic_gap {
             ros::Subscriber rbt_accel_sub;      
             vector<ros::Subscriber> agent_odom_subscribers;
 
+            message_filters::Subscriber<nav_msgs::Odometry> odom_sub;
+            message_filters::Subscriber<geometry_msgs::TwistStamped> acc_sub;
+
+            typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> MySyncPolicy;
+            typedef message_filters::Synchronizer<MySyncPolicy> Sync;
+            boost::shared_ptr<Sync> sync_;
+            
             bool initialized = false;
 
             boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;

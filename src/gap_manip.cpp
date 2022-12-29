@@ -1038,7 +1038,7 @@ namespace dynamic_gap {
 
         // wrapping to 0 < angle < 2pi
         if (wrap && left_to_right_angle < 0) {
-            ROS_INFO_STREAM("wrapping " << left_to_right_angle);
+            if (cfg_->debug.manipulation_debug_log) {ROS_INFO_STREAM("wrapping " << left_to_right_angle); }
             left_to_right_angle += 2*M_PI; 
         }
 

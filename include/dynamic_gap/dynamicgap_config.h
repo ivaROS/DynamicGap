@@ -155,7 +155,7 @@ namespace dynamic_gap {
             debug.traj_debug_log = false;
             debug.control_debug_log = false;             
 
-            gap_assoc.assoc_thresh = 1.0;
+            gap_assoc.assoc_thresh = 0.5;
 
             gap_manip.epsilon1 = 0.18;
             gap_manip.epsilon2 = 0.18;

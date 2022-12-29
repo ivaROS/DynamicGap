@@ -88,14 +88,16 @@ namespace dynamic_gap
             future_scans.push_back(tmp_scan);
         }
 
-        prev_pose_msg_time = ros::Time::now();
-        prev_acc_msg_time = ros::Time::now();
         prev_scan_msg_time = ros::Time::now();
 
         static_scan = sensor_msgs::LaserScan();
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
         // ROS_INFO_STREAM("done initializing");
         switch_index = 0;
+
+        intermediate_vels.clear();
+        intermediate_accs.clear();
+
         return true;
     }
 
@@ -143,6 +145,69 @@ namespace dynamic_gap
         sharedPtr_inflatedlaser = msg;
     }
 
+
+    void Planner::reviseIntermediateValues(bool print) {
+        // need this so vector is not empty
+        if (intermediate_vels.size() == 0) {
+            intermediate_vels.push_back(current_rbt_vel); // just adding most recent value
+        }
+        
+        /*
+        if (print) { 
+            ROS_INFO_STREAM("intermediate velocities:");
+            for (int i = 0; i < intermediate_vels.size(); i++) {
+                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z); 
+            }
+        }
+        */
+
+        if (intermediate_accs.size() == 0) { 
+            intermediate_accs.push_back(current_rbt_acc); // just adding most recent value
+        }
+
+        /*
+        if (print) { 
+            ROS_INFO_STREAM("intermediate accelerations:");
+            for (int i = 0; i < intermediate_accs.size(); i++) {
+                ROS_INFO_STREAM("a_x: " << intermediate_accs[i].twist.linear.x << ", a_y: " << intermediate_accs[i].twist.linear.y << ", a_ang: " << intermediate_accs[i].twist.angular.z);
+            }
+        }
+        */
+
+        /*
+        int int_vels_size = intermediate_vels.size();
+        int int_accs_size = intermediate_accs.size();
+        if (int_vels_size != int_accs_size) {
+            // ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
+            if (int_vels_size > int_accs_size) {
+                // pad accels
+                for (int i = 0; i < (int_vels_size - int_accs_size); i++) {
+                    // ROS_INFO_STREAM("padding accel " << pad_acc.twist.linear.x << ", " << pad_acc.twist.linear.y << ", " << pad_acc.twist.angular.z);
+                    intermediate_accs.push_back(current_rbt_acc);
+                }
+            } else {
+                // pad vels
+                for (int i = 0; i < (int_accs_size - int_vels_size); i++) {
+                    // ROS_INFO_STREAM("padding with vel " << pad_vel.linear.x << ", " << pad_vel.linear.y << ", " << pad_vel.angular.z);
+                    intermediate_vels.push_back(current_rbt_vel);
+                }
+            }
+        }
+
+        if (print) {
+            ROS_INFO_STREAM("revised intermediate velocities:");
+            for (int i = 0; i < intermediate_vels.size(); i++) {
+                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z);             
+            }
+
+            ROS_INFO_STREAM("revised intermediate accelerations:");
+            for (int i = 0; i < intermediate_accs.size(); i++) {
+                ROS_INFO_STREAM("a_x: " << intermediate_accs[i].twist.linear.x << ", a_y: " << intermediate_accs[i].twist.linear.y << ", a_ang: " << intermediate_accs[i].twist.angular.z);            
+            }
+        }    
+        */
+    }
+
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
@@ -156,7 +221,9 @@ namespace dynamic_gap
             msg = sharedPtr_inflatedlaser;
         }
 
-        Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+        // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
+
+        reviseIntermediateValues(true);
 
         // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -166,8 +233,8 @@ namespace dynamic_gap
         bool raw_gap_assoc_print = false;  
         raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
         raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
-        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, v_ego, model_idx, raw_gap_assoc_print);
-        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, scan_dt, false);
+        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, current_rbt_vel, model_idx, raw_gap_assoc_print);
+        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, false);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, true);
@@ -185,12 +252,12 @@ namespace dynamic_gap
         bool simp_gap_assoc_print = true;  
         simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, v_ego, model_idx, simp_gap_assoc_print);
-        associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, scan_dt, true);
+        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, current_rbt_vel, model_idx, simp_gap_assoc_print);
+        associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, true);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        // intermediate_vels.clear();
-        // intermediate_accs.clear();
+        intermediate_vels.clear();
+        intermediate_accs.clear();
 
         gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
         gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
@@ -232,6 +299,8 @@ namespace dynamic_gap
     std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
                                                          geometry_msgs::Twist current_rbt_vel, 
                                                          geometry_msgs::TwistStamped current_rbt_acc, 
+                                                         std::vector<geometry_msgs::Twist> intermediate_vels,
+                                                         std::vector<geometry_msgs::TwistStamped> intermediate_accs,
                                                          double scan_dt,
                                                          bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
@@ -239,8 +308,8 @@ namespace dynamic_gap
         // double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
-            update_model(i, associated_observed_gaps, current_rbt_vel, current_rbt_acc, scan_dt, print);
-            //std::cgout << "" << std::endl;
+            update_model(i, associated_observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, print);
+            //std::cout << "" << std::endl;
 		}
 
         //ROS_INFO_STREAM("update_models time elapsed: " << ros::WallTime::now().toSec() - start_time);
@@ -250,6 +319,8 @@ namespace dynamic_gap
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
                                geometry_msgs::Twist current_rbt_vel, 
                                geometry_msgs::TwistStamped current_rbt_acc, 
+                               std::vector<geometry_msgs::Twist> intermediate_vels,
+                               std::vector<geometry_msgs::TwistStamped> intermediate_accs,
                                double scan_dt, 
                                bool print) {
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
@@ -268,14 +339,14 @@ namespace dynamic_gap
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
             try {
-                g.right_model->kf_update_loop(laserscan_measurement, current_rbt_vel, current_rbt_acc, print, agent_odoms, agent_vels, scan_dt);
+                g.right_model->kf_update_loop(laserscan_measurement, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, print, agent_odoms, agent_vels, scan_dt);
             } catch (...) {
                 ROS_FATAL_STREAM("kf_update loop fails");
             }
         } else {
             //std::cout << "entering right model update" << std::endl;
             try {
-                g.left_model->kf_update_loop(laserscan_measurement, current_rbt_vel, current_rbt_acc, print, agent_odoms, agent_vels, scan_dt);
+                g.left_model->kf_update_loop(laserscan_measurement, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, print, agent_odoms, agent_vels, scan_dt);
             } catch (...) {
                 ROS_FATAL_STREAM("kf_update loop fails");
             }
@@ -285,21 +356,59 @@ namespace dynamic_gap
     /*
     Acceleration message comes in in robot frame 
     */
+    /*
     void Planner::robotAccCB(boost::shared_ptr<geometry_msgs::TwistStamped const> msg)
     {
-        ros::Time curr_time = msg->header.stamp;
-        // ROS_INFO_STREAM("time since last accCB: " << (curr_time - prev_acc_msg_time).toSec());
-        prev_acc_msg_time = curr_time;
-
         current_rbt_acc = *msg;
-        // intermediate_accs.push_back(rbt_accel);
+        intermediate_accs.push_back(current_rbt_acc);
     }
+    */
     
+    void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &odom_msg, 
+                                 const geometry_msgs::TwistStamped::ConstPtr &accel_msg)
+    {
+        ROS_INFO_STREAM("joint pose acc cb");
+
+        // ROS_INFO_STREAM("accel time stamp: " << accel_msg->header.stamp.toSec());
+        current_rbt_acc = *accel_msg;
+        intermediate_accs.push_back(current_rbt_acc);
+
+        // ROS_INFO_STREAM("odom time stamp: " << odom_msg->header.stamp.toSec());
+
+        ROS_INFO_STREAM("acc - odom time difference: " << (accel_msg->header.stamp - odom_msg->header.stamp).toSec());
+
+        updateTF();
+
+        // Transform the msg to odom frame
+        if(odom_msg->header.frame_id != cfg.odom_frame_id)
+        {
+            //std::cout << "odom msg is not in odom frame" << std::endl;
+            geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, odom_msg->header.frame_id, ros::Time(0));
+
+            geometry_msgs::PoseStamped in_pose, out_pose;
+            in_pose.header = odom_msg->header;
+            in_pose.pose = odom_msg->pose.pose;
+
+            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+
+            tf2::doTransform(in_pose, out_pose, robot_pose_odom_trans);
+            sharedPtr_pose = out_pose.pose;
+        }
+        else
+        {
+            sharedPtr_pose = odom_msg->pose.pose;
+        }
+
+        // velocity always comes in wrt robot frame in STDR
+        current_rbt_vel = odom_msg->twist.twist;
+        intermediate_vels.push_back(current_rbt_vel);
+
+    }
+
+    /*
     void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        ros::Time curr_time = msg->header.stamp;
         // ROS_INFO_STREAM("time since last poseCB: " << (curr_time - prev_pose_msg_time).toSec());
-        prev_pose_msg_time = curr_time;
         updateTF();
 
         // Transform the msg to odom frame
@@ -324,12 +433,13 @@ namespace dynamic_gap
 
         // velocity always comes in wrt robot frame in STDR
         current_rbt_vel = msg->twist.twist;
-        // intermediate_vels.push_back(current_rbt_vel);
+        intermediate_vels.push_back(current_rbt_vel);
 
         // ros::Time end_time = ros::Time::now();
         // ROS_INFO_STREAM("poseCB time taken: " << (end_time - curr_time).toSec());
         
     }
+    */
     
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
@@ -1054,7 +1164,6 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
 
-        /*
         double getPlan_start_time = ros::WallTime::now().toSec();
 
         double start_time = ros::WallTime::now().toSec();      
@@ -1124,10 +1233,10 @@ namespace dynamic_gap
         }
 
         start_time = ros::WallTime::now().toSec();
-        */
+        
         geometry_msgs::PoseArray final_traj;
         
-        /*
+        
         try {
             final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
@@ -1136,7 +1245,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
         
         ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
-        */
+        
         return final_traj;
     }
 

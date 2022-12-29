@@ -31,12 +31,8 @@ namespace dynamic_gap {
             Matrix<double, 4, 2> G_k; // kalman gain
             Matrix<double, 2, 1> x_tilde, innovation, residual;
 
-            double t_min1;
-            double t;
             double dt, inter_dt;
             double alpha_Q, alpha_R;
-
-            Matrix<double, 1, 3> a_ego, v_ego;
 
             Matrix<double, 4, 4> A,  STM;
             std::string side;
@@ -64,14 +60,16 @@ namespace dynamic_gap {
 
             std::vector<geometry_msgs::Twist> intermediate_vels;
             std::vector<geometry_msgs::TwistStamped> intermediate_accs;
+            geometry_msgs::Twist current_rbt_vel; 
+            geometry_msgs::TwistStamped current_rbt_acc;
 
         public:
 
-            cart_model(std::string, int, double, double, Matrix<double, 1, 3>);
-
-            void initialize(double, double, Matrix<double, 1, 3>);
-
+            cart_model(std::string, int, double, double, geometry_msgs::Twist);
             ~cart_model() {};
+
+            void initialize(double, double, geometry_msgs::Twist);
+
 
             Eigen::Vector4d update_ground_truth_cartesian_state();
             Eigen::Vector4d get_cartesian_state();
@@ -85,9 +83,9 @@ namespace dynamic_gap {
 
             Eigen::Vector2d get_x_tilde();
 
-            Matrix<double, 3, 1> get_v_ego();
+            geometry_msgs::Twist get_v_ego();
             Matrix<double, 4, 1> integrate();
-            void linearize(double dt);
+            void linearize(int idx);
             void discretizeQ();
 
             void frozen_state_propagate(double dt);
@@ -98,10 +96,13 @@ namespace dynamic_gap {
             void kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
                                 geometry_msgs::Twist current_rbt_vel, 
                                 geometry_msgs::TwistStamped current_rbt_acc, 
+                                std::vector<geometry_msgs::Twist> _intermediate_vels,
+                                std::vector<geometry_msgs::TwistStamped> _intermediate_accs,
                                 bool print,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                 double scan_dt);
+
             void set_side(std::string _side);
             std::string get_side();
             int get_index();
