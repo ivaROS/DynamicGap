@@ -1,14 +1,16 @@
 #include <ros/ros.h>
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/gap_associator.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
+
+// #include <visualization_msgs/Marker.h>
+// #include <visualization_msgs/MarkerArray.h>
 
 #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <numeric>
+#include <iostream>
+
 #include <math.h>
 
 #include <geometry_msgs/TransformStamped.h>
@@ -16,9 +18,13 @@
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Header.h>
 #include <nav_msgs/Odometry.h>
+
+
+
 #include "dynamic_gap/TrajPlan.h"
-#include <dynamic_gap/helper.h>
 #include <dynamic_gap/gap.h>
+#include <dynamic_gap/gap_associator.h>
+#include <dynamic_gap/helper.h>
 // #include <dynamic_gap/trajectory_follower.h>
 #include <dynamic_gap/gap_utils.h>
 
@@ -32,10 +38,10 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2/LinearMath/Quaternion.h>
+// #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <omp.h>
+// #include <omp.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <dynamic_gap/dgConfig.h>
@@ -83,8 +89,8 @@ namespace dynamic_gap
         std::vector<int> simp_association;
         std::vector<int> raw_association;
 
-        vector< vector<double> > simp_distMatrix;
-        vector< vector<double> > raw_distMatrix;
+        std::vector< std::vector<double> > simp_distMatrix;
+        std::vector< std::vector<double> > raw_distMatrix;
 
         bool print_associations;
 
@@ -186,7 +192,7 @@ namespace dynamic_gap
         std::vector<sensor_msgs::LaserScan> future_scans;
 
         ros::Time prev_pose_msg_time, prev_scan_msg_time, prev_acc_msg_time;
-        std::vector<Matrix<double, 4, 1> > curr_agents;
+        std::vector<Eigen::Matrix<double, 4, 1> > curr_agents;
 
         int switch_index;
 

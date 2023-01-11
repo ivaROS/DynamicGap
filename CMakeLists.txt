@@ -80,7 +80,7 @@ add_library(dynamic_gap
   src/gap_manip.cpp
   src/trajectory_controller.cpp
   src/gap_associator.cpp
-  src/mp_model.cpp
+  # src/mp_model.cpp
   src/cart_model.cpp
   src/gap_feasibility.cpp
   ) 

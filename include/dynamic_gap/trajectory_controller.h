@@ -5,11 +5,11 @@
 #include <dynamic_gap/dynamicgap_config.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <ros/ros.h>
+// #include <ros/ros.h>
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/PoseArray.h"
-#include "geometry_msgs/TransformStamped.h"
+// #include "geometry_msgs/TransformStamped.h"
 #include "nav_msgs/Odometry.h"
 #include <sensor_msgs/LaserScan.h>
 #include <tf/tf.h>
@@ -19,7 +19,7 @@
 #include <visualization_msgs/Marker.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/LinearMath/Quaternion.h>
+// #include <tf2/LinearMath/Quaternion.h>
 
 namespace dynamic_gap {
     class TrajectoryController {

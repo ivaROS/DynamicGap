@@ -7,7 +7,7 @@
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
 #include <vector>
-#include <geometry_msgs/PoseStamped.h>
+// #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <sensor_msgs/LaserScan.h>

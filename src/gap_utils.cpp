@@ -321,8 +321,8 @@ namespace dynamic_gap {
     }
 
     bool compareModelBearingValues(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
-        Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
@@ -330,8 +330,8 @@ namespace dynamic_gap {
     bool checkModelSimilarity(dynamic_gap::cart_model * curr_model, dynamic_gap::cart_model * prev_model) {
         double eps = 0.00001;
         
-        Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
         Eigen::Vector2d curr_vel(curr_state[2], curr_state[3]);
         Eigen::Vector2d prev_vel(prev_state[2], prev_state[3]);
@@ -351,12 +351,12 @@ namespace dynamic_gap {
 
     void createAgentFromModels(dynamic_gap::cart_model * curr_model,    
                                dynamic_gap::cart_model * prev_model,
-                               std::vector<Matrix<double, 4, 1> > & agents,
+                               std::vector<Eigen::Matrix<double, 4, 1> > & agents,
                                bool print) {
-        Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
-        Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
+        Eigen::Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
         // if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
         agents.push_back(new_agent);                                  
     }
@@ -431,7 +431,7 @@ namespace dynamic_gap {
         dynamic_gap::cart_model * prev_model = obs_models[0];
         dynamic_gap::cart_model * curr_model = obs_models[1];
 
-        std::vector<Matrix<double, 4, 1> > agents;
+        std::vector<Eigen::Matrix<double, 4, 1> > agents;
 
         // ROS_INFO_STREAM("looping through models");
         for (int i = 1; i < obs_models.size(); i++) {
@@ -464,7 +464,7 @@ namespace dynamic_gap {
         // 
     }
 
-    std::vector<Matrix<double, 4, 1> > GapUtils::getCurrAgents() {
+    std::vector<Eigen::Matrix<double, 4, 1> > GapUtils::getCurrAgents() {
         return curr_agents;
     }
 

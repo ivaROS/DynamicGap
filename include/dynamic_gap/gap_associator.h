@@ -12,14 +12,19 @@
 #ifndef GAP_ASSOCIATOR_H
 #define GAP_ASSOCIATOR_H
 
+#include <ros/ros.h>
+
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
-#include <ros/ros.h>
-#include <sensor_msgs/LaserScan.h>
+// #include <sensor_msgs/LaserScan.h>
 #include <iostream>
 #include <vector>
+#include <stdlib.h>
+#include <cfloat> // for DBL_MAX
+#include <cmath>  // for fabs()
+#include <Eigen/Core>
 
-using namespace std;
+// using namespace std;
 
 namespace dynamic_gap
 {
@@ -30,15 +35,15 @@ namespace dynamic_gap
 		~GapAssociator(){};
 
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = cfg_->gap_assoc.assoc_thresh; };
-		std::vector<int> associateGaps(vector< vector<double> > distMatrix);
-        void assignModels(std::vector<int> association, vector< vector<double> > distMatrix, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, geometry_msgs::Twist current_rbt_vel, int * model_idx, bool print);
-		vector<vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::string ns);
+		std::vector<int> associateGaps(std::vector< std::vector<double> > distMatrix);
+        void assignModels(std::vector<int> association, std::vector< std::vector<double> > distMatrix, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, geometry_msgs::Twist current_rbt_vel, int * model_idx, bool print);
+		std::vector<std::vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::string ns);
 
 
 	private:
 		const DynamicGapConfig* cfg_;
 		double assoc_thresh;
-		double Solve(vector <vector<double> >& DistMatrix, vector<int>& Assignment);
+		double Solve(std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment);
 		void assignmentoptimal(int *assignment, double *cost, double *distMatrix, int nOfRows, int nOfColumns);
 		void buildassignmentvector(int *assignment, bool *starMatrix, int nOfRows, int nOfColumns);
 		void computeassignmentcost(int *assignment, double *cost, double *distMatrix, int nOfRows);

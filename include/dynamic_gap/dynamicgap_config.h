@@ -1,10 +1,10 @@
 #ifndef DG_CONFIG_H
 #define DG_CONFIG_H
 
-#include <ros/console.h>
+// #include <ros/console.h>
 #include <ros/ros.h>
 #include <dynamic_gap/dgConfig.h>
-#include <Eigen/Core>
+// #include <Eigen/Core>
 #include <boost/thread/mutex.hpp>
 
 namespace dynamic_gap {

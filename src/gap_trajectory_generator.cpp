@@ -1,4 +1,4 @@
- #include <dynamic_gap/gap_trajectory_generator.h>
+#include <dynamic_gap/gap_trajectory_generator.h>
 
 namespace dynamic_gap{
 
@@ -301,19 +301,6 @@ namespace dynamic_gap{
         A_S.row(0) = neg_one_vect;
 
         A << A_N, A_S;
-    }
-
-
-    Matrix<double, 5, 1> GapTrajGenerator::cartesian_to_polar(Eigen::Vector4d x) {
-        Matrix<double, 5, 1> polar_y;
-        polar_y << 0.0, 0.0, 0.0, 0.0, 0.0;
-        polar_y(0) = 1.0 / std::sqrt(pow(x[0], 2) + pow(x[1], 2));
-        double beta = std::atan2(x[1], x[0]);
-        polar_y(1) = std::sin(beta);
-        polar_y(2) = std::cos(beta);
-        polar_y(3) = (x[0]*x[2] + x[1]*x[3]) / (pow(x[0],2) + pow(x[1], 2)); // rdot/r
-        polar_y(4) = (x[0]*x[3] - x[1]*x[2]) / (pow(x[0],2) + pow(x[1], 2)); // betadot
-        return polar_y;
     }
 
     double num_int(Eigen::Vector2d pt_origin, 

@@ -9,11 +9,7 @@
 // by Cong Ma, 2016
 // 
 
-#include <stdlib.h>
-#include <cfloat> // for DBL_MAX
-#include <cmath>  // for fabs()
 #include <dynamic_gap/gap_associator.h>
-#include <Eigen/Core>
 
 namespace dynamic_gap {
 
@@ -49,7 +45,7 @@ namespace dynamic_gap {
 		return points;
 	}
 
-	vector<vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
+	std::vector<std::vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
 															std::vector<dynamic_gap::Gap> previous_gaps, 
 															std::string ns) {
 		double start_time = ros::Time::now().toSec(); 
@@ -60,7 +56,7 @@ namespace dynamic_gap {
 		// ROS_INFO_STREAM("getting current points:");
         observed_gap_points = obtainGapPoints(observed_gaps);
         
-		vector< vector<double> > distMatrix(observed_gap_points.size(), vector<double>(previous_gap_points.size()));
+		std::vector< std::vector<double> > distMatrix(observed_gap_points.size(), std::vector<double>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
 		// ROS_INFO_STREAM("Distance matrix: ");
@@ -117,7 +113,7 @@ namespace dynamic_gap {
 
 	void printGapTransition(std::vector<dynamic_gap::Gap> observed_gaps, 
 							std::vector<dynamic_gap::Gap> previous_gaps,
-							vector< vector<double> > distMatrix, 
+							std::vector< std::vector<double> > distMatrix, 
 							std::vector<int> pair,
 							bool valid_assoc) {
 
@@ -166,7 +162,7 @@ namespace dynamic_gap {
 	}
 
 	void GapAssociator::assignModels(std::vector<int> association, 
-									 vector< vector<double> > distMatrix, 
+									 std::vector< std::vector<double> > distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
 									 std::vector<dynamic_gap::Gap> previous_gaps,
 									 geometry_msgs::Twist current_rbt_vel,
@@ -231,7 +227,7 @@ namespace dynamic_gap {
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(vector< vector<double> > distMatrix) {
+	std::vector<int> GapAssociator::associateGaps(std::vector< std::vector<double> > distMatrix) {
 		// NEW ASSIGNMENT OBTAINED
 		//double start_time = ros::Time::now().toSec();
 
@@ -250,7 +246,7 @@ namespace dynamic_gap {
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
 	//********************************************************//
-	double GapAssociator::Solve(vector <vector<double> >& DistMatrix, vector<int>& Assignment)
+	double GapAssociator::Solve(std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment)
 	{
 		unsigned int nRows = DistMatrix.size();
 		unsigned int nCols = DistMatrix[0].size();
@@ -304,7 +300,7 @@ namespace dynamic_gap {
 		{
 			value = distMatrixIn[row];
 			if (value < 0)
-				cerr << "All matrix elements have to be non-negative." << endl;
+				std::cerr << "All matrix elements have to be non-negative." << std::endl;
 			distMatrix[row] = value;
 		}
 

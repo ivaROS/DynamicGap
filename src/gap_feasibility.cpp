@@ -16,8 +16,8 @@ namespace dynamic_gap {
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
-        Matrix<double, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
-        Matrix<double, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
+        Eigen::Matrix<double, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
+        Eigen::Matrix<double, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
 
         double frozen_left_betadot = frozen_left_model_state[3];
         double frozen_right_betadot = frozen_right_model_state[3];
@@ -85,8 +85,8 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1]);
         
         start_time = ros::Time::now().toSec();
-        Eigen::MatrixXf A_spline = MatrixXf::Random(4,4);
-        Eigen::VectorXf b_spline = VectorXf::Random(4);
+        Eigen::MatrixXf A_spline = Eigen::MatrixXf::Random(4,4);
+        Eigen::VectorXf b_spline = Eigen::VectorXf::Random(4);
         A_spline << 1.0, 0.0, 0.0, 0.0,
                     0.0, 1.0, 0.0, 0.0,
                     1.0, crossing_time, pow(crossing_time,2), pow(crossing_time,3),
@@ -151,10 +151,10 @@ namespace dynamic_gap {
         
         //std::cout << "initial beta left: (" << left_bearing_vect[0] << ", " << left_bearing_vect[1] << "), initial beta right: (" << right_bearing_vect[0] << ", " << right_bearing_vect[1] << "), initial beta center: (" << central_bearing_vect[0] << ", " << central_bearing_vect[1] << ")" << std::endl;
         
-        Matrix<double, 4, 1> left_frozen_mp_state = left_model->get_frozen_modified_polar_state();        
-        Matrix<double, 4, 1> right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
-        Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> left_frozen_mp_state = left_model->get_frozen_modified_polar_state();        
+        Eigen::Matrix<double, 4, 1> right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
+        Eigen::Matrix<double, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
 
         // ROS_INFO_STREAM("gap category: " << gap.getCategory());
         // ROS_INFO_STREAM("starting frozen cartesian left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 
@@ -168,9 +168,9 @@ namespace dynamic_gap {
 
         bool left_opening = (left_frozen_mp_state[3] > 0.0);
         bool right_opening = (right_frozen_mp_state[3] < 0.0);
-        Matrix<double, 4, 1> prev_left_frozen_mp_state = left_frozen_mp_state;        
-        Matrix<double, 4, 1> prev_right_frozen_mp_state = right_frozen_mp_state;        
-        Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
+        Eigen::Matrix<double, 4, 1> prev_left_frozen_mp_state = left_frozen_mp_state;        
+        Eigen::Matrix<double, 4, 1> prev_right_frozen_mp_state = right_frozen_mp_state;        
+        Eigen::Matrix<double, 2, 1> prev_central_bearing_vect = central_bearing_vect;
 
         Eigen::Vector2d left_cross_pt, right_cross_pt, diff_pt;
         bool left_range_less_radius, right_range_less_radius, gap_collided_w_rbt;
@@ -297,8 +297,8 @@ namespace dynamic_gap {
 
     double GapFeasibilityChecker::generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
         
-        Matrix<double, 4, 1> left_rewind_mp_state = left_model->get_rewind_modified_polar_state();        
-        Matrix<double, 4, 1> right_rewind_mp_state = right_model->get_rewind_modified_polar_state();
+        Eigen::Matrix<double, 4, 1> left_rewind_mp_state = left_model->get_rewind_modified_polar_state();        
+        Eigen::Matrix<double, 4, 1> right_rewind_mp_state = right_model->get_rewind_modified_polar_state();
         Eigen::Vector2d left_cross_pt, right_cross_pt, left_bearing_vect, right_bearing_vect;
 
         // instantiate model rewind states

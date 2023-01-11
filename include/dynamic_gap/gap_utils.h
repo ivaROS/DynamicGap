@@ -5,6 +5,7 @@
 #include <vector>
 #include <sensor_msgs/LaserScan.h>
 #include <dynamic_gap/gap.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <boost/shared_ptr.hpp>
 #include <dynamic_gap/dynamicgap_config.h>
 
@@ -33,7 +34,7 @@ namespace dynamic_gap {
 
         void setMergeThreshold(float);
         void setIdxThreshold(int);
-        std::vector<Matrix<double, 4, 1> > getCurrAgents();
+        std::vector<Eigen::Matrix<double, 4, 1> > getCurrAgents();
 
         sensor_msgs::LaserScan staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 
                                                             boost::shared_ptr<sensor_msgs::LaserScan const> msg,
@@ -41,7 +42,7 @@ namespace dynamic_gap {
 
         private:
             const DynamicGapConfig* cfg_;
-            std::vector<Matrix<double, 4, 1> > curr_agents;
+            std::vector<Eigen::Matrix<double, 4, 1> > curr_agents;
 
     };
 

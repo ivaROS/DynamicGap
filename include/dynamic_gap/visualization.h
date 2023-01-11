@@ -14,6 +14,8 @@
 #include <Eigen/Geometry>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
+#include <tf2/LinearMath/Quaternion.h>
+
 
 namespace dynamic_gap
 {

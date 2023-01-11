@@ -1,14 +1,9 @@
 #include <dynamic_gap/planner.h>
 
-#include <iostream>
-
-#include "tf/transform_datatypes.h"
-#include <tf/LinearMath/Matrix3x3.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <numeric>
+// #include "tf/transform_datatypes.h"
+// #include <tf/LinearMath/Matrix3x3.h>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #include <tf2/LinearMath/Quaternion.h>
 
 namespace dynamic_gap
 {   
@@ -334,7 +329,7 @@ namespace dynamic_gap
             range_tilde = g.LDist();
 		}
 
-		Matrix<double, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
+		Eigen::Matrix<double, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
 
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
@@ -1129,10 +1124,10 @@ namespace dynamic_gap
 
         std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
-        std::vector<Matrix<double, 4, 1> > curr_agents_lc;
+        std::vector<Eigen::Matrix<double, 4, 1> > curr_agents_lc;
         
         if (cfg.planning.egocircle_prop_cheat) {
-            Matrix<double, 4, 1> agent_i_state;
+            Eigen::Matrix<double, 4, 1> agent_i_state;
             curr_agents_lc.clear();
             for (int i = 0; i < num_obsts; i++) {
                 agent_i_state << agent_odoms_lc[i].position.x, agent_odoms_lc[i].position.y, agent_vels_lc[i].vector.x, agent_vels_lc[i].vector.y;
@@ -1302,10 +1297,10 @@ namespace dynamic_gap
         {
             dynamic_gap::Gap g = gaps.at(i);
             ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx() << ", left model: " << g.left_model->get_index() << ", right_model: " << g.right_model->get_index());
-            Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
+            Eigen::Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
             g.getLCartesian(x, y);            
             ROS_INFO_STREAM("left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            Matrix<double, 4, 1> right_state = g.right_model->get_cartesian_state();
+            Eigen::Matrix<double, 4, 1> right_state = g.right_model->get_cartesian_state();
             g.getRCartesian(x, y);
             ROS_INFO_STREAM("right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
            

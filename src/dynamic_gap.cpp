@@ -3,8 +3,8 @@
 #include <dynamic_gap/gap.h>
 #include <pluginlib/class_list_macros.h>
 
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
+// #include <visualization_msgs/Marker.h>
+// #include <visualization_msgs/MarkerArray.h>
 
 #include <boost/numeric/odeint.hpp>
 #include <Eigen/Core>
@@ -63,7 +63,7 @@ namespace dynamic_gap
         sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner, _1, _2));
 
         for (int i = 0; i < planner.get_num_obsts(); i++) {
-            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);
+            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + std::to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);
             agent_odom_subscribers.push_back(temp_odom_sub);
         }
 

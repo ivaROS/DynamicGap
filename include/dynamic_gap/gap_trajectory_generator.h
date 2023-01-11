@@ -3,29 +3,29 @@
 
 #include <ros/ros.h>
 #include <boost/numeric/odeint.hpp>
-#include <ros/console.h>
+#include <boost/shared_ptr.hpp>
+
+// #include <ros/console.h>
 // #include <traj_generator.h>
 // #include <turtlebot_trajectory_generator/near_identity.h>
-#include <geometry_msgs/PoseArray.h>
-#include <dynamic_gap/helper.h>
-#include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
-#include <vector>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Twist.h>
+#include <dynamic_gap/helper.h>
+// #include <vector>
+// #include <geometry_msgs/PoseStamped.h>
+// #include <geometry_msgs/Twist.h>
+// #include <geometry_msgs/PoseArray.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <tf/LinearMath/Matrix3x3.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #include <tf/LinearMath/Matrix3x3.h>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include "tf/transform_datatypes.h"
-#include <sensor_msgs/LaserScan.h>
-#include <boost/shared_ptr.hpp>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #include "tf/transform_datatypes.h"
+// #include <sensor_msgs/LaserScan.h>
 #include "OsqpEigen/OsqpEigen.h"
 
 namespace dynamic_gap {
@@ -56,8 +56,7 @@ namespace dynamic_gap {
             std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>>);
-            void determineLeftRightModels(Matrix<double, 5, 1>&, Matrix<double, 5, 1>&, dynamic_gap::Gap&, double);
-            Matrix<double, 5, 1> cartesian_to_polar(Eigen::Vector4d x);
+
             Eigen::VectorXd arclength_sample_bezier(Eigen::Vector2d pt_origin, Eigen::Vector2d pt_0, Eigen::Vector2d pt_1, double num_curve_points, double & des_dist_interval);        
             void buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
                                 Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,

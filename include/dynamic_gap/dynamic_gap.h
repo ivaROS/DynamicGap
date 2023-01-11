@@ -3,20 +3,19 @@
 
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
-#include <sensor_msgs/LaserScan.h>
-#include <std_msgs/Header.h>
+// #include <sensor_msgs/LaserScan.h>
+// #include <std_msgs/Header.h>
 #include <navfn/navfn_ros.h>
 #include <boost/shared_ptr.hpp>
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/helper.h>
-#include <geometry_msgs/PoseArray.h>
 
-#include <tf/transform_listener.h>
+// #include <geometry_msgs/PoseArray.h>
+
+// #include <tf/transform_listener.h>
 #include <tf2_ros/transform_listener.h>
-#include <tf2/LinearMath/Quaternion.h>
+// #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <geometry_msgs/TransformStamped.h>
+// #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
 
 #include <message_filters/subscriber.h>
@@ -27,9 +26,11 @@
 #include <boost/numeric/odeint.hpp>
 
 #include <dynamic_gap/planner.h>
+#include <dynamic_gap/gap.h>
+#include <dynamic_gap/helper.h>
+#include <dynamic_gap/dgConfig.h>
 
 #include <dynamic_reconfigure/server.h>
-#include <dynamic_gap/dgConfig.h>
 
 namespace dynamic_gap {
 
@@ -61,7 +62,7 @@ namespace dynamic_gap {
             ros::Subscriber laser_sub, static_laser_sub;
             ros::Subscriber pose_sub;
             ros::Subscriber rbt_accel_sub;      
-            vector<ros::Subscriber> agent_odom_subscribers;
+            std::vector<ros::Subscriber> agent_odom_subscribers;
 
             message_filters::Subscriber<nav_msgs::Odometry> odom_sub;
             message_filters::Subscriber<geometry_msgs::TwistStamped> acc_sub;

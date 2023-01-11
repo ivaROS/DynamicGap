@@ -1,5 +1,4 @@
 #include <dynamic_gap/trajectory_scoring.h>
-#include <numeric>
 
 
 namespace dynamic_gap {
@@ -25,8 +24,8 @@ namespace dynamic_gap {
     }
 
     bool compareModelBearings(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
-        Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
-        Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
+        Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
@@ -47,7 +46,7 @@ namespace dynamic_gap {
         }
     };
 
-    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<Matrix<double, 4, 1> > _odom_vects)
+    std::vector< std::vector<double> > TrajectoryArbiter::sort_and_prune(std::vector<Eigen::Matrix<double, 4, 1> > _odom_vects)
     {
     
         // Declare vector of pairs
@@ -87,7 +86,7 @@ namespace dynamic_gap {
     }
 
     void TrajectoryArbiter::recoverDynamicEgoCircle(double t_i, double t_iplus1, 
-                                                        std::vector<Matrix<double, 4, 1> > & curr_agents_lc,
+                                                        std::vector<Eigen::Matrix<double, 4, 1> > & curr_agents_lc,
                                                         sensor_msgs::LaserScan & dynamic_laser_scan,
                                                         bool print) {
         

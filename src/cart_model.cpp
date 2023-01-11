@@ -1,21 +1,20 @@
-#include <ros/ros.h>
-#include <tf2_ros/transform_listener.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Quaternion.h>
-#include <turtlesim/Spawn.h>
+// #include <ros/ros.h>
+// #include <tf2_ros/transform_listener.h>
+// #include <geometry_msgs/TransformStamped.h>
+// #include <geometry_msgs/Twist.h>
+// #include <geometry_msgs/Quaternion.h>
+// #include <turtlesim/Spawn.h>
 #include "std_msgs/String.h"
-#include <nav_msgs/Odometry.h>
-#include <sensor_msgs/Imu.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #include <nav_msgs/Odometry.h>
+// #include <sensor_msgs/Imu.h>
+// #include <tf2_ros/buffer.h>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_gap/cart_model.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
+// #include <Eigen/Core>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <limits>
-#include <sstream>
-#include <unsupported/Eigen/MatrixFunctions>
+// #include <sstream>
+// #include <unsupported/Eigen/MatrixFunctions>
 // #include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 // namespace plt = matplotlibcpp;
 
@@ -88,7 +87,7 @@ namespace dynamic_gap {
         initialized = true;
         life_time = 0.0;
         life_time_threshold = 7.5;
-        eyes = MatrixXd::Identity(4,4);
+        eyes = Eigen::MatrixXd::Identity(4,4);
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
         alpha_Q = 0.9;
@@ -119,7 +118,7 @@ namespace dynamic_gap {
     }
 
     void cart_model::rewind_propagate(double rew_dt) {
-        Matrix<double, 4, 1> new_rewind_x;     
+        Eigen::Matrix<double, 4, 1> new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
         Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
@@ -139,7 +138,7 @@ namespace dynamic_gap {
     }
 
     void cart_model::frozen_state_propagate(double froz_dt) {
-        Matrix<double, 4, 1> new_frozen_x;     
+        Eigen::Matrix<double, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
         Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
@@ -159,10 +158,10 @@ namespace dynamic_gap {
     }
     
 
-    Matrix<double, 4, 1> cart_model::integrate() {
+    Eigen::Matrix<double, 4, 1> cart_model::integrate() {
         // ROS_INFO_STREAM("INTEGRATING");
-        Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
-        Matrix<double, 4, 1> new_x = x_hat_kmin1_plus;
+        Eigen::Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
+        Eigen::Matrix<double, 4, 1> new_x = x_hat_kmin1_plus;
 
         for (int i = 0; i < intermediate_vels.size(); i++) {
             if (print) { ROS_INFO_STREAM("intermediate step " << i); }
@@ -216,7 +215,7 @@ namespace dynamic_gap {
         dQ = (Q_1 * inter_dt) + (Q_2 * inter_dt * inter_dt / 2.0) + (Q_3 * inter_dt * inter_dt * inter_dt / 6.0);
     }
 
-    void cart_model::kf_update_loop(Matrix<double, 2, 1> range_bearing_measurement, 
+    void cart_model::kf_update_loop(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
                                     geometry_msgs::Twist _current_rbt_vel, 
                                     geometry_msgs::TwistStamped _current_rbt_acc, 
                                     std::vector<geometry_msgs::Twist> _intermediate_vels,
