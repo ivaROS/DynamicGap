@@ -37,9 +37,9 @@ namespace dynamic_gap {
 
         // PROCESS NOISE        
         Q_k << 0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.3, 0.0,
-             0.0, 0.0, 0.0, 0.3;
+               0.0, 0.0, 0.0, 0.0,
+               0.0, 0.0, 0.3, 0.0,
+               0.0, 0.0, 0.0, 0.3;
         
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)

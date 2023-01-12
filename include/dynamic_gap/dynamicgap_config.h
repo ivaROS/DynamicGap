@@ -53,7 +53,9 @@ namespace dynamic_gap {
             } goal;
 
             struct Debug {
-                bool estimator_debug_log;
+                bool raw_gaps_debug_log;
+                bool static_scan_separation_debug_log;
+                bool simplified_gaps_debug_log;
                 bool feasibility_debug_log;
                 bool manipulation_debug_log;
                 bool traj_debug_log;
@@ -149,13 +151,15 @@ namespace dynamic_gap {
             goal.goal_tolerance = 0.2;
             goal.waypoint_tolerance = 0.1;
 
-            debug.estimator_debug_log = false;
+            debug.raw_gaps_debug_log = false;
+            debug.static_scan_separation_debug_log = false;
+            debug.simplified_gaps_debug_log = false;
             debug.feasibility_debug_log = false;
             debug.manipulation_debug_log = false;
             debug.traj_debug_log = false;
             debug.control_debug_log = false;             
 
-            gap_assoc.assoc_thresh = 0.5;
+            gap_assoc.assoc_thresh = 0.1;
 
             gap_manip.epsilon1 = 0.18;
             gap_manip.epsilon2 = 0.18;

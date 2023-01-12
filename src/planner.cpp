@@ -17,7 +17,7 @@ namespace dynamic_gap
 
     bool Planner::initialize(const ros::NodeHandle& unh)
     {
-        ROS_INFO_STREAM("starting initialize");
+        // ROS_INFO_STREAM("starting initialize");
         if (initialized())
         {
             ROS_WARN("DynamicGap Planner already initalized");
@@ -141,71 +141,20 @@ namespace dynamic_gap
     }
 
 
-    void Planner::reviseIntermediateValues(bool print) {
+    void Planner::reviseIntermediateValues() {
         // need this so vector is not empty
         if (intermediate_vels.size() == 0) {
             intermediate_vels.push_back(current_rbt_vel); // just adding most recent value
         }
-        
-        /*
-        if (print) { 
-            ROS_INFO_STREAM("intermediate velocities:");
-            for (int i = 0; i < intermediate_vels.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z); 
-            }
-        }
-        */
 
         if (intermediate_accs.size() == 0) { 
             intermediate_accs.push_back(current_rbt_acc); // just adding most recent value
         }
-
-        /*
-        if (print) { 
-            ROS_INFO_STREAM("intermediate accelerations:");
-            for (int i = 0; i < intermediate_accs.size(); i++) {
-                ROS_INFO_STREAM("a_x: " << intermediate_accs[i].twist.linear.x << ", a_y: " << intermediate_accs[i].twist.linear.y << ", a_ang: " << intermediate_accs[i].twist.angular.z);
-            }
-        }
-        */
-
-        /*
-        int int_vels_size = intermediate_vels.size();
-        int int_accs_size = intermediate_accs.size();
-        if (int_vels_size != int_accs_size) {
-            // ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
-            if (int_vels_size > int_accs_size) {
-                // pad accels
-                for (int i = 0; i < (int_vels_size - int_accs_size); i++) {
-                    // ROS_INFO_STREAM("padding accel " << pad_acc.twist.linear.x << ", " << pad_acc.twist.linear.y << ", " << pad_acc.twist.angular.z);
-                    intermediate_accs.push_back(current_rbt_acc);
-                }
-            } else {
-                // pad vels
-                for (int i = 0; i < (int_accs_size - int_vels_size); i++) {
-                    // ROS_INFO_STREAM("padding with vel " << pad_vel.linear.x << ", " << pad_vel.linear.y << ", " << pad_vel.angular.z);
-                    intermediate_vels.push_back(current_rbt_vel);
-                }
-            }
-        }
-
-        if (print) {
-            ROS_INFO_STREAM("revised intermediate velocities:");
-            for (int i = 0; i < intermediate_vels.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z);             
-            }
-
-            ROS_INFO_STREAM("revised intermediate accelerations:");
-            for (int i = 0; i < intermediate_accs.size(); i++) {
-                ROS_INFO_STREAM("a_x: " << intermediate_accs[i].twist.linear.x << ", a_y: " << intermediate_accs[i].twist.linear.y << ", a_ang: " << intermediate_accs[i].twist.angular.z);            
-            }
-        }    
-        */
     }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
-        boost::mutex::scoped_lock gapset(gapset_mutex); // this is where time lag happens (~0.1 to 0.2 seconds)
+        boost::mutex::scoped_lock gapset(gapset_mutex);
         ros::Time curr_time = msg->header.stamp;
         double scan_dt = (curr_time - prev_scan_msg_time).toSec();
         // ROS_INFO_STREAM("time since last scanCB: " << scan_dt);
@@ -216,39 +165,34 @@ namespace dynamic_gap
             msg = sharedPtr_inflatedlaser;
         }
 
-        // Matrix<double, 1, 3> v_ego(current_rbt_vel.linear.x, current_rbt_vel.linear.y, current_rbt_vel.angular.z);
-
-        reviseIntermediateValues(true);
+        reviseIntermediateValues();
 
         // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         previous_raw_gaps = associated_raw_gaps;
         raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
         
-        bool raw_gap_assoc_print = false;  
-        raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps, "raw");
+        raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
         raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
-        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, current_rbt_vel, model_idx, raw_gap_assoc_print);
-        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, false);
+        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, current_rbt_vel, model_idx, cfg.debug.raw_gaps_debug_log);
+        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.raw_gaps_debug_log);
         // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, true);
+        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
         static_scan_pub.publish(static_scan);
         trajArbiter->updateStaticEgoCircle(static_scan);
         gapManip->updateStaticEgoCircle(static_scan);
         curr_agents = finder->getCurrAgents();
 
-
         // double observed_gaps_start_time = ros::WallTime::now().toSec();
         previous_gaps = associated_observed_gaps;
         observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
 
-        ROS_INFO_STREAM_NAMED("laserScanCB", "SIMPLIFIED GAP ASSOCIATING");    
-        bool simp_gap_assoc_print = true;  
-        simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps, "simplified"); // finishes
+        if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
+        simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
         simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, current_rbt_vel, model_idx, simp_gap_assoc_print);
-        associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, true);
+        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, current_rbt_vel, model_idx, cfg.debug.simplified_gaps_debug_log);
+        associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.simplified_gaps_debug_log);
         // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
         intermediate_vels.clear();
@@ -362,7 +306,7 @@ namespace dynamic_gap
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &odom_msg, 
                                  const geometry_msgs::TwistStamped::ConstPtr &accel_msg)
     {
-        ROS_INFO_STREAM("joint pose acc cb");
+        // ROS_INFO_STREAM("joint pose acc cb");
 
         // ROS_INFO_STREAM("accel time stamp: " << accel_msg->header.stamp.toSec());
         current_rbt_acc = *accel_msg;
@@ -370,7 +314,7 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("odom time stamp: " << odom_msg->header.stamp.toSec());
 
-        ROS_INFO_STREAM("acc - odom time difference: " << (accel_msg->header.stamp - odom_msg->header.stamp).toSec());
+        // ROS_INFO_STREAM("acc - odom time difference: " << (accel_msg->header.stamp - odom_msg->header.stamp).toSec());
 
         updateTF();
 
@@ -1058,15 +1002,14 @@ namespace dynamic_gap
         printGapModels(curr_raw_gaps);
         */
         
+        int curr_left_idx = getCurrentLeftGapIndex();
+        int curr_right_idx = getCurrentRightGapIndex();
+
         if (cfg.debug.feasibility_debug_log) {
             ROS_INFO_STREAM("current simplified gaps:");
             printGapModels(curr_observed_gaps);
+            ROS_INFO_STREAM("current left/right indices: " << curr_left_idx << ", " << curr_right_idx);
         }
-
-        
-        int curr_left_idx = getCurrentLeftGapIndex();
-        int curr_right_idx = getCurrentRightGapIndex();
-        ROS_INFO_STREAM("current left/right indices: " << curr_left_idx << ", " << curr_right_idx);
         curr_exec_gap_assoc = false;
         curr_exec_gap_feas = false;
 
@@ -1137,9 +1080,11 @@ namespace dynamic_gap
             curr_agents_lc = curr_agents;
         }
 
-        ROS_INFO_STREAM("detected agents: ");
-        for (int i = 0; i < curr_agents_lc.size(); i++) {
-            ROS_INFO_STREAM("agent" << i << " position: " << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ", velocity: " << curr_agents_lc[i][2] << ", " << curr_agents_lc[i][3]);
+        if (cfg.debug.static_scan_separation_debug_log) {
+            ROS_INFO_STREAM("detected agents: ");
+            for (int i = 0; i < curr_agents_lc.size(); i++) {
+                ROS_INFO_STREAM("agent" << i << " position: " << curr_agents_lc[i][0] << ", " << curr_agents_lc[i][1] << ", velocity: " << curr_agents_lc[i][2] << ", " << curr_agents_lc[i][3]);
+            }
         }
         
         int future_scan_idx;
@@ -1172,7 +1117,7 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("out of range in gapSetFeasibilityCheck");
         }
         int gaps_size = feasible_gap_set.size();
-        ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.feasibility_debug_log) ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         start_time = ros::WallTime::now().toSec();
         try {
@@ -1180,7 +1125,7 @@ namespace dynamic_gap
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }
-        ROS_INFO_STREAM("DGap getFutureScans time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.static_scan_separation_debug_log) ROS_INFO_STREAM("DGap getFutureScans time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
         
         start_time = ros::WallTime::now().toSec();
         std::vector<dynamic_gap::Gap> manip_gap_set;
@@ -1190,7 +1135,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("out of range in gapManipulate");
             ROS_FATAL_STREAM("out of range in gapManipulate");
         }
-        ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         start_time = ros::WallTime::now().toSec();
         std::vector<geometry_msgs::PoseArray> traj_set;
@@ -1202,7 +1147,7 @@ namespace dynamic_gap
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in initialTrajGen");
         }
-        ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
 
@@ -1213,7 +1158,7 @@ namespace dynamic_gap
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in pickTraj");
         }
-        ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         geometry_msgs::PoseArray chosen_traj;
         std::vector<double> chosen_time_arr;
@@ -1237,9 +1182,9 @@ namespace dynamic_gap
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }
-        ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
+        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
         
-        ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
+        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
         
         return final_traj;
     }

@@ -46,8 +46,7 @@ namespace dynamic_gap {
 	}
 
 	std::vector<std::vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
-															std::vector<dynamic_gap::Gap> previous_gaps, 
-															std::string ns) {
+															std::vector<dynamic_gap::Gap> previous_gaps) {
 		double start_time = ros::Time::now().toSec(); 
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;

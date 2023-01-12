@@ -37,7 +37,7 @@ namespace dynamic_gap
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = cfg_->gap_assoc.assoc_thresh; };
 		std::vector<int> associateGaps(std::vector< std::vector<double> > distMatrix);
         void assignModels(std::vector<int> association, std::vector< std::vector<double> > distMatrix, std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, geometry_msgs::Twist current_rbt_vel, int * model_idx, bool print);
-		std::vector<std::vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::string ns);
+		std::vector<std::vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps);
 
 
 	private:

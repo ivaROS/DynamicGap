@@ -390,7 +390,7 @@ namespace dynamic_gap
                                     std::vector<double> time_arr, 
                                     bool switching_to_empty);
         
-        void reviseIntermediateValues(bool print);
+        void reviseIntermediateValues();
 
     };
 }

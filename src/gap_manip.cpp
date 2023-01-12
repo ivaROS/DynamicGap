@@ -262,8 +262,11 @@ namespace dynamic_gap {
         float L_to_goal_angle = getLeftToRightAngle(left_vect_robot, local_goal_norm_vect, true);
         float R_to_goal_angle = getLeftToRightAngle(right_vect_robot, local_goal_norm_vect, true);
  
-        ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_r: " << theta_r << ", theta_localgoal: " << goal_orientation);
-        ROS_INFO_STREAM("L_to_R_angle: " << L_to_R_angle << ", L_to_goal_angle: " << L_to_goal_angle << ", R_to_goal_angle: " << R_to_goal_angle);
+        if (cfg_->debug.manipulation_debug_log)
+        {
+            ROS_INFO_STREAM("theta_l: " << theta_l << ", theta_r: " << theta_r << ", theta_localgoal: " << goal_orientation);
+            ROS_INFO_STREAM("L_to_R_angle: " << L_to_R_angle << ", L_to_goal_angle: " << L_to_goal_angle << ", R_to_goal_angle: " << R_to_goal_angle);
+        }
 
         float confined_theta; //
         if (theta_r < theta_l) { // gap is not behind
@@ -278,16 +281,19 @@ namespace dynamic_gap {
             }
         }
 
-        ROS_INFO_STREAM("confined_theta: " << confined_theta);
         double confined_idx = std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
-        ROS_INFO_STREAM("confined idx: " << confined_idx);
 
         Eigen::Vector2f confined_theta_vect(std::cos(confined_theta), std::sin(confined_theta));
 
         // needs to be distance between L/confined. Always positive.
         float L_to_conf_angle = getLeftToRightAngle(left_vect_robot, confined_theta_vect, false); 
 
-        ROS_INFO_STREAM("L_to_conf_angle: " << L_to_conf_angle << ", L_to_R_angle: " << L_to_R_angle);
+        if (cfg_->debug.manipulation_debug_log)
+        {
+            ROS_INFO_STREAM("confined_theta: " << confined_theta);
+            ROS_INFO_STREAM("confined idx: " << confined_idx);
+            ROS_INFO_STREAM("L_to_conf_angle: " << L_to_conf_angle << ", L_to_R_angle: " << L_to_R_angle);
+        }
 
         float ldist_robot = ldist;
         float rdist_robot = rdist;
@@ -299,7 +305,6 @@ namespace dynamic_gap {
         r_negpi2 = -r_pi2; // PI/2 clockwise;
 
 
-        ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
         Eigen::Vector2f radial_offset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * anchor / anchor.norm();
 
         Eigen::Vector2f angular_offset(0.0, 0.0); 
@@ -316,9 +321,14 @@ namespace dynamic_gap {
         }
 
         Eigen::Vector2f offset = radial_offset + angular_offset;
-        ROS_INFO_STREAM("radial_offset: " << radial_offset[0] << ", " << radial_offset[1]);
-        ROS_INFO_STREAM("angular_offset: " << angular_offset[0] << ", " << angular_offset[1]);
-
+        
+        if (cfg_->debug.manipulation_debug_log)
+        {
+            ROS_INFO_STREAM("anchor: " << anchor[0] << ", " << anchor[1]);
+            ROS_INFO_STREAM("radial_offset: " << radial_offset[0] << ", " << radial_offset[1]);
+            ROS_INFO_STREAM("angular_offset: " << angular_offset[0] << ", " << angular_offset[1]);
+        }
+        
         Eigen::Vector2f goal_pt = offset + anchor;
         // ROS_INFO_STREAM("anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")");
         if (initial) {

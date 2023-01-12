@@ -3,7 +3,7 @@
 namespace dynamic_gap{
 
     void GapTrajGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A) {
-        ROS_INFO_STREAM("initializing solver");
+        // ROS_INFO_STREAM("initializing solver");
 
         Eigen::SparseMatrix<double> hessian(Kplus1, Kplus1);
 
@@ -73,7 +73,7 @@ namespace dynamic_gap{
         try {        
             // return geometry_msgs::PoseArray();
             num_curve_points = cfg_->traj.num_curve_points;
-            ROS_INFO_STREAM("num_curve_points: " << num_curve_points);
+            // ROS_INFO_STREAM("num_curve_points: " << num_curve_points);
 
             double gen_traj_start_time = ros::Time::now().toSec();
             posearr.header.stamp = ros::Time::now();
