@@ -32,7 +32,7 @@ namespace dynamic_gap {
             void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
             void setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal);
             void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped, bool); //), sensor_msgs::LaserScan const);
-            void convertAxialGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
+            void convertRadialGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);

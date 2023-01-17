@@ -33,7 +33,7 @@ namespace dynamic_gap {
                theta_right, theta_left, thetax, thetag, new_theta, 
                a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
                theta, eps, K_att; 
-        bool _axial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
+        bool _radial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
                         a_des, a_actual, nom_acc, nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel;
@@ -95,7 +95,7 @@ namespace dynamic_gap {
             past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
             past_right_point = abs_right_pos.dot(rel_right_pos) < 0;
             
-            if (_axial) {
+            if (_radial) {
                 past_gap_points = past_left_point || past_right_point;
             } else {
                 past_gap_points = past_left_point && past_right_point;

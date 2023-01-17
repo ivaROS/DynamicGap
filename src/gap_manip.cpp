@@ -535,9 +535,9 @@ namespace dynamic_gap {
         return;
     }
 
-    void GapManipulator::convertAxialGap(dynamic_gap::Gap& gap, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
-        // Return if not axial gap or disabled
-        if (!gap.isAxial(initial) || !cfg_->gap_manip.axial_convert) {
+    void GapManipulator::convertRadialGap(dynamic_gap::Gap& gap, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
+        // Return if not radial gap or disabled
+        if (!gap.isRadial(initial) || !cfg_->gap_manip.radial_convert) {
             return;
         }
 
@@ -568,7 +568,7 @@ namespace dynamic_gap {
         // float y_r = (rdist) * sin(theta_r);
 
         if (cfg_->debug.manipulation_debug_log) {
-            ROS_INFO_STREAM("~running convertAxialGap~");            
+            ROS_INFO_STREAM("~running convertRadialGap~");            
             ROS_INFO_STREAM("pre-AGC gap in polar. left: (" << lidx << ", " << ldist << "), right: (" << ridx << ", " << rdist << ")");
             // ROS_INFO_STREAM("pre-AGC gap in cart. left: (" << x_l << ", " << y_l << "), right: (" << x_r << ", " << y_r << ")");
         }
@@ -691,7 +691,7 @@ namespace dynamic_gap {
                 // ROS_INFO_STREAM("checking idx: " << check_idx << ", range of: " << range << ", diff in idx: " << diff_in_idx << ", dist of " << dist.at(i));
             }
         } catch(...) {
-            ROS_FATAL_STREAM("convertAxialGap outofBound");
+            ROS_FATAL_STREAM("convertRadialGap outofBound");
         }
 
         auto farside_iter = std::min_element(dist.begin(), dist.end());

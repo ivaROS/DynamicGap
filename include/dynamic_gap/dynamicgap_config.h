@@ -66,6 +66,13 @@ namespace dynamic_gap {
                 double assoc_thresh;
             } gap_assoc;           
 
+            struct GapEstimation {
+                double R_xx;
+                double R_yy;
+                double Q_VxVx;
+                double Q_VyVy;
+            } gap_est;
+
             struct GapManipulation {
                 double epsilon1;
                 double epsilon2;
@@ -74,7 +81,7 @@ namespace dynamic_gap {
                 double reduction_target;
                 int max_idx_diff;
                 bool radial_extend;
-                bool axial_convert;
+                bool radial_convert;
             } gap_manip;
 
             struct Trajectory {
@@ -159,7 +166,12 @@ namespace dynamic_gap {
             debug.traj_debug_log = false;
             debug.control_debug_log = false;             
 
-            gap_assoc.assoc_thresh = 0.1;
+            gap_assoc.assoc_thresh = 0.25;
+
+            gap_est.R_xx = 0.025;
+            gap_est.R_yy = 0.025;
+            gap_est.Q_VxVx = 0.3;
+            gap_est.Q_VyVy = 0.3;
 
             gap_manip.epsilon1 = 0.18;
             gap_manip.epsilon2 = 0.18;
@@ -167,7 +179,7 @@ namespace dynamic_gap {
             gap_manip.reduction_threshold = M_PI;
             gap_manip.reduction_target = M_PI;
             gap_manip.radial_extend = true;
-            gap_manip.axial_convert = true;
+            gap_manip.radial_convert = true;
 
             traj.synthesized_frame = true;
             traj.scale = 1;

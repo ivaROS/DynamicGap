@@ -19,8 +19,8 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rdist, bool axial = false, float half_scan = 256) : 
-                _frame(frame), _right_idx(right_idx), _rdist(rdist), _axial(axial), half_scan(half_scan)
+            Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float min_safe_dist) : 
+                _frame(frame), _right_idx(right_idx), _rdist(rdist), _radial(radial), half_scan(half_scan), min_safe_dist(min_safe_dist)
             {
                 qB << 0.0, 0.0;
                 terminal_qB << 0.0, 0.0;
@@ -86,9 +86,9 @@ namespace dynamic_gap
                 _ldist = ldist;
                 right_type = _rdist < _ldist;
 
-                if (!_axial)
+                if (!_radial)
                 {
-                    _axial = isAxial();
+                    _radial = isRadial();
                 }
 
                 convex.convex_ridx = _right_idx;
@@ -101,9 +101,9 @@ namespace dynamic_gap
             {
                 terminal_right_type = terminal_rdist < terminal_ldist;
 
-                if (!_terminal_axial)
+                if (!_terminal_radial)
                 {
-                    _terminal_axial = isAxial();
+                    _terminal_radial = isRadial();
                 }
 
                 convex.terminal_ridx = terminal_ridx;
@@ -139,45 +139,6 @@ namespace dynamic_gap
                 y = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
             }
 
-            // Decimate Gap 
-            void segmentGap2Vec(std::vector<dynamic_gap::Gap>& gap, int min_resoln)
-            {
-                double gap_idx_size;
-                if (_left_idx > _right_idx) {
-                    gap_idx_size = (_left_idx - _right_idx);
-                } else {
-                    gap_idx_size = (_left_idx - _right_idx) + 2*half_scan;
-                }
-
-                int num_gaps = gap_idx_size / min_resoln + 1;
-                int idx_step = gap_idx_size / num_gaps;
-                float dist_step = (_ldist - _rdist) / num_gaps;
-                int sub_gap_lidx = _right_idx;
-                float sub_gap_ldist = _rdist;
-                int sub_gap_ridx = _right_idx;
-
-                if (num_gaps < 3) {
-                    gap.push_back(*this);
-                    return;
-                }
-                
-                for (int i = 0; i < num_gaps; i++) {
-                    Gap detected_gap(_frame, sub_gap_lidx, sub_gap_ldist);
-                    // ROS_DEBUG_STREAM("lidx: " << sub_gap_lidx << "ldist: " << sub_gap_ldist);
-
-                    sub_gap_lidx = (sub_gap_lidx + idx_step) % 2*half_scan;
-                    sub_gap_ldist += dist_step;
-                    // ROS_DEBUG_STREAM("ridx: " << sub_gap_lidx << "rdist: " << sub_gap_ldist);
-                    if (i == num_gaps - 1)
-                    {
-                        detected_gap.addLeftInformation(_left_idx, _ldist);
-                    } else {
-                        detected_gap.addLeftInformation(sub_gap_lidx - 1, sub_gap_ldist);
-                    }
-                    gap.push_back(detected_gap);
-                }
-            }
-
             void initManipIndices() {
                 convex.convex_ridx = _right_idx;
                 convex.convex_rdist = _rdist;
@@ -190,10 +151,9 @@ namespace dynamic_gap
                 convex.terminal_ldist = terminal_ldist;
             }
 
-            bool isAxial(bool initial = true)
+            bool isRadial(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
-                // ROS_INFO_STREAM("running isAxial");
                 int check_r_idx = initial ? _right_idx : terminal_ridx;
                 int check_l_idx = initial ? _left_idx : terminal_lidx;
                 float check_r_dist = initial ? _rdist : terminal_rdist;
@@ -214,19 +174,19 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("opp_side: " << opp_side);
                 // ROS_INFO_STREAM("small angle: " << small_angle);
                 if (initial) {
-                    _axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
-                    // std::cout << "checking isSwept: " << _axial << std::endl;
-                    return _axial;
+                    _radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
+                    // std::cout << "checking isSwept: " << _radial << std::endl;
+                    return _radial;
                 } else {
-                    _terminal_axial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
-                    // std::cout << "checking isSwept: " << _terminal_axial << std::endl;
-                    return _terminal_axial;
+                    _terminal_radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
+                    // std::cout << "checking isSwept: " << _terminal_radial << std::endl;
+                    return _terminal_radial;
                 }
             }
 
             void setRadial()
             {
-                _axial = false;
+                _radial = false;
             }
 
             bool isRightType(bool initial = true)
@@ -240,10 +200,6 @@ namespace dynamic_gap
 
             void resetFrame(std::string frame) {
                 _frame = frame;
-            }
-
-            void setMinSafeDist(float _dist) {
-                min_safe_dist = _dist;
             }
 
             float getMinSafeDist() {
@@ -290,12 +246,14 @@ namespace dynamic_gap
             }
 
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
-            float get_dist_side() {
+            // calculates the euclidean distance between the left and right gap points using the law of cosines
+            float get_gap_euclidean_dist() {
                 int idx_diff = _left_idx - _right_idx;
                 if (idx_diff < 0) {
                     idx_diff += (2*half_scan);
                 } 
-                return sqrt(pow(_rdist, 2) + pow(_ldist, 2) - 2 * _rdist * _ldist * (cos(float(idx_diff) / float(half_scan) * M_PI)));
+                float gap_angle = (float(idx_diff) / float(half_scan)) * M_PI;
+                return sqrt(pow(_rdist, 2) + pow(_ldist, 2) - 2 * _rdist * _ldist * cos(gap_angle));
             }
 
             void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
@@ -364,8 +322,8 @@ namespace dynamic_gap
             float half_scan = 256;
 
             std::string _frame = "";
-            bool _axial = false;
-            bool _terminal_axial = false;
+            bool _radial = false;
+            bool _terminal_radial = false;
             bool right_type = false;
             bool terminal_right_type = false;
 

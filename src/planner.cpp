@@ -93,6 +93,8 @@ namespace dynamic_gap
         intermediate_vels.clear();
         intermediate_accs.clear();
 
+        hasGoal = false;
+
         return true;
     }
 
@@ -165,42 +167,46 @@ namespace dynamic_gap
             msg = sharedPtr_inflatedlaser;
         }
 
-        reviseIntermediateValues();
 
-        // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+        if (hasGoal)
+        {
+            reviseIntermediateValues();
 
-        previous_raw_gaps = associated_raw_gaps;
-        raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
-        
-        raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
-        raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
-        gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, current_rbt_vel, model_idx, cfg.debug.raw_gaps_debug_log);
-        associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.raw_gaps_debug_log);
-        // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+            // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
-        static_scan_pub.publish(static_scan);
-        trajArbiter->updateStaticEgoCircle(static_scan);
-        gapManip->updateStaticEgoCircle(static_scan);
-        curr_agents = finder->getCurrAgents();
+            previous_raw_gaps = associated_raw_gaps;
+            raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
+            
+            raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
+            raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
+            gapassociator->assignModels(raw_association, raw_distMatrix, raw_gaps, previous_raw_gaps, current_rbt_vel, model_idx, cfg.debug.raw_gaps_debug_log);
+            associated_raw_gaps = update_models(raw_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.raw_gaps_debug_log);
+            // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        // double observed_gaps_start_time = ros::WallTime::now().toSec();
-        previous_gaps = associated_observed_gaps;
-        observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
+            static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
+            static_scan_pub.publish(static_scan);
+            trajArbiter->updateStaticEgoCircle(static_scan);
+            gapManip->updateStaticEgoCircle(static_scan);
+            curr_agents = finder->getCurrAgents();
 
-        if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
-        simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
-        simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-        gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, current_rbt_vel, model_idx, cfg.debug.simplified_gaps_debug_log);
-        associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.simplified_gaps_debug_log);
-        // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
+            // double observed_gaps_start_time = ros::WallTime::now().toSec();
+            previous_gaps = associated_observed_gaps;
+            observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
 
-        intermediate_vels.clear();
-        intermediate_accs.clear();
+            if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
+            simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
+            simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
+            gapassociator->assignModels(simp_association, simp_distMatrix, observed_gaps, previous_gaps, current_rbt_vel, model_idx, cfg.debug.simplified_gaps_debug_log);
+            associated_observed_gaps = update_models(observed_gaps, current_rbt_vel, current_rbt_acc, intermediate_vels, intermediate_accs, scan_dt, cfg.debug.simplified_gaps_debug_log);
+            // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-        gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
-        gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
-        gapvisualizer->drawGapsModels(associated_observed_gaps);
+            intermediate_vels.clear();
+            intermediate_accs.clear();
+
+            gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
+            gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
+            gapvisualizer->drawGapsModels(associated_observed_gaps);
+        }
 
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
         if (sharedPtr_inflatedlaser) {
@@ -343,42 +349,6 @@ namespace dynamic_gap
         intermediate_vels.push_back(current_rbt_vel);
 
     }
-
-    /*
-    void Planner::poseCB(const nav_msgs::Odometry::ConstPtr& msg)
-    {
-        // ROS_INFO_STREAM("time since last poseCB: " << (curr_time - prev_pose_msg_time).toSec());
-        updateTF();
-
-        // Transform the msg to odom frame
-        if(msg->header.frame_id != cfg.odom_frame_id)
-        {
-            //std::cout << "odom msg is not in odom frame" << std::endl;
-            geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer.lookupTransform(cfg.odom_frame_id, msg->header.frame_id, ros::Time(0));
-
-            geometry_msgs::PoseStamped in_pose, out_pose;
-            in_pose.header = msg->header;
-            in_pose.pose = msg->pose.pose;
-
-            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-
-            tf2::doTransform(in_pose, out_pose, robot_pose_odom_trans);
-            sharedPtr_pose = out_pose.pose;
-        }
-        else
-        {
-            sharedPtr_pose = msg->pose.pose;
-        }
-
-        // velocity always comes in wrt robot frame in STDR
-        current_rbt_vel = msg->twist.twist;
-        intermediate_vels.push_back(current_rbt_vel);
-
-        // ros::Time end_time = ros::Time::now();
-        // ROS_INFO_STREAM("poseCB time taken: " << (end_time - curr_time).toSec());
-        
-    }
-    */
     
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
 
@@ -459,6 +429,7 @@ namespace dynamic_gap
         trajvisualizer->drawRelevantGlobalPlanSnippet(traj);
         // trajvisualizer->drawEntireGlobalPlan(goalselector->getOdomGlobalPlan());
 
+        hasGoal = true;
         return true;
     }
 
@@ -493,7 +464,7 @@ namespace dynamic_gap
             manip_set.at(i).initManipIndices();
             
             // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
-            gapManip->convertAxialGap(manip_set.at(i), true); 
+            gapManip->convertRadialGap(manip_set.at(i), true); 
             gapManip->inflateGapSides(manip_set.at(i), true);
             gapManip->radialExtendGap(manip_set.at(i), true);
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
@@ -503,7 +474,7 @@ namespace dynamic_gap
             gapManip->updateDynamicEgoCircle(manip_set.at(i), future_scans);
             if ((!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) || (manip_set.at(i).gap_crossed_behind)) {
                 // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false);
-                gapManip->convertAxialGap(manip_set.at(i), false);
+                gapManip->convertRadialGap(manip_set.at(i), false);
             }
             gapManip->inflateGapSides(manip_set.at(i), false);
             gapManip->radialExtendGap(manip_set.at(i), false);

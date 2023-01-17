@@ -18,6 +18,8 @@ namespace dynamic_gap{
         k_po_x_ = cfg_->projection.k_po_x;
         k_CBF_ = cfg_->projection.k_CBF;
         k_po_theta_ = cfg_->projection.k_po_theta;
+
+        cmd_counter_ = 0;
     }
 
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
@@ -151,9 +153,25 @@ namespace dynamic_gap{
 
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
 
-        cmd_vel.linear.x = cfg_->man.man_x;
-        cmd_vel.linear.y = cfg_->man.man_y;
-        cmd_vel.angular.z = cfg_->man.man_theta;
+        // cmd_vel.linear.x = cfg_->man.man_x;
+        cmd_vel.linear.y = -0.5; // cfg_->man.man_y;
+        // cmd_vel.angular.z = cfg_->man.man_theta;
+
+        /*
+        int count1 = 25;
+        int count2 = 50;
+        if (cmd_counter_ < count1)
+        {
+            cmd_vel.linear.x = 0.5;
+            cmd_vel.angular.z = -0.4;
+        } else if (count1 < cmd_counter_ && cmd_counter_ < count2)
+        {
+            cmd_vel.linear.x = -0.5;
+            cmd_vel.angular.z = 0.4;
+        }
+
+        cmd_counter_ = (cmd_counter_ + 1) % count2;
+        */
 
         return cmd_vel;
     }
@@ -277,7 +295,7 @@ namespace dynamic_gap{
             v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
             if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
         }
-
+    
         cmd_vel.linear.x = v_lin_x_fb;
         cmd_vel.linear.y = v_lin_y_fb;
         cmd_vel.angular.z = v_ang_fb;
@@ -349,7 +367,7 @@ namespace dynamic_gap{
             v_lin_y_fb += weighted_cmd_vel_y_safe;
 
             // do not want robot to drive backwards
-            if(v_lin_x_fb < 0)
+            if (v_lin_x_fb < 0)
                 v_lin_x_fb = 0;            
 
         } else {

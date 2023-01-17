@@ -89,6 +89,7 @@ namespace dynamic_gap {
             double k_po_x_;
             double k_po_theta_;            
             double k_CBF_;
+            int cmd_counter_;
     };
 }
 

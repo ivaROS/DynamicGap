@@ -60,7 +60,7 @@ namespace dynamic_gap {
         nh.param("reduction_target", gap_manip.reduction_target, gap_manip.reduction_target);        
         nh.param("max_idx_diff", gap_manip.max_idx_diff, gap_manip.max_idx_diff);
         nh.param("radial_extend", gap_manip.radial_extend, gap_manip.radial_extend);
-        nh.param("axial_convert", gap_manip.axial_convert, gap_manip.axial_convert);
+        nh.param("radial_convert", gap_manip.radial_convert, gap_manip.radial_convert);
 
         // Control Params
         nh.param("k_fb_x",control.k_fb_x, control.k_fb_x);
@@ -142,6 +142,12 @@ namespace dynamic_gap {
         // Gap Association
         gap_assoc.assoc_thresh = cfg.assoc_thresh;
 
+        // Gap Estimation
+        gap_est.R_xx = cfg.R_xx;
+        gap_est.R_yy = cfg.R_yy;
+        gap_est.Q_VxVx = cfg.Q_VxVx;
+        gap_est.Q_VyVy = cfg.Q_VyVy;
+
         // Gap Manipulation
         gap_manip.epsilon1 = cfg.epsilon1;
         gap_manip.epsilon2 = cfg.epsilon2;
@@ -150,7 +156,7 @@ namespace dynamic_gap {
         gap_manip.reduction_target = cfg.reduction_target;        
         gap_manip.max_idx_diff = cfg.max_idx_diff;
         gap_manip.radial_extend = cfg.radial_extend;
-        gap_manip.axial_convert = cfg.axial_convert;
+        gap_manip.radial_convert = cfg.radial_convert;
 
         // Trajectory Parameters
         traj.synthesized_frame = cfg.synthesized_frame;

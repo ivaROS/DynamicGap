@@ -88,4 +88,6 @@
   </node>
 
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
+  
+  <!-- node type="rqt_reconfigure" name="reconfig" pkg="rqt_reconfigure" /> -->
 </launch>

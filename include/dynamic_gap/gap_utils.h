@@ -23,6 +23,18 @@ namespace dynamic_gap {
 
         GapUtils(const GapUtils &t) {cfg_ = t.cfg_;};
 
+        bool sweptGapStartedOrEnded(float scan_dist_i, float scan_dist_imin1, float max_scan_dist);
+
+        bool sweptGapSizeCheck(dynamic_gap::Gap detected_gap, float half_scan);
+
+        bool radialGapSizeCheck(float scan_dist_i, float scan_dist_imin1, float max_scan_dist, float gap_angle);
+
+        bool bridgeCondition(std::vector<dynamic_gap::Gap> raw_gaps, int scan_size);
+
+        bool terminalGoalGapCheck(geometry_msgs::PoseStamped final_goal_rbt, 
+                                        sensor_msgs::LaserScan stored_scan_msgs,
+                                        int & final_goal_idx);
+
         std::vector<dynamic_gap::Gap> hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
                                                     geometry_msgs::PoseStamped final_goal_rbt);
     

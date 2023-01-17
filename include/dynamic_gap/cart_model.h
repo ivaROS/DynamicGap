@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <dynamic_gap/dynamicgap_config.h>
 // #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
@@ -20,7 +21,8 @@
 namespace dynamic_gap {
     class cart_model {
         private:
-            int n;
+            const DynamicGapConfig* cfg_;
+
             Eigen::Matrix<double, 2, 4> H; // observation matrix
             Eigen::Matrix<double, 4, 2> H_transpose;
             Eigen::Matrix2d R_k, new_R; // measurement noise matrix
@@ -38,7 +40,7 @@ namespace dynamic_gap {
             double dt, inter_dt;
             double alpha_Q, alpha_R;
 
-            Eigen::Matrix<double, 4, 4> A,  STM;
+            Eigen::Matrix<double, 4, 4> A, STM;
             std::string side;
             int index;
 
@@ -69,7 +71,7 @@ namespace dynamic_gap {
 
         public:
 
-            cart_model(std::string, int, double, double, geometry_msgs::Twist);
+            cart_model(std::string, int, double, double, geometry_msgs::Twist, const dynamic_gap::DynamicGapConfig& cfg);
             ~cart_model() {};
 
             void initialize(double, double, geometry_msgs::Twist);

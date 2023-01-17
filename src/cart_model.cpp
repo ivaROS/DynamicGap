@@ -19,9 +19,10 @@
 // namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
-    cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, geometry_msgs::Twist _current_rbt_vel) {
+    cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, geometry_msgs::Twist _current_rbt_vel, const dynamic_gap::DynamicGapConfig& cfg) {
         side = _side;
         index = _index;
+        cfg_ = &cfg;
         initialize(init_r, init_beta, _current_rbt_vel);
     }
 
@@ -30,16 +31,6 @@ namespace dynamic_gap {
         H << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0;
         H_transpose = H.transpose();
-
-        // MEASUREMENT NOISE
-        R_k << 0.1, 0.0,
-               0.0, 0.1;
-
-        // PROCESS NOISE        
-        Q_k << 0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, 0.3, 0.0,
-               0.0, 0.0, 0.0, 0.3;
         
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -90,8 +81,6 @@ namespace dynamic_gap {
         eyes = Eigen::MatrixXd::Identity(4,4);
         inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
-        alpha_Q = 0.9;
-        alpha_R = 0.9;
         plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
         plotted = false;
@@ -208,6 +197,13 @@ namespace dynamic_gap {
     }
 
     void cart_model::discretizeQ() {
+
+        // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
+        Q_k << 0.0, 0.0, 0.0, 0.0,
+               0.0, 0.0, 0.0, 0.0,
+               0.0, 0.0, cfg_->gap_est.Q_VxVx, 0.0,
+               0.0, 0.0, 0.0, cfg_->gap_est.Q_VyVy;
+
         Q_1 = Q_k;
         Q_2 = A * Q_1 + Q_1 * A.transpose();
         Q_3 = A * Q_2 + Q_2 * A.transpose();
@@ -297,22 +293,21 @@ namespace dynamic_gap {
         x_hat_k_plus = x_hat_k_minus + G_k*innovation;
         residual = x_tilde - H*x_hat_k_plus;
         
+        /*
         double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
         R_k << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
+        */
 
-        // new_R = (alpha_R * R_k) + (1.0 - alpha_R)*(residual * residual.transpose() + H*P_k_minus*H_transpose);
-        // R_k = new_R;
+        // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
+        R_k << cfg_->gap_est.R_xx, 0.0,
+               0.0, cfg_->gap_est.R_yy;
 
         tmp_mat = H*P_k_minus*H_transpose + R_k;
 
         G_k = P_k_minus * H_transpose * tmp_mat.inverse();
 
         P_k_plus = (eyes - G_k*H)*P_k_minus;
-        
-        // new_Q = (alpha_Q * Q_k) + (1.0 - alpha_Q) * (G_k * residual * residual.transpose() * G_k.transpose());
-        // Q_k = new_Q;
-
         
         if (print) {
             /*
@@ -331,67 +326,6 @@ namespace dynamic_gap {
         P_kmin1_plus = P_k_plus;
         return;
     }    
-
-    /*
-    void cart_model::get_intermediate_vels_accs() {
-        
-        // need this so vector is not empty
-        if (intermediate_vels.size() == 0) {
-            intermediate_vels.push_back(current_rbt_vel); // just adding most recent value
-        }
-        
-        if (print) { 
-            ROS_INFO_STREAM("intermediate velocities:");
-            for (int i = 0; i < intermediate_vels.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z); 
-            }
-        }
-
-        if (intermediate_accs.size() == 0) { 
-            intermediate_accs.push_back(current_rbt_acc); // just adding most recent value
-        }
-
-        if (print) { 
-            ROS_INFO_STREAM("intermediate accelerations:");
-            for (int i = 0; i < intermediate_accs.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_accs[i].twist.linear.x << ", v_y: " << intermediate_accs[i].twist.linear.y << ", v_ang: " << intermediate_accs[i].twist.angular.z);
-            }
-        }
-
-
-        int int_vels_size = intermediate_vels.size();
-        int int_accs_size = intermediate_accs.size();
-        if (int_vels_size != int_accs_size) {
-            // ROS_INFO_STREAM("int_vels_size: " << int_vels_size << ", int_accs_size: " << int_accs_size);
-            if (int_vels_size > int_accs_size) {
-                // pad accels
-                for (int i = 0; i < (int_vels_size - int_accs_size); i++) {
-                    // ROS_INFO_STREAM("padding accel " << pad_acc.twist.linear.x << ", " << pad_acc.twist.linear.y << ", " << pad_acc.twist.angular.z);
-                    intermediate_accs.push_back(current_rbt_acc);
-                }
-            } else {
-                // pad vels
-                geometry_msgs::Twist pad_vel = intermediate_vels[intermediate_vels.size() - 1];
-                for (int i = 0; i < (int_accs_size - int_vels_size); i++) {
-                    // ROS_INFO_STREAM("padding with vel " << pad_vel.linear.x << ", " << pad_vel.linear.y << ", " << pad_vel.angular.z);
-                    intermediate_vels.push_back(current_rbt_vel);
-                }
-            }
-        }
-
-        if (print) {
-            ROS_INFO_STREAM("revised intermediate velocities:");
-            for (int i = 0; i < intermediate_vels.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_vels[i].linear.x << ", v_y: " << intermediate_vels[i].linear.y << ", v_ang: " << intermediate_vels[i].angular.z);             
-            }
-
-            ROS_INFO_STREAM("revised intermediate accelerations:");
-            for (int i = 0; i < intermediate_accs.size(); i++) {
-                ROS_INFO_STREAM("v_x: " << intermediate_accs[i].twist.linear.x << ", v_y: " << intermediate_accs[i].twist.linear.y << ", v_ang: " << intermediate_accs[i].twist.angular.z);            
-            }
-        }    
-    }
-    */
 
     void cart_model::plot_models() {
         /*
