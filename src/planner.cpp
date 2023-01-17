@@ -175,7 +175,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             previous_raw_gaps = associated_raw_gaps;
-            raw_gaps = finder->hybridScanGap(msg, final_goal_rbt);
+            raw_gaps = finder->gapDetection(msg, final_goal_rbt);
             
             raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
             raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
@@ -191,7 +191,7 @@ namespace dynamic_gap
 
             // double observed_gaps_start_time = ros::WallTime::now().toSec();
             previous_gaps = associated_observed_gaps;
-            observed_gaps = finder->mergeGapsOneGo(msg, raw_gaps);
+            observed_gaps = finder->gapSimplification(msg, raw_gaps);
 
             if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
             simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);

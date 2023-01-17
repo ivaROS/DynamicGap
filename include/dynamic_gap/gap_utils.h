@@ -35,14 +35,18 @@ namespace dynamic_gap {
                                         sensor_msgs::LaserScan stored_scan_msgs,
                                         int & final_goal_idx);
 
-        std::vector<dynamic_gap::Gap> hybridScanGap(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
+        std::vector<dynamic_gap::Gap> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
                                                     geometry_msgs::PoseStamped final_goal_rbt);
     
-        std::vector<dynamic_gap::Gap> mergeGapsOneGo(boost::shared_ptr<sensor_msgs::LaserScan const>, std::vector<dynamic_gap::Gap>&);
+        std::vector<dynamic_gap::Gap> gapSimplification(boost::shared_ptr<sensor_msgs::LaserScan const>, std::vector<dynamic_gap::Gap>);
 
-        void addTerminalGoal(int, 
-                                std::vector<dynamic_gap::Gap> &, 
-                                sensor_msgs::LaserScan);        
+        bool mergeSweptGapCondition(dynamic_gap::Gap raw_gap, std::vector<dynamic_gap::Gap> simplified_gaps);
+
+        int checkSimplifiedGapsMergeability(dynamic_gap::Gap raw_gap, 
+                                        std::vector<dynamic_gap::Gap> simplified_gaps,
+                                        sensor_msgs::LaserScan stored_scan_msgs);
+
+        void addTerminalGoal(int, std::vector<dynamic_gap::Gap> &, sensor_msgs::LaserScan);        
 
         void setMergeThreshold(float);
         void setIdxThreshold(int);

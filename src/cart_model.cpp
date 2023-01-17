@@ -54,7 +54,7 @@ namespace dynamic_gap {
                                         v_rel_y};
         
         x_tilde << measurement[0], measurement[1];
-        x_hat_kmin1_plus << measurement[0], measurement[1], v_rel_x, v_rel_y;
+        x_hat_kmin1_plus << measurement[0], measurement[1], 0.0, 0.0;
         x_hat_k_minus = x_hat_kmin1_plus; 
         x_hat_k_plus = x_hat_kmin1_plus;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
@@ -265,6 +265,7 @@ namespace dynamic_gap {
         
 
         P_intermediate = P_kmin1_plus;
+        new_P = P_kmin1_plus;
         for (int i = 0; i < intermediate_vels.size(); i++) {
             linearize(i);
 
@@ -293,15 +294,13 @@ namespace dynamic_gap {
         x_hat_k_plus = x_hat_k_minus + G_k*innovation;
         residual = x_tilde - H*x_hat_k_plus;
         
-        /*
         double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
         R_k << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
-        */
 
         // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
-        R_k << cfg_->gap_est.R_xx, 0.0,
-               0.0, cfg_->gap_est.R_yy;
+        // R_k << cfg_->gap_est.R_xx, 0.0,
+        //        0.0, cfg_->gap_est.R_yy;
 
         tmp_mat = H*P_k_minus*H_transpose + R_k;
 
