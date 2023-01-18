@@ -67,10 +67,8 @@ namespace dynamic_gap {
             } gap_assoc;           
 
             struct GapEstimation {
-                double R_xx;
-                double R_yy;
-                double Q_VxVx;
-                double Q_VyVy;
+                double R_scalar;
+                double Q_scalar;
             } gap_est;
 
             struct GapManipulation {
@@ -168,10 +166,8 @@ namespace dynamic_gap {
 
             gap_assoc.assoc_thresh = 0.25;
 
-            gap_est.R_xx = 0.01;
-            gap_est.R_yy = 0.01;
-            gap_est.Q_VxVx = 0.5;
-            gap_est.Q_VyVy = 0.5;
+            gap_est.R_scalar = 0.01;
+            gap_est.Q_scalar = 0.5;
 
             gap_manip.epsilon1 = 0.18;
             gap_manip.epsilon2 = 0.18;

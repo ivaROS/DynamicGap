@@ -143,10 +143,8 @@ namespace dynamic_gap {
         gap_assoc.assoc_thresh = cfg.assoc_thresh;
 
         // Gap Estimation
-        gap_est.R_xx = cfg.R_xx;
-        gap_est.R_yy = cfg.R_yy;
-        gap_est.Q_VxVx = cfg.Q_VxVx;
-        gap_est.Q_VyVy = cfg.Q_VyVy;
+        gap_est.R_scalar = cfg.R_scalar;
+        gap_est.Q_scalar = cfg.Q_scalar;
 
         // Gap Manipulation
         gap_manip.epsilon1 = cfg.epsilon1;

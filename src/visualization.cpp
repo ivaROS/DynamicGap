@@ -19,6 +19,7 @@ namespace dynamic_gap{
 
         gapmodel_pos_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
         gapmodel_vel_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
+        gapmodel_vel_error_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel_error", 10);
         gapmodel_pos_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos_GT", 10);
         gapmodel_vel_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel_GT", 10);
 
@@ -770,14 +771,16 @@ namespace dynamic_gap{
         gapmodel_vel_publisher.publish(clear_arr);
         gapmodel_pos_GT_publisher.publish(clear_arr);
         gapmodel_vel_GT_publisher.publish(clear_arr);
+        // gapmodel_vel_error_publisher.publish(clear_arr);
 
-        visualization_msgs::MarkerArray gap_vel_arr, gap_pos_GT_arr, gap_vel_GT_arr;
+        visualization_msgs::MarkerArray gap_vel_arr, gap_vel_error_arr, gap_pos_GT_arr, gap_vel_GT_arr;
         for (auto gap : g) {
-            drawGapModels(gap_vel_arr, gap, "gap_models");
+            drawGapModels(gap_vel_arr, gap_vel_error_arr, gap, "gap_models");
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
         // gapmodel_pos_publisher.publish(gap_pos_arr);
         gapmodel_vel_publisher.publish(gap_vel_arr);
+        // gapmodel_vel_error_publisher.publish(gap_vel_error_arr);
         // gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
         // gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
         prev_num_models = 2* g.size();
@@ -795,16 +798,21 @@ namespace dynamic_gap{
         gap_vel_arr.markers.push_back(right_model_vel_pt);
     }
 
-    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
+    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, visualization_msgs::MarkerArray & gap_vel_error_arr, dynamic_gap::Gap g, std::string ns) {
         int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
+        visualization_msgs::Marker left_model_vel_error_pt, right_model_vel_error_pt;
 
         draw_model_pt_head(left_model_vel_pt, g, true, model_id, ns, false);
         gap_vel_arr.markers.push_back(left_model_vel_pt);
+        // draw_model_vel_error(left_model_vel_error_pt, left_model_vel_pt, g, true, ns);
+        // gap_vel_error_arr.markers.push_back(left_model_vel_error_pt);
 
         draw_model_pt_head(right_model_vel_pt, g, false, model_id, ns, false);
         gap_vel_arr.markers.push_back(right_model_vel_pt);
+        // draw_model_vel_error(right_model_vel_error_pt, right_model_vel_pt, g, true, ns);
+        // gap_vel_error_arr.markers.push_back(right_model_vel_error_pt);
     }
 
     void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, 
@@ -851,6 +859,38 @@ namespace dynamic_gap{
         model_vel_pt.color.r = 1.0;
         model_vel_pt.color.b = 1.0;
         model_vel_pt.lifetime = ros::Duration(100.0);
+    }
+
+    void GapVisualizer::draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker model_vel_pt, dynamic_gap::Gap g, bool left, std::string ns)
+    {
+        model_vel_error_pt.header = model_vel_pt.header;
+        model_vel_error_pt.ns = ns;
+        model_vel_error_pt.id = model_vel_pt.id;
+
+        model_vel_error_pt.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        model_vel_error_pt.action = visualization_msgs::Marker::ADD;
+
+        model_vel_error_pt.pose = model_vel_pt.pose;
+
+        model_vel_error_pt.scale.z = 0.3;
+        model_vel_error_pt.color.a = 1.0; // Don't forget to set the alpha!
+        model_vel_error_pt.color.r = 0.0;
+        model_vel_error_pt.color.g = 0.0;
+        model_vel_error_pt.color.b = 0.0;
+
+        double vel_error;
+        if (left)
+        {
+            vel_error = sqrt(pow(g.left_model->get_cartesian_state()[2] - g.left_model->get_GT_cartesian_state()[2], 2) + pow(g.left_model->get_cartesian_state()[3] - g.left_model->get_GT_cartesian_state()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.left_model->get_cartesian_state()[2] << ", " << g.left_model->get_cartesian_state()[3] << 
+                            "), GT: (" << g.left_model->get_GT_cartesian_state()[2] << ", " << g.left_model->get_GT_cartesian_state()[3] << "), error: " << vel_error);
+        } else 
+        {
+            vel_error = sqrt(pow(g.right_model->get_cartesian_state()[2] - g.right_model->get_GT_cartesian_state()[2], 2) + pow(g.right_model->get_cartesian_state()[3] - g.right_model->get_GT_cartesian_state()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.right_model->get_cartesian_state()[2] << ", " << g.right_model->get_cartesian_state()[3] << 
+                            "), GT: (" << g.right_model->get_GT_cartesian_state()[2] << ", " << g.right_model->get_GT_cartesian_state()[3] << "), error: " << vel_error);        
+        }
+        model_vel_error_pt.text = "vel_error: " + std::to_string(vel_error);
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns, bool initial) {

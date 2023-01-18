@@ -190,15 +190,14 @@ namespace dynamic_gap{
 
 
         char key = getch();
-        ROS_INFO_STREAM("Keyboard input: " << key);
+        // ROS_INFO_STREAM("Keyboard input: " << key);
 
-        float interval = 0.1;
         if (key == 'w')
             manual_v_x += manual_linear_interval;
         else if (key == 'a')
             manual_v_y += manual_linear_interval;
         else if (key == 's')
-            manual_v_x = manual_linear_interval;
+            manual_v_x = 0.0f;
         else if (key == 'd')
             manual_v_y -= manual_linear_interval;
         else if (key == 'o')

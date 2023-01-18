@@ -34,7 +34,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -543,6 +543,14 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Agents
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /dg_model_vel_error
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -571,7 +579,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.29002571105957
+      Distance: 14.891878128051758
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -579,9 +587,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -10.340849876403809
-        Y: -0.08772671967744827
-        Z: -4.265137672424316
+        X: -12.174847602844238
+        Y: -0.7316521406173706
+        Z: -4.267326831817627
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -589,7 +597,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: robot24
-      Yaw: 3.140399932861328
+      Yaw: 3.1504011154174805
     Saved: ~
 Window Geometry:
   Displays:

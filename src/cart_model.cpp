@@ -54,7 +54,7 @@ namespace dynamic_gap {
                                         v_rel_y};
         
         x_tilde << measurement[0], measurement[1];
-        x_hat_kmin1_plus << measurement[0], measurement[1], 0.0, 0.0;
+        x_hat_kmin1_plus << measurement[0], measurement[1], measurement[2], measurement[3];
         x_hat_k_minus = x_hat_kmin1_plus; 
         x_hat_k_plus = x_hat_kmin1_plus;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
@@ -201,8 +201,8 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
         Q_k << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, cfg_->gap_est.Q_VxVx, 0.0,
-               0.0, 0.0, 0.0, cfg_->gap_est.Q_VyVy;
+               0.0, 0.0, cfg_->gap_est.Q_scalar, 0.0,
+               0.0, 0.0, 0.0, cfg_->gap_est.Q_scalar;
 
         Q_1 = Q_k;
         Q_2 = A * Q_1 + Q_1 * A.transpose();
@@ -294,9 +294,9 @@ namespace dynamic_gap {
         x_hat_k_plus = x_hat_k_minus + G_k*innovation;
         residual = x_tilde - H*x_hat_k_plus;
         
-        double sensor_noise_factor = 0.01 * range_bearing_measurement[0];
-        R_k << sensor_noise_factor, 0.0,
-               0.0, sensor_noise_factor;
+        // double sensor_noise_factor = cfg_->gap_est.R_scalar * range_bearing_measurement[0];
+        R_k << cfg_->gap_est.R_scalar, 0.0,
+               0.0, cfg_->gap_est.R_scalar;
 
         // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
         // R_k << cfg_->gap_est.R_xx, 0.0,
@@ -526,6 +526,13 @@ namespace dynamic_gap {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4d return_x = (perfect) ? x_ground_truth : x_hat_k_plus;
+        
+        if (life_time < 0.25)
+        {
+            // not trusting early measurements, just treating gap as static
+            return_x[2] = 0.0 - current_rbt_vel.linear.x;
+            return_x[3] = 0.0 - current_rbt_vel.linear.y;
+        }
 
         return return_x;
     }
