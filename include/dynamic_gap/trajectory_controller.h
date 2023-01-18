@@ -21,6 +21,10 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 // #include <tf2/LinearMath/Quaternion.h>
 
+#include <stdio.h>
+#include <unistd.h>
+#include <termios.h>
+
 namespace dynamic_gap {
     class TrajectoryController {
         public:
@@ -90,6 +94,12 @@ namespace dynamic_gap {
             double k_po_theta_;            
             double k_CBF_;
             int cmd_counter_;
+
+            float manual_linear_interval;
+            float manual_angular_interval;
+            float manual_v_x;
+            float manual_v_y;
+            float manual_v_ang;
     };
 }
 

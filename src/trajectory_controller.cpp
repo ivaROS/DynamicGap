@@ -20,6 +20,11 @@ namespace dynamic_gap{
         k_po_theta_ = cfg_->projection.k_po_theta;
 
         cmd_counter_ = 0;
+        manual_v_x = 0.0f;
+        manual_v_y = 0.0f;
+        manual_v_ang = 0.0f;
+        manual_linear_interval = 0.05f;
+        manual_angular_interval = 0.10f;
     }
 
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
@@ -148,15 +153,63 @@ namespace dynamic_gap{
         return abs(double(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
     }
 
+    // For non-blocking keyboard inputs
+    int getch(void)
+    {
+        int ch;
+        struct termios oldt;
+        struct termios newt;
+        
+        // Store old settings, and copy to new settings
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        
+        // Make required changes and apply the settings
+        newt.c_lflag &= ~(ICANON | ECHO);
+        newt.c_iflag |= IGNBRK;
+        newt.c_iflag &= ~(INLCR | ICRNL | IXON | IXOFF);
+        newt.c_lflag &= ~(ICANON | ECHO | ECHOK | ECHOE | ECHONL | ISIG | IEXTEN);
+        newt.c_cc[VMIN] = 1;
+        newt.c_cc[VTIME] = 0;
+        tcsetattr(fileno(stdin), TCSANOW, &newt);
+        
+        // Get the current character
+        ch = getchar();
+        
+        // Reapply old settings
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        
+        return ch;
+    }
+
     geometry_msgs::Twist TrajectoryController::manualControlLaw() {
         ROS_INFO_STREAM("Manual Control");
 
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
 
-        // cmd_vel.linear.x = cfg_->man.man_x;
-        cmd_vel.linear.y = -0.5; // cfg_->man.man_y;
-        // cmd_vel.angular.z = cfg_->man.man_theta;
 
+
+        char key = getch();
+        ROS_INFO_STREAM("Keyboard input: " << key);
+
+        float interval = 0.1;
+        if (key == 'w')
+            manual_v_x += manual_linear_interval;
+        else if (key == 'a')
+            manual_v_y += manual_linear_interval;
+        else if (key == 's')
+            manual_v_x = manual_linear_interval;
+        else if (key == 'd')
+            manual_v_y -= manual_linear_interval;
+        else if (key == 'o')
+            manual_v_ang += manual_angular_interval;
+        else if (key == 'p')
+            manual_v_ang -= manual_angular_interval;
+
+        cmd_vel.linear.x = manual_v_x;
+        cmd_vel.linear.y = manual_v_y;
+        cmd_vel.angular.z = manual_v_ang;
+        
         /*
         int count1 = 25;
         int count2 = 50;
