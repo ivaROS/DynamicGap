@@ -34,7 +34,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -98,7 +98,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot0
+          Reference Frame: robot5
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -140,7 +140,7 @@ Visualization Manager:
               Marker Topic: /reachable_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip_initial: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -148,7 +148,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -156,7 +156,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -172,7 +172,7 @@ Visualization Manager:
               Marker Topic: /goals
               Name: Marker
               Namespaces:
-                {}
+                local_goal: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -192,7 +192,7 @@ Visualization Manager:
               Marker Topic: /dg_model_vel
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -220,7 +220,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -262,7 +262,7 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -346,7 +346,7 @@ Visualization Manager:
           Marker Topic: /robot1/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -354,7 +354,7 @@ Visualization Manager:
           Marker Topic: /robot2/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -362,7 +362,7 @@ Visualization Manager:
           Marker Topic: /robot3/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -370,7 +370,7 @@ Visualization Manager:
           Marker Topic: /robot4/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -378,7 +378,7 @@ Visualization Manager:
           Marker Topic: /robot5/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray

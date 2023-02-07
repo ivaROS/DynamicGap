@@ -5,8 +5,6 @@
   <arg name="num_obsts" default="0"/>
   <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
 
-  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)" />
-
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
   <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
@@ -17,7 +15,6 @@
 
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
-
 
   <!-- 
   <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">
@@ -34,6 +31,8 @@
       <param name="output_scan_topic" value = "point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
   </node>
+  
+  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)"/>
   
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
