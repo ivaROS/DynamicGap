@@ -143,7 +143,7 @@ namespace dynamic_gap
         sharedPtr_inflatedlaser = msg;
     }
 
-
+    /*
     void Planner::reviseIntermediateValues() {
         // need this so vector is not empty
         if (intermediate_vels.size() == 0) {
@@ -154,6 +154,7 @@ namespace dynamic_gap
             intermediate_accs.push_back(current_rbt_acc); // just adding most recent value
         }
     }
+    */
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
@@ -178,8 +179,6 @@ namespace dynamic_gap
 
 
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
-
-            previous_raw_gaps = associated_raw_gaps;
             raw_gaps = finder->gapDetection(msg, final_goal_rbt);
             
             raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
@@ -201,8 +200,6 @@ namespace dynamic_gap
             gapManip->updateStaticEgoCircle(static_scan);
             curr_agents = finder->getCurrAgents();
 
-            // double observed_gaps_start_time = ros::WallTime::now().toSec();
-            previous_gaps = associated_observed_gaps;
             observed_gaps = finder->gapSimplification(msg, raw_gaps);
 
             if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
@@ -218,12 +215,9 @@ namespace dynamic_gap
                                                         cfg.debug.simplified_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-            // intermediate_vels.clear();
-            // intermediate_accs.clear();
-
             gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
-            gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
-            gapvisualizer->drawGapsModels(associated_observed_gaps);
+            // gapvisualizer->drawGaps(associated_observed_gaps, std::string("simp"));
+            gapvisualizer->drawGapsModels(associated_raw_gaps);
         }
 
         boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
@@ -254,13 +248,15 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("laserscan time elapsed: " << ros::WallTime::now().toSec() - start_time);
 
+        previous_raw_gaps = associated_raw_gaps;
+        previous_gaps = associated_observed_gaps;
         t_last_kf_update = t_kf_update;
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    std::vector<dynamic_gap::Gap> Planner::update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
-                                                         std::vector<geometry_msgs::TwistStamped> intermediate_vels,
-                                                         std::vector<geometry_msgs::TwistStamped> intermediate_accs,
+    std::vector<dynamic_gap::Gap> Planner::update_models(const std::vector<dynamic_gap::Gap> _observed_gaps, 
+                                                         const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
+                                                         const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
                                                          const ros::Time & t_kf_update,
                                                          bool print) {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
@@ -268,7 +264,7 @@ namespace dynamic_gap
         // double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
             //std::cout << "update gap model: " << i << std::endl;
-            update_model(i, associated_observed_gaps, intermediate_vels, intermediate_accs, t_kf_update, print);
+            update_model(i, associated_observed_gaps, ego_rbt_vels_copied, ego_rbt_accs_copied, t_kf_update, print);
             //std::cout << "" << std::endl;
 		}
 
@@ -277,8 +273,8 @@ namespace dynamic_gap
     }
 
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                               std::vector<geometry_msgs::TwistStamped> intermediate_vels,
-                               std::vector<geometry_msgs::TwistStamped> intermediate_accs,
+                               const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
+                               const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
                                const ros::Time & t_kf_update,
                                bool print) {
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
@@ -298,7 +294,7 @@ namespace dynamic_gap
             //std::cout << "entering left model update" << std::endl;
             try {
                 g.right_model->kf_update_loop(laserscan_measurement, 
-                                                intermediate_vels, intermediate_accs, 
+                                                ego_rbt_vels_copied, ego_rbt_accs_copied, 
                                                 print, agent_odoms, 
                                                 agent_vels,
                                                 t_kf_update);
@@ -309,7 +305,7 @@ namespace dynamic_gap
             //std::cout << "entering right model update" << std::endl;
             try {
                 g.left_model->kf_update_loop(laserscan_measurement, 
-                                                intermediate_vels, intermediate_accs, 
+                                                ego_rbt_vels_copied, ego_rbt_accs_copied, 
                                                 print, agent_odoms, 
                                                 agent_vels,
                                                 t_kf_update);
@@ -905,6 +901,7 @@ namespace dynamic_gap
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) {
         geometry_msgs::Twist raw_cmd_vel = geometry_msgs::Twist();
 
+        /*
         if (cfg.man.man_ctrl) { // MANUAL CONTROL
             raw_cmd_vel = trajController->manualControlLaw();
         } else if (traj.poses.size() < 2) { // OBSTACLE AVOIDANCE CONTROL
@@ -957,6 +954,8 @@ namespace dynamic_gap
                         current_rbt_vel, current_rbt_acc); 
 
         return cmd_vel;
+        */
+        return raw_cmd_vel;
     }
 
     void Planner::rcfgCallback(dynamic_gap::dgConfig &config, uint32_t level)
@@ -1122,6 +1121,7 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
 
+        /*
         double getPlan_start_time = ros::WallTime::now().toSec();
 
         double start_time = ros::WallTime::now().toSec();      
@@ -1204,6 +1204,9 @@ namespace dynamic_gap
         
         if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
         
+        */
+        geometry_msgs::PoseArray final_traj;
+
         return final_traj;
     }
 

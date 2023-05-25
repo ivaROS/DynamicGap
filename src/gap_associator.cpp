@@ -160,8 +160,8 @@ namespace dynamic_gap {
 
 	}
 
-	void GapAssociator::assignModels(std::vector<int> association, 
-									 std::vector< std::vector<double> > distMatrix, 
+	void GapAssociator::assignModels(std::vector<int> & association, 
+									 std::vector< std::vector<double> > & distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
 									 std::vector<dynamic_gap::Gap> previous_gaps,
 									 int * model_idx,
@@ -177,14 +177,15 @@ namespace dynamic_gap {
     	geometry_msgs::TwistStamped last_ego_rbt_vel = (!ego_rbt_vels_copied.empty()) ? ego_rbt_vels_copied[ego_rbt_vels_copied.size() - 1] : geometry_msgs::TwistStamped();
 	    geometry_msgs::TwistStamped last_ego_rbt_acc = (!ego_rbt_accs_copied.empty()) ? ego_rbt_accs_copied[ego_rbt_accs_copied.size() - 1] : geometry_msgs::TwistStamped();
 
-
-		for (int i = 0; i < observed_gap_points.size(); i++) {
+		for (int i = 0; i < observed_gap_points.size(); i++) 
+		{
 			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
-			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc, *cfg_);
+			if (i % 2 == 0) 
+			{  // curr left
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc, *cfg_);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			}
 			*model_idx += 1;
 		}
@@ -233,7 +234,7 @@ namespace dynamic_gap {
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(std::vector< std::vector<double> > distMatrix) {
+	std::vector<int> GapAssociator::associateGaps(std::vector< std::vector<double> > & distMatrix) {
 		// NEW ASSIGNMENT OBTAINED
 		//double start_time = ros::Time::now().toSec();
 

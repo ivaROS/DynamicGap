@@ -57,15 +57,17 @@ namespace dynamic_gap
         // pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
         // rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
 
-        odom_sub.subscribe(nh, "/odom", 10);
+        odom_sub.subscribe(nh, robot_name + "/odom", 10);
         acc_sub.subscribe(nh, robot_name + "/acc", 10);
         sync_.reset(new Sync(MySyncPolicy(10), odom_sub, acc_sub));
         sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner, _1, _2));
 
+        /*
         for (int i = 0; i < planner.get_num_obsts(); i++) {
             ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + std::to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);
             agent_odom_subscribers.push_back(temp_odom_sub);
         }
+        */
 
         initialized = true;
 
@@ -77,6 +79,7 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmd_vel)
     {
+        /*
         if (!planner.initialized())
         {
             ros::NodeHandle pnh("~/" + planner_name);
@@ -89,6 +92,8 @@ namespace dynamic_gap
         cmd_vel = planner.ctrlGeneration(final_traj);
 
         return planner.recordAndCheckVel(cmd_vel);
+        */
+        return 1;
     }
 
     void DynamicGapPlanner::reset()

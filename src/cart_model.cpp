@@ -21,11 +21,10 @@
 namespace dynamic_gap {
     cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, 
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                            const geometry_msgs::TwistStamped & last_ego_rbt_acc, const dynamic_gap::DynamicGapConfig& cfg) 
+                            const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
         side = _side;
         index = _index;
-        cfg_ = &cfg;
         initialize(init_r, init_beta, t_update, last_ego_rbt_vel, last_ego_rbt_acc);
     }
 
@@ -38,10 +37,13 @@ namespace dynamic_gap {
              0.0, 1.0, 0.0, 0.0;
         H_transpose = H.transpose();
         
+        R_scalar = 0.01;
+        Q_scalar = 0.5;
+
         Q_k << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, cfg_->gap_est.Q_scalar, 0.0,
-               0.0, 0.0, 0.0, cfg_->gap_est.Q_scalar;
+               0.0, 0.0, Q_scalar, 0.0,
+               0.0, 0.0, 0.0, Q_scalar;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -92,7 +94,6 @@ namespace dynamic_gap {
         // life_time = 0.0;
         // life_time_threshold = 7.5;
         eyes = Eigen::MatrixXd::Identity(4,4);
-        inverted_tmp_mat << 0.0, 0.0, 0.0, 0.0;
 
         plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
@@ -371,7 +372,7 @@ namespace dynamic_gap {
         x_hat_k_plus = x_hat_k_minus + G_k*innovation;
         residual = x_tilde - H*x_hat_k_plus;
         
-        double sensor_noise_factor = cfg_->gap_est.R_scalar * range_bearing_measurement[0];
+        double sensor_noise_factor = R_scalar * range_bearing_measurement[0];
         R_k << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 

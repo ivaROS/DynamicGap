@@ -347,17 +347,17 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
-        void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                                                         std::vector<geometry_msgs::TwistStamped> intermediate_vels,
-                                                         std::vector<geometry_msgs::TwistStamped> intermediate_accs,
-                                                         const ros::Time & t_kf_update,
-                                                         bool print);
-        
-        std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
-                                                    std::vector<geometry_msgs::TwistStamped> intermediate_vels,
-                                                    std::vector<geometry_msgs::TwistStamped> intermediate_accs,
+        std::vector<dynamic_gap::Gap> update_models(const std::vector<dynamic_gap::Gap> _observed_gaps, 
+                                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
+                                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
                                                     const ros::Time & t_kf_update,
                                                     bool print);
+
+        void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
+                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
+                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+                                    const ros::Time & t_kf_update,
+                                    bool print);
 
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();

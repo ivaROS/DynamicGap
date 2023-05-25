@@ -164,7 +164,7 @@ namespace dynamic_gap {
             debug.traj_debug_log = false;
             debug.control_debug_log = false;             
 
-            gap_assoc.assoc_thresh = 0.25;
+            gap_assoc.assoc_thresh = 0.15;
 
             gap_est.R_scalar = 0.1;
             gap_est.Q_scalar = 0.5;

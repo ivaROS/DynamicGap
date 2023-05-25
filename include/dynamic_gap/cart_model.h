@@ -23,26 +23,25 @@ namespace dynamic_gap {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
 
-            const DynamicGapConfig* cfg_;
-
             Eigen::Matrix<double, 2, 4> H; // observation matrix
             Eigen::Matrix<double, 4, 2> H_transpose;
-            Eigen::Matrix2d R_k, new_R; // measurement noise matrix
-            Eigen::Matrix<double, 4, 4> Q_k, Q_1, Q_2, Q_3, new_Q; // covariance noise matrix
-            Eigen::Matrix<double, 4, 4> dQ; // discretized covariance noise matrix
+            Eigen::Matrix2d R_k; // measurement noise matrix
+            Eigen::Matrix4d Q_k, Q_1, Q_2, Q_3; // covariance noise matrix
+            Eigen::Matrix4d dQ; // discretized covariance noise matrix
+            double R_scalar, Q_scalar;
 
-            Eigen::Matrix<double, 2, 2> tmp_mat; //  place holder for inverse
+            Eigen::Matrix2d tmp_mat; //  place holder for inverse
 
-            Eigen::Matrix<double, 4, 1> x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, 
+            Eigen::Vector4d x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, 
                                  new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
-            Eigen::Matrix<double, 4, 4> P_kmin1_plus, P_k_minus, P_k_plus, P_intermediate, new_P; // covariance matrix
+            Eigen::Matrix4d P_kmin1_plus, P_k_minus, P_k_plus, P_intermediate, new_P; // covariance matrix
             Eigen::Matrix<double, 4, 2> G_k; // kalman gain
-            Eigen::Matrix<double, 2, 1> x_tilde, innovation, residual;
+            Eigen::Vector2d x_tilde, innovation, residual;
 
             // double dt, inter_dt;
             // double alpha_Q, alpha_R;
 
-            Eigen::Matrix<double, 4, 4> A, STM;
+            Eigen::Matrix4d A, STM;
             std::string side;
             int index;
 
@@ -53,8 +52,7 @@ namespace dynamic_gap {
                                               previous_ego_accels, previous_ego_vels, previous_times,
                                               previous_gap_only_states, vel_euler_derivatives;
             double life_time_threshold;
-            Eigen::Matrix<double, 4, 4> eyes;
-            Eigen::Matrix<double, 2, 2> inverted_tmp_mat;
+            Eigen::Matrix4d eyes;
             std::string plot_dir;
 
             std::vector<geometry_msgs::Pose> agent_odoms;
@@ -75,14 +73,13 @@ namespace dynamic_gap {
         public:
 
             cart_model(std::string, int, double, double,const ros::Time & t_update,
-                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_acc, 
-                                                                        const dynamic_gap::DynamicGapConfig& cfg);
+                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
+                        const geometry_msgs::TwistStamped & last_ego_rbt_acc);
             ~cart_model() {};
 
             void initialize(double, double, const ros::Time & t_update,
-                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_acc);
+                            const geometry_msgs::TwistStamped & last_ego_rbt_vel,
+                            const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
 
             Eigen::Vector4d update_ground_truth_cartesian_state();

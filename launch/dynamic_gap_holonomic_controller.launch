@@ -60,7 +60,7 @@
       <param name="controller_frequency" value="$(arg controller_freq)" />
       <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <remap from="cmd_vel" to="$(arg vel_topic)"/>
+      <!-- <remap from="cmd_vel" to="$(arg vel_topic)"/> -->
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
 
       <!-- Approach-specific parameters/remappings/etc -->      
@@ -88,5 +88,11 @@
 
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
   
+  <!-- RUN KEYBOARD COMMAND VELOCITY GENERATOR -->
+  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard" output="log">
+        <param name="robot_namespace" value="$(arg robot_namespace)"/>
+  </node>
+
+
   <!-- node type="rqt_reconfigure" name="reconfig" pkg="rqt_reconfigure" /> -->
 </launch>

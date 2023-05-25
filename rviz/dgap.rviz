@@ -12,6 +12,7 @@ Panels:
         - /Egorobot Data1/LaserScan2
         - /Dynamic Gap1
         - /Dynamic Gap1/Gaps1
+        - /Dynamic Gap1/Gaps1/MarkerArray4
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/Marker1
         - /Dynamic Gap1/Marker1
@@ -140,7 +141,7 @@ Visualization Manager:
               Marker Topic: /reachable_gaps
               Name: MarkerArray
               Namespaces:
-                manip_initial: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -148,7 +149,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: MarkerArray
               Namespaces:
-                gap_goal: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -156,17 +157,17 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: MarkerArray
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /raw_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                raw: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: true
               Marker Topic: /goals
@@ -220,7 +221,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                allTraj: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -262,7 +263,7 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                traj_switch_count: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -579,7 +580,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.891878128051758
+      Distance: 15.512114524841309
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -587,9 +588,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -12.174847602844238
-        Y: -0.7316521406173706
-        Z: -4.267326831817627
+        X: -6.454702377319336
+        Y: 0.7693450450897217
+        Z: -4.261601448059082
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
