@@ -57,8 +57,8 @@ namespace dynamic_gap
         // pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
         // rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
 
-        odom_sub.subscribe(nh, "/odom", 3);
-        acc_sub.subscribe(nh, robot_name + "/acc", 3);
+        odom_sub.subscribe(nh, "/odom", 10);
+        acc_sub.subscribe(nh, robot_name + "/acc", 10);
         sync_.reset(new Sync(MySyncPolicy(10), odom_sub, acc_sub));
         sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner, _1, _2));
 

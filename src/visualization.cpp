@@ -835,11 +835,11 @@ namespace dynamic_gap{
    
         Eigen::Vector2d vel;
         if (left) {
-            vel << left_model_state[2] + g.left_model->get_v_ego().linear.x,
-                   left_model_state[3] + g.left_model->get_v_ego().linear.y;
+            vel << left_model_state[2] + g.left_model->get_v_ego().twist.linear.x,
+                   left_model_state[3] + g.left_model->get_v_ego().twist.linear.y;
         } else {
-            vel << right_model_state[2] + g.right_model->get_v_ego().linear.x, 
-                   right_model_state[3] + g.right_model->get_v_ego().linear.y;
+            vel << right_model_state[2] + g.right_model->get_v_ego().twist.linear.x, 
+                   right_model_state[3] + g.right_model->get_v_ego().twist.linear.y;
         }
 
         double model_vel_theta = std::atan2(vel[1], vel[0]);

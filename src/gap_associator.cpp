@@ -164,20 +164,27 @@ namespace dynamic_gap {
 									 std::vector< std::vector<double> > distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
 									 std::vector<dynamic_gap::Gap> previous_gaps,
-									 geometry_msgs::Twist current_rbt_vel,
 									 int * model_idx,
-									 bool print){
+                                     const ros::Time & t_kf_update, 
+									 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
+                      				 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+									 bool print)
+	{
 		double start_time = ros::Time::now().toSec();
 		// initializing models for current gaps
 		double init_r, init_beta;
+
+    	geometry_msgs::TwistStamped last_ego_rbt_vel = (!ego_rbt_vels_copied.empty()) ? ego_rbt_vels_copied[ego_rbt_vels_copied.size() - 1] : geometry_msgs::TwistStamped();
+	    geometry_msgs::TwistStamped last_ego_rbt_acc = (!ego_rbt_accs_copied.empty()) ? ego_rbt_accs_copied[ego_rbt_accs_copied.size() - 1] : geometry_msgs::TwistStamped();
+
 
 		for (int i = 0; i < observed_gap_points.size(); i++) {
 			init_r = sqrt(pow(observed_gap_points[i][0], 2) + pow(observed_gap_points[i][1],2));
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) {  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, current_rbt_vel, *cfg_);
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::cart_model("right", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc, *cfg_);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, current_rbt_vel, *cfg_);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::cart_model("left", *model_idx, init_r, init_beta, t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc, *cfg_);
 			}
 			*model_idx += 1;
 		}

@@ -21,6 +21,8 @@
 namespace dynamic_gap {
     class cart_model {
         private:
+            void processEgoRobotVelsAndAccs(const ros::Time & t_update);
+
             const DynamicGapConfig* cfg_;
 
             Eigen::Matrix<double, 2, 4> H; // observation matrix
@@ -37,8 +39,8 @@ namespace dynamic_gap {
             Eigen::Matrix<double, 4, 2> G_k; // kalman gain
             Eigen::Matrix<double, 2, 1> x_tilde, innovation, residual;
 
-            double dt, inter_dt;
-            double alpha_Q, alpha_R;
+            // double dt, inter_dt;
+            // double alpha_Q, alpha_R;
 
             Eigen::Matrix<double, 4, 4> A, STM;
             std::string side;
@@ -64,17 +66,23 @@ namespace dynamic_gap {
             bool plotted;
             std::vector<double> prev_euler_deriv;
 
-            std::vector<geometry_msgs::Twist> intermediate_vels;
-            std::vector<geometry_msgs::TwistStamped> intermediate_accs;
-            geometry_msgs::Twist current_rbt_vel; 
-            geometry_msgs::TwistStamped current_rbt_acc;
+            ros::Time t_last_update;
+            std::vector<geometry_msgs::TwistStamped> ego_rbt_vels;
+            std::vector<geometry_msgs::TwistStamped> ego_rbt_accs;        
+            geometry_msgs::TwistStamped last_ego_rbt_vel;
+            geometry_msgs::TwistStamped last_ego_rbt_acc;
 
         public:
 
-            cart_model(std::string, int, double, double, geometry_msgs::Twist, const dynamic_gap::DynamicGapConfig& cfg);
+            cart_model(std::string, int, double, double,const ros::Time & t_update,
+                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
+                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_acc, 
+                                                                        const dynamic_gap::DynamicGapConfig& cfg);
             ~cart_model() {};
 
-            void initialize(double, double, geometry_msgs::Twist);
+            void initialize(double, double, const ros::Time & t_update,
+                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
+                                                                        const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
 
             Eigen::Vector4d update_ground_truth_cartesian_state();
@@ -89,10 +97,10 @@ namespace dynamic_gap {
 
             Eigen::Vector2d get_x_tilde();
 
-            geometry_msgs::Twist get_v_ego();
+            geometry_msgs::TwistStamped get_v_ego();
             Eigen::Matrix<double, 4, 1> integrate();
             void linearize(int idx);
-            void discretizeQ();
+            void discretizeQ(int idx);
 
             void frozen_state_propagate(double dt);
             void rewind_propagate(double dt);
@@ -100,14 +108,12 @@ namespace dynamic_gap {
             void set_rewind_state();
 
             void kf_update_loop(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
-                                geometry_msgs::Twist current_rbt_vel, 
-                                geometry_msgs::TwistStamped current_rbt_acc, 
-                                std::vector<geometry_msgs::Twist> _intermediate_vels,
-                                std::vector<geometry_msgs::TwistStamped> _intermediate_accs,
+                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
+                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                 bool print,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                double scan_dt);
+                                const ros::Time & t_kf_update);
 
             void set_side(std::string _side);
             std::string get_side();

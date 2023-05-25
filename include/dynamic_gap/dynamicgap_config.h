@@ -166,7 +166,7 @@ namespace dynamic_gap {
 
             gap_assoc.assoc_thresh = 0.25;
 
-            gap_est.R_scalar = 0.01;
+            gap_est.R_scalar = 0.1;
             gap_est.Q_scalar = 0.5;
 
             gap_manip.epsilon1 = 0.18;

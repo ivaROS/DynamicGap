@@ -64,7 +64,7 @@ namespace dynamic_gap{
     std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajGenerator::generateTrajectory(
                                                     dynamic_gap::Gap& selectedGap, 
                                                     geometry_msgs::PoseStamped curr_pose, 
-                                                    geometry_msgs::Twist curr_vel,
+                                                    geometry_msgs::TwistStamped curr_vel,
                                                     bool run_g2g) {
 
         geometry_msgs::PoseArray posearr;

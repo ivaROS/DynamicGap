@@ -165,10 +165,13 @@ namespace dynamic_gap
 
         boost::circular_buffer<double> log_vel_comp;
 
-        geometry_msgs::Twist current_rbt_vel;
+        ros::Time t_last_kf_update;
+        ros::Time t_kf_update;
+
+        geometry_msgs::TwistStamped current_rbt_vel;
         geometry_msgs::TwistStamped current_rbt_acc;
 
-        std::vector<geometry_msgs::Twist> intermediate_vels;
+        std::vector<geometry_msgs::TwistStamped> intermediate_vels;
         std::vector<geometry_msgs::TwistStamped> intermediate_accs;
 
         int init_val;
@@ -345,18 +348,17 @@ namespace dynamic_gap
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
         void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                                                         geometry_msgs::Twist current_rbt_vel, 
-                                                         geometry_msgs::TwistStamped current_rbt_acc, 
-                                                         std::vector<geometry_msgs::Twist> intermediate_vels,
+                                                         std::vector<geometry_msgs::TwistStamped> intermediate_vels,
                                                          std::vector<geometry_msgs::TwistStamped> intermediate_accs,
-                                                         double scan_dt, bool print);
+                                                         const ros::Time & t_kf_update,
+                                                         bool print);
         
         std::vector<dynamic_gap::Gap> update_models(std::vector<dynamic_gap::Gap> _observed_gaps, 
-                                                    geometry_msgs::Twist current_rbt_vel, 
-                                                    geometry_msgs::TwistStamped current_rbt_acc, 
-                                                    std::vector<geometry_msgs::Twist> intermediate_vels,
+                                                    std::vector<geometry_msgs::TwistStamped> intermediate_vels,
                                                     std::vector<geometry_msgs::TwistStamped> intermediate_accs,
-                                                    double scan_dt, bool print);
+                                                    const ros::Time & t_kf_update,
+                                                    bool print);
+
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 

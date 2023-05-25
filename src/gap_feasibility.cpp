@@ -73,7 +73,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("indivGapFindCrossingPoint time elapsed:" << ros::Time::now().toSec() - start_time);
 
         Eigen::Vector2f starting_pos(0.0, 0.0);
-        Eigen::Vector2f starting_vel(left_model->get_v_ego().linear.x, left_model->get_v_ego().linear.y);
+        Eigen::Vector2f starting_vel(left_model->get_v_ego().twist.linear.x, left_model->get_v_ego().twist.linear.y);
         
         Eigen::Vector2f ending_vel(0.0, 0.0);
         
