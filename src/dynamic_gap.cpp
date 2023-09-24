@@ -47,10 +47,10 @@ namespace dynamic_gap
         // pnh: planner node handle?
         ros::NodeHandle pnh("~/" + planner_name);
         planner.initialize(pnh);
-
-        laser_sub = pnh.subscribe("/point_scan", 5, &Planner::laserScanCB, &planner);
-        
         std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
+
+        laser_sub = pnh.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner);
+        
         // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
         // queue needs to be 3 to not skip any messages

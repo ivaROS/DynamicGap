@@ -32,7 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
           ${CATKIN_PACKAGE_DEPENDENCIES}
         )
 
-find_package(PythonLibs REQUIRED)
+# find_package(PythonLibs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 # find_package(osqp REQUIRED)

@@ -25,12 +25,12 @@
   </node>
   -->
 
-  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+  <!-- <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/> 
       <param name="output_scan_topic" value = "point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
-  </node>
+  </node> -->
   
   <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)"/>
   
@@ -89,9 +89,9 @@
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
   
   <!-- RUN KEYBOARD COMMAND VELOCITY GENERATOR -->
-  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard" output="log">
+  <!-- <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard" output="log">
         <param name="robot_namespace" value="$(arg robot_namespace)"/>
-  </node>
+  </node> -->
 
 
   <!-- node type="rqt_reconfigure" name="reconfig" pkg="rqt_reconfigure" /> -->
