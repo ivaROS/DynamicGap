@@ -610,7 +610,7 @@ namespace dynamic_gap
         std::vector<double> result_score(prr.size());
         int counts;
         try {
-            if (omp_get_dynamic()) omp_set_dynamic(0);
+            // if (omp_get_dynamic()) omp_set_dynamic(0);
             for (size_t i = 0; i < result_score.size(); i++) {
                 // ROS_WARN_STREAM("prr(" << i << "): size " << prr.at(i).poses.size());
                 counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
@@ -901,7 +901,6 @@ namespace dynamic_gap
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) {
         geometry_msgs::Twist raw_cmd_vel = geometry_msgs::Twist();
 
-        /*
         if (cfg.man.man_ctrl) { // MANUAL CONTROL
             raw_cmd_vel = trajController->manualControlLaw();
         } else if (traj.poses.size() < 2) { // OBSTACLE AVOIDANCE CONTROL
@@ -954,8 +953,6 @@ namespace dynamic_gap
                         current_rbt_vel, current_rbt_acc); 
 
         return cmd_vel;
-        */
-        return raw_cmd_vel;
     }
 
     void Planner::rcfgCallback(dynamic_gap::dgConfig &config, uint32_t level)

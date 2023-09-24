@@ -1,32 +1,36 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10)
 project(dynamic_gap)
 
 add_compile_options(-std=c++17)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 
-find_package(OpenMP REQUIRED)
-if(OPENMP_FOUND)
-  message(STATUS "OPENMP FOUND")
-  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})
-  set(OpenMP_LIBS gomp)
-endif()
+#find_package(OpenMP REQUIRED)
+#if(OPENMP_FOUND)
+#  message(STATUS "OPENMP FOUND")
+#  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})
+#  set(OpenMP_LIBS gomp)
+#endif()
 
-find_package(catkin REQUIRED COMPONENTS
+set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
   dynamic_reconfigure
-  egocircle
-  geometry_msgs
-  nav_msgs
+  # egocircle
+  # geometry_msgs
+  # nav_msgs
   roscpp
   rospy
-  std_msgs
+  # std_msgs
   # benchmarking_tools
-  pips_trajectory_msgs
+  # pips_trajectory_msgs
   dynamic_reconfigure
-  message_generation
+  # message_generation
 )
+
+find_package(catkin REQUIRED COMPONENTS
+          ${CATKIN_PACKAGE_DEPENDENCIES}
+        )
 
 find_package(PythonLibs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
@@ -60,15 +64,18 @@ generate_messages(
 )
 
 catkin_package(
- INCLUDE_DIRS include
-#  LIBRARIES dynamic_gap
-  INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS}
-  DEPENDS OpenMP 
-  CATKIN_DEPENDS base_local_planner dynamic_reconfigure egocircle geometry_msgs nav_msgs roscpp rospy std_msgs sensor_msgs pips_trajectory_msgs message_runtime
+  INCLUDE_DIRS 
+    include
+    ${EIGEN3_INCLUDE_DIRS}
+  #  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS
+    ${CATKIN_PACKAGE_DEPENDENCIES}
+  # DEPENDS OpenMP 
+
 )
 
 
-add_library(dynamic_gap
+add_library(${PROJECT_NAME}
   src/planner.cpp
   src/dynamic_gap.cpp
   src/gap_utils.cpp
@@ -92,14 +99,14 @@ catkin_install_python(PROGRAMS
 
 add_dependencies(dynamic_gap ${PROJECT_NAME}_gencfg)
 add_dependencies(dynamic_gap ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
+# target_compile_options(dynamic_gap PRIVATE ${OpenMP_FLAGS})
 
 # target_include_directories(dynamic_gap PRIVATE ${MATPLOTLIB_CPP_INCLUDE_DIRS})
 
 target_link_libraries(dynamic_gap
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}
-	${OpenMP_LIBS}
+	# ${OpenMP_LIBS}
 	# osqp::osqp
 	OsqpEigen::OsqpEigen
 )
