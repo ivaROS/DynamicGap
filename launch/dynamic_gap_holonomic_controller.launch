@@ -32,12 +32,12 @@
             args="$(arg robot_namespace) $(arg robot_radius)"/>
   </group>
   
-  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+  <!-- <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/> 
       <param name="output_scan_topic" value = "point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
-  </node>
+  </node> -->
 
 
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
@@ -48,7 +48,7 @@
   <arg name="inf_ratio" value="1.21" unless="$(arg planning_inflated)"/>
   <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
 
-  <node pkg="move_base_virtual" type="move_base_virtual" respawn="false" name="move_base_virtual" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
       <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
       
       <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="global_costmap"/>

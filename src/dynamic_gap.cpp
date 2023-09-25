@@ -50,7 +50,7 @@ namespace dynamic_gap
         std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
 
         // robot_name + "/mod_laser_0"
-        laser_sub = pnh.subscribe("/point_scan", 5, &Planner::laserScanCB, &planner);
+        laser_sub = pnh.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner);
         
         // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
