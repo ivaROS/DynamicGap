@@ -1,9 +1,11 @@
 <launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+
   <arg name="use_recovery_behaviors" default="true"/>
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius" default="0.20"/>
   <arg name="num_obsts" default="0"/>
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+  <arg name="simulation" default="true"/>
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
@@ -24,16 +26,20 @@
       <remap from="/scan" to="$(arg robot_namespace)/laser_0"/>
   </node>
   -->
-
-  <!-- <node name="egocircle_node" pkg="egocircle" type="ego_circle">
+  
+  <group if="$(arg simulation)">
+    <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" 
+            args="$(arg robot_namespace) $(arg robot_radius)"/>
+  </group>
+  
+  <node name="egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
       <param name="odom_frame_id" value="map_static"/> 
       <param name="output_scan_topic" value = "point_scan" />
       <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
-  </node> -->
-  
-  <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" args="$(arg robot_namespace) $(arg robot_radius)"/>
-  
+  </node>
+
+
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
   <arg name="planning_inflated" default="$(optenv GM_PARAM_PLANNING_INFLATED false)"/>
@@ -60,7 +66,7 @@
       <param name="controller_frequency" value="$(arg controller_freq)" />
       <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <!-- <remap from="cmd_vel" to="$(arg vel_topic)"/> -->
+      <remap from="cmd_vel" to="$(arg vel_topic)"/>
       <remap from="/odom" to="$(arg robot_namespace)/odom"/>
 
       <!-- Approach-specific parameters/remappings/etc -->      

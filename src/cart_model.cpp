@@ -308,16 +308,23 @@ namespace dynamic_gap {
 
         // inter_dt = (dt / ego_rbt_vels.size());
 
-        if (ego_rbt_vels.size() == 0)
+        if (ego_rbt_vels.size() == 0 || ego_rbt_accs.size() == 0)
             return;
 
-        processEgoRobotVelsAndAccs(t_update);
+        if (ego_rbt_vels.size() != ego_rbt_accs.size())
+        {
+            if (print) ROS_INFO_STREAM("ego_rbt_vels is of size " << ego_rbt_vels.size() << " while ego_rbt_accs is of size " << ego_rbt_accs.size());
+            return;
+        }
+
 
         if (print) {
             ROS_INFO_STREAM("update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
             ROS_INFO_STREAM("x_hat_kmin1_plus: " << x_hat_kmin1_plus[0] << ", " << x_hat_kmin1_plus[1] << ", " << x_hat_kmin1_plus[2] << ", " << x_hat_kmin1_plus[3]);
             ROS_INFO_STREAM("current_rbt_vel, x_lin: " << last_ego_rbt_vel.twist.linear.x << ", y_lin: " << last_ego_rbt_vel.twist.linear.y << ", z_ang: " << last_ego_rbt_vel.twist.angular.z);
         }
+
+        processEgoRobotVelsAndAccs(t_update);
 
         // get_ego_rbt_vels_accs();
 
@@ -376,6 +383,8 @@ namespace dynamic_gap {
         R_k << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 
+        // if (print) ROS_INFO_STREAM("1");
+
         // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
         // R_k << cfg_->gap_est.R_xx, 0.0,
         //        0.0, cfg_->gap_est.R_yy;
@@ -385,7 +394,30 @@ namespace dynamic_gap {
         G_k = P_k_minus * H_transpose * tmp_mat.inverse();
 
         P_k_plus = (eyes - G_k*H)*P_k_minus;
+    
+        // if (print) ROS_INFO_STREAM("2");
+
+        x_hat_kmin1_plus = x_hat_k_plus;
+        P_kmin1_plus = P_k_plus;
+        t_last_update = t_update;
+
+        // if (print) ROS_INFO_STREAM("3");
+
+        // if (print)
+        // {
+        //     ROS_INFO_STREAM("ego_rbt_vels size: " << ego_rbt_vels.size());
+        //     ROS_INFO_STREAM("ego_rbt_accs size: " << ego_rbt_accs.size());
+        // }
+
         
+        if (ego_rbt_vels.size() > 0)
+            last_ego_rbt_vel = ego_rbt_vels.back();
+        
+        if (ego_rbt_accs.size() > 0)
+            last_ego_rbt_acc = ego_rbt_accs.back();
+
+        // if (print) ROS_INFO_STREAM("4");
+
         if (print) {
             /*
             ROS_INFO_STREAM("G_k: " << G_k(0, 0) << ", " << G_k(0, 1));
@@ -398,12 +430,6 @@ namespace dynamic_gap {
             ROS_INFO_STREAM("x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
             ROS_INFO_STREAM("-----------");
         }
-        
-        x_hat_kmin1_plus = x_hat_k_plus;
-        P_kmin1_plus = P_k_plus;
-        t_last_update = t_update;
-        last_ego_rbt_vel = ego_rbt_vels[ego_rbt_vels.size() - 1];
-        last_ego_rbt_acc = ego_rbt_accs[ego_rbt_accs.size() - 1];
 
         return;
     }    

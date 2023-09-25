@@ -181,6 +181,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
             raw_gaps = finder->gapDetection(msg, final_goal_rbt);
             
+            if (cfg.debug.raw_gaps_debug_log) ROS_INFO_STREAM("RAW GAP ASSOCIATING");    
             raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
             raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
             gapassociator->assignModels(raw_association, raw_distMatrix, 
@@ -263,9 +264,9 @@ namespace dynamic_gap
         
         // double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associated_observed_gaps.size(); i++) {
-            //std::cout << "update gap model: " << i << std::endl;
+            if (print) ROS_INFO_STREAM("update gap model " << i << " of " << 2*associated_observed_gaps.size());
             update_model(i, associated_observed_gaps, ego_rbt_vels_copied, ego_rbt_accs_copied, t_kf_update, print);
-            //std::cout << "" << std::endl;
+            if (print) ROS_INFO_STREAM("");
 		}
 
         //ROS_INFO_STREAM("update_models time elapsed: " << ros::WallTime::now().toSec() - start_time);
@@ -299,7 +300,8 @@ namespace dynamic_gap
                                                 agent_vels,
                                                 t_kf_update);
             } catch (...) {
-                ROS_FATAL_STREAM("kf_update loop fails");
+                ROS_INFO_STREAM("kf_update_loop fails");
+                ROS_FATAL_STREAM("kf_update_loop fails");
             }
         } else {
             //std::cout << "entering right model update" << std::endl;
@@ -310,7 +312,8 @@ namespace dynamic_gap
                                                 agent_vels,
                                                 t_kf_update);
             } catch (...) {
-                ROS_FATAL_STREAM("kf_update loop fails");
+                ROS_INFO_STREAM("kf_update_loop fails");
+                ROS_FATAL_STREAM("kf_update_loop fails");
             }
         }
     }
@@ -1063,7 +1066,7 @@ namespace dynamic_gap
                                  std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                  bool print) {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
-        // ROS_INFO_STREAM("running getFutureScans");
+        if (print) ROS_INFO_STREAM("running getFutureScans");
         sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         dynamic_laser_scan.header = stored_scan.header;
@@ -1117,8 +1120,6 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-
-        /*
         double getPlan_start_time = ros::WallTime::now().toSec();
 
         double start_time = ros::WallTime::now().toSec();      
@@ -1136,7 +1137,7 @@ namespace dynamic_gap
 
         start_time = ros::WallTime::now().toSec();
         try {
-            getFutureScans(agent_odoms, agent_vels, false);
+            getFutureScans(agent_odoms, agent_vels, true);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }
@@ -1201,8 +1202,7 @@ namespace dynamic_gap
         
         if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
         
-        */
-        geometry_msgs::PoseArray final_traj;
+        // geometry_msgs::PoseArray final_traj;
 
         return final_traj;
     }

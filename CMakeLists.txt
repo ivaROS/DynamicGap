@@ -16,11 +16,13 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
   dynamic_reconfigure
-  # egocircle
+  egocircle
   # geometry_msgs
   # nav_msgs
+  nav_configs
   roscpp
   rospy
+  modify_stdr_scan
   # std_msgs
   # benchmarking_tools
   # pips_trajectory_msgs

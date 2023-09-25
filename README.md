@@ -5,3 +5,7 @@
 - move_base_virtual?
 
 - egocircle
+- stdr_simulator
+
+### TODOs
+- Make sure all nodes die correctly

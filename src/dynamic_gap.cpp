@@ -49,7 +49,8 @@ namespace dynamic_gap
         planner.initialize(pnh);
         std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
 
-        laser_sub = pnh.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner);
+        // robot_name + "/mod_laser_0"
+        laser_sub = pnh.subscribe("/point_scan", 5, &Planner::laserScanCB, &planner);
         
         // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
@@ -79,7 +80,6 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmd_vel)
     {
-        /*
         if (!planner.initialized())
         {
             ros::NodeHandle pnh("~/" + planner_name);
@@ -92,8 +92,8 @@ namespace dynamic_gap
         cmd_vel = planner.ctrlGeneration(final_traj);
 
         return planner.recordAndCheckVel(cmd_vel);
-        */
-        return 1;
+        
+        // return 1;
     }
 
     void DynamicGapPlanner::reset()
