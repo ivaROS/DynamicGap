@@ -27,6 +27,13 @@ Navigate to your ROS workspace and build:
 
 ``` catkin build ```
 
+### Running
+To run experiments, you can run
+
+``` rosrun nav_scripts stdr_master.py```
+
+And you can further modify experiments within `stdr_master.py`, including what planners to use, how many experiments, what maps, what obstacles, etc.
+
 ### TODOs for Max
 - Make sure all nodes die correctly
 - add flag for static/dynamic to toggle propagation
