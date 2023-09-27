@@ -36,7 +36,7 @@ namespace dynamic_gap {
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
-            double indivGapFindCrossingPoint(dynamic_gap::Gap&, Eigen::Vector2f&, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
+            double indivGapFindCrossingPoint(dynamic_gap::Gap&, Eigen::Vector2f&, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
             std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
@@ -58,9 +58,9 @@ namespace dynamic_gap {
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
             bool checkGoalVisibility(geometry_msgs::PoseStamped, float theta_r, float theta_l, float rdist, float ldist, sensor_msgs::LaserScan const scan);
             bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx, float lidx, float ridx);
-            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
-            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
-            void setGapGoalTimeBased(dynamic_gap::cart_model*, dynamic_gap::cart_model*, dynamic_gap::Gap&,  geometry_msgs::PoseStamped);
+            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
+            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
+            void setGapGoalTimeBased(dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*, dynamic_gap::Gap&,  geometry_msgs::PoseStamped);
     };
 }
 

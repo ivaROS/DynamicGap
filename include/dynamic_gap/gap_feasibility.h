@@ -25,8 +25,8 @@ namespace dynamic_gap {
 
 
             bool indivGapFeasibilityCheck(dynamic_gap::Gap& gap);
-            double gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
-            double indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model*, dynamic_gap::cart_model*);
+            double gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
+            double indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_);
             void generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 
                                                                 double terminal_beta_right, double terminal_reciprocal_range_right);
@@ -37,7 +37,7 @@ namespace dynamic_gap {
             boost::mutex egolock;
             double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
             double atanThetaWrap(double theta);
-            double generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model);
+            double generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::rot_frame_kf* left_model, dynamic_gap::rot_frame_kf* right_model);
 
     };
 }

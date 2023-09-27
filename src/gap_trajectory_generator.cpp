@@ -1,6 +1,6 @@
 #include <dynamic_gap/gap_trajectory_generator.h>
 
-namespace dynamic_gap{
+namespace dynamic_gap {
 
     void GapTrajGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A) {
         // ROS_INFO_STREAM("initializing solver");

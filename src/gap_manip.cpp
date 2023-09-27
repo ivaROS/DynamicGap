@@ -590,7 +590,7 @@ namespace dynamic_gap {
         int near_idx, far_idx;
         float near_dist, far_dist;
         float near_theta, far_theta;
-        dynamic_gap::cart_model * near_model;
+        dynamic_gap::rot_frame_kf * near_model;
 
         if (right) {
             near_idx = ridx;

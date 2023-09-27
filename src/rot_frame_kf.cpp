@@ -9,7 +9,7 @@
 // #include <sensor_msgs/Imu.h>
 // #include <tf2_ros/buffer.h>
 // #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <dynamic_gap/cart_model.h>
+#include <dynamic_gap/estimation/rot_frame_kf.h>
 // #include <Eigen/Core>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <limits>
@@ -19,7 +19,7 @@
 // namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
-    cart_model::cart_model(std::string _side, int _index, double init_r, double init_beta, 
+    rot_frame_kf::rot_frame_kf(std::string _side, int _index, double init_r, double init_beta, 
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
@@ -28,7 +28,7 @@ namespace dynamic_gap {
         initialize(init_r, init_beta, t_update, last_ego_rbt_vel, last_ego_rbt_acc);
     }
 
-    void cart_model::initialize(double init_r, double init_beta,
+    void rot_frame_kf::initialize(double init_r, double init_beta,
                                 const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                                 const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
@@ -101,7 +101,7 @@ namespace dynamic_gap {
         plot = true;
     }
 
-    void cart_model::processEgoRobotVelsAndAccs(const ros::Time & t_update)
+    void rot_frame_kf::processEgoRobotVelsAndAccs(const ros::Time & t_update)
     {
         /*
         // Printing original dt values from intermediate odom measurements
@@ -159,7 +159,7 @@ namespace dynamic_gap {
         }
     }
 
-    void cart_model::freeze_robot_vel() {
+    void rot_frame_kf::freeze_robot_vel() {
         Eigen::Vector4d cartesian_state = get_cartesian_state();
         
         // fixing position (otherwise can get bugs)
@@ -174,11 +174,11 @@ namespace dynamic_gap {
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
     }
 
-    void cart_model::set_rewind_state() {
+    void rot_frame_kf::set_rewind_state() {
         rewind_x = frozen_x;
     }
 
-    void cart_model::rewind_propagate(double rew_dt) {
+    void rot_frame_kf::rewind_propagate(double rew_dt) {
         Eigen::Matrix<double, 4, 1> new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -198,7 +198,7 @@ namespace dynamic_gap {
         rewind_x = new_rewind_x; 
     }
 
-    void cart_model::frozen_state_propagate(double froz_dt) {
+    void rot_frame_kf::frozen_state_propagate(double froz_dt) {
         Eigen::Matrix<double, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -219,7 +219,7 @@ namespace dynamic_gap {
     }
     
 
-    Eigen::Matrix<double, 4, 1> cart_model::integrate() 
+    Eigen::Matrix<double, 4, 1> rot_frame_kf::integrate() 
     {
         // ROS_INFO_STREAM("INTEGRATING");
         Eigen::Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
@@ -259,7 +259,7 @@ namespace dynamic_gap {
         return x_intermediate;
     }
 
-    void cart_model::linearize(int idx) 
+    void rot_frame_kf::linearize(int idx) 
     {
         double dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();    
         double ang_vel_ego = ego_rbt_vels[idx].twist.angular.z;
@@ -272,7 +272,7 @@ namespace dynamic_gap {
         STM = (A*dt).exp();
     }
 
-    void cart_model::discretizeQ(int idx) 
+    void rot_frame_kf::discretizeQ(int idx) 
     {
 
         // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
@@ -285,7 +285,7 @@ namespace dynamic_gap {
         dQ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
-    void cart_model::kf_update_loop(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
+    void rot_frame_kf::update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                     bool _print,
@@ -434,7 +434,7 @@ namespace dynamic_gap {
         return;
     }    
 
-    void cart_model::plot_models() {
+    void rot_frame_kf::plot_models() {
         /*
         if (plot && !plotted && print) {
             if (life_time <= life_time_threshold) {
@@ -463,7 +463,7 @@ namespace dynamic_gap {
     }
 
     /*
-    void cart_model::plot_states() {
+    void rot_frame_kf::plot_states() {
         //std::cout << "in plot states" << std::endl;
         int n = previous_states.size();
         std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), 
@@ -557,7 +557,7 @@ namespace dynamic_gap {
     }
     */
 
-    Eigen::Vector4d cart_model::update_ground_truth_cartesian_state() {
+    Eigen::Vector4d rot_frame_kf::update_ground_truth_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4d return_x = x_ground_truth;
@@ -630,7 +630,7 @@ namespace dynamic_gap {
         return return_x;
     }
 
-    Eigen::Vector4d cart_model::get_cartesian_state() {
+    Eigen::Vector4d rot_frame_kf::get_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4d return_x = (perfect) ? x_ground_truth : x_hat_k_plus;
@@ -647,28 +647,28 @@ namespace dynamic_gap {
         return return_x;
     }
 
-    Eigen::Vector4d cart_model::get_GT_cartesian_state() {
+    Eigen::Vector4d rot_frame_kf::get_GT_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
 
         return x_ground_truth;
     }
 
-    Eigen::Vector4d cart_model::get_frozen_cartesian_state() {
+    Eigen::Vector4d rot_frame_kf::get_frozen_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4d return_x = frozen_x;
         return return_x;
     }
 
-    Eigen::Vector4d cart_model::get_rewind_cartesian_state() {
+    Eigen::Vector4d rot_frame_kf::get_rewind_cartesian_state() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4d return_x = rewind_x;
         return return_x;
     }
 
-    Eigen::Vector4d cart_model::get_modified_polar_state() {
+    Eigen::Vector4d rot_frame_kf::get_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4d mp_state;
@@ -680,7 +680,7 @@ namespace dynamic_gap {
         return mp_state;
     }
 
-    Eigen::Vector4d cart_model::get_rewind_modified_polar_state() {
+    Eigen::Vector4d rot_frame_kf::get_rewind_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4d rewind_mp_state;
@@ -693,7 +693,7 @@ namespace dynamic_gap {
     }
    
 
-    Eigen::Vector4d cart_model::get_frozen_modified_polar_state() {
+    Eigen::Vector4d rot_frame_kf::get_frozen_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4d frozen_mp_state;
@@ -705,23 +705,23 @@ namespace dynamic_gap {
         return frozen_mp_state;
     }
 
-    geometry_msgs::TwistStamped cart_model::get_v_ego() {
+    geometry_msgs::TwistStamped rot_frame_kf::get_v_ego() {
         return last_ego_rbt_vel;
     }
 
-    void cart_model::set_side(std::string _side) {
+    void rot_frame_kf::set_side(std::string _side) {
         side = _side;
     }
     
-    std::string cart_model::get_side() {
+    std::string rot_frame_kf::get_side() {
         return side;
     }
 
-    int cart_model::get_index() {
+    int rot_frame_kf::get_index() {
         return index;
     }
 
-    Eigen::Vector2d cart_model::get_x_tilde() {
+    Eigen::Vector2d rot_frame_kf::get_x_tilde() {
         return x_tilde;
     }
 }

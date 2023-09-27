@@ -23,7 +23,7 @@ namespace dynamic_gap {
         tf2::doTransform(lg, local_goal, odom2rbt);
     }
 
-    bool compareModelBearings(dynamic_gap::cart_model* model_one, dynamic_gap::cart_model* model_two) {
+    bool compareModelBearings(dynamic_gap::rot_frame_kf* model_one, dynamic_gap::rot_frame_kf* model_two) {
         Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
         Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
@@ -250,7 +250,7 @@ namespace dynamic_gap {
         // Should be no racing condition
         double start_time = ros::WallTime::now().toSec();
 
-        std::vector<dynamic_gap::cart_model *> raw_models;
+        std::vector<dynamic_gap::rot_frame_kf *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.right_model);
             raw_models.push_back(gap.left_model);

@@ -90,7 +90,7 @@ add_library(${PROJECT_NAME}
   src/trajectory_controller.cpp
   src/gap_associator.cpp
   # src/mp_model.cpp
-  src/cart_model.cpp
+  src/rot_frame_kf.cpp
   src/gap_feasibility.cpp
   ) 
 

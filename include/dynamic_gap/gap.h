@@ -9,7 +9,7 @@
 // #include <std_msgs/ColorRGBA.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <dynamic_gap/cart_model.h>
+#include <dynamic_gap/estimation/rot_frame_kf.h>
 
 namespace dynamic_gap
 {
@@ -364,8 +364,8 @@ namespace dynamic_gap
                 bool goalwithin = false;
             } terminal_goal;
 
-            cart_model *right_model;
-            cart_model *left_model;
+            rot_frame_kf *right_model;
+            rot_frame_kf *left_model;
             int _index;
             std::string category;
             Eigen::Vector2f crossing_pt;

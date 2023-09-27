@@ -294,7 +294,7 @@ namespace dynamic_gap
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
             try {
-                g.right_model->kf_update_loop(laserscan_measurement, 
+                g.right_model->update(laserscan_measurement, 
                                                 ego_rbt_vels_copied, ego_rbt_accs_copied, 
                                                 print, agent_odoms, 
                                                 agent_vels,
@@ -306,7 +306,7 @@ namespace dynamic_gap
         } else {
             //std::cout << "entering right model update" << std::endl;
             try {
-                g.left_model->kf_update_loop(laserscan_measurement, 
+                g.left_model->update(laserscan_measurement, 
                                                 ego_rbt_vels_copied, ego_rbt_accs_copied, 
                                                 print, agent_odoms, 
                                                 agent_vels,
@@ -826,11 +826,11 @@ namespace dynamic_gap
         return std::min(closest_pose, int(curr.poses.size() - 1));
     }
 
-    void Planner::setCurrentRightModel(dynamic_gap::cart_model * _right_model) {
+    void Planner::setCurrentRightModel(dynamic_gap::rot_frame_kf * _right_model) {
         curr_right_model = _right_model;
     }
 
-    void Planner::setCurrentLeftModel(dynamic_gap::cart_model * _left_model) {
+    void Planner::setCurrentLeftModel(dynamic_gap::rot_frame_kf * _left_model) {
         curr_left_model = _left_model;
     }
 

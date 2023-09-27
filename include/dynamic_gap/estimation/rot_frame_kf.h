@@ -13,35 +13,26 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <dynamic_gap/estimation/estimator.h>
+
 // #include <random>
 
 
 // using namespace Eigen;
 
 namespace dynamic_gap {
-    class cart_model {
+    class rot_frame_kf : public Estimator {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
-
-            Eigen::Matrix<double, 2, 4> H; // observation matrix
-            Eigen::Matrix<double, 4, 2> H_transpose;
-            Eigen::Matrix2d R_k; // measurement noise matrix
-            Eigen::Matrix4d Q_k, Q_1, Q_2, Q_3; // covariance noise matrix
-            Eigen::Matrix4d dQ; // discretized covariance noise matrix
+            
+            Eigen::Matrix4d Q_1, Q_2, Q_3; // covariance noise matrix
             double R_scalar, Q_scalar;
 
             Eigen::Matrix2d tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4d x_hat_kmin1_plus, x_hat_k_minus, x_hat_k_plus, 
-                                 new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
-            Eigen::Matrix4d P_kmin1_plus, P_k_minus, P_k_plus, P_intermediate, new_P; // covariance matrix
-            Eigen::Matrix<double, 4, 2> G_k; // kalman gain
-            Eigen::Vector2d x_tilde, innovation, residual;
+            Eigen::Vector4d new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
+            Eigen::Matrix4d P_intermediate, new_P; // covariance matrix
 
-            // double dt, inter_dt;
-            // double alpha_Q, alpha_R;
-
-            Eigen::Matrix4d A, STM;
             std::string side;
             int index;
 
@@ -72,15 +63,13 @@ namespace dynamic_gap {
 
         public:
 
-            cart_model(std::string, int, double, double,const ros::Time & t_update,
+            rot_frame_kf(std::string, int, double, double,const ros::Time & t_update,
                         const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                         const geometry_msgs::TwistStamped & last_ego_rbt_acc);
-            ~cart_model() {};
 
             void initialize(double, double, const ros::Time & t_update,
                             const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc);
-
 
             Eigen::Vector4d update_ground_truth_cartesian_state();
             Eigen::Vector4d get_cartesian_state();
@@ -104,7 +93,7 @@ namespace dynamic_gap {
             void freeze_robot_vel();
             void set_rewind_state();
 
-            void kf_update_loop(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
+            void update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                 bool print,

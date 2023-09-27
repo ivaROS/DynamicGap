@@ -10,8 +10,8 @@ namespace dynamic_gap {
     }
 
     bool GapFeasibilityChecker::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) {
-        dynamic_gap::cart_model* left_model = gap.left_model;
-        dynamic_gap::cart_model* right_model = gap.right_model;
+        dynamic_gap::rot_frame_kf* left_model = gap.left_model;
+        dynamic_gap::rot_frame_kf* right_model = gap.right_model;
 
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
@@ -65,7 +65,7 @@ namespace dynamic_gap {
     }
     
 
-    double GapFeasibilityChecker::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
+    double GapFeasibilityChecker::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::rot_frame_kf* left_model, dynamic_gap::rot_frame_kf* right_model) {
 
         Eigen::Vector2f crossing_pt(0.0, 0.0);
         double start_time = ros::Time::now().toSec();
@@ -120,7 +120,7 @@ namespace dynamic_gap {
         }
     }
  
-    double GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
+    double GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::rot_frame_kf* left_model, dynamic_gap::rot_frame_kf* right_model) {
         //std::cout << "determining crossing point" << std::endl;
         auto egocircle = *msg.get();
 
@@ -295,7 +295,7 @@ namespace dynamic_gap {
         return cfg_->traj.integrate_maxt;
     }
 
-    double GapFeasibilityChecker::generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::cart_model* left_model, dynamic_gap::cart_model* right_model) {
+    double GapFeasibilityChecker::generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::rot_frame_kf* left_model, dynamic_gap::rot_frame_kf* right_model) {
         
         Eigen::Matrix<double, 4, 1> left_rewind_mp_state = left_model->get_rewind_modified_polar_state();        
         Eigen::Matrix<double, 4, 1> right_rewind_mp_state = right_model->get_rewind_modified_polar_state();
