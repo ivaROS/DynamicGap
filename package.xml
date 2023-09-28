@@ -12,7 +12,7 @@
   
   <depend>base_local_planner</depend>
   <depend>dynamic_reconfigure</depend>
-  <depend>egocircle</depend>
+  <!-- <depend>egocircle</depend> -->
   <depend>nav_configs</depend>
   <!-- <depend>geometry_msgs</depend> -->
   <!-- <depend>nav_msgs</depend> -->

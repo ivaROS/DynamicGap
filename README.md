@@ -15,7 +15,7 @@ We also need a custom package to allow for detection of other agents in the simu
 
 ``` git clone https://github.com/max-assel/modify_stdr_scan.git```
 
-Within the planner, we use the OsqpEigen library to generate trajectories. You can follow the installation instructions [here](https://github.com/robotology/osqp-eigen).
+Within the planner, we use the OsqpEigen library to generate trajectories. You can follow the installation instructions [here](https://github.com/robotology/osqp-eigen). This library depends on [osqp](https://osqp.org/), so you will need to install that as well.
 
 Lastly, we use the `navigation_test` repository to set up and queue experiments:
 

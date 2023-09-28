@@ -16,7 +16,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
   dynamic_reconfigure
-  egocircle
+  # egocircle
   # geometry_msgs
   # nav_msgs
   nav_configs
