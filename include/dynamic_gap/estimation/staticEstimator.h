@@ -23,7 +23,7 @@
 // using namespace Eigen;
 
 namespace dynamic_gap {
-    class rot_frame_kf : public Estimator {
+    class staticEstimator : public Estimator {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
             
@@ -65,7 +65,7 @@ namespace dynamic_gap {
 
         public:
 
-            rot_frame_kf(std::string, int, double, double,const ros::Time & t_update,
+            staticEstimator(std::string, int, double, double,const ros::Time & t_update,
                         const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                         const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
@@ -76,7 +76,7 @@ namespace dynamic_gap {
             Eigen::Vector4d update_ground_truth_cartesian_state();
             Eigen::Vector4d get_cartesian_state();
             Eigen::Vector4d get_GT_cartesian_state();
-            
+
             Eigen::Vector4d get_frozen_cartesian_state();
             Eigen::Vector4d get_rewind_cartesian_state();
             Eigen::Vector4d get_modified_polar_state();
@@ -102,7 +102,6 @@ namespace dynamic_gap {
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
                                 const ros::Time & t_kf_update);
-
             int get_index();
             void inflate_model(float x, float y);
 

@@ -250,7 +250,7 @@ namespace dynamic_gap {
         // Should be no racing condition
         double start_time = ros::WallTime::now().toSec();
 
-        std::vector<dynamic_gap::rot_frame_kf *> raw_models;
+        std::vector<dynamic_gap::Estimator *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.right_model);
             raw_models.push_back(gap.left_model);
@@ -258,14 +258,7 @@ namespace dynamic_gap {
         
         
         // std::cout << "starting setting sides and freezing velocities" << std::endl;
-        int count = 0;
         for (auto & model : raw_models) {
-            if (count % 2 == 0) {
-                model->set_side("left");
-            } else {
-                model->set_side("right");
-            }
-            count++;
             model->freeze_robot_vel();
         }
         

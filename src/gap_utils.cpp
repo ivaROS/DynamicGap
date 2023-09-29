@@ -335,14 +335,14 @@ namespace dynamic_gap {
 
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
 
-    bool compareModelBearingValues(dynamic_gap::rot_frame_kf* model_one, dynamic_gap::rot_frame_kf* model_two) {
+    bool compareModelBearingValues(dynamic_gap::Estimator* model_one, dynamic_gap::Estimator* model_two) {
         Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
         Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
 
-    bool checkModelSimilarity(dynamic_gap::rot_frame_kf * curr_model, dynamic_gap::rot_frame_kf * prev_model) {
+    bool checkModelSimilarity(dynamic_gap::Estimator * curr_model, dynamic_gap::Estimator * prev_model) {
         double eps = 0.00001;
         
         Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
@@ -364,8 +364,8 @@ namespace dynamic_gap {
         return (dot_prod > 0.5 && curr_vel.norm() > 0.1 && std::abs(norm_ratio - 1.0) < 0.1);
     }
 
-    void createAgentFromModels(dynamic_gap::rot_frame_kf * curr_model,    
-                               dynamic_gap::rot_frame_kf * prev_model,
+    void createAgentFromModels(dynamic_gap::Estimator * curr_model,    
+                               dynamic_gap::Estimator * prev_model,
                                std::vector<Eigen::Matrix<double, 4, 1> > & agents,
                                bool print) {
         Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
@@ -376,8 +376,8 @@ namespace dynamic_gap {
         agents.push_back(new_agent);                                  
     }
 
-    void clearAgentFromStaticScan(dynamic_gap::rot_frame_kf * curr_model, 
-                               dynamic_gap::rot_frame_kf * prev_model,
+    void clearAgentFromStaticScan(dynamic_gap::Estimator * curr_model, 
+                               dynamic_gap::Estimator * prev_model,
                                sensor_msgs::LaserScan & curr_scan) {
 
         int half_num_scan = curr_scan.ranges.size() / 2;
@@ -430,7 +430,7 @@ namespace dynamic_gap {
             return curr_scan;
         }
 
-        std::vector<dynamic_gap::rot_frame_kf *> obs_models;
+        std::vector<dynamic_gap::Estimator *> obs_models;
         for (auto gap : observed_gaps) {
             obs_models.push_back(gap.left_model);
             obs_models.push_back(gap.right_model);
@@ -443,8 +443,8 @@ namespace dynamic_gap {
         sort(obs_models.begin(), obs_models.end(), compareModelBearingValues);
 
         // iterate through models
-        dynamic_gap::rot_frame_kf * prev_model = obs_models[0];
-        dynamic_gap::rot_frame_kf * curr_model = obs_models[1];
+        dynamic_gap::Estimator * prev_model = obs_models[0];
+        dynamic_gap::Estimator * curr_model = obs_models[1];
 
         std::vector<Eigen::Matrix<double, 4, 1> > agents;
 

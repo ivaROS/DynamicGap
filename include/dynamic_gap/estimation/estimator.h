@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ros/ros.h>
 
 #include <geometry_msgs/Pose.h>
@@ -32,6 +34,23 @@ namespace dynamic_gap
             virtual Eigen::Matrix<double, 4, 1> integrate();
 
         public:
+            virtual Eigen::Vector4d get_cartesian_state();
+            virtual Eigen::Vector4d get_GT_cartesian_state();
+            virtual geometry_msgs::TwistStamped get_v_ego();
+            virtual void freeze_robot_vel();
+            virtual Eigen::Vector4d get_frozen_cartesian_state();
+            virtual Eigen::Vector4d get_frozen_modified_polar_state();
+            virtual Eigen::Vector4d get_rewind_modified_polar_state();
+            virtual void set_rewind_state();
+
+
+            virtual void frozen_state_propagate(double dt);
+            virtual void rewind_propagate(double dt);
+
+
+            virtual Eigen::Vector2d get_x_tilde();
+            virtual int get_index();
+
             virtual void update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 

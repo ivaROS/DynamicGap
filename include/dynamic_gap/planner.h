@@ -178,8 +178,8 @@ namespace dynamic_gap
         int * model_idx;
         double prev_traj_switch_time;
 
-        dynamic_gap::rot_frame_kf * curr_left_model;
-        dynamic_gap::rot_frame_kf * curr_right_model;
+        dynamic_gap::Estimator * curr_left_model;
+        dynamic_gap::Estimator * curr_right_model;
         
         double curr_peak_velocity_x, curr_peak_velocity_y;
 
@@ -362,8 +362,8 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
         std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
 
-        void setCurrentRightModel(dynamic_gap::rot_frame_kf * _right_model);
-        void setCurrentLeftModel(dynamic_gap::rot_frame_kf * _left_model);
+        void setCurrentRightModel(dynamic_gap::Estimator * _right_model);
+        void setCurrentLeftModel(dynamic_gap::Estimator * _left_model);
         void setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y);
 
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);

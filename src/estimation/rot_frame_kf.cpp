@@ -709,14 +709,6 @@ namespace dynamic_gap {
         return last_ego_rbt_vel;
     }
 
-    void rot_frame_kf::set_side(std::string _side) {
-        side = _side;
-    }
-    
-    std::string rot_frame_kf::get_side() {
-        return side;
-    }
-
     int rot_frame_kf::get_index() {
         return index;
     }

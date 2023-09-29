@@ -826,11 +826,11 @@ namespace dynamic_gap
         return std::min(closest_pose, int(curr.poses.size() - 1));
     }
 
-    void Planner::setCurrentRightModel(dynamic_gap::rot_frame_kf * _right_model) {
+    void Planner::setCurrentRightModel(dynamic_gap::Estimator * _right_model) {
         curr_right_model = _right_model;
     }
 
-    void Planner::setCurrentLeftModel(dynamic_gap::rot_frame_kf * _left_model) {
+    void Planner::setCurrentLeftModel(dynamic_gap::Estimator * _left_model) {
         curr_left_model = _left_model;
     }
 
