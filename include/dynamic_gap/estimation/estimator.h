@@ -28,28 +28,29 @@ namespace dynamic_gap
             Eigen::Vector2d x_tilde, innovation, residual;
 
             Eigen::Matrix4d A, STM;
+            
+            virtual void linearize(int idx) = 0;
+            virtual void discretizeQ(int idx) = 0;
+            virtual Eigen::Matrix<double, 4, 1> integrate() = 0;
 
-            virtual void linearize(int idx);
-            virtual void discretizeQ(int idx);
-            virtual Eigen::Matrix<double, 4, 1> integrate();
 
         public:
-            virtual Eigen::Vector4d get_cartesian_state();
-            virtual Eigen::Vector4d get_GT_cartesian_state();
-            virtual geometry_msgs::TwistStamped get_v_ego();
-            virtual void freeze_robot_vel();
-            virtual Eigen::Vector4d get_frozen_cartesian_state();
-            virtual Eigen::Vector4d get_frozen_modified_polar_state();
-            virtual Eigen::Vector4d get_rewind_modified_polar_state();
-            virtual void set_rewind_state();
+
+            virtual Eigen::Vector4d get_cartesian_state() = 0;
+            virtual Eigen::Vector4d get_GT_cartesian_state() = 0;
+            virtual geometry_msgs::TwistStamped get_v_ego() = 0;
+            virtual void freeze_robot_vel() = 0;
+            virtual Eigen::Vector4d get_frozen_cartesian_state() = 0;
+            virtual Eigen::Vector4d get_frozen_modified_polar_state() = 0;
+            virtual Eigen::Vector4d get_rewind_modified_polar_state() = 0;
+            virtual void set_rewind_state() = 0;
 
 
-            virtual void frozen_state_propagate(double dt);
-            virtual void rewind_propagate(double dt);
+            virtual void frozen_state_propagate(double dt) = 0;
+            virtual void rewind_propagate(double dt) = 0;
 
-
-            virtual Eigen::Vector2d get_x_tilde();
-            virtual int get_index();
+            virtual Eigen::Vector2d get_x_tilde() = 0;
+            virtual int get_index() = 0;
 
             virtual void update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
@@ -57,6 +58,6 @@ namespace dynamic_gap
                                 bool print,
                                 std::vector<geometry_msgs::Pose> _agent_odoms,
                                 std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                const ros::Time & t_kf_update);
+                                const ros::Time & t_kf_update) = 0;
     };
 }
