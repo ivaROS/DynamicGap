@@ -20,7 +20,7 @@ namespace dynamic_gap {
             ~GapFeasibilityChecker(){};
 
             GapFeasibilityChecker(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            GapFeasibilityChecker& operator=(GapFeasibilityChecker & other) {cfg_ = other.cfg_;};
+            GapFeasibilityChecker& operator=(GapFeasibilityChecker & other) {cfg_ = other.cfg_; return *this; };
             GapFeasibilityChecker(const GapFeasibilityChecker &t) {cfg_ = t.cfg_;};
 
 

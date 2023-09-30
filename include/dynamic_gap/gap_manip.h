@@ -21,7 +21,7 @@ namespace dynamic_gap {
             ~GapManipulator(){};
 
             GapManipulator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            GapManipulator& operator=(GapManipulator & other) {cfg_ = other.cfg_;};
+            GapManipulator& operator=(GapManipulator & other) {cfg_ = other.cfg_; return *this; };
             GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);

@@ -547,7 +547,7 @@ namespace dynamic_gap
                 std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple;
                 
                 // TRAJECTORY GENERATED IN RBT FRAME
-                bool run_g2g = (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+                bool run_g2g = true; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
                 if (run_g2g) {
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
                     g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, run_g2g);
@@ -1126,6 +1126,11 @@ namespace dynamic_gap
         
         bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
+
+        std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
+        int gaps_size = curr_observed_gaps.size();
+
+        /*
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         try { 
             feasible_gap_set = gapSetFeasibilityCheck(curr_exec_gap_assoc, curr_exec_gap_feas);
@@ -1154,18 +1159,19 @@ namespace dynamic_gap
         if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         start_time = ros::WallTime::now().toSec();
+        */
+
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
-
         std::vector<std::vector<double>> score_set; 
         try {
-            score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
+            score_set = initialTrajGen(curr_observed_gaps, traj_set, time_set);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in initialTrajGen");
         }
         if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
+        // visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
 
         start_time = ros::WallTime::now().toSec();
         int traj_idx;
@@ -1182,7 +1188,7 @@ namespace dynamic_gap
         if (traj_idx >= 0) {
             chosen_traj = traj_set[traj_idx];
             chosen_time_arr = time_set[traj_idx];
-            chosen_gap = manip_gap_set[traj_idx];
+            chosen_gap = curr_observed_gaps[traj_idx];
         } else {
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
@@ -1194,7 +1200,7 @@ namespace dynamic_gap
         
         
         try {
-            final_traj = compareToOldTraj(chosen_traj, chosen_gap, feasible_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
+            final_traj = compareToOldTraj(chosen_traj, chosen_gap, curr_observed_gaps, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }

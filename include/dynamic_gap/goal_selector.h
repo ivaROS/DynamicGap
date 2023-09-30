@@ -27,7 +27,7 @@ namespace dynamic_gap
             ~GoalSelector() {};
 
             GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_;};
+            GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
             GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
             // Map Frame

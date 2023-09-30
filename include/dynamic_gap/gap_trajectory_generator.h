@@ -35,7 +35,7 @@ namespace dynamic_gap {
             ~TrajectoryGenerator(){};
 
             TrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            TrajectoryGenerator& operator=(TrajectoryGenerator & other) {cfg_ = other.cfg_;};
+            TrajectoryGenerator& operator=(TrajectoryGenerator & other) {cfg_ = other.cfg_; return *this;};
             TrajectoryGenerator(const TrajectoryGenerator &t) {cfg_ = t.cfg_;};
 
             virtual std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool) = 0;

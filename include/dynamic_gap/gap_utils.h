@@ -19,7 +19,7 @@ namespace dynamic_gap {
 
         GapUtils(const DynamicGapConfig& cfg);
 
-        GapUtils& operator=(GapUtils other) {cfg_ = other.cfg_;};
+        GapUtils& operator=(GapUtils other) {cfg_ = other.cfg_; return *this; };
 
         GapUtils(const GapUtils &t) {cfg_ = t.cfg_;};
 

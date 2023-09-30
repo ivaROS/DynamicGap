@@ -30,7 +30,7 @@ namespace dynamic_gap{
         ~TrajectoryArbiter(){};
 
         TrajectoryArbiter(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-        TrajectoryArbiter& operator=(TrajectoryArbiter other) {cfg_ = other.cfg_;};
+        TrajectoryArbiter& operator=(TrajectoryArbiter other) {cfg_ = other.cfg_; return *this;};
         TrajectoryArbiter(const TrajectoryArbiter &t) {cfg_ = t.cfg_;};
         
         void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
