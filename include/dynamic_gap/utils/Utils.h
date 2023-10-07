@@ -8,15 +8,16 @@
 #include <boost/shared_ptr.hpp>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 
-namespace dynamic_gap {
-    class GapUtils 
+namespace dynamic_gap 
+{
+    class Utils 
     {
         public: 
-            GapUtils(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
+            Utils(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
-            GapUtils& operator=(GapUtils other) {cfg_ = other.cfg_; return *this; }
+            Utils& operator=(Utils other) {cfg_ = other.cfg_; return *this; }
 
-            GapUtils(const GapUtils &t) {cfg_ = t.cfg_;}
+            Utils(const Utils &t) {cfg_ = t.cfg_;}
 
             std::vector<Eigen::Matrix<double, 4, 1> > getCurrAgents();
 
@@ -27,7 +28,6 @@ namespace dynamic_gap {
         private:
             const DynamicGapConfig* cfg_;
             std::vector<Eigen::Matrix<double, 4, 1> > curr_agents;
-
     };
 
 

@@ -24,7 +24,7 @@
 
 #include <boost/numeric/odeint.hpp>
 
-#include <dynamic_gap/planner.h>
+#include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/Gap.h>
 // #include <dynamic_gap/helper.h>
 #include <dynamic_gap/dgConfig.h>

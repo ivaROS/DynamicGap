@@ -91,12 +91,12 @@ add_library(${PROJECT_NAME}
   src/trajectory_generation/GapManipulator.cpp
   src/trajectory_scoring/TrajectoryScorer.cpp
   src/trajectory_tracking/TrajectoryController.cpp
-  src/utils/gap_utils.cpp
+  src/utils/Utils.cpp
   src/visualization/GapVisualizer.cpp
   src/visualization/GoalVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
-  src/planner.cpp
-  src/dynamic_gap.cpp
+  src/Planner.cpp
+  src/DynamicGapPlanner.cpp
   ) 
 
 target_link_libraries(${PROJECT_NAME}

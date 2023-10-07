@@ -1,9 +1,9 @@
-#include <dynamic_gap/utils/gap_utils.h>
+#include <dynamic_gap/utils/Utils.h>
 
 namespace dynamic_gap {
-    // GapUtils::GapUtils() {}
+    // Utils::Utils() {}
 
-    // GapUtils::~GapUtils() {}
+    // Utils::~Utils() {}
 
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
 
@@ -93,7 +93,7 @@ namespace dynamic_gap {
         }
     }
 
-    sensor_msgs::LaserScan GapUtils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 
+    sensor_msgs::LaserScan Utils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 
                                                                 boost::shared_ptr<sensor_msgs::LaserScan const> msg,
                                                                 bool print) {
 
@@ -151,7 +151,7 @@ namespace dynamic_gap {
         // 
     }
 
-    std::vector<Eigen::Matrix<double, 4, 1> > GapUtils::getCurrAgents() {
+    std::vector<Eigen::Matrix<double, 4, 1> > Utils::getCurrAgents() {
         return curr_agents;
     }
 

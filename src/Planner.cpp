@@ -1,4 +1,4 @@
-#include <dynamic_gap/planner.h>
+#include <dynamic_gap/Planner.h>
 
 // #include "tf/transform_datatypes.h"
 // #include <tf/LinearMath/Matrix3x3.h>
@@ -36,7 +36,7 @@ namespace dynamic_gap
         _initialized = true;
 
         gapDetector = new dynamic_gap::GapDetector(cfg);
-        finder = new dynamic_gap::GapUtils(cfg);
+        finder = new dynamic_gap::Utils(cfg);
         gapvisualizer = new dynamic_gap::GapVisualizer(nh, cfg);
         goalselector = new dynamic_gap::GoalSelector(nh, cfg);
         trajvisualizer = new dynamic_gap::TrajectoryVisualizer(nh, cfg);
