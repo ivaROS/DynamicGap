@@ -7,8 +7,7 @@
 //
 // ********************************************************/
 
-#ifndef __dynamic_gap__DGCONFIG_H__
-#define __dynamic_gap__DGCONFIG_H__
+#pragma once
 
 #if __cplusplus >= 201103L
 #define DYNAMIC_RECONFIGURE_FINAL final
@@ -483,5 +482,3 @@ dgConfig::GroupDescription<dgConfig::DEFAULT, dgConfig> Default("Default", "", 0
 }
 
 #undef DYNAMIC_RECONFIGURE_FINAL
-
-#endif // __DGRECONFIGURATOR_H__

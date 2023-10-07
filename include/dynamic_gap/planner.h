@@ -1,7 +1,6 @@
-#include <ros/ros.h>
+#pragma once
 
-// #include <visualization_msgs/Marker.h>
-// #include <visualization_msgs/MarkerArray.h>
+#include <ros/ros.h>
 
 #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>
@@ -20,21 +19,21 @@
 #include <nav_msgs/Odometry.h>
 
 #include "dynamic_gap/TrajPlan.h"
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/estimation/gap_associator.h>
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/gap_estimation/GapAssociator.h>
 // #include <dynamic_gap/helper.h>
 // #include <dynamic_gap/trajectory_follower.h>
-#include <dynamic_gap/gap_detector.h>
-#include <dynamic_gap/gap_utils.h>
-#include <dynamic_gap/dynamicgap_config.h>
+#include <dynamic_gap/gap_detection/GapDetector.h>
+#include <dynamic_gap/utils/gap_utils.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
-#include <dynamic_gap/goal_selector.h>
-#include <dynamic_gap/trajectory_scoring.h>
+#include <dynamic_gap/goal_management/GoalSelector.h>
+#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
-#include <dynamic_gap/trajectory_controller.h>
-#include <dynamic_gap/gap_feasibility.h>
+#include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
+#include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -48,9 +47,6 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/circular_buffer.hpp>
-
-#ifndef PLANNER_H
-#define PLANNER_H
 
 namespace dynamic_gap
 {
@@ -126,8 +122,8 @@ namespace dynamic_gap
         dynamic_gap::GoalSelector *goalselector;
         dynamic_gap::TrajectoryVisualizer *trajvisualizer;
         dynamic_gap::GoalVisualizer *goalvisualizer;
-        dynamic_gap::TrajectoryArbiter *trajArbiter;
-        dynamic_gap::GapTrajGenerator *gapTrajSyn;
+        dynamic_gap::TrajectoryScorer *trajArbiter;
+        dynamic_gap::GapTrajectoryGenerator *gapTrajSyn;
         dynamic_gap::GapManipulator *gapManip;
         dynamic_gap::TrajectoryController *trajController;
         dynamic_gap::GapAssociator *gapassociator;
@@ -397,5 +393,3 @@ namespace dynamic_gap
 
     };
 }
-
-#endif

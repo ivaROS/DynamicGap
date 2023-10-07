@@ -40,8 +40,8 @@ namespace dynamic_gap
         gapvisualizer = new dynamic_gap::GapVisualizer(nh, cfg);
         goalselector = new dynamic_gap::GoalSelector(nh, cfg);
         trajvisualizer = new dynamic_gap::TrajectoryVisualizer(nh, cfg);
-        trajArbiter = new dynamic_gap::TrajectoryArbiter(nh, cfg);
-        gapTrajSyn = new dynamic_gap::GapTrajGenerator(nh, cfg);
+        trajArbiter = new dynamic_gap::TrajectoryScorer(nh, cfg);
+        gapTrajSyn = new dynamic_gap::GapTrajectoryGenerator(nh, cfg);
         goalvisualizer = new dynamic_gap::GoalVisualizer(nh, cfg);
         gapManip = new dynamic_gap::GapManipulator(nh, cfg);
         trajController = new dynamic_gap::TrajectoryController(nh, cfg);

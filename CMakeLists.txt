@@ -80,29 +80,23 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}
-  src/planner.cpp
-  src/dynamic_gap.cpp
-  src/gap_utils.cpp
-  src/dynamicgap_config.cpp
-
+  src/config/DynamicGapConfig.cpp
+  src/gap_detection/GapDetector.cpp
+  src/gap_estimation/GapAssociator.cpp
+  src/gap_estimation/StaticEstimator.cpp
+  src/gap_estimation/RotatingFrameCartesianKalmanFilter.cpp
+  src/gap_feasibility/GapFeasibilityChecker.cpp
+  src/goal_management/GoalSelector.cpp
+  src/trajectory_generation/GapTrajectoryGenerator.cpp
+  src/trajectory_generation/GapManipulator.cpp
+  src/trajectory_scoring/TrajectoryScorer.cpp
+  src/trajectory_tracking/TrajectoryController.cpp
+  src/utils/gap_utils.cpp
   src/visualization/GapVisualizer.cpp
   src/visualization/GoalVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
-
-  src/trajectory_generation/gap_trajectory_generator.cpp
-  src/trajectory_generation/GapManipulator.cpp
-
-  src/goal_selector.cpp
-  src/trajectory_scoring.cpp
-
-  src/trajectory_controller.cpp
-  src/gap_detector.cpp
-
-  src/estimation/gap_associator.cpp
-  src/estimation/staticEstimator.cpp
-  src/estimation/rot_frame_kf.cpp
-  
-  src/gap_feasibility.cpp
+  src/planner.cpp
+  src/dynamic_gap.cpp
   ) 
 
 target_link_libraries(${PROJECT_NAME}

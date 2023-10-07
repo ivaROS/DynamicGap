@@ -1,5 +1,4 @@
-#ifndef DYNAMIC_GAP_H
-#define DYNAMIC_GAP_H
+#pragma once
 
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
@@ -26,7 +25,7 @@
 #include <boost/numeric/odeint.hpp>
 
 #include <dynamic_gap/planner.h>
-#include <dynamic_gap/gap.h>
+#include <dynamic_gap/utils/Gap.h>
 // #include <dynamic_gap/helper.h>
 #include <dynamic_gap/dgConfig.h>
 
@@ -77,5 +76,3 @@ namespace dynamic_gap {
             dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
     };
 }
-
-#endif 

@@ -1,8 +1,8 @@
 #pragma once
 #include <ros/ros.h>
 #include <math.h>
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/dynamicgap_config.h>
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <map>
 #include <visualization_msgs/MarkerArray.h>
@@ -14,7 +14,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <tf2/LinearMath/Quaternion.h>
 
-#include <dynamic_gap/dynamicgap_config.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
 
 namespace dynamic_gap
 {

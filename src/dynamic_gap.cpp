@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <dynamic_gap/dynamic_gap.h>
-#include <dynamic_gap/gap.h>
+#include <dynamic_gap/utils/Gap.h>
 #include <pluginlib/class_list_macros.h>
 
 // #include <visualization_msgs/Marker.h>
@@ -14,9 +14,6 @@
 
 // using namespace boost::numeric::odeint;
 namespace pl = std::placeholders;
-
-#define JANKY_PID false
-#define NEAR_IDENTITY true
 
 PLUGINLIB_EXPORT_CLASS(dynamic_gap::DynamicGapPlanner, nav_core::BaseLocalPlanner)
 

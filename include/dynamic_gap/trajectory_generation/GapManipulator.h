@@ -1,12 +1,10 @@
-#ifndef GAP_MOD_H
-#define GAP_MOD_H
-
+#pragma once
 
 #include <ros/ros.h>
 #include <math.h>
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/dynamicgap_config.h>
-#include <dynamic_gap/trajectory_scoring.h>
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
+#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
@@ -36,7 +34,7 @@ namespace dynamic_gap {
             void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
             bool indivGapFeasibilityCheck(dynamic_gap::Gap&);
-            double indivGapFindCrossingPoint(dynamic_gap::Gap&, Eigen::Vector2f&, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
+            double indivGapFindCrossingPoint(dynamic_gap::Gap&, Eigen::Vector2f&, dynamic_gap::RotatingFrameCartesianKalmanFilter*, dynamic_gap::RotatingFrameCartesianKalmanFilter*);
             std::vector<double> determineLeftRightModels(dynamic_gap::Gap& selectedGap, Eigen::Vector2f pg);
 
             void setGapGoal(dynamic_gap::Gap&, geometry_msgs::PoseStamped);
@@ -58,10 +56,8 @@ namespace dynamic_gap {
             Eigen::Vector2f pTheta(float, float, Eigen::Vector2f, Eigen::Vector2f);
             bool checkGoalVisibility(geometry_msgs::PoseStamped, float theta_r, float theta_l, float rdist, float ldist, sensor_msgs::LaserScan const scan);
             bool checkGoalWithinGapAngleRange(dynamic_gap::Gap& gap, double gap_goal_idx, float lidx, float ridx);
-            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
-            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*);
-            void setGapGoalTimeBased(dynamic_gap::rot_frame_kf*, dynamic_gap::rot_frame_kf*, dynamic_gap::Gap&,  geometry_msgs::PoseStamped);
+            bool feasibilityCheck(dynamic_gap::Gap& gap, dynamic_gap::RotatingFrameCartesianKalmanFilter*, dynamic_gap::RotatingFrameCartesianKalmanFilter*);
+            double gapSplinecheck(dynamic_gap::Gap& gap, dynamic_gap::RotatingFrameCartesianKalmanFilter*, dynamic_gap::RotatingFrameCartesianKalmanFilter*);
+            void setGapGoalTimeBased(dynamic_gap::RotatingFrameCartesianKalmanFilter*, dynamic_gap::RotatingFrameCartesianKalmanFilter*, dynamic_gap::Gap&,  geometry_msgs::PoseStamped);
     };
 }
-
-#endif
