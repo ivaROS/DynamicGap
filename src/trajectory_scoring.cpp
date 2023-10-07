@@ -250,6 +250,7 @@ namespace dynamic_gap {
         // Should be no racing condition
         double start_time = ros::WallTime::now().toSec();
 
+        /*
         std::vector<dynamic_gap::Estimator *> raw_models;
         for (auto gap : current_raw_gaps) {
             raw_models.push_back(gap.right_model);
@@ -261,16 +262,19 @@ namespace dynamic_gap {
         for (auto & model : raw_models) {
             model->freeze_robot_vel();
         }
+        */
         
         double total_val = 0.0;
         std::vector<double> cost_val;
 
+        
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
 
         double t_i = 0.0;
         double t_iplus1 = 0.0;
-        int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
+        // int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
 
+        /*
         int min_dist_idx, future_scan_idx;
         double theta, range;
         Eigen::Vector2d min_dist_pt(0.0, 0.0);
@@ -290,12 +294,12 @@ namespace dynamic_gap {
                 range = dynamic_laser_scan.ranges.at(min_dist_idx);
                 min_dist_pt << range*std::cos(theta), range*std::sin(theta);
  
-                /*
-                if (t_iplus1 == 2.5 && vis) {
-                    ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
-                    visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
-                }
-                */
+                
+                // if (t_iplus1 == 2.5 && vis) {
+                //     ROS_INFO_STREAM("visualizing dynamic egocircle from " << t_i << " to " << t_iplus1);
+                //     visualizePropagatedEgocircle(dynamic_laser_scan); // if I do i ==0, that's just original scan
+                // }
+                
 
 
                 // get cost of point
@@ -318,15 +322,16 @@ namespace dynamic_gap {
             cost_val = dynamic_cost_val;
             if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("dynamic pose-wise cost: " << total_val);
         } else {
-            std::vector<double> static_cost_val(traj.poses.size());
-            for (int i = 0; i < static_cost_val.size(); i++) {
-                // std::cout << "regular range at " << i << ": ";
-                static_cost_val.at(i) = scorePose(traj.poses.at(i)); //  / static_cost_val.size()
-            }
-            total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
-            cost_val = static_cost_val;
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("static pose-wise cost: " << total_val);
+        */
+        std::vector<double> static_cost_val(traj.poses.size());
+        for (int i = 0; i < static_cost_val.size(); i++) {
+            // std::cout << "regular range at " << i << ": ";
+            static_cost_val.at(i) = scorePose(traj.poses.at(i)); //  / static_cost_val.size()
         }
+        total_val = std::accumulate(static_cost_val.begin(), static_cost_val.end(), double(0));
+        cost_val = static_cost_val;
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("static pose-wise cost: " << total_val);
+        // }
 
         if (cost_val.size() > 0) 
         {

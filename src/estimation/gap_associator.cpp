@@ -9,7 +9,7 @@
 // by Cong Ma, 2016
 // 
 
-#include <dynamic_gap/gap_associator.h>
+#include <dynamic_gap/estimation/gap_associator.h>
 
 namespace dynamic_gap {
 

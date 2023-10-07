@@ -84,15 +84,24 @@ add_library(${PROJECT_NAME}
   src/dynamic_gap.cpp
   src/gap_utils.cpp
   src/dynamicgap_config.cpp
-  src/visualization.cpp
+
+  src/visualization/GapVisualizer.cpp
+  src/visualization/GoalVisualizer.cpp
+  src/visualization/TrajectoryVisualizer.cpp
+
+  src/trajectory_generation/gap_trajectory_generator.cpp
+  src/trajectory_generation/GapManipulator.cpp
+
   src/goal_selector.cpp
   src/trajectory_scoring.cpp
-  src/gap_trajectory_generator.cpp
-  src/gap_manip.cpp
+
   src/trajectory_controller.cpp
-  src/gap_associator.cpp
+  src/gap_detector.cpp
+
+  src/estimation/gap_associator.cpp
   src/estimation/staticEstimator.cpp
   src/estimation/rot_frame_kf.cpp
+  
   src/gap_feasibility.cpp
   ) 
 

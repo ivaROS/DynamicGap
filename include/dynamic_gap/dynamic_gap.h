@@ -27,7 +27,7 @@
 
 #include <dynamic_gap/planner.h>
 #include <dynamic_gap/gap.h>
-#include <dynamic_gap/helper.h>
+// #include <dynamic_gap/helper.h>
 #include <dynamic_gap/dgConfig.h>
 
 #include <dynamic_reconfigure/server.h>

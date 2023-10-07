@@ -1,4 +1,4 @@
-#include <dynamic_gap/gap_manip.h>
+#include <dynamic_gap/trajectory_generation/GapManipulator.h>
 
 namespace dynamic_gap {
     void GapManipulator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {

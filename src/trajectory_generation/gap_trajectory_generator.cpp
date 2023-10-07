@@ -1,8 +1,9 @@
-#include <dynamic_gap/gap_trajectory_generator.h>
+#include <dynamic_gap/trajectory_generation/gap_trajectory_generator.h>
 
-namespace dynamic_gap {
-
-    void GapTrajGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A) {
+namespace dynamic_gap 
+{
+    void GapTrajGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A) 
+    {
         // ROS_INFO_STREAM("initializing solver");
 
         Eigen::SparseMatrix<double> hessian(Kplus1, Kplus1);
@@ -185,9 +186,17 @@ namespace dynamic_gap {
                 return return_tuple;
             }
 
+            polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
+                                initial_goal_x, initial_goal_y,
+                                selectedGap.mode.agc, selectedGap.isRadial(),
+                                x[0], x[1],
+                                cfg_->control.vx_absmax, cfg_->control.vx_absmax);
+
+
             /*
             SETTING UP SOLVER
             */
+            /*
             int N = all_curve_pts.rows();
             int Kplus1 = all_centers.rows();
             // ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
@@ -225,7 +234,7 @@ namespace dynamic_gap {
             // get the controller input
             Eigen::MatrixXd weights = solver.getSolution();
             ROS_INFO_STREAM("optimization time taken: " << (ros::WallTime::now().toSec() - opt_start_time));
-
+            */
             /*
             ROS_INFO_STREAM("current solution: "); 
             
@@ -235,13 +244,14 @@ namespace dynamic_gap {
             } 
             */  
 
+            /*
             reachable_gap_APF reachable_gap_APF_inte(init_rbt_pos, goal_pt_1,
                                                     cfg_->control.vx_absmax, nom_acc, all_centers, all_inward_norms, weights,
                                                     nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel);   
-            
+            */
             start_time = ros::Time::now().toSec();
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
-                                                    reachable_gap_APF_inte, x, 0.0, selectedGap.gap_lifespan, 
+                                                    polar_gap_field_inte, x, 0.0, selectedGap.gap_lifespan, 
                                                     cfg_->traj.integrate_stept, corder);
             ROS_INFO_STREAM("integration time taken: " << (ros::Time::now().toSec() - start_time));
 

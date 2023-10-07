@@ -11,7 +11,7 @@
 #include <math.h>
 #include <dynamic_gap/gap.h>
 #include <dynamic_gap/dynamicgap_config.h>
-#include <dynamic_gap/helper.h>
+#include <dynamic_gap/trajectory_generation/trajectory_synthesis_methods.h>
 // #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 // #include <geometry_msgs/Twist.h>
@@ -29,24 +29,8 @@
 
 namespace dynamic_gap {
 
-    class TrajectoryGenerator {
-        public:
-            TrajectoryGenerator(){};
-            ~TrajectoryGenerator(){};
-
-            TrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            TrajectoryGenerator& operator=(TrajectoryGenerator & other) {cfg_ = other.cfg_; return *this;};
-            TrajectoryGenerator(const TrajectoryGenerator &t) {cfg_ = t.cfg_;};
-
-            virtual std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool) = 0;
-            virtual std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>) = 0;
-
-        protected:
-            const DynamicGapConfig* cfg_;
-    };
-
-    class GapTrajGenerator : public TrajectoryGenerator {
-        using TrajectoryGenerator::TrajectoryGenerator;
+    class GapTrajGenerator
+    {
         public:
             GapTrajGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A);
@@ -74,6 +58,7 @@ namespace dynamic_gap {
         private: 
             geometry_msgs::TransformStamped planning2odom;       
             int num_curve_points;
+            const DynamicGapConfig* cfg_;
 
     };
 }

@@ -15,7 +15,7 @@
 #include <tf/tf.h>
 #include <dynamic_gap/gap.h>
 #include "dynamic_gap/TrajPlan.h"
-#include <dynamic_gap/gap_trajectory_generator.h>
+#include <dynamic_gap/trajectory_generation/gap_trajectory_generator.h>
 #include <visualization_msgs/Marker.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>

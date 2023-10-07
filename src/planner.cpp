@@ -35,6 +35,7 @@ namespace dynamic_gap
         tfListener = new tf2_ros::TransformListener(tfBuffer);
         _initialized = true;
 
+        gapDetector = new dynamic_gap::GapDetector(cfg);
         finder = new dynamic_gap::GapUtils(cfg);
         gapvisualizer = new dynamic_gap::GapVisualizer(nh, cfg);
         goalselector = new dynamic_gap::GoalSelector(nh, cfg);
@@ -179,7 +180,7 @@ namespace dynamic_gap
 
 
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
-            raw_gaps = finder->gapDetection(msg, final_goal_rbt);
+            raw_gaps = gapDetector->gapDetection(msg, final_goal_rbt);
             
             if (cfg.debug.raw_gaps_debug_log) ROS_INFO_STREAM("RAW GAP ASSOCIATING");    
             raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
@@ -201,7 +202,7 @@ namespace dynamic_gap
             gapManip->updateStaticEgoCircle(static_scan);
             curr_agents = finder->getCurrAgents();
 
-            observed_gaps = finder->gapSimplification(msg, raw_gaps);
+            observed_gaps = gapDetector->gapSimplification(raw_gaps);
 
             if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
             simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
@@ -515,6 +516,7 @@ namespace dynamic_gap
             gapManip->radialExtendGap(manip_set.at(i), true);
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             
+            /*
             // MANIPULATE POINTS AT T=1
             if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             gapManip->updateDynamicEgoCircle(manip_set.at(i), future_scans);
@@ -525,6 +527,7 @@ namespace dynamic_gap
             gapManip->inflateGapSides(manip_set.at(i), false);
             gapManip->radialExtendGap(manip_set.at(i), false);
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal());
+            */
         }
 
         return manip_set;
@@ -1037,7 +1040,8 @@ namespace dynamic_gap
 
             if (cfg.debug.feasibility_debug_log) ROS_INFO_STREAM("feasibility check for gap " << i);
             gap_i_feasible = gapFeasibilityChecker->indivGapFeasibilityCheck(curr_observed_gaps.at(i));
-            
+            gap_i_feasible = true;
+
             if (gap_i_feasible) {
                 curr_observed_gaps.at(i).addTerminalRightInformation();
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
@@ -1126,11 +1130,9 @@ namespace dynamic_gap
         
         bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
-
         std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
-        int gaps_size = curr_observed_gaps.size();
+        // int gaps_size = curr_observed_gaps.size();
 
-        /*
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         try { 
             feasible_gap_set = gapSetFeasibilityCheck(curr_exec_gap_assoc, curr_exec_gap_feas);
@@ -1159,19 +1161,18 @@ namespace dynamic_gap
         if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         start_time = ros::WallTime::now().toSec();
-        */
 
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<double>> time_set;
         std::vector<std::vector<double>> score_set; 
         try {
-            score_set = initialTrajGen(curr_observed_gaps, traj_set, time_set);
+            score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in initialTrajGen");
         }
         if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        // visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
+        visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
 
         start_time = ros::WallTime::now().toSec();
         int traj_idx;
@@ -1188,7 +1189,7 @@ namespace dynamic_gap
         if (traj_idx >= 0) {
             chosen_traj = traj_set[traj_idx];
             chosen_time_arr = time_set[traj_idx];
-            chosen_gap = curr_observed_gaps[traj_idx];
+            chosen_gap = manip_gap_set[traj_idx];
         } else {
             chosen_traj = geometry_msgs::PoseArray();
             chosen_gap = dynamic_gap::Gap();
@@ -1199,8 +1200,9 @@ namespace dynamic_gap
         geometry_msgs::PoseArray final_traj;
         
         
-        try {
-            final_traj = compareToOldTraj(chosen_traj, chosen_gap, curr_observed_gaps, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
+        try 
+        {
+            final_traj = compareToOldTraj(chosen_traj, chosen_gap, manip_gap_set, chosen_time_arr, curr_exec_gap_assoc, curr_exec_gap_feas);
         } catch (std::out_of_range) {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }
@@ -1217,11 +1219,11 @@ namespace dynamic_gap
         boost::mutex::scoped_lock gapset(gapset_mutex);
 
         gapvisualizer->drawManipGaps(manip_gap_set, std::string("manip"));
-        gapvisualizer->drawReachableGaps(manip_gap_set);        
-        gapvisualizer->drawReachableGapsCenters(manip_gap_set); 
+        // gapvisualizer->drawReachableGaps(manip_gap_set);        
+        // gapvisualizer->drawReachableGapsCenters(manip_gap_set); 
 
-        gapvisualizer->drawGapSplines(manip_gap_set);
-        goalvisualizer->drawGapGoals(manip_gap_set);
+        // gapvisualizer->drawGapSplines(manip_gap_set);
+        // goalvisualizer->drawGapGoals(manip_gap_set);
     }
 
     void Planner::printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association) {

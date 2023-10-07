@@ -21,15 +21,18 @@
 
 #include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/gap.h>
-#include <dynamic_gap/gap_associator.h>
-#include <dynamic_gap/helper.h>
+#include <dynamic_gap/estimation/gap_associator.h>
+// #include <dynamic_gap/helper.h>
 // #include <dynamic_gap/trajectory_follower.h>
+#include <dynamic_gap/gap_detector.h>
 #include <dynamic_gap/gap_utils.h>
 #include <dynamic_gap/dynamicgap_config.h>
-#include <dynamic_gap/visualization.h>
+#include <dynamic_gap/visualization/GapVisualizer.h>
+#include <dynamic_gap/visualization/GoalVisualizer.h>
+#include <dynamic_gap/visualization/TrajectoryVisualizer.h>
 #include <dynamic_gap/goal_selector.h>
 #include <dynamic_gap/trajectory_scoring.h>
-#include <dynamic_gap/gap_manip.h>
+#include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_controller.h>
 #include <dynamic_gap/gap_feasibility.h>
 
@@ -117,6 +120,7 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> safe_gaps_central;
         std::vector<dynamic_gap::Gap> safe_gaps;
 
+        dynamic_gap::GapDetector *gapDetector;
         dynamic_gap::GapUtils *finder;
         dynamic_gap::GapVisualizer *gapvisualizer;
         dynamic_gap::GoalSelector *goalselector;

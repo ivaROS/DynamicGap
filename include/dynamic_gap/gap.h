@@ -27,22 +27,24 @@ namespace dynamic_gap
                 terminal_qB << 0.0, 0.0;
                 right_bezer_origin << 0.0, 0.0;
                 left_bezier_origin << 0.0, 0.0;
+
+                setRadial(true);
             };
 
             ~Gap() {};
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
-            int RIdx() { return _right_idx; }
-            void setRIdx(int ridx) { _right_idx = ridx; }
-
-            int LIdx() { return _left_idx; }
+            int LIdx() const { return _left_idx; }
             void setLIdx(int lidx) { _left_idx = lidx; }
 
-            float RDist() { return _rdist; }
-            void setRDist(float rdist) { _rdist = rdist; }
+            int RIdx() const { return _right_idx; }
+            void setRIdx(int ridx) { _right_idx = ridx; }
 
-            float LDist() { return _ldist; }
+            float LDist() const { return _ldist; }
             void setLDist(float ldist) { _ldist = ldist; }
+
+            float RDist() const { return _rdist; }
+            void setRDist(float rdist) { _rdist = rdist; }
 
             int term_RIdx() { return terminal_ridx; }
             void setTermRIdx(int terminal_ridx) { terminal_ridx = terminal_ridx; }
@@ -152,7 +154,7 @@ namespace dynamic_gap
                 convex.terminal_ldist = terminal_ldist;
             }
 
-            bool isRadial(bool initial = true)
+            void setRadial(bool initial = true)
             {
                 // does resoln here imply 360 deg FOV?
                 int check_r_idx = initial ? _right_idx : terminal_ridx;
@@ -162,9 +164,9 @@ namespace dynamic_gap
 
                 float resoln = M_PI / half_scan;
                 float gap_angle = (check_l_idx - check_r_idx) * resoln;
-                if (gap_angle < 0) {
+                if (gap_angle < 0)
                     gap_angle += 2*M_PI;
-                }
+
                 // ROS_INFO_STREAM("gap_angle: " << gap_angle);
                 float short_side = right_type ? check_r_dist : check_l_dist;
                 // law of cosines
@@ -174,23 +176,23 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("short_side: " << short_side);
                 // ROS_INFO_STREAM("opp_side: " << opp_side);
                 // ROS_INFO_STREAM("small angle: " << small_angle);
-                if (initial) {
+                if (initial)
                     _radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
-                    // std::cout << "checking isSwept: " << _radial << std::endl;
-                    return _radial;
-                } else {
-                    _terminal_radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI; 
-                    // std::cout << "checking isSwept: " << _terminal_radial << std::endl;
-                    return _terminal_radial;
-                }
+                else
+                    _terminal_radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;     
             }
 
-            void setRadial()
+            bool isRadial(bool initial = true) const
             {
-                _radial = false;
+                return (initial ? _radial : _terminal_radial);
             }
 
-            bool isRightType(bool initial = true)
+            // void setRadial()
+            // {
+            //     _radial = false;
+            // }
+
+            bool isRightType(bool initial = true) const
             {
                 if (initial) { 
                     return right_type;
@@ -248,7 +250,8 @@ namespace dynamic_gap
 
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
             // calculates the euclidean distance between the left and right gap points using the law of cosines
-            float get_gap_euclidean_dist() {
+            float get_gap_euclidean_dist() const 
+            {
                 int idx_diff = _left_idx - _right_idx;
                 if (idx_diff < 0) {
                     idx_diff += (2*half_scan);

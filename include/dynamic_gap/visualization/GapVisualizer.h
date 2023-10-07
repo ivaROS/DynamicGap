@@ -1,38 +1,11 @@
-#ifndef VIS_H
-#define VIS_H
+#pragma once
 
-#include <ros/ros.h>
-#include <math.h>
-#include <dynamic_gap/gap.h>
-#include <dynamic_gap/dynamicgap_config.h>
-#include <vector>
-#include <map>
-#include <visualization_msgs/MarkerArray.h>
-#include <visualization_msgs/Marker.h>
-#include <std_msgs/ColorRGBA.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseArray.h>
-#include <tf2/LinearMath/Quaternion.h>
-
+#include <dynamic_gap/visualization/Visualizer.h>
 
 namespace dynamic_gap
 {
-    class Visualizer {
-        public: 
-            Visualizer() {};
-            ~Visualizer() {};
-
-            Visualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            Visualizer& operator=(Visualizer other) {cfg_ = other.cfg_; return *this; };
-            Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
-
-        protected:
-            const DynamicGapConfig* cfg_;
-    };
-
-    class GapVisualizer : public Visualizer{
+    class GapVisualizer : public Visualizer
+    {
             using Visualizer::Visualizer;
         public: 
 
@@ -80,43 +53,4 @@ namespace dynamic_gap
             int prev_num_models;
             int prev_num_reachable_gaps;
     };
-
-    class TrajectoryVisualizer : public Visualizer{
-            using Visualizer::Visualizer;
-        public: 
-            TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan);
-            // void trajScore(geometry_msgs::PoseArray, std::vector<double>);
-            void pubAllTraj(std::vector<geometry_msgs::PoseArray> prr);
-            void pubAllScore(std::vector<geometry_msgs::PoseArray>, std::vector<std::vector<double>>);
-            void drawRelevantGlobalPlanSnippet(std::vector<geometry_msgs::PoseStamped> traj);
-            void drawTrajectorySwitchCount(int switch_index, geometry_msgs::PoseArray switch_traj);
-
-        private: 
-            ros::Publisher entire_global_plan_pub;
-            ros::Publisher trajectory_score;
-            ros::Publisher all_traj_viz;
-            ros::Publisher relevant_global_plan_snippet_pub;
-            ros::Publisher trajectory_switch_pub;
-            double prev_num_trajs;
-            
-    };
-
-    class GoalVisualizer : public Visualizer{
-        public: 
-            using Visualizer::Visualizer;
-            GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void localGoal(geometry_msgs::PoseStamped);
-            void drawGapGoal(visualization_msgs::MarkerArray&, dynamic_gap::Gap, bool initial);
-            void drawGapGoals(std::vector<dynamic_gap::Gap>);
-        private: 
-            ros::Publisher goal_pub;
-            ros::Publisher gapwp_pub;
-            std_msgs::ColorRGBA gapwp_color;
-            std_msgs::ColorRGBA terminal_gapwp_color;
-            std_msgs::ColorRGBA localGoal_color;
-            double prev_num_goals;
-    };
 }
-
-#endif
