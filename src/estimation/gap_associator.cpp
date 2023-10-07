@@ -183,15 +183,15 @@ namespace dynamic_gap {
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) 
 			{  // curr left
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::staticEstimator("right", *model_idx, init_r, init_beta, 
-																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
-				// observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::rot_frame_kf("right", *model_idx, init_r, init_beta, 
+				// observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::staticEstimator("right", *model_idx, init_r, init_beta, 
 				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::rot_frame_kf("right", *model_idx, init_r, init_beta, 
+																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			} else {
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::staticEstimator("left", *model_idx, init_r, init_beta, 
-																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
-				// observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::rot_frame_kf("left", *model_idx, init_r, init_beta, 
+				// observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::staticEstimator("left", *model_idx, init_r, init_beta, 
 				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::rot_frame_kf("left", *model_idx, init_r, init_beta, 
+																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			}
 			*model_idx += 1;
 		}
