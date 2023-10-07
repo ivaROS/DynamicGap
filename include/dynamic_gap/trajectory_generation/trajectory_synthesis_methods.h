@@ -61,6 +61,7 @@ namespace dynamic_gap
         void operator()(const state_type &x, state_type &dxdt, const double t)
         {
             // IN HERE X1,Y1 IS RIGHT FROM ROBOT POV, X2,Y2 IS LEFT FROM ROBOT POV
+            
             if (atan2(y1, x1) > atan2(y2, x2)) {
                 std::swap(y1, y2);
                 std::swap(x1, x2);
@@ -377,8 +378,8 @@ namespace dynamic_gap
 
             dxdt[0] = v_cmd[0];
             dxdt[1] = v_cmd[1];
-            dxdt[6] = goal_vel_x;
-            dxdt[7] = goal_vel_y;
+            dxdt[6] = 0.0; // goal_vel_x;
+            dxdt[7] = 0.0; // goal_vel_y;
             return;
         }
     };

@@ -136,7 +136,7 @@ namespace dynamic_gap
             Eigen::Vector2d nonrel_left_vel(left_vel_x, left_vel_y);
             Eigen::Vector2d nonrel_right_vel(right_vel_x, right_vel_y);
             Eigen::Vector2d nonrel_goal_vel(goal_vel_x, goal_vel_y);
-
+            /*
             Eigen::Vector2d nom_vel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d nom_acc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
             Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
@@ -170,7 +170,7 @@ namespace dynamic_gap
             selectedGap.all_curve_pts = all_curve_pts;
             selectedGap.num_left_rge_points = true_left_num_rge_points;
             selectedGap.num_right_rge_points = true_right_num_rge_points;
-
+            */
             if (run_g2g) { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x, selectedGap.goal.y};
                 // ROS_INFO_STREAM("Goal to Goal");
@@ -192,6 +192,7 @@ namespace dynamic_gap
                                 x[0], x[1],
                                 cfg_->control.vx_absmax, cfg_->control.vx_absmax);
 
+            double start_time = ros::Time::now().toSec();
 
             /*
             SETTING UP SOLVER
@@ -202,7 +203,6 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("N: " << N << ", Kplus1: " << Kplus1);
 
             Eigen::MatrixXd A(Kplus1, Kplus1);
-            // double start_time = ros::Time::now().toSec();
             double setConstraintMatrix_start_time = ros::WallTime::now().toSec();
             setConstraintMatrix(A, N, Kplus1, all_curve_pts, all_inward_norms, all_centers);
             ROS_INFO_STREAM("setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);

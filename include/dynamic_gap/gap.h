@@ -27,8 +27,6 @@ namespace dynamic_gap
                 terminal_qB << 0.0, 0.0;
                 right_bezer_origin << 0.0, 0.0;
                 left_bezier_origin << 0.0, 0.0;
-
-                setRadial(true);
             };
 
             ~Gap() {};
@@ -156,11 +154,18 @@ namespace dynamic_gap
 
             void setRadial(bool initial = true)
             {
+                // ROS_INFO_STREAM("setRadial:");
                 // does resoln here imply 360 deg FOV?
-                int check_r_idx = initial ? _right_idx : terminal_ridx;
                 int check_l_idx = initial ? _left_idx : terminal_lidx;
-                float check_r_dist = initial ? _rdist : terminal_rdist;
+                int check_r_idx = initial ? _right_idx : terminal_ridx;
+
                 float check_l_dist = initial ? _ldist : terminal_ldist;
+                float check_r_dist = initial ? _rdist : terminal_rdist;
+
+                // ROS_INFO_STREAM("   check_l_idx: " << check_l_idx);
+                // ROS_INFO_STREAM("   check_l_dist: " << check_l_dist);
+                // ROS_INFO_STREAM("   check_r_idx: " << check_r_idx);
+                // ROS_INFO_STREAM("   check_r_dist: " << check_r_dist);
 
                 float resoln = M_PI / half_scan;
                 float gap_angle = (check_l_idx - check_r_idx) * resoln;
@@ -176,10 +181,16 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("short_side: " << short_side);
                 // ROS_INFO_STREAM("opp_side: " << opp_side);
                 // ROS_INFO_STREAM("small angle: " << small_angle);
+
+                // ROS_INFO_STREAM("   small_angle: " << small_angle);
+                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
+                float alpha = (M_PI - small_angle - gap_angle);
+                // ROS_INFO_STREAM("   alpha: " << alpha);
+
                 if (initial)
-                    _radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;
+                    _radial = alpha > 0.75 * M_PI;
                 else
-                    _terminal_radial = (M_PI - small_angle - gap_angle) > 0.75 * M_PI;     
+                    _terminal_radial = alpha > 0.75 * M_PI;     
             }
 
             bool isRadial(bool initial = true) const

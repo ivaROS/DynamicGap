@@ -510,9 +510,9 @@ namespace dynamic_gap
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
             
-            // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
+            gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             gapManip->convertRadialGap(manip_set.at(i), true); 
-            gapManip->inflateGapSides(manip_set.at(i), true);
+            // gapManip->inflateGapSides(manip_set.at(i), true);
             gapManip->radialExtendGap(manip_set.at(i), true);
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             
@@ -700,8 +700,10 @@ namespace dynamic_gap
             
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapIndex() << ", current right gap index: " << getCurrentRightGapIndex());
-            bool curr_gap_feasible = (curr_exec_gap_assoc && curr_exec_gap_feas);
-            for (dynamic_gap::Gap g : feasible_gaps) {
+            // bool curr_gap_feasible = (curr_exec_gap_assoc && curr_exec_gap_feas);
+            bool curr_gap_feasible = true;
+            for (dynamic_gap::Gap g : feasible_gaps) 
+            {
                 // ROS_INFO_STREAM("feasible left gap index: " << g.left_model->get_index() << ", feasible right gap index: " << g.right_model->get_index());
                 if (g.left_model->get_index() == getCurrentLeftGapIndex() &&
                     g.right_model->get_index() == getCurrentRightGapIndex()) {
@@ -744,7 +746,8 @@ namespace dynamic_gap
                     curr_traj_status = "curr exec gap is deemed infeasible";
                 }
                 
-                if (valid_incoming_traj) {
+                if (valid_incoming_traj) 
+                {
                     if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index << " TO INCOMING: " << curr_traj_status << ", incoming score finite");
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, false);
@@ -1142,6 +1145,7 @@ namespace dynamic_gap
         int gaps_size = feasible_gap_set.size();
         if (cfg.debug.feasibility_debug_log) ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
+        /*
         start_time = ros::WallTime::now().toSec();
         try {
             getFutureScans(agent_odoms, agent_vels, true);
@@ -1149,6 +1153,7 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }
         if (cfg.debug.static_scan_separation_debug_log) ROS_INFO_STREAM("DGap getFutureScans time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+        */
         
         start_time = ros::WallTime::now().toSec();
         std::vector<dynamic_gap::Gap> manip_gap_set;

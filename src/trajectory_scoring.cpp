@@ -336,7 +336,7 @@ namespace dynamic_gap {
         if (cost_val.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
-            double w1 = 0.1;
+            double w1 = 1.0;
             auto terminal_cost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminal_cost < 0.25 && total_val >= 0) {
@@ -362,11 +362,15 @@ namespace dynamic_gap {
     }
 
     // if we wanted to incorporate how egocircle can change, 
-    double TrajectoryArbiter::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) {
+    double TrajectoryArbiter::dist2Pose(float theta, float range, geometry_msgs::Pose pose) {
         // ego circle point in local frame, pose in local frame
-        float x = dist * std::cos(theta);
-        float y = dist * std::sin(theta);
-        return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
+        // ROS_INFO_STREAM("   theta: " << theta << ", range: " << range);
+        // ROS_INFO_STREAM("   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
+        float x = range * std::cos(theta);
+        float y = range * std::sin(theta);
+        double dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
+        // ROS_INFO_STREAM("   dist: " << dist);
+        return dist;
     }
 
     int TrajectoryArbiter::dynamicGetMinDistIndex(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print) {
@@ -434,10 +438,12 @@ namespace dynamic_gap {
         }
 
         auto iter = std::min_element(dist.begin(), dist.end());
-        //std::cout << "closest point: (" << x << ", " << y << "), robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
+        // std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
+        double range = stored_scan.ranges.at(std::distance(dist.begin(), iter));
+        double theta = std::distance(dist.begin(), iter) * stored_scan.angle_increment - M_PI;
         double cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
-        // std::cout << "static cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest position: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
+        std::cout << "static cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
         return cost;
     }
 

@@ -96,7 +96,10 @@ namespace dynamic_gap
                 // initializing a radial gap
                 dynamic_gap::Gap detected_gap(frame, it - 1, scan_dist_imin1, true, half_scan_, min_scan_dist_);
                 detected_gap.addLeftInformation(it, scan_dist_i);
+                detected_gap.setRadial();
+
                 raw_gaps.push_back(detected_gap);
+
                 // ROS_INFO_STREAM("adding radial gap from: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");
             }
 
@@ -109,6 +112,8 @@ namespace dynamic_gap
                     // ROS_INFO_STREAM("gap ending: infinity to finite");
                     dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan_, min_scan_dist_);
                     detected_gap.addLeftInformation(it, scan_dist_i);
+                    detected_gap.setRadial();
+
                     //std::cout << "candidate swept gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
                     // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
@@ -138,6 +143,8 @@ namespace dynamic_gap
             int last_scan_idx = full_scan_ - 1;
             float last_scan_dist = *(scan.ranges.end() - 1);
             detected_gap.addLeftInformation(last_scan_idx, last_scan_dist);
+            detected_gap.setRadial();
+            
             // ROS_INFO_STREAM("gap_ridx: " << gap_ridx << ", gap_rdist: " << gap_rdist);
             // ROS_INFO_STREAM("last_scan_idx: " << last_scan_idx << ", last_scan_dist: " << last_scan_dist);
             // ROS_INFO_STREAM("lidx: " << detected_gap.LIdx() << ", ridx: " << detected_gap.RIdx());
@@ -208,6 +215,8 @@ namespace dynamic_gap
 
         dynamic_gap::Gap detected_gap(frame, right_idx, scan.ranges.at(right_idx), true, half_num_scan, min_dist);
         detected_gap.addLeftInformation(left_idx, scan.ranges.at(left_idx));
+        detected_gap.setRadial();
+        
         detected_gap.artificial = true;
         raw_gaps.insert(raw_gaps.begin() + gap_idx, detected_gap);        
         return;
