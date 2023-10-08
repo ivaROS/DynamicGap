@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 // #include <geometry_msgs/PoseStamped.h>
@@ -32,8 +33,6 @@ namespace dynamic_gap {
             const DynamicGapConfig* cfg_;
             int num_of_scan;
             boost::mutex egolock;
-            double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
-            double atanThetaWrap(double theta);
             double generateCrossedGapTerminalPoints(double t, dynamic_gap::Gap & gap, dynamic_gap::Estimator* left_model, dynamic_gap::Estimator* right_model);
 
     };

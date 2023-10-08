@@ -13,6 +13,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <tf/tf.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
 #include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 #include <visualization_msgs/Marker.h>
@@ -55,9 +56,6 @@ namespace dynamic_gap {
             bool leqThres(const double dist);
             bool geqThres(const double dist);
 
-
-            Eigen::Vector2d car2pol(Eigen::Vector2d a);
-            Eigen::Vector2d pol2car(Eigen::Vector2d a);
             void run_projection_operator(sensor_msgs::LaserScan inflated_egocircle,  geometry_msgs::PoseStamped rbt_in_cam_lc,
                                          Eigen::Vector2d cmd_vel_fb, Eigen::Vector2d & Psi_der,
                                          double & Psi, float & cmd_vel_x_safe, float & cmd_vel_y_safe,

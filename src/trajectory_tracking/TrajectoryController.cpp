@@ -897,14 +897,4 @@ namespace dynamic_gap{
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
     }
 
-
-    Eigen::Vector2d TrajectoryController::car2pol(Eigen::Vector2d a) {
-        return Eigen::Vector2d(a.norm(), float(std::atan2(a(1), a(0))));
-    }
-
-    Eigen::Vector2d TrajectoryController::pol2car(Eigen::Vector2d a) {
-        return Eigen::Vector2d(cos(a(1)) * a(0), sin(a(1)) * a(0));
-    }
-
-
 }

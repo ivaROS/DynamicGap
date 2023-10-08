@@ -13,7 +13,7 @@ namespace dynamic_gap
         trajectory_switch_pub = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
     }
 
-    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, geometry_msgs::PoseArray switch_traj) {
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, const geometry_msgs::PoseArray & switch_traj) {
         
 
         geometry_msgs::Pose last_pose;
@@ -89,7 +89,8 @@ namespace dynamic_gap
         trajectory_score.publish(score_arr);
     }
     */
-    void TrajectoryVisualizer::pubAllScore(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> cost) {
+    void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, const std::vector<std::vector<double>> & cost) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray score_arr;
         visualization_msgs::Marker lg_marker;
@@ -139,7 +140,8 @@ namespace dynamic_gap
         trajectory_score.publish(score_arr);
     }
 
-    void TrajectoryVisualizer::pubAllTraj(std::vector<geometry_msgs::PoseArray> prr) {
+    void TrajectoryVisualizer::pubAllTraj(const std::vector<geometry_msgs::PoseArray> & prr) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
@@ -184,7 +186,8 @@ namespace dynamic_gap
         all_traj_viz.publish(vis_traj_arr);
     }
 
-    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(std::vector<geometry_msgs::PoseStamped> traj) {
+    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj) 
+    {
         try { 
             geometry_msgs::PoseArray pub_traj;
             if (traj.size() > 0) {

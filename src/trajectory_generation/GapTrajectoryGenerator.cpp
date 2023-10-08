@@ -413,22 +413,6 @@ namespace dynamic_gap
         */
         // ROS_INFO_STREAM("total approx dist: " << total_approx_dist);
     }
-    
-    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) {
-        double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
-
-        double left_to_right_angle = std::atan2(determinant, dot_product);
-        
-        // removing this for inward_norm thing
-        /*
-        if (left_to_right_angle < 0) {
-            left_to_right_angle += 2*M_PI; 
-        }
-        */
-
-        return left_to_right_angle;
-    }
 
     void GapTrajectoryGenerator::buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts,
                                             Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,

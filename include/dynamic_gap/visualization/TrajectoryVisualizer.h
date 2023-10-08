@@ -11,10 +11,10 @@ namespace dynamic_gap
             TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
             void drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan);
             // void trajScore(geometry_msgs::PoseArray, std::vector<double>);
-            void pubAllTraj(std::vector<geometry_msgs::PoseArray> prr);
-            void pubAllScore(std::vector<geometry_msgs::PoseArray>, std::vector<std::vector<double>>);
-            void drawRelevantGlobalPlanSnippet(std::vector<geometry_msgs::PoseStamped> traj);
-            void drawTrajectorySwitchCount(int switch_index, geometry_msgs::PoseArray switch_traj);
+            void pubAllTraj(const std::vector<geometry_msgs::PoseArray> & prr);
+            void pubAllScore(const std::vector<geometry_msgs::PoseArray> &, const std::vector<std::vector<double>> &);
+            void drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj);
+            void drawTrajectorySwitchCount(int switch_index, const geometry_msgs::PoseArray & switch_traj);
 
         private: 
             ros::Publisher entire_global_plan_pub;

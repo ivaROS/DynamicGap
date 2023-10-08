@@ -341,7 +341,6 @@ namespace dynamic_gap {
             // option 1: arc-length:
             if (t_rew == 0 || (left_cross_pt - right_cross_pt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) { // r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio
                 
-                
                 if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("terminal points at time " << t_rew << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
                 generateTerminalPoints(gap, wrapped_beta_left, left_rewind_mp_state[0], wrapped_term_beta_right, right_rewind_mp_state[0]);
                 return t_rew;
@@ -357,37 +356,6 @@ namespace dynamic_gap {
 
         // should never fall out of this?
         return 0.0;
-    }
-
-
-
-    // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
-    double GapFeasibilityChecker::getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) {
-        double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
-
-        double left_to_right_angle = std::atan2(determinant, dot_product);
-        
-        if (left_to_right_angle < 0) {
-            left_to_right_angle += 2*M_PI; 
-        }
-
-        return left_to_right_angle;
-    }
-
-    double GapFeasibilityChecker::atanThetaWrap(double theta) {
-        double new_theta = theta;
-        while (new_theta <= -M_PI) {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        } 
-        
-        while (new_theta >= M_PI) {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        }
-
-        return new_theta;
     }
 
     void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 

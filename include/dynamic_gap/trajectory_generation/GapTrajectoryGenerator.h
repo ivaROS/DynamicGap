@@ -32,12 +32,14 @@ namespace dynamic_gap {
     {
         public:
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
-            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A);
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
             std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
             std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>>);
+
+        private: 
+            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A);
 
             Eigen::VectorXd arclength_sample_bezier(Eigen::Vector2d pt_origin, Eigen::Vector2d pt_0, Eigen::Vector2d pt_1, double num_curve_points, double & des_dist_interval);        
             void buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
@@ -54,7 +56,6 @@ namespace dynamic_gap {
                                      Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd all_centers);
 
 
-        private: 
             geometry_msgs::TransformStamped planning2odom;       
             int num_curve_points;
             const DynamicGapConfig* cfg_;

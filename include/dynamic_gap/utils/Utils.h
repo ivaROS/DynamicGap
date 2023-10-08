@@ -10,6 +10,12 @@
 
 namespace dynamic_gap 
 {
+    Eigen::Vector2d pol2car(Eigen::Vector2d polar_vector);
+    double atanThetaWrap(double theta); 
+    float atanThetaWrap(float theta);
+    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
+    float getLeftToRightAngle(Eigen::Vector2f, Eigen::Vector2f, bool);
+
     class Utils 
     {
         public: 
@@ -18,7 +24,6 @@ namespace dynamic_gap
             Utils& operator=(Utils other) {cfg_ = other.cfg_; return *this; }
 
             Utils(const Utils &t) {cfg_ = t.cfg_;}
-
             std::vector<Eigen::Matrix<double, 4, 1> > getCurrAgents();
 
             sensor_msgs::LaserScan staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 

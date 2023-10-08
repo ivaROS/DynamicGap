@@ -46,7 +46,9 @@ namespace dynamic_gap
         goal_pub.publish(lg_marker);
     }
 
-    void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, dynamic_gap::Gap g, bool initial) {
+    void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, 
+                                     const dynamic_gap::Gap & g, bool initial) 
+    {
         if (!cfg_->gap_viz.debug_viz || !g.goal.set) return;
 
         visualization_msgs::Marker lg_marker;
@@ -77,7 +79,8 @@ namespace dynamic_gap
         vis_arr.markers.push_back(lg_marker);
     }
 
-    void GoalVisualizer::drawGapGoals(std::vector<dynamic_gap::Gap> gs) {
+    void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap> & gs) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.

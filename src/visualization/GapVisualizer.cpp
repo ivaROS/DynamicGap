@@ -133,8 +133,8 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawGapSpline(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
-
+    void GapVisualizer::drawGapSpline(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    {
         // discretize gap lifespan
 
         // plug in x/y coefficients to get list of points
@@ -204,7 +204,7 @@ namespace dynamic_gap
     }
 
 
-    void GapVisualizer::drawGapSplines(std::vector<dynamic_gap::Gap> g) {
+    void GapVisualizer::drawGapSplines(const std::vector<dynamic_gap::Gap> & g) {
         if (!cfg_->gap_viz.debug_viz) return;
         
         // First, clearing topic.
@@ -225,8 +225,8 @@ namespace dynamic_gap
         gap_spline_publisher.publish(vis_arr);
     }
 
-    void GapVisualizer::drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
-        
+    void GapVisualizer::drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    {
         visualization_msgs::Marker this_marker;
         this_marker.header.frame_id = g._frame;
         this_marker.header.stamp = ros::Time();
@@ -328,7 +328,8 @@ namespace dynamic_gap
         }
     }
 
-    void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
+    void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    {
         // ROS_INFO_STREAM("in drawReachableGap");
 
         float num_curve_points = cfg_->traj.num_curve_points;
@@ -469,7 +470,8 @@ namespace dynamic_gap
         }
     }
 
-    void GapVisualizer::drawReachableGaps(std::vector<dynamic_gap::Gap> g) {
+    void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap> & g) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
         
         visualization_msgs::MarkerArray clear_arr;
@@ -496,7 +498,8 @@ namespace dynamic_gap
         // reachable_gap_no_RGE_publisher.publish(vis_arr1);
     }
 
-    void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g) {
+    void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g)
+    {
         // ROS_INFO_STREAM("in drawReachableGapCenters");
         // ROS_INFO_STREAM("left right centers number of rows: " << g.left_right_centers.rows());
 
@@ -578,7 +581,8 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawReachableGapsCenters(std::vector<dynamic_gap::Gap> g) {
+    void GapVisualizer::drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & g) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
         
         visualization_msgs::MarkerArray clear_arr;
@@ -602,7 +606,7 @@ namespace dynamic_gap
         reachable_gap_centers_publisher.publish(vis_arr);
     }
 
-    void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, std::string ns, bool initial) {
+    void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g, std::string ns, bool initial) {
         // ROS_INFO_STREAM(g._left_idx << ", " << g._ldist << ", " << g._right_idx << ", " << g._rdist << ", " << g._frame);
         if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
@@ -732,7 +736,7 @@ namespace dynamic_gap
         vis_arr.markers.push_back(this_marker);
     }
     
-    void GapVisualizer::drawGaps(std::vector<dynamic_gap::Gap> g, std::string ns) {
+    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap> & g, std::string ns) {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
@@ -758,7 +762,8 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawGapsModels(std::vector<dynamic_gap::Gap> g) {
+    void GapVisualizer::drawGapsModels(const std::vector<dynamic_gap::Gap> & g) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
@@ -787,7 +792,9 @@ namespace dynamic_gap
         prev_num_models = 2* g.size();
     }
 
-    void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr, dynamic_gap::Gap g, std::string ns) {
+    void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr, 
+                                                    const dynamic_gap::Gap & g, std::string ns) 
+    {
         int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
@@ -799,7 +806,10 @@ namespace dynamic_gap
         gap_vel_arr.markers.push_back(right_model_vel_pt);
     }
 
-    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, visualization_msgs::MarkerArray & gap_vel_error_arr, dynamic_gap::Gap g, std::string ns) {
+    void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr,   
+                                        visualization_msgs::MarkerArray & gap_vel_error_arr, 
+                                        const dynamic_gap::Gap & g, std::string ns) 
+    {
         int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
@@ -817,7 +827,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, 
-                                           dynamic_gap::Gap g, bool left, int & model_id, std::string ns,
+                                           const dynamic_gap::Gap & g, bool left, int & model_id, std::string ns,
                                            bool ground_truth) {
         model_vel_pt.header.frame_id = g._frame;
         model_vel_pt.header.stamp = ros::Time();
@@ -862,7 +872,9 @@ namespace dynamic_gap
         model_vel_pt.lifetime = ros::Duration(100.0);
     }
 
-    void GapVisualizer::draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker model_vel_pt, dynamic_gap::Gap g, bool left, std::string ns)
+    void GapVisualizer::draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, 
+                                                visualization_msgs::Marker model_vel_pt, 
+                                                const dynamic_gap::Gap & g, bool left, std::string ns)
     {
         model_vel_error_pt.header = model_vel_pt.header;
         model_vel_error_pt.ns = ns;
@@ -894,7 +906,7 @@ namespace dynamic_gap
         model_vel_error_pt.text = "vel_error: " + std::to_string(vel_error);
     }
 
-    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, dynamic_gap::Gap g, bool & circle, std::string ns, bool initial) {
+    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g, bool & circle, std::string ns, bool initial) {
         // if AGC: Color is Red
         // if Convex: color is Brown, viz_jitter + 0.1
         // if RadialExtension: color is green, draw additional circle
@@ -1091,7 +1103,8 @@ namespace dynamic_gap
         */
     }
 
-    void GapVisualizer::drawManipGaps(std::vector<dynamic_gap::Gap> vec, std::string ns) {
+    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap> & vec, std::string ns) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.

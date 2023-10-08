@@ -43,40 +43,40 @@ namespace dynamic_gap
             float RDist() const { return _rdist; }
             void setRDist(float rdist) { _rdist = rdist; }
 
-            int term_RIdx() { return terminal_ridx; }
+            int term_RIdx() const { return terminal_ridx; }
             void setTermRIdx(int terminal_ridx) { terminal_ridx = terminal_ridx; }
 
-            int term_LIdx() { return terminal_lidx; }
+            int term_LIdx() const { return terminal_lidx; }
             void setTermLIdx(int terminal_lidx) { terminal_lidx = terminal_lidx; }
 
-            float term_RDist() { return terminal_rdist; }
+            float term_RDist() const { return terminal_rdist; }
             void setTermRDist(float term_rdist) { terminal_rdist = term_rdist; }
 
-            float term_LDist() { return terminal_ldist; }
+            float term_LDist() const { return terminal_ldist; }
             void setTermLDist(float term_ldist) { terminal_ldist = term_ldist; }
 
-            int cvx_RIdx() { return convex.convex_ridx; }
+            int cvx_RIdx() const { return convex.convex_ridx; }
             void setCvxRIdx(int cvx_ridx) { convex.convex_ridx = cvx_ridx; }
 
-            int cvx_LIdx() { return convex.convex_lidx; }
+            int cvx_LIdx() const { return convex.convex_lidx; }
             void setCvxLIdx(int cvx_lidx) { convex.convex_lidx = cvx_lidx; }
 
-            float cvx_RDist() { return convex.convex_rdist; }
+            float cvx_RDist() const { return convex.convex_rdist; }
             void setCvxRDist(float cvx_rdist) { convex.convex_rdist = cvx_rdist; }
 
-            float cvx_LDist() { return convex.convex_ldist; }
+            float cvx_LDist() const { return convex.convex_ldist; }
             void setCvxLDist(float cvx_ldist) { convex.convex_ldist = cvx_ldist; }
 
-            int cvx_term_RIdx() { return convex.terminal_ridx; }
+            int cvx_term_RIdx() const { return convex.terminal_ridx; }
             void setCvxTermRIdx(int cvx_term_ridx) { convex.terminal_ridx = cvx_term_ridx; }
 
-            int cvx_term_LIdx() { return convex.terminal_lidx; }
+            int cvx_term_LIdx() const { return convex.terminal_lidx; }
             void setCvxTermLIdx(int cvx_term_lidx) { convex.terminal_lidx = cvx_term_lidx; }
 
-            float cvx_term_RDist() { return convex.terminal_rdist; }
+            float cvx_term_RDist() const { return convex.terminal_rdist; }
             void setCvxTermRDist(float cvx_term_rdist) { convex.terminal_rdist = cvx_term_rdist; }
 
-            float cvx_term_LDist() { return convex.terminal_ldist; }
+            float cvx_term_LDist() const { return convex.terminal_ldist; }
             void setCvxTermLDist(float cvx_term_ldist) { convex.terminal_ldist = cvx_term_ldist; }
 
             // Concluding the Gap after constructing with left information
