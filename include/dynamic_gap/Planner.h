@@ -274,7 +274,7 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps);
+        std::vector<dynamic_gap::Gap> gapManipulate(const std::vector<dynamic_gap::Gap> & _observed_gaps);
 
         /**
          * 

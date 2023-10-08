@@ -56,7 +56,8 @@ namespace dynamic_gap
             bool isNotWithin(const double dist);
             // Pose to robot, when all in rbt frames
             double dist2rbt(geometry_msgs::PoseStamped);
-            double scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, sensor_msgs::LaserScan stored_scan_msgs);
+            double scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
+                                            const sensor_msgs::LaserScan & stored_scan_msgs);
             int PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose);
             double getPoseOrientation(geometry_msgs::PoseStamped);
             bool VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose);

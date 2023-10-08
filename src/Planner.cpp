@@ -80,7 +80,8 @@ namespace dynamic_gap
 
         sensor_msgs::LaserScan tmp_scan = sensor_msgs::LaserScan();
         future_scans.push_back(tmp_scan);
-        for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
+        for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) 
+        {
             future_scans.push_back(tmp_scan);
         }
 
@@ -168,16 +169,12 @@ namespace dynamic_gap
             msg = sharedPtr_inflatedlaser;
         }
 
-
         if (hasGoal)
         {
-            // reviseIntermediateValues();
-
             std::vector<geometry_msgs::TwistStamped> ego_rbt_vels_copied = intermediate_vels;
             std::vector<geometry_msgs::TwistStamped> ego_rbt_accs_copied = intermediate_accs;
 
             t_kf_update = msg->header.stamp;
-
 
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
             raw_gaps = gapDetector->gapDetection(msg, final_goal_rbt);
@@ -397,8 +394,8 @@ namespace dynamic_gap
 
     }
     
-    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) {
-
+    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) 
+    {
         std::string robot_namespace = msg->child_frame_id;
         // ROS_INFO_STREAM("robot_namespace: " << robot_namespace);
         robot_namespace.erase(0,5); // removing "robot"
@@ -407,7 +404,8 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("robot_id: " << robot_id);
         // I need BOTH odom and vel in robot2 frame
         //std::cout << "odom msg is not in odom frame" << std::endl;
-        try {
+        try 
+        {
             // transforming Odometry message from map_static to robotN
             geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer.lookupTransform(cfg.robot_frame_id, msg->header.frame_id, ros::Time(0));
 
@@ -425,7 +423,8 @@ namespace dynamic_gap
             ROS_INFO_STREAM("Odometry transform failed for " << robot_namespace);
         }
         
-        try {
+        try 
+        {
             std::string source_frame = msg->child_frame_id; 
             // std::cout << "in agentOdomCB" << std::endl;
             // std::cout << "transforming from " << source_frame << " to " << cfg.robot_frame_id << std::endl;
@@ -482,7 +481,8 @@ namespace dynamic_gap
 
     void Planner::updateTF()
     {
-        try {
+        try 
+        {
             map2rbt  = tfBuffer.lookupTransform(cfg.robot_frame_id, cfg.map_frame_id, ros::Time(0));
             rbt2map  = tfBuffer.lookupTransform(cfg.map_frame_id, cfg.robot_frame_id, ros::Time(0));
             odom2rbt = tfBuffer.lookupTransform(cfg.robot_frame_id, cfg.odom_frame_id, ros::Time(0));
@@ -499,7 +499,8 @@ namespace dynamic_gap
         }
     }
 
-    std::vector<dynamic_gap::Gap> Planner::gapManipulate(std::vector<dynamic_gap::Gap> _observed_gaps) {
+    std::vector<dynamic_gap::Gap> Planner::gapManipulate(const std::vector<dynamic_gap::Gap> & _observed_gaps) 
+    {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<dynamic_gap::Gap> manip_set = _observed_gaps;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
@@ -534,7 +535,10 @@ namespace dynamic_gap
     }
 
     // std::vector<geometry_msgs::PoseArray> 
-    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<double>>& res_time_traj) {
+    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, 
+                                                            std::vector<geometry_msgs::PoseArray>& res, 
+                                                            std::vector<std::vector<double>>& res_time_traj) 
+    {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<geometry_msgs::PoseArray> ret_traj(vec.size());
         std::vector<std::vector<double>> ret_time_traj(vec.size());
@@ -543,7 +547,8 @@ namespace dynamic_gap
 
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
         try {
-            for (size_t i = 0; i < vec.size(); i++) {
+            for (size_t i = 0; i < vec.size(); i++) 
+            {
                 if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("generating traj for gap: " << i);
                 // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
@@ -551,7 +556,8 @@ namespace dynamic_gap
                 
                 // TRAJECTORY GENERATED IN RBT FRAME
                 bool run_g2g = true; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
-                if (run_g2g) {
+                if (run_g2g) 
+                {
                     std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
                     g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, run_g2g);
                     g2g_tuple = gapTrajSyn->forwardPassTrajectory(g2g_tuple);
@@ -949,10 +955,7 @@ namespace dynamic_gap
             // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
             
             raw_cmd_vel = trajController->controlLaw(curr_pose, ctrl_target_pose, 
-                                                static_scan, rbt_in_cam_lc,
-                                                current_rbt_vel, current_rbt_acc,
-                                                curr_right_model, curr_left_model,
-                                                curr_peak_velocity_x, curr_peak_velocity_y);
+                                                    static_scan, curr_peak_velocity_x, curr_peak_velocity_y);
         }
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
 
@@ -992,7 +995,8 @@ namespace dynamic_gap
     }
 
     std::vector<dynamic_gap::Gap> Planner::gapSetFeasibilityCheck(bool & curr_exec_gap_assoc, 
-                                                                  bool & curr_exec_gap_feas) {
+                                                                  bool & curr_exec_gap_feas) 
+    {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         //std::cout << "PULLING MODELS TO ACT ON" << std::endl;
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
@@ -1028,7 +1032,8 @@ namespace dynamic_gap
         int curr_left_idx = getCurrentLeftGapIndex();
         int curr_right_idx = getCurrentRightGapIndex();
 
-        if (cfg.debug.feasibility_debug_log) {
+        if (cfg.debug.feasibility_debug_log) 
+        {
             ROS_INFO_STREAM("current simplified gaps:");
             printGapModels(curr_observed_gaps);
             ROS_INFO_STREAM("current left/right indices: " << curr_left_idx << ", " << curr_right_idx);
@@ -1038,7 +1043,8 @@ namespace dynamic_gap
 
         bool gap_i_feasible;
         std::vector<dynamic_gap::Gap> feasible_gap_set;
-        for (size_t i = 0; i < curr_observed_gaps.size(); i++) {
+        for (size_t i = 0; i < curr_observed_gaps.size(); i++) 
+        {
             // obtain crossing point
 
             if (cfg.debug.feasibility_debug_log) ROS_INFO_STREAM("feasibility check for gap " << i);

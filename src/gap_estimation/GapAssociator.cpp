@@ -13,7 +13,8 @@
 
 namespace dynamic_gap {
 
-	std::vector< std::vector<float>> obtainGapPoints(std::vector<dynamic_gap::Gap> gaps) {
+	std::vector< std::vector<float>> obtainGapPoints(const std::vector<dynamic_gap::Gap> & gaps) 
+	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
 		for (auto & g : gaps) {	
@@ -45,8 +46,9 @@ namespace dynamic_gap {
 		return points;
 	}
 
-	std::vector<std::vector<double>> GapAssociator::obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, 
-															std::vector<dynamic_gap::Gap> previous_gaps) {
+	std::vector<std::vector<double>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+																	 const std::vector<dynamic_gap::Gap> & previous_gaps) 
+	{
 		double start_time = ros::Time::now().toSec(); 
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
@@ -79,43 +81,48 @@ namespace dynamic_gap {
 		// ROS_INFO_STREAM("obtainDistMatrix time elapsed: " << ros::Time::now().toSec() - start_time);
 	}
 	
-	void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, 
-							  std::vector<dynamic_gap::Gap> previous_gaps, 
-							  std::vector<int> association,
-							  std::vector< std::vector<double> > distMatrix) {
+	void printGapAssociations(const std::vector<dynamic_gap::Gap> & current_gaps, 
+							  const std::vector<dynamic_gap::Gap> & previous_gaps, 
+							  const std::vector<int> & association,
+							  const std::vector< std::vector<double> > & distMatrix) 
+	{
         // std::cout << "printing associations" << std::endl;
 
         float curr_x, curr_y, prev_x, prev_y;
-        for (int i = 0; i < association.size(); i++) {
+        for (int i = 0; i < association.size(); i++) 
+		{
             std::vector<int> pair{i, association[i]};
             ROS_INFO_STREAM_NAMED("laserScanCB", "pair (" << i << ", " << association[i] << ")");
-            if (i >= 0 && association[i] >= 0) {
+            if (i >= 0 && association[i] >= 0) 
+			{
                 int current_gap_idx = int(std::floor(pair[0] / 2.0));
                 int previous_gap_idx = int(std::floor(pair[1] / 2.0));
-                if (pair[0] % 2 == 0) {  // curr left
+
+                if (pair[0] % 2 == 0) // curr left
                     current_gaps.at(current_gap_idx).getRCartesian(curr_x, curr_y);
-                } else { // curr right
+                else // curr right
                     current_gaps.at(current_gap_idx).getLCartesian(curr_x, curr_y);
-                }
-                if (pair[1] % 2 == 0) { // prev left
+                
+                if (pair[1] % 2 == 0) // prev left
                     previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
-                } else { // prev right
+                else // prev right
                     previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
-                }
+                
                 ROS_INFO_STREAM_NAMED("laserScanCB", "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
-            } else {
+            } else 
+			{
                 ROS_INFO_STREAM_NAMED("laserScanCB", "From NULL to (" << curr_x << ", " <<  curr_y << ")");
             }
 			
         }
     }
 
-	void printGapTransition(std::vector<dynamic_gap::Gap> observed_gaps, 
-							std::vector<dynamic_gap::Gap> previous_gaps,
-							std::vector< std::vector<double> > distMatrix, 
-							std::vector<int> pair,
-							bool valid_assoc) {
-
+	void printGapTransition(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+							const std::vector<dynamic_gap::Gap> & previous_gaps,
+							const std::vector< std::vector<double> > & distMatrix, 
+							const std::vector<int> & pair,
+							bool valid_assoc) 
+	{
 		int current_gap_idx = int(std::floor(pair[0] / 2.0));
 		int previous_gap_idx = int(std::floor(pair[1] / 2.0));
 		float curr_x, curr_y, prev_x, prev_y;
@@ -161,9 +168,9 @@ namespace dynamic_gap {
 	}
 
 	void GapAssociator::assignModels(std::vector<int> & association, 
-									 std::vector< std::vector<double> > & distMatrix, 
+									 const std::vector< std::vector<double> > & distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
-									 std::vector<dynamic_gap::Gap> previous_gaps,
+									 const std::vector<dynamic_gap::Gap> & previous_gaps,
 									 int * model_idx,
                                      const ros::Time & t_kf_update, 
 									 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
@@ -210,7 +217,7 @@ namespace dynamic_gap {
 			// if current gap pt has valid association and association is under distance threshold
 			bool assoc_idx_in_range = previous_gaps.size() > int(std::floor(pair[1] / 2.0));
 			bool assoc_idx_out_of_range = (pair[1] < 0);
-			bool assoc_dist_in_thresh = distMatrix[pair[0]][pair[1]] <= assoc_thresh;
+			bool assoc_dist_in_thresh = (distMatrix[pair[0]][pair[1]] <= assoc_thresh);
 			bool valid_assoc = !assoc_idx_out_of_range && assoc_dist_in_thresh; 
 			if (valid_assoc) {
 				//std::cout << "associating" << std::endl;	
@@ -240,7 +247,8 @@ namespace dynamic_gap {
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(std::vector< std::vector<double> > & distMatrix) {
+	std::vector<int> GapAssociator::associateGaps(const std::vector< std::vector<double> > & distMatrix) 
+	{
 		// NEW ASSIGNMENT OBTAINED
 		//double start_time = ros::Time::now().toSec();
 
@@ -259,7 +267,7 @@ namespace dynamic_gap {
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
 	//********************************************************//
-	double GapAssociator::Solve(std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment)
+	double GapAssociator::Solve(const std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment)
 	{
 		unsigned int nRows = DistMatrix.size();
 		unsigned int nCols = DistMatrix[0].size();

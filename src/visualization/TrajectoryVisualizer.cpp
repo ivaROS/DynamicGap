@@ -13,15 +13,13 @@ namespace dynamic_gap
         trajectory_switch_pub = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
     }
 
-    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, const geometry_msgs::PoseArray & switch_traj) {
-        
-
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, const geometry_msgs::PoseArray & switch_traj) 
+    {
         geometry_msgs::Pose last_pose;
-        if (switch_traj.poses.size() > 0) {
+        if (switch_traj.poses.size() > 0)
             last_pose = switch_traj.poses[switch_traj.poses.size() - 1];
-        } else {
+        else 
             last_pose = geometry_msgs::Pose();
-        }
 
         visualization_msgs::Marker marker;
         marker.header = switch_traj.header;
@@ -40,17 +38,17 @@ namespace dynamic_gap
         trajectory_switch_pub.publish(marker);
     }
 
-    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) {
+    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
-        if (plan.size() < 1) {
+        if (plan.size() < 1) 
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << plan.size() << " < 1");
-        }
 
         geometry_msgs::PoseArray vis_arr;
         vis_arr.header = plan.at(0).header;
-        for (auto & pose : plan) {
+        for (auto & pose : plan) 
             vis_arr.poses.push_back(pose.pose);
-        }
+
         entire_global_plan_pub.publish(vis_arr);
     }
     /*
@@ -89,7 +87,8 @@ namespace dynamic_gap
         trajectory_score.publish(score_arr);
     }
     */
-    void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, const std::vector<std::vector<double>> & cost) 
+    void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
+                                            const std::vector<std::vector<double>> & cost) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray score_arr;
@@ -121,12 +120,13 @@ namespace dynamic_gap
         ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
             << prr.size() << ", cost: " << cost.size());
 
-        for (int i = 0; i < prr.size(); i++) {
-
+        for (int i = 0; i < prr.size(); i++) 
+        {
             ROS_FATAL_STREAM_COND(!prr.at(i).poses.size() == cost.at(i).size(), "pubAllScore size mismatch," << i << "th "
                 << prr.at(i).poses.size() << ", cost: " << cost.at(i).size());
             
-            for (int j = 0; j < prr.at(i).poses.size(); j++) {
+            for (int j = 0; j < prr.at(i).poses.size(); j++) 
+            {
                 lg_marker.id = int (score_arr.markers.size());
                 lg_marker.pose = prr.at(i).poses.at(j);
 
@@ -176,8 +176,10 @@ namespace dynamic_gap
         lg_marker.color.g = 1.0;
         lg_marker.lifetime = ros::Duration(100.0);
 
-        for (auto & arr : prr) {
-            for (auto pose : arr.poses) {
+        for (auto & arr : prr) 
+        {
+            for (auto pose : arr.poses) 
+            {
                 lg_marker.id = int (vis_traj_arr.markers.size());
                 lg_marker.pose = pose;
                 vis_traj_arr.markers.push_back(lg_marker);
@@ -188,7 +190,8 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj) 
     {
-        try { 
+        try 
+        { 
             geometry_msgs::PoseArray pub_traj;
             if (traj.size() > 0) {
                 // Should be safe with this check

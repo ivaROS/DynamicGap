@@ -1,7 +1,9 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 
-namespace dynamic_gap{
-    TrajectoryController::TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {
+namespace dynamic_gap
+{
+    TrajectoryController::TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    {
         projection_viz = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
         thres = 0.1;
@@ -182,12 +184,11 @@ namespace dynamic_gap{
         return ch;
     }
 
-    geometry_msgs::Twist TrajectoryController::manualControlLaw() {
+    geometry_msgs::Twist TrajectoryController::manualControlLaw() 
+    {
         ROS_INFO_STREAM("Manual Control");
 
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
-
-
 
         char key = getch();
         // ROS_INFO_STREAM("Keyboard input: " << key);
@@ -232,7 +233,8 @@ namespace dynamic_gap{
     /*
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
     */
-    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(sensor_msgs::LaserScan inflated_egocircle) {
+    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(const sensor_msgs::LaserScan & inflated_egocircle) 
+    {
         ROS_INFO_STREAM("obstacle avoidance control");
         double cmd_vel_x_safe = 0;
         double cmd_vel_y_safe = 0;                                   
@@ -278,12 +280,12 @@ namespace dynamic_gap{
     }
 
     geometry_msgs::Twist TrajectoryController::controlLaw(
-        geometry_msgs::Pose current, nav_msgs::Odometry desired,
-        sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc,
-        geometry_msgs::TwistStamped current_rbt_vel, geometry_msgs::TwistStamped rbt_accel,
-        dynamic_gap::Estimator * curr_right_model, dynamic_gap::Estimator * curr_left_model,
-        double curr_peak_velocity_x, double curr_peak_velocity_y) {
-        
+        const geometry_msgs::Pose & current, 
+        const nav_msgs::Odometry & desired,
+        const sensor_msgs::LaserScan & inflated_egocircle, 
+        const double & curr_peak_velocity_x, 
+        const double & curr_peak_velocity_y) 
+    {    
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
 
@@ -354,10 +356,13 @@ namespace dynamic_gap{
         return cmd_vel;
     }
 
-    geometry_msgs::Twist TrajectoryController::processCmdVel(geometry_msgs::Twist raw_cmd_vel,
-                        sensor_msgs::LaserScan inflated_egocircle, geometry_msgs::PoseStamped rbt_in_cam_lc, 
-                        dynamic_gap::Estimator * curr_right_model, dynamic_gap::Estimator * curr_left_model,
-                        geometry_msgs::TwistStamped current_rbt_vel, geometry_msgs::TwistStamped rbt_accel) 
+    geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & raw_cmd_vel,
+                        const sensor_msgs::LaserScan & inflated_egocircle, 
+                        const geometry_msgs::PoseStamped & rbt_in_cam_lc, 
+                        const dynamic_gap::Estimator * curr_right_model, 
+                        const dynamic_gap::Estimator * curr_left_model,
+                        const geometry_msgs::TwistStamped & current_rbt_vel, 
+                        const geometry_msgs::TwistStamped & rbt_accel) 
     {
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
 
@@ -620,8 +625,8 @@ namespace dynamic_gap{
         return d_h_left_dx;
     }
 
-    void TrajectoryController::run_projection_operator(sensor_msgs::LaserScan inflated_egocircle, 
-                                                        geometry_msgs::PoseStamped rbt_in_cam_lc,
+    void TrajectoryController::run_projection_operator(const sensor_msgs::LaserScan & inflated_egocircle, 
+                                                        const geometry_msgs::PoseStamped & rbt_in_cam_lc,
                                                         Eigen::Vector2d cmd_vel_fb,
                                                         Eigen::Vector2d & Psi_der, double & Psi,
                                                         float & cmd_vel_x_safe, float & cmd_vel_y_safe,

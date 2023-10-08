@@ -18,7 +18,8 @@
 // #include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
 // namespace plt = matplotlibcpp;
 
-namespace dynamic_gap {
+namespace dynamic_gap 
+{
     RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string _side, int _index, double init_r, double init_beta, 
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
@@ -289,8 +290,8 @@ namespace dynamic_gap {
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                     bool _print,
-                                    std::vector<geometry_msgs::Pose> _agent_odoms,
-                                    std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                    const std::vector<geometry_msgs::Pose> & _agent_odoms,
+                                    const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
                                     const ros::Time & t_update) {
         
         agent_odoms = _agent_odoms;

@@ -8,22 +8,27 @@ namespace dynamic_gap {
         propagatedEgocirclePublisher = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 1);
     }
 
-    void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+    void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) 
+    {
         boost::mutex::scoped_lock lock(egocircle_mutex);
         msg = msg_;
     }
 
-    void TrajectoryScorer::updateStaticEgoCircle(sensor_msgs::LaserScan static_scan_) {
+    void TrajectoryScorer::updateStaticEgoCircle(const sensor_msgs::LaserScan & static_scan_) 
+    {
         boost::mutex::scoped_lock lock(egocircle_mutex);
         static_scan = static_scan_;
     }
 
-    void TrajectoryScorer::updateLocalGoal(geometry_msgs::PoseStamped lg, geometry_msgs::TransformStamped odom2rbt) {
+    void TrajectoryScorer::updateLocalGoal(geometry_msgs::PoseStamped lg, geometry_msgs::TransformStamped odom2rbt) 
+    {
         boost::mutex::scoped_lock lock(gplan_mutex);
         tf2::doTransform(lg, local_goal, odom2rbt);
     }
 
-    bool compareModelBearings(dynamic_gap::RotatingFrameCartesianKalmanFilter* model_one, dynamic_gap::RotatingFrameCartesianKalmanFilter* model_two) {
+    bool compareModelBearings(dynamic_gap::RotatingFrameCartesianKalmanFilter* model_one, 
+                              dynamic_gap::RotatingFrameCartesianKalmanFilter* model_two) 
+    {
         Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
         Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
@@ -46,7 +51,7 @@ namespace dynamic_gap {
         }
     };
 
-    std::vector< std::vector<double> > TrajectoryScorer::sort_and_prune(std::vector<Eigen::Matrix<double, 4, 1> > _odom_vects)
+    std::vector< std::vector<double> > TrajectoryScorer::sort_and_prune(const std::vector<Eigen::Matrix<double, 4, 1> > & _odom_vects)
     {
     
         // Declare vector of pairs
@@ -86,10 +91,10 @@ namespace dynamic_gap {
     }
 
     void TrajectoryScorer::recoverDynamicEgoCircle(double t_i, double t_iplus1, 
-                                                        std::vector<Eigen::Matrix<double, 4, 1> > & curr_agents_lc,
-                                                        sensor_msgs::LaserScan & dynamic_laser_scan,
-                                                        bool print) {
-        
+                                                    std::vector<Eigen::Matrix<double, 4, 1> > & curr_agents_lc,
+                                                    sensor_msgs::LaserScan & dynamic_laser_scan,
+                                                    bool print) 
+    {    
         double interval = t_iplus1 - t_i;
         if (interval <= 0.0) {
             return;
@@ -234,18 +239,20 @@ namespace dynamic_gap {
         return cost;
     }
 
-    void TrajectoryScorer::visualizePropagatedEgocircle(sensor_msgs::LaserScan dynamic_laser_scan) {
+    void TrajectoryScorer::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamic_laser_scan) 
+    {
         propagatedEgocirclePublisher.publish(dynamic_laser_scan);
     }
 
-    std::vector<double> TrajectoryScorer::scoreTrajectory(geometry_msgs::PoseArray traj, 
-                                                            std::vector<double> time_arr, std::vector<dynamic_gap::Gap>& current_raw_gaps,              
-                                                            std::vector<geometry_msgs::Pose> _agent_odoms,
-                                                            std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
-                                                            std::vector<sensor_msgs::LaserScan> future_scans,
+    std::vector<double> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & traj, 
+                                                          const std::vector<double> & time_arr, 
+                                                          const std::vector<dynamic_gap::Gap> & current_raw_gaps,              
+                                                          const std::vector<geometry_msgs::Pose> & _agent_odoms,
+                                                          const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
+                                                          const std::vector<sensor_msgs::LaserScan> & future_scans,
                                                             bool print,
-                                                            bool vis) {
-        
+                                                            bool vis) 
+    {    
         // Requires LOCAL FRAME
         // Should be no racing condition
         double start_time = ros::WallTime::now().toSec();
@@ -352,7 +359,8 @@ namespace dynamic_gap {
         return cost_val;
     }
 
-    double TrajectoryScorer::terminalGoalCost(geometry_msgs::Pose pose) {
+    double TrajectoryScorer::terminalGoalCost(geometry_msgs::Pose pose) 
+    {
         boost::mutex::scoped_lock planlock(gplan_mutex);
         // ROS_INFO_STREAM(pose);
         if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << local_goal.pose.position.x << ", " << local_goal.pose.position.y << ")");
@@ -373,7 +381,10 @@ namespace dynamic_gap {
         return dist;
     }
 
-    int TrajectoryScorer::dynamicGetMinDistIndex(geometry_msgs::Pose pose, sensor_msgs::LaserScan dynamic_laser_scan, bool print) {
+    int TrajectoryScorer::dynamicGetMinDistIndex(geometry_msgs::Pose pose, 
+                                                 const sensor_msgs::LaserScan & dynamic_laser_scan, 
+                                                 bool print) 
+    {
         boost::mutex::scoped_lock lock(egocircle_mutex);
 
         // obtain orientation and idx of pose

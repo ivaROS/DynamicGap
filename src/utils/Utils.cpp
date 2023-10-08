@@ -1,6 +1,7 @@
 #include <dynamic_gap/utils/Utils.h>
 
-namespace dynamic_gap {
+namespace dynamic_gap 
+{
     // Utils::Utils() {}
 
     // Utils::~Utils() {}
@@ -13,8 +14,7 @@ namespace dynamic_gap {
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
     double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, 
-                                Eigen::Vector2d right_norm_vect,
-                                bool wrap = true) 
+                                Eigen::Vector2d right_norm_vect) 
     {
         double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
@@ -48,7 +48,9 @@ namespace dynamic_gap {
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect, bool wrap) 
+    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
+                                Eigen::Vector2f right_norm_vect, 
+                                bool wrap) 
     {
         float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
@@ -184,7 +186,7 @@ namespace dynamic_gap {
         }
     }
 
-    sensor_msgs::LaserScan Utils::staticDynamicScanSeparation(std::vector<dynamic_gap::Gap> observed_gaps, 
+    sensor_msgs::LaserScan Utils::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & observed_gaps, 
                                                                 boost::shared_ptr<sensor_msgs::LaserScan const> msg,
                                                                 bool print) {
 

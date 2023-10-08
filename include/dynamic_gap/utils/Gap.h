@@ -113,7 +113,7 @@ namespace dynamic_gap
             }
 
             // Get Left Cartesian Distance
-            void getRCartesian(float &x, float &y)
+            void getRCartesian(float &x, float &y) const
             {
                 x = (_rdist) * cos(-((float) half_scan - _right_idx) / half_scan * M_PI);
                 y = (_rdist) * sin(-((float) half_scan - _right_idx) / half_scan * M_PI);
@@ -121,25 +121,28 @@ namespace dynamic_gap
 
             // Get Right Cartesian Distance
             // edited by Max: float &x, float &y
-            void getLCartesian(float &x, float &y)
+            void getLCartesian(float &x, float &y) const
             {
                 x = (_ldist) * cos(-((float) half_scan - _left_idx) / half_scan * M_PI);
                 y = (_ldist) * sin(-((float) half_scan - _left_idx) / half_scan * M_PI);
             }
 
-            void getSimplifiedRCartesian(float &x, float &y){
+            void getSimplifiedRCartesian(float &x, float &y) const
+            {
                 // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
                 x = (convex.convex_rdist) * cos(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
                 y = (convex.convex_rdist) * sin(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
             }
 
-            void getSimplifiedLCartesian(float &x, float &y){
+            void getSimplifiedLCartesian(float &x, float &y) const
+            {
                 // std::cout << "convex_rdist: " << convex_rdist << ", convex_ridx: " << convex_ridx << ", half_scan: " << half_scan << std::endl;
                 x = (convex.convex_ldist) * cos(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
                 y = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
             }
 
-            void initManipIndices() {
+            void initManipIndices() 
+            {
                 convex.convex_ridx = _right_idx;
                 convex.convex_rdist = _rdist;
                 convex.convex_lidx = _left_idx;

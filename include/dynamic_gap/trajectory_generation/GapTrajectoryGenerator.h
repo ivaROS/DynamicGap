@@ -33,13 +33,15 @@ namespace dynamic_gap {
         public:
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
-            std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
-            geometry_msgs::PoseArray transformBackTrajectory(geometry_msgs::PoseArray, geometry_msgs::TransformStamped);
-            std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>>);
+            
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> generateTrajectory(const dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
+            // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
+            geometry_msgs::PoseArray transformBackTrajectory(const geometry_msgs::PoseArray &, 
+                                                             const geometry_msgs::TransformStamped &);
+            std::tuple<geometry_msgs::PoseArray, std::vector<double>> forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<double>> & return_tuple);
 
         private: 
-            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A);
+            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);
 
             Eigen::VectorXd arclength_sample_bezier(Eigen::Vector2d pt_origin, Eigen::Vector2d pt_0, Eigen::Vector2d pt_1, double num_curve_points, double & des_dist_interval);        
             void buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
@@ -52,8 +54,12 @@ namespace dynamic_gap {
                                 double num_curve_points, 
                                 int & true_left_num_rge_points, int & true_right_num_rge_points, Eigen::Vector2d init_rbt_pos,
                                 Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin);
-            void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
-                                     Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd all_centers);
+            void setConstraintMatrix(Eigen::MatrixXd &A, 
+                                     int N, 
+                                     int Kplus1, 
+                                     const Eigen::MatrixXd & all_curve_pts, 
+                                     const Eigen::MatrixXd & all_inward_norms, 
+                                     const Eigen::MatrixXd & all_centers);
 
 
             geometry_msgs::TransformStamped planning2odom;       

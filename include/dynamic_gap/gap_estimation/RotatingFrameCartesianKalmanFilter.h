@@ -22,8 +22,10 @@
 
 // using namespace Eigen;
 
-namespace dynamic_gap {
-    class RotatingFrameCartesianKalmanFilter : public Estimator {
+namespace dynamic_gap 
+{
+    class RotatingFrameCartesianKalmanFilter : public Estimator 
+    {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
             
@@ -99,8 +101,8 @@ namespace dynamic_gap {
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                 bool print,
-                                std::vector<geometry_msgs::Pose> _agent_odoms,
-                                std::vector<geometry_msgs::Vector3Stamped> _agent_vels,
+                                const std::vector<geometry_msgs::Pose> & _agent_odoms,
+                                const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
                                 const ros::Time & t_kf_update);
 
             int get_index();

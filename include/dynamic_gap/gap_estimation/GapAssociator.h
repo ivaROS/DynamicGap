@@ -30,24 +30,25 @@ namespace dynamic_gap
 	class GapAssociator
 	{
 	public:
-		GapAssociator(){};
-		~GapAssociator(){};
-
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = cfg_->gap_assoc.assoc_thresh; };
-		std::vector<int> associateGaps(std::vector< std::vector<double> > & distMatrix);
-        void assignModels(std::vector<int> & association, std::vector< std::vector<double> > & distMatrix, 
-							std::vector<dynamic_gap::Gap>& observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps, 
-							int * model_idx, const ros::Time & t_kf_update, 
+		
+		std::vector<std::vector<double>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+														  const std::vector<dynamic_gap::Gap> & previous_gaps);
+		std::vector<int> associateGaps(const std::vector< std::vector<double> > & distMatrix);
+        void assignModels(std::vector<int> & association, 
+						  const std::vector< std::vector<double> > & distMatrix, 
+							std::vector<dynamic_gap::Gap>& observed_gaps, 
+							const std::vector<dynamic_gap::Gap> & previous_gaps, 
+							int * model_idx, 
+							const ros::Time & t_kf_update, 
 							const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                       		const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
 					  		bool print);
-		std::vector<std::vector<double>> obtainDistMatrix(std::vector<dynamic_gap::Gap> observed_gaps, std::vector<dynamic_gap::Gap> previous_gaps);
-
 
 	private:
 		const DynamicGapConfig* cfg_;
 		double assoc_thresh;
-		double Solve(std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment);
+		double Solve(const std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment);
 		void assignmentoptimal(int *assignment, double *cost, double *distMatrix, int nOfRows, int nOfColumns);
 		void buildassignmentvector(int *assignment, bool *starMatrix, int nOfRows, int nOfColumns);
 		void computeassignmentcost(int *assignment, double *cost, double *distMatrix, int nOfRows);

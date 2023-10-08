@@ -1,7 +1,8 @@
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 
 namespace dynamic_gap {
-    void GapManipulator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+    void GapManipulator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) 
+    {
         boost::mutex::scoped_lock lock(egolock);
         msg = msg_;
         num_of_scan = (int)(msg.get()->ranges.size());
@@ -10,7 +11,8 @@ namespace dynamic_gap {
         angle_increment = msg.get()->angle_increment;
     }
 
-    void GapManipulator::updateStaticEgoCircle(sensor_msgs::LaserScan static_scan_) {
+    void GapManipulator::updateStaticEgoCircle(const sensor_msgs::LaserScan & static_scan_) 
+    {
         boost::mutex::scoped_lock lock(egolock);
         static_scan = static_scan_;
         num_of_scan = (int) (static_scan.ranges.size());
@@ -21,7 +23,8 @@ namespace dynamic_gap {
     }
 
     void GapManipulator::updateDynamicEgoCircle(dynamic_gap::Gap& gap,
-                                                std::vector<sensor_msgs::LaserScan> future_scans) {
+                                                const std::vector<sensor_msgs::LaserScan> & future_scans) 
+    {
         dynamic_scan = static_scan;
         double t_iplus1 = gap.gap_lifespan;
 
@@ -218,7 +221,8 @@ namespace dynamic_gap {
         bool goal_within_gap_angle = goal_within(local_goal_idx, ridx, lidx, int(2*half_num_scan)); // is localgoal within gap angle
         // ROS_INFO_STREAM("goal_vis: " << goal_vis << ", " << goal_in_range);
         
-        if (goal_within_gap_angle) {
+        if (goal_within_gap_angle) 
+        {
             bool goal_vis = checkGoalVisibility(localgoal, theta_r, theta_l, rdist, ldist, stored_scan_msgs); // is localgoal within gap range
             if (goal_vis) {
 

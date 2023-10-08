@@ -6,8 +6,8 @@ namespace dynamic_gap {
         cfg_ = &cfg;
     }
 
-    void GoalSelector::setGoal(
-        const std::vector<geometry_msgs::PoseStamped> &plan) {
+    void GoalSelector::setGoal(const std::vector<geometry_msgs::PoseStamped> &plan) 
+    {
         // Incoming plan is in map frame
         boost::mutex::scoped_lock lock(goal_select_mutex);
         boost::mutex::scoped_lock gplock(gplan_mutex);
@@ -16,12 +16,14 @@ namespace dynamic_gap {
         // transform plan to robot frame such as base_link
     }
 
-    void GoalSelector::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
+    void GoalSelector::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg) 
+    {
         boost::mutex::scoped_lock lock(lscan_mutex);
         sharedPtr_laser = msg;
     }
 
-    void GoalSelector::updateLocalGoal(geometry_msgs::TransformStamped map2rbt) {
+    void GoalSelector::updateLocalGoal(geometry_msgs::TransformStamped map2rbt) 
+    {
         if (global_plan.size() < 2) {
             // No Global Goal
             return;
@@ -69,7 +71,8 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("setting local goal (in robot frame) to " << local_goal.pose.position.x << ", " << local_goal.pose.position.y); 
     }
 
-    bool GoalSelector::NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) {
+    bool GoalSelector::NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) 
+    {
         int laserScanIdx = PoseIndexInSensorMsg(pose);
         float epsilon2 = float(cfg_->gap_manip.epsilon2);
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
@@ -79,7 +82,8 @@ namespace dynamic_gap {
     }
 
     // We are iterating through the global trajectory snippet, checking each pose 
-    bool GoalSelector::VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) {
+    bool GoalSelector::VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) 
+    {
         int laserScanIdx = PoseIndexInSensorMsg(pose);
         float epsilon2 = float(cfg_->gap_manip.epsilon2);
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
@@ -90,17 +94,20 @@ namespace dynamic_gap {
         return check;
     }
 
-    int GoalSelector::PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose) {
+    int GoalSelector::PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose) 
+    {
         auto orientation = getPoseOrientation(pose);
         auto index = float(orientation + M_PI) / (sharedPtr_laser.get()->angle_increment);
         return int(std::floor(index));
     }
 
-    double GoalSelector::getPoseOrientation(geometry_msgs::PoseStamped pose) {
+    double GoalSelector::getPoseOrientation(geometry_msgs::PoseStamped pose) 
+    {
         return  std::atan2(pose.pose.position.y + 1e-3, pose.pose.position.x + 1e-3);
     }
 
-    std::vector<geometry_msgs::PoseStamped> GoalSelector::getRelevantGlobalPlan(geometry_msgs::TransformStamped map2rbt) {
+    std::vector<geometry_msgs::PoseStamped> GoalSelector::getRelevantGlobalPlan(geometry_msgs::TransformStamped map2rbt) 
+    {
         // Global Plan is now in robot frame
         // Do magic with egocircle
         // ROS_INFO_STREAM("getRelevantGlobalPlan");
@@ -166,11 +173,14 @@ namespace dynamic_gap {
         return local_gplan;
     }
 
-    double GoalSelector::dist2rbt(geometry_msgs::PoseStamped pose) {
+    double GoalSelector::dist2rbt(geometry_msgs::PoseStamped pose) 
+    {
         return sqrt(pow(pose.pose.position.x, 2) + pow(pose.pose.position.y, 2));
     }
 
-    double GoalSelector::scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, sensor_msgs::LaserScan stored_scan_msgs) {
+    double GoalSelector::scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
+                                                const sensor_msgs::LaserScan & stored_scan_msgs) 
+    {
         double plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
         int half_num_scan = stored_scan_msgs.ranges.size() / 2;
         int plan_idx = int (half_num_scan * plan_theta / M_PI) + half_num_scan;
@@ -181,20 +191,22 @@ namespace dynamic_gap {
     }
 
 
-    bool GoalSelector::isNotWithin(const double dist) {
-
+    bool GoalSelector::isNotWithin(const double dist) 
+    {
         return dist <= 0.0;
     }
 
     // This should return something in odom frame
-    geometry_msgs::PoseStamped GoalSelector::transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom) {
+    geometry_msgs::PoseStamped GoalSelector::transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom) 
+    {
         geometry_msgs::PoseStamped result;
         tf2::doTransform(local_goal, result, rbt2odom);
         
         return result;
     }
 
-    std::vector<geometry_msgs::PoseStamped> GoalSelector::getOdomGlobalPlan() {
+    std::vector<geometry_msgs::PoseStamped> GoalSelector::getOdomGlobalPlan() 
+    {
         return global_plan;
     }
 

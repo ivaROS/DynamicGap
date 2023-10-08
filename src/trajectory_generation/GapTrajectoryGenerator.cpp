@@ -2,7 +2,8 @@
 
 namespace dynamic_gap 
 {
-    void GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, Eigen::MatrixXd A) 
+    void GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, 
+                                                    const Eigen::MatrixXd & A) 
     {
         // ROS_INFO_STREAM("initializing solver");
 
@@ -63,15 +64,16 @@ namespace dynamic_gap
     }
 
     std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajectoryGenerator::generateTrajectory(
-                                                    dynamic_gap::Gap& selectedGap, 
+                                                    const dynamic_gap::Gap& selectedGap, 
                                                     geometry_msgs::PoseStamped curr_pose, 
                                                     geometry_msgs::TwistStamped curr_vel,
-                                                    bool run_g2g) {
-
+                                                    bool run_g2g) 
+    {
         geometry_msgs::PoseArray posearr;
         std::vector<double> timearr;
 
-        try {        
+        try 
+        {        
             // return geometry_msgs::PoseArray();
             num_curve_points = cfg_->traj.num_curve_points;
             // ROS_INFO_STREAM("num_curve_points: " << num_curve_points);
@@ -109,7 +111,8 @@ namespace dynamic_gap
             double goal_vel_x = (terminal_goal_x - initial_goal_x) / selectedGap.gap_lifespan; // absolute velocity (not relative to robot)
             double goal_vel_y = (terminal_goal_y - initial_goal_y) / selectedGap.gap_lifespan;
 
-            if (cfg_->debug.traj_debug_log) {
+            if (cfg_->debug.traj_debug_log) 
+            {
                 ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
                 ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
                 ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), actual initial right point: (" << x_right << ", " << y_right << ")"); 
@@ -171,7 +174,8 @@ namespace dynamic_gap
             selectedGap.num_left_rge_points = true_left_num_rge_points;
             selectedGap.num_right_rge_points = true_right_num_rge_points;
             */
-            if (run_g2g) { //   || selectedGap.goal.goalwithin
+            if (run_g2g) 
+            { //   || selectedGap.goal.goalwithin
                 state_type x = {ego_x[0], ego_x[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x, selectedGap.goal.y};
                 // ROS_INFO_STREAM("Goal to Goal");
                 g2g inte_g2g(selectedGap.goal.x, selectedGap.goal.y,
@@ -268,8 +272,10 @@ namespace dynamic_gap
     }
 
     void GapTrajectoryGenerator::setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
-                                               Eigen::MatrixXd all_curve_pts, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd all_centers) {
-
+                                                        const Eigen::MatrixXd & all_curve_pts, 
+                                                        const Eigen::MatrixXd & all_inward_norms,
+                                                        const Eigen::MatrixXd & all_centers) 
+    {
         Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); // 
         Eigen::MatrixXd A_N(Kplus1, N);
         Eigen::MatrixXd A_S = Eigen::MatrixXd::Zero(Kplus1, 1);
@@ -636,16 +642,17 @@ namespace dynamic_gap
     }
 
     // If i try to delete this DGap breaks
-    [[deprecated("Use single trajectory generation")]]
-    std::vector<geometry_msgs::PoseArray> GapTrajectoryGenerator::generateTrajectory(std::vector<dynamic_gap::Gap> gapset) {
-        std::vector<geometry_msgs::PoseArray> traj_set(gapset.size());
-        return traj_set;
-    }
+    // [[deprecated("Use single trajectory generation")]]
+    // std::vector<geometry_msgs::PoseArray> GapTrajectoryGenerator::generateTrajectory(std::vector<dynamic_gap::Gap> gapset) 
+    // {
+    //     std::vector<geometry_msgs::PoseArray> traj_set(gapset.size());
+    //     return traj_set;
+    // }
 
     // Return in Odom frame (used for ctrl)
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformBackTrajectory(
-        geometry_msgs::PoseArray posearr,
-        geometry_msgs::TransformStamped planning2odom)
+        const geometry_msgs::PoseArray & posearr,
+        const geometry_msgs::TransformStamped & planning2odom)
     {
         geometry_msgs::PoseArray retarr;
         geometry_msgs::PoseStamped outplaceholder;
@@ -664,7 +671,7 @@ namespace dynamic_gap
         return retarr;
     }
 
-    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajectoryGenerator::forwardPassTrajectory(std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple)
+    std::tuple<geometry_msgs::PoseArray, std::vector<double>> GapTrajectoryGenerator::forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<double>> & return_tuple)
     {
         geometry_msgs::PoseArray pose_arr = std::get<0>(return_tuple);
         std::vector<double> time_arr = std::get<1>(return_tuple);
@@ -696,7 +703,8 @@ namespace dynamic_gap
         shortened_time_arr.push_back(0.0);
         double threshold = 0.1;
         // ROS_INFO_STREAM("pose[0]: " << pose_arr.poses[0].position.x << ", " << pose_arr.poses[0].position.y);
-        for (int i = 1; i < pose_arr.poses.size(); i++) {
+        for (int i = 1; i < pose_arr.poses.size(); i++) 
+        {
             auto pose = pose_arr.poses[i];
             dx = pose.position.x - shortened.back().position.x;
             dy = pose.position.y - shortened.back().position.y;

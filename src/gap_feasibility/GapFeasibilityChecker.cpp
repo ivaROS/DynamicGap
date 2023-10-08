@@ -3,13 +3,18 @@
 
 namespace dynamic_gap {
 
-    void GapFeasibilityChecker::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) {
+    void GapFeasibilityChecker::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) 
+    {
         boost::mutex::scoped_lock lock(egolock);
         msg = msg_;
-        num_of_scan = (int)(msg.get()->ranges.size());
+        auto scan = *msg.get();
+        num_of_scan = (int)(scan.ranges.size());
+        scan_angle_increment_ = scan.angle_increment;
+        scan_angle_min_ = scan.angle_min;
     }
 
-    bool GapFeasibilityChecker::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) {
+    bool GapFeasibilityChecker::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) 
+    {
         dynamic_gap::Estimator* left_model = gap.left_model;
         dynamic_gap::Estimator* right_model = gap.right_model;
 
@@ -122,7 +127,7 @@ namespace dynamic_gap {
  
     double GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, dynamic_gap::Estimator* left_model, dynamic_gap::Estimator* right_model) {
         //std::cout << "determining crossing point" << std::endl;
-        auto egocircle = *msg.get();
+        // auto egocircle = *msg.get();
 
         double x_r, x_l, y_r, y_l;
 
@@ -174,7 +179,8 @@ namespace dynamic_gap {
 
         Eigen::Vector2d left_cross_pt, right_cross_pt, diff_pt;
         bool left_range_less_radius, right_range_less_radius, gap_collided_w_rbt;
-        for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) {
+        for (double t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
+        {
             // checking to see if left point is reachable
             bool opening_left_pt_is_reachable = (left_opening && ((1.0 / left_frozen_mp_state[0]) < cfg_->control.vx_absmax * t));
             if (!opening_left_pt_is_reachable) {
@@ -236,8 +242,8 @@ namespace dynamic_gap {
 
                 range_closing_check = (left_cross_pt - right_cross_pt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
                 // IF POINTS ARE SUFFICIENTLY CLOSE TOGETHER, GAP HAS CLOSED
-                if (range_closing_check) {
-                    
+                if (range_closing_check) 
+                {    
                     if (left_cross_pt.norm() < right_cross_pt.norm()) {
                         gap_crossing_point << right_cross_pt[0], right_cross_pt[1];
                     } else {
@@ -305,7 +311,7 @@ namespace dynamic_gap {
         left_model->set_rewind_state();
         right_model->set_rewind_state();
         // do rewind_propagate
-        auto egocircle = *msg.get();        
+        // auto egocircle = *msg.get();        
 
         double beta_left, beta_right, range_left, range_right, r_min, L_to_R_angle;
         // REWINDING THE GAP FROM ITS CROSSED CONFIGURATION UNTIL THE GAP IS SUFFICIENTLY OPEN
@@ -326,11 +332,11 @@ namespace dynamic_gap {
             r_min = std::min(range_left, range_right);
 
             double wrapped_beta_left = atanThetaWrap(beta_left);
-            double init_left_idx = (wrapped_beta_left - egocircle.angle_min) / egocircle.angle_increment;
+            double init_left_idx = (wrapped_beta_left - scan_angle_min_) / scan_angle_increment_;
             int left_idx = (int) std::floor(init_left_idx);
 
             double wrapped_term_beta_right = atanThetaWrap(beta_right);
-            double init_right_idx = (wrapped_term_beta_right - egocircle.angle_min) / egocircle.angle_increment;
+            double init_right_idx = (wrapped_term_beta_right - scan_angle_min_) / scan_angle_increment_;
             int right_idx = (int) std::floor(init_right_idx);
             left_cross_pt << range_left*std::cos(wrapped_beta_left), 
                             range_left*std::sin(wrapped_beta_left);
@@ -342,7 +348,8 @@ namespace dynamic_gap {
             if (t_rew == 0 || (left_cross_pt - right_cross_pt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) { // r_min * L_to_R_angle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio
                 
                 if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("terminal points at time " << t_rew << ", left: (" << left_cross_pt[0] << ", " << left_cross_pt[1] << "), right: (" << right_cross_pt[0] << ", " << right_cross_pt[1]);
-                generateTerminalPoints(gap, wrapped_beta_left, left_rewind_mp_state[0], wrapped_term_beta_right, right_rewind_mp_state[0]);
+                generateTerminalPoints(gap, wrapped_beta_left, left_rewind_mp_state[0], 
+                                        wrapped_term_beta_right, right_rewind_mp_state[0]);
                 return t_rew;
             }
             
@@ -358,22 +365,25 @@ namespace dynamic_gap {
         return 0.0;
     }
 
-    void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, double terminal_beta_left, double terminal_reciprocal_range_left, 
-                                                                                 double terminal_beta_right, double terminal_reciprocal_range_right) {
-        auto egocircle = *msg.get();        
+    void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, 
+                                                        double terminal_beta_left, double terminal_reciprocal_range_left, 
+                                                        double terminal_beta_right, double terminal_reciprocal_range_right) 
+    {
+        // auto egocircle = *msg.get();        
         
         double wrapped_term_beta_left = atanThetaWrap(terminal_beta_left);
-        float init_left_idx = (terminal_beta_left - egocircle.angle_min) / egocircle.angle_increment;
+        float init_left_idx = (terminal_beta_left - scan_angle_min_) / scan_angle_increment_;
         int left_idx = (int) std::floor(init_left_idx);
         float left_dist = (1.0 / terminal_reciprocal_range_left);
 
         double wrapped_term_beta_right = atanThetaWrap(terminal_beta_right);
-        float init_right_idx = (terminal_beta_right - egocircle.angle_min) / egocircle.angle_increment;
+        float init_right_idx = (terminal_beta_right - scan_angle_min_) / scan_angle_increment_;
         int right_idx = (int) std::floor(init_right_idx);
         float right_dist = (1.0 / terminal_reciprocal_range_right);
         // if (left_idx == right_idx) right_idx++;
 
-        if (cfg_->debug.feasibility_debug_log) {
+        if (cfg_->debug.feasibility_debug_log) 
+        {
             ROS_INFO_STREAM("setting terminal points to, left: (" << left_dist * std::cos(wrapped_term_beta_left) << ", " << left_dist * std::sin(wrapped_term_beta_left) << 
                                                     "), right: (" << right_dist * std::cos(wrapped_term_beta_right) << ", " << right_dist * std::sin(wrapped_term_beta_right) << ")");
         }
