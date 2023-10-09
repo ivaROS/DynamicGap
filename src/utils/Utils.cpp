@@ -6,9 +6,19 @@ namespace dynamic_gap
 
     // Utils::~Utils() {}
 
+    int theta2idx(const float theta)
+    {
+        return int((theta + M_PI) / angle_increment);
+    }
+
+    float idx2theta(const int idx)
+    {
+        return ((float) idx - half_num_scan) * M_PI / half_num_scan;
+    }
+
     Eigen::Vector2d pol2car(Eigen::Vector2d polar_vector) 
     {
-        return Eigen::Vector2d(cos(polar_vector(1)) * polar_vector(0), sin(polar_vector(1)) * polar_vector(0));
+        return Eigen::Vector2d(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV

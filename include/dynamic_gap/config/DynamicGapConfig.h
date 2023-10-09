@@ -14,20 +14,24 @@ namespace dynamic_gap {
             std::string robot_frame_id;
             std::string sensor_frame_id;
 
-            struct GapVisualization {
+            struct GapVisualization 
+            {
                 int min_resoln;
                 bool fig_gen;
                 double viz_jitter;
                 bool debug_viz;
             } gap_viz;
 
-            struct Robot {
+            struct Robot 
+            {
                 float r_inscr;
                 int num_obsts;
                 double max_range;
+                int half_num_scan;
             } rbt;
 
-            struct PlanningMode {
+            struct PlanningMode 
+            {
                 bool projection_inflated;
                 bool planning_inflated;
                 bool holonomic;
@@ -39,19 +43,22 @@ namespace dynamic_gap {
                 bool egocircle_prop_cheat;
             } planning;            
 
-            struct ManualControl {
+            struct ManualControl 
+            {
                 bool man_ctrl;
                 float man_x;
                 float man_y;
                 float man_theta;
             } man;
 
-            struct Goal {
+            struct Goal 
+            {
                 double goal_tolerance;
                 double waypoint_tolerance;
             } goal;
 
-            struct Debug {
+            struct Debug 
+            {
                 bool raw_gaps_debug_log;
                 bool static_scan_separation_debug_log;
                 bool simplified_gaps_debug_log;
@@ -61,16 +68,19 @@ namespace dynamic_gap {
                 bool control_debug_log;
             } debug;
 
-            struct GapAssociation {
+            struct GapAssociation 
+            {
                 double assoc_thresh;
             } gap_assoc;           
 
-            struct GapEstimation {
+            struct GapEstimation 
+            {
                 double R_scalar;
                 double Q_scalar;
             } gap_est;
 
-            struct GapManipulation {
+            struct GapManipulation 
+            {
                 double epsilon1;
                 double epsilon2;
                 double rot_ratio;
@@ -81,7 +91,8 @@ namespace dynamic_gap {
                 bool radial_convert;
             } gap_manip;
 
-            struct Trajectory {
+            struct Trajectory 
+            {
                 bool synthesized_frame;
                 double scale;
                 double integrate_maxt;
@@ -96,7 +107,8 @@ namespace dynamic_gap {
                 int num_qB_points;
             } traj;            
 
-            struct ControlParams {
+            struct ControlParams 
+            {
                 double k_fb_x;
                 double k_fb_y;
                 double k_fb_theta;
@@ -109,7 +121,8 @@ namespace dynamic_gap {
                 double aang_absmax;
             } control;
             
-            struct ProjectionParam {
+            struct ProjectionParam 
+            {
                 double k_po_x;
                 double k_po_theta;
 
@@ -136,6 +149,7 @@ namespace dynamic_gap {
             rbt.r_inscr = 0.2;
             rbt.num_obsts = 0;
             rbt.max_range = 4.99;
+            rbt.half_num_scan = 256;
 
             planning.projection_inflated = false;
             planning.planning_inflated = false;

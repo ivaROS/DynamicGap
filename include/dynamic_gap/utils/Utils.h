@@ -16,10 +16,16 @@ namespace dynamic_gap
     double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
     float getLeftToRightAngle(Eigen::Vector2f, Eigen::Vector2f, bool wrap);
 
+    float idx2theta(const int idx);
+    int theta2idx(const float theta);
+
+    static int half_num_scan = 256;
+    static float angle_increment = 0.0122959f;
+
     class Utils 
     {
         public: 
-            Utils(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
+            Utils(const DynamicGapConfig& cfg) { cfg_ = &cfg; half_num_scan = cfg_->rbt.half_num_scan; }
 
             Utils& operator=(Utils other) {cfg_ = other.cfg_; return *this; }
 
