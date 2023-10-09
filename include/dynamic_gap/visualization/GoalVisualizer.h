@@ -19,6 +19,6 @@ namespace dynamic_gap
             std_msgs::ColorRGBA gapwp_color;
             std_msgs::ColorRGBA terminal_gapwp_color;
             std_msgs::ColorRGBA localGoal_color;
-            double prev_num_goals;
+            float prev_num_goals;
     };
 }

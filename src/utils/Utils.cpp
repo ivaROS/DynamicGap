@@ -16,20 +16,20 @@ namespace dynamic_gap
         return ((float) idx - half_num_scan) * M_PI / half_num_scan;
     }
 
-    Eigen::Vector2d pol2car(Eigen::Vector2d polar_vector) 
+    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector) 
     {
-        return Eigen::Vector2d(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
+        return Eigen::Vector2f(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
-    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, 
-                                Eigen::Vector2d right_norm_vect) 
+    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
+                              Eigen::Vector2f right_norm_vect) 
     {
-        double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+        float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
+        float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
 
-        double left_to_right_angle = std::atan2(determinant, dot_product);
+        float left_to_right_angle = std::atan2(determinant, dot_product);
         
         if (left_to_right_angle < 0)
             left_to_right_angle += 2*M_PI; 
@@ -39,7 +39,7 @@ namespace dynamic_gap
 
     // FROM GAP_TRAJECTORY_GENERATOR
     /*
-    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect) 
+    double getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect) 
     {
         double determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         double dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
@@ -59,8 +59,8 @@ namespace dynamic_gap
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
     float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                                Eigen::Vector2f right_norm_vect, 
-                                bool wrap) 
+                              Eigen::Vector2f right_norm_vect, 
+                              bool wrap) 
     {
         float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
@@ -68,7 +68,8 @@ namespace dynamic_gap
         float left_to_right_angle = std::atan2(determinant, dot_product);
 
         // wrapping to 0 < angle < 2pi
-        if (wrap && left_to_right_angle < 0) {
+        if (wrap && left_to_right_angle < 0) 
+        {
             ROS_INFO_STREAM("wrapping " << left_to_right_angle);
             left_to_right_angle += 2*M_PI; 
         }
@@ -76,64 +77,70 @@ namespace dynamic_gap
         return left_to_right_angle;
     }
 
-    double atanThetaWrap(double theta) 
-    {
-        double new_theta = theta;
-        while (new_theta <= -M_PI) {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        } 
-        
-        while (new_theta >= M_PI) {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        }
-
-        return new_theta;
-    }
-
     float atanThetaWrap(float theta) 
     {
         float new_theta = theta;
-        while (new_theta <= -M_PI) {
+        while (new_theta <= -M_PI) 
+        {
             new_theta += 2*M_PI;
             // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
         } 
         
-        while (new_theta >= M_PI) {
+        while (new_theta >= M_PI) 
+        {
             new_theta -= 2*M_PI;
             // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
         }
 
         return new_theta;
     }
+
+    /*
+    float atanThetaWrap(float theta) 
+    {
+        float new_theta = theta;
+        while (new_theta <= -M_PI) 
+        {
+            new_theta += 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+        } 
+        
+        while (new_theta >= M_PI) 
+        {
+            new_theta -= 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+        }
+
+        return new_theta;
+    }   
+    */
 
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
 
     bool compareModelBearingValues(dynamic_gap::Estimator* model_one, dynamic_gap::Estimator* model_two) {
-        Eigen::Matrix<double, 4, 1> state_one = model_one->get_frozen_cartesian_state();
-        Eigen::Matrix<double, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> state_one = model_one->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> state_two = model_two->get_frozen_cartesian_state();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
 
     bool checkModelSimilarity(dynamic_gap::Estimator * curr_model, dynamic_gap::Estimator * prev_model) {
-        double eps = 0.00001;
+        float eps = 0.00001;
         
-        Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Eigen::Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
-        Eigen::Vector2d curr_vel(curr_state[2], curr_state[3]);
-        Eigen::Vector2d prev_vel(prev_state[2], prev_state[3]);
+        Eigen::Vector2f curr_vel(curr_state[2], curr_state[3]);
+        Eigen::Vector2f prev_vel(prev_state[2], prev_state[3]);
 
-        Eigen::Vector2d curr_vel_dir = curr_vel / (curr_vel.norm() + eps);
-        Eigen::Vector2d prev_vel_dir = prev_vel / (prev_vel.norm() + eps);
+        Eigen::Vector2f curr_vel_dir = curr_vel / (curr_vel.norm() + eps);
+        Eigen::Vector2f prev_vel_dir = prev_vel / (prev_vel.norm() + eps);
         // ROS_INFO_STREAM("curr_velocity: " << curr_state[2] << ", " << curr_state[3] << ", prev_velocity: " << prev_state[2] << ", " << prev_state[3]);
         // ROS_INFO_STREAM("curr_vel_dir: " << curr_vel_dir[0] << ", " << curr_vel_dir[1]);
         // ROS_INFO_STREAM("prev_vel_dir: " << prev_vel_dir[0] << ", " << prev_vel_dir[1]);
-        double dot_prod = curr_vel_dir.dot(prev_vel_dir);
+        float dot_prod = curr_vel_dir.dot(prev_vel_dir);
         // ROS_INFO_STREAM("dot product: " << dot_prod);
-        double norm_ratio = prev_vel.norm() / (curr_vel.norm() + eps);
+        float norm_ratio = prev_vel.norm() / (curr_vel.norm() + eps);
         // ROS_INFO_STREAM("norm ratio: " << norm_ratio);
 
         return (dot_prod > 0.5 && curr_vel.norm() > 0.1 && std::abs(norm_ratio - 1.0) < 0.1);
@@ -141,12 +148,12 @@ namespace dynamic_gap
 
     void createAgentFromModels(dynamic_gap::Estimator * curr_model,    
                                dynamic_gap::Estimator * prev_model,
-                               std::vector<Eigen::Matrix<double, 4, 1> > & agents,
+                               std::vector<Eigen::Matrix<float, 4, 1> > & agents,
                                bool print) {
-        Eigen::Matrix<double, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Eigen::Matrix<double, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
         
-        Eigen::Matrix<double, 4, 1> new_agent = (curr_state + prev_state) / 2;
+        Eigen::Matrix<float, 4, 1> new_agent = (curr_state + prev_state) / 2;
         // if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
         agents.push_back(new_agent);                                  
     }
@@ -157,8 +164,8 @@ namespace dynamic_gap
 
         int half_num_scan = curr_scan.ranges.size() / 2;
 
-        Eigen::Vector2d curr_meas = curr_model->get_x_tilde();
-        Eigen::Vector2d prev_meas = prev_model->get_x_tilde();
+        Eigen::Vector2f curr_meas = curr_model->get_x_tilde();
+        Eigen::Vector2f prev_meas = prev_model->get_x_tilde();
 
         int curr_idx = int(std::round(std::atan2(curr_meas[1], curr_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
         int prev_idx = int(std::round(std::atan2(prev_meas[1], prev_meas[0]) * (half_num_scan / M_PI))) + half_num_scan;
@@ -221,7 +228,7 @@ namespace dynamic_gap
         dynamic_gap::Estimator * prev_model = obs_models[0];
         dynamic_gap::Estimator * curr_model = obs_models[1];
 
-        std::vector<Eigen::Matrix<double, 4, 1> > agents;
+        std::vector<Eigen::Matrix<float, 4, 1> > agents;
 
         // ROS_INFO_STREAM("looping through models");
         for (int i = 1; i < obs_models.size(); i++) {
@@ -254,7 +261,7 @@ namespace dynamic_gap
         // 
     }
 
-    std::vector<Eigen::Matrix<double, 4, 1> > Utils::getCurrAgents() {
+    std::vector<Eigen::Matrix<float, 4, 1> > Utils::getCurrAgents() {
         return curr_agents;
     }
 

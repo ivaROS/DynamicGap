@@ -38,7 +38,7 @@ namespace dynamic_gap
     std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int min_dist_idx) {
         // get egocircle measurement
         auto egocircle = *msg_.get();
-        std::vector<double> scan_interpoint_dists(egocircle.ranges.size());
+        std::vector<float> scan_interpoint_dists(egocircle.ranges.size());
 
         if (!msg_) {
             return std::vector<geometry_msgs::Point>(0);
@@ -98,29 +98,29 @@ namespace dynamic_gap
         float dist_rev = egocircle.ranges.at(idx_rev);
         float dist_cent = egocircle.ranges.at(min_dist_idx);
 
-        double angle_fwd = double(idx_fwd) * egocircle.angle_increment + egocircle.angle_min;
-        double angle_rev = double(idx_rev) * egocircle.angle_increment + egocircle.angle_min;
+        float angle_fwd = float(idx_fwd) * egocircle.angle_increment + egocircle.angle_min;
+        float angle_rev = float(idx_rev) * egocircle.angle_increment + egocircle.angle_min;
         
         if (idx_fwd < min_dist_idx || idx_rev > min_dist_idx) {
             return std::vector<geometry_msgs::Point>(0);
         }
 
-        Eigen::Vector2d fwd_polar(dist_fwd, angle_fwd);
-        Eigen::Vector2d rev_polar(dist_rev, angle_rev);
-        Eigen::Vector2d cent_polar(dist_cent, double(min_dist_idx) * egocircle.angle_increment + egocircle.angle_min);
-        Eigen::Vector2d fwd_cart = pol2car(fwd_polar);
-        Eigen::Vector2d rev_cart = pol2car(rev_polar);
-        Eigen::Vector2d cent_cart = pol2car(cent_polar);
+        Eigen::Vector2f fwd_polar(dist_fwd, angle_fwd);
+        Eigen::Vector2f rev_polar(dist_rev, angle_rev);
+        Eigen::Vector2f cent_polar(dist_cent, float(min_dist_idx) * egocircle.angle_increment + egocircle.angle_min);
+        Eigen::Vector2f fwd_cart = pol2car(fwd_polar);
+        Eigen::Vector2f rev_cart = pol2car(rev_polar);
+        Eigen::Vector2f cent_cart = pol2car(cent_polar);
 
-        Eigen::Vector2d pf;
-        Eigen::Vector2d pr;
+        Eigen::Vector2f pf;
+        Eigen::Vector2f pr;
 
         if (dist_cent < dist_fwd && dist_cent < dist_rev) {
             // ROS_INFO_STREAM("Non line");
-            Eigen::Vector2d a = cent_cart - fwd_cart;
-            Eigen::Vector2d b = rev_cart - fwd_cart;
-            Eigen::Vector2d proj_a_onto_b = (a.dot(b / b.norm())) * (b / b.norm());
-            Eigen::Vector2d orth_a_onto_b = a - proj_a_onto_b;
+            Eigen::Vector2f a = cent_cart - fwd_cart;
+            Eigen::Vector2f b = rev_cart - fwd_cart;
+            Eigen::Vector2f proj_a_onto_b = (a.dot(b / b.norm())) * (b / b.norm());
+            Eigen::Vector2f orth_a_onto_b = a - proj_a_onto_b;
             pf = fwd_cart + orth_a_onto_b;
             pr = rev_cart + orth_a_onto_b;
         } else {
@@ -143,16 +143,16 @@ namespace dynamic_gap
         return retArr;
     }
 
-    bool TrajectoryController::leqThres(const double dist) {
+    bool TrajectoryController::leqThres(const float dist) {
         return dist <= thres;
     }
 
-    bool TrajectoryController::geqThres(const double dist) {
+    bool TrajectoryController::geqThres(const float dist) {
         return dist >= thres;
     }
 
-    double TrajectoryController::polDist(float l1, float t1, float l2, float t2) {
-        return abs(double(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
+    float TrajectoryController::polDist(float l1, float t1, float l2, float t2) {
+        return abs(float(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
     }
 
     // For non-blocking keyboard inputs
@@ -236,10 +236,10 @@ namespace dynamic_gap
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(const sensor_msgs::LaserScan & inflated_egocircle) 
     {
         ROS_INFO_STREAM("obstacle avoidance control");
-        double cmd_vel_x_safe = 0;
-        double cmd_vel_y_safe = 0;                                   
+        float cmd_vel_x_safe = 0;
+        float cmd_vel_y_safe = 0;                                   
         
-        double scan_dist, scan_theta;
+        float scan_dist, scan_theta;
         for (int i = 0; i < inflated_egocircle.ranges.size(); i++) {
             scan_dist = inflated_egocircle.ranges[i];
             scan_theta =  inflated_egocircle.angle_min + i * inflated_egocircle.angle_increment;
@@ -251,9 +251,9 @@ namespace dynamic_gap
         cmd_vel_x_safe /= inflated_egocircle.ranges.size();
         cmd_vel_y_safe /= inflated_egocircle.ranges.size();
 
-        double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
-        double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
-        double weighted_cmd_vel_theta_safe = 0.0;
+        float weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
+        float weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
+        float weighted_cmd_vel_theta_safe = 0.0;
 
         if (cfg_->debug.control_debug_log) {
             ROS_INFO_STREAM("raw safe vels: " << cmd_vel_x_safe << ", " << cmd_vel_y_safe);
@@ -262,7 +262,7 @@ namespace dynamic_gap
         clip_command_velocities(weighted_cmd_vel_x_safe, weighted_cmd_vel_y_safe, weighted_cmd_vel_theta_safe);
 
 
-        double cmd_vel_safe_norm = sqrt( pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
+        float cmd_vel_safe_norm = sqrt( pow(weighted_cmd_vel_x_safe, 2) + pow(weighted_cmd_vel_y_safe, 2));
         if (cmd_vel_safe_norm < 0.1) {
             weighted_cmd_vel_x_safe += 0.3;
         }
@@ -283,16 +283,16 @@ namespace dynamic_gap
         const geometry_msgs::Pose & current, 
         const nav_msgs::Odometry & desired,
         const sensor_msgs::LaserScan & inflated_egocircle, 
-        const double & curr_peak_velocity_x, 
-        const double & curr_peak_velocity_y) 
+        const float & curr_peak_velocity_x, 
+        const float & curr_peak_velocity_y) 
     {    
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
 
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
-        double v_lin_x_fb = 0;
-        double v_lin_y_fb = 0;
-        double v_ang_fb = 0;
+        float v_lin_x_fb = 0;
+        float v_lin_y_fb = 0;
+        float v_ang_fb = 0;
 
         ROS_INFO_STREAM("feedback control");
         // ROS_INFO_STREAM("r_min: " << r_min);
@@ -302,27 +302,33 @@ namespace dynamic_gap
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         tf::Quaternion q_c(curr_orientation.x, curr_orientation.y, curr_orientation.z, curr_orientation.w);
         tf::Matrix3x3 m_c(q_c);
-        double c_roll, c_pitch, c_yaw;
-        m_c.getRPY(c_roll, c_pitch, c_yaw);
+        // float c_roll, c_pitch, c_yaw;
+        // m_c.getRPY(c_roll, c_pitch, c_yaw);
+
+        float c_yaw = std::atan2( 2.0 * (q_c.w() * q_c.z() + q_c.x() * q_c.y()), 
+                              1 - 2.0 * (q_c.y() * q_c.y() + q_c.z() * q_c.z()));
 
         // get current x,y,theta
-        Eigen::Matrix2cd g_curr = getComplexMatrix(curr_position.x, curr_position.y, c_yaw);
+        Eigen::Matrix2cf g_curr = getComplexMatrix(curr_position.x, curr_position.y, c_yaw);
 
         // obtaining RPY of desired orientation
         geometry_msgs::Point des_position = desired.pose.pose.position;
         geometry_msgs::Quaternion des_orientation = desired.pose.pose.orientation;
         tf::Quaternion q_d(des_orientation.x, des_orientation.y, des_orientation.z, des_orientation.w);
         tf::Matrix3x3 m_d(q_d);
-        double d_roll, d_pitch, d_yaw;
-        m_d.getRPY(d_roll, d_pitch, d_yaw);
+        // float d_roll, d_pitch, d_yaw;
+        // m_d.getRPY(d_roll, d_pitch, d_yaw);
+
+        float d_yaw = std::atan2( 2.0 * (q_d.w() * q_d.z() + q_d.x() * q_d.y()), 
+                              1 - 2.0 * (q_d.y() * q_d.y() + q_d.z() * q_d.z()));
 
         // get desired x,y,theta
 
 
-        Eigen::Matrix2cd g_des = getComplexMatrix(des_position.x, des_position.y, d_yaw);
+        Eigen::Matrix2cf g_des = getComplexMatrix(des_position.x, des_position.y, d_yaw);
 
         // get x,y,theta error
-        Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
+        Eigen::Matrix2cf g_error = g_curr.inverse() * g_des;
         float x_error = g_error.real()(0, 1);
         float y_error = g_error.imag()(0, 1);
         float theta_error = std::arg(g_error(0, 0));
@@ -332,8 +338,8 @@ namespace dynamic_gap
         v_lin_y_fb = y_error * k_fb_y_;
         v_ang_fb = theta_error * k_fb_theta_;
 
-        double peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
-        double cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
+        float peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
+        float cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
 
         if (cfg_->debug.control_debug_log) {
             ROS_INFO_STREAM("generating control signal");            
@@ -366,18 +372,18 @@ namespace dynamic_gap
     {
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
 
-        double v_lin_x_fb = raw_cmd_vel.linear.x;
-        double v_lin_y_fb = raw_cmd_vel.linear.y;
-        double v_ang_fb = raw_cmd_vel.angular.z;
+        float v_lin_x_fb = raw_cmd_vel.linear.x;
+        float v_lin_y_fb = raw_cmd_vel.linear.y;
+        float v_ang_fb = raw_cmd_vel.angular.z;
 
         // ROS_INFO_STREAM(rbt_in_cam_lc.pose);
         float min_dist_ang = 0;
         float min_dist = 0;
 
-        Eigen::Vector2d Psi_der(0.0, 0.0);
-        double Psi = 0.0;
-        double Psi_CBF = 0.0;
-        Eigen::Vector2d cmd_vel_fb(raw_cmd_vel.linear.x, raw_cmd_vel.linear.y);
+        Eigen::Vector2f Psi_der(0.0, 0.0);
+        float Psi = 0.0;
+        float Psi_CBF = 0.0;
+        Eigen::Vector2f cmd_vel_fb(raw_cmd_vel.linear.x, raw_cmd_vel.linear.y);
         // ROS_INFO_STREAM("feedback command velocities: " << cmd_vel_fb[0] << ", " << cmd_vel_fb[1]);
 
         if (inflated_egocircle.ranges.size() < 500) {
@@ -395,10 +401,10 @@ namespace dynamic_gap
                                     cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
                                     min_dist_ang, min_dist);
             
-            // Eigen::Vector4d state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-            // Eigen::Vector4d left_rel_model = curr_left_model->get_cartesian_state(); // flipping
-            // Eigen::Vector4d right_rel_model = curr_right_model->get_cartesian_state(); // flipping
-            // Eigen::Vector2d current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
+            // Eigen::Vector4f state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
+            // Eigen::Vector4f left_rel_model = curr_left_model->get_cartesian_state(); // flipping
+            // Eigen::Vector4f right_rel_model = curr_right_model->get_cartesian_state(); // flipping
+            // Eigen::Vector2f current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
             // run_bearing_rate_barrier_function(state, right_rel_model, left_rel_model, current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
         } else {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
@@ -407,8 +413,8 @@ namespace dynamic_gap
         // Make sure no ejection from gap. Max question: x does not always point into gap. 
         // cmd_vel_x_safe = std::max(cmd_vel_x_safe, float(0));
 
-        double weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
-        double weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
+        float weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
+        float weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
 
         if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("safe command velocity, v_x:" << weighted_cmd_vel_x_safe << ", v_y: " << weighted_cmd_vel_y_safe);
 
@@ -456,7 +462,7 @@ namespace dynamic_gap
         return cmd_vel;
     }
     
-    void TrajectoryController::visualize_projection_operator(double weighted_cmd_vel_x_safe, double weighted_cmd_vel_y_safe, ros::Publisher projection_viz) {
+    void TrajectoryController::visualize_projection_operator(float weighted_cmd_vel_x_safe, float weighted_cmd_vel_y_safe, ros::Publisher projection_viz) {
         visualization_msgs::Marker res;
         res.header.frame_id = cfg_->robot_frame_id;
         res.type = visualization_msgs::Marker::ARROW;
@@ -464,7 +470,7 @@ namespace dynamic_gap
         res.pose.position.x = 0;
         res.pose.position.y = 0;
         res.pose.position.z = 0.5;
-        double dir = std::atan2(weighted_cmd_vel_y_safe, weighted_cmd_vel_x_safe);
+        float dir = std::atan2(weighted_cmd_vel_y_safe, weighted_cmd_vel_x_safe);
         tf2::Quaternion dir_quat;
         dir_quat.setRPY(0, 0, dir);
         res.pose.orientation = tf2::toMsg(dir_quat);
@@ -482,10 +488,10 @@ namespace dynamic_gap
         projection_viz.publish(res);
     }
 
-    void TrajectoryController::clip_command_velocities(double & v_lin_x_fb, double & v_lin_y_fb, double & v_ang_fb) {
+    void TrajectoryController::clip_command_velocities(float & v_lin_x_fb, float & v_lin_y_fb, float & v_ang_fb) {
         
-        double abs_x_vel = std::abs(v_lin_x_fb);
-        double abs_y_vel = std::abs(v_lin_y_fb);
+        float abs_x_vel = std::abs(v_lin_x_fb);
+        float abs_y_vel = std::abs(v_lin_y_fb);
         
         if (abs_x_vel <= cfg_->control.vx_absmax && abs_y_vel <= cfg_->control.vy_absmax) {
             // std::cout << "not clipping" << std::endl;
@@ -498,35 +504,35 @@ namespace dynamic_gap
         return;
     }
 
-    void TrajectoryController::run_bearing_rate_barrier_function(Eigen::Vector4d state, 
-                                                                 Eigen::Vector4d right_rel_model,
-                                                                 Eigen::Vector4d left_rel_model,
-                                                                 Eigen::Vector2d rbt_accel,
-                                                                 float & cmd_vel_x_safe, float & cmd_vel_y_safe, double & Psi_CBF) {
-        double h_dyn = 0.0;
-        Eigen::Vector4d d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
+    void TrajectoryController::run_bearing_rate_barrier_function(Eigen::Vector4f state, 
+                                                                 Eigen::Vector4f right_rel_model,
+                                                                 Eigen::Vector4f left_rel_model,
+                                                                 Eigen::Vector2f rbt_accel,
+                                                                 float & cmd_vel_x_safe, float & cmd_vel_y_safe, float & Psi_CBF) {
+        float h_dyn = 0.0;
+        Eigen::Vector4f d_h_dyn_dx(0.0, 0.0, 0.0, 0.0);
         
-        double h_dyn_right = cbf_right(right_rel_model);
-        double h_dyn_left = cbf_left(left_rel_model);
-        Eigen::Vector4d d_h_dyn_right_dx = cbf_partials_right(right_rel_model);
-        Eigen::Vector4d d_h_dyn_left_dx = cbf_partials_left(left_rel_model);
+        float h_dyn_right = cbf_right(right_rel_model);
+        float h_dyn_left = cbf_left(left_rel_model);
+        Eigen::Vector4f d_h_dyn_right_dx = cbf_partials_right(right_rel_model);
+        Eigen::Vector4f d_h_dyn_left_dx = cbf_partials_left(left_rel_model);
 
         // need to potentially ignore if gap is non-convex
         ROS_INFO_STREAM("rbt velocity: " << state[2] << ", " << state[3] << ", rbt_accel: " << rbt_accel[0] << ", " << rbt_accel[1]);
         ROS_INFO_STREAM("left rel state: " << left_rel_model[0] << ", " << left_rel_model[1] << ", " << left_rel_model[2] << ", " << left_rel_model[3]);
         ROS_INFO_STREAM("right rel state: " << right_rel_model[0] << ", " << right_rel_model[1] << ", " << right_rel_model[2] << ", " << right_rel_model[3]);
 
-        Eigen::Vector2d right_bearing_vect(right_rel_model[0], right_rel_model[1]);
-        Eigen::Vector2d left_bearing_vect(left_rel_model[0], left_rel_model[1]);
+        Eigen::Vector2f right_bearing_vect(right_rel_model[0], right_rel_model[1]);
+        Eigen::Vector2f left_bearing_vect(left_rel_model[0], left_rel_model[1]);
 
-        Eigen::Vector2d right_bearing_norm_vect = right_bearing_vect / right_bearing_vect.norm();
-        Eigen::Vector2d left_bearing_norm_vect = left_bearing_vect / left_bearing_vect.norm();
+        Eigen::Vector2f right_bearing_norm_vect = right_bearing_vect / right_bearing_vect.norm();
+        Eigen::Vector2f left_bearing_norm_vect = left_bearing_vect / left_bearing_vect.norm();
 
-        double det = right_bearing_norm_vect[0]*left_bearing_norm_vect[1] - right_bearing_norm_vect[1]*left_bearing_norm_vect[0];      
-        double dot = right_bearing_norm_vect[0]*left_bearing_norm_vect[0] + right_bearing_norm_vect[1]*left_bearing_norm_vect[1];
+        float det = right_bearing_norm_vect[0]*left_bearing_norm_vect[1] - right_bearing_norm_vect[1]*left_bearing_norm_vect[0];      
+        float dot = right_bearing_norm_vect[0]*left_bearing_norm_vect[0] + right_bearing_norm_vect[1]*left_bearing_norm_vect[1];
 
-        double swept_check = -std::atan2(det, dot);     
-        double L_to_R_angle = swept_check;
+        float swept_check = -std::atan2(det, dot);     
+        float L_to_R_angle = swept_check;
 
         if (L_to_R_angle < 0) {
             L_to_R_angle += 2*M_PI; 
@@ -539,28 +545,28 @@ namespace dynamic_gap
         ROS_INFO_STREAM("right CBF: " << h_dyn_right);
         ROS_INFO_STREAM("right CBF partials: " << d_h_dyn_right_dx[0] << ", " << d_h_dyn_right_dx[1] << ", " << d_h_dyn_right_dx[2] << ", " << d_h_dyn_right_dx[3]);
 
-        double cbf_param = 1.0;
+        float cbf_param = 1.0;
         bool cvx_gap = L_to_R_angle < M_PI;
-        Eigen::Vector4d d_x_dt(state[2], state[3], rbt_accel[0], rbt_accel[1]);
-        double Psi_cbf_left = d_h_dyn_left_dx.dot(d_x_dt) + cbf_param * h_dyn_left;
-        double Psi_cbf_right = d_h_dyn_right_dx.dot(d_x_dt) + cbf_param * h_dyn_right;
+        Eigen::Vector4f d_x_dt(state[2], state[3], rbt_accel[0], rbt_accel[1]);
+        float Psi_cbf_left = d_h_dyn_left_dx.dot(d_x_dt) + cbf_param * h_dyn_left;
+        float Psi_cbf_right = d_h_dyn_right_dx.dot(d_x_dt) + cbf_param * h_dyn_right;
         
         ROS_INFO_STREAM("Psi_cbf_left: " << Psi_cbf_left << ", Psi_cbf_right: " << Psi_cbf_right);
-        double cmd_vel_x_safe_right = 0;
-        double cmd_vel_y_safe_right = 0;
-        double cmd_vel_x_safe_left = 0;
-        double cmd_vel_y_safe_left = 0;
+        float cmd_vel_x_safe_right = 0;
+        float cmd_vel_y_safe_right = 0;
+        float cmd_vel_x_safe_left = 0;
+        float cmd_vel_y_safe_left = 0;
 
         if (cvx_gap && Psi_cbf_right < 0) { // left less than or equal to right
-            Eigen::Vector2d Lg_h_right(d_h_dyn_right_dx[0], d_h_dyn_right_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2d cmd_vel_safe_right = -(Lg_h_right * Psi_cbf_right) / (Lg_h_right.dot(Lg_h_right));
+            Eigen::Vector2f Lg_h_right(d_h_dyn_right_dx[0], d_h_dyn_right_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
+            Eigen::Vector2f cmd_vel_safe_right = -(Lg_h_right * Psi_cbf_right) / (Lg_h_right.dot(Lg_h_right));
             cmd_vel_x_safe_right = cmd_vel_safe_right[0];
             cmd_vel_y_safe_right = cmd_vel_safe_right[1];      
         }
         
         if (cvx_gap && Psi_cbf_left < 0) { // right less than left
-            Eigen::Vector2d Lg_h_left(d_h_dyn_left_dx[0], d_h_dyn_left_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2d cmd_vel_safe_left = -(Lg_h_left * Psi_cbf_left) / (Lg_h_left.dot(Lg_h_left));
+            Eigen::Vector2f Lg_h_left(d_h_dyn_left_dx[0], d_h_dyn_left_dx[1]); // Lie derivative of h wrt x (we are doing command velocities)
+            Eigen::Vector2f cmd_vel_safe_left = -(Lg_h_left * Psi_cbf_left) / (Lg_h_left.dot(Lg_h_left));
             cmd_vel_x_safe_left = cmd_vel_safe_left[0];
             cmd_vel_y_safe_left = cmd_vel_safe_left[1];    
         }
@@ -575,21 +581,21 @@ namespace dynamic_gap
         }
     }
 
-    double TrajectoryController::cbf_right(Eigen::Vector4d right_rel_model) {
+    float TrajectoryController::cbf_right(Eigen::Vector4f right_rel_model) {
         // current design: h_left = betadot
-        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
-        double betadot = (right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2))/pow(r, 2);
+        float r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
+        float betadot = (right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2))/pow(r, 2);
 
-        double h_left = betadot;
+        float h_left = betadot;
 
         return h_left;
     }
 
-    Eigen::Vector4d TrajectoryController::cbf_partials_right(Eigen::Vector4d right_rel_model) {
+    Eigen::Vector4f TrajectoryController::cbf_partials_right(Eigen::Vector4f right_rel_model) {
         // current design: h_left = betadot
-        Eigen::Vector4d d_h_right_dx;
-        double r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
-        double r_v_cross_prod = right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2);
+        Eigen::Vector4f d_h_right_dx;
+        float r = sqrt(pow(right_rel_model(0), 2) + pow(right_rel_model(1), 2));
+        float r_v_cross_prod = right_rel_model(0)*right_rel_model(3) - right_rel_model(1)*right_rel_model(2);
 
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
         d_h_right_dx(0) = -right_rel_model(3) / pow(r,2) + 2*right_rel_model(0)*r_v_cross_prod / pow(r, 4);
@@ -599,22 +605,22 @@ namespace dynamic_gap
         return d_h_right_dx;
     }
 
-    double TrajectoryController::cbf_left(Eigen::Vector4d left_rel_model) {
+    float TrajectoryController::cbf_left(Eigen::Vector4f left_rel_model) {
         // current design: h_right = -betadot
-        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
-        double betadot = (left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2))/pow(r,2);
+        float r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
+        float betadot = (left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2))/pow(r,2);
         
-        double h_right = - betadot;
+        float h_right = - betadot;
         
         return h_right;
     }
 
-    Eigen::Vector4d TrajectoryController::cbf_partials_left(Eigen::Vector4d left_rel_model) {
+    Eigen::Vector4f TrajectoryController::cbf_partials_left(Eigen::Vector4f left_rel_model) {
         // current design: h_right = -betadot
-        Eigen::Vector4d d_h_left_dx;
+        Eigen::Vector4f d_h_left_dx;
         
-        double r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
-        double r_v_cross_prod = left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2);
+        float r = sqrt(pow(left_rel_model(0), 2) + pow(left_rel_model(1), 2));
+        float r_v_cross_prod = left_rel_model(0)*left_rel_model(3) - left_rel_model(1)*left_rel_model(2);
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
         
         d_h_left_dx(0) =  left_rel_model(3)/pow(r,2) - 2*left_rel_model(0)*r_v_cross_prod/pow(r,4);
@@ -627,12 +633,13 @@ namespace dynamic_gap
 
     void TrajectoryController::run_projection_operator(const sensor_msgs::LaserScan & inflated_egocircle, 
                                                         const geometry_msgs::PoseStamped & rbt_in_cam_lc,
-                                                        Eigen::Vector2d cmd_vel_fb,
-                                                        Eigen::Vector2d & Psi_der, double & Psi,
+                                                        Eigen::Vector2f cmd_vel_fb,
+                                                        Eigen::Vector2f & Psi_der, float & Psi,
                                                         float & cmd_vel_x_safe, float & cmd_vel_y_safe,
-                                                        float & min_dist_ang, float & min_dist) {
-        Eigen::Vector3d comp;
-        double PO_dot_prod_check;
+                                                        float & min_dist_ang, float & min_dist) 
+    {
+        Eigen::Vector3f comp;
+        float PO_dot_prod_check;
 
         float min_diff_x = 0;
         float min_diff_y = 0;
@@ -641,10 +648,9 @@ namespace dynamic_gap
         float r_norm = cfg_->projection.r_norm;
         float r_norm_offset = cfg_->projection.r_norm_offset; 
         
-
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM("rbt_in_cam_lc pose: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y);
-        std::vector<double> min_dist_arr(inflated_egocircle.ranges.size());
+        std::vector<float> min_dist_arr(inflated_egocircle.ranges.size());
         for (int i = 0; i < min_dist_arr.size(); i++) {
             float angle = i * inflated_egocircle.angle_increment - M_PI;
             float dist = inflated_egocircle.ranges.at(i);
@@ -708,39 +714,39 @@ namespace dynamic_gap
 
         if (cfg_->projection.line && vec.size() > 0) {
             // Dist to 
-            Eigen::Vector2d pt1(vec.at(0).x, vec.at(0).y);
-            Eigen::Vector2d pt2(vec.at(1).x, vec.at(1).y);
-            Eigen::Vector2d rbt(0, 0);
-            Eigen::Vector2d a = rbt - pt1;
-            Eigen::Vector2d b = pt2 - pt1;
-            Eigen::Vector2d c = rbt - pt2;
+            Eigen::Vector2f pt1(vec.at(0).x, vec.at(0).y);
+            Eigen::Vector2f pt2(vec.at(1).x, vec.at(1).y);
+            Eigen::Vector2f rbt(0, 0);
+            Eigen::Vector2f a = rbt - pt1;
+            Eigen::Vector2f b = pt2 - pt1;
+            Eigen::Vector2f c = rbt - pt2;
             
             if (a.dot(b) < 0) { // Pt 1 is closer than pt 2
                 // ROS_INFO_STREAM("Pt1");
                 min_diff_x = - pt1(0);
                 min_diff_y = - pt1(1);
                 comp = projection_method(min_diff_x, min_diff_y);
-                Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                Psi_der = Eigen::Vector2f(comp(0), comp(1));
                 PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
             } else if (c.dot(-b) < 0) { // Pt 2 is closer than pt 1
                 min_diff_x = - pt2(0);
                 min_diff_y = - pt2(1);
                 comp = projection_method(min_diff_x, min_diff_y);
-                Psi_der = Eigen::Vector2d(comp(0), comp(1));
+                Psi_der = Eigen::Vector2f(comp(0), comp(1));
                 PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
             } else { // pt's are equidistant
-                double line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
-                double sign;
+                float line_dist = (pt1(0) * pt2(1) - pt2(0) * pt1(1)) / (pt1 - pt2).norm();
+                float sign;
                 sign = line_dist < 0 ? -1 : 1;
                 line_dist *= sign;
                 
-                double line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
-                double line_Psi_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
-                double line_Psi_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_Psi_der_base;
-                double line_Psi_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_Psi_der_base;
-                Eigen::Vector2d der(line_Psi_der_x, line_Psi_der_y);
+                float line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
+                float line_Psi_der_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
+                float line_Psi_der_x = - (pt2(1) - pt1(1)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                float line_Psi_der_y = - (pt1(0) - pt2(0)) / (pt1 - pt2).norm() * line_Psi_der_base;
+                Eigen::Vector2f der(line_Psi_der_x, line_Psi_der_y);
                 der /= der.norm();
-                comp = Eigen::Vector3d(der(0), der(1), line_si);
+                comp = Eigen::Vector3f(der(0), der(1), line_si);
                 Psi_der = der;
                 // Psi_der(1);// /= 3;
                 PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
@@ -749,7 +755,7 @@ namespace dynamic_gap
             min_diff_x = - min_x;
             min_diff_y = - min_y;
             comp = projection_method(min_diff_x, min_diff_y); // return Psi, and Psi_der
-            Psi_der = Eigen::Vector2d(comp(0), comp(1));
+            Psi_der = Eigen::Vector2f(comp(0), comp(1));
             // Psi_der(1);// /= 3; // deriv wrt y?
             PO_dot_prod_check = cmd_vel_fb.dot(Psi_der);
         }
@@ -796,7 +802,8 @@ namespace dynamic_gap
         */
     }
 
-    Eigen::Vector3d TrajectoryController::projection_method(float min_diff_x, float min_diff_y) {
+    Eigen::Vector3f TrajectoryController::projection_method(float min_diff_x, float min_diff_y) 
+    {
         float r_min = cfg_->projection.r_min;
         float r_norm = cfg_->projection.r_norm;
 
@@ -810,16 +817,16 @@ namespace dynamic_gap
         float norm_Psi_der = sqrt(pow(Psi_der_x, 2) + pow(Psi_der_y, 2));
         float norm_Psi_der_x = Psi_der_x / norm_Psi_der;
         float norm_Psi_der_y = Psi_der_y / norm_Psi_der;
-        return Eigen::Vector3d(norm_Psi_der_x, norm_Psi_der_y, Psi);
+        return Eigen::Vector3f(norm_Psi_der_x, norm_Psi_der_y, Psi);
     }
 
-    Eigen::Matrix2cd TrajectoryController::getComplexMatrix(
-        double x, double y, double quat_w, double quat_z)
+    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(
+        float x, float y, float quat_w, float quat_z)
     {
-        std::complex<double> phase(quat_w, quat_z);
+        std::complex<float> phase(quat_w, quat_z);
         phase = phase * phase;
 
-        Eigen::Matrix2cd g(2, 2);
+        Eigen::Matrix2cf g(2, 2);
         //g.real()(0,0) = phase.real();
         g.real()(0, 1) = x;
         g.real()(1, 0) = 0;
@@ -835,12 +842,12 @@ namespace dynamic_gap
         return g;
     }
 
-    Eigen::Matrix2cd TrajectoryController::getComplexMatrix(
-        double x, double y, double theta)
+    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(
+        float x, float y, float theta)
     {
-        std::complex<double> phase(std::cos(theta), std::sin(theta));
+        std::complex<float> phase(std::cos(theta), std::sin(theta));
 
-        Eigen::Matrix2cd g(2, 2);
+        Eigen::Matrix2cf g(2, 2);
         //g.real()(0,0) = phase.real();
         g.real()(0, 1) = x;
         g.real()(1, 0) = 0;
@@ -857,9 +864,10 @@ namespace dynamic_gap
     }
 
 
-    int TrajectoryController::targetPoseIdx(geometry_msgs::Pose curr_pose, dynamic_gap::TrajPlan ref_pose) {
+    int TrajectoryController::targetPoseIdx(geometry_msgs::Pose curr_pose, dynamic_gap::TrajPlan ref_pose) 
+    {
         // Find pose right ahead
-        std::vector<double> pose_diff(ref_pose.poses.size());
+        std::vector<float> pose_diff(ref_pose.poses.size());
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
 
         // obtain distance from entire ref traj and current pose
@@ -896,7 +904,8 @@ namespace dynamic_gap
         return traj;
     }
 
-    double TrajectoryController::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) {
+    float TrajectoryController::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) 
+    {
         float x = dist * std::cos(theta);
         float y = dist * std::sin(theta);
         return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));

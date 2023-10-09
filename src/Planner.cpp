@@ -80,7 +80,7 @@ namespace dynamic_gap
 
         sensor_msgs::LaserScan tmp_scan = sensor_msgs::LaserScan();
         future_scans.push_back(tmp_scan);
-        for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) 
+        for (float t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) 
         {
             future_scans.push_back(tmp_scan);
         }
@@ -113,8 +113,8 @@ namespace dynamic_gap
     bool Planner::isGoalReached()
     {
         current_pose_ = sharedPtr_pose;
-        double dx = final_goal_odom.pose.position.x - current_pose_.position.x;
-        double dy = final_goal_odom.pose.position.y - current_pose_.position.y;
+        float dx = final_goal_odom.pose.position.x - current_pose_.position.x;
+        float dy = final_goal_odom.pose.position.y - current_pose_.position.y;
         bool result = sqrt(pow(dx, 2) + pow(dy, 2)) < cfg.goal.goal_tolerance;
         if (result)
         {
@@ -122,8 +122,8 @@ namespace dynamic_gap
             return true;
         }
 
-        double waydx = local_waypoint_odom.pose.position.x - current_pose_.position.x;
-        double waydy = local_waypoint_odom.pose.position.y - current_pose_.position.y;
+        float waydx = local_waypoint_odom.pose.position.x - current_pose_.position.x;
+        float waydy = local_waypoint_odom.pose.position.y - current_pose_.position.y;
         bool wayres = sqrt(pow(waydx, 2) + pow(waydy, 2)) < cfg.goal.waypoint_tolerance;
         if (wayres) {
             ROS_INFO_STREAM("[Reset] Waypoint reached, getting new one");
@@ -278,7 +278,7 @@ namespace dynamic_gap
                                bool print) {
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
  
-        double beta_tilde, range_tilde;
+        float beta_tilde, range_tilde;
 		if (i % 2 == 0) {
 			beta_tilde = float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
             range_tilde = g.RDist();
@@ -287,7 +287,7 @@ namespace dynamic_gap
             range_tilde = g.LDist();
 		}
 
-		Eigen::Matrix<double, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
+		Eigen::Matrix<float, 2, 1> laserscan_measurement(range_tilde, beta_tilde);
 
         if (i % 2 == 0) {
             //std::cout << "entering left model update" << std::endl;
@@ -459,8 +459,8 @@ namespace dynamic_gap
 
         {
             // Plan New
-            double waydx = local_waypoint_odom.pose.position.x - new_local_waypoint.pose.position.x;
-            double waydy = local_waypoint_odom.pose.position.y - new_local_waypoint.pose.position.y;
+            float waydx = local_waypoint_odom.pose.position.x - new_local_waypoint.pose.position.x;
+            float waydy = local_waypoint_odom.pose.position.y - new_local_waypoint.pose.position.y;
             bool wayres = sqrt(pow(waydx, 2) + pow(waydy, 2)) > cfg.goal.waypoint_tolerance;
             if (wayres) {
                 local_waypoint_odom = new_local_waypoint;
@@ -535,14 +535,14 @@ namespace dynamic_gap
     }
 
     // std::vector<geometry_msgs::PoseArray> 
-    std::vector<std::vector<double>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, 
+    std::vector<std::vector<float>> Planner::initialTrajGen(std::vector<dynamic_gap::Gap>& vec, 
                                                             std::vector<geometry_msgs::PoseArray>& res, 
-                                                            std::vector<std::vector<double>>& res_time_traj) 
+                                                            std::vector<std::vector<float>>& res_time_traj) 
     {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         std::vector<geometry_msgs::PoseArray> ret_traj(vec.size());
-        std::vector<std::vector<double>> ret_time_traj(vec.size());
-        std::vector<std::vector<double>> ret_traj_scores(vec.size());
+        std::vector<std::vector<float>> ret_time_traj(vec.size());
+        std::vector<std::vector<float>> ret_traj_scores(vec.size());
         geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
 
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
@@ -552,25 +552,25 @@ namespace dynamic_gap
                 if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("generating traj for gap: " << i);
                 // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
-                std::tuple<geometry_msgs::PoseArray, std::vector<double>> return_tuple;
+                std::tuple<geometry_msgs::PoseArray, std::vector<float>> return_tuple;
                 
                 // TRAJECTORY GENERATED IN RBT FRAME
                 bool run_g2g = true; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
                 if (run_g2g) 
                 {
-                    std::tuple<geometry_msgs::PoseArray, std::vector<double>> g2g_tuple;
+                    std::tuple<geometry_msgs::PoseArray, std::vector<float>> g2g_tuple;
                     g2g_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, run_g2g);
                     g2g_tuple = gapTrajSyn->forwardPassTrajectory(g2g_tuple);
-                    std::vector<double> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, 
+                    std::vector<float> g2g_score_vec = trajArbiter->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, 
                                                                                      agent_odoms, agent_vels, future_scans, false, false);
-                    double g2g_score = std::accumulate(g2g_score_vec.begin(), g2g_score_vec.end(), double(0));
+                    float g2g_score = std::accumulate(g2g_score_vec.begin(), g2g_score_vec.end(), float(0));
 
-                    std::tuple<geometry_msgs::PoseArray, std::vector<double>> ahpf_tuple;
+                    std::tuple<geometry_msgs::PoseArray, std::vector<float>> ahpf_tuple;
                     ahpf_tuple = gapTrajSyn->generateTrajectory(vec.at(i), rbt_in_cam_lc, current_rbt_vel, !run_g2g);
                     ahpf_tuple = gapTrajSyn->forwardPassTrajectory(ahpf_tuple);
-                    std::vector<double> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, 
+                    std::vector<float> ahpf_score_vec = trajArbiter->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, 
                                                                                         agent_odoms, agent_vels, future_scans, false, false);
-                    double ahpf_score = std::accumulate(ahpf_score_vec.begin(), ahpf_score_vec.end(), double(0));
+                    float ahpf_score = std::accumulate(ahpf_score_vec.begin(), ahpf_score_vec.end(), float(0));
 
                     if (cfg.debug.manipulation_debug_log) {
                         ROS_INFO_STREAM("running g2g and ahpf");
@@ -606,7 +606,7 @@ namespace dynamic_gap
         return ret_traj_scores;
     }
 
-    int Planner::pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> score) {
+    int Planner::pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<float>> score) {
         // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << prr.size());
         if (prr.size() == 0) {
             ROS_WARN_STREAM("No traj synthesized");
@@ -619,7 +619,7 @@ namespace dynamic_gap
         }
 
         // poses here are in odom frame 
-        std::vector<double> result_score(prr.size());
+        std::vector<float> result_score(prr.size());
         int counts;
         try {
             // if (omp_get_dynamic()) omp_set_dynamic(0);
@@ -627,13 +627,13 @@ namespace dynamic_gap
                 // ROS_WARN_STREAM("prr(" << i << "): size " << prr.at(i).poses.size());
                 counts = std::min(cfg.planning.num_feasi_check, int(score.at(i).size()));
 
-                result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, double(0));
-                result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<double>::infinity() : result_score.at(i);
+                result_score.at(i) = std::accumulate(score.at(i).begin(), score.at(i).begin() + counts, float(0));
+                result_score.at(i) = prr.at(i).poses.size() == 0 ? -std::numeric_limits<float>::infinity() : result_score.at(i);
                 if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("for gap " << i << " (length: " << prr.at(i).poses.size() << "), returning score of " << result_score.at(i));
                 /*
-                if (result_score.at(i) == -std::numeric_limits<double>::infinity()) {
+                if (result_score.at(i) == -std::numeric_limits<float>::infinity()) {
                     for (size_t j = 0; j < counts; j++) {
-                        if (score.at(i).at(j) == -std::numeric_limits<double>::infinity()) {
+                        if (score.at(i).at(j) == -std::numeric_limits<float>::infinity()) {
                             std::cout << "-inf score at idx " << j << " of " << counts << std::endl;
                         }
                     }
@@ -647,7 +647,7 @@ namespace dynamic_gap
         auto iter = std::max_element(result_score.begin(), result_score.end());
         int idx = std::distance(result_score.begin(), iter);
 
-        if (result_score.at(idx) == -std::numeric_limits<double>::infinity()) {
+        if (result_score.at(idx) == -std::numeric_limits<float>::infinity()) {
             
             ROS_INFO_STREAM("all -infinity");
             ROS_WARN_STREAM("No executable trajectory, values: ");
@@ -662,12 +662,12 @@ namespace dynamic_gap
         return idx;
     }
 
-    geometry_msgs::PoseArray Planner::changeTrajectoryHelper(dynamic_gap::Gap incoming_gap, geometry_msgs::PoseArray incoming, std::vector<double> time_arr, bool switching_to_empty) {
+    geometry_msgs::PoseArray Planner::changeTrajectoryHelper(dynamic_gap::Gap incoming_gap, geometry_msgs::PoseArray incoming, std::vector<float> time_arr, bool switching_to_empty) {
         
         if (switching_to_empty) {
             geometry_msgs::PoseArray empty_traj = geometry_msgs::PoseArray();
             empty_traj.header = incoming.header;
-            std::vector<double> empty_time_arr;
+            std::vector<float> empty_time_arr;
             setCurrentTraj(empty_traj);
             setCurrentTimeArr(empty_time_arr);
             setCurrentLeftModel(NULL);
@@ -692,7 +692,7 @@ namespace dynamic_gap
     geometry_msgs::PoseArray Planner::compareToOldTraj(geometry_msgs::PoseArray incoming, 
                                                        dynamic_gap::Gap incoming_gap, 
                                                        std::vector<dynamic_gap::Gap> feasible_gaps, 
-                                                       std::vector<double> time_arr,
+                                                       std::vector<float> time_arr,
                                                        bool curr_exec_gap_assoc,
                                                        bool curr_exec_gap_feas) {
         boost::mutex::scoped_lock gapset(gapset_mutex);
@@ -702,7 +702,7 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associated_raw_gaps;
 
         try {
-            double curr_time = ros::WallTime::now().toSec();
+            float curr_time = ros::WallTime::now().toSec();
             
             // FORCING OFF CURRENT TRAJ IF NO LONGER FEASIBLE
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapIndex() << ", current right gap index: " << getCurrentRightGapIndex());
@@ -735,7 +735,7 @@ namespace dynamic_gap
             // int counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incom_score.size(), curr_score.size()));
 
             int counts = std::min(cfg.planning.num_feasi_check, (int) incom_score.size());
-            auto incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
+            auto incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, float(0));
 
             if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("incoming trajectory subscore: " << incom_subscore);
             bool curr_traj_length_zero = curr_traj.poses.size() == 0;
@@ -743,7 +743,7 @@ namespace dynamic_gap
 
             // CURRENT TRAJECTORY LENGTH ZERO OR IS NOT FEASIBLE
             if (curr_traj_length_zero || curr_gap_not_feasible) {
-                bool valid_incoming_traj = incoming.poses.size() > 0 && incom_subscore > -std::numeric_limits<double>::infinity();
+                bool valid_incoming_traj = incoming.poses.size() > 0 && incom_subscore > -std::numeric_limits<float>::infinity();
                 
                 std::string curr_traj_status = (curr_traj_length_zero) ? "curr traj length 0" : "curr traj is not feasible";
                 if (!curr_exec_gap_assoc) {
@@ -771,9 +771,9 @@ namespace dynamic_gap
             curr_rbt.header.frame_id = cfg.robot_frame_id;
             int start_position = egoTrajPosition(curr_rbt);
             geometry_msgs::PoseArray reduced_curr_rbt = curr_rbt;
-            std::vector<double> reduced_curr_time_arr = curr_time_arr;
+            std::vector<float> reduced_curr_time_arr = curr_time_arr;
             reduced_curr_rbt.poses = std::vector<geometry_msgs::Pose>(curr_rbt.poses.begin() + start_position, curr_rbt.poses.end());
-            reduced_curr_time_arr = std::vector<double>(curr_time_arr.begin() + start_position, curr_time_arr.end());
+            reduced_curr_time_arr = std::vector<float>(curr_time_arr.begin() + start_position, curr_time_arr.end());
             if (reduced_curr_rbt.poses.size() < 2) {
                 if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index <<  " TO INCOMING: old traj length less than 2");
 
@@ -781,15 +781,15 @@ namespace dynamic_gap
             }
 
             counts = std::min(cfg.planning.num_feasi_check, (int) std::min(incoming.poses.size(), reduced_curr_rbt.poses.size()));
-            incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, double(0));
+            incom_subscore = std::accumulate(incom_score.begin(), incom_score.begin() + counts, float(0));
             if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("re-scored incoming trajectory subscore: " << incom_subscore);
             if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("scoring current trajectory");            
             auto curr_score = trajArbiter->scoreTrajectory(reduced_curr_rbt, reduced_curr_time_arr, curr_raw_gaps, 
                                                            agent_odoms, agent_vels, future_scans, false, false);
-            auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, double(0));
+            auto curr_subscore = std::accumulate(curr_score.begin(), curr_score.begin() + counts, float(0));
             if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("current trajectory subscore: " << curr_subscore);
 
-            std::vector<std::vector<double>> ret_traj_scores(2);
+            std::vector<std::vector<float>> ret_traj_scores(2);
             ret_traj_scores.at(0) = incom_score;
             ret_traj_scores.at(1) = curr_score;
             std::vector<geometry_msgs::PoseArray> viz_traj(2);
@@ -797,8 +797,8 @@ namespace dynamic_gap
             viz_traj.at(1) = reduced_curr_rbt;
             trajvisualizer->pubAllScore(viz_traj, ret_traj_scores);
 
-            if (curr_subscore == -std::numeric_limits<double>::infinity()) {
-                if (incom_subscore == -std::numeric_limits<double>::infinity()) {
+            if (curr_subscore == -std::numeric_limits<float>::infinity()) {
+                if (incom_subscore == -std::numeric_limits<float>::infinity()) {
                     if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("TRAJECTORY CHANGE " << switch_index <<  " TO EMPTY: both -infinity");
 
                     return changeTrajectoryHelper(incoming_gap, incoming, time_arr, true);
@@ -825,7 +825,7 @@ namespace dynamic_gap
     }
 
     int Planner::egoTrajPosition(geometry_msgs::PoseArray curr) {
-        std::vector<double> pose_diff(curr.poses.size());
+        std::vector<float> pose_diff(curr.poses.size());
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
         for (size_t i = 0; i < pose_diff.size(); i++) // i will always be positive, so this is fine
         {
@@ -846,7 +846,7 @@ namespace dynamic_gap
         curr_left_model = _left_model;
     }
 
-    void Planner::setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y) {
+    void Planner::setCurrentGapPeakVelocities(float _peak_velocity_x, float _peak_velocity_y) {
         curr_peak_velocity_x = _peak_velocity_x;
         curr_peak_velocity_y = _peak_velocity_y;
     }
@@ -883,12 +883,12 @@ namespace dynamic_gap
         return curr_executing_traj;
     }
 
-    void Planner::setCurrentTimeArr(std::vector<double> curr_time_arr) {
+    void Planner::setCurrentTimeArr(std::vector<float> curr_time_arr) {
         curr_executing_time_arr = curr_time_arr;
         return;
     }
     
-    std::vector<double> Planner::getCurrentTimeArr() {
+    std::vector<float> Planner::getCurrentTimeArr() {
         return curr_executing_time_arr;
     }
 
@@ -1092,15 +1092,15 @@ namespace dynamic_gap
         dynamic_laser_scan.range_max = stored_scan.range_max;
         dynamic_laser_scan.ranges = stored_scan.ranges;
 
-        double t_i = 0.0;
+        float t_i = 0.0;
         future_scans[0] = dynamic_laser_scan; // at t = 0.0
 
         std::vector<geometry_msgs::Pose> agent_odoms_lc = _agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels_lc = _agent_vels;
-        std::vector<Eigen::Matrix<double, 4, 1> > curr_agents_lc;
+        std::vector<Eigen::Matrix<float, 4, 1> > curr_agents_lc;
         
         if (cfg.planning.egocircle_prop_cheat) {
-            Eigen::Matrix<double, 4, 1> agent_i_state;
+            Eigen::Matrix<float, 4, 1> agent_i_state;
             curr_agents_lc.clear();
             for (int i = 0; i < num_obsts; i++) {
                 agent_i_state << agent_odoms_lc[i].position.x, agent_odoms_lc[i].position.y, agent_vels_lc[i].vector.x, agent_vels_lc[i].vector.y;
@@ -1118,7 +1118,7 @@ namespace dynamic_gap
         }
         
         int future_scan_idx;
-        for (double t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
+        for (float t_iplus1 = cfg.traj.integrate_stept; t_iplus1 <= cfg.traj.integrate_maxt; t_iplus1 += cfg.traj.integrate_stept) {
             dynamic_laser_scan.ranges = stored_scan.ranges;
 
             //trajArbiter->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
@@ -1133,9 +1133,9 @@ namespace dynamic_gap
     }
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() {
-        double getPlan_start_time = ros::WallTime::now().toSec();
+        float getPlan_start_time = ros::WallTime::now().toSec();
 
-        double start_time = ros::WallTime::now().toSec();      
+        float start_time = ros::WallTime::now().toSec();      
         
         bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
@@ -1174,8 +1174,8 @@ namespace dynamic_gap
         start_time = ros::WallTime::now().toSec();
 
         std::vector<geometry_msgs::PoseArray> traj_set;
-        std::vector<std::vector<double>> time_set;
-        std::vector<std::vector<double>> score_set; 
+        std::vector<std::vector<float>> time_set;
+        std::vector<std::vector<float>> score_set; 
         try {
             score_set = initialTrajGen(manip_gap_set, traj_set, time_set);
         } catch (std::out_of_range) {
@@ -1195,7 +1195,7 @@ namespace dynamic_gap
         if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
         geometry_msgs::PoseArray chosen_traj;
-        std::vector<double> chosen_time_arr;
+        std::vector<float> chosen_time_arr;
         dynamic_gap::Gap chosen_gap;
         if (traj_idx >= 0) {
             chosen_traj = traj_set[traj_idx];
@@ -1279,10 +1279,10 @@ namespace dynamic_gap
         {
             dynamic_gap::Gap g = gaps.at(i);
             ROS_INFO_STREAM("gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx() << ", left model: " << g.left_model->get_index() << ", right_model: " << g.right_model->get_index());
-            Eigen::Matrix<double, 4, 1> left_state = g.left_model->get_cartesian_state();
+            Eigen::Matrix<float, 4, 1> left_state = g.left_model->get_cartesian_state();
             g.getLCartesian(x, y);            
             ROS_INFO_STREAM("left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            Eigen::Matrix<double, 4, 1> right_state = g.right_model->get_cartesian_state();
+            Eigen::Matrix<float, 4, 1> right_state = g.right_model->get_cartesian_state();
             g.getRCartesian(x, y);
             ROS_INFO_STREAM("right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
            
@@ -1290,9 +1290,9 @@ namespace dynamic_gap
     }
 
     bool Planner::recordAndCheckVel(geometry_msgs::Twist cmd_vel) {
-        double val = std::abs(cmd_vel.linear.x) + std::abs(cmd_vel.linear.y) + std::abs(cmd_vel.angular.z);
+        float val = std::abs(cmd_vel.linear.x) + std::abs(cmd_vel.linear.y) + std::abs(cmd_vel.angular.z);
         log_vel_comp.push_back(val);
-        double cum_vel_sum = std::accumulate(log_vel_comp.begin(), log_vel_comp.end(), double(0));
+        float cum_vel_sum = std::accumulate(log_vel_comp.begin(), log_vel_comp.end(), float(0));
         bool ret_val = cum_vel_sum > 1.0 || !log_vel_comp.full();
         if (!ret_val && !cfg.man.man_ctrl) {
             ROS_FATAL_STREAM("--------------------------Planning Failed--------------------------");

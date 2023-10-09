@@ -10,10 +10,10 @@
 
 namespace dynamic_gap 
 {
-    Eigen::Vector2d pol2car(Eigen::Vector2d polar_vector);
-    double atanThetaWrap(double theta); 
-    float atanThetaWrap(float theta);
-    double getLeftToRightAngle(Eigen::Vector2d left_norm_vect, Eigen::Vector2d right_norm_vect);
+    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector);
+    float atanThetaWrap(float theta); 
+    // float atanThetaWrap(float theta);
+    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect);
     float getLeftToRightAngle(Eigen::Vector2f, Eigen::Vector2f, bool wrap);
 
     float idx2theta(const int idx);
@@ -30,7 +30,7 @@ namespace dynamic_gap
             Utils& operator=(Utils other) {cfg_ = other.cfg_; return *this; }
 
             Utils(const Utils &t) {cfg_ = t.cfg_;}
-            std::vector<Eigen::Matrix<double, 4, 1> > getCurrAgents();
+            std::vector<Eigen::Matrix<float, 4, 1> > getCurrAgents();
 
             sensor_msgs::LaserScan staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & observed_gaps, 
                                                                 boost::shared_ptr<sensor_msgs::LaserScan const> msg,
@@ -38,7 +38,7 @@ namespace dynamic_gap
 
         private:
             const DynamicGapConfig* cfg_;
-            std::vector<Eigen::Matrix<double, 4, 1> > curr_agents;
+            std::vector<Eigen::Matrix<float, 4, 1> > curr_agents;
     };
 
 

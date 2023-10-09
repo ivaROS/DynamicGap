@@ -32,11 +32,11 @@ namespace dynamic_gap
 	public:
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = cfg_->gap_assoc.assoc_thresh; };
 		
-		std::vector<std::vector<double>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
 														  const std::vector<dynamic_gap::Gap> & previous_gaps);
-		std::vector<int> associateGaps(const std::vector< std::vector<double> > & distMatrix);
+		std::vector<int> associateGaps(const std::vector< std::vector<float> > & distMatrix);
         void assignModels(std::vector<int> & association, 
-						  const std::vector< std::vector<double> > & distMatrix, 
+						  const std::vector< std::vector<float> > & distMatrix, 
 							std::vector<dynamic_gap::Gap>& observed_gaps, 
 							const std::vector<dynamic_gap::Gap> & previous_gaps, 
 							int * model_idx, 
@@ -47,16 +47,16 @@ namespace dynamic_gap
 
 	private:
 		const DynamicGapConfig* cfg_;
-		double assoc_thresh;
-		double Solve(const std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment);
-		void assignmentoptimal(int *assignment, double *cost, double *distMatrix, int nOfRows, int nOfColumns);
+		float assoc_thresh;
+		float Solve(const std::vector <std::vector<float> >& DistMatrix, std::vector<int>& Assignment);
+		void assignmentoptimal(int *assignment, float *cost, float *distMatrix, int nOfRows, int nOfColumns);
 		void buildassignmentvector(int *assignment, bool *starMatrix, int nOfRows, int nOfColumns);
-		void computeassignmentcost(int *assignment, double *cost, double *distMatrix, int nOfRows);
-		void step2a(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
-		void step2b(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
-		void step3(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
-		void step4(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col);
-		void step5(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
+		void computeassignmentcost(int *assignment, float *cost, float *distMatrix, int nOfRows);
+		void step2a(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
+		void step2b(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
+		void step3(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
+		void step4(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col);
+		void step5(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
 	
 		std::vector< std::vector<float>> previous_gap_points;
 		std::vector< std::vector<float>> observed_gap_points;

@@ -153,7 +153,7 @@ namespace dynamic_gap
         }        
 
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
@@ -165,8 +165,8 @@ namespace dynamic_gap
         int id = (int) vis_arr.markers.size();
         this_marker.lifetime = ros::Duration(100.0);
 
-        double num_spline_pts = double(cfg_->traj.num_curve_points + cfg_->traj.num_qB_points);
-        double t, x, y;
+        float num_spline_pts = float(cfg_->traj.num_curve_points + cfg_->traj.num_qB_points);
+        float t, x, y;
         for (int i = 0.0; i < (num_spline_pts - 1); i++) {            
             lines.clear();  
 
@@ -241,7 +241,7 @@ namespace dynamic_gap
         }        
 
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
@@ -261,9 +261,9 @@ namespace dynamic_gap
         lines.clear();
 
         int num_curve_points = cfg_->traj.num_curve_points;
-        double pos_val0, pos_val1, pos_val2;
-        Eigen::Vector2d curr_left_pt, curr_right_pt;
-        for (double i = 0; i < (num_curve_points - 1); i++) {
+        float pos_val0, pos_val1, pos_val2;
+        Eigen::Vector2f curr_left_pt, curr_right_pt;
+        for (float i = 0; i < (num_curve_points - 1); i++) {
             lines.clear();  
             s = (i) / (num_curve_points - 1);
 
@@ -295,7 +295,7 @@ namespace dynamic_gap
             vis_arr.markers.push_back(this_marker);
         }
 
-        for (double i = 0; i < (num_curve_points - 1); i++) {
+        for (float i = 0; i < (num_curve_points - 1); i++) {
             lines.clear();  
             s = (i) / (num_curve_points - 1);
 
@@ -366,7 +366,7 @@ namespace dynamic_gap
         }        
 
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
@@ -428,7 +428,7 @@ namespace dynamic_gap
         for (int i = g.num_left_rge_points; i < (g.num_left_rge_points + num_curve_points - 1); i++) {            
             lines.clear();  
 
-            Eigen::Vector2d left_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2f left_pt = g.all_curve_pts.row(i);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -452,7 +452,7 @@ namespace dynamic_gap
         for (int i = (g.num_left_rge_points + num_curve_points); i < (g.all_curve_pts.rows() - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2d right_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2f right_pt = g.all_curve_pts.row(i);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
@@ -518,7 +518,7 @@ namespace dynamic_gap
             return;
         }
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;
@@ -541,7 +541,7 @@ namespace dynamic_gap
         for (int i = 0; i < (num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2d left_pt = g.left_right_centers.row(i);
+            Eigen::Vector2f left_pt = g.left_right_centers.row(i);
             // ROS_INFO_STREAM("i: " << i << ", left_pt: " << left_pt[0] << ", " << left_pt[1]);
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -561,7 +561,7 @@ namespace dynamic_gap
         for (int i = num_pts_per_side; i < (2*num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2d right_pt = g.left_right_centers.row(i);
+            Eigen::Vector2f right_pt = g.left_right_centers.row(i);
             // ROS_INFO_STREAM("i: " << i << ", right_pt: " << right_pt[0] << ", " << right_pt[1]);
 
             liner.x = right_pt[0];
@@ -611,7 +611,7 @@ namespace dynamic_gap
         if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
         int viz_offset = 0;
-        double viz_jitter = cfg_->gap_viz.viz_jitter;
+        float viz_jitter = cfg_->gap_viz.viz_jitter;
         
         if (viz_jitter > 0 && g.isRadial(initial)) {
             viz_offset = g.isRightType(initial) ? -2 : 2;
@@ -679,7 +679,7 @@ namespace dynamic_gap
         }
 
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.0001;
         this_marker.scale.z = 0.0001;
@@ -836,15 +836,15 @@ namespace dynamic_gap
         model_vel_pt.type = visualization_msgs::Marker::ARROW;
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4d left_model_state = (ground_truth) ? g.left_model->get_GT_cartesian_state() : g.left_model->get_cartesian_state();
-        Eigen::Vector4d right_model_state = (ground_truth) ? g.right_model->get_GT_cartesian_state() : g.right_model->get_cartesian_state();
+        Eigen::Vector4f left_model_state = (ground_truth) ? g.left_model->get_GT_cartesian_state() : g.left_model->get_cartesian_state();
+        Eigen::Vector4f right_model_state = (ground_truth) ? g.right_model->get_GT_cartesian_state() : g.right_model->get_cartesian_state();
         
         geometry_msgs::Point vel_pt;
         model_vel_pt.pose.position.x = (left) ? left_model_state[0] : right_model_state[0];
         model_vel_pt.pose.position.y = (left) ? left_model_state[1] : right_model_state[1];
         model_vel_pt.pose.position.z = 0.01;
    
-        Eigen::Vector2d vel;
+        Eigen::Vector2f vel;
         if (left) {
             vel << left_model_state[2] + g.left_model->get_v_ego().twist.linear.x,
                    left_model_state[3] + g.left_model->get_v_ego().twist.linear.y;
@@ -853,7 +853,7 @@ namespace dynamic_gap
                    right_model_state[3] + g.right_model->get_v_ego().twist.linear.y;
         }
 
-        double model_vel_theta = std::atan2(vel[1], vel[0]);
+        float model_vel_theta = std::atan2(vel[1], vel[0]);
         tf2::Quaternion quat;
         quat.setRPY(0.0, 0.0, model_vel_theta);
 
@@ -891,7 +891,7 @@ namespace dynamic_gap
         model_vel_error_pt.color.g = 0.0;
         model_vel_error_pt.color.b = 0.0;
 
-        double vel_error;
+        float vel_error;
         if (left)
         {
             vel_error = sqrt(pow(g.left_model->get_cartesian_state()[2] - g.left_model->get_GT_cartesian_state()[2], 2) + pow(g.left_model->get_cartesian_state()[3] - g.left_model->get_GT_cartesian_state()[3], 2));
@@ -972,7 +972,7 @@ namespace dynamic_gap
         }
 
         this_marker.colors = color_value->second;
-        double thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
+        float thickness = cfg_->gap_viz.fig_gen ? 0.05 : 0.01;
         this_marker.scale.x = thickness;
         this_marker.scale.y = 0.1;
         this_marker.scale.z = 0.1;

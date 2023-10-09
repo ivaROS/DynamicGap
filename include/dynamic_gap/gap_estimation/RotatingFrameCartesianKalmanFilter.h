@@ -29,25 +29,25 @@ namespace dynamic_gap
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
             
-            Eigen::Matrix4d Q_1, Q_2, Q_3; // covariance noise matrix
-            double R_scalar, Q_scalar;
+            Eigen::Matrix4f Q_1, Q_2, Q_3; // covariance noise matrix
+            float R_scalar, Q_scalar;
 
-            Eigen::Matrix2d tmp_mat; //  place holder for inverse
+            Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4d new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
-            Eigen::Matrix4d P_intermediate, new_P; // covariance matrix
+            Eigen::Vector4f new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
+            Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
             std::string side;
             int index;
 
             bool initialized;
-            double life_time, start_time;
+            float life_time, start_time;
 
-            std::vector< std::vector<double>> previous_states, previous_measurements, previous_measurements_gap_only,
+            std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
                                               previous_ego_accels, previous_ego_vels, previous_times,
                                               previous_gap_only_states, vel_euler_derivatives;
-            double life_time_threshold;
-            Eigen::Matrix4d eyes;
+            float life_time_threshold;
+            Eigen::Matrix4f eyes;
             std::string plot_dir;
 
             std::vector<geometry_msgs::Pose> agent_odoms;
@@ -57,7 +57,7 @@ namespace dynamic_gap
             bool print;
             bool plot;
             bool plotted;
-            std::vector<double> prev_euler_deriv;
+            std::vector<float> prev_euler_deriv;
 
             ros::Time t_last_update;
             std::vector<geometry_msgs::TwistStamped> ego_rbt_vels;
@@ -67,43 +67,43 @@ namespace dynamic_gap
 
         public:
 
-            RotatingFrameCartesianKalmanFilter(std::string, int, double, double,const ros::Time & t_update,
+            RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
                         const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                         const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
-            void initialize(double, double, const ros::Time & t_update,
+            void initialize(float, float, const ros::Time & t_update,
                             const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
-            Eigen::Vector4d update_ground_truth_cartesian_state();
-            Eigen::Vector4d get_cartesian_state();
-            Eigen::Vector4d get_GT_cartesian_state();
+            Eigen::Vector4f update_ground_truth_cartesian_state();
+            Eigen::Vector4f get_cartesian_state();
+            Eigen::Vector4f get_GT_cartesian_state();
             
-            Eigen::Vector4d get_frozen_cartesian_state();
-            Eigen::Vector4d get_rewind_cartesian_state();
-            Eigen::Vector4d get_modified_polar_state();
-            Eigen::Vector4d get_frozen_modified_polar_state();
-            Eigen::Vector4d get_rewind_modified_polar_state();
+            Eigen::Vector4f get_frozen_cartesian_state();
+            Eigen::Vector4f get_rewind_cartesian_state();
+            Eigen::Vector4f get_modified_polar_state();
+            Eigen::Vector4f get_frozen_modified_polar_state();
+            Eigen::Vector4f get_rewind_modified_polar_state();
 
-            Eigen::Vector2d get_x_tilde();
+            Eigen::Vector2f get_x_tilde();
 
             geometry_msgs::TwistStamped get_v_ego();
-            Eigen::Matrix<double, 4, 1> integrate();
+            Eigen::Matrix<float, 4, 1> integrate();
             void linearize(int idx);
             void discretizeQ(int idx);
 
-            void frozen_state_propagate(double dt);
-            void rewind_propagate(double dt);
+            void frozen_state_propagate(float dt);
+            void rewind_propagate(float dt);
             void freeze_robot_vel();
             void set_rewind_state();
 
-            void update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
-                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
-                                bool print,
-                                const std::vector<geometry_msgs::Pose> & _agent_odoms,
-                                const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
-                                const ros::Time & t_kf_update);
+            void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
+                        const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
+                        const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
+                        bool print,
+                        const std::vector<geometry_msgs::Pose> & _agent_odoms,
+                        const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
+                        const ros::Time & t_kf_update);
 
             int get_index();
             void inflate_model(float x, float y);

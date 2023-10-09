@@ -19,7 +19,7 @@
 // namespace plt = matplotlibcpp;
 
 namespace dynamic_gap {
-    StaticEstimator::StaticEstimator(std::string _side, int _index, double init_r, double init_beta, 
+    StaticEstimator::StaticEstimator(std::string _side, int _index, float init_r, float init_beta, 
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
@@ -28,7 +28,7 @@ namespace dynamic_gap {
         initialize(init_r, init_beta, t_update, last_ego_rbt_vel, last_ego_rbt_acc);
     }
 
-    void StaticEstimator::initialize(double init_r, double init_beta,
+    void StaticEstimator::initialize(float init_r, float init_beta,
                                 const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
                                 const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
@@ -61,9 +61,9 @@ namespace dynamic_gap {
         this->t_last_update = t_update;
 
 
-        double v_rel_x = -last_ego_rbt_vel.twist.linear.x;
-        double v_rel_y = -last_ego_rbt_vel.twist.linear.y;
-        std::vector<double> measurement{init_r * std::cos(init_beta), 
+        float v_rel_x = -last_ego_rbt_vel.twist.linear.x;
+        float v_rel_y = -last_ego_rbt_vel.twist.linear.y;
+        std::vector<float> measurement{init_r * std::cos(init_beta), 
                                         init_r * std::sin(init_beta), 
                                         v_rel_x, 
                                         v_rel_y};
@@ -93,7 +93,7 @@ namespace dynamic_gap {
         initialized = true;
         // life_time = 0.0;
         // life_time_threshold = 7.5;
-        eyes = Eigen::MatrixXd::Identity(4,4);
+        eyes = Eigen::MatrixXf::Identity(4,4);
 
         plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
@@ -147,7 +147,7 @@ namespace dynamic_gap {
 
         for (int i = 0; i < (ego_rbt_vels.size() - 1); i++)
         {
-            double dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
+            float dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
             
             if (print)
                 ROS_INFO_STREAM("   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
@@ -160,7 +160,7 @@ namespace dynamic_gap {
     }
 
     void StaticEstimator::freeze_robot_vel() {
-        Eigen::Vector4d cartesian_state = get_cartesian_state();
+        Eigen::Vector4f cartesian_state = get_cartesian_state();
         
         // fixing position (otherwise can get bugs)
         cartesian_state[0] = x_tilde[0];
@@ -178,17 +178,17 @@ namespace dynamic_gap {
         rewind_x = frozen_x;
     }
 
-    void StaticEstimator::rewind_propagate(double rew_dt) {
-        Eigen::Matrix<double, 4, 1> new_rewind_x;     
+    void StaticEstimator::rewind_propagate(float rew_dt) {
+        Eigen::Matrix<float, 4, 1> new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
-        Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
+        Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
 
-        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0); 
-        double frozen_ang_vel_ego = 0.0;
+        Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
+        float frozen_ang_vel_ego = 0.0;
 
-        double vdot_x_body = frozen_linear_acc_ego[0];
-        double vdot_y_body = frozen_linear_acc_ego[1];
+        float vdot_x_body = frozen_linear_acc_ego[0];
+        float vdot_y_body = frozen_linear_acc_ego[1];
 
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*rew_dt;
@@ -198,17 +198,17 @@ namespace dynamic_gap {
         rewind_x = new_rewind_x; 
     }
 
-    void StaticEstimator::frozen_state_propagate(double froz_dt) {
-        Eigen::Matrix<double, 4, 1> new_frozen_x;     
+    void StaticEstimator::frozen_state_propagate(float froz_dt) {
+        Eigen::Matrix<float, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
-        Eigen::Vector2d frozen_linear_acc_ego(0.0, 0.0);
+        Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
 
-        Eigen::Vector2d frozen_linear_vel_ego(0.0, 0.0); 
-        double frozen_ang_vel_ego = 0.0;
+        Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
+        float frozen_ang_vel_ego = 0.0;
 
-        double vdot_x_body = frozen_linear_acc_ego[0];
-        double vdot_y_body = frozen_linear_acc_ego[1];
+        float vdot_x_body = frozen_linear_acc_ego[0];
+        float vdot_y_body = frozen_linear_acc_ego[1];
 
         // discrete euler update of state (ignoring rbt acceleration, set as 0)
         new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*froz_dt;
@@ -219,31 +219,31 @@ namespace dynamic_gap {
     }
     
 
-    Eigen::Matrix<double, 4, 1> StaticEstimator::integrate() 
+    Eigen::Matrix<float, 4, 1> StaticEstimator::integrate() 
     {
         // ROS_INFO_STREAM("INTEGRATING");
-        Eigen::Matrix<double, 4, 1> x_intermediate = x_hat_kmin1_plus;
-        Eigen::Matrix<double, 4, 1> new_x = x_hat_kmin1_plus;
+        Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus;
+        Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus;
 
         for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
         {
             if (print) { ROS_INFO_STREAM("intermediate step " << i); }
             
-            double dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
-            double ang_vel_ego = ego_rbt_vels[i].twist.angular.z;
+            float dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
+            float ang_vel_ego = ego_rbt_vels[i].twist.angular.z;
             
             if (print) { ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);}
 
-            double p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
-            double p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
+            float p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
+            float p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
             if (print) { ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);}
 
-            double vdot_x_body = ego_rbt_accs[i].twist.linear.x;
-            double vdot_y_body = ego_rbt_accs[i].twist.linear.y;
+            float vdot_x_body = ego_rbt_accs[i].twist.linear.x;
+            float vdot_y_body = ego_rbt_accs[i].twist.linear.y;
             if (print) { ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);}
 
-            double v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
-            double v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
+            float v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
+            float v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
             if (print) { ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y); }
 
             new_x << x_intermediate[0] + p_dot_x*dt, // r_x
@@ -261,8 +261,8 @@ namespace dynamic_gap {
 
     void StaticEstimator::linearize(int idx) 
     {
-        double dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();    
-        double ang_vel_ego = ego_rbt_vels[idx].twist.angular.z;
+        float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();    
+        float ang_vel_ego = ego_rbt_vels[idx].twist.angular.z;
         
         A << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
@@ -276,7 +276,7 @@ namespace dynamic_gap {
     {
 
         // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
-        double dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();
+        float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();
 
         Q_1 = Q_k;
         Q_2 = A * Q_1 + Q_1 * A.transpose();
@@ -285,13 +285,14 @@ namespace dynamic_gap {
         dQ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
-    void StaticEstimator::update(Eigen::Matrix<double, 2, 1> range_bearing_measurement, 
+    void StaticEstimator::update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                                     const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
                                     bool _print,
                                     const std::vector<geometry_msgs::Pose> & _agent_odoms,
                                     const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
-                                    const ros::Time & t_update) {
+                                    const ros::Time & t_update) 
+    {
         
         agent_odoms = _agent_odoms;
         agent_vels = _agent_vels;
@@ -437,7 +438,8 @@ namespace dynamic_gap {
         return;
     }    
 
-    void StaticEstimator::plot_models() {
+    void StaticEstimator::plot_models() 
+    {
         /*
         if (plot && !plotted && print) {
             if (life_time <= life_time_threshold) {
@@ -560,10 +562,11 @@ namespace dynamic_gap {
     }
     */
 
-    Eigen::Vector4d StaticEstimator::update_ground_truth_cartesian_state() {
+    Eigen::Vector4f StaticEstimator::update_ground_truth_cartesian_state() 
+    {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x = x_ground_truth;
+        Eigen::Vector4f return_x = x_ground_truth;
         
         if (print) {
             ROS_INFO_STREAM("updating ground truth cartesian state");
@@ -588,10 +591,11 @@ namespace dynamic_gap {
         return return_x;
     }
 
-    Eigen::Vector4d StaticEstimator::get_cartesian_state() {
+    Eigen::Vector4f StaticEstimator::get_cartesian_state() 
+    {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x = (perfect) ? x_ground_truth : x_hat_k_plus;
+        Eigen::Vector4f return_x = (perfect) ? x_ground_truth : x_hat_k_plus;
         
         /*
         if (life_time < 0.25)
@@ -605,32 +609,36 @@ namespace dynamic_gap {
         return return_x;
     }
 
-    Eigen::Vector4d StaticEstimator::get_GT_cartesian_state() {
+    Eigen::Vector4f StaticEstimator::get_GT_cartesian_state() 
+    {
         // x state:
         // [r_x, r_y, v_x, v_y]
 
         return x_ground_truth;
     }
 
-    Eigen::Vector4d StaticEstimator::get_frozen_cartesian_state() {
+    Eigen::Vector4f StaticEstimator::get_frozen_cartesian_state() 
+    {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x = frozen_x;
+        Eigen::Vector4f return_x = frozen_x;
         return return_x;
     }
 
-    Eigen::Vector4d StaticEstimator::get_rewind_cartesian_state() {
+    Eigen::Vector4f StaticEstimator::get_rewind_cartesian_state() 
+    {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4d return_x = rewind_x;
+        Eigen::Vector4f return_x = rewind_x;
         return return_x;
     }
 
-    Eigen::Vector4d StaticEstimator::get_modified_polar_state() {
+    Eigen::Vector4f StaticEstimator::get_modified_polar_state() 
+    {
         // y state:
         // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4d mp_state;
-        Eigen::Vector4d cart_state = get_cartesian_state();
+        Eigen::Vector4f mp_state;
+        Eigen::Vector4f cart_state = get_cartesian_state();
         mp_state << 1.0 / sqrt(pow(cart_state[0], 2) + pow(cart_state[1], 2)),
                     std::atan2(cart_state[1], cart_state[0]),
                     (cart_state[0]*cart_state[2] + cart_state[1]*cart_state[3]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2)),
@@ -638,11 +646,12 @@ namespace dynamic_gap {
         return mp_state;
     }
 
-    Eigen::Vector4d StaticEstimator::get_rewind_modified_polar_state() {
+    Eigen::Vector4f StaticEstimator::get_rewind_modified_polar_state() 
+    {
         // y state:
         // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4d rewind_mp_state;
-        Eigen::Vector4d rewind_cart_state = get_rewind_cartesian_state();
+        Eigen::Vector4f rewind_mp_state;
+        Eigen::Vector4f rewind_cart_state = get_rewind_cartesian_state();
         rewind_mp_state << 1.0 / sqrt(pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
                            std::atan2(rewind_cart_state[1], rewind_cart_state[0]),
                            (rewind_cart_state[0]*rewind_cart_state[2] + rewind_cart_state[1]*rewind_cart_state[3]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
@@ -651,11 +660,12 @@ namespace dynamic_gap {
     }
    
 
-    Eigen::Vector4d StaticEstimator::get_frozen_modified_polar_state() {
+    Eigen::Vector4f StaticEstimator::get_frozen_modified_polar_state() 
+    {
         // y state:
         // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4d frozen_mp_state;
-        Eigen::Vector4d frozen_cart_state = get_frozen_cartesian_state();
+        Eigen::Vector4f frozen_mp_state;
+        Eigen::Vector4f frozen_cart_state = get_frozen_cartesian_state();
         frozen_mp_state << 1.0 / sqrt(pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
                            std::atan2(frozen_cart_state[1], frozen_cart_state[0]),
                            (frozen_cart_state[0]*frozen_cart_state[2] + frozen_cart_state[1]*frozen_cart_state[3]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
@@ -663,15 +673,18 @@ namespace dynamic_gap {
         return frozen_mp_state;
     }
 
-    geometry_msgs::TwistStamped StaticEstimator::get_v_ego() {
+    geometry_msgs::TwistStamped StaticEstimator::get_v_ego() 
+    {
         return last_ego_rbt_vel;
     }
 
-    int StaticEstimator::get_index() {
+    int StaticEstimator::get_index() 
+    {
         return index;
     }
 
-    Eigen::Vector2d StaticEstimator::get_x_tilde() {
+    Eigen::Vector2f StaticEstimator::get_x_tilde() 
+    {
         return x_tilde;
     }
 }

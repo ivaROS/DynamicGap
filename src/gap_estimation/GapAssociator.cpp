@@ -46,10 +46,10 @@ namespace dynamic_gap {
 		return points;
 	}
 
-	std::vector<std::vector<double>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+	std::vector<std::vector<float>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
 																	 const std::vector<dynamic_gap::Gap> & previous_gaps) 
 	{
-		double start_time = ros::Time::now().toSec(); 
+		float start_time = ros::Time::now().toSec(); 
 		//std::cout << "number of current gaps: " << observed_gaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previous_gaps.size() << std::endl;
 		// ROS_INFO_STREAM("getting previous points:");
@@ -57,13 +57,13 @@ namespace dynamic_gap {
 		// ROS_INFO_STREAM("getting current points:");
         observed_gap_points = obtainGapPoints(observed_gaps);
         
-		std::vector< std::vector<double> > distMatrix(observed_gap_points.size(), std::vector<double>(previous_gap_points.size()));
+		std::vector< std::vector<float> > distMatrix(observed_gap_points.size(), std::vector<float>(previous_gap_points.size()));
         //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix[0].size() << std::endl;
 		// populate distance matrix
 		// ROS_INFO_STREAM("Distance matrix: ");
         for (int i = 0; i < distMatrix.size(); i++) {
             for (int j = 0; j < distMatrix[i].size(); j++) {
-                double accum = 0;
+                float accum = 0;
                 //std::cout << i << ", " << j <<std::endl;
                 for (int k = 0; k < observed_gap_points[i].size(); k++) {
                     // std::cout << previous_gap_points[i][k] << ", " << observed_gap_points[j][k];
@@ -84,7 +84,7 @@ namespace dynamic_gap {
 	void printGapAssociations(const std::vector<dynamic_gap::Gap> & current_gaps, 
 							  const std::vector<dynamic_gap::Gap> & previous_gaps, 
 							  const std::vector<int> & association,
-							  const std::vector< std::vector<double> > & distMatrix) 
+							  const std::vector< std::vector<float> > & distMatrix) 
 	{
         // std::cout << "printing associations" << std::endl;
 
@@ -119,7 +119,7 @@ namespace dynamic_gap {
 
 	void printGapTransition(const std::vector<dynamic_gap::Gap> & observed_gaps, 
 							const std::vector<dynamic_gap::Gap> & previous_gaps,
-							const std::vector< std::vector<double> > & distMatrix, 
+							const std::vector< std::vector<float> > & distMatrix, 
 							const std::vector<int> & pair,
 							bool valid_assoc) 
 	{
@@ -168,7 +168,7 @@ namespace dynamic_gap {
 	}
 
 	void GapAssociator::assignModels(std::vector<int> & association, 
-									 const std::vector< std::vector<double> > & distMatrix, 
+									 const std::vector< std::vector<float> > & distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
 									 const std::vector<dynamic_gap::Gap> & previous_gaps,
 									 int * model_idx,
@@ -177,9 +177,9 @@ namespace dynamic_gap {
                       				 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
 									 bool print)
 	{
-		double start_time = ros::Time::now().toSec();
+		float start_time = ros::Time::now().toSec();
 		// initializing models for current gaps
-		double init_r, init_beta;
+		float init_r, init_beta;
 
     	geometry_msgs::TwistStamped last_ego_rbt_vel = (!ego_rbt_vels_copied.empty()) ? ego_rbt_vels_copied[ego_rbt_vels_copied.size() - 1] : geometry_msgs::TwistStamped();
 	    geometry_msgs::TwistStamped last_ego_rbt_acc = (!ego_rbt_accs_copied.empty()) ? ego_rbt_accs_copied[ego_rbt_accs_copied.size() - 1] : geometry_msgs::TwistStamped();
@@ -247,16 +247,16 @@ namespace dynamic_gap {
 	}
         
 
-	std::vector<int> GapAssociator::associateGaps(const std::vector< std::vector<double> > & distMatrix) 
+	std::vector<int> GapAssociator::associateGaps(const std::vector< std::vector<float> > & distMatrix) 
 	{
 		// NEW ASSIGNMENT OBTAINED
-		//double start_time = ros::Time::now().toSec();
+		//float start_time = ros::Time::now().toSec();
 
 		// std::cout << "obtaining new assignment" << std::endl;
 		std::vector<int> association;
         if (distMatrix.size() > 0 && distMatrix[0].size() > 0) {
 			//std::cout << "solving" << std::endl;
-            double cost = Solve(distMatrix, association);
+            float cost = Solve(distMatrix, association);
 			//std::cout << "done solving" << std::endl;
         }
 
@@ -267,17 +267,17 @@ namespace dynamic_gap {
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
 	//********************************************************//
-	double GapAssociator::Solve(const std::vector <std::vector<double> >& DistMatrix, std::vector<int>& Assignment)
+	float GapAssociator::Solve(const std::vector <std::vector<float> >& DistMatrix, std::vector<int>& Assignment)
 	{
 		unsigned int nRows = DistMatrix.size();
 		unsigned int nCols = DistMatrix[0].size();
 
-		double *distMatrixIn = new double[nRows * nCols];
+		float *distMatrixIn = new float[nRows * nCols];
 		int *assignment = new int[nRows];
-		double cost = 0.0;
+		float cost = 0.0;
 
 		// Fill in the distMatrixIn. Mind the index is "i + nRows * j".
-		// Here the cost matrix of size MxN is defined as a double precision array of N*M elements. 
+		// Here the cost matrix of size MxN is defined as a float precision array of N*M elements. 
 		// In the solving functions matrices are seen to be saved MATLAB-internally in row-order.
 		// (i.e. the matrix [1 2; 3 4] will be stored as a vector [1 3 2 4], NOT [1 2 3 4]).
 		for (unsigned int i = 0; i < nRows; i++)
@@ -300,9 +300,9 @@ namespace dynamic_gap {
 	//********************************************************//
 	// Solve optimal solution for assignment problem using Munkres algorithm, also known as Hungarian Algorithm.
 	//********************************************************//
-	void GapAssociator::assignmentoptimal(int *assignment, double *cost, double *distMatrixIn, int nOfRows, int nOfColumns)
+	void GapAssociator::assignmentoptimal(int *assignment, float *cost, float *distMatrixIn, int nOfRows, int nOfColumns)
 	{
-		double *distMatrix, *distMatrixTemp, *distMatrixEnd, *columnEnd, value, minValue;
+		float *distMatrix, *distMatrixTemp, *distMatrixEnd, *columnEnd, value, minValue;
 		bool *coveredColumns, *coveredRows, *starMatrix, *newStarMatrix, *primeMatrix;
 		int nOfElements, minDim, row, col;
 
@@ -314,7 +314,7 @@ namespace dynamic_gap {
 		/* generate working copy of distance Matrix */
 		/* check if all matrix elements are positive */
 		nOfElements = nOfRows * nOfColumns;
-		distMatrix = (double *)malloc(nOfElements * sizeof(double));
+		distMatrix = (float *)malloc(nOfElements * sizeof(float));
 		distMatrixEnd = distMatrix + nOfElements;
 
 		for (row = 0; row<nOfElements; row++)
@@ -448,7 +448,7 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::computeassignmentcost(int *assignment, double *cost, double *distMatrix, int nOfRows)
+	void GapAssociator::computeassignmentcost(int *assignment, float *cost, float *distMatrix, int nOfRows)
 	{
 		int row, col;
 
@@ -461,7 +461,7 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::step2a(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
+	void GapAssociator::step2a(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
 	{
 		bool *starMatrixTemp, *columnEnd;
 		int col;
@@ -485,7 +485,7 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::step2b(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
+	void GapAssociator::step2b(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
 	{
 		int col, nOfCoveredColumns;
 
@@ -509,7 +509,7 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::step3(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
+	void GapAssociator::step3(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
 	{
 		bool zerosFound;
 		int row, col, starCol;
@@ -552,7 +552,7 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::step4(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col)
+	void GapAssociator::step4(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col)
 	{
 		int n, starRow, starCol, primeRow, primeCol;
 		int nOfElements = nOfRows*nOfColumns;
@@ -606,9 +606,9 @@ namespace dynamic_gap {
 	}
 
 	/********************************************************/
-	void GapAssociator::step5(int *assignment, double *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
+	void GapAssociator::step5(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim)
 	{
-		double h, value;
+		float h, value;
 		int row, col;
 
 		/* find smallest uncovered element h */

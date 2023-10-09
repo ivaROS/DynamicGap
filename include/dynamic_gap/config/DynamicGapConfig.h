@@ -18,7 +18,7 @@ namespace dynamic_gap {
             {
                 int min_resoln;
                 bool fig_gen;
-                double viz_jitter;
+                float viz_jitter;
                 bool debug_viz;
             } gap_viz;
 
@@ -26,7 +26,7 @@ namespace dynamic_gap {
             {
                 float r_inscr;
                 int num_obsts;
-                double max_range;
+                float max_range;
                 int half_num_scan;
             } rbt;
 
@@ -53,8 +53,8 @@ namespace dynamic_gap {
 
             struct Goal 
             {
-                double goal_tolerance;
-                double waypoint_tolerance;
+                float goal_tolerance;
+                float waypoint_tolerance;
             } goal;
 
             struct Debug 
@@ -70,22 +70,22 @@ namespace dynamic_gap {
 
             struct GapAssociation 
             {
-                double assoc_thresh;
+                float assoc_thresh;
             } gap_assoc;           
 
             struct GapEstimation 
             {
-                double R_scalar;
-                double Q_scalar;
+                float R_scalar;
+                float Q_scalar;
             } gap_est;
 
             struct GapManipulation 
             {
-                double epsilon1;
-                double epsilon2;
-                double rot_ratio;
-                double reduction_threshold;
-                double reduction_target;
+                float epsilon1;
+                float epsilon2;
+                float rot_ratio;
+                float reduction_threshold;
+                float reduction_target;
                 int max_idx_diff;
                 bool radial_extend;
                 bool radial_convert;
@@ -94,43 +94,43 @@ namespace dynamic_gap {
             struct Trajectory 
             {
                 bool synthesized_frame;
-                double scale;
-                double integrate_maxt;
-                double integrate_stept;
-                double max_pose_pen_dist;
-                double cobs;
-                double pose_exp_weight;
-                double inf_ratio;
-                double terminal_weight;
-                double waypoint_ratio;
+                float scale;
+                float integrate_maxt;
+                float integrate_stept;
+                float max_pose_pen_dist;
+                float cobs;
+                float pose_exp_weight;
+                float inf_ratio;
+                float terminal_weight;
+                float waypoint_ratio;
                 int num_curve_points;
                 int num_qB_points;
             } traj;            
 
             struct ControlParams 
             {
-                double k_fb_x;
-                double k_fb_y;
-                double k_fb_theta;
+                float k_fb_x;
+                float k_fb_y;
+                float k_fb_theta;
                 int ctrl_ahead_pose;
-                double vx_absmax;
-                double vy_absmax;
-                double vang_absmax;
-                double ax_absmax;
-                double ay_absmax;
-                double aang_absmax;
+                float vx_absmax;
+                float vy_absmax;
+                float vang_absmax;
+                float ax_absmax;
+                float ay_absmax;
+                float aang_absmax;
             } control;
             
             struct ProjectionParam 
             {
-                double k_po_x;
-                double k_po_theta;
+                float k_po_x;
+                float k_po_theta;
 
-                double r_min;
-                double r_norm;
-                double r_norm_offset;
-                double cbf_param;                
-                double k_CBF;
+                float r_min;
+                float r_norm;
+                float r_norm_offset;
+                float cbf_param;                
+                float k_CBF;
 
                 bool line;
             } projection;

@@ -319,7 +319,7 @@ namespace dynamic_gap
                 ROS_INFO_STREAM("x_l, y_l: (" << x_l << ", " << y_l << "), x_r,y_r: (" << x_r << ", " << y_r << ")");
             }   
             
-            double gap_lifespan = 5.0   ;
+            float gap_lifespan = 5.0   ;
 
             int _right_idx = 0;
             int _left_idx = 511;
@@ -344,8 +344,8 @@ namespace dynamic_gap
             bool right_type = false;
             bool terminal_right_type = false;
 
-            double peak_velocity_x = 0.0;
-            double peak_velocity_y = 0.0;
+            float peak_velocity_x = 0.0;
+            float peak_velocity_y = 0.0;
 
             struct converted {
                 int convex_ridx = 0;
@@ -394,12 +394,12 @@ namespace dynamic_gap
 
             bool artificial = false;
 
-            double left_weight = 0.0;
-            double right_weight = 0.0;
-            Eigen::MatrixXd left_right_centers, all_curve_pts;
+            float left_weight = 0.0;
+            float right_weight = 0.0;
+            Eigen::MatrixXf left_right_centers, all_curve_pts;
             Eigen::Vector4f spline_x_coefs, spline_y_coefs;
 
-            Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
+            Eigen::Vector2f left_pt_0, left_pt_1, right_pt_0, right_pt_1;
             int num_left_rge_points = 0;
             int num_right_rge_points = 0;
         // private:

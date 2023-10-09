@@ -88,7 +88,7 @@ namespace dynamic_gap
     }
     */
     void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
-                                            const std::vector<std::vector<double>> & cost) 
+                                            const std::vector<std::vector<float>> & cost) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray score_arr;

@@ -85,8 +85,8 @@ namespace dynamic_gap
         std::vector<int> simp_association;
         std::vector<int> raw_association;
 
-        std::vector< std::vector<double> > simp_distMatrix;
-        std::vector< std::vector<double> > raw_distMatrix;
+        std::vector< std::vector<float> > simp_distMatrix;
+        std::vector< std::vector<float> > raw_distMatrix;
 
         bool print_associations;
 
@@ -159,11 +159,11 @@ namespace dynamic_gap
         boost::mutex gapset_mutex;
 
         geometry_msgs::PoseArray curr_executing_traj;
-        std::vector<double> curr_executing_time_arr;
+        std::vector<float> curr_executing_time_arr;
         int curr_exec_left_idx;
         int curr_exec_right_idx;
 
-        boost::circular_buffer<double> log_vel_comp;
+        boost::circular_buffer<float> log_vel_comp;
 
         ros::Time t_last_kf_update;
         ros::Time t_kf_update;
@@ -176,23 +176,23 @@ namespace dynamic_gap
 
         int init_val;
         int * model_idx;
-        double prev_traj_switch_time;
+        float prev_traj_switch_time;
 
         dynamic_gap::Estimator * curr_left_model;
         dynamic_gap::Estimator * curr_right_model;
         
-        double curr_peak_velocity_x, curr_peak_velocity_y;
+        float curr_peak_velocity_x, curr_peak_velocity_y;
 
         int num_obsts;
 
-        std::vector< std::vector<double>> agent_odom_vects, agent_vel_vects;
+        std::vector< std::vector<float>> agent_odom_vects, agent_vel_vects;
         std::vector<geometry_msgs::Pose> agent_odoms;
         std::vector<geometry_msgs::Vector3Stamped> agent_vels;
 
         std::vector<sensor_msgs::LaserScan> future_scans;
 
         ros::Time prev_pose_msg_time, prev_scan_msg_time, prev_acc_msg_time;
-        std::vector<Eigen::Matrix<double, 4, 1> > curr_agents;
+        std::vector<Eigen::Matrix<float, 4, 1> > curr_agents;
 
         int switch_index;
 
@@ -280,7 +280,7 @@ namespace dynamic_gap
          * 
          *
          */
-        std::vector<std::vector<double>> initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<double>>& res_time_traj);
+        std::vector<std::vector<float>> initialTrajGen(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<float>>& res_time_traj);
 
         /**
          * Callback function to config object
@@ -295,7 +295,7 @@ namespace dynamic_gap
          * @param Vector of corresponding trajectory scores
          * @return the best trajectory
          */
-        int pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<double>> score);
+        int pickTraj(std::vector<geometry_msgs::PoseArray> prr, std::vector<std::vector<float>> score);
 
         /**
          * Compare to the old trajectory and pick the best one
@@ -305,7 +305,7 @@ namespace dynamic_gap
         geometry_msgs::PoseArray compareToOldTraj(geometry_msgs::PoseArray incoming, 
                                                   dynamic_gap::Gap incoming_gap, 
                                                   std::vector<dynamic_gap::Gap> feasible_gaps, 
-                                                  std::vector<double> time_arr,
+                                                  std::vector<float> time_arr,
                                                   bool curr_exec_gap_assoc, 
                                                   bool curr_exec_gap_feas);
 
@@ -315,8 +315,8 @@ namespace dynamic_gap
         void setCurrentTraj(geometry_msgs::PoseArray);        
         geometry_msgs::PoseArray getCurrentTraj();
 
-        void setCurrentTimeArr(std::vector<double>);
-        std::vector<double> getCurrentTimeArr();
+        void setCurrentTimeArr(std::vector<float>);
+        std::vector<float> getCurrentTimeArr();
 
         int getCurrentRightGapIndex();
         int getCurrentLeftGapIndex();
@@ -364,7 +364,7 @@ namespace dynamic_gap
 
         void setCurrentRightModel(dynamic_gap::Estimator * _right_model);
         void setCurrentLeftModel(dynamic_gap::Estimator * _left_model);
-        void setCurrentGapPeakVelocities(double _peak_velocity_x, double _peak_velocity_y);
+        void setCurrentGapPeakVelocities(float _peak_velocity_x, float _peak_velocity_y);
 
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);
         void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association);
@@ -386,7 +386,7 @@ namespace dynamic_gap
 
         geometry_msgs::PoseArray changeTrajectoryHelper(dynamic_gap::Gap incoming_gap, 
                                     geometry_msgs::PoseArray incoming, 
-                                    std::vector<double> time_arr, 
+                                    std::vector<float> time_arr, 
                                     bool switching_to_empty);
         
         void reviseIntermediateValues();
