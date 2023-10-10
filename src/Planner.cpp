@@ -186,11 +186,11 @@ namespace dynamic_gap
                                         raw_gaps, previous_raw_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
-                                        true); // cfg.debug.raw_gaps_debug_log);
+                                        cfg.debug.raw_gaps_debug_log);
             
             associated_raw_gaps = update_models(raw_gaps, ego_rbt_vels_copied, 
                                                 ego_rbt_accs_copied, t_kf_update,
-                                                true); // cfg.debug.raw_gaps_debug_log);
+                                                cfg.debug.raw_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
@@ -208,10 +208,10 @@ namespace dynamic_gap
                                         observed_gaps, previous_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
-                                        true); // cfg.debug.simplified_gaps_debug_log);
+                                        cfg.debug.simplified_gaps_debug_log);
             associated_observed_gaps = update_models(observed_gaps, ego_rbt_vels_copied, 
                                                         ego_rbt_accs_copied, t_kf_update,
-                                                        true); // cfg.debug.simplified_gaps_debug_log);
+                                                        cfg.debug.simplified_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
@@ -257,7 +257,8 @@ namespace dynamic_gap
                                                          const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
                                                          const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
                                                          const ros::Time & t_kf_update,
-                                                         bool print) {
+                                                         bool print) 
+    {
         std::vector<dynamic_gap::Gap> associated_observed_gaps = _observed_gaps;
         
         // double start_time = ros::WallTime::now().toSec();
@@ -275,7 +276,8 @@ namespace dynamic_gap
                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
                                const ros::Time & t_kf_update,
-                               bool print) {
+                               bool print) 
+    {
 		dynamic_gap::Gap g = _observed_gaps[int(std::floor(i / 2.0))];
  
         float beta_tilde, range_tilde;
@@ -316,17 +318,6 @@ namespace dynamic_gap
         }
     }
 
-    /*
-    Acceleration message comes in in robot frame 
-    */
-    /*
-    void Planner::robotAccCB(boost::shared_ptr<geometry_msgs::TwistStamped const> msg)
-    {
-        current_rbt_acc = *msg;
-        intermediate_accs.push_back(current_rbt_acc);
-    }
-    */
-    
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &odom_msg, 
                                  const geometry_msgs::TwistStamped::ConstPtr &accel_msg)
     {

@@ -199,11 +199,23 @@ namespace dynamic_gap
                 return return_tuple;
             }
 
+            // add radial gap extension
+            initial_goal_x -= selectedGap.qB(0);
+            initial_goal_y -= selectedGap.qB(1);
+            x_left -= selectedGap.qB(0);
+            y_left -= selectedGap.qB(1);
+            x_right -= selectedGap.qB(0);
+            y_right -= selectedGap.qB(1);
+            ego_x[0] -= selectedGap.qB(0);
+            ego_x[1] -= selectedGap.qB(1);
+
+            x = {ego_x[0], ego_x[1], x_left, y_left, x_right, y_right, initial_goal_x, initial_goal_y};
+
             polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
-                                initial_goal_x, initial_goal_y,
-                                selectedGap.mode.agc, selectedGap.isRadial(),
-                                x[0], x[1],
-                                cfg_->control.vx_absmax, cfg_->control.vx_absmax);
+                                                    initial_goal_x, initial_goal_y,
+                                                    selectedGap.mode.agc, selectedGap.isRadial(),
+                                                    x[0], x[1],
+                                                    cfg_->control.vx_absmax, cfg_->control.vx_absmax);
 
             float start_time = ros::Time::now().toSec();
 
@@ -266,6 +278,12 @@ namespace dynamic_gap
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     polar_gap_field_inte, x, 0.0f, selectedGap.gap_lifespan, 
                                                     cfg_->traj.integrate_stept, corder);
+            for (auto & p : posearr.poses) 
+            {
+                p.position.x += selectedGap.qB(0);
+                p.position.y += selectedGap.qB(1);
+            }
+            
             ROS_INFO_STREAM("integration time taken: " << (ros::Time::now().toSec() - start_time));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> return_tuple(posearr, timearr);

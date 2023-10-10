@@ -556,7 +556,8 @@ namespace dynamic_gap
         return;
     }
 
-    void GapManipulator::convertRadialGap(dynamic_gap::Gap& gap, bool initial) { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
+    void GapManipulator::convertRadialGap(dynamic_gap::Gap& gap, bool initial) 
+    { //, sensor_msgs::LaserScan const dynamic_laser_scan) {
         // Return if not radial gap or disabled
         if (!gap.isRadial(initial) || !cfg_->gap_manip.radial_convert) 
         {

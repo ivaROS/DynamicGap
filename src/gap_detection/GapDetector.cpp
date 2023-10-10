@@ -317,6 +317,7 @@ namespace dynamic_gap
                             // ROS_INFO_STREAM("erasing simplified gaps from " << (last_mergable + 1) << " to " << simplified_gaps.size());
                             simplified_gaps.erase(simplified_gaps.begin() + last_mergable + 1, simplified_gaps.end());
                             simplified_gaps.back().addLeftInformation(raw_gap.LIdx(), raw_gap.LDist());
+                            simplified_gaps.back().setRadial();
                             // ROS_INFO_STREAM("merging last simplified gap into (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ") to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ")");
                         } else {
                             // ROS_INFO_STREAM("no merge, adding raw gap (swept, left<right)");                            
@@ -330,6 +331,7 @@ namespace dynamic_gap
                     if (mergeSweptGapCondition(raw_gap, simplified_gaps))
                     {
                         simplified_gaps.back().addLeftInformation(raw_gap.LIdx(), raw_gap.LDist());
+                        simplified_gaps.back().setRadial();
                         // ROS_INFO_STREAM("merging last simplifed gap to (" << simplified_gaps.back().RIdx() << ", " << simplified_gaps.back().RDist() << ") to (" << simplified_gaps.back().LIdx() << ", " << simplified_gaps.back().LDist() << ")");
                     } else {
                         // ROS_INFO_STREAM("adding raw gap (swept)");                            

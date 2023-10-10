@@ -179,7 +179,7 @@ namespace dynamic_gap
                 if (gap_angle < 0)
                     gap_angle += 2*M_PI;
 
-                // ROS_INFO_STREAM("gap_angle: " << gap_angle);
+                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
                 float short_side = right_type ? check_r_dist : check_l_dist;
                 // law of cosines
                 float opp_side = sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * cos(gap_angle));
@@ -212,30 +212,34 @@ namespace dynamic_gap
 
             bool isRightType(bool initial = true) const
             {
-                if (initial) { 
+                if (initial)
                     return right_type;
-                } else {
+                else
                     return terminal_right_type;
-                }
             }
 
-            void resetFrame(std::string frame) {
+            void resetFrame(std::string frame) 
+            {
                 _frame = frame;
             }
 
-            float getMinSafeDist() {
+            float getMinSafeDist() 
+            {
                 return min_safe_dist;
             }
 
-            void setTerminalMinSafeDist(float _dist) {
+            void setTerminalMinSafeDist(float _dist) 
+            {
                 terminal_min_safe_dist = _dist;
             }
 
-            float getTerminalMinSafeDist() {
+            float getTerminalMinSafeDist() 
+            {
                 return terminal_min_safe_dist;
             }
 
-            std::string getFrame() {
+            std::string getFrame() 
+            {
                 return _frame;
             }
 
