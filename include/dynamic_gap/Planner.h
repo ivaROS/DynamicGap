@@ -43,8 +43,8 @@
 
 // #include <omp.h>
 
-#include <dynamic_reconfigure/server.h>
-#include <dynamic_gap/dgConfig.h>
+// #include <dynamic_reconfigure/server.h>
+// #include <dynamic_gap/dgConfig.h>
 
 #include <boost/thread/mutex.hpp>
 #include <boost/circular_buffer.hpp>
@@ -150,8 +150,8 @@ namespace dynamic_gap
         dynamic_gap::TrajPlan ni_ref, orig_ref;
 
         // Dynamic Reconfigure
-        boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
-        dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
+        // boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
+        // dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
 
         bool replan = true;
         
@@ -288,7 +288,7 @@ namespace dynamic_gap
          * @param incoming config
          * @param level Level of incoming config
          */
-        void rcfgCallback(dynamic_gap::dgConfig &config, uint32_t level);
+        // void rcfgCallback(dynamic_gap::dgConfig &config, uint32_t level);
 
         /**
          * Pick the best trajectory from the current set

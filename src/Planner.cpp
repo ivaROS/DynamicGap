@@ -958,6 +958,7 @@ namespace dynamic_gap
         return cmd_vel;
     }
 
+    /*
     void Planner::rcfgCallback(dynamic_gap::dgConfig &config, uint32_t level)
     {
         cfg.reconfigure(config);
@@ -967,6 +968,7 @@ namespace dynamic_gap
         log_vel_comp.clear();
         log_vel_comp.set_capacity(cfg.planning.halt_size);
     }
+    */
 
     // should return gaps with initialized models, no attachements to anything else
     std::vector<dynamic_gap::Gap> Planner::get_curr_raw_gaps() {

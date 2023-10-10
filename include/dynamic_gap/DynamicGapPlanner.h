@@ -27,9 +27,9 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/Gap.h>
 // #include <dynamic_gap/helper.h>
-#include <dynamic_gap/dgConfig.h>
+// #include <dynamic_gap/dgConfig.h>
 
-#include <dynamic_reconfigure/server.h>
+// #include <dynamic_reconfigure/server.h>
 
 namespace dynamic_gap {
 
@@ -72,7 +72,7 @@ namespace dynamic_gap {
             
             bool initialized = false;
 
-            boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
-            dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
+            // boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
+            // dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
     };
 }

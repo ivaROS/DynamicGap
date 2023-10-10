@@ -2,7 +2,7 @@
 
 // #include <ros/console.h>
 #include <ros/ros.h>
-#include <dynamic_gap/dgConfig.h>
+// #include <dynamic_gap/dgConfig.h>
 // #include <Eigen/Core>
 #include <boost/thread/mutex.hpp>
 
@@ -226,7 +226,7 @@ namespace dynamic_gap {
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
 
-        void reconfigure(dgConfig& cfg);
+        // void reconfigure(dgConfig& cfg);
 
         boost::mutex & configMutex() {return config_mutex;}
 

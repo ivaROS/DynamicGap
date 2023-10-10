@@ -8,7 +8,7 @@ add_compile_options(-std=c++17)
 set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
-  dynamic_reconfigure
+  # dynamic_reconfigure
   # egocircle
   # geometry_msgs
   # nav_msgs
@@ -19,7 +19,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   # std_msgs
   # benchmarking_tools
   # pips_trajectory_msgs
-  dynamic_reconfigure
+  # dynamic_reconfigure
   # message_generation
 )
 
@@ -32,9 +32,9 @@ find_package(Eigen3 REQUIRED)
 find_package(OsqpEigen REQUIRED)
 # find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
-generate_dynamic_reconfigure_options(
-  cfg/dg.cfg
-)
+#generate_dynamic_reconfigure_options(
+#  cfg/dg.cfg
+#)
 
 ##############
 ## messages ##

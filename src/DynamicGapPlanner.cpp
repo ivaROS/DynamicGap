@@ -70,9 +70,9 @@ namespace dynamic_gap
         initialized = true;
 
         // Setup dynamic reconfigure
-        dynamic_recfg_server = boost::make_shared<dynamic_reconfigure::Server <dynamic_gap::dgConfig> > (pnh);
-        f = boost::bind(&dynamic_gap::Planner::rcfgCallback, &planner, _1, _2);
-        dynamic_recfg_server->setCallback(f);
+        // dynamic_recfg_server = boost::make_shared<dynamic_reconfigure::Server <dynamic_gap::dgConfig> > (pnh);
+        // f = boost::bind(&dynamic_gap::Planner::rcfgCallback, &planner, _1, _2);
+        // dynamic_recfg_server->setCallback(f);
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmd_vel)

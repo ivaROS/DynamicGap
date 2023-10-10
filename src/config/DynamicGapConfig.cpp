@@ -97,6 +97,7 @@ namespace dynamic_gap
         nh.param("num_qB_points", traj.num_qB_points, traj.num_qB_points);
     }
 
+    /*
     void DynamicGapConfig::reconfigure(dgConfig& cfg)
     {
         // This locks the lock within this function
@@ -191,4 +192,5 @@ namespace dynamic_gap
         projection.r_norm_offset = cfg.r_norm_offset;
         projection.line = cfg.line;
     }
+    */
 }
