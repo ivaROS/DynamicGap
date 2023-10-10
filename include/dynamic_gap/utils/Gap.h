@@ -2,6 +2,7 @@
 
 #include <ros/ros.h>
 #include <math.h>
+#include <dynamic_gap/utils/Utils.h>
 // #include <geometry_msgs/Point.h>
 // #include <visualization_msgs/MarkerArray.h>
 // #include <visualization_msgs/Marker.h>
@@ -113,32 +114,36 @@ namespace dynamic_gap
             }
 
             // Get Left Cartesian Distance
-            void getRCartesian(float &x, float &y) const
-            {
-                x = (_rdist) * cos(-((float) half_scan - _right_idx) / half_scan * M_PI);
-                y = (_rdist) * sin(-((float) half_scan - _right_idx) / half_scan * M_PI);
-            }
-
-            // Get Right Cartesian Distance
             // edited by Max: float &x, float &y
             void getLCartesian(float &x, float &y) const
             {
-                x = (_ldist) * cos(-((float) half_scan - _left_idx) / half_scan * M_PI);
-                y = (_ldist) * sin(-((float) half_scan - _left_idx) / half_scan * M_PI);
+                float ltheta = idx2theta(_left_idx);
+                x = (_ldist) * cos(ltheta);
+                y = (_ldist) * sin(ltheta);
             }
 
-            void getSimplifiedRCartesian(float &x, float &y) const
+            // Get Right Cartesian Distance
+            void getRCartesian(float &x, float &y) const
             {
-                // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_rdist) * cos(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
-                y = (convex.convex_rdist) * sin(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
+                float rtheta = idx2theta(_right_idx);
+                x = (_rdist) * cos(_right_idx);
+                y = (_rdist) * sin(_right_idx);
             }
 
             void getSimplifiedLCartesian(float &x, float &y) const
             {
+                float ltheta = idx2theta(convex.convex_lidx);
                 // std::cout << "convex_rdist: " << convex_rdist << ", convex_ridx: " << convex_ridx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_ldist) * cos(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
-                y = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
+                x = (convex.convex_ldist) * cos(ltheta);
+                y = (convex.convex_ldist) * sin(ltheta);
+            }
+
+            void getSimplifiedRCartesian(float &x, float &y) const
+            {
+                float rtheta = idx2theta(convex.convex_ridx);
+                // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
+                x = (convex.convex_rdist) * cos(rtheta);
+                y = (convex.convex_rdist) * sin(rtheta);
             }
 
             void initManipIndices() 
@@ -177,9 +182,9 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("gap_angle: " << gap_angle);
                 float short_side = right_type ? check_r_dist : check_l_dist;
                 // law of cosines
-                float opp_side = (float) sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * (float)cos(gap_angle));
+                float opp_side = sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * cos(gap_angle));
                 // law of sines
-                float small_angle = (float) asin((short_side / opp_side) * (float) sin(gap_angle));
+                float small_angle = asin((short_side / opp_side) * sin(gap_angle));
                 // ROS_INFO_STREAM("short_side: " << short_side);
                 // ROS_INFO_STREAM("opp_side: " << opp_side);
                 // ROS_INFO_STREAM("small angle: " << small_angle);
@@ -287,34 +292,46 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
             }
 
-            void printCartesianPoints(bool initial, bool simplified) {
-                float x_r,y_r,x_l,y_l;
-
-                if (initial) {
-                    if (simplified) {
-                        x_r = (_rdist) * cos(-((float) half_scan - _right_idx) / half_scan * M_PI);
-                        y_r = (_rdist) * sin(-((float) half_scan - _right_idx) / half_scan * M_PI);
-                        x_l = (_ldist) * cos(-((float) half_scan - _left_idx) / half_scan * M_PI);
-                        y_l = (_ldist) * sin(-((float) half_scan - _left_idx) / half_scan * M_PI);
-                    } else {
-                        x_r = (convex.convex_rdist) * cos(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
-                        y_r = (convex.convex_rdist) * sin(-((float) half_scan - convex.convex_ridx) / half_scan * M_PI);
-                        x_l = (convex.convex_ldist) * cos(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
-                        y_l = (convex.convex_ldist) * sin(-((float) half_scan - convex.convex_lidx) / half_scan * M_PI);
+            void printCartesianPoints(bool initial, bool simplified) 
+            {
+                float x_l, y_l, x_r, y_r;
+                float ltheta, rtheta, ldist, rdist;
+                if (initial) 
+                {
+                    if (simplified) 
+                    {
+                        ltheta = idx2theta(_left_idx);
+                        rtheta = idx2theta(_right_idx);
+                        ldist = _ldist;
+                        rdist = _rdist;
+                    } else 
+                    {
+                        ltheta = idx2theta(convex.convex_lidx);
+                        rtheta = idx2theta(convex.convex_ridx);    
+                        ldist = convex.convex_ldist;
+                        rdist = convex.convex_rdist;                                                         
                     }
-                } else {
-                    if (simplified) {
-                        x_r = (terminal_rdist) * cos(-((float) half_scan - terminal_ridx) / half_scan * M_PI);
-                        y_r = (terminal_rdist) * sin(-((float) half_scan - terminal_ridx) / half_scan * M_PI);
-                        x_l = (terminal_ldist) * cos(-((float) half_scan - terminal_lidx) / half_scan * M_PI);
-                        y_l = (terminal_ldist) * sin(-((float) half_scan - terminal_lidx) / half_scan * M_PI);
-                    } else {
-                        x_r = (convex.terminal_rdist) * cos(-((float) half_scan - convex.terminal_ridx) / half_scan * M_PI);
-                        y_r = (convex.terminal_rdist) * sin(-((float) half_scan - convex.terminal_ridx) / half_scan * M_PI);
-                        x_l = (convex.terminal_ldist) * cos(-((float) half_scan - convex.terminal_lidx) / half_scan * M_PI);
-                        y_l = (convex.terminal_ldist) * sin(-((float) half_scan - convex.terminal_lidx) / half_scan * M_PI);
+                } else 
+                {
+                    if (simplified) 
+                    {
+                        ltheta = idx2theta(terminal_lidx);
+                        rtheta = idx2theta(terminal_ridx);     
+                        ldist = terminal_ldist;
+                        rdist = terminal_rdist;          
+                    } else 
+                    {
+                        ltheta = idx2theta(convex.terminal_lidx);
+                        rtheta = idx2theta(convex.terminal_ridx);    
+                        ldist = convex.terminal_ldist;
+                        rdist = convex.terminal_rdist;                       
                     }
                 }
+
+                x_l = ldist * cos(ltheta);
+                y_l = ldist * sin(ltheta);
+                x_r = rdist * cos(rtheta);
+                y_r = rdist * sin(rtheta);
 
                 ROS_INFO_STREAM("x_l, y_l: (" << x_l << ", " << y_l << "), x_r,y_r: (" << x_r << ", " << y_r << ")");
             }   

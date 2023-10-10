@@ -69,6 +69,8 @@ namespace dynamic_gap
                                         v_rel_x, 
                                         v_rel_y};
         
+        ROS_INFO_STREAM("initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
+
         x_tilde << measurement[0], measurement[1];
         x_hat_kmin1_plus << measurement[0], measurement[1], measurement[2], measurement[3];
         x_hat_k_minus = x_hat_kmin1_plus; 

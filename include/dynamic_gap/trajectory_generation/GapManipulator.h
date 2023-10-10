@@ -41,8 +41,8 @@ namespace dynamic_gap
             const DynamicGapConfig* cfg_;
             int num_of_scan;
             int half_num_scan;
-            double angle_min;
-            double angle_increment; 
+            float angle_min;
+            float angle_increment; 
             boost::mutex egolock;
 
             bool checkGoalVisibility(geometry_msgs::PoseStamped, float theta_r, float theta_l, float rdist, float ldist, sensor_msgs::LaserScan const scan);

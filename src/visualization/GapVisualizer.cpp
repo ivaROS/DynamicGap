@@ -702,15 +702,18 @@ namespace dynamic_gap
 
         int id = (int) vis_arr.markers.size();
 
+        float sub_gap_ltheta;
         for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
-            linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            sub_gap_ltheta = idx2theta(sub_gap_lidx);
+            linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+            linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
             sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(2*g.half_scan);
             sub_gap_ldist += dist_step;
-            liner.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            liner.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            sub_gap_ltheta = idx2theta(sub_gap_lidx);
+            liner.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+            liner.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
             lines.push_back(linel);
             lines.push_back(liner);
 
@@ -724,10 +727,12 @@ namespace dynamic_gap
         // close the last
         // this_marker.scale.x = 10*thickness;
         lines.clear();
-        linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        liner.x = (rdist + viz_jitter) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
-        liner.y = (rdist + viz_jitter) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        sub_gap_ltheta = idx2theta(sub_gap_lidx);
+        linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+        linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
+        float rtheta = idx2theta(ridx);
+        liner.x = (rdist + viz_jitter) * cos(rtheta);
+        liner.y = (rdist + viz_jitter) * sin(rtheta);
         lines.push_back(linel);
         lines.push_back(liner);
         this_marker.points = lines;
@@ -736,7 +741,8 @@ namespace dynamic_gap
         vis_arr.markers.push_back(this_marker);
     }
     
-    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap> & g, std::string ns) {
+    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap> & g, std::string ns) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
@@ -917,7 +923,7 @@ namespace dynamic_gap
             return;
         }
 
-        float viz_jitter = (float) cfg_->gap_viz.viz_jitter;
+        float viz_jitter = cfg_->gap_viz.viz_jitter;
         int viz_offset = 0;
         
         if (viz_jitter > 0 && g.isRadial(initial)){
@@ -988,15 +994,19 @@ namespace dynamic_gap
 
         this_marker.lifetime = ros::Duration(100.0);
 
+        float sub_gap_ltheta;
         for (int i = 0; i < num_segments - 1; i++)
         {
             lines.clear();
-            linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            sub_gap_ltheta = idx2theta(sub_gap_lidx);
+            linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+            linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
             sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(g.half_scan * 2);
             sub_gap_ldist += dist_step;
-            liner.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-            liner.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
+            
+            sub_gap_ltheta = idx2theta(sub_gap_lidx);
+            liner.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+            liner.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
             lines.push_back(linel);
             lines.push_back(liner);
 
@@ -1007,10 +1017,12 @@ namespace dynamic_gap
 
         // close the last
         lines.clear();
-        linel.x = (sub_gap_ldist + viz_jitter) * cos(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        linel.y = (sub_gap_ldist + viz_jitter) * sin(-( (float) g.half_scan - sub_gap_lidx) / g.half_scan * M_PI);
-        liner.x = (rdist + viz_jitter) * cos(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
-        liner.y = (rdist + viz_jitter) * sin(-( (float) g.half_scan - ridx) / g.half_scan * M_PI);
+        sub_gap_ltheta = idx2theta(sub_gap_lidx);
+        linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
+        linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
+        float rtheta = idx2theta(ridx);
+        liner.x = (rdist + viz_jitter) * cos(rtheta);
+        liner.y = (rdist + viz_jitter) * sin(rtheta);
         lines.push_back(linel);
         lines.push_back(liner);
         this_marker.scale.x = thickness;

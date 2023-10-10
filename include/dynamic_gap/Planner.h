@@ -25,6 +25,7 @@
 // #include <dynamic_gap/trajectory_follower.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
 #include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/scan_separation/StaticScanSeparator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
@@ -117,7 +118,7 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> safe_gaps;
 
         dynamic_gap::GapDetector *gapDetector;
-        dynamic_gap::Utils *finder;
+        dynamic_gap::StaticScanSeparator *finder;
         dynamic_gap::GapVisualizer *gapvisualizer;
         dynamic_gap::GoalSelector *goalselector;
         dynamic_gap::TrajectoryVisualizer *trajvisualizer;

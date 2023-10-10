@@ -51,42 +51,7 @@ namespace dynamic_gap
 
         entire_global_plan_pub.publish(vis_arr);
     }
-    /*
-    void TrajectoryVisualizer::trajScore(geometry_msgs::PoseArray p_arr, std::vector<double> p_score) {
-        if (!cfg_->gap_viz.debug_viz) return;
 
-        ROS_FATAL_STREAM_COND(!p_score.size() == p_arr.poses.size(), "trajScore size mismatch, p_arr: "
-            << p_arr.poses.size() << ", p_score: " << p_score.size());
-
-        visualization_msgs::MarkerArray score_arr;
-        visualization_msgs::Marker lg_marker;
-        lg_marker.header.frame_id = p_arr.header.frame_id;
-        lg_marker.header.stamp = ros::Time::now();
-        lg_marker.ns = "trajScore";
-        lg_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        lg_marker.action = visualization_msgs::Marker::ADD;
-        lg_marker.pose.orientation.w = 1;
-        lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = 0.1;
-        lg_marker.scale.z = 0.1;
-
-        lg_marker.color.a = 1;
-        lg_marker.color.r = 1;
-        lg_marker.color.g = 1;
-        lg_marker.color.b = 1;
-
-        for (int i = 0; i < p_score.size(); i++) {
-            lg_marker.id = int (score_arr.markers.size());
-            lg_marker.pose.position.x = p_arr.poses.at(i).position.x;
-            lg_marker.pose.position.y = p_arr.poses.at(i).position.y;
-            lg_marker.pose.position.z = 0.5;
-            lg_marker.text = std::to_string(p_score.at(i));
-            score_arr.markers.push_back(lg_marker);
-        }
-
-        trajectory_score.publish(score_arr);
-    }
-    */
     void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
                                             const std::vector<std::vector<float>> & cost) 
     {

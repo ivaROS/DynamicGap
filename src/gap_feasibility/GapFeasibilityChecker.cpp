@@ -131,8 +131,8 @@ namespace dynamic_gap {
 
         float x_r, x_l, y_r, y_l;
 
-        float beta_left = idx2theta(gap.LIdx()); // float(gap.LIdx() - gap.half_scan) * M_PI / gap.half_scan;
-        float beta_right = idx2theta(gap.RIdx()); // float(gap.RIdx() - gap.half_scan) * M_PI / gap.half_scan;
+        float beta_left = idx2theta(gap.LIdx());
+        float beta_right = idx2theta(gap.RIdx());
         x_l = gap.LDist() * cos(beta_left);
         y_l = gap.LDist() * sin(beta_left);
         x_r = gap.RDist() * cos(beta_right);

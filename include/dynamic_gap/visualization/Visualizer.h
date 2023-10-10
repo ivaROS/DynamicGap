@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <map>

@@ -74,10 +74,10 @@ namespace dynamic_gap {
     bool GoalSelector::NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) 
     {
         int laserScanIdx = PoseIndexInSensorMsg(pose);
-        float epsilon2 = float(cfg_->gap_manip.epsilon2);
+        // float epsilon2 = cfg_->gap_manip.epsilon2;
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         // this boolean is flipped from VisibleOrPossiblyObstructed. 
-        bool check = dist2rbt(pose) > (double (stored_scan_msgs.ranges.at(laserScanIdx)) - cfg_->rbt.r_inscr / 2);
+        bool check = dist2rbt(pose) > (stored_scan_msgs.ranges.at(laserScanIdx) - cfg_->rbt.r_inscr / 2);
         return check;
     }
 
@@ -85,25 +85,25 @@ namespace dynamic_gap {
     bool GoalSelector::VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose) 
     {
         int laserScanIdx = PoseIndexInSensorMsg(pose);
-        float epsilon2 = float(cfg_->gap_manip.epsilon2);
+        float epsilon2 = cfg_->gap_manip.epsilon2;
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
         // first piece of bool: is the distance from pose to rbt less than laserscan range - robot diameter (z-buffer idea)
         // second piece of bool: distance from pose to rbt greater than laserscan range + some epsilon*2 (obstructed?)
-        bool check = dist2rbt(pose) < (double (stored_scan_msgs.ranges.at(laserScanIdx)) - cfg_->rbt.r_inscr / 2) || 
-            dist2rbt(pose) > (double (stored_scan_msgs.ranges.at(laserScanIdx)) + epsilon2 * 2);
+        bool check = dist2rbt(pose) < (stored_scan_msgs.ranges.at(laserScanIdx) - cfg_->rbt.r_inscr / 2) || 
+            dist2rbt(pose) > (stored_scan_msgs.ranges.at(laserScanIdx) + epsilon2 * 2);
         return check;
     }
 
     int GoalSelector::PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose) 
     {
-        auto orientation = getPoseOrientation(pose);
-        auto index = float(orientation + M_PI) / (sharedPtr_laser.get()->angle_increment);
-        return int(std::floor(index));
+        float orientation = getPoseOrientation(pose);
+        int index = theta2idx(orientation); // float(orientation + M_PI) / (sharedPtr_laser.get()->angle_increment);
+        return index;
     }
 
-    double GoalSelector::getPoseOrientation(geometry_msgs::PoseStamped pose) 
+    float GoalSelector::getPoseOrientation(geometry_msgs::PoseStamped pose) 
     {
-        return  std::atan2(pose.pose.position.y + 1e-3, pose.pose.position.x + 1e-3);
+        return std::atan2(pose.pose.position.y + 1e-3, pose.pose.position.x + 1e-3);
     }
 
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getRelevantGlobalPlan(geometry_msgs::TransformStamped map2rbt) 
@@ -131,12 +131,12 @@ namespace dynamic_gap {
         // need indices: laser scan index at each index of plan
         // Finding the largest distance in the laser scan
         sensor_msgs::LaserScan stored_scan_msgs = *sharedPtr_laser.get();
-        threshold = (double) *std::max_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
+        // threshold = *std::max_element(stored_scan_msgs.ranges.begin(), stored_scan_msgs.ranges.end());
 
         // ROS_INFO_STREAM("mod plan size: " << mod_plan.size());
-        std::vector<double> plan_dists(mod_plan.size());
-        std::vector<double> scan_dists(mod_plan.size());
-        std::vector<double> plan_dist_diff(mod_plan.size());
+        std::vector<float> plan_dists(mod_plan.size());
+        std::vector<float> scan_dists(mod_plan.size());
+        std::vector<float> plan_dist_diff(mod_plan.size());
         for (int i = 0; i < plan_dists.size(); i++) {
             plan_dists.at(i) = dist2rbt(mod_plan.at(i));
             scan_dists.at(i) = scanDistsAtPlanIndices(mod_plan.at(i), stored_scan_msgs);
@@ -173,25 +173,25 @@ namespace dynamic_gap {
         return local_gplan;
     }
 
-    double GoalSelector::dist2rbt(geometry_msgs::PoseStamped pose) 
+    float GoalSelector::dist2rbt(geometry_msgs::PoseStamped pose) 
     {
         return sqrt(pow(pose.pose.position.x, 2) + pow(pose.pose.position.y, 2));
     }
 
-    double GoalSelector::scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
+    float GoalSelector::scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
                                                 const sensor_msgs::LaserScan & stored_scan_msgs) 
     {
-        double plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
+        float plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
         int half_num_scan = stored_scan_msgs.ranges.size() / 2;
         int plan_idx = int (half_num_scan * plan_theta / M_PI) + half_num_scan;
 
-        double scan_dist = stored_scan_msgs.ranges.at(plan_idx);
+        float scan_dist = stored_scan_msgs.ranges.at(plan_idx);
 
         return scan_dist;
     }
 
 
-    bool GoalSelector::isNotWithin(const double dist) 
+    bool GoalSelector::isNotWithin(const float dist) 
     {
         return dist <= 0.0;
     }

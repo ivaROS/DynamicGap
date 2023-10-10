@@ -68,7 +68,7 @@ namespace dynamic_gap
         scan = *sharedPtr_laser.get();
         // get half scan value
         full_scan_ = scan.ranges.size();
-        half_scan_ = float(scan.ranges.size() / 2);
+        half_scan_ = float(full_scan_ / 2);
 
         max_scan_dist_ = *std::max_element(scan.ranges.begin(), scan.ranges.end());
         min_scan_dist_ = *std::min_element(scan.ranges.begin(), scan.ranges.end());

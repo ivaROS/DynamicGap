@@ -36,7 +36,7 @@ namespace dynamic_gap
         _initialized = true;
 
         gapDetector = new dynamic_gap::GapDetector(cfg);
-        finder = new dynamic_gap::Utils(cfg);
+        finder = new dynamic_gap::StaticScanSeparator(cfg);
         gapvisualizer = new dynamic_gap::GapVisualizer(nh, cfg);
         goalselector = new dynamic_gap::GoalSelector(nh, cfg);
         trajvisualizer = new dynamic_gap::TrajectoryVisualizer(nh, cfg);
@@ -186,11 +186,11 @@ namespace dynamic_gap
                                         raw_gaps, previous_raw_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
-                                        cfg.debug.raw_gaps_debug_log);
+                                        true); // cfg.debug.raw_gaps_debug_log);
             
             associated_raw_gaps = update_models(raw_gaps, ego_rbt_vels_copied, 
                                                 ego_rbt_accs_copied, t_kf_update,
-                                                cfg.debug.raw_gaps_debug_log);
+                                                true); // cfg.debug.raw_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
@@ -208,10 +208,10 @@ namespace dynamic_gap
                                         observed_gaps, previous_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
-                                        cfg.debug.simplified_gaps_debug_log);
+                                        true); // cfg.debug.simplified_gaps_debug_log);
             associated_observed_gaps = update_models(observed_gaps, ego_rbt_vels_copied, 
                                                         ego_rbt_accs_copied, t_kf_update,
-                                                        cfg.debug.simplified_gaps_debug_log);
+                                                        true); // cfg.debug.simplified_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             gapvisualizer->drawGaps(associated_raw_gaps, std::string("raw"));
@@ -280,10 +280,10 @@ namespace dynamic_gap
  
         float beta_tilde, range_tilde;
 		if (i % 2 == 0) {
-			beta_tilde = float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
+			beta_tilde = idx2theta(g.RIdx()); // float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
             range_tilde = g.RDist();
 		} else {
-            beta_tilde = float(g.LIdx() - g.half_scan) / g.half_scan * M_PI;
+            beta_tilde = idx2theta(g.LIdx()); // float(g.LIdx() - g.half_scan) / g.half_scan * M_PI;
             range_tilde = g.LDist();
 		}
 
@@ -293,10 +293,10 @@ namespace dynamic_gap
             //std::cout << "entering left model update" << std::endl;
             try {
                 g.right_model->update(laserscan_measurement, 
-                                                ego_rbt_vels_copied, ego_rbt_accs_copied, 
-                                                print, agent_odoms, 
-                                                agent_vels,
-                                                t_kf_update);
+                                        ego_rbt_vels_copied, ego_rbt_accs_copied, 
+                                        print, agent_odoms, 
+                                        agent_vels,
+                                        t_kf_update);
             } catch (...) {
                 ROS_INFO_STREAM("kf_update_loop fails");
                 ROS_FATAL_STREAM("kf_update_loop fails");
@@ -305,10 +305,10 @@ namespace dynamic_gap
             //std::cout << "entering right model update" << std::endl;
             try {
                 g.left_model->update(laserscan_measurement, 
-                                                ego_rbt_vels_copied, ego_rbt_accs_copied, 
-                                                print, agent_odoms, 
-                                                agent_vels,
-                                                t_kf_update);
+                                        ego_rbt_vels_copied, ego_rbt_accs_copied, 
+                                        print, agent_odoms, 
+                                        agent_vels,
+                                        t_kf_update);
             } catch (...) {
                 ROS_INFO_STREAM("kf_update_loop fails");
                 ROS_FATAL_STREAM("kf_update_loop fails");

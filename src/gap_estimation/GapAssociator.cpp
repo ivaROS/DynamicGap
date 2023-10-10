@@ -17,7 +17,8 @@ namespace dynamic_gap {
 	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
-		for (auto & g : gaps) {	
+		for (auto & g : gaps) 
+		{	
 			// this is still true, I just don't know how to handle indexing right now
             // populating the coordinates of the gap points (in rbt frame) to compute distances
 			//std::cout << "adding left points" << std::endl;
@@ -29,16 +30,19 @@ namespace dynamic_gap {
 			int ridx = g.RIdx();
 			float ldist = g.LDist();
 			float rdist = g.RDist();
-			float left_x = rdist * cos(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-			float left_y = rdist * sin(-((float) g.half_scan - ridx) / g.half_scan * M_PI);
-			float right_x = ldist * cos(-((float) g.half_scan - lidx) / g.half_scan * M_PI);
-			float right_y = ldist * sin(-((float) g.half_scan - lidx) / g.half_scan * M_PI);				
+			float ltheta = idx2theta(lidx);
+			float rtheta = idx2theta(ridx);		
+			float left_x = ldist * cos(ltheta);
+			float left_y = ldist * sin(ltheta);
+			float right_x = rdist * cos(rtheta);
+			float right_y = rdist * sin(rtheta);
 
-			points[count][0] = left_x;
-			points[count][1] = left_y;
-			count++;
+			// right is supposed to be first here
 			points[count][0] = right_x;
 			points[count][1] = right_y;
+			count++;
+			points[count][0] = left_x;
+			points[count][1] = left_y;
 			// print_string += ("left: (" + std::to_string(points[count - 1][0]) + ", " + std::to_string(points[count - 1][1]) + "), right: (" + std::to_string(points[count][0]) + ", " + std::to_string(points[count][1]) + "), ");
 			count++;
 			// ROS_INFO_STREAM(print_string);
@@ -92,7 +96,7 @@ namespace dynamic_gap {
         for (int i = 0; i < association.size(); i++) 
 		{
             std::vector<int> pair{i, association[i]};
-            ROS_INFO_STREAM_NAMED("laserScanCB", "pair (" << i << ", " << association[i] << ")");
+            ROS_INFO_STREAM("pair (" << i << ", " << association[i] << ")");
             if (i >= 0 && association[i] >= 0) 
 			{
                 int current_gap_idx = int(std::floor(pair[0] / 2.0));
@@ -108,10 +112,10 @@ namespace dynamic_gap {
                 else // prev right
                     previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
                 
-                ROS_INFO_STREAM_NAMED("laserScanCB", "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
+                ROS_INFO_STREAM("From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
             } else 
 			{
-                ROS_INFO_STREAM_NAMED("laserScanCB", "From NULL to (" << curr_x << ", " <<  curr_y << ")");
+                ROS_INFO_STREAM("From NULL to (" << curr_x << ", " <<  curr_y << ")");
             }
 			
         }
@@ -126,7 +130,7 @@ namespace dynamic_gap {
 		int current_gap_idx = int(std::floor(pair[0] / 2.0));
 		int previous_gap_idx = int(std::floor(pair[1] / 2.0));
 		float curr_x, curr_y, prev_x, prev_y;
-		ROS_INFO_STREAM_NAMED("laserScanCB", "pair (" << pair[0] << ", " << pair[1] << ")");
+		ROS_INFO_STREAM("pair (" << pair[0] << ", " << pair[1] << ")");
 
 		if (valid_assoc) {
 			if (pair[0] % 2 == 0) {  // curr left
@@ -137,13 +141,13 @@ namespace dynamic_gap {
 
 			if (pair[1] % 2 == 0) {
 				previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
-				ROS_INFO_STREAM_NAMED("laserScanCB", "accepting transition of index " << previous_gaps[previous_gap_idx].right_model->get_index());
+				ROS_INFO_STREAM("accepting transition of index " << previous_gaps[previous_gap_idx].right_model->get_index());
 			} else {
 				previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
-				ROS_INFO_STREAM_NAMED("laserScanCB","accepting transition of index " << previous_gaps[previous_gap_idx].left_model->get_index());
+				ROS_INFO_STREAM("accepting transition of index " << previous_gaps[previous_gap_idx].left_model->get_index());
 			}
 
-			ROS_INFO_STREAM_NAMED("laserScanCB", "from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
+			ROS_INFO_STREAM("from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
 		} else {
 			if (pair[0] % 2 == 0) {  // curr left
 				observed_gaps.at(current_gap_idx).getRCartesian(curr_x, curr_y);
@@ -154,14 +158,14 @@ namespace dynamic_gap {
 			if (pair[1] >=0) {
 				if (pair[1] % 2 == 0) { 
 					previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
-					ROS_INFO_STREAM_NAMED("laserScanCB", "rejecting transition of index " << previous_gaps[previous_gap_idx].right_model->get_index());
+					ROS_INFO_STREAM("rejecting transition of index " << previous_gaps[previous_gap_idx].right_model->get_index());
 				} else {
 					previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
-					ROS_INFO_STREAM_NAMED("laserScanCB", "rejecting transition of index " << previous_gaps[previous_gap_idx].left_model->get_index());
+					ROS_INFO_STREAM("rejecting transition of index " << previous_gaps[previous_gap_idx].left_model->get_index());
 				}
-				ROS_INFO_STREAM_NAMED("laserScanCB", "from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
+				ROS_INFO_STREAM("from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
 			} else {
-				ROS_INFO_STREAM_NAMED("laserScanCB", "rejecting, more current gaps than previous gaps");
+				ROS_INFO_STREAM("rejecting, more current gaps than previous gaps");
 			}
 		}
 
@@ -204,7 +208,7 @@ namespace dynamic_gap {
 		}
 
 		// if (print) printGapAssociations(observed_gaps, previous_gaps, association, distMatrix);
-		if (print) ROS_INFO_STREAM_NAMED("laserScanCB", "number of observed gaps: " << observed_gaps.size() << ", number of previous gaps: " << previous_gaps.size());
+		if (print) ROS_INFO_STREAM("number of observed gaps: " << observed_gaps.size() << ", number of previous gaps: " << previous_gaps.size());
 
 		// ASSOCIATING MODELS
 		// std::cout << "accepting associations" << std::endl;

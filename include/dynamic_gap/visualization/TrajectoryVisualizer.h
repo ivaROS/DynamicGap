@@ -9,8 +9,8 @@ namespace dynamic_gap
             using Visualizer::Visualizer;
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+
             void drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan);
-            // void trajScore(geometry_msgs::PoseArray, std::vector<double>);
             void pubAllTraj(const std::vector<geometry_msgs::PoseArray> & prr);
             void pubAllScore(const std::vector<geometry_msgs::PoseArray> &, const std::vector<std::vector<float>> &);
             void drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj);

@@ -48,16 +48,15 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("Scan range incorrect findLocalLine");
         }
 
-
         // iterating through egocircle
         float range_i, theta_i, range_imin1, theta_imin1;
         for (int i = 1; i < scan_interpoint_dists.size(); i++) {
             // current distance/idx
             range_i = egocircle.ranges.at(i);
-            theta_i = float(i) * egocircle.angle_increment + egocircle.angle_min;
+            theta_i = idx2theta(i); // float(i) * egocircle.angle_increment + egocircle.angle_min;
             // prior distance/idx
             range_imin1 = egocircle.ranges.at(i - 1);
-            theta_imin1 = float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
+            theta_imin1 = idx2theta(i - 1); // float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
             
             // if current distance is big, set dist to big
             if (range_i > 2.9) {
@@ -68,7 +67,8 @@ namespace dynamic_gap
             } 
         }
 
-        scan_interpoint_dists.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, egocircle.ranges.at(511), float(511) * egocircle.angle_increment + egocircle.angle_min);
+        scan_interpoint_dists.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, 
+                                              egocircle.ranges.at(511), idx2theta(511));
 
         // searching forward for the first place where interpoint distances exceed threshold (0.1) (starting from the min_dist_idx).
         auto result_fwd = std::find_if(scan_interpoint_dists.begin() + min_dist_idx, scan_interpoint_dists.end(), 
@@ -98,8 +98,8 @@ namespace dynamic_gap
         float dist_rev = egocircle.ranges.at(idx_rev);
         float dist_cent = egocircle.ranges.at(min_dist_idx);
 
-        float angle_fwd = float(idx_fwd) * egocircle.angle_increment + egocircle.angle_min;
-        float angle_rev = float(idx_rev) * egocircle.angle_increment + egocircle.angle_min;
+        float angle_fwd = idx2theta(idx_fwd); // float(idx_fwd) * egocircle.angle_increment + egocircle.angle_min;
+        float angle_rev = idx2theta(idx_rev); // float(idx_rev) * egocircle.angle_increment + egocircle.angle_min;
         
         if (idx_fwd < min_dist_idx || idx_rev > min_dist_idx) {
             return std::vector<geometry_msgs::Point>(0);
@@ -107,7 +107,7 @@ namespace dynamic_gap
 
         Eigen::Vector2f fwd_polar(dist_fwd, angle_fwd);
         Eigen::Vector2f rev_polar(dist_rev, angle_rev);
-        Eigen::Vector2f cent_polar(dist_cent, float(min_dist_idx) * egocircle.angle_increment + egocircle.angle_min);
+        Eigen::Vector2f cent_polar(dist_cent, idx2theta(min_dist_idx)); // float(min_dist_idx) * egocircle.angle_increment + egocircle.angle_min);
         Eigen::Vector2f fwd_cart = pol2car(fwd_polar);
         Eigen::Vector2f rev_cart = pol2car(rev_polar);
         Eigen::Vector2f cent_cart = pol2car(cent_polar);
@@ -143,16 +143,19 @@ namespace dynamic_gap
         return retArr;
     }
 
-    bool TrajectoryController::leqThres(const float dist) {
+    bool TrajectoryController::leqThres(const float dist) 
+    {
         return dist <= thres;
     }
 
-    bool TrajectoryController::geqThres(const float dist) {
+    bool TrajectoryController::geqThres(const float dist) 
+    {
         return dist >= thres;
     }
 
-    float TrajectoryController::polDist(float l1, float t1, float l2, float t2) {
-        return abs(float(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2)));
+    float TrajectoryController::polDist(float l1, float t1, float l2, float t2) 
+    {
+        return abs(pow(l1, 2) + pow(l2, 2) - 2 * l1 * l2 * std::cos(t1 - t2));
     }
 
     // For non-blocking keyboard inputs
@@ -693,7 +696,7 @@ namespace dynamic_gap
         // ROS_DEBUG_STREAM("Elapsed: " << (ros::Time::now() - last_time).toSec());
         last_time = ros::Time::now();
         float r_max = r_norm + r_norm_offset;
-        min_dist = (float) min_dist_arr.at(min_idx);
+        min_dist = min_dist_arr.at(min_idx);
         min_dist = min_dist >= r_max ? r_max : min_dist;
         if (min_dist <= 0) 
             ROS_INFO_STREAM("Min dist <= 0, : " << min_dist);
@@ -701,7 +704,7 @@ namespace dynamic_gap
         // min_dist -= cfg_->rbt.r_inscr / 2;
 
         // find minimum ego circle distance
-        min_dist_ang = (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
+        min_dist_ang = idx2theta(min_idx); // (float)(min_idx) * inflated_egocircle.angle_increment + inflated_egocircle.angle_min;
         float min_x = min_dist * std::cos(min_dist_ang) - rbt_in_cam_lc.pose.position.x;
         float min_y = min_dist * std::sin(min_dist_ang) - rbt_in_cam_lc.pose.position.y;
         min_dist = sqrt(pow(min_x, 2) + pow(min_y, 2));

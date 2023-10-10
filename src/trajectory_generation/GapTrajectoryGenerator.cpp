@@ -7,6 +7,9 @@ namespace dynamic_gap
     {
         // ROS_INFO_STREAM("initializing solver");
 
+        /*
+         * HAVE TO KEEP THESE AS DOUBLES, OSQP EIGEN DOES NOT ACCEPT FLOATS
+         */
         Eigen::SparseMatrix<double> hessian(Kplus1, Kplus1);
 
         Eigen::VectorXd gradient = Eigen::VectorXd::Zero(Kplus1, 1);
@@ -89,15 +92,23 @@ namespace dynamic_gap
                                   0.0, 0.0); // curr_vel.linear.x, curr_vel.linear.y
 
             // get gap points in cartesian
-            float x_left = selectedGap.cvx_LDist() * cos(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float y_left = selectedGap.cvx_LDist() * sin(((float) selectedGap.cvx_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float x_right = selectedGap.cvx_RDist() * cos(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float y_right = selectedGap.cvx_RDist() * sin(((float) selectedGap.cvx_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            float ldist = selectedGap.cvx_LDist();
+            float rdist = selectedGap.cvx_RDist();
+            float ltheta = idx2theta(selectedGap.cvx_LIdx());
+            float rtheta = idx2theta(selectedGap.cvx_RIdx());
+            float x_left = ldist * cos(ltheta);
+            float y_left = ldist * sin(ltheta);
+            float x_right = rdist * cos(rtheta);
+            float y_right = rdist * sin(rtheta);
 
-            float term_x_left = selectedGap.cvx_term_LDist() * cos(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float term_y_left = selectedGap.cvx_term_LDist() * sin(((float) selectedGap.cvx_term_LIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float term_x_right = selectedGap.cvx_term_RDist() * cos(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
-            float term_y_right = selectedGap.cvx_term_RDist() * sin(((float) selectedGap.cvx_term_RIdx() - selectedGap.half_scan) / selectedGap.half_scan * M_PI);
+            ldist = selectedGap.cvx_term_LDist();
+            rdist = selectedGap.cvx_term_RDist();
+            ltheta = idx2theta(selectedGap.cvx_term_LIdx());
+            rtheta = idx2theta(selectedGap.cvx_term_RIdx());
+            float term_x_left = ldist * cos(ltheta);
+            float term_y_left = ldist * sin(ltheta);
+            float term_x_right = rdist * cos(rtheta);
+            float term_y_right = rdist * sin(rtheta);
 
             Eigen::Vector2f qB = selectedGap.qB;
 

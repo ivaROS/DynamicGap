@@ -169,9 +169,9 @@ namespace dynamic_gap {
             goal.goal_tolerance = 0.2;
             goal.waypoint_tolerance = 0.1;
 
-            debug.raw_gaps_debug_log = false;
+            debug.raw_gaps_debug_log = true;
             debug.static_scan_separation_debug_log = false;
-            debug.simplified_gaps_debug_log = false;
+            debug.simplified_gaps_debug_log = true;
             debug.feasibility_debug_log = false;
             debug.manipulation_debug_log = false;
             debug.traj_debug_log = false;

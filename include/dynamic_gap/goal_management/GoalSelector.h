@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
@@ -23,9 +24,6 @@ namespace dynamic_gap
     class GoalSelector
     {
         public: 
-            GoalSelector() {};
-            ~GoalSelector() {};
-
             GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
             GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
             GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
@@ -50,16 +48,16 @@ namespace dynamic_gap
             boost::mutex lscan_mutex;
             boost::mutex gplan_mutex;
 
-            double threshold = 3;
+            float threshold = 3;
 
             // If distance to robot is within
-            bool isNotWithin(const double dist);
+            bool isNotWithin(const float dist);
             // Pose to robot, when all in rbt frames
-            double dist2rbt(geometry_msgs::PoseStamped);
-            double scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
+            float dist2rbt(geometry_msgs::PoseStamped);
+            float scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
                                             const sensor_msgs::LaserScan & stored_scan_msgs);
             int PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose);
-            double getPoseOrientation(geometry_msgs::PoseStamped);
+            float getPoseOrientation(geometry_msgs::PoseStamped);
             bool VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose);
             bool NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose);
 

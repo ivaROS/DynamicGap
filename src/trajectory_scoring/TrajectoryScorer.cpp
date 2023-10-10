@@ -454,7 +454,7 @@ namespace dynamic_gap {
         float theta = std::distance(dist.begin(), iter) * stored_scan.angle_increment - M_PI;
         float cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
-        std::cout << "static cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << std::endl;
+        ROS_INFO_STREAM("static cost: " << cost << ", robot pose: " << pose.position.x << ", " << pose.position.y << ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta));
         return cost;
     }
 

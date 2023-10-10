@@ -27,7 +27,7 @@ namespace dynamic_gap
                                                 const std::vector<sensor_msgs::LaserScan> & future_scans) 
     {
         dynamic_scan = static_scan;
-        double t_iplus1 = gap.gap_lifespan;
+        float t_iplus1 = gap.gap_lifespan;
 
         int future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
 
@@ -111,8 +111,8 @@ namespace dynamic_gap
         // float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
         // float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
 
-        float theta_l = idx2theta(lidx); // ((float) lidx - half_num_scan) * M_PI / half_num_scan;
-        float theta_r = idx2theta(ridx); // ((float) ridx - half_num_scan) * M_PI / half_num_scan;
+        float theta_l = idx2theta(lidx);
+        float theta_r = idx2theta(ridx);
 
         float x_l = (ldist) * cos(theta_l);
         float y_l = (ldist) * sin(theta_l);
@@ -231,7 +231,7 @@ namespace dynamic_gap
 
         sensor_msgs::LaserScan stored_scan_msgs = *msg.get(); // initial ? *msg.get() : dynamic_laser_scan;
         float goal_orientation = std::atan2(localgoal.pose.position.y, localgoal.pose.position.x);
-        double local_goal_idx = theta2idx(goal_orientation); // std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
+        float local_goal_idx = theta2idx(goal_orientation); // std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
         
         if (cfg_->debug.manipulation_debug_log) {
             ROS_INFO_STREAM("local goal idx: " << local_goal_idx << ", local goal x/y: (" << localgoal.pose.position.x << ", " << localgoal.pose.position.y << ")");
@@ -304,7 +304,7 @@ namespace dynamic_gap
             }
         }
 
-        double confined_idx = theta2idx(confined_theta); // std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
+        float confined_idx = theta2idx(confined_theta); // std::floor(confined_theta*half_num_scan/M_PI + half_num_scan);
 
         Eigen::Vector2f confined_theta_vect(std::cos(confined_theta), std::sin(confined_theta));
 
@@ -448,11 +448,11 @@ namespace dynamic_gap
         // float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
         // float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
 
-        double gap_idx_size = (lidx - ridx);
+        float gap_idx_size = (lidx - ridx);
         if (gap_idx_size < 0.0) {
             gap_idx_size += (2*gap.half_scan);
         }
-        double gap_theta_size = gap_idx_size * angle_increment;
+        float gap_theta_size = gap_idx_size * angle_increment;
         // ROS_INFO_STREAM( "gap idx size: " << gap_idx_size << std::endl;
 
         // threshold = pi right now
@@ -582,8 +582,8 @@ namespace dynamic_gap
             rdist = gap.cvx_term_RDist();
         }
 
-        float theta_l = idx2theta(lidx); //  ((float) lidx - half_num_scan) * M_PI / half_num_scan;
-        float theta_r = idx2theta(ridx); // ((float) ridx - half_num_scan) * M_PI / half_num_scan;
+        float theta_l = idx2theta(lidx);
+        float theta_r = idx2theta(ridx);
         // float x_l = (ldist) * cos(theta_l);
         // float y_l = (ldist) * sin(theta_l);
         // float x_r = (rdist) * cos(theta_r);
@@ -605,7 +605,7 @@ namespace dynamic_gap
         // Extend of rotation to the radial gap 
         // amp-ed by a **small** ratio to ensure the local goal does not exactly fall on the visibility line
         // we are pivoting around the closer point?
-        float rot_val = (float) std::atan2(cfg_->gap_manip.epsilon2 * cfg_->gap_manip.rot_ratio, cfg_->gap_manip.epsilon1);
+        float rot_val = std::atan2(cfg_->gap_manip.epsilon2 * cfg_->gap_manip.rot_ratio, cfg_->gap_manip.epsilon1);
         float theta = right ? (rot_val + 1e-3): -(rot_val + 1e-3);
         // ROS_INFO_STREAM("left: " << left << ", rot_val: " << rot_val);
         // ROS_INFO_STREAM("theta to pivot: " << theta);
@@ -736,12 +736,12 @@ namespace dynamic_gap
         far_near(1, 2) *= min_dist / translation_norm;
         Eigen::Matrix3f short_pt = near_rbt * (rot_mat * far_near);
 
-        float r = float(sqrt(pow(short_pt(0, 2), 2) + pow(short_pt(1, 2), 2)));
+        float r = sqrt(pow(short_pt(0, 2), 2) + pow(short_pt(1, 2), 2));
         float final_theta = std::atan2(short_pt(1, 2), short_pt(0, 2));
         // idx = int (half_num_scan * pivoted_theta / M_PI) + half_num_scan;
         idx = theta2idx(final_theta); // (int) std::floor((final_theta + M_PI) / stored_scan_msgs.angle_increment);
 
-        double new_r_idx, new_l_idx, new_rdist, new_ldist;
+        float new_r_idx, new_l_idx, new_rdist, new_ldist;
         if (right) {
             new_l_idx = idx;
             new_r_idx = near_idx;
@@ -813,8 +813,8 @@ namespace dynamic_gap
         // float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
         // float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
 
-        float theta_l = idx2theta(lidx); // ((float) lidx - half_num_scan) * M_PI / half_num_scan;
-        float theta_r = idx2theta(ridx); // ((float) ridx - half_num_scan) * M_PI / half_num_scan;
+        float theta_l = idx2theta(lidx);
+        float theta_r = idx2theta(ridx);
         float x_l = (ldist) * cos(theta_l);
         float y_l = (ldist) * sin(theta_l);
         float x_r = (rdist) * cos(theta_r);
@@ -838,9 +838,9 @@ namespace dynamic_gap
 
         float L_to_R_angle = getLeftToRightAngle(eL_robot, eR_robot, true);
 
-        double beta_left_robot = std::atan2(eL_robot[1], eL_robot[0]);
+        float beta_left_robot = std::atan2(eL_robot[1], eL_robot[0]);
 
-        double beta_center = (beta_left_robot - 0.5*L_to_R_angle);
+        float beta_center = (beta_left_robot - 0.5*L_to_R_angle);
 
         // middle of gap direction
         Eigen::Vector2f eB(std::cos(beta_center), std::sin(beta_center));
@@ -920,8 +920,8 @@ namespace dynamic_gap
         // float ldist = initial ? gap.cvx_LDist() : gap.cvx_term_LDist();
         // float rdist = initial ? gap.cvx_RDist() : gap.cvx_term_RDist();
 
-        float theta_l = idx2theta(lidx); // ((float) lidx - half_num_scan) * M_PI / half_num_scan;
-        float theta_r = idx2theta(ridx); // ((float) ridx - half_num_scan) * M_PI / half_num_scan;
+        float theta_l = idx2theta(lidx);
+        float theta_r = idx2theta(ridx);
         float x_l = (ldist) * cos(theta_l);
         float y_l = (ldist) * sin(theta_l);
         float x_r = (rdist) * cos(theta_r);
