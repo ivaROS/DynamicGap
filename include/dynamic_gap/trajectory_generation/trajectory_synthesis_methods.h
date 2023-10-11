@@ -87,16 +87,16 @@ namespace dynamic_gap
             }
             */
 
-            ROS_INFO_STREAM("   t: " << t);
-            ROS_INFO_STREAM("   rbt_0: (" << rbt_x_0 << ", " << rbt_y_0 << ")");
+            // ROS_INFO_STREAM("   t: " << t);
+            // ROS_INFO_STREAM("   rbt_0: (" << rbt_x_0 << ", " << rbt_y_0 << ")");
 
-            ROS_INFO_STREAM("   rbt: (" << x[0] << ", " << x[1] << ")");
+            // ROS_INFO_STREAM("   rbt: (" << x[0] << ", " << x[1] << ")");
 
             Eigen::Vector2f rbt(x[0], x[1]);
 
-            ROS_INFO_STREAM("   p1: " << p1[0] << ", " << p1[1]);
-            ROS_INFO_STREAM("   p2: " << p2[0] << ", " << p2[1]);
-            ROS_INFO_STREAM("   p_goal: " << gx << ", " << gy);
+            // ROS_INFO_STREAM("   p1: " << p1[0] << ", " << p1[1]);
+            // ROS_INFO_STREAM("   p2: " << p2[0] << ", " << p2[1]);
+            // ROS_INFO_STREAM("   p_goal: " << gx << ", " << gy);
 
             Eigen::Vector2f vec_1 = p1 - rbt;
             Eigen::Vector2f vec_2 = p2 - rbt;
