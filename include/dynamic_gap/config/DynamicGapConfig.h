@@ -141,23 +141,22 @@ namespace dynamic_gap {
             robot_frame_id = "base_link";
             sensor_frame_id = "camera_link";
 
-            gap_viz.min_resoln = 1;
+            gap_viz.min_resoln = 2;
             gap_viz.fig_gen = true;
-            gap_viz.viz_jitter = 0.1;
+            gap_viz.viz_jitter = 0.05;
             gap_viz.debug_viz = true;
 
             rbt.r_inscr = 0.2;
             rbt.num_obsts = 0;
             rbt.max_range = 4.99;
-            rbt.half_num_scan = 256;
 
             planning.projection_inflated = false;
             planning.planning_inflated = false;
-            planning.holonomic = false;
-            planning.full_fov = false;
+            planning.holonomic = true;
+            planning.full_fov = true;
             planning.projection_operator = false;
-            planning.num_feasi_check = 10;
-            planning.far_feasible = false;
+            planning.num_feasi_check = 20;
+            planning.far_feasible = true;
             planning.halt_size = 5;
             planning.egocircle_prop_cheat = false;
 
@@ -174,8 +173,8 @@ namespace dynamic_gap {
             debug.simplified_gaps_debug_log = false;
             debug.feasibility_debug_log = false;
             debug.manipulation_debug_log = false;
-            debug.traj_debug_log = false;
-            debug.control_debug_log = false;             
+            debug.traj_debug_log = true;
+            debug.control_debug_log = true;             
 
             gap_assoc.assoc_thresh = 0.15;
 
@@ -187,6 +186,7 @@ namespace dynamic_gap {
             gap_manip.rot_ratio = 1.5;
             gap_manip.reduction_threshold = M_PI;
             gap_manip.reduction_target = M_PI;
+            gap_manip.max_idx_diff = 256;
             gap_manip.radial_extend = true;
             gap_manip.radial_convert = true;
 
@@ -194,28 +194,28 @@ namespace dynamic_gap {
             traj.scale = 1;
             traj.integrate_maxt = 5;
             traj.integrate_stept = 0.50;
-            traj.max_pose_pen_dist = 0.3;
+            traj.max_pose_pen_dist = 0.5;
             traj.cobs = -1.0;
             traj.pose_exp_weight = 5;
             traj.inf_ratio = 1.21;
             traj.terminal_weight = 10;
             traj.waypoint_ratio = 1.5;
-            traj.num_curve_points = 40;
-            traj.num_qB_points = 3;     
+            traj.num_curve_points = 20;
+            traj.num_qB_points = 6;     
             
-            control.k_fb_x = 3.5;
-            control.k_fb_y = 3.5;
+            control.k_fb_x = 0.5;
+            control.k_fb_y = 0.5;
             control.k_fb_theta = 0.5;
             control.ctrl_ahead_pose = 2;
             control.vx_absmax = 0.5;
             control.vy_absmax = 0.5;
-            control.vang_absmax = 0.5;
-            control.ax_absmax = 0.5;
-            control.ay_absmax = 0.5;
-            control.aang_absmax = 0.5;
+            control.vang_absmax = 1.5;
+            control.ax_absmax = 3.0;
+            control.ay_absmax = 3.0;
+            control.aang_absmax = 3.0;
 
-            projection.k_po_x = 0.8;
-            projection.k_po_theta = 1;
+            projection.k_po_x = 1.0;
+            projection.k_po_theta = 1.0;
             projection.r_min = 0.35;
             projection.r_norm = 1.0;
             projection.r_norm_offset = 0.5;
