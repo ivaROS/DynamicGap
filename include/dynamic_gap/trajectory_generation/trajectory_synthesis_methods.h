@@ -163,14 +163,14 @@ namespace dynamic_gap
             {
                 float coeffs = past_gap_points ? 0.0 : 1.0;
 
-                //double vec_1_norm = vec_1.norm();
-                //double vec_2_norm = vec_2.norm();
-                //double w1 = vec_2_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
-                //double w2 = vec_1_norm / sqrt(pow(vec_1_norm, 2) + pow(vec_2_norm,2));
+                double curr_to_left_vect_norm = curr_to_left_vect.norm();
+                double curr_to_right_vect_norm = curr_to_right_vect.norm();
+                double w1 = curr_to_left_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
+                double w2 = curr_to_right_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
                 // ROS_INFO_STREAM("   c1: (" << c1[0] << ", " << c1[1] << ")");
                 // ROS_INFO_STREAM("   c2: (" << c2[0] << ", " << c2[1] << ")");
 
-                Eigen::Vector2f weighted_circulation_sum = c1 + c2;
+                Eigen::Vector2f weighted_circulation_sum = w1*c1 + w2*c2;
 
                 // ROS_INFO_STREAM("   weighted_circulation_sum: (" << weighted_circulation_sum[0] << ", " 
                 //                                                  << weighted_circulation_sum[1] << ")");
