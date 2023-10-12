@@ -199,7 +199,8 @@ namespace dynamic_gap
         }
     };
 
-    struct reachable_gap_APF {
+    struct reachable_gap_APF 
+    {
         Eigen::Vector2d rel_left_vel, rel_right_vel, 
                         goal_pt_0, goal_pt_1;
 
@@ -277,11 +278,11 @@ namespace dynamic_gap
             
             pass_gap = past_gap_points || past_goal;
 
-            // ROS_INFO_STREAM("t: " << t);
-            // ROS_INFO_STREAM("rbt state: " << x[0] << ", " << x[1]);
-            // ROS_INFO_STREAM("left state: " << x[2] << ", " << x[3]);
-            // ROS_INFO_STREAM("right state: " << x[4] << ", " << x[5]);
-            // ROS_INFO_STREAM("goal state: " << x[6] << ", " << x[7]);
+            ROS_INFO_STREAM("t: " << t);
+            ROS_INFO_STREAM("rbt state: " << x[0] << ", " << x[1]);
+            ROS_INFO_STREAM("left state: " << x[2] << ", " << x[3]);
+            ROS_INFO_STREAM("right state: " << x[4] << ", " << x[5]);
+            ROS_INFO_STREAM("goal state: " << x[6] << ", " << x[7]);
 
             if (pass_gap) {
                 // ROS_INFO_STREAM("past gap");

@@ -255,7 +255,7 @@ namespace dynamic_gap {
     {    
         // Requires LOCAL FRAME
         // Should be no racing condition
-        float start_time = ros::WallTime::now().toSec();
+        // float start_time = ros::WallTime::now().toSec();
 
         /*
         std::vector<dynamic_gap::Estimator *> raw_models;
@@ -355,7 +355,7 @@ namespace dynamic_gap {
             cost_val.at(0) -= terminal_cost;
         }
         
-        ROS_INFO_STREAM("scoreTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
+        // ROS_INFO_STREAM("scoreTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         return cost_val;
     }
 

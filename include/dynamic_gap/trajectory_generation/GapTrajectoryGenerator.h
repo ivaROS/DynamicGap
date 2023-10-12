@@ -34,32 +34,33 @@ namespace dynamic_gap {
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(const dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(const geometry_msgs::PoseArray &, 
                                                              const geometry_msgs::TransformStamped &);
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
 
         private: 
-            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXf & A);
+            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);
 
-            Eigen::VectorXf arclength_sample_bezier(Eigen::Vector2f pt_origin, Eigen::Vector2f pt_0, Eigen::Vector2f pt_1, float num_curve_points, float & des_dist_interval);        
-            void buildBezierCurve(dynamic_gap::Gap& selectedGap, Eigen::MatrixXf & left_curve, Eigen::MatrixXf & right_curve, Eigen::MatrixXf & all_curve_pts, 
-                                Eigen::MatrixXf & left_curve_vel, Eigen::MatrixXf & right_curve_vel,
-                                Eigen::MatrixXf & left_curve_inward_norm, Eigen::MatrixXf & right_curve_inward_norm, 
-                                Eigen::MatrixXf & all_inward_norms, Eigen::MatrixXf & left_right_centers, Eigen::MatrixXf & all_centers,
-                                Eigen::Vector2f nonrel_left_vel, Eigen::Vector2f nonrel_right_vel, Eigen::Vector2f nom_vel,
-                                Eigen::Vector2f left_pt_0, Eigen::Vector2f left_pt_1, Eigen::Vector2f right_pt_0, Eigen::Vector2f right_pt_1, 
-                                Eigen::Vector2f gap_radial_extension, Eigen::Vector2f goal_pt_1, float & left_weight, float & right_weight, 
+            Eigen::VectorXd arclength_sample_bezier(Eigen::Vector2d pt_origin, Eigen::Vector2d pt_0, Eigen::Vector2d pt_1, float num_curve_points, float & des_dist_interval);        
+            void buildBezierCurve(dynamic_gap::Gap& selectedGap, 
+                                Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
+                                Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,
+                                Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
+                                Eigen::MatrixXd & all_inward_norms, Eigen::MatrixXd & left_right_centers, Eigen::MatrixXd & all_centers,
+                                Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
+                                Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
+                                Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, float & left_weight, float & right_weight, 
                                 float num_curve_points, 
-                                int & true_left_num_rge_points, int & true_right_num_rge_points, Eigen::Vector2f init_rbt_pos,
-                                Eigen::Vector2f left_bezier_origin, Eigen::Vector2f right_bezier_origin);
-            void setConstraintMatrix(Eigen::MatrixXf &A, 
+                                int & true_left_num_rge_points, int & true_right_num_rge_points, Eigen::Vector2d init_rbt_pos,
+                                Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin);
+            void setConstraintMatrix(Eigen::MatrixXd &A, 
                                      int N, 
                                      int Kplus1, 
-                                     const Eigen::MatrixXf & all_curve_pts, 
-                                     const Eigen::MatrixXf & all_inward_norms, 
-                                     const Eigen::MatrixXf & all_centers);
+                                     const Eigen::MatrixXd & all_curve_pts, 
+                                     const Eigen::MatrixXd & all_inward_norms, 
+                                     const Eigen::MatrixXd & all_centers);
 
 
             geometry_msgs::TransformStamped planning2odom;       

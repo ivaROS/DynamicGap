@@ -171,7 +171,7 @@ namespace dynamic_gap {
             debug.raw_gaps_debug_log = false;
             debug.static_scan_separation_debug_log = false;
             debug.simplified_gaps_debug_log = false;
-            debug.feasibility_debug_log = false;
+            debug.feasibility_debug_log = true;
             debug.manipulation_debug_log = false;
             debug.traj_debug_log = true;
             debug.control_debug_log = true;             

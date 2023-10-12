@@ -262,7 +262,7 @@ namespace dynamic_gap
 
         int num_curve_points = cfg_->traj.num_curve_points;
         float pos_val0, pos_val1, pos_val2;
-        Eigen::Vector2f curr_left_pt, curr_right_pt;
+        Eigen::Vector2d curr_left_pt, curr_right_pt;
         for (float i = 0; i < (num_curve_points - 1); i++) {
             lines.clear();  
             s = (i) / (num_curve_points - 1);
@@ -428,7 +428,7 @@ namespace dynamic_gap
         for (int i = g.num_left_rge_points; i < (g.num_left_rge_points + num_curve_points - 1); i++) {            
             lines.clear();  
 
-            Eigen::Vector2f left_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2d left_pt = g.all_curve_pts.row(i);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -452,7 +452,7 @@ namespace dynamic_gap
         for (int i = (g.num_left_rge_points + num_curve_points); i < (g.all_curve_pts.rows() - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2f right_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2d right_pt = g.all_curve_pts.row(i);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
@@ -541,7 +541,7 @@ namespace dynamic_gap
         for (int i = 0; i < (num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2f left_pt = g.left_right_centers.row(i);
+            Eigen::Vector2d left_pt = g.left_right_centers.row(i);
             // ROS_INFO_STREAM("i: " << i << ", left_pt: " << left_pt[0] << ", " << left_pt[1]);
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -561,7 +561,7 @@ namespace dynamic_gap
         for (int i = num_pts_per_side; i < (2*num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2f right_pt = g.left_right_centers.row(i);
+            Eigen::Vector2d right_pt = g.left_right_centers.row(i);
             // ROS_INFO_STREAM("i: " << i << ", right_pt: " << right_pt[0] << ", " << right_pt[1]);
 
             liner.x = right_pt[0];

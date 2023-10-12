@@ -176,9 +176,12 @@ namespace dynamic_gap
 
             t_kf_update = msg->header.stamp;
 
+            // std::chrono::steady_clock::time_point gap_detection_start_time = std::chrono::steady_clock::now();
             // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
             raw_gaps = gapDetector->gapDetection(msg, final_goal_rbt);
-            
+            // float gap_detection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_detection_start_time).count() / 1.0e6;
+            // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
+
             if (cfg.debug.raw_gaps_debug_log) ROS_INFO_STREAM("RAW GAP ASSOCIATING");    
             raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
             raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
@@ -199,7 +202,10 @@ namespace dynamic_gap
             gapManip->updateStaticEgoCircle(static_scan);
             curr_agents = finder->getCurrAgents();
 
+            // std::chrono::steady_clock::time_point gap_simplification_start_time = std::chrono::steady_clock::now();
             observed_gaps = gapDetector->gapSimplification(raw_gaps);
+            // float gap_simplification_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_simplification_start_time).count() / 1.0e6;
+            // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
 
             if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
             simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
@@ -502,24 +508,24 @@ namespace dynamic_gap
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
             
-            gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
+            // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             gapManip->convertRadialGap(manip_set.at(i), true); 
-            // gapManip->inflateGapSides(manip_set.at(i), true);
+            gapManip->inflateGapSides(manip_set.at(i), true);
             gapManip->radialExtendGap(manip_set.at(i), true);
             gapManip->setGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal(), true);
             
-            /*
+            
             // MANIPULATE POINTS AT T=1
             if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("MANIPULATING TERMINAL GAP " << i);
             gapManip->updateDynamicEgoCircle(manip_set.at(i), future_scans);
-            if ((!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) || (manip_set.at(i).gap_crossed_behind)) {
+            if ((!manip_set.at(i).gap_crossed && !manip_set.at(i).gap_closed) || (manip_set.at(i).gap_crossed_behind)) 
+            {
                 // gapManip->reduceGap(manip_set.at(i), goalselector->rbtFrameLocalGoal(), false);
                 gapManip->convertRadialGap(manip_set.at(i), false);
             }
             gapManip->inflateGapSides(manip_set.at(i), false);
             gapManip->radialExtendGap(manip_set.at(i), false);
             gapManip->setTerminalGapWaypoint(manip_set.at(i), goalselector->rbtFrameLocalGoal());
-            */
         }
 
         return manip_set;
@@ -1127,15 +1133,22 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::getPlanTrajectory() 
     {
-        float getPlan_start_time = ros::WallTime::now().toSec();
+        // float getPlan_start_time = ros::WallTime::now().toSec();
 
-        float start_time = ros::WallTime::now().toSec();      
-        
+        // float start_time = ros::WallTime::now().toSec();      
+        // std::chrono::steady_clock::time_point start_time_c;
+
         bool curr_exec_gap_assoc, curr_exec_gap_feas;
         
         std::vector<dynamic_gap::Gap> curr_observed_gaps = associated_observed_gaps;
         // int gaps_size = curr_observed_gaps.size();
 
+        std::chrono::steady_clock::time_point plan_loop_start_time = std::chrono::steady_clock::now();
+
+        ///////////////////////////
+        // GAP FEASIBILITY CHECK //
+        ///////////////////////////
+        std::chrono::steady_clock::time_point feasibility_start_time = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Gap> feasible_gap_set;
         try 
         { 
@@ -1145,10 +1158,14 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("out of range in gapSetFeasibilityCheck");
         }
         int gaps_size = feasible_gap_set.size();
-        if (cfg.debug.feasibility_debug_log) ROS_INFO_STREAM("DGap gapSetFeasibilityCheck time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
+        float feasibility_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - feasibility_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("gapSetFeasibilityCheck for " << gaps_size << " gaps: " << feasibility_time << " seconds");
         
-        start_time = ros::WallTime::now().toSec();
+        /////////////////////////////
+        // FUTURE SCAN PROPAGATION //
+        /////////////////////////////
+        std::chrono::steady_clock::time_point future_scans_start_time = std::chrono::steady_clock::now();
         try 
         {
             getFutureScans(agent_odoms, agent_vels, true);
@@ -1156,9 +1173,14 @@ namespace dynamic_gap
         {
             ROS_FATAL_STREAM("out of range in getFutureScans");
         }
-        if (cfg.debug.static_scan_separation_debug_log) ROS_INFO_STREAM("DGap getFutureScans time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+
+        float future_scans_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - future_scans_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("getFutureScans for " << gaps_size << " gaps: " << future_scans_time << " seconds");
         
-        start_time = ros::WallTime::now().toSec();
+        //////////////////////
+        // GAP MANIPULATION //
+        //////////////////////
+        std::chrono::steady_clock::time_point gap_manipulation_start_time = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Gap> manip_gap_set;
         try 
         {
@@ -1168,10 +1190,14 @@ namespace dynamic_gap
             ROS_INFO_STREAM("out of range in gapManipulate");
             ROS_FATAL_STREAM("out of range in gapManipulate");
         }
-        if (cfg.debug.manipulation_debug_log) ROS_INFO_STREAM("DGap gapManipulate time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
 
-        start_time = ros::WallTime::now().toSec();
+        float gap_manipulation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_manipulation_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("gapManipulate for " << gaps_size << " gaps: " << gap_manipulation_time << " seconds");
 
+        ///////////////////////////////
+        // GAP TRAJECTORY GENERATION //
+        ///////////////////////////////
+        std::chrono::steady_clock::time_point gap_trajectory_generation_start_time = std::chrono::steady_clock::now();
         std::vector<geometry_msgs::PoseArray> traj_set;
         std::vector<std::vector<float>> time_set;
         std::vector<std::vector<float>> score_set; 
@@ -1182,18 +1208,27 @@ namespace dynamic_gap
         {
             ROS_FATAL_STREAM("out of range in initialTrajGen");
         }
-        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap initialTrajGen time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+
+        float gap_trajectory_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_trajectory_generation_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("initialTrajGen for " << gaps_size << " gaps: " << gap_trajectory_generation_time << " seconds");
 
         visualizeComponents(manip_gap_set); // need to run after initialTrajGen to see what weights for reachable gap are
 
-        start_time = ros::WallTime::now().toSec();
+        //////////////////////////////
+        // GAP TRAJECTORY SELECTION //
+        //////////////////////////////
+        std::chrono::steady_clock::time_point gap_trajectory_selection_start_time = std::chrono::steady_clock::now();
         int traj_idx;
-        try {
+        try 
+        {
             traj_idx = pickTraj(traj_set, score_set);
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range) 
+        {
             ROS_FATAL_STREAM("out of range in pickTraj");
         }
-        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap pickTraj time taken for " << gaps_size << " gaps: " << (ros::WallTime::now().toSec() - start_time));
+
+        float gap_trajectory_selection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_trajectory_selection_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("pickTraj for " << gaps_size << " gaps: " << gap_trajectory_selection_time << " seconds");
 
         geometry_msgs::PoseArray chosen_traj;
         std::vector<float> chosen_time_arr;
@@ -1208,8 +1243,11 @@ namespace dynamic_gap
             chosen_gap = dynamic_gap::Gap();
         }
 
-        start_time = ros::WallTime::now().toSec();
-        
+        ///////////////////////////////
+        // GAP TRAJECTORY COMPARISON //
+        ///////////////////////////////
+        std::chrono::steady_clock::time_point gap_trajectory_comparison_start_time = std::chrono::steady_clock::now();
+
         geometry_msgs::PoseArray final_traj;
         try 
         {
@@ -1218,9 +1256,13 @@ namespace dynamic_gap
         {
             ROS_FATAL_STREAM("out of range in compareToOldTraj");
         }
-        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap compareToOldTraj time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - start_time));
-        
-        if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("DGap getPlanTrajectory time taken for " << gaps_size << " gaps: "  << (ros::WallTime::now().toSec() - getPlan_start_time));
+
+        float gap_trajectory_comparison_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_trajectory_comparison_start_time).count() / 1.0e6;
+        ROS_INFO_STREAM("compareToOldTraj for " << gaps_size << " gaps: "  << gap_trajectory_comparison_time << " seconds");
+
+        float plan_loop_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - plan_loop_start_time).count() / 1.0e6;
+
+        ROS_INFO_STREAM("planning loop for " << gaps_size << " gaps: "  << plan_loop_time << " seconds");
         
         // geometry_msgs::PoseArray final_traj;
 

@@ -417,10 +417,10 @@ namespace dynamic_gap
 
             float left_weight = 0.0;
             float right_weight = 0.0;
-            Eigen::MatrixXf left_right_centers, all_curve_pts;
+            Eigen::MatrixXd left_right_centers, all_curve_pts;
             Eigen::Vector4f spline_x_coefs, spline_y_coefs;
 
-            Eigen::Vector2f left_pt_0, left_pt_1, right_pt_0, right_pt_1;
+            Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
             int num_left_rge_points = 0;
             int num_right_rge_points = 0;
         // private:
