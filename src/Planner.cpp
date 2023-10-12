@@ -244,6 +244,7 @@ namespace dynamic_gap
         trajArbiter->updateEgoCircle(msg);
         trajArbiter->updateLocalGoal(local_goal, odom2rbt);
 
+
         // ROS_INFO_STREAM("Time elapsed after updating arbiter: " << (ros::WallTime::now().toSec() - start_time));
 
         gapManip->updateEgoCircle(msg);
