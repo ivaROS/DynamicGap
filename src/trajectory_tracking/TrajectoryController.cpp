@@ -289,6 +289,7 @@ namespace dynamic_gap
         const float & curr_peak_velocity_x, 
         const float & curr_peak_velocity_y) 
     {    
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("    [controlLaw()]");
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircle_l);
 
@@ -297,7 +298,7 @@ namespace dynamic_gap
         float v_lin_y_fb = 0;
         float v_ang_fb = 0;
 
-        ROS_INFO_STREAM("feedback control");
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        feedback control");
         // ROS_INFO_STREAM("r_min: " << r_min);
         geometry_msgs::Point curr_position = current.position;
         geometry_msgs::Quaternion curr_orientation = current.orientation;
@@ -344,19 +345,20 @@ namespace dynamic_gap
         float peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
         float cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
 
-        if (cfg_->debug.control_debug_log) {
-            ROS_INFO_STREAM("generating control signal");            
-            ROS_INFO_STREAM("desired pose x: " << des_position.x << ", y: " << des_position.y << ", yaw: " << d_yaw);
-            ROS_INFO_STREAM("current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
-            ROS_INFO_STREAM("x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
-            ROS_INFO_STREAM("Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
-            ROS_INFO_STREAM("gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);           
+        if (cfg_->debug.control_debug_log) 
+        {
+            ROS_INFO_STREAM("        generating control signal");            
+            ROS_INFO_STREAM("        desired pose x: " << des_position.x << ", y: " << des_position.y << ", yaw: " << d_yaw);
+            ROS_INFO_STREAM("        current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
+            ROS_INFO_STREAM("        x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
+            ROS_INFO_STREAM("        Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+            ROS_INFO_STREAM("        gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);           
         }
         
         if (peak_vel_norm > cmd_vel_norm) {
             v_lin_x_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
             v_lin_y_fb *= 1.25 * (peak_vel_norm / cmd_vel_norm);
-            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
+            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        revised feedback command velocities: " << v_lin_x_fb << ", " << v_lin_y_fb << ", " << v_ang_fb);
         }
     
         cmd_vel.linear.x = v_lin_x_fb;
@@ -373,6 +375,8 @@ namespace dynamic_gap
                         const geometry_msgs::TwistStamped & current_rbt_vel, 
                         const geometry_msgs::TwistStamped & rbt_accel) 
     {
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("    [processCmdVel()]");
+
         geometry_msgs::Twist cmd_vel = geometry_msgs::Twist();
 
         float v_lin_x_fb = raw_cmd_vel.linear.x;
@@ -399,7 +403,7 @@ namespace dynamic_gap
         
         if (projection_operator && (curr_right_model != nullptr && curr_left_model != nullptr))
         {
-            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("running projection operator");
+            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        running projection operator");
             run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
                                     cmd_vel_fb, Psi_der, Psi, cmd_vel_x_safe, cmd_vel_y_safe,
                                     min_dist_ang, min_dist);
@@ -419,7 +423,7 @@ namespace dynamic_gap
         float weighted_cmd_vel_x_safe = k_CBF_ * cmd_vel_x_safe;
         float weighted_cmd_vel_y_safe = k_CBF_ * cmd_vel_y_safe;
 
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("safe command velocity, v_x:" << weighted_cmd_vel_x_safe << ", v_y: " << weighted_cmd_vel_y_safe);
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        safe command velocity, v_x:" << weighted_cmd_vel_x_safe << ", v_y: " << weighted_cmd_vel_y_safe);
 
         // cmd_vel_safe
         if (weighted_cmd_vel_x_safe != 0 || weighted_cmd_vel_y_safe != 0) {
@@ -452,9 +456,9 @@ namespace dynamic_gap
                 v_lin_x_fb = 0;
         }
 
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        summed command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
         clip_command_velocities(v_lin_x_fb, v_lin_y_fb, v_ang_fb);
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
+        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        clipped command velocity, v_x:" << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
 
         cmd_vel.linear.x = v_lin_x_fb;
         cmd_vel.linear.y = v_lin_y_fb;

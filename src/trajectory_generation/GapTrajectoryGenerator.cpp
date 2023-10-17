@@ -73,6 +73,8 @@ namespace dynamic_gap
                                                     geometry_msgs::TwistStamped curr_vel,
                                                     bool run_g2g) 
     {
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("        [generateTrajectory()]");
+
         geometry_msgs::PoseArray posearr;
         std::vector<float> timearr;
 
@@ -125,12 +127,12 @@ namespace dynamic_gap
 
             if (cfg_->debug.traj_debug_log) 
             {
-                ROS_INFO_STREAM("actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
-                ROS_INFO_STREAM("actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
-                ROS_INFO_STREAM("actual initial left point: (" << x_left << ", " << y_left << "), actual initial right point: (" << x_right << ", " << y_right << ")"); 
-                ROS_INFO_STREAM("actual terminal left point: (" << term_x_left << ", " << term_y_left << "), actual terminal right point: (" << term_x_right << ", " << term_y_right << ")");
-                ROS_INFO_STREAM("actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
-                ROS_INFO_STREAM("actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
+                ROS_INFO_STREAM("            actual initial robot pos: (" << ego_x[0] << ", " << ego_x[1] << ")");
+                ROS_INFO_STREAM("            actual inital robot velocity: " << ego_x[2] << ", " << ego_x[3] << ")");
+                ROS_INFO_STREAM("            actual initial left point: (" << x_left << ", " << y_left << "), actual initial right point: (" << x_right << ", " << y_right << ")"); 
+                ROS_INFO_STREAM("            actual terminal left point: (" << term_x_left << ", " << term_y_left << "), actual terminal right point: (" << term_x_right << ", " << term_y_right << ")");
+                ROS_INFO_STREAM("            actual initial goal: (" << initial_goal_x << ", " << initial_goal_y << ")"); 
+                ROS_INFO_STREAM("            actual terminal goal: (" << terminal_goal_x << ", " << terminal_goal_y << ")"); 
             }
             
             float left_vel_x = (term_x_left - x_left) / selectedGap.gap_lifespan;
@@ -190,7 +192,7 @@ namespace dynamic_gap
                              gap_radial_extension, goal_pt_1, left_weight, right_weight, num_curve_points, 
                              true_left_num_rge_points, true_right_num_rge_points,
                              init_rbt_pos, left_bezier_origin, right_bezier_origin);
-            ROS_INFO_STREAM("buildBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
             selectedGap.left_weight = left_weight;
             selectedGap.right_weight = right_weight;
@@ -211,12 +213,13 @@ namespace dynamic_gap
 
             x = {ego_x[0], ego_x[1], x_left, y_left, x_right, y_right, initial_goal_x, initial_goal_y};
 
+            /*
             polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                                                     initial_goal_x, initial_goal_y,
                                                     selectedGap.mode.agc, selectedGap.isRadial(),
                                                     x[0], x[1],
                                                     cfg_->control.vx_absmax, cfg_->control.vx_absmax);
-
+            */
             // float start_time = ros::Time::now().toSec();
 
             /*
@@ -230,13 +233,13 @@ namespace dynamic_gap
             Eigen::MatrixXd A(Kplus1, Kplus1);
             double setConstraintMatrix_start_time = ros::WallTime::now().toSec();
             setConstraintMatrix(A, N, Kplus1, all_curve_pts, all_inward_norms, all_centers);
-            ROS_INFO_STREAM("setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);
 
             OsqpEigen::Solver solver;
 
             double initializeSolver_start_time = ros::WallTime::now().toSec();
             initializeSolver(solver, Kplus1, A);
-            ROS_INFO_STREAM("initializeSolver time taken: " << ros::WallTime::now().toSec() - initializeSolver_start_time);
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            initializeSolver time taken: " << ros::WallTime::now().toSec() - initializeSolver_start_time);
 
             // ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("A: " << A);
@@ -253,12 +256,12 @@ namespace dynamic_gap
             
             // solve the QP problem
             double opt_start_time = ros::WallTime::now().toSec();
-            if(solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) {
+            if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
                 ROS_FATAL_STREAM("SOLVER FAILED TO SOLVE PROBLEM");
-            }
+
             // get the controller input
             Eigen::MatrixXd weights = solver.getSolution();
-            ROS_INFO_STREAM("optimization time taken: " << (ros::WallTime::now().toSec() - opt_start_time));
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            optimization time taken: " << (ros::WallTime::now().toSec() - opt_start_time));
             
             /*
             ROS_INFO_STREAM("current solution: "); 
@@ -288,10 +291,10 @@ namespace dynamic_gap
                 p.position.y += selectedGap.qB(1);
             }
             */
-            ROS_INFO_STREAM("integration time taken: " << (ros::Time::now().toSec() - start_time));
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            integration time taken: " << (ros::Time::now().toSec() - start_time));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> return_tuple(posearr, timearr);
-            ROS_INFO_STREAM("generateTrajectory time taken: " << ros::Time::now().toSec() - gen_traj_start_time);
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            generateTrajectory time taken: " << ros::Time::now().toSec() - gen_traj_start_time);
             return return_tuple;
             
         } catch (...) {
