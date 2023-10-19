@@ -6,8 +6,10 @@
 // #include <Eigen/Core>
 #include <boost/thread/mutex.hpp>
 
-namespace dynamic_gap {
-    class DynamicGapConfig {
+namespace dynamic_gap 
+{
+    class DynamicGapConfig 
+    {
         public:
             std::string map_frame_id;
             std::string odom_frame_id;
@@ -59,9 +61,12 @@ namespace dynamic_gap {
 
             struct Debug 
             {
+                bool gap_detection_debug_log;
+                bool gap_simplification_debug_log;
                 bool raw_gaps_debug_log;
                 bool static_scan_separation_debug_log;
                 bool simplified_gaps_debug_log;
+                bool future_scan_propagation_debug_log;
                 bool feasibility_debug_log;
                 bool manipulation_debug_log;
                 bool traj_debug_log;
@@ -135,7 +140,8 @@ namespace dynamic_gap {
                 bool line;
             } projection;
 
-        DynamicGapConfig() {
+        DynamicGapConfig() 
+        {
             map_frame_id = "map";
             odom_frame_id = "odom";
             robot_frame_id = "base_link";
@@ -168,9 +174,12 @@ namespace dynamic_gap {
             goal.goal_tolerance = 0.2;
             goal.waypoint_tolerance = 0.1;
 
+            debug.gap_detection_debug_log = false;
+            debug.gap_simplification_debug_log = false;
             debug.raw_gaps_debug_log = false;
             debug.static_scan_separation_debug_log = false;
             debug.simplified_gaps_debug_log = false;
+            debug.future_scan_propagation_debug_log = false;
             debug.feasibility_debug_log = true;
             debug.manipulation_debug_log = false;
             debug.traj_debug_log = true;

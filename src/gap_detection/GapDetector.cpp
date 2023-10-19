@@ -61,9 +61,9 @@ namespace dynamic_gap
     }
 
     std::vector<dynamic_gap::Gap> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser, 
-                                                         geometry_msgs::PoseStamped final_goal_rbt)
+                                                            geometry_msgs::PoseStamped final_goal_rbt)
     {
-        // ROS_INFO_STREAM("running gapDetection");
+        if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("[gapDetection()]");
         std::vector<dynamic_gap::Gap> raw_gaps;
         scan = *sharedPtr_laser.get();
         // get half scan value
@@ -89,7 +89,7 @@ namespace dynamic_gap
         for (unsigned int it = 1; it < full_scan_; ++it)
         {
             scan_dist_i = scan.ranges[it];
-            // ROS_INFO_STREAM("iter: " << it << ", dist: " << scan_dist_i);
+            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    iter: " << it << ", dist: " << scan_dist_i);
 
             if (radialGapSizeCheck(scan_dist_i, scan_dist_imin1, scan.angle_increment)) 
             {
@@ -100,7 +100,7 @@ namespace dynamic_gap
 
                 raw_gaps.push_back(detected_gap);
 
-                // ROS_INFO_STREAM("adding radial gap from: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");
+                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding radial gap from: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");
             }
 
             // Either previous distance finite and current distance infinite or vice-versa, 
@@ -109,7 +109,7 @@ namespace dynamic_gap
                 if (mid_swept_gap) // Signals the ending of a gap
                 {
                     mid_swept_gap = false;                    
-                    // ROS_INFO_STREAM("gap ending: infinity to finite");
+                    if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    gap ending: infinity to finite");
                     dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan_, min_scan_dist_);
                     detected_gap.addLeftInformation(it, scan_dist_i);
                     detected_gap.setRadial();
@@ -117,9 +117,10 @@ namespace dynamic_gap
                     //std::cout << "candidate swept gap from (" << gap_ridx << ", " << gap_rdist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                     // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
                     // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
-                    if (sweptGapSizeCheck(detected_gap)) {
+                    if (sweptGapSizeCheck(detected_gap)) 
+                    {
                         //std::cout << "adding candidate swept gap" << std::endl;
-                        // ROS_INFO_STREAM("adding swept gap from: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");                
+                        // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding swept gap from: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");                
                         raw_gaps.push_back(detected_gap);
                     }
                 }
@@ -138,7 +139,7 @@ namespace dynamic_gap
         // Catch the last gap (could be in the middle of a swept gap but laser scan ends)
         if (mid_swept_gap) 
         {
-            // ROS_INFO_STREAM("catching last gap");
+            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    catching last gap");
             dynamic_gap::Gap detected_gap(frame, gap_ridx, gap_rdist, false, half_scan_, min_scan_dist_);
             int last_scan_idx = full_scan_ - 1;
             float last_scan_dist = *(scan.ranges.end() - 1);
@@ -151,7 +152,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("gap side dist: " << gap_dist_side);
             if (sweptGapSizeCheck(detected_gap)) 
             {
-                // ROS_INFO_STREAM("adding candidate last gap");
+                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding candidate last gap");
                 raw_gaps.push_back(detected_gap);
                 // ROS_INFO_STREAM("adding last gap: (" << detected_gap.RIdx() << ", " << detected_gap.RDist() << "), to (" << detected_gap.LIdx() << ", " << detected_gap.LDist() << ")");                
             }
@@ -160,7 +161,7 @@ namespace dynamic_gap
         // Bridge the last gap around
         if (bridgeCondition(raw_gaps))
         {
-            // ROS_INFO_STREAM("bridging first and last gaps");
+            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    bridging first and last gaps");
             raw_gaps.back().addLeftInformation(raw_gaps.front().LIdx(), raw_gaps.front().LDist());
             raw_gaps.erase(raw_gaps.begin());
             // ROS_INFO_STREAM("revising last gap: (" << raw_gaps.back().RIdx() << ", " << raw_gaps.back().RDist() << "), to (" << raw_gaps.back().LIdx() << ", " << raw_gaps.back().LDist() << ")");                
@@ -276,6 +277,8 @@ namespace dynamic_gap
 
     std::vector<dynamic_gap::Gap> GapDetector::gapSimplification(const std::vector<dynamic_gap::Gap> & raw_gaps)
     {
+        if (cfg_->debug.gap_simplification_debug_log) ROS_INFO_STREAM("[gapSimplification()]");
+
         //double start_time = ros::Time::now().toSec();
         std::vector<dynamic_gap::Gap> simplified_gaps;
 
@@ -285,7 +288,6 @@ namespace dynamic_gap
         float curr_left_dist = 0.0;
         int last_mergable = -1;
         
-        // ROS_INFO_STREAM("running gapSimplification: ");
         for (dynamic_gap::Gap raw_gap : raw_gaps)
         {
             // ROS_INFO_STREAM("on raw gap: (" << raw_gap.RIdx() << ", " << raw_gap.RDist() << ") to (" << raw_gap.LIdx() << ", " << raw_gap.LDist() << ")");

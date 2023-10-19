@@ -224,30 +224,30 @@ namespace dynamic_gap
 
     Eigen::Matrix<float, 4, 1> RotatingFrameCartesianKalmanFilter::integrate() 
     {
-        // ROS_INFO_STREAM("INTEGRATING");
+        if (print) ROS_INFO_STREAM("    [integrate()]");
         Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus;
         Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus;
 
         for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
         {
-            if (print) { ROS_INFO_STREAM("intermediate step " << i); }
+            if (print) ROS_INFO_STREAM("        intermediate step " << i);
             
             float dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
             float ang_vel_ego = ego_rbt_vels[i].twist.angular.z;
             
-            if (print) { ROS_INFO_STREAM("ang_vel_ego: " << ang_vel_ego);}
+            if (print) ROS_INFO_STREAM("        ang_vel_ego: " << ang_vel_ego);
 
             float p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
             float p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
-            if (print) { ROS_INFO_STREAM("p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);}
+            if (print) ROS_INFO_STREAM("        p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
             float vdot_x_body = ego_rbt_accs[i].twist.linear.x;
             float vdot_y_body = ego_rbt_accs[i].twist.linear.y;
-            if (print) { ROS_INFO_STREAM("vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);}
+            if (print) ROS_INFO_STREAM("        vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
             float v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
             float v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
-            if (print) { ROS_INFO_STREAM("v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y); }
+            if (print) ROS_INFO_STREAM("        v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
 
             new_x << x_intermediate[0] + p_dot_x*dt, // r_x
                      x_intermediate[1] + p_dot_y*dt, // r_y
@@ -255,7 +255,7 @@ namespace dynamic_gap
                      x_intermediate[3] + v_dot_y*dt; // v_y
             
             x_intermediate = new_x;
-            if (print) { ROS_INFO_STREAM("x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]); }
+            if (print) ROS_INFO_STREAM("        x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
         
         }
 
@@ -316,15 +316,15 @@ namespace dynamic_gap
 
         if (ego_rbt_vels.size() != ego_rbt_accs.size())
         {
-            if (print) ROS_INFO_STREAM("ego_rbt_vels is of size " << ego_rbt_vels.size() << " while ego_rbt_accs is of size " << ego_rbt_accs.size());
+            if (print) ROS_INFO_STREAM("    ego_rbt_vels is of size " << ego_rbt_vels.size() << " while ego_rbt_accs is of size " << ego_rbt_accs.size());
             return;
         }
 
 
         if (print) {
-            ROS_INFO_STREAM("update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-            ROS_INFO_STREAM("x_hat_kmin1_plus: " << x_hat_kmin1_plus[0] << ", " << x_hat_kmin1_plus[1] << ", " << x_hat_kmin1_plus[2] << ", " << x_hat_kmin1_plus[3]);
-            ROS_INFO_STREAM("current_rbt_vel, x_lin: " << last_ego_rbt_vel.twist.linear.x << ", y_lin: " << last_ego_rbt_vel.twist.linear.y << ", z_ang: " << last_ego_rbt_vel.twist.angular.z);
+            ROS_INFO_STREAM("    update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+            ROS_INFO_STREAM("    x_hat_kmin1_plus: " << x_hat_kmin1_plus[0] << ", " << x_hat_kmin1_plus[1] << ", " << x_hat_kmin1_plus[2] << ", " << x_hat_kmin1_plus[3]);
+            ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << last_ego_rbt_vel.twist.linear.x << ", y_lin: " << last_ego_rbt_vel.twist.linear.y << ", z_ang: " << last_ego_rbt_vel.twist.angular.z);
         }
 
         processEgoRobotVelsAndAccs(t_update);
@@ -335,20 +335,18 @@ namespace dynamic_gap
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
         if (print) {
-            ROS_INFO_STREAM("linear ego vel: " << last_ego_rbt_vel.twist.linear.x << ", " << last_ego_rbt_vel.twist.linear.y << ", angular ego vel: " << last_ego_rbt_vel.twist.angular.z);
-            ROS_INFO_STREAM("linear ego acceleration: " << last_ego_rbt_acc.twist.linear.x << ", " << last_ego_rbt_acc.twist.linear.y << ", angular ego acc: " << last_ego_rbt_acc.twist.angular.z);
+            ROS_INFO_STREAM("    linear ego vel: " << last_ego_rbt_vel.twist.linear.x << ", " << last_ego_rbt_vel.twist.linear.y << ", angular ego vel: " << last_ego_rbt_vel.twist.angular.z);
+            ROS_INFO_STREAM("    linear ego acceleration: " << last_ego_rbt_acc.twist.linear.x << ", " << last_ego_rbt_acc.twist.linear.y << ", angular ego acc: " << last_ego_rbt_acc.twist.angular.z);
         }
         
 
         x_ground_truth = update_ground_truth_cartesian_state();
 
-        if (print) { ROS_INFO_STREAM("INTEGRATING"); }
         x_hat_k_minus = integrate();
 
         
-        if (print) {
-            ROS_INFO_STREAM("x_hat_k_minus: " << x_hat_k_minus[0] << ", " << x_hat_k_minus[1] << ", " << x_hat_k_minus[2] << ", " << x_hat_k_minus[3]);
-        }
+        if (print) ROS_INFO_STREAM("    x_hat_k_minus: " << x_hat_k_minus[0] << ", " << x_hat_k_minus[1] << ", " 
+                                                     << x_hat_k_minus[2] << ", " << x_hat_k_minus[3]);
         
 
         P_intermediate = P_kmin1_plus;
@@ -375,7 +373,7 @@ namespace dynamic_gap
         */
 
         if (print) {
-            ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+            ROS_INFO_STREAM("    x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
         }
         
         innovation = x_tilde - H*x_hat_k_minus;
@@ -421,7 +419,8 @@ namespace dynamic_gap
 
         // if (print) ROS_INFO_STREAM("4");
 
-        if (print) {
+        if (print) 
+        {
             /*
             ROS_INFO_STREAM("G_k: " << G_k(0, 0) << ", " << G_k(0, 1));
             ROS_INFO_STREAM("     " << G_k(1, 0) << ", " << G_k(1, 1));
@@ -429,9 +428,9 @@ namespace dynamic_gap
             ROS_INFO_STREAM("     " << G_k(3, 0) << ", " << G_k(3, 1));
             */
 
-            ROS_INFO_STREAM("x_hat_k_plus: " << x_hat_k_plus[0] << ", " << x_hat_k_plus[1] << ", " << x_hat_k_plus[2] << ", " << x_hat_k_plus[3]);       
-            ROS_INFO_STREAM("x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
-            ROS_INFO_STREAM("-----------");
+            ROS_INFO_STREAM("    x_hat_k_plus: " << x_hat_k_plus[0] << ", " << x_hat_k_plus[1] << ", " << x_hat_k_plus[2] << ", " << x_hat_k_plus[3]);       
+            ROS_INFO_STREAM("    x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
+            ROS_INFO_STREAM("    -----------");
         }
 
         return;

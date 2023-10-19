@@ -42,13 +42,14 @@ namespace dynamic_gap
         nh.param("waypoint_tolerance", goal.waypoint_tolerance, goal.waypoint_tolerance);
 
         // Debug
-        nh.param("raw_gaps_debug_log", debug.raw_gaps_debug_log, debug.raw_gaps_debug_log);
-        nh.param("static_scan_separation_debug_log", debug.static_scan_separation_debug_log, debug.static_scan_separation_debug_log);
-        nh.param("simplified_gaps_debug_log", debug.simplified_gaps_debug_log, debug.simplified_gaps_debug_log);        
-        nh.param("feasibility_debug_log", debug.feasibility_debug_log, debug.feasibility_debug_log);
-        nh.param("manipulation_debug_log", debug.manipulation_debug_log, debug.manipulation_debug_log);
-        nh.param("traj_debug_log", debug.traj_debug_log, debug.traj_debug_log);
-        nh.param("control_debug_log", debug.control_debug_log, debug.control_debug_log);             
+        // nh.param("raw_gaps_debug_log", debug.raw_gaps_debug_log, debug.raw_gaps_debug_log);
+        // nh.param("static_scan_separation_debug_log", debug.static_scan_separation_debug_log, debug.static_scan_separation_debug_log);
+        // nh.param("simplified_gaps_debug_log", debug.simplified_gaps_debug_log, debug.simplified_gaps_debug_log);
+        // nh.param("future_scan_propagation_debug_log", debug.future_scan_propagation_debug_log, debug.future_scan_propagation_debug_log);      
+        // nh.param("feasibility_debug_log", debug.feasibility_debug_log, debug.feasibility_debug_log);
+        // nh.param("manipulation_debug_log", debug.manipulation_debug_log, debug.manipulation_debug_log);
+        // nh.param("traj_debug_log", debug.traj_debug_log, debug.traj_debug_log);
+        // nh.param("control_debug_log", debug.control_debug_log, debug.control_debug_log);             
 
         // Gap Association
         nh.param("assoc_thresh", gap_assoc.assoc_thresh, gap_assoc.assoc_thresh);
