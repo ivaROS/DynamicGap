@@ -51,10 +51,6 @@ namespace dynamic_gap
         
         // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
-        // queue needs to be 3 to not skip any messages
-        // pose_sub = pnh.subscribe("/odom", 3, &Planner::poseCB, &planner);
-        // rbt_accel_sub = nh.subscribe(robot_name + "/acc", 3, &Planner::robotAccCB, &planner);
-
         odom_sub.subscribe(nh, robot_name + "/odom", 10);
         acc_sub.subscribe(nh, robot_name + "/acc", 10);
         sync_.reset(new Sync(MySyncPolicy(10), odom_sub, acc_sub));

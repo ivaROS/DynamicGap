@@ -27,7 +27,7 @@ namespace dynamic_gap
         bool large_gap = detected_gap.LIdx() - detected_gap.RIdx() > (3 * half_scan_ / 2);
         bool robot_can_fit = detected_gap.get_gap_euclidean_dist() > 3 * cfg_->rbt.r_inscr;
         
-        return large_gap || robot_can_fit; //  || cfg_->planning.planning_inflated);
+        return large_gap || robot_can_fit;
     }
 
     // Checking if robot can fit between gap between consecutive scan points (precondition to radial gap)
@@ -42,13 +42,7 @@ namespace dynamic_gap
 
         bool can_robot_fit = scan_diff > 3 * cfg_->rbt.r_inscr;
         
-        // Inscribed radius gets enforced here, or unless using inflated egocircle, 
-        // then no need for range diff
-        bool finite_scan_dists = (cfg_->planning.planning_inflated 
-                                  && scan_dist_i < max_scan_dist_ 
-                                  && scan_dist_imin1 < max_scan_dist_);
-
-        return (can_robot_fit || finite_scan_dists);
+        return can_robot_fit;
     }   
 
     bool GapDetector::bridgeCondition(const std::vector<dynamic_gap::Gap> & raw_gaps)
@@ -229,8 +223,6 @@ namespace dynamic_gap
     int GapDetector::checkSimplifiedGapsMergeability(const dynamic_gap::Gap & raw_gap, 
                                         const std::vector<dynamic_gap::Gap> & simplified_gaps)
     {
-        // if coefs = 0. as long as raw_gap's rdist is less than or equal to curr_gaps' ldist, we will merge
-        float coefs = cfg_->planning.planning_inflated ? 0 : 2; // MAX: changed
         int last_mergable = -1;
 
         int start_idx, end_idx;
@@ -242,7 +234,7 @@ namespace dynamic_gap
             start_idx = std::min(simplified_gaps[j].LIdx(), raw_gap.RIdx());
             end_idx = std::max(simplified_gaps[j].LIdx(), raw_gap.RIdx());
             float min_intergap_dist = *std::min_element(scan.ranges.begin() + start_idx, scan.ranges.begin() + end_idx);
-            float inflated_min_intergap_dist = min_intergap_dist - coefs * cfg_->rbt.r_inscr;
+            float inflated_min_intergap_dist = min_intergap_dist - 2 * cfg_->rbt.r_inscr;
 
             // 1. Checking if raw gap left and simplified gap right (widest distances, encompassing both gaps) dist 
             //    is less than the dist of whatever separates the two gaps

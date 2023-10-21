@@ -7,7 +7,6 @@ namespace dynamic_gap
         projection_viz = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
         thres = 0.1;
-        last_time = ros::Time::now();
 
         holonomic = cfg_->planning.holonomic;
         full_fov = cfg_->planning.full_fov;
@@ -697,8 +696,6 @@ namespace dynamic_gap
         }
         */
 
-        // ROS_DEBUG_STREAM("Elapsed: " << (ros::Time::now() - last_time).toSec());
-        last_time = ros::Time::now();
         float r_max = r_norm + r_norm_offset;
         min_dist = min_dist_arr.at(min_idx);
         min_dist = min_dist >= r_max ? r_max : min_dist;

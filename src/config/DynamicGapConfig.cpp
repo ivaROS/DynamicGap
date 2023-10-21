@@ -23,7 +23,6 @@ namespace dynamic_gap
 
         // Planning Information
         nh.param("projection_inflated", planning.projection_inflated, planning.projection_inflated);
-        nh.param("planning_inflated", planning.planning_inflated, planning.planning_inflated);
         nh.param("holonomic", planning.holonomic, planning.holonomic);
         nh.param("full_fov", planning.full_fov, planning.full_fov);
         nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
@@ -115,7 +114,6 @@ namespace dynamic_gap
 
         // Planning Information
         planning.projection_inflated = cfg.projection_inflated;
-        planning.planning_inflated = cfg.planning_inflated;
         planning.holonomic = cfg.holonomic;
         planning.full_fov = cfg.full_fov;
         planning.projection_operator = cfg.projection_operator;

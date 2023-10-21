@@ -180,7 +180,7 @@ namespace dynamic_gap
         bool gap_size_check = L_to_R_angle < M_PI;
         float dist = 0;
         bool small_gap = false;
-        if (gap_size_check && !cfg_->planning.planning_inflated) 
+        if (gap_size_check) 
         {
             // if smaller than M_PI/3
             dist = sqrt(pow(x_l - x_r, 2) + pow(y_l - y_r, 2));

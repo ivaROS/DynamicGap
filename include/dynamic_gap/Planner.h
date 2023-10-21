@@ -56,46 +56,26 @@ namespace dynamic_gap
     {
     private:
         geometry_msgs::TransformStamped map2rbt;        // Transform
-        geometry_msgs::TransformStamped rbt2map;
         geometry_msgs::TransformStamped odom2rbt;
         geometry_msgs::TransformStamped rbt2odom;
         geometry_msgs::TransformStamped map2odom;
         geometry_msgs::TransformStamped cam2odom;
         geometry_msgs::TransformStamped rbt2cam;
 
-        geometry_msgs::PoseStamped goal_rbt_frame;
-        geometry_msgs::PoseStamped curr_pose_odom;
         geometry_msgs::PoseStamped rbt_in_rbt;
         geometry_msgs::PoseStamped rbt_in_cam;
-        geometry_msgs::Twist rbt_vel_in_rbt;
 
         tf2_ros::Buffer tfBuffer;
         tf2_ros::TransformListener *tfListener;
-        tf2_ros::TransformBroadcaster goal_br;
 
         ros::NodeHandle nh;
-        ros::Publisher local_traj_pub;
-        ros::Publisher trajectory_pub;
-        ros::Publisher gap_vis_pub;
-        ros::Publisher selected_gap_vis_pub;
-        ros::Publisher ni_traj_pub;
-        ros::Publisher ni_traj_pub_other;
+        ros::Publisher currentTrajectoryPublisher_;
+        ros::Publisher staticScanPublisher_;
 
-        ros::Publisher static_scan_pub;
-        
-
-        std::vector<int> simp_association;
-        std::vector<int> raw_association;
-
-        std::vector< std::vector<float> > simp_distMatrix;
-        std::vector< std::vector<float> > raw_distMatrix;
-
-        bool print_associations;
-
+        std::vector<int> rawAssocation_, simpAssociation_;
+        std::vector<std::vector<float>> rawDistMatrix_, simpDistMatrix_;
 
         // Goals and stuff
-        // double goal_orientation;
-        geometry_msgs::Pose current_pose_;
         geometry_msgs::PoseStamped local_waypoint_odom; // local_waypoint, 
         geometry_msgs::PoseStamped final_goal_odom;
         geometry_msgs::PoseStamped final_goal_rbt;
@@ -110,14 +90,6 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> associated_raw_gaps;
         std::vector<dynamic_gap::Gap> associated_observed_gaps;
         
-        std::vector<dynamic_gap::Gap> merged_gaps;
-        std::vector<dynamic_gap::Gap> selected_gap_set;
-        std::vector<dynamic_gap::Gap> ftg_gaps;
-        std::vector<dynamic_gap::Gap> safe_gaps_left;
-        std::vector<dynamic_gap::Gap> safe_gaps_right;
-        std::vector<dynamic_gap::Gap> safe_gaps_central;
-        std::vector<dynamic_gap::Gap> safe_gaps;
-
         dynamic_gap::GapDetector *gapDetector;
         dynamic_gap::StaticScanSeparator *finder;
         dynamic_gap::GapVisualizer *gapvisualizer;
@@ -133,28 +105,16 @@ namespace dynamic_gap
 
         // Status
         bool hasGoal = false;
-        bool _initialized = false;
+        bool initialized_ = false;
 
-        geometry_msgs::PoseArray pose_arr;
-        geometry_msgs::PoseArray pose_arr_odom;
-
-        // std::vector<turtlebot_trajectory_generator::ni_state> ctrl;
         int ctrl_idx = 0;
 
-        geometry_msgs::Pose sharedPtr_pose, prev_sharedPtr_pose;
+        geometry_msgs::Pose robotPoseOdomFrame_;
         sensor_msgs::LaserScan static_scan;
-        boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
-        boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_inflatedlaser;
-        boost::shared_ptr<sensor_msgs::LaserScan const> static_scan_ptr;
+        boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
+        boost::shared_ptr<sensor_msgs::LaserScan const> inflatedScan_;
 
-        ros::WallTime last_time;
-        dynamic_gap::TrajPlan ni_ref, orig_ref;
-
-        // Dynamic Reconfigure
-        // boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
-        // dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
-
-        bool replan = true;
+        dynamic_gap::TrajPlan orig_ref;
         
         dynamic_gap::DynamicGapConfig cfg;
 
@@ -193,7 +153,6 @@ namespace dynamic_gap
 
         std::vector<sensor_msgs::LaserScan> future_scans;
 
-        ros::Time prev_pose_msg_time, prev_scan_msg_time, prev_acc_msg_time;
         std::vector<Eigen::Matrix<float, 4, 1> > curr_agents;
 
         int switch_index;
@@ -232,12 +191,8 @@ namespace dynamic_gap
          * @return None, laser scan msg stored locally
          */
         void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
-        void inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         void staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
-
-        void robotAccCB(boost::shared_ptr<geometry_msgs::TwistStamped const> msg);
-        // void robotVelCB(boost::shared_ptr<geometry_msgs::Twist const> msg);
 
         /**
          * call back function to pose, pose information obtained here only used when a new goal is used
@@ -247,7 +202,6 @@ namespace dynamic_gap
         void poseCB(const nav_msgs::Odometry::ConstPtr& msg);
 
         void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr& odom_msg, const geometry_msgs::TwistStamped::ConstPtr& accel_msg);
-
 
         /**
          * Interface function for receiving global plan
@@ -332,15 +286,12 @@ namespace dynamic_gap
         /**
          * Gets the current position along the currently executing Trajectory
          */
-        int egoTrajPosition(geometry_msgs::PoseArray curr);
-
+        int egoTrajPosition(const geometry_msgs::PoseArray & curr);
 
         /**
          * Reset Planner, clears current observedSet
          */
         void reset();
-        bool isReplan();
-        void setReplan();
 
         /**
          * Check if the robot has been stuck
@@ -361,19 +312,12 @@ namespace dynamic_gap
                                     const ros::Time & t_kf_update,
                                     bool print);
 
-        std::vector<dynamic_gap::Gap> get_curr_raw_gaps();
-        std::vector<dynamic_gap::Gap> get_curr_observed_gaps();
-
         void setCurrentRightModel(dynamic_gap::Estimator * _right_model);
         void setCurrentLeftModel(dynamic_gap::Estimator * _left_model);
         void setCurrentGapPeakVelocities(float _peak_velocity_x, float _peak_velocity_y);
 
         void printGapModels(std::vector<dynamic_gap::Gap> gaps);
         void printGapAssociations(std::vector<dynamic_gap::Gap> current_gaps, std::vector<dynamic_gap::Gap> previous_gaps, std::vector<int> association);
-
-        std::vector<int> get_raw_associations();
-
-        std::vector<int> get_simplified_associations();
 
         std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(bool &, bool &);
 
@@ -390,8 +334,5 @@ namespace dynamic_gap
                                     geometry_msgs::PoseArray incoming, 
                                     std::vector<float> time_arr, 
                                     bool switching_to_empty);
-        
-        void reviseIntermediateValues();
-
     };
 }

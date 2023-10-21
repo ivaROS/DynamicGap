@@ -35,7 +35,6 @@ namespace dynamic_gap
             struct PlanningMode 
             {
                 bool projection_inflated;
-                bool planning_inflated;
                 bool holonomic;
                 bool full_fov;
                 bool projection_operator;
@@ -157,7 +156,6 @@ namespace dynamic_gap
             rbt.max_range = 4.99;
 
             planning.projection_inflated = false;
-            planning.planning_inflated = false;
             planning.holonomic = true;
             planning.full_fov = true;
             planning.projection_operator = false;

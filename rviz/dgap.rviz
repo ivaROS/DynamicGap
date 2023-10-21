@@ -99,7 +99,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot0
+          Reference Frame: robot5
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -181,7 +181,7 @@ Visualization Manager:
               Marker Topic: /manip_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -355,7 +355,7 @@ Visualization Manager:
           Marker Topic: /robot1/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -363,7 +363,7 @@ Visualization Manager:
           Marker Topic: /robot2/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -371,7 +371,7 @@ Visualization Manager:
           Marker Topic: /robot3/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -379,7 +379,7 @@ Visualization Manager:
           Marker Topic: /robot4/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -387,7 +387,7 @@ Visualization Manager:
           Marker Topic: /robot5/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -588,7 +588,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 20.268821716308594
+      Distance: 28.476234436035156
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

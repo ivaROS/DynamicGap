@@ -28,12 +28,12 @@ namespace dynamic_gap
         cfg.loadRosParamFromNodeHandle(unh);
 
         // Visualization Setup
-        trajectory_pub = nh.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
-        static_scan_pub = nh.advertise<sensor_msgs::LaserScan>("static_scan", 1);
+        currentTrajectoryPublisher_ = nh.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
+        staticScanPublisher_ = nh.advertise<sensor_msgs::LaserScan>("static_scan", 1);
 
         // TF Lookup setup
         tfListener = new tf2_ros::TransformListener(tfBuffer);
-        _initialized = true;
+        initialized_ = true;
 
         gapDetector = new dynamic_gap::GapDetector(cfg);
         finder = new dynamic_gap::StaticScanSeparator(cfg);
@@ -52,7 +52,6 @@ namespace dynamic_gap
         // ODOM FRAME ID SHOULD BE: map_static
 
         map2rbt.transform.rotation.w = 1;
-        rbt2map.transform.rotation.w = 1;
         odom2rbt.transform.rotation.w = 1;
         rbt2odom.transform.rotation.w = 1;
         rbt_in_rbt.pose.orientation.w = 1;
@@ -69,8 +68,7 @@ namespace dynamic_gap
         curr_left_model = NULL;
         curr_right_model = NULL;
 
-        sharedPtr_pose = geometry_msgs::Pose();
-        prev_sharedPtr_pose = geometry_msgs::Pose();
+        robotPoseOdomFrame_ = geometry_msgs::Pose();
 
         final_goal_rbt = geometry_msgs::PoseStamped();
         num_obsts = cfg.rbt.num_obsts;
@@ -103,7 +101,7 @@ namespace dynamic_gap
 
     bool Planner::initialized()
     {
-        return _initialized;
+        return initialized_;
     }
 
     int Planner::get_num_obsts() {
@@ -112,18 +110,18 @@ namespace dynamic_gap
 
     bool Planner::isGoalReached()
     {
-        current_pose_ = sharedPtr_pose;
-        float dx = final_goal_odom.pose.position.x - current_pose_.position.x;
-        float dy = final_goal_odom.pose.position.y - current_pose_.position.y;
+        float dx = final_goal_odom.pose.position.x - robotPoseOdomFrame_.position.x;
+        float dy = final_goal_odom.pose.position.y - robotPoseOdomFrame_.position.y;
         bool result = sqrt(pow(dx, 2) + pow(dy, 2)) < cfg.goal.goal_tolerance;
+        
         if (result)
         {
             ROS_INFO_STREAM("[Reset] Goal Reached");
             return true;
         }
 
-        float waydx = local_waypoint_odom.pose.position.x - current_pose_.position.x;
-        float waydy = local_waypoint_odom.pose.position.y - current_pose_.position.y;
+        float waydx = local_waypoint_odom.pose.position.x - robotPoseOdomFrame_.position.x;
+        float waydy = local_waypoint_odom.pose.position.y - robotPoseOdomFrame_.position.y;
         bool wayres = sqrt(pow(waydx, 2) + pow(waydy, 2)) < cfg.goal.waypoint_tolerance;
         if (wayres) {
             ROS_INFO_STREAM("[Reset] Waypoint reached, getting new one");
@@ -131,43 +129,12 @@ namespace dynamic_gap
         return false;
     }
 
-    /*
-    void Planner::staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg) {
-        static_scan_ptr = msg;
-        trajArbiter->updateStaticEgoCircle(*static_scan_ptr.get());
-        gapManip->updateStaticEgoCircle(*static_scan_ptr.get());
-    }
-    */
-    
-
-    void Planner::inflatedlaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
-    {
-        sharedPtr_inflatedlaser = msg;
-    }
-
-    /*
-    void Planner::reviseIntermediateValues() {
-        // need this so vector is not empty
-        if (intermediate_vels.size() == 0) {
-            intermediate_vels.push_back(current_rbt_vel); // just adding most recent value
-        }
-
-        if (intermediate_accs.size() == 0) { 
-            intermediate_accs.push_back(current_rbt_acc); // just adding most recent value
-        }
-    }
-    */
-
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
     {
         boost::mutex::scoped_lock gapset(gapset_mutex);
         ros::Time curr_time = msg->header.stamp;
 
-        sharedPtr_laser = msg;
-        // planning_inflated is a 0
-        if (cfg.planning.planning_inflated && sharedPtr_inflatedlaser) {
-            msg = sharedPtr_inflatedlaser;
-        }
+        scan_ = msg;
 
         if (hasGoal)
         {
@@ -183,9 +150,9 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
 
             if (cfg.debug.raw_gaps_debug_log) ROS_INFO_STREAM("RAW GAP ASSOCIATING");    
-            raw_distMatrix = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
-            raw_association = gapassociator->associateGaps(raw_distMatrix);         // ASSOCIATE GAPS PASSES BY REFERENCE
-            gapassociator->assignModels(raw_association, raw_distMatrix, 
+            rawDistMatrix_ = gapassociator->obtainDistMatrix(raw_gaps, previous_raw_gaps);
+            rawAssocation_ = gapassociator->associateGaps(rawDistMatrix_);         // ASSOCIATE GAPS PASSES BY REFERENCE
+            gapassociator->assignModels(rawAssocation_, rawDistMatrix_, 
                                         raw_gaps, previous_raw_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
@@ -197,7 +164,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             static_scan = finder->staticDynamicScanSeparation(associated_raw_gaps, msg, cfg.debug.static_scan_separation_debug_log);
-            static_scan_pub.publish(static_scan);
+            staticScanPublisher_.publish(static_scan);
             trajArbiter->updateStaticEgoCircle(static_scan);
             gapManip->updateStaticEgoCircle(static_scan);
             curr_agents = finder->getCurrAgents();
@@ -208,9 +175,9 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
 
             if (cfg.debug.simplified_gaps_debug_log) ROS_INFO_STREAM("SIMPLIFIED GAP ASSOCIATING");    
-            simp_distMatrix = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
-            simp_association = gapassociator->associateGaps(simp_distMatrix); // must finish this and therefore change the association
-            gapassociator->assignModels(simp_association, simp_distMatrix, 
+            simpDistMatrix_ = gapassociator->obtainDistMatrix(observed_gaps, previous_gaps);
+            simpAssociation_ = gapassociator->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
+            gapassociator->assignModels(simpAssociation_, simpDistMatrix_, 
                                         observed_gaps, previous_gaps, 
                                         model_idx, t_kf_update,
                                         ego_rbt_vels_copied, ego_rbt_accs_copied,
@@ -225,30 +192,23 @@ namespace dynamic_gap
             gapvisualizer->drawGapsModels(associated_raw_gaps);
         }
 
-        boost::shared_ptr<sensor_msgs::LaserScan const> tmp;
-        if (sharedPtr_inflatedlaser) {
-            tmp = sharedPtr_inflatedlaser;
-        } else {
-            tmp = msg;
-        }
-
         geometry_msgs::PoseStamped local_goal;
         {
-            goalselector->updateEgoCircle(tmp);
+            goalselector->updateEgoCircle(scan_);
             goalselector->updateLocalGoal(map2rbt);
             local_goal = goalselector->transformLocalGoalToOdomFrame(rbt2odom);
             goalvisualizer->localGoal(local_goal);
         }
         // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
 
-        trajArbiter->updateEgoCircle(msg);
+        trajArbiter->updateEgoCircle(scan_);
         trajArbiter->updateLocalGoal(local_goal, odom2rbt);
 
         // ROS_INFO_STREAM("Time elapsed after updating arbiter: " << (ros::WallTime::now().toSec() - start_time));
 
-        gapManip->updateEgoCircle(msg);
-        trajController->updateEgoCircle(msg);
-        gapFeasibilityChecker->updateEgoCircle(msg);
+        gapManip->updateEgoCircle(scan_);
+        trajController->updateEgoCircle(scan_);
+        gapFeasibilityChecker->updateEgoCircle(scan_);
         // ROS_INFO_STREAM("Time elapsed after updating rest: " << (ros::WallTime::now().toSec() - start_time));
 
         // ROS_INFO_STREAM("laserscan time elapsed: " << ros::WallTime::now().toSec() - start_time);
@@ -365,11 +325,11 @@ namespace dynamic_gap
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
 
             tf2::doTransform(in_pose, out_pose, robot_pose_odom_trans);
-            sharedPtr_pose = out_pose.pose;
+            robotPoseOdomFrame_ = out_pose.pose;
         }
         else
         {
-            sharedPtr_pose = odom_msg->pose.pose;
+            robotPoseOdomFrame_ = odom_msg->pose.pose;
         }
 
         //--------------- VELOCITY -------------------//
@@ -484,7 +444,6 @@ namespace dynamic_gap
         try 
         {
             map2rbt  = tfBuffer.lookupTransform(cfg.robot_frame_id, cfg.map_frame_id, ros::Time(0));
-            rbt2map  = tfBuffer.lookupTransform(cfg.map_frame_id, cfg.robot_frame_id, ros::Time(0));
             odom2rbt = tfBuffer.lookupTransform(cfg.robot_frame_id, cfg.odom_frame_id, ros::Time(0));
             rbt2odom = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.robot_frame_id, ros::Time(0));
             cam2odom = tfBuffer.lookupTransform(cfg.odom_frame_id, cfg.sensor_frame_id, ros::Time(0));
@@ -676,7 +635,7 @@ namespace dynamic_gap
             setCurrentLeftModel(NULL);
             setCurrentRightModel(NULL);
             setCurrentGapPeakVelocities(0.0, 0.0);
-            trajectory_pub.publish(empty_traj);
+            currentTrajectoryPublisher_.publish(empty_traj);
             trajvisualizer->drawTrajectorySwitchCount(switch_index++, empty_traj);
             return empty_traj;
         } else {
@@ -685,7 +644,7 @@ namespace dynamic_gap
             setCurrentLeftModel(incoming_gap.left_model);
             setCurrentRightModel(incoming_gap.right_model);
             setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
-            trajectory_pub.publish(incoming);          
+            currentTrajectoryPublisher_.publish(incoming);          
             trajvisualizer->drawTrajectorySwitchCount(switch_index++, incoming);
 
             return incoming;  
@@ -824,14 +783,15 @@ namespace dynamic_gap
             */
           
             if (cfg.debug.traj_debug_log) ROS_INFO_STREAM("        trajectory maintain");
-            trajectory_pub.publish(curr_traj);
+            currentTrajectoryPublisher_.publish(curr_traj);
         } catch (...) {
             ROS_FATAL_STREAM("compareToOldTraj");
         }
         return curr_traj;
     }
 
-    int Planner::egoTrajPosition(geometry_msgs::PoseArray curr) {
+    int Planner::egoTrajPosition(const geometry_msgs::PoseArray & curr) 
+    {
         std::vector<float> pose_diff(curr.poses.size());
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
         for (size_t i = 0; i < pose_diff.size(); i++) // i will always be positive, so this is fine
@@ -911,15 +871,6 @@ namespace dynamic_gap
         return;
     }
 
-
-    bool Planner::isReplan() {
-        return replan;
-    }
-
-    void Planner::setReplan() {
-        replan = false;
-    }
-
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) 
     {
         if (cfg.debug.control_debug_log) ROS_INFO_STREAM("[ctrlGeneration()]");
@@ -929,11 +880,9 @@ namespace dynamic_gap
             raw_cmd_vel = trajController->manualControlLaw();
         } else if (traj.poses.size() < 2) { // OBSTACLE AVOIDANCE CONTROL
             sensor_msgs::LaserScan stored_scan_msgs;
-            if (cfg.planning.projection_inflated) {
-                stored_scan_msgs = *sharedPtr_inflatedlaser.get();
-            } else {
-                stored_scan_msgs = *sharedPtr_laser.get();
-            }
+
+            stored_scan_msgs = *scan_.get();
+
             ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
             raw_cmd_vel = trajController->obstacleAvoidanceControlLaw(stored_scan_msgs);
             return raw_cmd_vel;
@@ -951,7 +900,7 @@ namespace dynamic_gap
 
             // traj in odom frame here
             // returns a TrajPlan (poses and velocities, velocities are zero here)
-            auto orig_ref = trajController->trajGen(traj);
+            dynamic_gap::TrajPlan orig_ref = trajController->trajGen(traj);
             
             // get point along trajectory to target/move towards
             ctrl_idx = trajController->targetPoseIdx(curr_pose, orig_ref);
@@ -988,23 +937,6 @@ namespace dynamic_gap
     }
     */
 
-    // should return gaps with initialized models, no attachements to anything else
-    std::vector<dynamic_gap::Gap> Planner::get_curr_raw_gaps() {
-        return raw_gaps;
-    }
-
-    std::vector<dynamic_gap::Gap> Planner::get_curr_observed_gaps() {
-        return observed_gaps;
-    }
-
-    std::vector<int> Planner::get_raw_associations() {
-        return raw_association;
-    }
-
-    std::vector<int> Planner::get_simplified_associations() {
-        return simp_association;
-    }
-
     std::vector<dynamic_gap::Gap> Planner::gapSetFeasibilityCheck(bool & curr_exec_gap_assoc, 
                                                                   bool & curr_exec_gap_feas) 
     {
@@ -1018,24 +950,17 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> prev_raw_gaps = previous_raw_gaps;
         std::vector<dynamic_gap::Gap> prev_observed_gaps = previous_gaps;  
 
-        //std::vector<int> _raw_association = raw_association;
-        //std::vector<int> _simp_association = simp_association;
-
         //std::cout << "curr_raw_gaps size: " << curr_raw_gaps.size() << std::endl;
         //std::cout << "curr_observed_gaps size: " << curr_observed_gaps.size() << std::endl;
 
         //std::cout << "prev_raw_gaps size: " << prev_raw_gaps.size() << std::endl;
         //std::cout << "prev_observed_gaps size: " << prev_observed_gaps.size() << std::endl;
-
-        //std::cout << "_raw_association size: " << _raw_association.size() << std::endl;
-        //std::cout << "_simp_association size: " << _simp_association.size() << std::endl;
-
         //std::cout << "current robot velocity. Linear: " << current_rbt_vel.linear.x << ", " << current_rbt_vel.linear.y << ", angular: " << current_rbt_vel.angular.z << std::endl;
         //std::cout << "current raw gaps:" << std::endl;
         //printGapModels(curr_raw_gaps);
 
         //std::cout << "pulled current simplified associations:" << std::endl;
-        //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simp_association);
+        //printGapAssociations(curr_observed_gaps, prev_observed_gaps, _simpAssociation_);
         
         /*
         ROS_INFO_STREAM("current raw gaps:");
@@ -1094,7 +1019,7 @@ namespace dynamic_gap
     {
         // boost::mutex::scoped_lock gapset(gapset_mutex);
         if (print) ROS_INFO_STREAM("[getFutureScans()]");
-        sensor_msgs::LaserScan stored_scan = *sharedPtr_laser.get();
+        sensor_msgs::LaserScan stored_scan = *scan_.get();
         sensor_msgs::LaserScan dynamic_laser_scan = sensor_msgs::LaserScan();
         dynamic_laser_scan.header = stored_scan.header;
         dynamic_laser_scan.angle_min = stored_scan.angle_min;
@@ -1325,7 +1250,7 @@ namespace dynamic_gap
                 } else { // prev right
                     previous_gaps.at(previous_gap_idx).getSimplifiedLCartesian(prev_x, prev_y);
                 }
-                std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simp_distMatrix[pair[0]][pair[1]] << std::endl;
+                std::cout << "From (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << simpDistMatrix_[pair[0]][pair[1]] << std::endl;
             } else {
                 std::cout << "From NULL to (" << curr_x << ", " <<  curr_y << ")" << std::endl;
             }

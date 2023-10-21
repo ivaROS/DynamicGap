@@ -88,7 +88,6 @@ namespace dynamic_gap
             boost::shared_ptr<sensor_msgs::LaserScan const> msg_;
             boost::mutex egocircle_l;
             ros::Publisher projection_viz;
-            ros::Time last_time;
 
             bool holonomic;
             bool full_fov;
