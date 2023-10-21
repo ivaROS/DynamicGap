@@ -74,7 +74,6 @@
 
       <param name="DynamicGapPlanner/holonomic" value="$(arg holonomic)"/>
       <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
-      <param name="DynamicGapPlanner/inf_ratio" value="$(arg inf_ratio)"/>
       <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
       <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
 

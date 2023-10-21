@@ -90,7 +90,6 @@ namespace dynamic_gap
         nh.param("integrate_maxt", traj.integrate_maxt, traj.integrate_maxt);
         nh.param("integrate_stept", traj.integrate_stept, traj.integrate_stept);
         nh.param("max_pose_pen_dist", traj.max_pose_pen_dist, traj.max_pose_pen_dist);
-        nh.param("inf_ratio", traj.inf_ratio, traj.inf_ratio);
         nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
         nh.param("waypoint_ratio", traj.waypoint_ratio, traj.waypoint_ratio);
         nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
