@@ -44,7 +44,7 @@ namespace dynamic_gap
         // pnh: planner node handle?
         ros::NodeHandle pnh("~/" + planner_name);
         planner.initialize(pnh);
-        std::string robot_name = "/robot" + std::to_string(planner.get_num_obsts());
+        std::string robot_name = "/robot" + std::to_string(planner.getCurrentAgentCount());
 
         // robot_name + "/mod_laser_0"
         laser_sub = pnh.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner);
@@ -80,7 +80,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
-        auto final_traj = planner.getPlanTrajectory();
+        auto final_traj = planner.runPlanningLoop();
 
         cmd_vel = planner.ctrlGeneration(final_traj);
 

@@ -37,8 +37,7 @@ namespace dynamic_gap
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
                                             const nav_msgs::Odometry & desired,
                                             const sensor_msgs::LaserScan & inflated_egocircle, 
-                                            const float & curr_peak_velocity_x, 
-                                            const float & curr_peak_velocity_y);
+                                            const geometry_msgs::TwistStamped & currentPeakSplineVel_);
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & raw_cmd_vel,
                                                 const sensor_msgs::LaserScan & inflated_egocircle, 
                                                 const geometry_msgs::PoseStamped & rbt_in_cam_lc, 

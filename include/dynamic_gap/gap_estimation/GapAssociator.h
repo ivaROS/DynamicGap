@@ -39,7 +39,7 @@ namespace dynamic_gap
 						  const std::vector< std::vector<float> > & distMatrix, 
 							std::vector<dynamic_gap::Gap>& observed_gaps, 
 							const std::vector<dynamic_gap::Gap> & previous_gaps, 
-							int * model_idx, 
+							int & currentModelIdx_, 
 							const ros::Time & t_kf_update, 
 							const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                       		const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,

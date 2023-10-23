@@ -433,16 +433,16 @@ namespace dynamic_gap
         std::vector<float>& _timearr;
 
         write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, 
-                         float scale, std::vector<float>& timearr): 
-                         _posearr(posearr), _frame_id(frame_id), _scale(scale), _timearr(timearr) {}
+                         std::vector<float>& timearr): 
+                         _posearr(posearr), _frame_id(frame_id), _timearr(timearr) {}
 
         void operator()( const state_type &x , float t )
         {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = _frame_id;
-            // if this _coefs is not 1.0, will cause jump between initial and next poses
-            pose.pose.position.x = x[0] / _scale;
-            pose.pose.position.y = x[1] / _scale;
+
+            pose.pose.position.x = x[0];
+            pose.pose.position.y = x[1];
             pose.pose.position.z = 0;
 
             pose.pose.orientation.x = 0;

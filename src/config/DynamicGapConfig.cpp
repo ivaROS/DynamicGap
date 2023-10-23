@@ -86,7 +86,6 @@ namespace dynamic_gap
 
         // Trajectory
         nh.param("synthesized_frame", traj.synthesized_frame, traj.synthesized_frame);
-        nh.param("scale", traj.scale, traj.scale);
         nh.param("integrate_maxt", traj.integrate_maxt, traj.integrate_maxt);
         nh.param("integrate_stept", traj.integrate_stept, traj.integrate_stept);
         nh.param("max_pose_pen_dist", traj.max_pose_pen_dist, traj.max_pose_pen_dist);
@@ -95,100 +94,4 @@ namespace dynamic_gap
         nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
         nh.param("num_qB_points", traj.num_qB_points, traj.num_qB_points);
     }
-
-    /*
-    void DynamicGapConfig::reconfigure(dgConfig& cfg)
-    {
-        // This locks the lock within this function
-        boost::mutex::scoped_lock lock(config_mutex);
-        gap_viz.min_resoln = cfg.min_resoln;
-        gap_viz.fig_gen = cfg.fig_gen;
-        gap_viz.viz_jitter = cfg.viz_jitter;
-        gap_viz.debug_viz = cfg.debug_viz;
-
-        // Robot
-        rbt.r_inscr = cfg.r_inscr;
-        rbt.num_obsts = cfg.num_obsts;
-        rbt.max_range = cfg.max_range;
-
-        // Planning Information
-        planning.projection_inflated = cfg.projection_inflated;
-        planning.holonomic = cfg.holonomic;
-        planning.full_fov = cfg.full_fov;
-        planning.projection_operator = cfg.projection_operator;
-        planning.num_feasi_check = cfg.num_feasi_check;
-        planning.far_feasible = cfg.far_feasible;
-        planning.egocircle_prop_cheat = cfg.egocircle_prop_cheat;
-        
-        // Manual Control
-        man.man_ctrl = cfg.man_ctrl;
-        man.man_x = cfg.man_x;
-        man.man_y = cfg.man_y;
-        man.man_theta = cfg.man_theta;        
-
-        // Global goal and Waypoints
-        goal.goal_tolerance = cfg.goal_tolerance;
-        goal.waypoint_tolerance = cfg.waypoint_tolerance;
-
-        // Debug        
-        debug.raw_gaps_debug_log = cfg.raw_gaps_debug_log;
-        debug.static_scan_separation_debug_log = cfg.static_scan_separation_debug_log;
-        debug.simplified_gaps_debug_log = cfg.simplified_gaps_debug_log;       
-        debug.feasibility_debug_log = cfg.feasibility_debug_log;
-        debug.manipulation_debug_log = cfg.manipulation_debug_log;
-        debug.traj_debug_log = cfg.traj_debug_log;
-        debug.control_debug_log = cfg.control_debug_log;             
-
-        // Gap Association
-        gap_assoc.assoc_thresh = cfg.assoc_thresh;
-
-        // Gap Estimation
-        gap_est.R_scalar = cfg.R_scalar;
-        gap_est.Q_scalar = cfg.Q_scalar;
-
-        // Gap Manipulation
-        gap_manip.epsilon1 = cfg.epsilon1;
-        gap_manip.epsilon2 = cfg.epsilon2;
-        gap_manip.rot_ratio = cfg.rot_ratio;
-        gap_manip.reduction_threshold = cfg.reduction_threshold;
-        gap_manip.reduction_target = cfg.reduction_target;        
-        gap_manip.max_idx_diff = cfg.max_idx_diff;
-        gap_manip.radial_extend = cfg.radial_extend;
-        gap_manip.radial_convert = cfg.radial_convert;
-
-        // Trajectory Parameters
-        traj.synthesized_frame = cfg.synthesized_frame;
-        traj.scale = cfg.scale;
-        traj.integrate_maxt = cfg.integrate_maxt;
-        traj.integrate_stept = cfg.integrate_stept;
-        traj.max_pose_pen_dist = cfg.max_pose_pen_dist;
-        traj.inf_ratio = cfg.inf_ratio;
-        traj.terminal_weight = cfg.terminal_weight;
-        traj.waypoint_ratio = cfg.waypoint_ratio;
-        traj.num_curve_points = cfg.num_curve_points;
-        traj.num_qB_points = cfg.num_qB_points;
-
-        // Control Params
-        control.k_fb_x = cfg.k_fb_x;
-        control.k_fb_y = cfg.k_fb_y;
-        control.k_fb_theta = cfg.k_fb_theta;
-        control.ctrl_ahead_pose = cfg.ctrl_ahead_pose;
-        control.vx_absmax = cfg.vx_absmax;
-        control.vy_absmax = cfg.vy_absmax;
-        control.vang_absmax = cfg.vang_absmax;
-        control.ax_absmax = cfg.ax_absmax;
-        control.ay_absmax = cfg.ay_absmax;
-        control.aang_absmax = cfg.aang_absmax;
-
-        // Projection Operator (and/or CBF) Params
-        projection.k_po_x = cfg.k_po_x;
-        projection.k_po_theta = cfg.k_po_theta;
-        projection.cbf_param = cfg.cbf_param;
-        projection.k_CBF = cfg.k_CBF;
-        projection.r_min = cfg.r_min;
-        projection.r_norm = cfg.r_norm;
-        projection.r_norm_offset = cfg.r_norm_offset;
-        projection.line = cfg.line;
-    }
-    */
 }

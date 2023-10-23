@@ -52,8 +52,6 @@ namespace dynamic_gap {
             void reset();
 
         private:
-            // dynamic_gap::dgConfig loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
-
             dynamic_gap::Planner planner;
             std::string planner_name;
             ros::NodeHandle nh, pnh;
@@ -71,8 +69,5 @@ namespace dynamic_gap {
             boost::shared_ptr<Sync> sync_;
             
             bool initialized = false;
-
-            // boost::shared_ptr<dynamic_reconfigure::Server<dynamic_gap::dgConfig> > dynamic_recfg_server;
-            // dynamic_reconfigure::Server<dynamic_gap::dgConfig>::CallbackType f;
     };
 }

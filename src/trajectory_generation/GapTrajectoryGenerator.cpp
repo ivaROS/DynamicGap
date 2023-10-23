@@ -86,8 +86,7 @@ namespace dynamic_gap
 
             float gen_traj_start_time = ros::Time::now().toSec();
             posearr.header.stamp = ros::Time::now();
-            float traj_scale = cfg_->traj.scale;
-            write_trajectory corder(posearr, cfg_->robot_frame_id, traj_scale, timearr);
+            write_trajectory corder(posearr, cfg_->robot_frame_id, timearr);
             posearr.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
 
             Eigen::Vector4f ego_x(curr_pose.pose.position.x + 1e-5, curr_pose.pose.position.y + 1e-6,

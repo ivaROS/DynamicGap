@@ -285,8 +285,7 @@ namespace dynamic_gap
         const geometry_msgs::Pose & current, 
         const nav_msgs::Odometry & desired,
         const sensor_msgs::LaserScan & inflated_egocircle, 
-        const float & curr_peak_velocity_x, 
-        const float & curr_peak_velocity_y) 
+        const geometry_msgs::TwistStamped & currentPeakSplineVel_) 
     {    
         if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("    [controlLaw()]");
         // Setup Vars
@@ -341,7 +340,7 @@ namespace dynamic_gap
         v_lin_y_fb = y_error * k_fb_y_;
         v_ang_fb = theta_error * k_fb_theta_;
 
-        float peak_vel_norm = sqrt(pow(curr_peak_velocity_x, 2) + pow(curr_peak_velocity_y, 2));
+        float peak_vel_norm = sqrt(pow(currentPeakSplineVel_.twist.linear.x, 2) + pow(currentPeakSplineVel_.twist.linear.y, 2));
         float cmd_vel_norm = sqrt(pow(v_lin_x_fb, 2) + pow(v_lin_y_fb, 2));
 
         if (cfg_->debug.control_debug_log) 
@@ -351,7 +350,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("        current pose x: " << curr_position.x << ", y: " << curr_position.y << ", yaw: " << c_yaw);
             ROS_INFO_STREAM("        x_error: " << x_error << ", y_error: " << y_error << ", theta_error: " << theta_error);
             ROS_INFO_STREAM("        Feedback command velocities, v_x: " << v_lin_x_fb << ", v_y: " << v_lin_y_fb << ", v_ang: " << v_ang_fb);
-            ROS_INFO_STREAM("        gap peak velocity: " << curr_peak_velocity_x << ", " << curr_peak_velocity_y);           
+            ROS_INFO_STREAM("        gap peak velocity: " << currentPeakSplineVel_.twist.linear.x << ", " << currentPeakSplineVel_.twist.linear.y);           
         }
         
         if (peak_vel_norm > cmd_vel_norm) {

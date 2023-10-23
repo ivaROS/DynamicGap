@@ -178,7 +178,7 @@ namespace dynamic_gap {
 									 const std::vector< std::vector<float> > & distMatrix, 
 									 std::vector<dynamic_gap::Gap>& observed_gaps, 
 									 const std::vector<dynamic_gap::Gap> & previous_gaps,
-									 int * model_idx,
+									 int & currentModelIdx_,
                                      const ros::Time & t_kf_update, 
 									 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
                       				 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
@@ -198,17 +198,17 @@ namespace dynamic_gap {
 			init_beta = std::atan2(observed_gap_points[i][1], observed_gap_points[i][0]);
 			if (i % 2 == 0) 
 			{  // curr left
-				// observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::StaticEstimator("right", *model_idx, init_r, init_beta, 
+				// observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::StaticEstimator("right", currentModelIdx_, init_r, init_beta, 
 				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
-				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("right", *model_idx, init_r, init_beta, 
+				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("right", currentModelIdx_, init_r, init_beta, 
 																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			} else {
-				// observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::StaticEstimator("left", *model_idx, init_r, init_beta, 
+				// observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::StaticEstimator("left", currentModelIdx_, init_r, init_beta, 
 				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
-				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("left", *model_idx, init_r, init_beta, 
+				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("left", currentModelIdx_, init_r, init_beta, 
 																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
 			}
-			*model_idx += 1;
+			currentModelIdx_ += 1;
 		}
 
 		// if (print) printGapAssociations(observed_gaps, previous_gaps, association, distMatrix);
