@@ -1,5 +1,5 @@
 <launch>
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/dynamic_gap_rosconsole.conf"/>
 
   <arg name="use_recovery_behaviors" default="true"/>
   <arg name="robot_namespace" default="robot0" />

@@ -903,14 +903,6 @@ namespace dynamic_gap
     {
         if (cfg_.debug.feasibility_debug_log) ROS_INFO_STREAM("[gapSetFeasibilityCheck()]");
 
-        int tmp1 = 0;
-        int tmp2 = 1;
-
-        int test = tmp2 / tmp1;
-
-        // std::vector<float> testVector(10);
-        // testVector[-1];
-
         boost::mutex::scoped_lock gapset(gapset_mutex);
         //std::cout << "PULLING MODELS TO ACT ON" << std::endl;
         std::vector<dynamic_gap::Gap> curr_observed_gaps = associatedSimplifiedGaps_;
@@ -1058,7 +1050,7 @@ namespace dynamic_gap
             try 
             { 
                 feasible_gap_set = gapSetFeasibilityCheck(curr_exec_gap_assoc, curr_exec_gap_feas);
-            } catch (std::out_of_range) 
+            } catch (...) 
             {
                 ROS_FATAL_STREAM("out of range in gapSetFeasibilityCheck");
             }

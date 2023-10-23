@@ -19,6 +19,14 @@ namespace dynamic_gap {
         dynamic_gap::Estimator* left_model = gap.left_model;
         dynamic_gap::Estimator* right_model = gap.right_model;
 
+        // int tmp1 = 0;
+        // int tmp2 = 1;
+
+        // int test = tmp2 / tmp1; // no catch
+
+        // std::vector<float> testVector(10);
+        // testVector.at(-1);
+
         left_model->freeze_robot_vel();
         right_model->freeze_robot_vel();
 
