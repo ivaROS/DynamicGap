@@ -126,8 +126,8 @@ namespace dynamic_gap
             void getRCartesian(float &x, float &y) const
             {
                 float rtheta = idx2theta(_right_idx);
-                x = (_rdist) * cos(_right_idx);
-                y = (_rdist) * sin(_right_idx);
+                x = (_rdist) * cos(rtheta);
+                y = (_rdist) * sin(rtheta);
             }
 
             void getSimplifiedLCartesian(float &x, float &y) const
@@ -402,16 +402,16 @@ namespace dynamic_gap
                 bool goalwithin = false;
             } terminal_goal;
 
-            Estimator *right_model;
-            Estimator *left_model;
+            Estimator *rightGapPtModel;
+            Estimator *leftGapPtModel;
             int _index;
             std::string category;
             Eigen::Vector2f crossing_pt;
             Eigen::Vector2f closing_pt;
 
-            bool gap_crossed = false;
-            bool gap_closed = false;
-            bool gap_crossed_behind = false;
+            bool crossed_ = false;
+            bool closed_ = false;
+            bool crossedBehind_ = false;
 
             bool artificial = false;
 

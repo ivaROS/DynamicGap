@@ -218,7 +218,7 @@ namespace dynamic_gap
         
         visualization_msgs::MarkerArray vis_arr;
         for (auto gap : g) {
-            if (gap.gap_crossed || gap.gap_closed) {
+            if (gap.crossed_ || gap.closed_) {
                 drawGapSpline(vis_arr, gap);
             }
         }
@@ -803,13 +803,13 @@ namespace dynamic_gap
     {
         int model_id = (int) gap_vel_arr.markers.size();
 
-        visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
+        visualization_msgs::Marker leftGapPtModel_vel_pt, rightGapPtModel_vel_pt;
 
-        draw_model_pt_head(left_model_vel_pt, g, true, model_id, ns, true);
-        gap_vel_arr.markers.push_back(left_model_vel_pt);
+        draw_model_pt_head(leftGapPtModel_vel_pt, g, true, model_id, ns, true);
+        gap_vel_arr.markers.push_back(leftGapPtModel_vel_pt);
 
-        draw_model_pt_head(right_model_vel_pt, g, false, model_id, ns, true);
-        gap_vel_arr.markers.push_back(right_model_vel_pt);
+        draw_model_pt_head(rightGapPtModel_vel_pt, g, false, model_id, ns, true);
+        gap_vel_arr.markers.push_back(rightGapPtModel_vel_pt);
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr,   
@@ -818,18 +818,18 @@ namespace dynamic_gap
     {
         int model_id = (int) gap_vel_arr.markers.size();
 
-        visualization_msgs::Marker left_model_vel_pt, right_model_vel_pt;
-        visualization_msgs::Marker left_model_vel_error_pt, right_model_vel_error_pt;
+        visualization_msgs::Marker leftGapPtModel_vel_pt, rightGapPtModel_vel_pt;
+        visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
-        draw_model_pt_head(left_model_vel_pt, g, true, model_id, ns, false);
-        gap_vel_arr.markers.push_back(left_model_vel_pt);
-        // draw_model_vel_error(left_model_vel_error_pt, left_model_vel_pt, g, true, ns);
-        // gap_vel_error_arr.markers.push_back(left_model_vel_error_pt);
+        draw_model_pt_head(leftGapPtModel_vel_pt, g, true, model_id, ns, false);
+        gap_vel_arr.markers.push_back(leftGapPtModel_vel_pt);
+        // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftGapPtModel_vel_pt, g, true, ns);
+        // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
-        draw_model_pt_head(right_model_vel_pt, g, false, model_id, ns, false);
-        gap_vel_arr.markers.push_back(right_model_vel_pt);
-        // draw_model_vel_error(right_model_vel_error_pt, right_model_vel_pt, g, true, ns);
-        // gap_vel_error_arr.markers.push_back(right_model_vel_error_pt);
+        draw_model_pt_head(rightGapPtModel_vel_pt, g, false, model_id, ns, false);
+        gap_vel_arr.markers.push_back(rightGapPtModel_vel_pt);
+        // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightGapPtModel_vel_pt, g, true, ns);
+        // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
     }
 
     void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, 
@@ -842,21 +842,21 @@ namespace dynamic_gap
         model_vel_pt.type = visualization_msgs::Marker::ARROW;
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f left_model_state = (ground_truth) ? g.left_model->getTrueState() : g.left_model->getState();
-        Eigen::Vector4f right_model_state = (ground_truth) ? g.right_model->getTrueState() : g.right_model->getState();
+        Eigen::Vector4f leftGapPtModel_state = (ground_truth) ? g.leftGapPtModel->getTrueState() : g.leftGapPtModel->getState();
+        Eigen::Vector4f rightGapPtModel_state = (ground_truth) ? g.rightGapPtModel->getTrueState() : g.rightGapPtModel->getState();
         
         geometry_msgs::Point vel_pt;
-        model_vel_pt.pose.position.x = (left) ? left_model_state[0] : right_model_state[0];
-        model_vel_pt.pose.position.y = (left) ? left_model_state[1] : right_model_state[1];
+        model_vel_pt.pose.position.x = (left) ? leftGapPtModel_state[0] : rightGapPtModel_state[0];
+        model_vel_pt.pose.position.y = (left) ? leftGapPtModel_state[1] : rightGapPtModel_state[1];
         model_vel_pt.pose.position.z = 0.01;
    
         Eigen::Vector2f vel;
         if (left) {
-            vel << left_model_state[2] + g.left_model->getRobotVel().twist.linear.x,
-                   left_model_state[3] + g.left_model->getRobotVel().twist.linear.y;
+            vel << leftGapPtModel_state[2] + g.leftGapPtModel->getRobotVel().twist.linear.x,
+                   leftGapPtModel_state[3] + g.leftGapPtModel->getRobotVel().twist.linear.y;
         } else {
-            vel << right_model_state[2] + g.right_model->getRobotVel().twist.linear.x, 
-                   right_model_state[3] + g.right_model->getRobotVel().twist.linear.y;
+            vel << rightGapPtModel_state[2] + g.rightGapPtModel->getRobotVel().twist.linear.x, 
+                   rightGapPtModel_state[3] + g.rightGapPtModel->getRobotVel().twist.linear.y;
         }
 
         float model_vel_theta = std::atan2(vel[1], vel[0]);
@@ -900,14 +900,14 @@ namespace dynamic_gap
         float vel_error;
         if (left)
         {
-            vel_error = sqrt(pow(g.left_model->getState()[2] - g.left_model->getTrueState()[2], 2) + pow(g.left_model->getState()[3] - g.left_model->getTrueState()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.left_model->getState()[2] << ", " << g.left_model->getState()[3] << 
-                            "), GT: (" << g.left_model->getTrueState()[2] << ", " << g.left_model->getTrueState()[3] << "), error: " << vel_error);
+            vel_error = sqrt(pow(g.leftGapPtModel->getState()[2] - g.leftGapPtModel->getTrueState()[2], 2) + pow(g.leftGapPtModel->getState()[3] - g.leftGapPtModel->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.leftGapPtModel->getState()[2] << ", " << g.leftGapPtModel->getState()[3] << 
+                            "), GT: (" << g.leftGapPtModel->getTrueState()[2] << ", " << g.leftGapPtModel->getTrueState()[3] << "), error: " << vel_error);
         } else 
         {
-            vel_error = sqrt(pow(g.right_model->getState()[2] - g.right_model->getTrueState()[2], 2) + pow(g.right_model->getState()[3] - g.right_model->getTrueState()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.right_model->getState()[2] << ", " << g.right_model->getState()[3] << 
-                            "), GT: (" << g.right_model->getTrueState()[2] << ", " << g.right_model->getTrueState()[3] << "), error: " << vel_error);        
+            vel_error = sqrt(pow(g.rightGapPtModel->getState()[2] - g.rightGapPtModel->getTrueState()[2], 2) + pow(g.rightGapPtModel->getState()[3] - g.rightGapPtModel->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.rightGapPtModel->getState()[2] << ", " << g.rightGapPtModel->getState()[3] << 
+                            "), GT: (" << g.rightGapPtModel->getTrueState()[2] << ", " << g.rightGapPtModel->getTrueState()[3] << "), error: " << vel_error);        
         }
         model_vel_error_pt.text = "vel_error: " + std::to_string(vel_error);
     }

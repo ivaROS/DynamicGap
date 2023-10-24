@@ -288,13 +288,13 @@ namespace dynamic_gap
         dQ_ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
-    void RotatingFrameCartesianKalmanFilter::update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                    bool _print,
-                                    const std::vector<geometry_msgs::Pose> & agentPoses,
-                                    const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                    const ros::Time & t_update) 
+    void RotatingFrameCartesianKalmanFilter::update(const Eigen::Vector2f & measurement, 
+                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
+                                                    bool _print,
+                                                    const std::vector<geometry_msgs::Pose> & agentPoses,
+                                                    const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
+                                                    const ros::Time & t_update) 
     {    
         agentPoses_ = agentPoses;
         agentVels_ = agentVels;
@@ -331,8 +331,9 @@ namespace dynamic_gap
 
         // get_intermediateRbtVels__accs();
 
-        x_tilde_ << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
-                   range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
+        x_tilde_ = measurement; 
+                // << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
+                //    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
         if (print) {
             ROS_INFO_STREAM("    linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
@@ -380,7 +381,7 @@ namespace dynamic_gap
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
         residual_ = x_tilde_ - H_*x_hat_k_plus_;
         
-        float sensor_noise_factor = R_scalar * range_bearing_measurement[0];
+        float sensor_noise_factor = R_scalar * x_tilde_.norm();
         R_k_ << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 

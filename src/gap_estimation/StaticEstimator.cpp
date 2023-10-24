@@ -284,13 +284,13 @@ namespace dynamic_gap {
         dQ_ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
-    void StaticEstimator::update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                    bool _print,
-                                    const std::vector<geometry_msgs::Pose> & agentPoses,
-                                    const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                    const ros::Time & t_update) 
+    void StaticEstimator::update(const Eigen::Vector2f & measurement, 
+                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
+                                 bool _print,
+                                 const std::vector<geometry_msgs::Pose> & agentPoses,
+                                 const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
+                                 const ros::Time & t_update) 
     {
         
         agentPoses_ = agentPoses;
@@ -328,8 +328,9 @@ namespace dynamic_gap {
 
         // get_intermediateRbtVels__accs();
 
-        x_tilde_ << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
-                   range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
+        x_tilde_ = measurement;
+                // << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
+                //    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
         if (print) {
             ROS_INFO_STREAM("linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);

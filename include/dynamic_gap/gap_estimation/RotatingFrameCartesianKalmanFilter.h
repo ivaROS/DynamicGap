@@ -95,7 +95,7 @@ namespace dynamic_gap
             void isolateGapDynamics();
             void setRewindState();
 
-            void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
+            void update(const Eigen::Vector2f & measurement,
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                         bool print,

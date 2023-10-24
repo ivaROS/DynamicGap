@@ -19,33 +19,32 @@ namespace dynamic_gap
 
             GapDetector(const GapDetector &t) {cfg_ = t.cfg_;}
 
-            std::vector<dynamic_gap::Gap> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-                                                        geometry_msgs::PoseStamped final_goal_rbt);
+            std::vector<dynamic_gap::Gap> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
+                                                            geometry_msgs::PoseStamped globalGoalRbtFrame);
         
-            std::vector<dynamic_gap::Gap> gapSimplification(const std::vector<dynamic_gap::Gap> & raw_gaps);     
+            std::vector<dynamic_gap::Gap> gapSimplification(const std::vector<dynamic_gap::Gap> & rawGaps);     
 
         private:
-            bool isFinite(float scan_dist);
+            bool isFinite(float rayDist);
 
-            bool sweptGapStartedOrEnded(float scan_dist_i, float scan_dist_imin1);
+            bool sweptGapStartedOrEnded(float currRayDist, float prevRayDist);
 
-            bool sweptGapSizeCheck(const dynamic_gap::Gap & detected_gap);
+            bool sweptGapSizeCheck(const dynamic_gap::Gap & gap);
 
-            bool radialGapSizeCheck(float scan_dist_i, float scan_dist_imin1, 
-                                    float gap_angle);
+            bool radialGapSizeCheck(float currRayDist, float prevRayDist, float gapAngle);
 
-            bool bridgeCondition(const std::vector<dynamic_gap::Gap> & raw_gaps);
+            bool bridgeCondition(const std::vector<dynamic_gap::Gap> & rawGaps);
 
-            bool isGlobalGoalWithinGap(geometry_msgs::PoseStamped final_goal_rbt, 
-                                        int & final_goal_idx);
-            
-            bool mergeSweptGapCondition(const dynamic_gap::Gap & raw_gap, 
-                                        const std::vector<dynamic_gap::Gap> & simplified_gaps);
+            bool isGlobalGoalWithinGap(geometry_msgs::PoseStamped globalGoalRbtFrame,
+                                            int & globalGoalScanIdx);
 
-            int checkSimplifiedGapsMergeability(const dynamic_gap::Gap & raw_gap, 
-                                                const std::vector<dynamic_gap::Gap> & simplified_gaps);
+            void addGapForGlobalGoal(int globalGoalScanIdx, std::vector<dynamic_gap::Gap> & rawGaps);   
 
-            void addGapForGlobalGoal(int final_goal_idx, std::vector<dynamic_gap::Gap> & raw_gaps);   
+            bool mergeSweptGapCondition(const dynamic_gap::Gap & rawGap, 
+                                        const std::vector<dynamic_gap::Gap> & simplifiedGaps);
+
+            int checkSimplifiedGapsMergeability(const dynamic_gap::Gap & rawGap, 
+                                                const std::vector<dynamic_gap::Gap> & simplifiedGaps);
 
             sensor_msgs::LaserScan scan_;
             const DynamicGapConfig* cfg_;

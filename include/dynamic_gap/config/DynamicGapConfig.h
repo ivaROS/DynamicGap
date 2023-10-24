@@ -62,7 +62,7 @@ namespace dynamic_gap
                 bool gap_simplification_debug_log = false;
                 bool raw_gaps_debug_log = false;
                 bool static_scan_separation_debug_log = false;
-                bool simplified_gaps_debug_log = false;
+                bool simplified_gaps_debug_log = true;
                 bool future_scan_propagation_debug_log = false;
                 bool feasibility_debug_log = true;
                 bool manipulation_debug_log = false;

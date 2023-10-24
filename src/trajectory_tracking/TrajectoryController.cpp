@@ -368,8 +368,8 @@ namespace dynamic_gap
     geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & raw_cmd_vel,
                         const sensor_msgs::LaserScan & inflated_egocircle, 
                         const geometry_msgs::PoseStamped & rbt_in_cam_lc, 
-                        const dynamic_gap::Estimator * curr_right_model, 
-                        const dynamic_gap::Estimator * curr_left_model,
+                        const dynamic_gap::Estimator * curr_rightGapPtModel, 
+                        const dynamic_gap::Estimator * curr_leftGapPtModel,
                         const geometry_msgs::TwistStamped & current_rbt_vel, 
                         const geometry_msgs::TwistStamped & rbt_accel) 
     {
@@ -399,7 +399,7 @@ namespace dynamic_gap
         float cmd_vel_x_safe = 0;
         float cmd_vel_y_safe = 0;
         
-        if (projection_operator && (curr_right_model != nullptr && curr_left_model != nullptr))
+        if (projection_operator && (curr_rightGapPtModel != nullptr && curr_leftGapPtModel != nullptr))
         {
             if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        running projection operator");
             run_projection_operator(inflated_egocircle, rbt_in_cam_lc,
@@ -407,8 +407,8 @@ namespace dynamic_gap
                                     min_dist_ang, min_dist);
             
             // Eigen::Vector4f state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-            // Eigen::Vector4f left_rel_model = curr_left_model->getState(); // flipping
-            // Eigen::Vector4f right_rel_model = curr_right_model->getState(); // flipping
+            // Eigen::Vector4f left_rel_model = curr_leftGapPtModel->getState(); // flipping
+            // Eigen::Vector4f right_rel_model = curr_rightGapPtModel->getState(); // flipping
             // Eigen::Vector2f current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
             // run_bearing_rate_barrier_function(state, right_rel_model, left_rel_model, current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
         } else {
@@ -537,13 +537,13 @@ namespace dynamic_gap
         float dot = right_bearing_norm_vect[0]*left_bearing_norm_vect[0] + right_bearing_norm_vect[1]*left_bearing_norm_vect[1];
 
         float swept_check = -std::atan2(det, dot);     
-        float L_to_R_angle = swept_check;
+        float leftToRightAngle = swept_check;
 
-        if (L_to_R_angle < 0) {
-            L_to_R_angle += 2*M_PI; 
+        if (leftToRightAngle < 0) {
+            leftToRightAngle += 2*M_PI; 
         }
 
-        ROS_INFO_STREAM("L_to_R angle: " << L_to_R_angle);
+        ROS_INFO_STREAM("L_to_R angle: " << leftToRightAngle);
         ROS_INFO_STREAM("left CBF: " << h_dyn_left);
         ROS_INFO_STREAM("left CBF partials: " << d_h_dyn_left_dx[0] << ", " << d_h_dyn_left_dx[1] << ", " << d_h_dyn_left_dx[2] << ", " << d_h_dyn_left_dx[3]);
 
@@ -551,7 +551,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM("right CBF partials: " << d_h_dyn_right_dx[0] << ", " << d_h_dyn_right_dx[1] << ", " << d_h_dyn_right_dx[2] << ", " << d_h_dyn_right_dx[3]);
 
         float cbf_param = 1.0;
-        bool cvx_gap = L_to_R_angle < M_PI;
+        bool cvx_gap = leftToRightAngle < M_PI;
         Eigen::Vector4f d_x_dt(state[2], state[3], rbt_accel[0], rbt_accel[1]);
         float Psi_cbf_left = d_h_dyn_left_dx.dot(d_x_dt) + cbf_param * h_dyn_left;
         float Psi_cbf_right = d_h_dyn_right_dx.dot(d_x_dt) + cbf_param * h_dyn_right;

@@ -51,7 +51,7 @@ namespace dynamic_gap
             virtual Eigen::Vector2f get_x_tilde() = 0;
             virtual int get_index() = 0;
 
-            virtual void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
+            virtual void update(const Eigen::Vector2f & measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                                 bool print,

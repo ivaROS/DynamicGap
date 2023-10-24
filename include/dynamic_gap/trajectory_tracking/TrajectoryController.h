@@ -41,8 +41,8 @@ namespace dynamic_gap
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & raw_cmd_vel,
                                                 const sensor_msgs::LaserScan & inflated_egocircle, 
                                                 const geometry_msgs::PoseStamped & rbt_in_cam_lc, 
-                                                const dynamic_gap::Estimator * curr_right_model, 
-                                                const dynamic_gap::Estimator * curr_left_model,
+                                                const dynamic_gap::Estimator * curr_rightGapPtModel, 
+                                                const dynamic_gap::Estimator * curr_leftGapPtModel,
                                                 const geometry_msgs::TwistStamped & current_rbt_vel, 
                                                 const geometry_msgs::TwistStamped & rbt_accel);
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg);

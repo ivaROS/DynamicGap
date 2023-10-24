@@ -95,13 +95,13 @@ namespace dynamic_gap
             void isolateGapDynamics();
             void setRewindState();
 
-            void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                bool print,
-                                const std::vector<geometry_msgs::Pose> & agentPoses,
-                                const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                const ros::Time & t_kf_update);
+            void update(const Eigen::Vector2f & measurement, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
+                            bool print,
+                            const std::vector<geometry_msgs::Pose> & agentPoses,
+                            const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
+                            const ros::Time & t_kf_update);
             int get_index();
             void inflate_model(float x, float y);
 

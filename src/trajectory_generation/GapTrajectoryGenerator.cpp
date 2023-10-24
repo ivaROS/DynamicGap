@@ -648,10 +648,10 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("left_origin_inward_norm: " << left_origin_inward_norm[0] << ", " << left_origin_inward_norm[1]);
         // ROS_INFO_STREAM("right_origin_inward_norm: " << right_origin_inward_norm[0] << ", " << right_origin_inward_norm[1]);
-        // double beta_left_origin_inward_norm = std::atan2(left_origin_inward_norm[1], left_origin_inward_norm[0]);
-        // double init_L_to_R_angle = getLeftToRightAngle(left_origin_inward_norm, right_origin_inward_norm);
-        // double beta_origin_center = beta_left_origin_inward_norm - 0.5 * init_L_to_R_angle;
-        // ROS_INFO_STREAM("init_L_to_R_angle: " << init_L_to_R_angle << ", beta_origin_center: " << beta_origin_center);
+        // double thetaLeft_origin_inward_norm = std::atan2(left_origin_inward_norm[1], left_origin_inward_norm[0]);
+        // double init_leftToRightAngle = getLeftToRightAngle(left_origin_inward_norm, right_origin_inward_norm);
+        // double beta_origin_center = thetaLeft_origin_inward_norm - 0.5 * init_leftToRightAngle;
+        // ROS_INFO_STREAM("init_leftToRightAngle: " << init_leftToRightAngle << ", beta_origin_center: " << beta_origin_center);
         // centered_origin_inward_norm << std::cos(beta_origin_center), std::sin(beta_origin_center);
 
         // ROS_INFO_STREAM("centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
