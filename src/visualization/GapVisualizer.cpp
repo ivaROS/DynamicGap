@@ -842,8 +842,8 @@ namespace dynamic_gap
         model_vel_pt.type = visualization_msgs::Marker::ARROW;
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f left_model_state = (ground_truth) ? g.left_model->get_GT_cartesian_state() : g.left_model->get_cartesian_state();
-        Eigen::Vector4f right_model_state = (ground_truth) ? g.right_model->get_GT_cartesian_state() : g.right_model->get_cartesian_state();
+        Eigen::Vector4f left_model_state = (ground_truth) ? g.left_model->getTrueState() : g.left_model->getState();
+        Eigen::Vector4f right_model_state = (ground_truth) ? g.right_model->getTrueState() : g.right_model->getState();
         
         geometry_msgs::Point vel_pt;
         model_vel_pt.pose.position.x = (left) ? left_model_state[0] : right_model_state[0];
@@ -852,11 +852,11 @@ namespace dynamic_gap
    
         Eigen::Vector2f vel;
         if (left) {
-            vel << left_model_state[2] + g.left_model->get_v_ego().twist.linear.x,
-                   left_model_state[3] + g.left_model->get_v_ego().twist.linear.y;
+            vel << left_model_state[2] + g.left_model->getRobotVel().twist.linear.x,
+                   left_model_state[3] + g.left_model->getRobotVel().twist.linear.y;
         } else {
-            vel << right_model_state[2] + g.right_model->get_v_ego().twist.linear.x, 
-                   right_model_state[3] + g.right_model->get_v_ego().twist.linear.y;
+            vel << right_model_state[2] + g.right_model->getRobotVel().twist.linear.x, 
+                   right_model_state[3] + g.right_model->getRobotVel().twist.linear.y;
         }
 
         float model_vel_theta = std::atan2(vel[1], vel[0]);
@@ -900,14 +900,14 @@ namespace dynamic_gap
         float vel_error;
         if (left)
         {
-            vel_error = sqrt(pow(g.left_model->get_cartesian_state()[2] - g.left_model->get_GT_cartesian_state()[2], 2) + pow(g.left_model->get_cartesian_state()[3] - g.left_model->get_GT_cartesian_state()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.left_model->get_cartesian_state()[2] << ", " << g.left_model->get_cartesian_state()[3] << 
-                            "), GT: (" << g.left_model->get_GT_cartesian_state()[2] << ", " << g.left_model->get_GT_cartesian_state()[3] << "), error: " << vel_error);
+            vel_error = sqrt(pow(g.left_model->getState()[2] - g.left_model->getTrueState()[2], 2) + pow(g.left_model->getState()[3] - g.left_model->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.left_model->getState()[2] << ", " << g.left_model->getState()[3] << 
+                            "), GT: (" << g.left_model->getTrueState()[2] << ", " << g.left_model->getTrueState()[3] << "), error: " << vel_error);
         } else 
         {
-            vel_error = sqrt(pow(g.right_model->get_cartesian_state()[2] - g.right_model->get_GT_cartesian_state()[2], 2) + pow(g.right_model->get_cartesian_state()[3] - g.right_model->get_GT_cartesian_state()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.right_model->get_cartesian_state()[2] << ", " << g.right_model->get_cartesian_state()[3] << 
-                            "), GT: (" << g.right_model->get_GT_cartesian_state()[2] << ", " << g.right_model->get_GT_cartesian_state()[3] << "), error: " << vel_error);        
+            vel_error = sqrt(pow(g.right_model->getState()[2] - g.right_model->getTrueState()[2], 2) + pow(g.right_model->getState()[3] - g.right_model->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << g.right_model->getState()[2] << ", " << g.right_model->getState()[3] << 
+                            "), GT: (" << g.right_model->getTrueState()[2] << ", " << g.right_model->getTrueState()[3] << "), error: " << vel_error);        
         }
         model_vel_error_pt.text = "vel_error: " + std::to_string(vel_error);
     }

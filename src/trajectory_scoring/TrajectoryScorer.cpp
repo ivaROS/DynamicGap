@@ -29,8 +29,8 @@ namespace dynamic_gap {
     bool compareModelBearings(dynamic_gap::RotatingFrameCartesianKalmanFilter* model_one, 
                               dynamic_gap::RotatingFrameCartesianKalmanFilter* model_two) 
     {
-        Eigen::Matrix<float, 4, 1> state_one = model_one->get_frozen_cartesian_state();
-        Eigen::Matrix<float, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> state_one = model_one->getGapState();
+        Eigen::Matrix<float, 4, 1> state_two = model_two->getGapState();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
@@ -271,7 +271,7 @@ namespace dynamic_gap {
         
         // std::cout << "starting setting sides and freezing velocities" << std::endl;
         for (auto & model : raw_models) {
-            model->freeze_robot_vel();
+            model->isolateGapDynamics();
         }
         */
         

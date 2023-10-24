@@ -1228,10 +1228,10 @@ namespace dynamic_gap
         {
             dynamic_gap::Gap g = gaps.at(i);
             ROS_INFO_STREAM("    gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx() << ", left model: " << g.left_model->get_index() << ", right_model: " << g.right_model->get_index());
-            Eigen::Matrix<float, 4, 1> left_state = g.left_model->get_cartesian_state();
+            Eigen::Matrix<float, 4, 1> left_state = g.left_model->getState();
             g.getLCartesian(x, y);            
             ROS_INFO_STREAM("        left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            Eigen::Matrix<float, 4, 1> right_state = g.right_model->get_cartesian_state();
+            Eigen::Matrix<float, 4, 1> right_state = g.right_model->getState();
             g.getRCartesian(x, y);
             ROS_INFO_STREAM("        right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
            

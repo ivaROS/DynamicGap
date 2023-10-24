@@ -34,14 +34,14 @@ namespace dynamic_gap
                                 const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
     {
         // OBSERVATION MATRIX
-        H << 1.0, 0.0, 0.0, 0.0,
+        H_ << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0;
-        H_transpose = H.transpose();
+        H_transpose_ = H_.transpose();
         
         R_scalar = 0.01;
         Q_scalar = 0.5;
 
-        Q_k << 0.0, 0.0, 0.0, 0.0,
+        Q_k_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, Q_scalar, 0.0,
                0.0, 0.0, 0.0, Q_scalar;
@@ -50,12 +50,12 @@ namespace dynamic_gap
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
         // larger P_0 gives more weight to measurements (behaves like Q)
-        P_kmin1_plus << 0.01, 0.0, 0.0, 0.0,
+        P_kmin1_plus_ << 0.01, 0.0, 0.0, 0.0,
                         0.0, 0.01, 0.0, 0.0,
                         0.0, 0.0, 0.1, 0.0,
                         0.0, 0.0, 0.0, 0.1;
-        P_k_minus = P_kmin1_plus;
-        P_k_plus = P_kmin1_plus;
+        P_k_minus_ = P_kmin1_plus_;
+        P_k_plus_ = P_kmin1_plus_;
 
         this->last_ego_rbt_vel = last_ego_rbt_vel;
         this->last_ego_rbt_acc = last_ego_rbt_acc;
@@ -71,29 +71,28 @@ namespace dynamic_gap
         
         // ROS_INFO_STREAM("initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
 
-        x_tilde << measurement[0], measurement[1];
-        x_hat_kmin1_plus << measurement[0], measurement[1], measurement[2], measurement[3];
-        x_hat_k_minus = x_hat_kmin1_plus; 
-        x_hat_k_plus = x_hat_kmin1_plus;
+        x_tilde_ << measurement[0], measurement[1];
+        x_hat_kmin1_plus_ << measurement[0], measurement[1], measurement[2], measurement[3];
+        x_hat_k_minus_ = x_hat_kmin1_plus_; 
+        x_hat_k_plus_ = x_hat_kmin1_plus_;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
         x_ground_truth_gap_only << measurement[0], measurement[1], v_rel_x, v_rel_y;
 
-        G_k << 1.0, 1.0,
+        G_k_ << 1.0, 1.0,
              1.0, 1.0,
              1.0, 1.0,
              1.0, 1.0;
 
         // dt = 0.0;
 
-        A << 0.0, 0.0, 0.0, 0.0,
+        A_ << 0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0,
              0.0, 0.0, 0.0, 0.0;
-        STM = A;
+        STM_ = A_;
 
         frozen_x << 0.0, 0.0, 0.0, 0.0;
 
-        initialized = true;
         // life_time = 0.0;
         // life_time_threshold = 7.5;
         eyes = Eigen::MatrixXf::Identity(4,4);
@@ -162,12 +161,12 @@ namespace dynamic_gap
         }
     }
 
-    void RotatingFrameCartesianKalmanFilter::freeze_robot_vel() {
-        Eigen::Vector4f cartesian_state = get_cartesian_state();
+    void RotatingFrameCartesianKalmanFilter::isolateGapDynamics() {
+        Eigen::Vector4f cartesian_state = getState();
         
         // fixing position (otherwise can get bugs)
-        cartesian_state[0] = x_tilde[0];
-        cartesian_state[1] = x_tilde[1];
+        cartesian_state[0] = x_tilde_[0];
+        cartesian_state[1] = x_tilde_[1];
 
         // update cartesian
         cartesian_state[2] += last_ego_rbt_vel.twist.linear.x;
@@ -225,8 +224,8 @@ namespace dynamic_gap
     Eigen::Matrix<float, 4, 1> RotatingFrameCartesianKalmanFilter::integrate() 
     {
         if (print) ROS_INFO_STREAM("    [integrate()]");
-        Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus;
-        Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus;
+        Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus_;
+        Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus_;
 
         for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
         {
@@ -267,12 +266,12 @@ namespace dynamic_gap
         float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();    
         float ang_vel_ego = ego_rbt_vels[idx].twist.angular.z;
         
-        A << 0.0, ang_vel_ego, 1.0, 0.0,
+        A_ << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
              0.0, 0.0, 0.0, ang_vel_ego,
              0.0, 0.0, -ang_vel_ego, 0.0;
 
-        STM = (A*dt).exp();
+        STM_ = (A_*dt).exp();
     }
 
     void RotatingFrameCartesianKalmanFilter::discretizeQ(int idx) 
@@ -281,11 +280,11 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
         float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();
 
-        Q_1 = Q_k;
-        Q_2 = A * Q_1 + Q_1 * A.transpose();
-        Q_3 = A * Q_2 + Q_2 * A.transpose();
+        Q_1 = Q_k_;
+        Q_2 = A_ * Q_1 + Q_1 * A_.transpose();
+        Q_3 = A_ * Q_2 + Q_2 * A_.transpose();
 
-        dQ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
+        dQ_ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
     }
 
     void RotatingFrameCartesianKalmanFilter::update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
@@ -323,7 +322,7 @@ namespace dynamic_gap
 
         if (print) {
             ROS_INFO_STREAM("    update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-            ROS_INFO_STREAM("    x_hat_kmin1_plus: " << x_hat_kmin1_plus[0] << ", " << x_hat_kmin1_plus[1] << ", " << x_hat_kmin1_plus[2] << ", " << x_hat_kmin1_plus[3]);
+            ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
             ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << last_ego_rbt_vel.twist.linear.x << ", y_lin: " << last_ego_rbt_vel.twist.linear.y << ", z_ang: " << last_ego_rbt_vel.twist.angular.z);
         }
 
@@ -331,7 +330,7 @@ namespace dynamic_gap
 
         // get_ego_rbt_vels_accs();
 
-        x_tilde << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
+        x_tilde_ << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
         if (print) {
@@ -342,64 +341,64 @@ namespace dynamic_gap
 
         x_ground_truth = update_ground_truth_cartesian_state();
 
-        x_hat_k_minus = integrate();
+        x_hat_k_minus_ = integrate();
 
         
-        if (print) ROS_INFO_STREAM("    x_hat_k_minus: " << x_hat_k_minus[0] << ", " << x_hat_k_minus[1] << ", " 
-                                                     << x_hat_k_minus[2] << ", " << x_hat_k_minus[3]);
+        if (print) ROS_INFO_STREAM("    x_hat_k_minus_: " << x_hat_k_minus_[0] << ", " << x_hat_k_minus_[1] << ", " 
+                                                         << x_hat_k_minus_[2] << ", " << x_hat_k_minus_[3]);
         
 
-        P_intermediate = P_kmin1_plus;
-        new_P = P_kmin1_plus;
+        P_intermediate = P_kmin1_plus_;
+        new_P = P_kmin1_plus_;
         for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
         {
             linearize(i);
 
             discretizeQ(i);
 
-            new_P = STM * P_intermediate * STM.transpose() + dQ;
+            new_P = STM_ * P_intermediate * STM_.transpose() + dQ_;
 
             P_intermediate = new_P;
         }
-        P_k_minus = new_P;
+        P_k_minus_ = new_P;
         
         /*
         if (print) {
-            ROS_INFO_STREAM("P_k_minus: " << P_k_minus(0, 0) << ", " << P_k_minus(0, 1) << ", " << P_k_minus(0, 2) << ", " << P_k_minus(0, 3));
-            ROS_INFO_STREAM("           " << P_k_minus(1, 0) << ", " << P_k_minus(1, 1) << ", " << P_k_minus(1, 2) << ", " << P_k_minus(1, 3));
-            ROS_INFO_STREAM("           " << P_k_minus(2, 0) << ", " << P_k_minus(2, 1) << ", " << P_k_minus(2, 2) << ", " << P_k_minus(2, 3));
-            ROS_INFO_STREAM("           " << P_k_minus(3, 0) << ", " << P_k_minus(3, 1) << ", " << P_k_minus(3, 2) << ", " << P_k_minus(3, 3));     
+            ROS_INFO_STREAM("P_k_minus_: " << P_k_minus_(0, 0) << ", " << P_k_minus_(0, 1) << ", " << P_k_minus_(0, 2) << ", " << P_k_minus_(0, 3));
+            ROS_INFO_STREAM("           " << P_k_minus_(1, 0) << ", " << P_k_minus_(1, 1) << ", " << P_k_minus_(1, 2) << ", " << P_k_minus_(1, 3));
+            ROS_INFO_STREAM("           " << P_k_minus_(2, 0) << ", " << P_k_minus_(2, 1) << ", " << P_k_minus_(2, 2) << ", " << P_k_minus_(2, 3));
+            ROS_INFO_STREAM("           " << P_k_minus_(3, 0) << ", " << P_k_minus_(3, 1) << ", " << P_k_minus_(3, 2) << ", " << P_k_minus_(3, 3));     
         }
         */
 
         if (print) {
-            ROS_INFO_STREAM("    x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+            ROS_INFO_STREAM("    x_tilde_: " << x_tilde_[0] << ", " << x_tilde_[1]);
         }
         
-        innovation = x_tilde - H*x_hat_k_minus;
-        x_hat_k_plus = x_hat_k_minus + G_k*innovation;
-        residual = x_tilde - H*x_hat_k_plus;
+        innovation_ = x_tilde_ - H_*x_hat_k_minus_;
+        x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
+        residual_ = x_tilde_ - H_*x_hat_k_plus_;
         
         float sensor_noise_factor = R_scalar * range_bearing_measurement[0];
-        R_k << sensor_noise_factor, 0.0,
+        R_k_ << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 
         // if (print) ROS_INFO_STREAM("1");
 
         // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
-        // R_k << cfg_->gap_est.R_xx, 0.0,
+        // R_k_ << cfg_->gap_est.R_xx, 0.0,
         //        0.0, cfg_->gap_est.R_yy;
 
-        tmp_mat = H*P_k_minus*H_transpose + R_k;
+        tmp_mat = H_*P_k_minus_*H_transpose_ + R_k_;
 
-        G_k = P_k_minus * H_transpose * tmp_mat.inverse();
+        G_k_ = P_k_minus_ * H_transpose_ * tmp_mat.inverse();
 
-        P_k_plus = (eyes - G_k*H)*P_k_minus;
+        P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
     
         // if (print) ROS_INFO_STREAM("2");
 
-        x_hat_kmin1_plus = x_hat_k_plus;
-        P_kmin1_plus = P_k_plus;
+        x_hat_kmin1_plus_ = x_hat_k_plus_;
+        P_kmin1_plus_ = P_k_plus_;
         t_last_update = t_update;
 
         // if (print) ROS_INFO_STREAM("3");
@@ -422,13 +421,13 @@ namespace dynamic_gap
         if (print) 
         {
             /*
-            ROS_INFO_STREAM("G_k: " << G_k(0, 0) << ", " << G_k(0, 1));
-            ROS_INFO_STREAM("     " << G_k(1, 0) << ", " << G_k(1, 1));
-            ROS_INFO_STREAM("     " << G_k(2, 0) << ", " << G_k(2, 1));
-            ROS_INFO_STREAM("     " << G_k(3, 0) << ", " << G_k(3, 1));
+            ROS_INFO_STREAM("G_k_: " << G_k_(0, 0) << ", " << G_k_(0, 1));
+            ROS_INFO_STREAM("     " << G_k_(1, 0) << ", " << G_k_(1, 1));
+            ROS_INFO_STREAM("     " << G_k_(2, 0) << ", " << G_k_(2, 1));
+            ROS_INFO_STREAM("     " << G_k_(3, 0) << ", " << G_k_(3, 1));
             */
 
-            ROS_INFO_STREAM("    x_hat_k_plus: " << x_hat_k_plus[0] << ", " << x_hat_k_plus[1] << ", " << x_hat_k_plus[2] << ", " << x_hat_k_plus[3]);       
+            ROS_INFO_STREAM("    x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
             ROS_INFO_STREAM("    x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
             ROS_INFO_STREAM("    -----------");
         }
@@ -440,8 +439,8 @@ namespace dynamic_gap
         /*
         if (plot && !plotted && print) {
             if (life_time <= life_time_threshold) {
-                std::vector<double> rel_state{x_hat_k_plus[0], x_hat_k_plus[1], x_hat_k_plus[2], x_hat_k_plus[3]};
-                std::vector<double> gap_only_state{x_hat_k_plus[0], x_hat_k_plus[1], x_hat_k_plus[2] + v_ego[0], x_hat_k_plus[3] + v_ego[1]};
+                std::vector<double> rel_state{x_hat_k_plus_[0], x_hat_k_plus_[1], x_hat_k_plus_[2], x_hat_k_plus_[3]};
+                std::vector<double> gap_only_state{x_hat_k_plus_[0], x_hat_k_plus_[1], x_hat_k_plus_[2] + v_ego[0], x_hat_k_plus_[3] + v_ego[1]};
      
                 std::vector<double> ground_truths{x_ground_truth[0], x_ground_truth[1], x_ground_truth[2], x_ground_truth[3]};
                 std::vector<double> ground_truths_gap_only{x_ground_truth_gap_only[0], x_ground_truth_gap_only[1], x_ground_truth_gap_only[2], x_ground_truth_gap_only[3]};
@@ -567,21 +566,21 @@ namespace dynamic_gap
         
         if (print) {
             ROS_INFO_STREAM("updating ground truth cartesian state");
-            // ROS_INFO_STREAM("x_tilde: " << x_tilde[0] << ", " << x_tilde[1]);
+            // ROS_INFO_STREAM("x_tilde_: " << x_tilde_[0] << ", " << x_tilde_[1]);
         }
         
 
-        return_x[0] = x_tilde[0];
-        return_x[1] = x_tilde[1];
-        x_ground_truth_gap_only[0] = x_tilde[0];
-        x_ground_truth_gap_only[1] = x_tilde[1];
+        return_x[0] = x_tilde_[0];
+        return_x[1] = x_tilde_[1];
+        x_ground_truth_gap_only[0] = x_tilde_[0];
+        x_ground_truth_gap_only[1] = x_tilde_[1];
         
         float robot_i_odom_dist;
         float min_dist = std::numeric_limits<float>::infinity();
         int min_idx = -1;
         for (int i = 0; i < agent_odoms.size(); i++) {
-            robot_i_odom_dist = sqrt(pow(agent_odoms[i].position.x - x_hat_kmin1_plus[0], 2) + 
-                                     pow(agent_odoms[i].position.y - x_hat_kmin1_plus[1], 2));
+            robot_i_odom_dist = sqrt(pow(agent_odoms[i].position.x - x_hat_kmin1_plus_[0], 2) + 
+                                     pow(agent_odoms[i].position.y - x_hat_kmin1_plus_[1], 2));
             
             if (robot_i_odom_dist < min_dist) {
                 min_dist = robot_i_odom_dist;
@@ -605,10 +604,10 @@ namespace dynamic_gap
             }
             
             
-            // x_tilde[0] = agent_odoms[min_idx].position.x;
-            // x_tilde[1] = agent_odoms[min_idx].position.y;
-            // return_x[0] = x_tilde[0];
-            // return_x[1] = x_tilde[1];
+            // x_tilde_[0] = agent_odoms[min_idx].position.x;
+            // x_tilde_[1] = agent_odoms[min_idx].position.y;
+            // return_x[0] = x_tilde_[0];
+            // return_x[1] = x_tilde_[1];
             return_x[2] = agent_vels[min_idx].vector.x - last_ego_rbt_vel.twist.linear.x;
             return_x[3] = agent_vels[min_idx].vector.y - last_ego_rbt_vel.twist.linear.y;
 
@@ -630,10 +629,10 @@ namespace dynamic_gap
         return return_x;
     }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_cartesian_state() {
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState() {
         // x state:
         // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4f return_x = (perfect) ? x_ground_truth : x_hat_k_plus;
+        Eigen::Vector4f return_x = (perfect) ? x_ground_truth : x_hat_k_plus_;
         
         /*
         if (life_time < 0.25)
@@ -647,14 +646,14 @@ namespace dynamic_gap
         return return_x;
     }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_GT_cartesian_state() {
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getTrueState() {
         // x state:
         // [r_x, r_y, v_x, v_y]
 
         return x_ground_truth;
     }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_frozen_cartesian_state() {
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getGapState() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4f return_x = frozen_x;
@@ -672,7 +671,7 @@ namespace dynamic_gap
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4f mp_state;
-        Eigen::Vector4f cart_state = get_cartesian_state();
+        Eigen::Vector4f cart_state = getState();
         mp_state << 1.0 / sqrt(pow(cart_state[0], 2) + pow(cart_state[1], 2)),
                     std::atan2(cart_state[1], cart_state[0]),
                     (cart_state[0]*cart_state[2] + cart_state[1]*cart_state[3]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2)),
@@ -697,7 +696,7 @@ namespace dynamic_gap
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4f frozen_mp_state;
-        Eigen::Vector4f frozen_cart_state = get_frozen_cartesian_state();
+        Eigen::Vector4f frozen_cart_state = getGapState();
         frozen_mp_state << 1.0 / sqrt(pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
                            std::atan2(frozen_cart_state[1], frozen_cart_state[0]),
                            (frozen_cart_state[0]*frozen_cart_state[2] + frozen_cart_state[1]*frozen_cart_state[3]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
@@ -705,7 +704,7 @@ namespace dynamic_gap
         return frozen_mp_state;
     }
 
-    geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::get_v_ego() {
+    geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() {
         return last_ego_rbt_vel;
     }
 
@@ -714,6 +713,6 @@ namespace dynamic_gap
     }
 
     Eigen::Vector2f RotatingFrameCartesianKalmanFilter::get_x_tilde() {
-        return x_tilde;
+        return x_tilde_;
     }
 }

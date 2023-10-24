@@ -36,8 +36,7 @@ namespace dynamic_gap
 
             bool bridgeCondition(const std::vector<dynamic_gap::Gap> & raw_gaps);
 
-            bool terminalGoalGapCheck(geometry_msgs::PoseStamped final_goal_rbt, 
-                                        const sensor_msgs::LaserScan & scan,
+            bool isGlobalGoalWithinGap(geometry_msgs::PoseStamped final_goal_rbt, 
                                         int & final_goal_idx);
             
             bool mergeSweptGapCondition(const dynamic_gap::Gap & raw_gap, 
@@ -46,13 +45,13 @@ namespace dynamic_gap
             int checkSimplifiedGapsMergeability(const dynamic_gap::Gap & raw_gap, 
                                                 const std::vector<dynamic_gap::Gap> & simplified_gaps);
 
-            void addTerminalGoal(int, std::vector<dynamic_gap::Gap> &, const sensor_msgs::LaserScan &);   
+            void addGapForGlobalGoal(int final_goal_idx, std::vector<dynamic_gap::Gap> & raw_gaps);   
 
-            sensor_msgs::LaserScan scan;
+            sensor_msgs::LaserScan scan_;
             const DynamicGapConfig* cfg_;
-            float min_scan_dist_, max_scan_dist_;
-            float half_scan_;
-            int full_scan_; 
+            float minScanDist_, maxScanDist_;
+            float halfScanRayCount_;
+            int fullScanRayCount_; 
 
     };
 }

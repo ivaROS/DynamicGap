@@ -27,8 +27,8 @@ namespace dynamic_gap {
         // std::vector<float> testVector(10);
         // testVector.at(-1);
 
-        left_model->freeze_robot_vel();
-        right_model->freeze_robot_vel();
+        left_model->isolateGapDynamics();
+        right_model->isolateGapDynamics();
 
         Eigen::Matrix<float, 4, 1> frozen_left_model_state = left_model->get_frozen_modified_polar_state();
         Eigen::Matrix<float, 4, 1> frozen_right_model_state = right_model->get_frozen_modified_polar_state();
@@ -88,7 +88,7 @@ namespace dynamic_gap {
         // ROS_INFO_STREAM("indivGapFindCrossingPoint time elapsed:" << ros::Time::now().toSec() - start_time);
 
         Eigen::Vector2f starting_pos(0.0, 0.0);
-        Eigen::Vector2f starting_vel(left_model->get_v_ego().twist.linear.x, left_model->get_v_ego().twist.linear.y);
+        Eigen::Vector2f starting_vel(left_model->getRobotVel().twist.linear.x, left_model->getRobotVel().twist.linear.y);
         
         Eigen::Vector2f ending_vel(0.0, 0.0);
         
@@ -170,8 +170,8 @@ namespace dynamic_gap {
         
         Eigen::Matrix<float, 4, 1> left_frozen_mp_state = left_model->get_frozen_modified_polar_state();        
         Eigen::Matrix<float, 4, 1> right_frozen_mp_state = right_model->get_frozen_modified_polar_state();
-        Eigen::Matrix<float, 4, 1> left_frozen_cartesian_state = left_model->get_frozen_cartesian_state();
-        Eigen::Matrix<float, 4, 1> right_frozen_cartesian_state = right_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> left_frozen_cartesian_state = left_model->getGapState();
+        Eigen::Matrix<float, 4, 1> right_frozen_cartesian_state = right_model->getGapState();
 
         // ROS_INFO_STREAM("gap category: " << gap.getCategory());
         // ROS_INFO_STREAM("starting frozen cartesian left: " << left_frozen_cartesian_state[0] << ", " << left_frozen_cartesian_state[1] << ", " << left_frozen_cartesian_state[2] << ", " << left_frozen_cartesian_state[3]); 

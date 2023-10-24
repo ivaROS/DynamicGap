@@ -34,13 +34,12 @@ namespace dynamic_gap
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4f new_x, x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
+            Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
             std::string side;
             int index;
 
-            bool initialized;
             float life_time, start_time;
 
             std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
@@ -57,7 +56,6 @@ namespace dynamic_gap
             bool print;
             bool plot;
             bool plotted;
-            std::vector<float> prev_euler_deriv;
 
             ros::Time t_last_update;
             std::vector<geometry_msgs::TwistStamped> ego_rbt_vels;
@@ -76,10 +74,10 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & last_ego_rbt_acc);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
-            Eigen::Vector4f get_cartesian_state();
-            Eigen::Vector4f get_GT_cartesian_state();
+            Eigen::Vector4f getState();
+            Eigen::Vector4f getTrueState();
 
-            Eigen::Vector4f get_frozen_cartesian_state();
+            Eigen::Vector4f getGapState();
             Eigen::Vector4f get_rewind_cartesian_state();
             Eigen::Vector4f get_modified_polar_state();
             Eigen::Vector4f get_frozen_modified_polar_state();
@@ -87,14 +85,14 @@ namespace dynamic_gap
 
             Eigen::Vector2f get_x_tilde();
 
-            geometry_msgs::TwistStamped get_v_ego();
+            geometry_msgs::TwistStamped getRobotVel();
             Eigen::Matrix<float, 4, 1> integrate();
             void linearize(int idx);
             void discretizeQ(int idx);
 
             void frozen_state_propagate(float dt);
             void rewind_propagate(float dt);
-            void freeze_robot_vel();
+            void isolateGapDynamics();
             void set_rewind_state();
 
             void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 

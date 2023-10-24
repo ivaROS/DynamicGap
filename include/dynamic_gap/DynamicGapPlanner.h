@@ -52,22 +52,17 @@ namespace dynamic_gap {
             void reset();
 
         private:
-            dynamic_gap::Planner planner;
-            std::string planner_name;
-            ros::NodeHandle nh, pnh;
+            dynamic_gap::Planner planner_;
+            std::string plannerName_;
+            ros::NodeHandle pnh_;
 
-            ros::Subscriber laser_sub, static_laser_sub;
-            ros::Subscriber pose_sub;
-            ros::Subscriber rbt_accel_sub;      
-            std::vector<ros::Subscriber> agent_odom_subscribers;
+            ros::Subscriber laserSub_, staticLaserSub_;
 
-            message_filters::Subscriber<nav_msgs::Odometry> odom_sub;
-            message_filters::Subscriber<geometry_msgs::TwistStamped> acc_sub;
+            message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_;
+            message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_;
 
             typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> MySyncPolicy;
             typedef message_filters::Synchronizer<MySyncPolicy> Sync;
             boost::shared_ptr<Sync> sync_;
-            
-            bool initialized = false;
     };
 }

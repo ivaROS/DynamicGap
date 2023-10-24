@@ -5,8 +5,8 @@ namespace dynamic_gap
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
 
     bool compareModelBearingValues(dynamic_gap::Estimator* model_one, dynamic_gap::Estimator* model_two) {
-        Eigen::Matrix<float, 4, 1> state_one = model_one->get_frozen_cartesian_state();
-        Eigen::Matrix<float, 4, 1> state_two = model_two->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> state_one = model_one->getGapState();
+        Eigen::Matrix<float, 4, 1> state_two = model_two->getGapState();
         
         return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
     }
@@ -14,8 +14,8 @@ namespace dynamic_gap
     bool checkModelSimilarity(dynamic_gap::Estimator * curr_model, dynamic_gap::Estimator * prev_model) {
         float eps = 0.00001;
         
-        Eigen::Matrix<float, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Eigen::Matrix<float, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> curr_state = curr_model->getGapState();
+        Eigen::Matrix<float, 4, 1> prev_state = prev_model->getGapState();
         
         Eigen::Vector2f curr_vel(curr_state[2], curr_state[3]);
         Eigen::Vector2f prev_vel(prev_state[2], prev_state[3]);
@@ -37,8 +37,8 @@ namespace dynamic_gap
                                dynamic_gap::Estimator * prev_model,
                                std::vector<Eigen::Matrix<float, 4, 1> > & agents,
                                bool print) {
-        Eigen::Matrix<float, 4, 1> curr_state = curr_model->get_frozen_cartesian_state();
-        Eigen::Matrix<float, 4, 1> prev_state = prev_model->get_frozen_cartesian_state();
+        Eigen::Matrix<float, 4, 1> curr_state = curr_model->getGapState();
+        Eigen::Matrix<float, 4, 1> prev_state = prev_model->getGapState();
         
         Eigen::Matrix<float, 4, 1> new_agent = (curr_state + prev_state) / 2;
         // if (print) ROS_INFO_STREAM("instantiating agent: " << new_agent[0] << ", " << new_agent[1] << ", " << new_agent[2] << ", " << new_agent[3]);
@@ -106,7 +106,7 @@ namespace dynamic_gap
         }
 
         for (auto & model : obs_models) {
-            model->freeze_robot_vel();
+            model->isolateGapDynamics();
         }
         
         sort(obs_models.begin(), obs_models.end(), compareModelBearingValues);

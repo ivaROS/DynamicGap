@@ -28,70 +28,53 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::isGoalReached()
     {
-        return planner.isGoalReached();
+        return planner_.isGoalReached();
     }
 
     bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & plan)
     {
         ROS_INFO_STREAM("DynamicGap: setPlan");
-        return planner.setGoal(plan);
+        return planner_.setGoal(plan);
     }
 
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
     {
         // ROS_INFO_STREAM("DynamicGap: initialize");
-        planner_name = name;
-        // pnh: planner node handle?
-        ros::NodeHandle pnh("~/" + planner_name);
-        planner.initialize(pnh);
-        std::string robot_name = "/robot" + std::to_string(planner.getCurrentAgentCount());
+        plannerName_ = name;
+        pnh_ = ros::NodeHandle("~/" + plannerName_); // pnh: planner node handle?
+        planner_.initialize(pnh_);
+        std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
 
-        // robot_name + "/mod_laser_0"
-        laser_sub = pnh.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner);
+        laserSub_ = pnh_.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner_);
+        // staticLaserSub_ = pnh_.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
-        // static_laser_sub = pnh.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
-        
-        odom_sub.subscribe(nh, robot_name + "/odom", 10);
-        acc_sub.subscribe(nh, robot_name + "/acc", 10);
-        sync_.reset(new Sync(MySyncPolicy(10), odom_sub, acc_sub));
-        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner, _1, _2));
-
-        /*
-        for (int i = 0; i < planner.get_num_obsts(); i++) {
-            ros::Subscriber temp_odom_sub = nh.subscribe("/robot" + std::to_string(i) + "/odom", 3, &Planner::agentOdomCB, &planner);
-            agent_odom_subscribers.push_back(temp_odom_sub);
-        }
-        */
-
-        initialized = true;
-
-        // Setup dynamic reconfigure
-        // dynamic_recfg_server = boost::make_shared<dynamic_reconfigure::Server <dynamic_gap::dgConfig> > (pnh);
-        // f = boost::bind(&dynamic_gap::Planner::rcfgCallback, &planner, _1, _2);
-        // dynamic_recfg_server->setCallback(f);
+        // Linking the robot pose and acceleration subscribers because these messages are published 
+        // essentially at the same time in STDR
+        rbtPoseSub_.subscribe(pnh_, robot_name + "/odom", 10);
+        rbtAccSub_.subscribe(pnh_, robot_name + "/acc", 10);
+        sync_.reset(new Sync(MySyncPolicy(10), rbtPoseSub_, rbtAccSub_));
+        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner_, _1, _2));
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmd_vel)
     {
-        if (!planner.initialized())
+        if (!planner_.initialized())
         {
-            ros::NodeHandle pnh("~/" + planner_name);
-            planner.initialize(pnh);
+            // ros::NodeHandle pnh("~/" + plannerName_);
+            planner_.initialize(pnh_);
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
-        auto final_traj = planner.runPlanningLoop();
+        geometry_msgs::PoseArray localTrajectory = planner_.runPlanningLoop();
 
-        cmd_vel = planner.ctrlGeneration(final_traj);
+        cmd_vel = planner_.ctrlGeneration(localTrajectory);
 
-        return planner.recordAndCheckVel(cmd_vel);
-        
-        // return 1;
+        return planner_.recordAndCheckVel(cmd_vel);
     }
 
     void DynamicGapPlanner::reset()
     {
-        planner.reset();
+        planner_.reset();
         return;
     }
 
