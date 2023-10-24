@@ -180,8 +180,8 @@ namespace dynamic_gap {
 									 const std::vector<dynamic_gap::Gap> & previous_gaps,
 									 int & currentModelIdx_,
                                      const ros::Time & t_kf_update, 
-									 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                      				 const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+									 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                      				 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
 									 bool print)
 	{
 		if (print) ROS_INFO_STREAM("[assignModels()]");
@@ -189,8 +189,8 @@ namespace dynamic_gap {
 		// initializing models for current gaps
 		float init_r, init_beta;
 
-    	geometry_msgs::TwistStamped last_ego_rbt_vel = (!ego_rbt_vels_copied.empty()) ? ego_rbt_vels_copied[ego_rbt_vels_copied.size() - 1] : geometry_msgs::TwistStamped();
-	    geometry_msgs::TwistStamped last_ego_rbt_acc = (!ego_rbt_accs_copied.empty()) ? ego_rbt_accs_copied[ego_rbt_accs_copied.size() - 1] : geometry_msgs::TwistStamped();
+    	geometry_msgs::TwistStamped lastRbtVel = (!intermediateRbtVels.empty()) ? intermediateRbtVels[intermediateRbtVels.size() - 1] : geometry_msgs::TwistStamped();
+	    geometry_msgs::TwistStamped lastRbtAcc = (!intermediateRbtAccs.empty()) ? intermediateRbtAccs[intermediateRbtAccs.size() - 1] : geometry_msgs::TwistStamped();
 
 		for (int i = 0; i < observed_gap_points.size(); i++) 
 		{
@@ -199,14 +199,14 @@ namespace dynamic_gap {
 			if (i % 2 == 0) 
 			{  // curr left
 				// observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::StaticEstimator("right", currentModelIdx_, init_r, init_beta, 
-				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+				// 																						t_kf_update, lastRbtVel, lastRbtAcc);
 				observed_gaps[int(std::floor(i / 2.0))].right_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("right", currentModelIdx_, init_r, init_beta, 
-																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+																										t_kf_update, lastRbtVel, lastRbtAcc);
 			} else {
 				// observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::StaticEstimator("left", currentModelIdx_, init_r, init_beta, 
-				// 																						t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+				// 																						t_kf_update, lastRbtVel, lastRbtAcc);
 				observed_gaps[int(std::floor(i / 2.0))].left_model = new dynamic_gap::RotatingFrameCartesianKalmanFilter("left", currentModelIdx_, init_r, init_beta, 
-																										t_kf_update, last_ego_rbt_vel, last_ego_rbt_acc);
+																										t_kf_update, lastRbtVel, lastRbtAcc);
 			}
 			currentModelIdx_ += 1;
 		}

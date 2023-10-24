@@ -128,8 +128,9 @@ namespace dynamic_gap
         ros::Time tCurrentFilterUpdate = scan_->header.stamp;
         if (hasGlobalGoal_)
         {
-            std::vector<geometry_msgs::TwistStamped> ego_rbt_vels_copied = intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> ego_rbt_accs_copied = intermediateRbtAccs_;
+            // grabbing current intermediate robot velocities and accelerations
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels = intermediateRbtVels_;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs = intermediateRbtAccs_;
 
 
             // std::chrono::steady_clock::time_point gap_detection_start_time = std::chrono::steady_clock::now();
@@ -144,11 +145,11 @@ namespace dynamic_gap
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         rawGaps_, previousRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        ego_rbt_vels_copied, ego_rbt_accs_copied,
+                                        intermediateRbtVels, intermediateRbtAccs,
                                         cfg_.debug.raw_gaps_debug_log);
             
-            associatedRawGaps_ = update_models(rawGaps_, ego_rbt_vels_copied, 
-                                                ego_rbt_accs_copied, tCurrentFilterUpdate,
+            associatedRawGaps_ = update_models(rawGaps_, intermediateRbtVels, 
+                                                intermediateRbtAccs, tCurrentFilterUpdate,
                                                 cfg_.debug.raw_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -169,10 +170,10 @@ namespace dynamic_gap
             gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                         simplifiedGaps_, previousSimplifiedGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        ego_rbt_vels_copied, ego_rbt_accs_copied,
+                                        intermediateRbtVels, intermediateRbtAccs,
                                         cfg_.debug.simplified_gaps_debug_log);
-            associatedSimplifiedGaps_ = update_models(simplifiedGaps_, ego_rbt_vels_copied, 
-                                                        ego_rbt_accs_copied, tCurrentFilterUpdate,
+            associatedSimplifiedGaps_ = update_models(simplifiedGaps_, intermediateRbtVels, 
+                                                        intermediateRbtAccs, tCurrentFilterUpdate,
                                                         cfg_.debug.simplified_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -209,8 +210,8 @@ namespace dynamic_gap
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     std::vector<dynamic_gap::Gap> Planner::update_models(const std::vector<dynamic_gap::Gap> & gaps, 
-                                                         const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
-                                                         const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+                                                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                                          const ros::Time & tCurrentFilterUpdate,
                                                          bool print) 
     {
@@ -221,7 +222,7 @@ namespace dynamic_gap
         for (int i = 0; i < 2*associatedGaps.size(); i++) 
         {
             if (print) ROS_INFO_STREAM("    update gap model " << i << " of " << 2*associatedGaps.size());
-            update_model(i, associatedGaps, ego_rbt_vels_copied, ego_rbt_accs_copied, tCurrentFilterUpdate, print);
+            update_model(i, associatedGaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate, print);
             if (print) ROS_INFO_STREAM("");
 		}
 
@@ -230,8 +231,8 @@ namespace dynamic_gap
     }
 
     void Planner::update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                               const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
-                               const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+                               const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                               const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                const ros::Time & tCurrentFilterUpdate,
                                bool print) 
     {
@@ -255,7 +256,7 @@ namespace dynamic_gap
             //std::cout << "entering left model update" << std::endl;
             try {
                 g.right_model->update(laserscan_measurement, 
-                                        ego_rbt_vels_copied, ego_rbt_accs_copied, 
+                                        intermediateRbtVels, intermediateRbtAccs, 
                                         print, currentTrueAgentPoses_, 
                                         currentTrueAgentVels_,
                                         tCurrentFilterUpdate);
@@ -266,7 +267,7 @@ namespace dynamic_gap
             //std::cout << "entering right model update" << std::endl;
             try {
                 g.left_model->update(laserscan_measurement, 
-                                        ego_rbt_vels_copied, ego_rbt_accs_copied, 
+                                        intermediateRbtVels, intermediateRbtAccs, 
                                         print, currentTrueAgentPoses_, 
                                         currentTrueAgentVels_,
                                         tCurrentFilterUpdate);
@@ -1017,7 +1018,7 @@ namespace dynamic_gap
         {
             dynamic_laser_scan.ranges = stored_scan.ranges;
 
-            //trajScorer_->recoverDynamicEgocircleCheat(t_i, t_iplus1, agent_odoms_lc, agent_vels_lc, dynamic_laser_scan, print);
+            //trajScorer_->recoverDynamicEgocircleCheat(t_i, t_iplus1, agentPoses__lc, agentVels__lc, dynamic_laser_scan, print);
             trajScorer_->recoverDynamicEgoCircle(t_i, t_iplus1, currentAgents, dynamic_laser_scan, cfg_.debug.future_scan_propagation_debug_log);
             
             future_scan_idx = (int) (t_iplus1 / cfg_.traj.integrate_stept);

@@ -527,11 +527,11 @@ namespace dynamic_gap
         ROS_INFO_STREAM("left rel state: " << left_rel_model[0] << ", " << left_rel_model[1] << ", " << left_rel_model[2] << ", " << left_rel_model[3]);
         ROS_INFO_STREAM("right rel state: " << right_rel_model[0] << ", " << right_rel_model[1] << ", " << right_rel_model[2] << ", " << right_rel_model[3]);
 
-        Eigen::Vector2f right_bearing_vect(right_rel_model[0], right_rel_model[1]);
-        Eigen::Vector2f left_bearing_vect(left_rel_model[0], left_rel_model[1]);
+        Eigen::Vector2f rightBearingVect(right_rel_model[0], right_rel_model[1]);
+        Eigen::Vector2f leftBearingVect(left_rel_model[0], left_rel_model[1]);
 
-        Eigen::Vector2f right_bearing_norm_vect = right_bearing_vect / right_bearing_vect.norm();
-        Eigen::Vector2f left_bearing_norm_vect = left_bearing_vect / left_bearing_vect.norm();
+        Eigen::Vector2f right_bearing_norm_vect = rightBearingVect / rightBearingVect.norm();
+        Eigen::Vector2f left_bearing_norm_vect = leftBearingVect / leftBearingVect.norm();
 
         float det = right_bearing_norm_vect[0]*left_bearing_norm_vect[1] - right_bearing_norm_vect[1]*left_bearing_norm_vect[0];      
         float dot = right_bearing_norm_vect[0]*left_bearing_norm_vect[0] + right_bearing_norm_vect[1]*left_bearing_norm_vect[1];

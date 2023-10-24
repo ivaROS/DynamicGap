@@ -40,23 +40,23 @@ namespace dynamic_gap
             virtual geometry_msgs::TwistStamped getRobotVel() = 0;
             virtual void isolateGapDynamics() = 0;
             virtual Eigen::Vector4f getGapState() = 0;
-            // virtual float getGapBearingRateOfChange() = 0;
-            virtual Eigen::Vector4f get_frozen_modified_polar_state() = 0;
-            virtual Eigen::Vector4f get_rewind_modified_polar_state() = 0;
-            virtual void set_rewind_state() = 0;
+            // virtual Eigen::Vector4f get_frozen_modified_polar_state() = 0;
+            // virtual Eigen::Vector4f get_rewind_modified_polar_state() = 0;
+            virtual Eigen::Vector4f getRewindGapState() = 0;
+            virtual void setRewindState() = 0;
 
-            virtual void frozen_state_propagate(float dt) = 0;
-            virtual void rewind_propagate(float dt) = 0;
+            virtual void gapStatePropagate(float dt) = 0;
+            virtual void rewindPropagate(float dt) = 0;
 
             virtual Eigen::Vector2f get_x_tilde() = 0;
             virtual int get_index() = 0;
 
             virtual void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                                const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                                 bool print,
-                                const std::vector<geometry_msgs::Pose> & _agent_odoms,
-                                const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
+                                const std::vector<geometry_msgs::Pose> & agentPoses,
+                                const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                                 const ros::Time & t_kf_update) = 0;
     };
 }

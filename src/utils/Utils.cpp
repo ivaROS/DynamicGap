@@ -58,6 +58,21 @@ namespace dynamic_gap
         return left_to_right_angle;
     }
 
+    float getGapDist(Eigen::Vector4f gapState)
+    {
+        return sqrt(pow(gapState[0], 2) + pow(gapState[1], 2));
+    }
+
+    float getGapBearing(Eigen::Vector4f gapState)
+    {
+        return std::atan2(gapState[1], gapState[0]);
+    }    
+   
+    float getGapBearingRateOfChange(Eigen::Vector4f gapState)
+    {
+        return (gapState[0]*gapState[3] - gapState[1]*gapState[2]) / (pow(gapState[0], 2) + pow(gapState[1], 2));
+    }
+
     float atanThetaWrap(float theta) 
     {
         float new_theta = theta;

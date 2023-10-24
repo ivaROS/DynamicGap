@@ -41,8 +41,8 @@ namespace dynamic_gap
 							const std::vector<dynamic_gap::Gap> & previous_gaps, 
 							int & currentModelIdx_, 
 							const ros::Time & t_kf_update, 
-							const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                      		const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+							const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                      		const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
 					  		bool print);
 
 	private:

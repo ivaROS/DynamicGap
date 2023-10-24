@@ -49,8 +49,8 @@ namespace dynamic_gap
             Eigen::Matrix4f eyes;
             std::string plot_dir;
 
-            std::vector<geometry_msgs::Pose> agent_odoms;
-            std::vector<geometry_msgs::Vector3Stamped> agent_vels;
+            std::vector<geometry_msgs::Pose> agentPoses_;
+            std::vector<geometry_msgs::Vector3Stamped> agentVels_;
 
             bool perfect;
             bool print;
@@ -58,30 +58,30 @@ namespace dynamic_gap
             bool plotted;
 
             ros::Time t_last_update;
-            std::vector<geometry_msgs::TwistStamped> ego_rbt_vels;
-            std::vector<geometry_msgs::TwistStamped> ego_rbt_accs;        
-            geometry_msgs::TwistStamped last_ego_rbt_vel;
-            geometry_msgs::TwistStamped last_ego_rbt_acc;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
+            geometry_msgs::TwistStamped lastRbtVel_;
+            geometry_msgs::TwistStamped lastRbtAcc_;
 
         public:
 
             RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
-                        const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                        const geometry_msgs::TwistStamped & last_ego_rbt_acc);
+                        const geometry_msgs::TwistStamped & lastRbtVel,
+                        const geometry_msgs::TwistStamped & lastRbtAcc);
 
             void initialize(float, float, const ros::Time & t_update,
-                            const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                            const geometry_msgs::TwistStamped & last_ego_rbt_acc);
+                            const geometry_msgs::TwistStamped & lastRbtVel,
+                            const geometry_msgs::TwistStamped & lastRbtAcc);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();
             Eigen::Vector4f getTrueState();
             
             Eigen::Vector4f getGapState();
-            Eigen::Vector4f get_rewind_cartesian_state();
-            Eigen::Vector4f get_modified_polar_state();
-            Eigen::Vector4f get_frozen_modified_polar_state();
-            Eigen::Vector4f get_rewind_modified_polar_state();
+            Eigen::Vector4f getRewindGapState();
+            // Eigen::Vector4f get_modified_polar_state();
+            // Eigen::Vector4f get_frozen_modified_polar_state();
+            // Eigen::Vector4f get_rewind_modified_polar_state();
 
             Eigen::Vector2f get_x_tilde();
 
@@ -90,17 +90,17 @@ namespace dynamic_gap
             void linearize(int idx);
             void discretizeQ(int idx);
 
-            void frozen_state_propagate(float dt);
-            void rewind_propagate(float dt);
+            void gapStatePropagate(float dt);
+            void rewindPropagate(float dt);
             void isolateGapDynamics();
-            void set_rewind_state();
+            void setRewindState();
 
             void update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                        const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                        const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
+                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                         bool print,
-                        const std::vector<geometry_msgs::Pose> & _agent_odoms,
-                        const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
+                        const std::vector<geometry_msgs::Pose> & agentPoses,
+                        const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                         const ros::Time & t_kf_update);
 
             int get_index();

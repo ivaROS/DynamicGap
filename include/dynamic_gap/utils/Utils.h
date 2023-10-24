@@ -20,6 +20,10 @@ namespace dynamic_gap
     float idx2theta(const int idx);
     int theta2idx(const float theta);
 
+    float getGapDist(Eigen::Vector4f gapState);
+    float getGapBearing(Eigen::Vector4f gapState);
+    float getGapBearingRateOfChange(Eigen::Vector4f gapState);
+
     static int half_num_scan = 256;
-    static float angle_increment = 0.0122959f;
+    static float angle_increment = (2*M_PI) / 511; //  0.0122959f;
 }

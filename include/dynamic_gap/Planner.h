@@ -289,14 +289,14 @@ namespace dynamic_gap
         bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
     
         std::vector<dynamic_gap::Gap> update_models(const std::vector<dynamic_gap::Gap> & _observed_gaps, 
-                                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
-                                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                                     const ros::Time & t_kf_update,
                                                     bool print);
 
         void update_model(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied,
-                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied,
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                     const ros::Time & t_kf_update,
                                     bool print);
 

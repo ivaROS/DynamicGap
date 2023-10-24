@@ -21,17 +21,18 @@
 namespace dynamic_gap 
 {
     RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string _side, int _index, float init_r, float init_beta, 
-                            const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                            const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
+                                                                            const ros::Time & t_update, 
+                                                                            const geometry_msgs::TwistStamped & lastRbtVel,
+                                                                            const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         side = _side;
         index = _index;
-        initialize(init_r, init_beta, t_update, last_ego_rbt_vel, last_ego_rbt_acc);
+        initialize(init_r, init_beta, t_update, lastRbtVel, lastRbtAcc);
     }
 
     void RotatingFrameCartesianKalmanFilter::initialize(float init_r, float init_beta,
-                                const ros::Time & t_update, const geometry_msgs::TwistStamped & last_ego_rbt_vel,
-                                const geometry_msgs::TwistStamped & last_ego_rbt_acc) 
+                                const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         // OBSERVATION MATRIX
         H_ << 1.0, 0.0, 0.0, 0.0,
@@ -57,13 +58,13 @@ namespace dynamic_gap
         P_k_minus_ = P_kmin1_plus_;
         P_k_plus_ = P_kmin1_plus_;
 
-        this->last_ego_rbt_vel = last_ego_rbt_vel;
-        this->last_ego_rbt_acc = last_ego_rbt_acc;
+        this->lastRbtVel_ = lastRbtVel;
+        this->lastRbtAcc_ = lastRbtAcc;
         this->t_last_update = t_update;
 
 
-        float v_rel_x = -last_ego_rbt_vel.twist.linear.x;
-        float v_rel_y = -last_ego_rbt_vel.twist.linear.y;
+        float v_rel_x = -lastRbtVel_.twist.linear.x;
+        float v_rel_y = -lastRbtVel_.twist.linear.y;
         std::vector<float> measurement{init_r * std::cos(init_beta), 
                                         init_r * std::sin(init_beta), 
                                         v_rel_x, 
@@ -107,14 +108,14 @@ namespace dynamic_gap
     {
         /*
         // Printing original dt values from intermediate odom measurements
-        ROS_INFO_STREAM("   t_0 - t_last_update difference:" << (ego_rbt_vels[0].header.stamp - t_last_update).toSec() << " sec");
+        ROS_INFO_STREAM("   t_0 - t_last_update difference:" << (intermediateRbtVels_[0].header.stamp - t_last_update).toSec() << " sec");
 
-        for (int i = 0; i < (ego_rbt_vels.size() - 1); i++)
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
         {
-            ROS_INFO_STREAM("   t_" << (i+1) << " - t_" << i << " difference: " << (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec() << " sec");
+            ROS_INFO_STREAM("   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
         }
 
-        ROS_INFO_STREAM("   t_update" << " - t_" << (ego_rbt_vels.size() - 1) << " difference:" << (t_update - ego_rbt_vels[ego_rbt_vels.size() - 1].header.stamp).toSec() << " sec");
+        ROS_INFO_STREAM("   t_update" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (t_update - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
         */
 
         // Tweaking ego robot velocities/acceleration to make sure that updates:
@@ -123,33 +124,33 @@ namespace dynamic_gap
         //      3. Always at end of time of incoming laser scan measurement
 
         // Erasing odometry measurements that are from *before* the last update 
-        while (!ego_rbt_vels.empty() && t_last_update > ego_rbt_vels[0].header.stamp)
+        while (!intermediateRbtVels_.empty() && t_last_update > intermediateRbtVels_[0].header.stamp)
         {
-            ego_rbt_vels.erase(ego_rbt_vels.begin());
-            ego_rbt_accs.erase(ego_rbt_accs.begin());
+            intermediateRbtVels_.erase(intermediateRbtVels_.begin());
+            intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
         }
 
         // Inserting placeholder odometry to represent the time of the last update
-        ego_rbt_vels.insert(ego_rbt_vels.begin(), last_ego_rbt_vel);
-        ego_rbt_vels[0].header.stamp = t_last_update;
+        intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
+        intermediateRbtVels_[0].header.stamp = t_last_update;
 
-        ego_rbt_accs.insert(ego_rbt_accs.begin(), last_ego_rbt_acc);
-        ego_rbt_accs[0].header.stamp = t_last_update;
+        intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
+        intermediateRbtAccs_[0].header.stamp = t_last_update;
 
         // Erasing odometry measurements that occur *after* the incoming laser scan was received
-        while (!ego_rbt_vels.empty() && t_update < ego_rbt_vels[ego_rbt_vels.size() - 1].header.stamp)
+        while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
         {
-            ego_rbt_vels.erase(ego_rbt_vels.end() - 1);
-            ego_rbt_accs.erase(ego_rbt_accs.end() - 1);
+            intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
+            intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
         }
 
         // Inserting placeholder odometry to represent the time that the incoming laser scan was received
-        ego_rbt_vels.push_back(ego_rbt_vels[ego_rbt_vels.size() - 1]);
-        ego_rbt_vels[ego_rbt_vels.size() - 1].header.stamp = t_update;
+        intermediateRbtVels_.push_back(intermediateRbtVels_[intermediateRbtVels_.size() - 1]);
+        intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp = t_update;
 
-        for (int i = 0; i < (ego_rbt_vels.size() - 1); i++)
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
         {
-            float dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
+            float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
             
             if (print)
                 ROS_INFO_STREAM("   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
@@ -169,18 +170,18 @@ namespace dynamic_gap
         cartesian_state[1] = x_tilde_[1];
 
         // update cartesian
-        cartesian_state[2] += last_ego_rbt_vel.twist.linear.x;
-        cartesian_state[3] += last_ego_rbt_vel.twist.linear.y;
+        cartesian_state[2] += lastRbtVel_.twist.linear.x;
+        cartesian_state[3] += lastRbtVel_.twist.linear.y;
         frozen_x = cartesian_state;
 
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
     }
 
-    void RotatingFrameCartesianKalmanFilter::set_rewind_state() {
+    void RotatingFrameCartesianKalmanFilter::setRewindState() {
         rewind_x = frozen_x;
     }
 
-    void RotatingFrameCartesianKalmanFilter::rewind_propagate(float rew_dt) {
+    void RotatingFrameCartesianKalmanFilter::rewindPropagate(float rew_dt) {
         Eigen::Matrix<float, 4, 1> new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -200,7 +201,7 @@ namespace dynamic_gap
         rewind_x = new_rewind_x; 
     }
 
-    void RotatingFrameCartesianKalmanFilter::frozen_state_propagate(float froz_dt) {
+    void RotatingFrameCartesianKalmanFilter::gapStatePropagate(float froz_dt) {
         Eigen::Matrix<float, 4, 1> new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -227,12 +228,12 @@ namespace dynamic_gap
         Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus_;
         Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus_;
 
-        for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {
             if (print) ROS_INFO_STREAM("        intermediate step " << i);
             
-            float dt = (ego_rbt_vels[i + 1].header.stamp - ego_rbt_vels[i].header.stamp).toSec();
-            float ang_vel_ego = ego_rbt_vels[i].twist.angular.z;
+            float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
+            float ang_vel_ego = intermediateRbtVels_[i].twist.angular.z;
             
             if (print) ROS_INFO_STREAM("        ang_vel_ego: " << ang_vel_ego);
 
@@ -240,8 +241,8 @@ namespace dynamic_gap
             float p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
             if (print) ROS_INFO_STREAM("        p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
-            float vdot_x_body = ego_rbt_accs[i].twist.linear.x;
-            float vdot_y_body = ego_rbt_accs[i].twist.linear.y;
+            float vdot_x_body = intermediateRbtAccs_[i].twist.linear.x;
+            float vdot_y_body = intermediateRbtAccs_[i].twist.linear.y;
             if (print) ROS_INFO_STREAM("        vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
             float v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
@@ -263,8 +264,8 @@ namespace dynamic_gap
 
     void RotatingFrameCartesianKalmanFilter::linearize(int idx) 
     {
-        float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();    
-        float ang_vel_ego = ego_rbt_vels[idx].twist.angular.z;
+        float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();    
+        float ang_vel_ego = intermediateRbtVels_[idx].twist.angular.z;
         
         A_ << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
@@ -278,7 +279,7 @@ namespace dynamic_gap
     {
 
         // ROS_INFO_STREAM("VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
-        float dt = (ego_rbt_vels[idx + 1].header.stamp - ego_rbt_vels[idx].header.stamp).toSec();
+        float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();
 
         Q_1 = Q_k_;
         Q_2 = A_ * Q_1 + Q_1 * A_.transpose();
@@ -288,34 +289,34 @@ namespace dynamic_gap
     }
 
     void RotatingFrameCartesianKalmanFilter::update(Eigen::Matrix<float, 2, 1> range_bearing_measurement, 
-                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_vels_copied, 
-                                    const std::vector<geometry_msgs::TwistStamped> & ego_rbt_accs_copied, 
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                                     bool _print,
-                                    const std::vector<geometry_msgs::Pose> & _agent_odoms,
-                                    const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
-                                    const ros::Time & t_update) {
-        
-        agent_odoms = _agent_odoms;
-        agent_vels = _agent_vels;
+                                    const std::vector<geometry_msgs::Pose> & agentPoses,
+                                    const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
+                                    const ros::Time & t_update) 
+    {    
+        agentPoses_ = agentPoses;
+        agentVels_ = agentVels;
         print = _print;
 
         // acceleration and velocity come in wrt robot frame
-        ego_rbt_vels = ego_rbt_vels_copied;
-        ego_rbt_accs = ego_rbt_accs_copied;
-        // last_ego_rbt_vel = _current_rbt_vel;
-        // last_ego_rbt_acc = _current_rbt_acc;
+        intermediateRbtVels_ = intermediateRbtVels;
+        intermediateRbtAccs_ = intermediateRbtAccs;
+        // lastRbtVel_ = _current_rbt_vel;
+        // lastRbtAcc_ = _current_rbt_acc;
 
         // dt = scan_dt;
         // life_time += dt;
 
-        // inter_dt = (dt / ego_rbt_vels.size());
+        // inter_dt = (dt / intermediateRbtVels_.size());
 
-        if (ego_rbt_vels.size() == 0 || ego_rbt_accs.size() == 0)
+        if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
             return;
 
-        if (ego_rbt_vels.size() != ego_rbt_accs.size())
+        if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
         {
-            if (print) ROS_INFO_STREAM("    ego_rbt_vels is of size " << ego_rbt_vels.size() << " while ego_rbt_accs is of size " << ego_rbt_accs.size());
+            if (print) ROS_INFO_STREAM("    intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
             return;
         }
 
@@ -323,19 +324,19 @@ namespace dynamic_gap
         if (print) {
             ROS_INFO_STREAM("    update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
             ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
-            ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << last_ego_rbt_vel.twist.linear.x << ", y_lin: " << last_ego_rbt_vel.twist.linear.y << ", z_ang: " << last_ego_rbt_vel.twist.angular.z);
+            ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
         }
 
         processEgoRobotVelsAndAccs(t_update);
 
-        // get_ego_rbt_vels_accs();
+        // get_intermediateRbtVels__accs();
 
         x_tilde_ << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
         if (print) {
-            ROS_INFO_STREAM("    linear ego vel: " << last_ego_rbt_vel.twist.linear.x << ", " << last_ego_rbt_vel.twist.linear.y << ", angular ego vel: " << last_ego_rbt_vel.twist.angular.z);
-            ROS_INFO_STREAM("    linear ego acceleration: " << last_ego_rbt_acc.twist.linear.x << ", " << last_ego_rbt_acc.twist.linear.y << ", angular ego acc: " << last_ego_rbt_acc.twist.angular.z);
+            ROS_INFO_STREAM("    linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
+            ROS_INFO_STREAM("    linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);
         }
         
 
@@ -350,7 +351,7 @@ namespace dynamic_gap
 
         P_intermediate = P_kmin1_plus_;
         new_P = P_kmin1_plus_;
-        for (int i = 0; i < (ego_rbt_vels.size() - 1); i++) 
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {
             linearize(i);
 
@@ -405,16 +406,16 @@ namespace dynamic_gap
 
         // if (print)
         // {
-        //     ROS_INFO_STREAM("ego_rbt_vels size: " << ego_rbt_vels.size());
-        //     ROS_INFO_STREAM("ego_rbt_accs size: " << ego_rbt_accs.size());
+        //     ROS_INFO_STREAM("intermediateRbtVels_ size: " << intermediateRbtVels_.size());
+        //     ROS_INFO_STREAM("intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());
         // }
 
         
-        if (ego_rbt_vels.size() > 0)
-            last_ego_rbt_vel = ego_rbt_vels.back();
+        if (intermediateRbtVels_.size() > 0)
+            lastRbtVel_ = intermediateRbtVels_.back();
         
-        if (ego_rbt_accs.size() > 0)
-            last_ego_rbt_acc = ego_rbt_accs.back();
+        if (intermediateRbtAccs_.size() > 0)
+            lastRbtAcc_ = intermediateRbtAccs_.back();
 
         // if (print) ROS_INFO_STREAM("4");
 
@@ -578,9 +579,9 @@ namespace dynamic_gap
         float robot_i_odom_dist;
         float min_dist = std::numeric_limits<float>::infinity();
         int min_idx = -1;
-        for (int i = 0; i < agent_odoms.size(); i++) {
-            robot_i_odom_dist = sqrt(pow(agent_odoms[i].position.x - x_hat_kmin1_plus_[0], 2) + 
-                                     pow(agent_odoms[i].position.y - x_hat_kmin1_plus_[1], 2));
+        for (int i = 0; i < agentPoses_.size(); i++) {
+            robot_i_odom_dist = sqrt(pow(agentPoses_[i].position.x - x_hat_kmin1_plus_[0], 2) + 
+                                     pow(agentPoses_[i].position.y - x_hat_kmin1_plus_[1], 2));
             
             if (robot_i_odom_dist < min_dist) {
                 min_dist = robot_i_odom_dist;
@@ -590,8 +591,8 @@ namespace dynamic_gap
         
         
         if (print) {
-            if (agent_odoms.size() > 0) {
-                ROS_INFO_STREAM("closest odom: " << agent_odoms[min_idx].position.x << ", " << agent_odoms[min_idx].position.y);
+            if (agentPoses_.size() > 0) {
+                ROS_INFO_STREAM("closest odom: " << agentPoses_[min_idx].position.x << ", " << agentPoses_[min_idx].position.y);
             }
         }
         
@@ -604,23 +605,23 @@ namespace dynamic_gap
             }
             
             
-            // x_tilde_[0] = agent_odoms[min_idx].position.x;
-            // x_tilde_[1] = agent_odoms[min_idx].position.y;
+            // x_tilde_[0] = agentPoses_[min_idx].position.x;
+            // x_tilde_[1] = agentPoses_[min_idx].position.y;
             // return_x[0] = x_tilde_[0];
             // return_x[1] = x_tilde_[1];
-            return_x[2] = agent_vels[min_idx].vector.x - last_ego_rbt_vel.twist.linear.x;
-            return_x[3] = agent_vels[min_idx].vector.y - last_ego_rbt_vel.twist.linear.y;
+            return_x[2] = agentVels_[min_idx].vector.x - lastRbtVel_.twist.linear.x;
+            return_x[3] = agentVels_[min_idx].vector.y - lastRbtVel_.twist.linear.y;
 
-            x_ground_truth_gap_only[2] = agent_vels[min_idx].vector.x;
-            x_ground_truth_gap_only[3] = agent_vels[min_idx].vector.y;
+            x_ground_truth_gap_only[2] = agentVels_[min_idx].vector.x;
+            x_ground_truth_gap_only[3] = agentVels_[min_idx].vector.y;
         } else {
             
             if (print) {
                 ROS_INFO_STREAM("attaching to nothing");
             }
             
-            return_x[2] = 0.0 - last_ego_rbt_vel.twist.linear.x;
-            return_x[3] = 0.0 - last_ego_rbt_vel.twist.linear.y;
+            return_x[2] = 0.0 - lastRbtVel_.twist.linear.x;
+            return_x[3] = 0.0 - lastRbtVel_.twist.linear.y;
 
             x_ground_truth_gap_only[2] = 0.0;
             x_ground_truth_gap_only[3] = 0.0;            
@@ -638,8 +639,8 @@ namespace dynamic_gap
         if (life_time < 0.25)
         {
             // not trusting early measurements, just treating gap as static
-            return_x[2] = 0.0 - last_ego_rbt_vel.twist.linear.x;
-            return_x[3] = 0.0 - last_ego_rbt_vel.twist.linear.y;
+            return_x[2] = 0.0 - lastRbtVel_.twist.linear.x;
+            return_x[3] = 0.0 - lastRbtVel_.twist.linear.y;
         }
         */
 
@@ -660,13 +661,14 @@ namespace dynamic_gap
         return return_x;
     }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_rewind_cartesian_state() {
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getRewindGapState() {
         // x state:
         // [r_x, r_y, v_x, v_y]
         Eigen::Vector4f return_x = rewind_x;
         return return_x;
     }
 
+    /*
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_modified_polar_state() {
         // y state:
         // [1/r, beta, rdot/r, betadot]
@@ -683,14 +685,13 @@ namespace dynamic_gap
         // y state:
         // [1/r, beta, rdot/r, betadot]
         Eigen::Vector4f rewind_mp_state;
-        Eigen::Vector4f rewind_cart_state = get_rewind_cartesian_state();
+        Eigen::Vector4f rewind_cart_state = getRewindGapState();
         rewind_mp_state << 1.0 / sqrt(pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
                            std::atan2(rewind_cart_state[1], rewind_cart_state[0]),
                            (rewind_cart_state[0]*rewind_cart_state[2] + rewind_cart_state[1]*rewind_cart_state[3]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
                            (rewind_cart_state[0]*rewind_cart_state[3] - rewind_cart_state[1]*rewind_cart_state[2]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2));
         return rewind_mp_state;
     }
-   
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_frozen_modified_polar_state() {
         // y state:
@@ -703,16 +704,20 @@ namespace dynamic_gap
                            (frozen_cart_state[0]*frozen_cart_state[3] - frozen_cart_state[1]*frozen_cart_state[2]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2));
         return frozen_mp_state;
     }
+    */
 
-    geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() {
-        return last_ego_rbt_vel;
+    geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() 
+    {
+        return lastRbtVel_;
     }
 
-    int RotatingFrameCartesianKalmanFilter::get_index() {
+    int RotatingFrameCartesianKalmanFilter::get_index() 
+    {
         return index;
     }
 
-    Eigen::Vector2f RotatingFrameCartesianKalmanFilter::get_x_tilde() {
+    Eigen::Vector2f RotatingFrameCartesianKalmanFilter::get_x_tilde() 
+    {
         return x_tilde_;
     }
 }

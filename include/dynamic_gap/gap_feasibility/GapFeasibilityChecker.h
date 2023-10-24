@@ -30,8 +30,10 @@ namespace dynamic_gap
                                                     dynamic_gap::Estimator* left_model, 
                                                     dynamic_gap::Estimator* right_model);
             void generateTerminalPoints(dynamic_gap::Gap & gap, 
-                                        float terminal_beta_left, float terminal_reciprocal_range_left, 
-                                        float terminal_beta_right, float terminal_reciprocal_range_right);
+                                        Eigen::Vector4f leftCrossPt,
+                                        Eigen::Vector4f rightCrossPt);
+                                        // float terminal_beta_left, float terminal_reciprocal_range_left, 
+                                        // float terminal_beta_right, float terminal_reciprocal_range_right);
             float indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, 
                                             dynamic_gap::Estimator*, dynamic_gap::Estimator*);
 
