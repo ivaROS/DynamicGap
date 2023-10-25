@@ -245,14 +245,6 @@ namespace dynamic_gap
             leftToRightAngle = getLeftToRightAngle(leftBearingVect, rightBearingVect);
             thetaCenter = (thetaLeft - 0.5 * leftToRightAngle);
 
-            // prev_thetaLeft = getGapBearing(prevLeftGapState); // prev_left_frozen_mp_state[1];
-            // prev_thetaRight = getGapBearing(prevRightGapState); // prev_right_frozen_mp_state[1];
-            prevLeftBearingVect = prevLeftGapState.head(2) / getGapDist(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
-            prevRightBearingVect = prevRightGapState.head(2) / getGapDist(prevRightGapState); // << std::cos(prev_thetaRight), std::sin(prev_thetaRight);
-            prevLeftToRightAngle = getLeftToRightAngle(prevLeftBearingVect, prevRightBearingVect);            
-
-            // ROS_INFO_STREAM("prevLeftToRightAngle: " << prevLeftToRightAngle << ", leftToRightAngle: " << leftToRightAngle);
-
             centralBearingVect << std::cos(thetaCenter), std::sin(thetaCenter);
         
             left_central_dot = leftBearingVect.dot(prevCentralBearingVect);
@@ -282,7 +274,8 @@ namespace dynamic_gap
 
                     gapCrossingPt += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gapCrossingPt / gapCrossingPt.norm());
                     gap.setClosingPoint(gapCrossingPt[0], gapCrossingPt[1]);
-                    float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                    // float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                    float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0);
                     if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap closed at " << ending_time); 
 
                     gap.closed_ = true;
@@ -298,13 +291,25 @@ namespace dynamic_gap
                         gap.setCrossingPoint(mid_x, mid_y);
                         first_cross = false;
 
-                        float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                        // float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                        float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0);
+
                         if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap crossed at " << ending_time); 
 
                         gap.crossed_ = true;
                     }
                 }
-            } else if (prevLeftToRightAngle > (3*M_PI / 4) && leftToRightAngle < (M_PI / 4)) 
+            }
+            
+            // prev_thetaLeft = getGapBearing(prevLeftGapState); // prev_left_frozen_mp_state[1];
+            // prev_thetaRight = getGapBearing(prevRightGapState); // prev_right_frozen_mp_state[1];
+            prevLeftBearingVect = prevLeftGapState.head(2) / getGapDist(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
+            prevRightBearingVect = prevRightGapState.head(2) / getGapDist(prevRightGapState); // << std::cos(prev_thetaRight), std::sin(prev_thetaRight);
+            prevLeftToRightAngle = getLeftToRightAngle(prevLeftBearingVect, prevRightBearingVect);            
+
+            // ROS_INFO_STREAM("prevLeftToRightAngle: " << prevLeftToRightAngle << ", leftToRightAngle: " << leftToRightAngle);            
+            
+            if (prevLeftToRightAngle > (3*M_PI / 4) && leftToRightAngle < (M_PI / 4)) 
             {
                 // checking for case of gap crossing behind the robot
                 // leftCrossPt = prevLeftGapState.head(2);
