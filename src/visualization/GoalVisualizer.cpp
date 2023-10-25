@@ -52,8 +52,8 @@ namespace dynamic_gap
         if (!cfg_->gap_viz.debug_viz || !g.goal.set) return;
 
         visualization_msgs::Marker lg_marker;
-        lg_marker.header.frame_id = g._frame;
-        // std::cout << "g frame in draw gap goal: " << g._frame << std::endl;
+        lg_marker.header.frame_id = g.frame_;
+        // std::cout << "g frame in draw gap goal: " << g.frame_ << std::endl;
         lg_marker.header.stamp = ros::Time::now();
         lg_marker.ns = "gap_goal";
         lg_marker.id = int (vis_arr.markers.size());

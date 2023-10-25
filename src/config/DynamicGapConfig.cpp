@@ -18,8 +18,12 @@ namespace dynamic_gap
 
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
-        nh.param("num_obsts", rbt.num_obsts, rbt.num_obsts);
-        nh.param("max_range", rbt.max_range, rbt.max_range);
+
+        // Environment
+        nh.param("num_obsts", env.num_obsts, env.num_obsts);
+
+        // Scan
+        nh.param("max_range", scan.range_max, scan.range_max);
 
         // Planning Information
         nh.param("projection_inflated", planning.projection_inflated, planning.projection_inflated);
@@ -92,6 +96,21 @@ namespace dynamic_gap
         nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
         nh.param("waypoint_ratio", traj.waypoint_ratio, traj.waypoint_ratio);
         nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
-        nh.param("num_qB_points", traj.num_qB_points, traj.num_qB_points);
+        nh.param("num_extended_gap_origin_points", traj.num_extended_gap_origin_points, traj.num_extended_gap_origin_points);
     }
+
+    void DynamicGapConfig::updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr)
+    {
+        sensor_msgs::LaserScan incomingScan = *scanPtr.get();
+        scan.angle_min = incomingScan.angle_min;
+        scan.angle_max = incomingScan.angle_max;
+        scan.full_scan = incomingScan.ranges.size();
+        scan.full_scan_f = float(scan.full_scan);
+        scan.half_scan = scan.full_scan / 2;
+        scan.half_scan_f = float(scan.half_scan);        
+        scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
+        scan.range_max = 4.99; // this is the maximum possible range, not the max range within a particular scan
+        // scan.range_min = 0.0;
+    }
+
 }

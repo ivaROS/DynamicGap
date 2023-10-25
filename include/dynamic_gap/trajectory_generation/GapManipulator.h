@@ -27,24 +27,25 @@ namespace dynamic_gap
             void updateDynamicEgoCircle(dynamic_gap::Gap&,
                                         const std::vector<sensor_msgs::LaserScan> &);
 
-            void setGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
-            void setTerminalGapWaypoint(dynamic_gap::Gap& gap, geometry_msgs::PoseStamped localgoal);
+            void setGapWaypoint(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
+            void setTerminalGapWaypoint(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localgoal);
             
-            void reduceGap(dynamic_gap::Gap&, geometry_msgs::PoseStamped, bool); //), sensor_msgs::LaserScan const);
-            void convertRadialGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
-            void radialExtendGap(dynamic_gap::Gap&, bool); //, sensor_msgs::LaserScan const);
+            void reduceGap(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localGoal, bool initial); //), sensor_msgs::LaserScan const);
+            void convertRadialGap(dynamic_gap::Gap& gap, bool initial); //, sensor_msgs::LaserScan const);
+            void radialExtendGap(dynamic_gap::Gap& gap, bool initial); //, sensor_msgs::LaserScan const);
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
 
         private:
-            boost::shared_ptr<sensor_msgs::LaserScan const> msg;
-            sensor_msgs::LaserScan static_scan, dynamic_scan;
+            bool checkGoalVisibility(const geometry_msgs::PoseStamped & localGoal, float theta_r, float theta_l, float rdist, float ldist);
+
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
+            sensor_msgs::LaserScan staticScan_, dynamicScan_;
             const DynamicGapConfig* cfg_;
-            int num_of_scan;
-            int half_num_scan;
-            float angle_min;
-            float angle_increment; 
+            // int num_of_scan;
+            // int half_num_scan;
+            // float angle_min;
+            // float angle_increment; 
             boost::mutex egolock;
 
-            bool checkGoalVisibility(geometry_msgs::PoseStamped, float theta_r, float theta_l, float rdist, float ldist, sensor_msgs::LaserScan const scan);
     };
 }

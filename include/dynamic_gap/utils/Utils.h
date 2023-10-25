@@ -24,6 +24,9 @@ namespace dynamic_gap
     float getGapBearing(Eigen::Vector4f gapState);
     float getGapBearingRateOfChange(Eigen::Vector4f gapState);
 
+    int subtract_wrap(int a, int b);
+    bool isGapLocalGoalWithin(int goal_idx, int idx_lower, int idx_upper, int full_scan);
+
     static int half_num_scan = 256;
     static float angle_increment = (2*M_PI) / 511; //  0.0122959f;
 }

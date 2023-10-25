@@ -3,18 +3,6 @@
 
 namespace dynamic_gap 
 {
-    /*
-    void GapFeasibilityChecker::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) 
-    {
-        boost::mutex::scoped_lock lock(egolock);
-        msg = msg_;
-        auto scan = *msg.get();
-        num_of_scan = (int)(scan.ranges.size());
-        scan_angle_increment_ = scan.angle_increment;
-        scan_angle_min_ = scan.angle_min;
-    }
-    */
-
     bool GapFeasibilityChecker::indivGapFeasibilityCheck(dynamic_gap::Gap& gap) 
     {
         if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("        [indivGapFeasibilityCheck()]");
@@ -54,20 +42,20 @@ namespace dynamic_gap
         if (gap.artificial) 
         {
             feasible = true;
-            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.gapLifespan_ = cfg_->traj.integrate_maxt;
             gap.setTerminalPoints(gap.LIdx(), gap.LDist(), gap.RIdx(), gap.RDist());
             gap.setCategory("static");
         } else if (subLeftGapBearingRate > 0) 
         {
             // expanding
             feasible = true;
-            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.gapLifespan_ = cfg_->traj.integrate_maxt;
             gap.setCategory("expanding");
         } else if (subLeftGapBearingRate == 0 && subRightGapBearingRate == 0) 
         {
             // static
             feasible = true;
-            gap.gap_lifespan = cfg_->traj.integrate_maxt;
+            gap.gapLifespan_ = cfg_->traj.integrate_maxt;
             gap.setCategory("static");
         } else 
         {
@@ -76,7 +64,7 @@ namespace dynamic_gap
             if (crossing_time >= 0) 
             {
                 feasible = true;
-                gap.gap_lifespan = crossing_time;
+                gap.gapLifespan_ = crossing_time;
             }
         }
 
@@ -275,7 +263,7 @@ namespace dynamic_gap
                     gapCrossingPt += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gapCrossingPt / gapCrossingPt.norm());
                     gap.setClosingPoint(gapCrossingPt[0], gapCrossingPt[1]);
                     // float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
-                    float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0);
+                    float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0f);
                     if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap closed at " << ending_time); 
 
                     gap.closed_ = true;
@@ -292,7 +280,7 @@ namespace dynamic_gap
                         first_cross = false;
 
                         // float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
-                        float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0);
+                        float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0f);
 
                         if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap crossed at " << ending_time); 
 

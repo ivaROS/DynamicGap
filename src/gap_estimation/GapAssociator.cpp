@@ -22,8 +22,8 @@ namespace dynamic_gap {
 			// this is still true, I just don't know how to handle indexing right now
             // populating the coordinates of the gap points (in rbt frame) to compute distances
 			//std::cout << "adding left points" << std::endl;
-			//std::cout << "convex l dist: " << g.convex.convex_ldist << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.convex_lidx << std::endl;
-			//std::cout << "convex r dist: " << g.convex.convex_rdist << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.convex_ridx << std::endl;
+			//std::cout << "convex l dist: " << g.convex.leftDist_ << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.leftIdx_ << std::endl;
+			//std::cout << "convex r dist: " << g.convex.rightDist_ << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.rightIdx_ << std::endl;
 			// std::string print_string;					
 
 			int lidx = g.LIdx();

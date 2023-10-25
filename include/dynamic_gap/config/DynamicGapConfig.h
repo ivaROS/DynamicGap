@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <sensor_msgs/LaserScan.h>
+#include <boost/shared_ptr.hpp>
 
 namespace dynamic_gap 
 {
@@ -24,10 +26,25 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2;
-                int num_obsts = 0;
-                float max_range = 4.99;
-                int half_num_scan = 256;
             } rbt;
+
+            struct Environment
+            {
+                int num_obsts = 0; // needs to be updated from launch file
+            } env;
+
+            struct Scan
+            {
+                float angle_min = -M_PI;
+                float angle_max = M_PI;
+                int half_scan = 256;
+                float half_scan_f = 256.;
+                int full_scan = 512;
+                float full_scan_f = 512.;
+                float angle_increment = (2 * M_PI) / (full_scan_f - 1);
+                float range_max = 4.99;
+                float range_min = 0.0;
+            } scan;
 
             struct PlanningMode 
             {
@@ -38,7 +55,7 @@ namespace dynamic_gap
                 bool far_feasible = true;
                 int num_feasi_check = 20;
                 int halt_size = 5;
-                bool egocircle_prop_cheat = false;
+                bool egocircle_prop_cheat = true;
                 bool dynamic_feasibility_check = true;
             } planning;            
 
@@ -62,7 +79,7 @@ namespace dynamic_gap
                 bool gap_simplification_debug_log = false;
                 bool raw_gaps_debug_log = false;
                 bool static_scan_separation_debug_log = false;
-                bool simplified_gaps_debug_log = true;
+                bool simplified_gaps_debug_log = false;
                 bool future_scan_propagation_debug_log = false;
                 bool feasibility_debug_log = true;
                 bool manipulation_debug_log = false;
@@ -100,7 +117,7 @@ namespace dynamic_gap
                 float terminal_weight = 10.0;
                 float waypoint_ratio = 1.5;
                 int num_curve_points = 20;
-                int num_qB_points = 6;
+                int num_extended_gap_origin_points = 6;
             } traj;            
 
             struct ControlParams 
@@ -132,5 +149,6 @@ namespace dynamic_gap
             } projection;
 
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
+        void updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
     };
 }

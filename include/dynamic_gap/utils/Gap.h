@@ -20,154 +20,158 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float min_safe_dist) : 
-                _frame(frame), _right_idx(right_idx), _rdist(rdist), _radial(radial), half_scan(half_scan), min_safe_dist(min_safe_dist)
+            Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float minSafeDist_) : 
+                frame_(frame), rightIdx_(right_idx), rightDist_(rdist), radial_(radial), half_scan(half_scan), minSafeDist_(minSafeDist_)
             {
-                qB << 0.0, 0.0;
-                terminal_qB << 0.0, 0.0;
-                right_bezer_origin << 0.0, 0.0;
-                left_bezier_origin << 0.0, 0.0;
+                extendedGapOrigin << 0.0, 0.0;
+                termExtendedGapOrigin << 0.0, 0.0;
+                rightBezierOrigin << 0.0, 0.0;
+                leftBezierOrigin << 0.0, 0.0;
             };
 
             ~Gap() {};
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
-            int LIdx() const { return _left_idx; }
-            void setLIdx(int lidx) { _left_idx = lidx; }
+            int LIdx() const { return leftIdx_; }
+            void setLIdx(int lidx) { leftIdx_ = lidx; }
 
-            int RIdx() const { return _right_idx; }
-            void setRIdx(int ridx) { _right_idx = ridx; }
+            int RIdx() const { return rightIdx_; }
+            void setRIdx(int ridx) { rightIdx_ = ridx; }
 
-            float LDist() const { return _ldist; }
-            void setLDist(float ldist) { _ldist = ldist; }
+            float LDist() const { return leftDist_; }
+            void setLDist(float ldist) { leftDist_ = ldist; }
 
-            float RDist() const { return _rdist; }
-            void setRDist(float rdist) { _rdist = rdist; }
+            float RDist() const { return rightDist_; }
+            void setRDist(float rdist) { rightDist_ = rdist; }
 
-            int term_RIdx() const { return terminal_ridx; }
-            void setTermRIdx(int terminal_ridx) { terminal_ridx = terminal_ridx; }
+            int termRIdx() const { return termRightIdx_; }
+            void setTermRIdx(int termRightIdx_) { termRightIdx_ = termRightIdx_; }
 
-            int term_LIdx() const { return terminal_lidx; }
-            void setTermLIdx(int terminal_lidx) { terminal_lidx = terminal_lidx; }
+            int termLIdx() const { return termLeftIdx_; }
+            void setTermLIdx(int termLeftIdx_) { termLeftIdx_ = termLeftIdx_; }
 
-            float term_RDist() const { return terminal_rdist; }
-            void setTermRDist(float term_rdist) { terminal_rdist = term_rdist; }
+            float termRDist() const { return termRightDist_; }
+            void setTermRDist(float termRDist) { termRightDist_ = termRDist; }
 
-            float term_LDist() const { return terminal_ldist; }
-            void setTermLDist(float term_ldist) { terminal_ldist = term_ldist; }
+            float termLDist() const { return termLeftDist_; }
+            void setTermLDist(float termLDist) { termLeftDist_ = termLDist; }
 
-            int cvx_RIdx() const { return convex.convex_ridx; }
-            void setCvxRIdx(int cvx_ridx) { convex.convex_ridx = cvx_ridx; }
+            int cvxRightIdx() const { return convex.rightIdx_; }
+            void setCvxRIdx(int cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
 
-            int cvx_LIdx() const { return convex.convex_lidx; }
-            void setCvxLIdx(int cvx_lidx) { convex.convex_lidx = cvx_lidx; }
+            int cvxLeftIdx() const { return convex.leftIdx_; }
+            void setCvxLIdx(int cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
 
-            float cvx_RDist() const { return convex.convex_rdist; }
-            void setCvxRDist(float cvx_rdist) { convex.convex_rdist = cvx_rdist; }
+            float cvxRightDist() const { return convex.rightDist_; }
+            void setCvxRDist(float cvxRightDist) { convex.rightDist_ = cvxRightDist; }
 
-            float cvx_LDist() const { return convex.convex_ldist; }
-            void setCvxLDist(float cvx_ldist) { convex.convex_ldist = cvx_ldist; }
+            float cvxLeftDist() const { return convex.leftDist_; }
+            void setCvxLDist(float cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
 
-            int cvx_term_RIdx() const { return convex.terminal_ridx; }
-            void setCvxTermRIdx(int cvx_term_ridx) { convex.terminal_ridx = cvx_term_ridx; }
+            int cvxTermRIdx() const { return convex.termRightIdx_; }
+            void setCvxTermRIdx(int cvxTermRIdx) { convex.termRightIdx_ = cvxTermRIdx; }
 
-            int cvx_term_LIdx() const { return convex.terminal_lidx; }
-            void setCvxTermLIdx(int cvx_term_lidx) { convex.terminal_lidx = cvx_term_lidx; }
+            int cvxTermLIdx() const { return convex.termLeftIdx_; }
+            void setCvxTermLIdx(int cvxTermLIdx) { convex.termLeftIdx_ = cvxTermLIdx; }
 
-            float cvx_term_RDist() const { return convex.terminal_rdist; }
-            void setCvxTermRDist(float cvx_term_rdist) { convex.terminal_rdist = cvx_term_rdist; }
+            float cvxTermRDist() const { return convex.termRightDist_; }
+            void setCvxTermRDist(float cvxTermRDist) { convex.termRightDist_ = cvxTermRDist; }
 
-            float cvx_term_LDist() const { return convex.terminal_ldist; }
-            void setCvxTermLDist(float cvx_term_ldist) { convex.terminal_ldist = cvx_term_ldist; }
+            float cvxTermLDist() const { return convex.termLeftDist_; }
+            void setCvxTermLDist(float cvxTermLDist) { convex.termLeftDist_ = cvxTermLDist; }
 
             // Concluding the Gap after constructing with left information
             void addLeftInformation(int left_idx, float ldist) 
             {
-                _left_idx = left_idx;
-                _ldist = ldist;
-                right_type = _rdist < _ldist;
+                leftIdx_ = left_idx;
+                leftDist_ = ldist;
+                right_type = rightDist_ < leftDist_;
 
-                if (!_radial)
-                {
-                    _radial = isRadial();
-                }
+                // if (!radial_)
+                // {
+                //     radial_ = isRadial();
+                // }
 
-                convex.convex_ridx = _right_idx;
-                convex.convex_lidx = _left_idx;
-                convex.convex_rdist = _rdist;
-                convex.convex_ldist = _ldist;
+                convex.rightIdx_ = rightIdx_;
+                convex.leftIdx_ = leftIdx_;
+                convex.rightDist_ = rightDist_;
+                convex.leftDist_ = leftDist_;
+
+                setRadial();
             }
 
             void addTerminalRightInformation()
             {
-                terminal_right_type = terminal_rdist < terminal_ldist;
+                terminal_right_type = termRightDist_ < termLeftDist_;
 
-                if (!_terminal_radial)
-                {
-                    _terminal_radial = isRadial();
-                }
+                // if (!termRadial_)
+                // {
+                //     termRadial_ = isRadial();
+                // }
 
-                convex.terminal_ridx = terminal_ridx;
-                convex.terminal_lidx = terminal_lidx;
-                convex.terminal_rdist = terminal_rdist;
-                convex.terminal_ldist = terminal_ldist;
+                convex.termRightIdx_ = termRightIdx_;
+                convex.termLeftIdx_ = termLeftIdx_;
+                convex.termRightDist_ = termRightDist_;
+                convex.termLeftDist_ = termLeftDist_;
+
+                setRadial(false);
             }
 
             // Get Left Cartesian Distance
             // edited by Max: float &x, float &y
             void getLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(_left_idx);
-                x = (_ldist) * cos(ltheta);
-                y = (_ldist) * sin(ltheta);
+                float ltheta = idx2theta(leftIdx_);
+                x = (leftDist_) * cos(ltheta);
+                y = (leftDist_) * sin(ltheta);
             }
 
             // Get Right Cartesian Distance
             void getRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(_right_idx);
-                x = (_rdist) * cos(rtheta);
-                y = (_rdist) * sin(rtheta);
+                float rtheta = idx2theta(rightIdx_);
+                x = (rightDist_) * cos(rtheta);
+                y = (rightDist_) * sin(rtheta);
             }
 
             void getSimplifiedLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(convex.convex_lidx);
-                // std::cout << "convex_rdist: " << convex_rdist << ", convex_ridx: " << convex_ridx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_ldist) * cos(ltheta);
-                y = (convex.convex_ldist) * sin(ltheta);
+                float ltheta = idx2theta(convex.leftIdx_);
+                // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.leftDist_) * cos(ltheta);
+                y = (convex.leftDist_) * sin(ltheta);
             }
 
             void getSimplifiedRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(convex.convex_ridx);
-                // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_rdist) * cos(rtheta);
-                y = (convex.convex_rdist) * sin(rtheta);
+                float rtheta = idx2theta(convex.rightIdx_);
+                // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.rightDist_) * cos(rtheta);
+                y = (convex.rightDist_) * sin(rtheta);
             }
 
             void initManipIndices() 
             {
-                convex.convex_ridx = _right_idx;
-                convex.convex_rdist = _rdist;
-                convex.convex_lidx = _left_idx;
-                convex.convex_ldist = _ldist;
+                convex.rightIdx_ = rightIdx_;
+                convex.rightDist_ = rightDist_;
+                convex.leftIdx_ = leftIdx_;
+                convex.leftDist_ = leftDist_;
 
-                convex.terminal_ridx = terminal_ridx;
-                convex.terminal_rdist = terminal_rdist;
-                convex.terminal_lidx = terminal_lidx;
-                convex.terminal_ldist = terminal_ldist;
+                convex.termRightIdx_ = termRightIdx_;
+                convex.termRightDist_ = termRightDist_;
+                convex.termLeftIdx_ = termLeftIdx_;
+                convex.termLeftDist_ = termLeftDist_;
             }
 
             void setRadial(bool initial = true)
             {
                 // ROS_INFO_STREAM("setRadial:");
                 // does resoln here imply 360 deg FOV?
-                int check_l_idx = initial ? _left_idx : terminal_lidx;
-                int check_r_idx = initial ? _right_idx : terminal_ridx;
+                int check_l_idx = initial ? leftIdx_ : termLeftIdx_;
+                int check_r_idx = initial ? rightIdx_ : termRightIdx_;
 
-                float check_l_dist = initial ? _ldist : terminal_ldist;
-                float check_r_dist = initial ? _rdist : terminal_rdist;
+                float check_l_dist = initial ? leftDist_ : termLeftDist_;
+                float check_r_dist = initial ? rightDist_ : termRightDist_;
 
                 // ROS_INFO_STREAM("   check_l_idx: " << check_l_idx);
                 // ROS_INFO_STREAM("   check_l_dist: " << check_l_dist);
@@ -195,19 +199,19 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("   alpha: " << alpha);
 
                 if (initial)
-                    _radial = alpha > 0.75 * M_PI;
+                    radial_ = alpha > 0.75 * M_PI;
                 else
-                    _terminal_radial = alpha > 0.75 * M_PI;     
+                    termRadial_ = alpha > 0.75 * M_PI;     
             }
 
             bool isRadial(bool initial = true) const
             {
-                return (initial ? _radial : _terminal_radial);
+                return (initial ? radial_ : termRadial_);
             }
 
             // void setRadial()
             // {
-            //     _radial = false;
+            //     radial_ = false;
             // }
 
             bool isRightType(bool initial = true) const
@@ -218,82 +222,87 @@ namespace dynamic_gap
                     return terminal_right_type;
             }
 
+            /*
             void resetFrame(std::string frame) 
             {
-                _frame = frame;
+                frame_ = frame;
             }
+            */
 
             float getMinSafeDist() 
             {
-                return min_safe_dist;
+                return minSafeDist_;
             }
 
             void setTerminalMinSafeDist(float _dist) 
             {
-                terminal_min_safe_dist = _dist;
+                terminalMinSafeDist_ = _dist;
             }
 
             float getTerminalMinSafeDist() 
             {
-                return terminal_min_safe_dist;
+                return terminalMinSafeDist_;
             }
 
+            /*
             std::string getFrame() 
             {
-                return _frame;
+                return frame_;
             }
+            */
 
-            void setCategory(std::string _category) {
-                // ROS_INFO_STREAM("setting category to: " << _category);
-                category = _category;
+            void setCategory(std::string category) 
+            {
+                // ROS_INFO_STREAM("setting category to: " << _category_);
+                category_ = category;
             }
 
             std::string getCategory() {
-                return category;
+                return category_;
             }
 
             void setCrossingPoint(float x, float y) {
                 // ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
-                crossing_pt << x,y;
+                crossingPt_ << x,y;
             }
 
             Eigen::Vector2f getCrossingPoint() {
-                return crossing_pt;
+                return crossingPt_;
             }
 
             void setClosingPoint(float x, float y) {
                 // ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
-                closing_pt << x,y;
+                closingPt_ << x,y;
             }
 
             Eigen::Vector2f getClosingPoint() {
-                return closing_pt;
+                return closingPt_;
             }
 
             // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
             // calculates the euclidean distance between the left and right gap points using the law of cosines
             float get_gap_euclidean_dist() const 
             {
-                int idx_diff = _left_idx - _right_idx;
+                int idx_diff = leftIdx_ - rightIdx_;
                 if (idx_diff < 0) {
                     idx_diff += (2*half_scan);
                 } 
                 float gap_angle = (float(idx_diff) / float(half_scan)) * M_PI;
-                return sqrt(pow(_rdist, 2) + pow(_ldist, 2) - 2 * _rdist * _ldist * cos(gap_angle));
+                return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gap_angle));
             }
 
-            void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
+            void setTerminalPoints(float _termLeftIdx_, float _termLeftDist_, float _termRightIdx_, float _termRightDist_) {
                 
-                terminal_lidx = _terminal_lidx;
-                terminal_ldist = _terminal_ldist;
-                terminal_ridx = _terminal_ridx;
-                terminal_rdist = _terminal_rdist;
+                termLeftIdx_ = _termLeftIdx_;
+                termLeftDist_ = _termLeftDist_;
+                termRightIdx_ = _termRightIdx_;
+                termRightDist_ = _termRightDist_;
 
-                if (terminal_lidx == terminal_ridx) {
+                if (termLeftIdx_ == termRightIdx_) {
                     // ROS_INFO_STREAM("terminal indices are the same");
-                    terminal_lidx = (terminal_lidx + 1) % 512;
+                    termLeftIdx_ = (termLeftIdx_ + 1) % 512;
                 }
-                // ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
+                // ROS_INFO_STREAM("setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
             }
 
             void printCartesianPoints(bool initial, bool simplified) 
@@ -304,31 +313,31 @@ namespace dynamic_gap
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(_left_idx);
-                        rtheta = idx2theta(_right_idx);
-                        ldist = _ldist;
-                        rdist = _rdist;
+                        ltheta = idx2theta(leftIdx_);
+                        rtheta = idx2theta(rightIdx_);
+                        ldist = leftDist_;
+                        rdist = rightDist_;
                     } else 
                     {
-                        ltheta = idx2theta(convex.convex_lidx);
-                        rtheta = idx2theta(convex.convex_ridx);    
-                        ldist = convex.convex_ldist;
-                        rdist = convex.convex_rdist;                                                         
+                        ltheta = idx2theta(convex.leftIdx_);
+                        rtheta = idx2theta(convex.rightIdx_);    
+                        ldist = convex.leftDist_;
+                        rdist = convex.rightDist_;                                                         
                     }
                 } else 
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(terminal_lidx);
-                        rtheta = idx2theta(terminal_ridx);     
-                        ldist = terminal_ldist;
-                        rdist = terminal_rdist;          
+                        ltheta = idx2theta(termLeftIdx_);
+                        rtheta = idx2theta(termRightIdx_);     
+                        ldist = termLeftDist_;
+                        rdist = termRightDist_;          
                     } else 
                     {
-                        ltheta = idx2theta(convex.terminal_lidx);
-                        rtheta = idx2theta(convex.terminal_ridx);    
-                        ldist = convex.terminal_ldist;
-                        rdist = convex.terminal_rdist;                       
+                        ltheta = idx2theta(convex.termLeftIdx_);
+                        rtheta = idx2theta(convex.termRightIdx_);    
+                        ldist = convex.termLeftDist_;
+                        rdist = convex.termRightDist_;                       
                     }
                 }
 
@@ -340,44 +349,24 @@ namespace dynamic_gap
                 ROS_INFO_STREAM("x_l, y_l: (" << x_l << ", " << y_l << "), x_r,y_r: (" << x_r << ", " << y_r << ")");
             }   
             
-            float gap_lifespan = 5.0   ;
+            float gapLifespan_ = 5.0;
 
-            int _right_idx = 0;
-            int _left_idx = 511;
-            float _rdist = 5;
-            float _ldist = 5;
-            int terminal_ridx = 0;
-            int terminal_lidx = 511;
-            float terminal_rdist = 5;
-            float terminal_ldist = 5;
-
-            float min_safe_dist = -1;
-            float terminal_min_safe_dist = -1;
-            Eigen::Vector2f qB;
-            Eigen::Vector2f terminal_qB;
-            Eigen::Vector2f right_bezer_origin;
-            Eigen::Vector2f left_bezier_origin;
+            float minSafeDist_ = -1;
+            float terminalMinSafeDist_ = -1;
+            Eigen::Vector2f extendedGapOrigin;
+            Eigen::Vector2f termExtendedGapOrigin;
+            Eigen::Vector2f rightBezierOrigin;
+            Eigen::Vector2f leftBezierOrigin;
             float half_scan = 256;
 
-            std::string _frame = "";
-            bool _radial = false;
-            bool _terminal_radial = false;
+            std::string frame_ = "";
+            bool radial_ = false;
+            bool termRadial_ = false;
             bool right_type = false;
             bool terminal_right_type = false;
 
             float peak_velocity_x = 0.0;
             float peak_velocity_y = 0.0;
-
-            struct converted {
-                int convex_ridx = 0;
-                int convex_lidx = 511;
-                float convex_rdist = 5;
-                float convex_ldist = 5;
-                int terminal_ridx = 0;
-                int terminal_lidx = 511;
-                float terminal_rdist = 5;
-                float terminal_ldist = 5;
-            } convex;
 
             struct GapMode {
                 bool reduced = false;
@@ -402,12 +391,12 @@ namespace dynamic_gap
                 bool goalwithin = false;
             } terminal_goal;
 
-            Estimator *rightGapPtModel;
-            Estimator *leftGapPtModel;
-            int _index;
-            std::string category;
-            Eigen::Vector2f crossing_pt;
-            Eigen::Vector2f closing_pt;
+            Estimator * rightGapPtModel;
+            Estimator * leftGapPtModel;
+            // int _index;
+            std::string category_;
+            Eigen::Vector2f crossingPt_;
+            Eigen::Vector2f closingPt_;
 
             bool crossed_ = false;
             bool closed_ = false;
@@ -423,6 +412,30 @@ namespace dynamic_gap
             Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
             int num_left_rge_points = 0;
             int num_right_rge_points = 0;
-        // private:
+
+        private:
+
+            int leftIdx_ = 511;
+            int rightIdx_ = 0;
+            float rightDist_ = 5;
+            float leftDist_ = 5;
+            int termLeftIdx_ = 511;
+            int termRightIdx_ = 0;
+            float termRightDist_ = 5;
+            float termLeftDist_ = 5;
+            
+            struct Convex 
+            {
+                int leftIdx_ = 511;
+                int rightIdx_ = 0;
+                float leftDist_ = 5;
+                float rightDist_ = 5;
+                int termLeftIdx_ = 511;
+                int termRightIdx_ = 0;
+                float termLeftDist_ = 5;
+                float termRightDist_ = 5;
+            } convex;
+
+
     };
 }

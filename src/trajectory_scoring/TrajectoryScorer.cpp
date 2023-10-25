@@ -69,7 +69,7 @@ namespace dynamic_gap {
             
             dist = sqrt(pow(odom_vect[0], 2) + pow(odom_vect[1], 2));
             //ROS_INFO_STREAM("dist: " << dist);
-            if (dist < cfg_->rbt.max_range) {
+            if (dist < cfg_->scan.range_max) {
                 A.push_back(odom_vect);
             }
         }
@@ -104,7 +104,7 @@ namespace dynamic_gap {
         // for EVERY interval, start with static scan
         dynamic_laser_scan.ranges = static_scan.ranges;
 
-        float max_range = cfg_->rbt.max_range;
+        float max_range = cfg_->scan.range_max;
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < curr_agents_lc.size(); i++) 
         {

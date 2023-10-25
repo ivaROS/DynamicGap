@@ -70,7 +70,7 @@ namespace dynamic_gap
         robotPoseOdomFrame_ = geometry_msgs::PoseStamped();
         globalGoalRobotFrame_ = geometry_msgs::PoseStamped();
 
-        currentAgentCount_ = cfg_.rbt.num_obsts;
+        currentAgentCount_ = cfg_.env.num_obsts;
 
         currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
         currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
@@ -124,6 +124,7 @@ namespace dynamic_gap
 
         ros::Time curr_time = scan_->header.stamp;
 
+        cfg_.updateParamFromScan(scan_);
 
         ros::Time tCurrentFilterUpdate = scan_->header.stamp;
         if (hasGlobalGoal_)
@@ -252,7 +253,7 @@ namespace dynamic_gap
             gap.getLCartesian(rX, rY);
 		}
 
-        ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
+        // ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
 
 		// Eigen::Vector2f laserscan_measurement(rangeTilde, thetaTilde);
         Eigen::Vector2f measurement(rX, rY);

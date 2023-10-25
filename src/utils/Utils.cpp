@@ -91,6 +91,25 @@ namespace dynamic_gap
         return new_theta;
     }
 
+    int subtract_wrap(int a, int b) 
+    {
+        return (a < 0) ? a+b : a;
+    }
+
+    // helper functions need to be placed above where they are used
+    bool isGapLocalGoalWithin(int goal_idx, int idx_lower, int idx_upper, int full_scan) 
+    {
+        if (idx_lower < idx_upper) 
+        {
+            // ROS_INFO_STREAM("no wrapping, is goal idx between " << idx_lower << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < idx_upper); //if no wrapping occurs
+        } else 
+        {
+            // ROS_INFO_STREAM("wrapping, is goal idx between " << idx_lower << " and " << full_scan << ", or between " << 0 << " and " << idx_upper);
+            return (goal_idx > idx_lower && goal_idx < full_scan) || (goal_idx > 0 && goal_idx < idx_upper); // if wrapping occurs
+        }
+    }
+
     /*
     float atanThetaWrap(float theta) 
     {
