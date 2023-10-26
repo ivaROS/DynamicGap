@@ -26,6 +26,7 @@ namespace dynamic_gap
 
     int subtract_wrap(int a, int b);
     bool isGapLocalGoalWithin(int goal_idx, int idx_lower, int idx_upper, int full_scan);
+    int signum(float value);
 
     static int half_num_scan = 256;
     static float angle_increment = (2*M_PI) / 511; //  0.0122959f;

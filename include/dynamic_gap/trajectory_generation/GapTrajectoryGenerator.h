@@ -34,7 +34,7 @@ namespace dynamic_gap {
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, const geometry_msgs::PoseStamped & , const geometry_msgs::TwistStamped &, bool);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformBackTrajectory(const geometry_msgs::PoseArray &, 
                                                              const geometry_msgs::TransformStamped &);
@@ -64,7 +64,7 @@ namespace dynamic_gap {
 
 
             geometry_msgs::TransformStamped planning2odom;       
-            int num_curve_points;
+            int numCurvePts;
             const DynamicGapConfig* cfg_;
 
     };

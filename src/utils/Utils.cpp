@@ -110,23 +110,8 @@ namespace dynamic_gap
         }
     }
 
-    /*
-    float atanThetaWrap(float theta) 
+    int signum(float value) 
     {
-        float new_theta = theta;
-        while (new_theta <= -M_PI) 
-        {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        } 
-        
-        while (new_theta >= M_PI) 
-        {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        }
-
-        return new_theta;
-    }   
-    */
+        return (value < 0 ? -1 : 1);
+    }
 }
