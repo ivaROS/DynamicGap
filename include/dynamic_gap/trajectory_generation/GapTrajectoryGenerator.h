@@ -54,7 +54,7 @@ namespace dynamic_gap {
                                 Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, float & left_weight, float & right_weight, 
                                 float num_curve_points, 
                                 int & true_left_num_rge_points, int & true_right_num_rge_points, Eigen::Vector2d init_rbt_pos,
-                                Eigen::Vector2d leftBezierOrigin, Eigen::Vector2d right_bezier_origin);
+                                Eigen::Vector2d leftBezierOrigin_, Eigen::Vector2d right_bezier_origin);
             void setConstraintMatrix(Eigen::MatrixXd &A, 
                                      int N, 
                                      int Kplus1, 

@@ -22,26 +22,26 @@ namespace dynamic_gap
         private:
             void initialize(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
 
-            void drawGap(visualization_msgs::MarkerArray &, const dynamic_gap::Gap & g, std::string ns, bool initial);
+            void drawGap(visualization_msgs::MarkerArray &, const dynamic_gap::Gap & gap, std::string ns, bool initial);
 
-            void drawManipGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g, bool & circle, std::string ns, bool initial);
+            void drawManipGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap, bool & circle, std::string ns, bool initial);
 
             void drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr, 
                                visualization_msgs::MarkerArray & gap_vel_error_arr, 
-                               const dynamic_gap::Gap & g, std::string ns);
+                               const dynamic_gap::Gap & gap, std::string ns);
             void drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr,   
-                                            const dynamic_gap::Gap & g, std::string ns);
+                                            const dynamic_gap::Gap & gap, std::string ns);
 
-            void drawReachableGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g);
-            void drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & g);
-            void drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g);
-            void drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g);
+            void drawReachableGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap);
+            void drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & gap);
+            void drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap);
+            void drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap);
             
 
-            void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g);
-            void draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, const dynamic_gap::Gap & g, bool left, int & model_id, std::string ns, bool ground_truth);
+            void drawGapSpline(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap);
+            void draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, const dynamic_gap::Gap & gap, bool left, int & model_id, std::string ns, bool ground_truth);
             void draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker model_vel_pt, 
-                                        const dynamic_gap::Gap & g, bool left, std::string ns);
+                                        const dynamic_gap::Gap & gap, bool left, std::string ns);
 
             std::map<std::string, std::vector<std_msgs::ColorRGBA>> colormap;
             ros::Publisher raw_gap_publisher;

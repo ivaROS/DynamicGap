@@ -111,10 +111,10 @@ namespace dynamic_gap
             float term_x_right = rdist * cos(rtheta);
             float term_y_right = rdist * sin(rtheta);
 
-            Eigen::Vector2f extendedGapOrigin = selectedGap.extendedGapOrigin;
+            Eigen::Vector2f extendedGapOrigin = selectedGap.extendedGapOrigin_;
 
-            Eigen::Vector2d initial_goal(selectedGap.goal.x, selectedGap.goal.y);
-            Eigen::Vector2d terminal_goal(selectedGap.terminal_goal.x, selectedGap.terminal_goal.y);
+            Eigen::Vector2d initial_goal(selectedGap.goal.x_, selectedGap.goal.y_);
+            Eigen::Vector2d terminal_goal(selectedGap.terminalGoal.x_, selectedGap.terminalGoal.y_);
 
             float initial_goal_x = initial_goal[0];
             float initial_goal_y = initial_goal[1];
@@ -146,10 +146,10 @@ namespace dynamic_gap
 
             if (run_g2g) 
             { //   || selectedGap.goal.goalwithin
-                state_type x = {ego_x[0], ego_x[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x, selectedGap.goal.y};
+                state_type x = {ego_x[0], ego_x[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x_, selectedGap.goal.y_};
                 // ROS_INFO_STREAM("Goal to Goal");
-                g2g inte_g2g(selectedGap.goal.x, selectedGap.goal.y,
-                             selectedGap.terminal_goal.x, selectedGap.terminal_goal.y,
+                g2g inte_g2g(selectedGap.goal.x_, selectedGap.goal.y_,
+                             selectedGap.terminalGoal.x_, selectedGap.terminalGoal.y_,
                              selectedGap.gapLifespan_, cfg_->control.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                 inte_g2g, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
@@ -170,10 +170,10 @@ namespace dynamic_gap
             Eigen::Vector2d nom_acc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
             Eigen::Vector2d goal_pt_1(terminal_goal_x, terminal_goal_y);
             Eigen::Vector2d gap_radial_extension(extendedGapOrigin[0], extendedGapOrigin[1]);
-            Eigen::Vector2d leftBezierOrigin(selectedGap.leftBezierOrigin[0],
-                                               selectedGap.leftBezierOrigin[1]);
-            Eigen::Vector2d right_bezier_origin(selectedGap.rightBezierOrigin[0],
-                                                selectedGap.rightBezierOrigin[1]);
+            Eigen::Vector2d leftBezierOrigin_(selectedGap.leftBezierOrigin_[0],
+                                               selectedGap.leftBezierOrigin_[1]);
+            Eigen::Vector2d right_bezier_origin(selectedGap.rightBezierOrigin_[0],
+                                                selectedGap.rightBezierOrigin_[1]);
 
             Eigen::MatrixXd left_curve_vel, right_curve_vel, left_curve_inward_norm, right_curve_inward_norm,
                             left_curve, right_curve, all_curve_pts, all_inward_norms, left_right_centers, all_centers;
@@ -190,32 +190,32 @@ namespace dynamic_gap
                              left_pt_0, left_pt_1, right_pt_0, right_pt_1, 
                              gap_radial_extension, goal_pt_1, left_weight, right_weight, num_curve_points, 
                              true_left_num_rge_points, true_right_num_rge_points,
-                             init_rbt_pos, leftBezierOrigin, right_bezier_origin);
+                             init_rbt_pos, leftBezierOrigin_, right_bezier_origin);
             if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << left_weight << ", right_weight: " << right_weight);
-            selectedGap.left_weight = left_weight;
-            selectedGap.right_weight = right_weight;
-            selectedGap.left_right_centers = left_right_centers;
-            selectedGap.all_curve_pts = all_curve_pts;
-            selectedGap.num_left_rge_points = true_left_num_rge_points;
-            selectedGap.num_right_rge_points = true_right_num_rge_points;
+            selectedGap.leftWeight_ = left_weight;
+            selectedGap.rightWeight_ = right_weight;
+            selectedGap.leftRightCenters_ = left_right_centers;
+            selectedGap.allCurvePts_ = all_curve_pts;
+            selectedGap.numLeftRGEPoints_ = true_left_num_rge_points;
+            selectedGap.numRightRGEPoints_ = true_right_num_rge_points;
 
             // add radial gap extension
-            initial_goal_x -= selectedGap.extendedGapOrigin[0];
-            initial_goal_y -= selectedGap.extendedGapOrigin[1];
-            x_left -= selectedGap.extendedGapOrigin[0];
-            y_left -= selectedGap.extendedGapOrigin[1];
-            x_right -= selectedGap.extendedGapOrigin[0];
-            y_right -= selectedGap.extendedGapOrigin[1];
-            ego_x[0] -= selectedGap.extendedGapOrigin[0];
-            ego_x[1] -= selectedGap.extendedGapOrigin[1];
+            initial_goal_x -= selectedGap.extendedGapOrigin_[0];
+            initial_goal_y -= selectedGap.extendedGapOrigin_[1];
+            x_left -= selectedGap.extendedGapOrigin_[0];
+            y_left -= selectedGap.extendedGapOrigin_[1];
+            x_right -= selectedGap.extendedGapOrigin_[0];
+            y_right -= selectedGap.extendedGapOrigin_[1];
+            ego_x[0] -= selectedGap.extendedGapOrigin_[0];
+            ego_x[1] -= selectedGap.extendedGapOrigin_[1];
 
             x = {ego_x[0], ego_x[1], x_left, y_left, x_right, y_right, initial_goal_x, initial_goal_y};
 
             /*
             polar_gap_field polar_gap_field_inte(x_right, x_left, y_right, y_left,
                                                     initial_goal_x, initial_goal_y,
-                                                    selectedGap.mode.agc, selectedGap.isRadial(),
+                                                    selectedGap.mode.RGC_, selectedGap.isRadial(),
                                                     x[0], x[1],
                                                     cfg_->control.vx_absmax, cfg_->control.vx_absmax);
             */
@@ -286,8 +286,8 @@ namespace dynamic_gap
                                                     cfg_->traj.integrate_stept, corder);
             for (auto & p : posearr.poses) 
             {
-                p.position.x += selectedGap.extendedGapOrigin[0];
-                p.position.y += selectedGap.extendedGapOrigin[1];
+                p.position.x += selectedgap.extendedGapOrigin_[0];
+                p.position.y += selectedgap.extendedGapOrigin_[1];
             }
             */
             if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            integration time taken: " << (ros::Time::now().toSec() - start_time));
@@ -464,7 +464,7 @@ namespace dynamic_gap
                                             float num_curve_points, 
                                             int & true_left_num_rge_points, int & true_right_num_rge_points,
                                             Eigen::Vector2d init_rbt_pos,
-                                            Eigen::Vector2d leftBezierOrigin, Eigen::Vector2d right_bezier_origin) {  
+                                            Eigen::Vector2d leftBezierOrigin_, Eigen::Vector2d right_bezier_origin) {  
         // ROS_INFO_STREAM("building bezier curve");
        
         left_weight = nonrel_left_vel.norm() / nom_vel.norm(); // capped at 1, we can scale down towards 0 until initial constraints are met?
@@ -473,9 +473,9 @@ namespace dynamic_gap
         // for a totally static gap, can get no velocity on first bezier curve point which corrupts vector field
         Eigen::Vector2d weighted_left_pt_0, weighted_right_pt_0;
         if (nonrel_left_vel.norm() > 0.0) {
-            weighted_left_pt_0 = leftBezierOrigin + left_weight * (left_pt_0 - leftBezierOrigin);
+            weighted_left_pt_0 = leftBezierOrigin_ + left_weight * (left_pt_0 - leftBezierOrigin_);
         } else {
-            weighted_left_pt_0 = (0.95 * leftBezierOrigin + 0.05 * left_pt_1);
+            weighted_left_pt_0 = (0.95 * leftBezierOrigin_ + 0.05 * left_pt_1);
         }
 
         if (nonrel_right_vel.norm() >  0.0) {
@@ -484,10 +484,10 @@ namespace dynamic_gap
             weighted_right_pt_0 = (0.95 * right_bezier_origin + 0.05 * right_pt_1);
         }
         
-        selectedGap.left_pt_0 = weighted_left_pt_0;
-        selectedGap.left_pt_1 = left_pt_1;
-        selectedGap.right_pt_0 = weighted_right_pt_0;
-        selectedGap.right_pt_1 = right_pt_1;  
+        selectedGap.leftPt0_ = weighted_left_pt_0;
+        selectedGap.leftPt1_ = left_pt_1;
+        selectedGap.rightPt0_ = weighted_right_pt_0;
+        selectedGap.rightPt1_ = right_pt_1;  
 
         float pos_val0, pos_val1, pos_val2, vel_val0, vel_val1, vel_val2;
         Eigen::Vector2d curr_left_pt, curr_left_vel, left_inward_vect, rotated_curr_left_vel, left_inward_norm_vect,
@@ -500,8 +500,8 @@ namespace dynamic_gap
 
         
         float des_left_dist = 0.01;        
-        Eigen::VectorXd left_indices = arclength_sample_bezier(leftBezierOrigin, weighted_left_pt_0, left_pt_1, num_curve_points, des_left_dist);
-        true_left_num_rge_points = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (gap_radial_extension - leftBezierOrigin).norm() / des_left_dist)), 2) : 0;
+        Eigen::VectorXd left_indices = arclength_sample_bezier(leftBezierOrigin_, weighted_left_pt_0, left_pt_1, num_curve_points, des_left_dist);
+        true_left_num_rge_points = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (gap_radial_extension - leftBezierOrigin_).norm() / des_left_dist)), 2) : 0;
 
         int total_num_left_curve_points = true_left_num_rge_points + num_curve_points; 
         left_curve = Eigen::MatrixXd(total_num_left_curve_points, 2);
@@ -515,8 +515,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("s_left_rge: " << s);
             pos_val0 = (1 - s);
             pos_val1 = s;
-            curr_left_pt = pos_val0 * gap_radial_extension + pos_val1 * leftBezierOrigin;
-            curr_left_vel = (leftBezierOrigin - gap_radial_extension);
+            curr_left_pt = pos_val0 * gap_radial_extension + pos_val1 * leftBezierOrigin_;
+            curr_left_vel = (leftBezierOrigin_ - gap_radial_extension);
             left_inward_vect = neg_rpi2 * curr_left_vel;
             left_inward_norm_vect = left_inward_vect / left_inward_vect.norm();
             left_curve.row(i) = curr_left_pt;
@@ -557,7 +557,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM("gap_radial_extension: " << gap_radial_extension[0] << ", " << gap_radial_extension[1]);
         ROS_INFO_STREAM("init_rbt_pos: " << init_rbt_pos[0] << ", " << init_rbt_pos[1]);
 
-        ROS_INFO_STREAM("leftBezierOrigin: " << leftBezierOrigin[0] << ", " << leftBezierOrigin[1]);
+        ROS_INFO_STREAM("leftBezierOrigin_: " << leftBezierOrigin_[0] << ", " << leftBezierOrigin_[1]);
         ROS_INFO_STREAM("left_pt_0: " << left_pt_0[0] << ", " << left_pt_0[1]);
         ROS_INFO_STREAM("weighted_left_pt_0: " << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1]);       
         ROS_INFO_STREAM("left_pt_1: " << left_pt_1[0] << ", " << left_pt_1[1]);
@@ -599,8 +599,8 @@ namespace dynamic_gap
             vel_val0 = (2*s_left - 2);
             vel_val1 = (2 - 4*s_left);
             vel_val2 = 2*s_left;
-            curr_left_pt = pos_val0 * leftBezierOrigin + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
-            curr_left_vel = vel_val0 * leftBezierOrigin + vel_val1*weighted_left_pt_0 + vel_val2*left_pt_1;
+            curr_left_pt = pos_val0 * leftBezierOrigin_ + pos_val1*weighted_left_pt_0 + pos_val2*left_pt_1;
+            curr_left_vel = vel_val0 * leftBezierOrigin_ + vel_val1*weighted_left_pt_0 + vel_val2*left_pt_1;
             rotated_curr_left_vel = neg_rpi2 * curr_left_vel;
             left_inward_norm_vect = rotated_curr_left_vel / (rotated_curr_left_vel.norm() + eps);
             left_curve.row(i) = curr_left_pt;

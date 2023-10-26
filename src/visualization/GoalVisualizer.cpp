@@ -47,28 +47,28 @@ namespace dynamic_gap
     }
 
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, 
-                                     const dynamic_gap::Gap & g, bool initial) 
+                                     const dynamic_gap::Gap & gap, bool initial) 
     {
-        if (!cfg_->gap_viz.debug_viz || !g.goal.set) return;
+        if (!cfg_->gap_viz.debug_viz) return;
 
         visualization_msgs::Marker lg_marker;
-        lg_marker.header.frame_id = g.frame_;
-        // std::cout << "g frame in draw gap goal: " << g.frame_ << std::endl;
+        lg_marker.header.frame_id = gap.frame_;
+        // std::cout << "g frame in draw gap goal: " << gap.frame_ << std::endl;
         lg_marker.header.stamp = ros::Time::now();
         lg_marker.ns = "gap_goal";
         lg_marker.id = int (vis_arr.markers.size());
         lg_marker.type = visualization_msgs::Marker::CYLINDER;
         lg_marker.action = visualization_msgs::Marker::ADD;
         if (initial) {
-            lg_marker.pose.position.x = g.goal.x;
-            lg_marker.pose.position.y = g.goal.y;
+            lg_marker.pose.position.x = gap.goal.x_;
+            lg_marker.pose.position.y = gap.goal.y_;
             lg_marker.color = gapwp_color;
-            //ROS_INFO_STREAM("visualizing initial goal: " << g.goal.x << ", " << g.goal.y);
+            //ROS_INFO_STREAM("visualizing initial goal: " << gap.goal.x << ", " << gap.goal.y);
         } else {
-            lg_marker.pose.position.x = g.terminal_goal.x;
-            lg_marker.pose.position.y = g.terminal_goal.y; 
+            lg_marker.pose.position.x = gap.terminalGoal.x_;
+            lg_marker.pose.position.y = gap.terminalGoal.y_; 
             lg_marker.color = gapwp_color;
-            // ROS_INFO_STREAM("visualizing terminal goal: " << g.terminal_goal.x << ", " << g.terminal_goal.y);
+            // ROS_INFO_STREAM("visualizing terminal goal: " << gap.terminalGoal.x << ", " << gap.terminalGoal.y);
         }
         lg_marker.pose.position.z = 0.0001;
         lg_marker.pose.orientation.w = 1;
@@ -79,7 +79,7 @@ namespace dynamic_gap
         vis_arr.markers.push_back(lg_marker);
     }
 
-    void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap> & gs) 
+    void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -94,7 +94,8 @@ namespace dynamic_gap
 
 
         visualization_msgs::MarkerArray vis_arr;
-        for (auto gap : gs) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             //drawGapGoal(vis_arr, gap, true);
             drawGapGoal(vis_arr, gap, false);
         }

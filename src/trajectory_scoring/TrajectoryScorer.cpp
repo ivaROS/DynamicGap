@@ -264,8 +264,8 @@ namespace dynamic_gap {
         /*
         std::vector<dynamic_gap::Estimator *> raw_models;
         for (auto gap : current_raw_gaps) {
-            raw_models.push_back(gap.rightGapPtModel);
-            raw_models.push_back(gap.leftGapPtModel);
+            raw_models.push_back(gap.rightGapPtModel_);
+            raw_models.push_back(gap.leftGapPtModel_);
         }
         
         

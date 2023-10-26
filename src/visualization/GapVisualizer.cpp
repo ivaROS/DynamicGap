@@ -133,14 +133,14 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawGapSpline(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    void GapVisualizer::drawGapSpline(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap) 
     {
         // discretize gap lifespan
 
         // plug in x/y coefficients to get list of points
 
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = "gap_splines";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -170,29 +170,29 @@ namespace dynamic_gap
         for (int i = 0.0; i < (num_spline_pts - 1); i++) {            
             lines.clear();  
 
-            t = (i / num_spline_pts) * g.gapLifespan_;
-            x = g.spline_x_coefs[3] * pow(t, 3) + 
-                       g.spline_x_coefs[2] * pow(t, 2) + 
-                       g.spline_x_coefs[1] * t +
-                       g.spline_x_coefs[0];
-            y = g.spline_y_coefs[3] * pow(t, 3) + 
-                       g.spline_y_coefs[2] * pow(t, 2) + 
-                       g.spline_y_coefs[1] * t +
-                       g.spline_y_coefs[0];
+            t = (i / num_spline_pts) * gap.gapLifespan_;
+            x = gap.splineXCoefs_[3] * pow(t, 3) + 
+                       gap.splineXCoefs_[2] * pow(t, 2) + 
+                       gap.splineXCoefs_[1] * t +
+                       gap.splineXCoefs_[0];
+            y = gap.splineYCoefs_[3] * pow(t, 3) + 
+                       gap.splineYCoefs_[2] * pow(t, 2) + 
+                       gap.splineYCoefs_[1] * t +
+                       gap.splineYCoefs_[0];
             
             line.x = x;
             line.y = y;
             lines.push_back(line);
 
-            t = ((i + 1) / num_spline_pts) * g.gapLifespan_;
-            x = g.spline_x_coefs[3] * pow(t, 3) + 
-                       g.spline_x_coefs[2] * pow(t, 2) + 
-                       g.spline_x_coefs[1] * t +
-                       g.spline_x_coefs[0];
-            y = g.spline_y_coefs[3] * pow(t, 3) + 
-                       g.spline_y_coefs[2] * pow(t, 2) + 
-                       g.spline_y_coefs[1] * t +
-                       g.spline_y_coefs[0];            
+            t = ((i + 1) / num_spline_pts) * gap.gapLifespan_;
+            x = gap.splineXCoefs_[3] * pow(t, 3) + 
+                       gap.splineXCoefs_[2] * pow(t, 2) + 
+                       gap.splineXCoefs_[1] * t +
+                       gap.splineXCoefs_[0];
+            y = gap.splineYCoefs_[3] * pow(t, 3) + 
+                       gap.splineYCoefs_[2] * pow(t, 2) + 
+                       gap.splineYCoefs_[1] * t +
+                       gap.splineYCoefs_[0];            
             line.x = x;
             line.y = y;
             lines.push_back(line);
@@ -204,7 +204,8 @@ namespace dynamic_gap
     }
 
 
-    void GapVisualizer::drawGapSplines(const std::vector<dynamic_gap::Gap> & g) {
+    void GapVisualizer::drawGapSplines(const std::vector<dynamic_gap::Gap> & gaps) 
+    {
         if (!cfg_->gap_viz.debug_viz) return;
         
         // First, clearing topic.
@@ -217,18 +218,20 @@ namespace dynamic_gap
         gap_spline_publisher.publish(clear_arr);
         
         visualization_msgs::MarkerArray vis_arr;
-        for (auto gap : g) {
-            if (gap.crossed_ || gap.closed_) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
+            if (gap.crossed_ || gap.closed_) 
+            {
                 drawGapSpline(vis_arr, gap);
             }
         }
         gap_spline_publisher.publish(vis_arr);
     }
 
-    void GapVisualizer::drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    void GapVisualizer::drawReachableGapNoRGE(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap) 
     {
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = "reachable_gap_centers";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -272,7 +275,7 @@ namespace dynamic_gap
             pos_val1 = 2*(1 - s)*s;
             pos_val2 = s*s;
 
-            curr_left_pt = pos_val1*g.left_pt_0 + pos_val2*g.left_pt_1;
+            curr_left_pt = pos_val1*gap.leftPt0_ + pos_val2*gap.leftPt1_;
 
             s = ((i+1)) / (num_curve_points - 1);
             
@@ -284,7 +287,7 @@ namespace dynamic_gap
             pos_val1 = 2*(1 - s)*s;
             pos_val2 = s*s;
 
-            curr_left_pt = pos_val1*g.left_pt_0 + pos_val2*g.left_pt_1;
+            curr_left_pt = pos_val1*gap.leftPt0_ + pos_val2*gap.leftPt1_;
 
             linel.x = curr_left_pt[0];
             linel.y = curr_left_pt[1];
@@ -295,7 +298,8 @@ namespace dynamic_gap
             vis_arr.markers.push_back(this_marker);
         }
 
-        for (float i = 0; i < (num_curve_points - 1); i++) {
+        for (float i = 0; i < (num_curve_points - 1); i++) 
+        {
             lines.clear();  
             s = (i) / (num_curve_points - 1);
 
@@ -304,7 +308,7 @@ namespace dynamic_gap
             pos_val1 = 2*(1 - s)*s;
             pos_val2 = s*s;
 
-            curr_right_pt = pos_val1*g.right_pt_0 + pos_val2*g.right_pt_1;
+            curr_right_pt = pos_val1*gap.rightPt0_ + pos_val2*gap.rightPt1_;
 
             s = ((i+1)) / (num_curve_points - 1);
             
@@ -316,7 +320,7 @@ namespace dynamic_gap
             pos_val1 = 2*(1 - s)*s;
             pos_val2 = s*s;
 
-            curr_right_pt = pos_val1*g.right_pt_0 + pos_val2*g.right_pt_1;
+            curr_right_pt = pos_val1*gap.rightPt0_ + pos_val2*gap.rightPt1_;
 
             liner.x = curr_right_pt[0];
             liner.y = curr_right_pt[1];
@@ -328,24 +332,24 @@ namespace dynamic_gap
         }
     }
 
-    void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g) 
+    void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap) 
     {
         // ROS_INFO_STREAM("in drawReachableGap");
 
         float num_curve_points = cfg_->traj.num_curve_points;
         // float num_extended_gap_origin_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_extended_gap_origin_points : 0.0;
-        float half_num_scan = g.half_scan;
+        float half_num_scan = gap.half_scan;
 
-        Eigen::Vector2f left_gap_origin(g.leftBezierOrigin[0],       
-                                        g.leftBezierOrigin[1]);
-        Eigen::Vector2f right_gap_origin(g.rightBezierOrigin[0],
-                                        g.rightBezierOrigin[1]);
+        Eigen::Vector2f left_gap_origin(gap.leftBezierOrigin_[0],       
+                                        gap.leftBezierOrigin_[1]);
+        Eigen::Vector2f right_gap_origin(gap.rightBezierOrigin_[0],
+                                        gap.rightBezierOrigin_[1]);
 
         // ROS_INFO_STREAM("left_gap_origin: (" << left_gap_origin[0] << ", " << left_gap_origin[1] << "), left_pt_0: (" << left_pt_0[0] << ", " << left_pt_0[1] << "), weighted_left_pt_0: (" << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1] << "), left_pt_1: (" << left_pt_1[0] << ", " << left_pt_1[1] << ")");
         // ROS_INFO_STREAM("right_gap_origin: (" << right_gap_origin[0] << ", " << right_gap_origin[1] << "), right_pt_0: (" << right_pt_0[0] << ", " << right_pt_0[1] << "), weighted_right_pt_0: (" << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1] << "), right_pt_1: (" << right_pt_1[0] << ", " << right_pt_1[1] << ")");
 
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = "manip_initial";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -387,7 +391,7 @@ namespace dynamic_gap
 
         lines.clear();  
         // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-        Eigen::Vector2f left_pt = g.extendedGapOrigin;
+        Eigen::Vector2f left_pt = gap.extendedGapOrigin_;
         
         linel.x = left_pt[0];
         linel.y = left_pt[1];
@@ -406,7 +410,7 @@ namespace dynamic_gap
         // populate right curve
         lines.clear();  
         // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-        Eigen::Vector2f right_pt = g.extendedGapOrigin;
+        Eigen::Vector2f right_pt = gap.extendedGapOrigin_;
         
         liner.x = right_pt[0];
         liner.y = right_pt[1];
@@ -422,19 +426,19 @@ namespace dynamic_gap
         this_marker.id = id++;
         vis_arr.markers.push_back(this_marker);
         
-        // int num_pts_per_side = g.all_curve_pts.rows() / 2;
-        // ROS_INFO_STREAM("number of all_curve_pts: " << g.all_curve_pts.rows());
-        // ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points << " to " << g.num_left_rge_points + num_curve_points - 1);
-        for (int i = g.num_left_rge_points; i < (g.num_left_rge_points + num_curve_points - 1); i++) {            
+        // int num_pts_per_side = g.allCurvePts_.rows() / 2;
+        // ROS_INFO_STREAM("number of all_curve_pts: " << g.allCurvePts_.rows());
+        // ROS_INFO_STREAM("drawReachableGap from " << g.numLeftRGEPoints_ << " to " << g.numLeftRGEPoints_ + num_curve_points - 1);
+        for (int i = gap.numLeftRGEPoints_; i < (gap.numLeftRGEPoints_ + num_curve_points - 1); i++) {            
             lines.clear();  
 
-            Eigen::Vector2d left_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2d left_pt = gap.allCurvePts_.row(i);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
             lines.push_back(linel);
 
-            left_pt = g.all_curve_pts.row(i + 1);
+            left_pt = gap.allCurvePts_.row(i + 1);
         
             // ROS_INFO_STREAM("connecting " << i << " to " << (i + 1));
 
@@ -448,17 +452,18 @@ namespace dynamic_gap
         }
 
         //populate right curve
-        // ROS_INFO_STREAM("drawReachableGap from " << g.num_left_rge_points + num_curve_points << " to " << g.all_curve_pts.rows() - 1);
-        for (int i = (g.num_left_rge_points + num_curve_points); i < (g.all_curve_pts.rows() - 1); i++) {
+        // ROS_INFO_STREAM("drawReachableGap from " << g.numLeftRGEPoints_ + num_curve_points << " to " << g.allCurvePts_.rows() - 1);
+        for (int i = (gap.numLeftRGEPoints_ + num_curve_points); i < (gap.allCurvePts_.rows() - 1); i++) 
+        {
             lines.clear();  
 
-            Eigen::Vector2d right_pt = g.all_curve_pts.row(i);
+            Eigen::Vector2d right_pt = gap.allCurvePts_.row(i);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
             lines.push_back(liner);
 
-            right_pt = g.all_curve_pts.row(i + 1);
+            right_pt = gap.allCurvePts_.row(i + 1);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
@@ -470,7 +475,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap> & g) 
+    void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
         
@@ -487,7 +492,8 @@ namespace dynamic_gap
         
         visualization_msgs::MarkerArray vis_arr, vis_arr1;
         // int counter = 0;
-        for (auto gap : g) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             // if (counter == 1) {
             drawReachableGap(vis_arr, gap);
                 // drawReachableGapNoRGE(vis_arr1, gap);
@@ -498,15 +504,15 @@ namespace dynamic_gap
         // reachable_gap_no_RGE_publisher.publish(vis_arr1);
     }
 
-    void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g)
+    void GapVisualizer::drawReachableGapCenters(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap)
     {
         // ROS_INFO_STREAM("in drawReachableGapCenters");
-        // ROS_INFO_STREAM("left right centers number of rows: " << g.left_right_centers.rows());
+        // ROS_INFO_STREAM("left right centers number of rows: " << g.leftRightCenters_.rows());
 
         float num_curve_points = cfg_->traj.num_curve_points;
         float num_extended_gap_origin_points = cfg_->traj.num_extended_gap_origin_points;
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = "reachable_gap_centers";
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -537,17 +543,17 @@ namespace dynamic_gap
         int id = (int) vis_arr.markers.size();
         this_marker.lifetime = ros::Duration(100.0);
 
-        int num_pts_per_side = g.left_right_centers.rows() / 2;
+        int num_pts_per_side = gap.leftRightCenters_.rows() / 2;
         for (int i = 0; i < (num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2d left_pt = g.left_right_centers.row(i);
+            Eigen::Vector2d left_pt = gap.leftRightCenters_.row(i);
             // ROS_INFO_STREAM("i: " << i << ", left_pt: " << left_pt[0] << ", " << left_pt[1]);
             linel.x = left_pt[0];
             linel.y = left_pt[1];
             lines.push_back(linel);
 
-            left_pt = g.left_right_centers.row(i + 1);
+            left_pt = gap.leftRightCenters_.row(i + 1);
             
             linel.x = left_pt[0];
             linel.y = left_pt[1];
@@ -561,14 +567,14 @@ namespace dynamic_gap
         for (int i = num_pts_per_side; i < (2*num_pts_per_side - 1); i++) {
             lines.clear();  
 
-            Eigen::Vector2d right_pt = g.left_right_centers.row(i);
+            Eigen::Vector2d right_pt = gap.leftRightCenters_.row(i);
             // ROS_INFO_STREAM("i: " << i << ", right_pt: " << right_pt[0] << ", " << right_pt[1]);
 
             liner.x = right_pt[0];
             liner.y = right_pt[1];
             lines.push_back(liner);
 
-            right_pt = g.left_right_centers.row(i + 1);
+            right_pt = gap.leftRightCenters_.row(i + 1);
             
             liner.x = right_pt[0];
             liner.y = right_pt[1];
@@ -581,7 +587,7 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & g) 
+    void GapVisualizer::drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
         
@@ -597,7 +603,8 @@ namespace dynamic_gap
         
         visualization_msgs::MarkerArray vis_arr;
         // int counter = 0;
-        for (auto gap : g) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             //if (counter == 0) {
             drawReachableGapCenters(vis_arr, gap);
             // }
@@ -606,26 +613,26 @@ namespace dynamic_gap
         reachable_gap_centers_publisher.publish(vis_arr);
     }
 
-    void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g, std::string ns, bool initial) {
+    void GapVisualizer::drawGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap, std::string ns, bool initial) {
         // ROS_INFO_STREAM(g._left_idx << ", " << g._ldist << ", " << g._right_idx << ", " << g._rdist << ", " << g.frame_);
         if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
         int viz_offset = 0;
         float viz_jitter = cfg_->gap_viz.viz_jitter;
         
-        if (viz_jitter > 0 && g.isRadial(initial)) {
-            viz_offset = g.isRightType(initial) ? -2 : 2;
+        if (viz_jitter > 0 && gap.isRadial(initial)) {
+            viz_offset = gap.isRightType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? g.RIdx() : g.termRIdx();
-        int ridx = initial ? g.LIdx() : g.termLIdx();
-        float ldist = initial ? g.RDist() : g.termRDist();
-        float rdist = initial ? g.LDist() : g.termLDist();
+        int lidx = initial ? gap.RIdx() : gap.termRIdx();
+        int ridx = initial ? gap.LIdx() : gap.termLIdx();
+        float ldist = initial ? gap.RDist() : gap.termRDist();
+        float rdist = initial ? gap.LDist() : gap.termLDist();
 
         //ROS_INFO_STREAM("lidx: " << lidx << ", ldist: " << ldist << ", ridx: " << ridx << ", rdist: " << rdist);
         int gap_idx_size = (ridx - lidx);
         if (gap_idx_size < 0) {
-            gap_idx_size += 2*g.half_scan; // taking off int casting here
+            gap_idx_size += 2*gap.half_scan; // taking off int casting here
         }
 
         int num_segments = gap_idx_size / cfg_->gap_viz.min_resoln + 1;
@@ -634,7 +641,7 @@ namespace dynamic_gap
         float sub_gap_ldist = ldist;
 
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = ns;
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -709,7 +716,7 @@ namespace dynamic_gap
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
             linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
-            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(2*g.half_scan);
+            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(2*gap.half_scan);
             sub_gap_ldist += dist_step;
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             liner.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
@@ -741,7 +748,7 @@ namespace dynamic_gap
         vis_arr.markers.push_back(this_marker);
     }
     
-    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap> & g, std::string ns) 
+    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap> & gaps, std::string ns) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -754,7 +761,8 @@ namespace dynamic_gap
         clear_arr.markers.push_back(clear_marker);
 
         visualization_msgs::MarkerArray vis_arr;
-        for (auto gap : g) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             drawGap(vis_arr, gap, ns, true);
         }
         
@@ -768,7 +776,7 @@ namespace dynamic_gap
 
     }
 
-    void GapVisualizer::drawGapsModels(const std::vector<dynamic_gap::Gap> & g) 
+    void GapVisualizer::drawGapsModels(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -786,7 +794,8 @@ namespace dynamic_gap
         // gapmodel_vel_error_publisher.publish(clear_arr);
 
         visualization_msgs::MarkerArray gap_vel_arr, gap_vel_error_arr, gap_pos_GT_arr, gap_vel_GT_arr;
-        for (auto gap : g) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             drawGapModels(gap_vel_arr, gap_vel_error_arr, gap, "gap_models");
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
@@ -795,55 +804,55 @@ namespace dynamic_gap
         // gapmodel_vel_error_publisher.publish(gap_vel_error_arr);
         // gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
         // gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
-        prev_num_models = 2* g.size();
+        prev_num_models = 2* gaps.size();
     }
 
     void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & gap_vel_arr, 
-                                                    const dynamic_gap::Gap & g, std::string ns) 
+                                                    const dynamic_gap::Gap & gap, std::string ns) 
     {
         int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker leftGapPtModel_vel_pt, rightGapPtModel_vel_pt;
 
-        draw_model_pt_head(leftGapPtModel_vel_pt, g, true, model_id, ns, true);
+        draw_model_pt_head(leftGapPtModel_vel_pt, gap, true, model_id, ns, true);
         gap_vel_arr.markers.push_back(leftGapPtModel_vel_pt);
 
-        draw_model_pt_head(rightGapPtModel_vel_pt, g, false, model_id, ns, true);
+        draw_model_pt_head(rightGapPtModel_vel_pt, gap, false, model_id, ns, true);
         gap_vel_arr.markers.push_back(rightGapPtModel_vel_pt);
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gap_vel_arr,   
                                         visualization_msgs::MarkerArray & gap_vel_error_arr, 
-                                        const dynamic_gap::Gap & g, std::string ns) 
+                                        const dynamic_gap::Gap & gap, std::string ns) 
     {
         int model_id = (int) gap_vel_arr.markers.size();
 
         visualization_msgs::Marker leftGapPtModel_vel_pt, rightGapPtModel_vel_pt;
         visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
-        draw_model_pt_head(leftGapPtModel_vel_pt, g, true, model_id, ns, false);
+        draw_model_pt_head(leftGapPtModel_vel_pt, gap, true, model_id, ns, false);
         gap_vel_arr.markers.push_back(leftGapPtModel_vel_pt);
         // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftGapPtModel_vel_pt, g, true, ns);
         // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
-        draw_model_pt_head(rightGapPtModel_vel_pt, g, false, model_id, ns, false);
+        draw_model_pt_head(rightGapPtModel_vel_pt, gap, false, model_id, ns, false);
         gap_vel_arr.markers.push_back(rightGapPtModel_vel_pt);
         // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightGapPtModel_vel_pt, g, true, ns);
         // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
     }
 
     void GapVisualizer::draw_model_pt_head(visualization_msgs::Marker & model_vel_pt, 
-                                           const dynamic_gap::Gap & g, bool left, int & model_id, std::string ns,
+                                           const dynamic_gap::Gap & gap, bool left, int & model_id, std::string ns,
                                            bool ground_truth) {
-        model_vel_pt.header.frame_id = g.frame_;
+        model_vel_pt.header.frame_id = gap.frame_;
         model_vel_pt.header.stamp = ros::Time();
         model_vel_pt.ns = ns;
         model_vel_pt.id = model_id++;
         model_vel_pt.type = visualization_msgs::Marker::ARROW;
         model_vel_pt.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f leftGapPtModel_state = (ground_truth) ? g.leftGapPtModel->getTrueState() : g.leftGapPtModel->getState();
-        Eigen::Vector4f rightGapPtModel_state = (ground_truth) ? g.rightGapPtModel->getTrueState() : g.rightGapPtModel->getState();
+        Eigen::Vector4f leftGapPtModel_state = (ground_truth) ? gap.leftGapPtModel_->getTrueState() : gap.leftGapPtModel_->getState();
+        Eigen::Vector4f rightGapPtModel_state = (ground_truth) ? gap.rightGapPtModel_->getTrueState() : gap.rightGapPtModel_->getState();
         
         geometry_msgs::Point vel_pt;
         model_vel_pt.pose.position.x = (left) ? leftGapPtModel_state[0] : rightGapPtModel_state[0];
@@ -852,11 +861,11 @@ namespace dynamic_gap
    
         Eigen::Vector2f vel;
         if (left) {
-            vel << leftGapPtModel_state[2] + g.leftGapPtModel->getRobotVel().twist.linear.x,
-                   leftGapPtModel_state[3] + g.leftGapPtModel->getRobotVel().twist.linear.y;
+            vel << leftGapPtModel_state[2] + gap.leftGapPtModel_->getRobotVel().twist.linear.x,
+                   leftGapPtModel_state[3] + gap.leftGapPtModel_->getRobotVel().twist.linear.y;
         } else {
-            vel << rightGapPtModel_state[2] + g.rightGapPtModel->getRobotVel().twist.linear.x, 
-                   rightGapPtModel_state[3] + g.rightGapPtModel->getRobotVel().twist.linear.y;
+            vel << rightGapPtModel_state[2] + gap.rightGapPtModel_->getRobotVel().twist.linear.x, 
+                   rightGapPtModel_state[3] + gap.rightGapPtModel_->getRobotVel().twist.linear.y;
         }
 
         float model_vel_theta = std::atan2(vel[1], vel[0]);
@@ -880,7 +889,7 @@ namespace dynamic_gap
 
     void GapVisualizer::draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, 
                                                 visualization_msgs::Marker model_vel_pt, 
-                                                const dynamic_gap::Gap & g, bool left, std::string ns)
+                                                const dynamic_gap::Gap & gap, bool left, std::string ns)
     {
         model_vel_error_pt.header = model_vel_pt.header;
         model_vel_error_pt.ns = ns;
@@ -900,40 +909,41 @@ namespace dynamic_gap
         float vel_error;
         if (left)
         {
-            vel_error = sqrt(pow(g.leftGapPtModel->getState()[2] - g.leftGapPtModel->getTrueState()[2], 2) + pow(g.leftGapPtModel->getState()[3] - g.leftGapPtModel->getTrueState()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.leftGapPtModel->getState()[2] << ", " << g.leftGapPtModel->getState()[3] << 
-                            "), GT: (" << g.leftGapPtModel->getTrueState()[2] << ", " << g.leftGapPtModel->getTrueState()[3] << "), error: " << vel_error);
+            vel_error = sqrt(pow(gap.leftGapPtModel_->getState()[2] - gap.leftGapPtModel_->getTrueState()[2], 2) + pow(gap.leftGapPtModel_->getState()[3] - gap.leftGapPtModel_->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << gap.leftGapPtModel_->getState()[2] << ", " << gap.leftGapPtModel_->getState()[3] << 
+                            "), GT: (" << gap.leftGapPtModel_->getTrueState()[2] << ", " << gap.leftGapPtModel_->getTrueState()[3] << "), error: " << vel_error);
         } else 
         {
-            vel_error = sqrt(pow(g.rightGapPtModel->getState()[2] - g.rightGapPtModel->getTrueState()[2], 2) + pow(g.rightGapPtModel->getState()[3] - g.rightGapPtModel->getTrueState()[3], 2));
-            ROS_INFO_STREAM("model: (" << g.rightGapPtModel->getState()[2] << ", " << g.rightGapPtModel->getState()[3] << 
-                            "), GT: (" << g.rightGapPtModel->getTrueState()[2] << ", " << g.rightGapPtModel->getTrueState()[3] << "), error: " << vel_error);        
+            vel_error = sqrt(pow(gap.rightGapPtModel_->getState()[2] - gap.rightGapPtModel_->getTrueState()[2], 2) + pow(gap.rightGapPtModel_->getState()[3] - gap.rightGapPtModel_->getTrueState()[3], 2));
+            ROS_INFO_STREAM("model: (" << gap.rightGapPtModel_->getState()[2] << ", " << gap.rightGapPtModel_->getState()[3] << 
+                            "), GT: (" << gap.rightGapPtModel_->getTrueState()[2] << ", " << gap.rightGapPtModel_->getTrueState()[3] << "), error: " << vel_error);        
         }
         model_vel_error_pt.text = "vel_error: " + std::to_string(vel_error);
     }
 
-    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & g, bool & circle, std::string ns, bool initial) {
+    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & vis_arr, const dynamic_gap::Gap & gap, bool & circle, std::string ns, bool initial) {
         // if AGC: Color is Red
         // if Convex: color is Brown, viz_jitter + 0.1
         // if RadialExtension: color is green, draw additional circle
         if (!cfg_->gap_viz.debug_viz) return;
 
-        if ((initial && !g.mode.reduced && !g.mode.convex && !g.mode.agc) ||
-            (!initial && !g.mode.terminal_reduced && !g.mode.terminal_convex && !g.mode.terminal_agc)) {
+        if ((initial && !gap.mode.reduced_ && !gap.mode.convex_ && !gap.mode.RGC_) ||
+            (!initial && !gap.mode.termReduced_ && !gap.mode.termConvex_ && !gap.mode.termRGC_)) {
             return;
         }
 
         float viz_jitter = cfg_->gap_viz.viz_jitter;
         int viz_offset = 0;
         
-        if (viz_jitter > 0 && g.isRadial(initial)){
-            viz_offset = g.isRightType(initial) ? -2 : 2;
+        if (viz_jitter > 0 && gap.isRadial(initial))
+        {
+            viz_offset = gap.isRightType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? g.cvxRightIdx() : g.cvxTermRIdx();
-        int ridx = initial ? g.cvxLeftIdx() : g.cvxTermLIdx();
-        float ldist = initial ? g.cvxRightDist() : g.cvxTermRDist();
-        float rdist = initial ? g.cvxLeftDist() : g.cvxTermLDist();
+        int lidx = initial ? gap.cvxRightIdx() : gap.cvxTermRIdx();
+        int ridx = initial ? gap.cvxLeftIdx() : gap.cvxTermLIdx();
+        float ldist = initial ? gap.cvxRightDist() : gap.cvxTermRDist();
+        float rdist = initial ? gap.cvxLeftDist() : gap.cvxTermLDist();
 
         std::string local_ns = ns;
 
@@ -946,7 +956,7 @@ namespace dynamic_gap
         // num gaps really means segments within a gap
         int gap_idx_size = (ridx - lidx);
         if (gap_idx_size < 0) {
-            gap_idx_size += int(2*g.half_scan);
+            gap_idx_size += int(2*gap.half_scan);
         }
 
         int num_segments = gap_idx_size / cfg_->gap_viz.min_resoln + 1;
@@ -955,7 +965,7 @@ namespace dynamic_gap
         float sub_gap_ldist = ldist;
 
         visualization_msgs::Marker this_marker;
-        this_marker.header.frame_id = g.frame_;
+        this_marker.header.frame_id = gap.frame_;
         this_marker.header.stamp = ros::Time();
         this_marker.ns = ns;
         this_marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -1001,7 +1011,7 @@ namespace dynamic_gap
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
             linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
-            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(g.half_scan * 2);
+            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(gap.half_scan * 2);
             sub_gap_ldist += dist_step;
             
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
@@ -1030,92 +1040,9 @@ namespace dynamic_gap
         this_marker.id = id++;
         this_marker.lifetime = ros::Duration(100.0);
         vis_arr.markers.push_back(this_marker);
-        
-        // MAX: removing just for visualizing
-        /*
-        if ((g.mode.convex || g.mode.terminal_convex)) {
-            float r = g.getMinSafeDist();
-            if (r < 0) {
-                ROS_WARN_STREAM("Gap min safe dist not recorded");
-            }
-            auto convex_color = colormap[local_ns];
-
-            //this_marker.colors = color_value->second;
-            //auto convex_color = colormap["fin_extent"];
-
-            this_marker.ns = "fin_extent";
-            // The Circle
-            if (!circle) {
-                for (int i = 0; i < 50; i++) {
-                    lines.clear();
-                    linel.x = r * cos(M_PI / 25 * float(i));
-                    linel.y = r * sin(M_PI / 25 * float(i));
-                    liner.x = r * cos(M_PI / 25 * float(i + 1));
-                    liner.y = r * sin(M_PI / 25 * float(i + 1));
-                    lines.push_back(linel);
-                    lines.push_back(liner);
-                    this_marker.points = lines;
-                    this_marker.colors = convex_color; //convex_color;
-                    this_marker.id = id++;
-                    this_marker.lifetime = ros::Duration(100.0);
-                    vis_arr.markers.push_back(this_marker);
-                }
-                circle = true;
-            }
-
-            auto getline = [] (int idx, float dist,
-                                Eigen::Vector2f& extendedGapOrigin,
-                                std::vector<geometry_msgs::Point>& lines,
-                                geometry_msgs::Point& linel,
-                                geometry_msgs::Point& liner,
-                                visualization_msgs::Marker& this_marker,
-                                std::vector<std_msgs::ColorRGBA> & convex_color,
-                                visualization_msgs::MarkerArray& vis_arr,
-                                int half_num_scan,
-                                int id
-                                ) -> void {
-                                    lines.clear();
-                                    linel.x = extendedGapOrigin[0];
-                                    linel.y = extendedGapOrigin[1];
-                                    linel.z = 0.1;
-                                    liner.x = dist * cos(M_PI / half_num_scan * (idx - half_num_scan));
-                                    liner.y = dist * sin(M_PI / half_num_scan * (idx - half_num_scan));
-                                    liner.z = 0.1;
-                                    lines.push_back(linel);
-                                    lines.push_back(liner);
-                                    this_marker.points = lines;
-                                    this_marker.colors = convex_color;
-                                    this_marker.id = id;
-                                    this_marker.lifetime = ros::Duration(100.0);
-                                    vis_arr.markers.push_back(this_marker);
-                                };
-
-            {
-                this_marker.ns = "extent_line";
-                if (initial) {
-                    getline(g.convex.leftIdx_, g.convex.leftDist_, g.extendedGapOrigin, 
-                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
-                    getline(g.convex.rightIdx_, g.convex.rightDist_, g.extendedGapOrigin, 
-                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
-                } else {
-                    getline(g.convex.leftIdx_, g.convex.leftDist_, g.termExtendedGapOrigin, 
-                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
-                    getline(g.convex.rightIdx_, g.convex.rightDist_, g.termExtendedGapOrigin, 
-                        lines, linel, liner, this_marker, convex_color, vis_arr, g.half_scan, id++);
-                }
-                Eigen::Vector2f origin(0, 0);
-
-                this_marker.ns = "orig_line";
-                getline(g._left_idx, g._ldist, origin, 
-                    lines, linel, liner, this_marker, colormap["fin_agc"], vis_arr, g.half_scan, id++);
-                getline(g._right_idx, g._rdist, origin, 
-                    lines, linel, liner, this_marker, colormap["fin_agc"], vis_arr, g.half_scan, id++);
-            }
-        }
-        */
     }
 
-    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap> & vec, std::string ns) 
+    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap> & gaps, std::string ns) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -1131,7 +1058,8 @@ namespace dynamic_gap
         visualization_msgs::MarkerArray vis_arr;
 
         bool circle = false;
-        for (auto gap : vec) {
+        for (const dynamic_gap::Gap & gap : gaps) 
+        {
             drawManipGap(vis_arr, gap, circle, ns, true); // initial
             drawManipGap(vis_arr, gap, circle, ns, false); // false
         }

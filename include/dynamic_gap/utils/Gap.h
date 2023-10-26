@@ -23,10 +23,10 @@ namespace dynamic_gap
             Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float minSafeDist_) : 
                 frame_(frame), rightIdx_(right_idx), rightDist_(rdist), radial_(radial), half_scan(half_scan), minSafeDist_(minSafeDist_)
             {
-                extendedGapOrigin << 0.0, 0.0;
-                termExtendedGapOrigin << 0.0, 0.0;
-                rightBezierOrigin << 0.0, 0.0;
-                leftBezierOrigin << 0.0, 0.0;
+                extendedGapOrigin_ << 0.0, 0.0;
+                termExtendedGapOrigin_ << 0.0, 0.0;
+                rightBezierOrigin_ << 0.0, 0.0;
+                leftBezierOrigin_ << 0.0, 0.0;
             };
 
             ~Gap() {};
@@ -85,7 +85,7 @@ namespace dynamic_gap
             {
                 leftIdx_ = left_idx;
                 leftDist_ = ldist;
-                right_type = rightDist_ < leftDist_;
+                rightType_ = rightDist_ < leftDist_;
 
                 // if (!radial_)
                 // {
@@ -102,7 +102,7 @@ namespace dynamic_gap
 
             void addTerminalRightInformation()
             {
-                terminal_right_type = termRightDist_ < termLeftDist_;
+                terminalRightType_ = termRightDist_ < termLeftDist_;
 
                 // if (!termRadial_)
                 // {
@@ -184,7 +184,7 @@ namespace dynamic_gap
                     gap_angle += 2*M_PI;
 
                 // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
-                float short_side = right_type ? check_r_dist : check_l_dist;
+                float short_side = rightType_ ? check_r_dist : check_l_dist;
                 // law of cosines
                 float opp_side = sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * cos(gap_angle));
                 // law of sines
@@ -217,9 +217,9 @@ namespace dynamic_gap
             bool isRightType(bool initial = true) const
             {
                 if (initial)
-                    return right_type;
+                    return rightType_;
                 else
-                    return terminal_right_type;
+                    return terminalRightType_;
             }
 
             /*
@@ -291,14 +291,15 @@ namespace dynamic_gap
                 return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gap_angle));
             }
 
-            void setTerminalPoints(float _termLeftIdx_, float _termLeftDist_, float _termRightIdx_, float _termRightDist_) {
-                
-                termLeftIdx_ = _termLeftIdx_;
-                termLeftDist_ = _termLeftDist_;
-                termRightIdx_ = _termRightIdx_;
-                termRightDist_ = _termRightDist_;
+            void setTerminalPoints(float termLeftIdx, float termLeftDist, float termRightIdx, float termRightDist) 
+            {    
+                termLeftIdx_ = termLeftIdx;
+                termLeftDist_ = termLeftDist;
+                termRightIdx_ = termRightIdx;
+                termRightDist_ = termRightDist;
 
-                if (termLeftIdx_ == termRightIdx_) {
+                if (termLeftIdx_ == termRightIdx_) 
+                {
                     // ROS_INFO_STREAM("terminal indices are the same");
                     termLeftIdx_ = (termLeftIdx_ + 1) % 512;
                 }
@@ -351,67 +352,63 @@ namespace dynamic_gap
             
             float gapLifespan_ = 5.0;
 
-            float minSafeDist_ = -1;
-            float terminalMinSafeDist_ = -1;
-            Eigen::Vector2f extendedGapOrigin;
-            Eigen::Vector2f termExtendedGapOrigin;
-            Eigen::Vector2f rightBezierOrigin;
-            Eigen::Vector2f leftBezierOrigin;
+            float minSafeDist_, terminalMinSafeDist_;
+            Eigen::Vector2f extendedGapOrigin_, termExtendedGapOrigin_;
+            Eigen::Vector2f leftBezierOrigin_, rightBezierOrigin_;
             float half_scan = 256;
 
             std::string frame_ = "";
             bool radial_ = false;
             bool termRadial_ = false;
-            bool right_type = false;
-            bool terminal_right_type = false;
+            bool rightType_ = false;
+            bool terminalRightType_ = false;
 
-            float peak_velocity_x = 0.0;
-            float peak_velocity_y = 0.0;
+            float peakVelX_, peakVelY_ = 0.0;
 
-            struct GapMode {
-                bool reduced = false;
-                bool convex = false;
-                bool agc = false;
-                bool terminal_reduced = false;
-                bool terminal_convex = false;
-                bool terminal_agc = false;
+            struct GapMode 
+            {
+                bool reduced_ = false;
+                bool convex_ = false;
+                bool RGC_ = false;
+                bool termReduced_ = false;
+                bool termConvex_ = false;
+                bool termRGC_ = false;
             } mode;
 
-            struct Goal {
-                float x, y;
-                bool set = false;
-                bool discard = false;
-                bool goalwithin = false;
+            struct Goal 
+            {
+                float x_, y_;
+                // bool set = false;
+                // bool discard = false;
+                // bool goalwithin = false;
             } goal;
 
-            struct TerminalGoal {
-                float x, y;
-                bool set = false;
-                bool discard = false;
-                bool goalwithin = false;
-            } terminal_goal;
+            struct TerminalGoal 
+            {
+                float x_, y_;
+                // bool set = false;
+                // bool discard = false;
+                // bool goalwithin = false;
+            } terminalGoal;
 
-            Estimator * rightGapPtModel;
-            Estimator * leftGapPtModel;
+            Estimator * rightGapPtModel_;
+            Estimator * leftGapPtModel_;
             // int _index;
             std::string category_;
-            Eigen::Vector2f crossingPt_;
-            Eigen::Vector2f closingPt_;
+            Eigen::Vector2f crossingPt_, closingPt_;
 
             bool crossed_ = false;
             bool closed_ = false;
             bool crossedBehind_ = false;
 
-            bool artificial = false;
+            bool artificial_ = false;
 
-            float left_weight = 0.0;
-            float right_weight = 0.0;
-            Eigen::MatrixXd left_right_centers, all_curve_pts;
-            Eigen::Vector4f spline_x_coefs, spline_y_coefs;
+            float leftWeight_, rightWeight_;
+            Eigen::MatrixXd leftRightCenters_, allCurvePts_;
+            Eigen::Vector4f splineXCoefs_, splineYCoefs_;
 
-            Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
-            int num_left_rge_points = 0;
-            int num_right_rge_points = 0;
+            Eigen::Vector2d leftPt0_, leftPt1_, rightPt0_, rightPt1_;
+            int numLeftRGEPoints_, numRightRGEPoints_;
 
         private:
 

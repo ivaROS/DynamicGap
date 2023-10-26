@@ -262,7 +262,7 @@ namespace dynamic_gap
         {
             //std::cout << "entering left model update" << std::endl;
             try {
-                gap.rightGapPtModel->update(measurement, 
+                gap.rightGapPtModel_->update(measurement, 
                                             intermediateRbtVels, intermediateRbtAccs, 
                                             print, currentTrueAgentPoses_, 
                                             currentTrueAgentVels_,
@@ -274,7 +274,7 @@ namespace dynamic_gap
         } else {
             //std::cout << "entering right model update" << std::endl;
             try {
-                gap.leftGapPtModel->update(measurement, 
+                gap.leftGapPtModel_->update(measurement, 
                                             intermediateRbtVels, intermediateRbtAccs, 
                                             print, currentTrueAgentPoses_, 
                                             currentTrueAgentVels_,
@@ -607,11 +607,12 @@ namespace dynamic_gap
         auto iter = std::max_element(result_score.begin(), result_score.end());
         int idx = std::distance(result_score.begin(), iter);
 
-        if (result_score.at(idx) == -std::numeric_limits<float>::infinity()) {
-            
+        if (result_score.at(idx) == -std::numeric_limits<float>::infinity()) 
+        {    
             ROS_INFO_STREAM("    all -infinity");
             ROS_WARN_STREAM("No executable trajectory, values: ");
-            for (auto val : result_score) {
+            for (float val : result_score) 
+            {
                 ROS_INFO_STREAM("Score: " << val);
             }
             ROS_INFO_STREAM("------------------");
@@ -642,9 +643,9 @@ namespace dynamic_gap
         } else {
             setCurrentTraj(incoming);
             setCurrentTimeArr(time_arr);
-            setCurrentLeftModel(incoming_gap.leftGapPtModel);
-            setCurrentRightModel(incoming_gap.rightGapPtModel);
-            setCurrentGapPeakVelocities(incoming_gap.peak_velocity_x, incoming_gap.peak_velocity_y);
+            setCurrentLeftModel(incoming_gap.leftGapPtModel_);
+            setCurrentRightModel(incoming_gap.rightGapPtModel_);
+            setCurrentGapPeakVelocities(incoming_gap.peakVelX_, incoming_gap.peakVelY_);
             currentTrajectoryPublisher_.publish(incoming);          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incoming);
 
@@ -675,10 +676,10 @@ namespace dynamic_gap
             bool curr_gap_feasible = true;
             for (dynamic_gap::Gap g : feasible_gaps) 
             {
-                // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel->get_index() << ", feasible right gap index: " << g.rightGapPtModel->get_index());
-                if (g.leftGapPtModel->get_index() == getCurrentLeftGapIndex() &&
-                    g.rightGapPtModel->get_index() == getCurrentRightGapIndex()) {
-                    setCurrentGapPeakVelocities(g.peak_velocity_x, g.peak_velocity_y);
+                // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel_->get_index() << ", feasible right gap index: " << g.rightGapPtModel_->get_index());
+                if (g.leftGapPtModel_->get_index() == getCurrentLeftGapIndex() &&
+                    g.rightGapPtModel_->get_index() == getCurrentRightGapIndex()) {
+                    setCurrentGapPeakVelocities(g.peakVelX_, g.peakVelY_);
                     break;
                 }
             }
@@ -816,10 +817,10 @@ namespace dynamic_gap
         currLeftGapPtModel_ = leftModel; 
     }
 
-    void Planner::setCurrentGapPeakVelocities(float _peak_velocity_x, float _peak_velocity_y) 
+    void Planner::setCurrentGapPeakVelocities(float _peakVelX_, float _peakVelY_) 
     {
-        currentPeakSplineVel_.twist.linear.x = _peak_velocity_x;
-        currentPeakSplineVel_.twist.linear.y = _peak_velocity_y;
+        currentPeakSplineVel_.twist.linear.x = _peakVelX_;
+        currentPeakSplineVel_.twist.linear.y = _peakVelY_;
     }
 
     int Planner::getCurrentRightGapIndex() 
@@ -963,11 +964,11 @@ namespace dynamic_gap
             if (gap_i_feasible) {
                 curr_observed_gaps.at(i).addTerminalRightInformation();
                 feasible_gap_set.push_back(curr_observed_gaps.at(i));
-                // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peak_velocity_x << ", " << curr_observed_gaps.at(i).peak_velocity_y);
+                // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << curr_observed_gaps.at(i).peakVelX_ << ", " << curr_observed_gaps.at(i).peakVelY_);
             }
 
-            if (curr_observed_gaps.at(i).leftGapPtModel->get_index() == curr_left_idx && 
-                curr_observed_gaps.at(i).rightGapPtModel->get_index() == curr_right_idx) {
+            if (curr_observed_gaps.at(i).leftGapPtModel_->get_index() == curr_left_idx && 
+                curr_observed_gaps.at(i).rightGapPtModel_->get_index() == curr_right_idx) {
                 curr_exec_gap_assoc = true;
                 curr_exec_gap_feas = true;
             }
@@ -1234,25 +1235,25 @@ namespace dynamic_gap
         }
     }
 
-    void Planner::printGapModels(std::vector<dynamic_gap::Gap> gaps) 
+    void Planner::printGapModels(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         // THIS IS NOT FOR MANIPULATED GAPS
         float x,y;
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            dynamic_gap::Gap g = gaps.at(i);
-            ROS_INFO_STREAM("    gap " << i << ", indices: " << g.RIdx() << " to "  << g.LIdx() << ", left model: " << g.leftGapPtModel->get_index() << ", rightGapPtModel: " << g.rightGapPtModel->get_index());
-            Eigen::Matrix<float, 4, 1> left_state = g.leftGapPtModel->getState();
-            g.getLCartesian(x, y);            
+            dynamic_gap::Gap gap = gaps.at(i);
+            ROS_INFO_STREAM("    gap " << i << ", indices: " << gap.RIdx() << " to "  << gap.LIdx() << ", left model: " << gap.leftGapPtModel_->get_index() << ", rightGapPtModel: " << gap.rightGapPtModel_->get_index());
+            Eigen::Matrix<float, 4, 1> left_state = gap.leftGapPtModel_->getState();
+            gap.getLCartesian(x, y);            
             ROS_INFO_STREAM("        left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            Eigen::Matrix<float, 4, 1> right_state = g.rightGapPtModel->getState();
-            g.getRCartesian(x, y);
+            Eigen::Matrix<float, 4, 1> right_state = gap.rightGapPtModel_->getState();
+            gap.getRCartesian(x, y);
             ROS_INFO_STREAM("        right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
-           
         }
     }
 
-    bool Planner::recordAndCheckVel(geometry_msgs::Twist cmd_vel) {
+    bool Planner::recordAndCheckVel(geometry_msgs::Twist cmd_vel) 
+    {
         float val = std::abs(cmd_vel.linear.x) + std::abs(cmd_vel.linear.y) + std::abs(cmd_vel.angular.z);
         log_vel_comp.push_back(val);
         float cum_vel_sum = std::accumulate(log_vel_comp.begin(), log_vel_comp.end(), float(0));

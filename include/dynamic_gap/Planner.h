@@ -136,7 +136,7 @@ namespace dynamic_gap
         
         geometry_msgs::TwistStamped currentPeakSplineVel_;
 
-        // float curr_peak_velocity_x, curr_peak_velocity_y;
+        // float curr_peakVelX_, curr_peakVelY_;
 
         int currentAgentCount_;
 
@@ -303,9 +303,9 @@ namespace dynamic_gap
         void setCurrentLeftModel(dynamic_gap::Estimator * left_model);
         void setCurrentRightModel(dynamic_gap::Estimator * right_model);
 
-        void setCurrentGapPeakVelocities(float _peak_velocity_x, float _peak_velocity_y);
+        void setCurrentGapPeakVelocities(float _peakVelX_, float _peakVelY_);
 
-        void printGapModels(std::vector<dynamic_gap::Gap> gaps);
+        void printGapModels(const std::vector<dynamic_gap::Gap> & gaps);
         void printGapAssociations(const std::vector<dynamic_gap::Gap> & current_gaps, 
                                   const std::vector<dynamic_gap::Gap> & previous_gaps, 
                                   const std::vector<int> & association);

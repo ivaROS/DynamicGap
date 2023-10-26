@@ -209,7 +209,7 @@ namespace dynamic_gap
         gap.addLeftInformation(leftIdx, scan_.ranges.at(leftIdx));
         // gap.setRadial();
         
-        gap.artificial = true;
+        gap.artificial_ = true;
         rawGaps.insert(rawGaps.begin() + gap_idx, gap);        
         return;
     }    

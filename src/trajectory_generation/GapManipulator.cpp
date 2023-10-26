@@ -54,18 +54,18 @@ namespace dynamic_gap
                 closingGapType = "crossed";
                 Eigen::Vector2f crossingPt = gap.getCrossingPoint();
 
-                gap.terminal_goal.x = crossingPt[0];
-                gap.terminal_goal.y = crossingPt[1];
-                gap.terminal_goal.set = true;
+                gap.terminalGoal.x_ = crossingPt[0];
+                gap.terminalGoal.y_ = crossingPt[1];
+                // gap.terminalGoal.set = true;
             } else if (gap.closed_) 
             {
                 closingGapType = "closed";
                 ROS_INFO_STREAM("        setting terminal goal for closed closing gap");
                 Eigen::Vector2f closing_pt = gap.getClosingPoint();
             
-                gap.terminal_goal.x = closing_pt[0];
-                gap.terminal_goal.y = closing_pt[1];
-                gap.terminal_goal.set = true;
+                gap.terminalGoal.x_ = closing_pt[0];
+                gap.terminalGoal.y_ = closing_pt[1];
+                // gap.terminalGoal.set = true;
             } else 
             {
                 closingGapType = "existent";
@@ -129,20 +129,20 @@ namespace dynamic_gap
         // Second condition: if angle smaller than M_PI / 3
         // Check if arc length < 3 robot width
 
-        if (gap.artificial) 
+        if (gap.artificial_) 
         {
             if (initial) 
             {
-                gap.goal.x = localGoal.pose.position.x;
-                gap.goal.y = localGoal.pose.position.y;
-                gap.goal.set = true;
-                gap.goal.goalwithin = true;
+                gap.goal.x_ = localGoal.pose.position.x;
+                gap.goal.y_ = localGoal.pose.position.y;
+                // gap.goal.set = true;
+                // gap.goal.goalwithin = true;
             } else 
             {
-                gap.terminal_goal.x = localGoal.pose.position.x;
-                gap.terminal_goal.y = localGoal.pose.position.y;
-                gap.terminal_goal.set = true;
-                gap.terminal_goal.goalwithin = true;
+                gap.terminalGoal.x_ = localGoal.pose.position.x;
+                gap.terminalGoal.y_ = localGoal.pose.position.y;
+                // gap.terminalGoal.set = true;
+                // gap.terminalGoal.goalwithin = true;
             }
 
             if (cfg_->debug.manipulation_debug_log) 
@@ -191,14 +191,16 @@ namespace dynamic_gap
             float goal_y = range_center * std::sin(thetaCenter);
             // ROS_INFO_STREAM("thetaLeft: " << thetaLeft << ", thetaRight: " << thetaRight << ", thetaCenter: " << thetaCenter);
 
-            if (initial) {
-                gap.goal.set = true;
-                gap.goal.x = goal_x;
-                gap.goal.y = goal_y;
-            } else {
-                gap.terminal_goal.set = true;
-                gap.terminal_goal.x = goal_x;
-                gap.terminal_goal.y = goal_y;
+            if (initial) 
+            {
+                // gap.goal.set = true;
+                gap.goal.x_ = goal_x;
+                gap.goal.y_ = goal_y;
+            } else 
+            {
+                // gap.terminalGoal.set = true;
+                gap.terminalGoal.x_ = goal_x;
+                gap.terminalGoal.y_ = goal_y;
             }
 
             if (cfg_->debug.manipulation_debug_log) {
@@ -234,16 +236,16 @@ namespace dynamic_gap
             {
                 if (initial) 
                 {
-                    gap.goal.x = localGoal.pose.position.x;
-                    gap.goal.y = localGoal.pose.position.y;
-                    gap.goal.set = true;
-                    gap.goal.goalwithin = true;
+                    gap.goal.x_ = localGoal.pose.position.x;
+                    gap.goal.y_ = localGoal.pose.position.y;
+                    // gap.goal.set = true;
+                    // gap.goal.goalwithin = true;
                 } else 
                 {
-                    gap.terminal_goal.x = localGoal.pose.position.x;
-                    gap.terminal_goal.y = localGoal.pose.position.y;
-                    gap.terminal_goal.set = true;
-                    gap.terminal_goal.goalwithin = true;
+                    gap.terminalGoal.x_ = localGoal.pose.position.x;
+                    gap.terminalGoal.y_ = localGoal.pose.position.y;
+                    // gap.terminalGoal.set = true;
+                    // gap.terminalGoal.goalwithin = true;
 
                 }
 
@@ -344,14 +346,15 @@ namespace dynamic_gap
         
         Eigen::Vector2f goal_pt = offset + anchor;
         // ROS_INFO_STREAM("anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), goal_pt: (" << goal_pt[0] << ", " << goal_pt[1] << ")");
-        if (initial) {
-            gap.goal.x = goal_pt(0);
-            gap.goal.y = goal_pt(1);
-            gap.goal.set = true;
+        if (initial) 
+        {
+            gap.goal.x_ = goal_pt(0);
+            gap.goal.y_ = goal_pt(1);
+            // gap.goal.set = true;
         } else {
-            gap.terminal_goal.x = goal_pt(0);
-            gap.terminal_goal.y = goal_pt(1);
-            gap.terminal_goal.set = true;
+            gap.terminalGoal.x_ = goal_pt(0);
+            gap.terminalGoal.y_ = goal_pt(1);
+            // gap.terminalGoal.set = true;
         }
 
         if (cfg_->debug.manipulation_debug_log) {
@@ -520,7 +523,7 @@ namespace dynamic_gap
             gap.setCvxRIdx(new_r_idx);
             gap.setCvxLDist(new_ldist);            
             gap.setCvxRDist(new_rdist);
-            gap.mode.reduced = true;
+            gap.mode.reduced_ = true;
 
             // x_l = gap.cvxLeftDist() * cos(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
             // y_l = gap.cvxLeftDist() * sin(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
@@ -531,7 +534,7 @@ namespace dynamic_gap
             gap.setCvxTermRIdx(new_r_idx);
             gap.setCvxTermLDist(new_ldist);
             gap.setCvxTermRDist(new_rdist);
-            gap.mode.terminal_reduced = true;
+            gap.mode.termReduced_ = true;
 
             // x_l = gap.cvxTermLDist() * cos(((float) gap.cvxTermLIdx() - gap.half_scan) / gap.half_scan * M_PI);
             // y_l = gap.cvxTermLDist() * sin(((float) gap.cvxTermLIdx() - gap.half_scan) / gap.half_scan * M_PI);
@@ -661,14 +664,16 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx);
 
+        /*
         if (search_size < 3) // Arbitrary value 
         {
             if (initial)
                 gap.goal.discard = true;
             else
-                gap.terminal_goal.discard = true;
+                gap.terminalGoal.discard = true;
             return;
         }
+        */
 
         // For wraparound (check to see if this happens)
         init_search_idx = std::max(init_search_idx, 0);
@@ -748,7 +753,7 @@ namespace dynamic_gap
             gap.setCvxRIdx(new_r_idx);
             gap.setCvxLDist(new_ldist);
             gap.setCvxRDist(new_rdist);
-            gap.mode.agc = true;
+            gap.mode.RGC_ = true;
 
             // x_l = gap.cvxLeftDist() * cos(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
             // y_l = gap.cvxLeftDist() * sin(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
@@ -759,7 +764,7 @@ namespace dynamic_gap
             gap.setCvxTermRIdx(new_r_idx);
             gap.setCvxTermLDist(new_ldist);
             gap.setCvxTermRDist(new_rdist);
-            gap.mode.terminal_agc = true;
+            gap.mode.termRGC_ = true;
 
             // x_l = gap.cvxTermLDist() * cos(((float) gap.cvxTermLIdx() - gap.half_scan) / gap.half_scan * M_PI);
             // y_l = gap.cvxTermLDist() * sin(((float) gap.cvxTermLIdx() - gap.half_scan) / gap.half_scan * M_PI);
@@ -855,7 +860,7 @@ namespace dynamic_gap
         
         if (initial) 
         {
-            gap.extendedGapOrigin = extendedGapOrigin;
+            gap.extendedGapOrigin_ = extendedGapOrigin;
             // Eigen::Vector2f qLp = pt_l - extendedGapOrigin;
             // float theta_btw_qLp_and_extendedGapOrigin = std::acos(fwd_extendedGapOrigin.dot(qLp) / (fwd_extendedGapOrigin.norm() * qLp.norm()));
             // float length_along_qLp = fwd_extendedGapOrigin.norm() / cos(theta_btw_qLp_and_extendedGapOrigin);
@@ -863,7 +868,7 @@ namespace dynamic_gap
             //Eigen::Vector2f left_hypotenuse = length_along_qLp * qLp / qLp.norm();        
             // ROS_INFO_STREAM("length along qLp: " << length_along_qLp << ", left_hypotenuse: " << left_hypotenuse[0] << ", " << left_hypotenuse[1]);
             
-            gap.leftBezierOrigin =  r_negpi2 * extendedGapOrigin; // left_hypotenuse + extendedGapOrigin;
+            gap.leftBezierOrigin_ =  r_negpi2 * extendedGapOrigin; // left_hypotenuse + extendedGapOrigin;
 
             // Eigen::Vector2f qRp = pt_r - extendedGapOrigin;
             // float theta_btw_qRp_and_extendedGapOrigin = std::acos(fwd_extendedGapOrigin.dot(qRp) / (fwd_extendedGapOrigin.norm() * qRp.norm()));
@@ -871,16 +876,16 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("theta between qRp and extendedGapOrigin: " << theta_btw_qRp_and_extendedGapOrigin);
             // Eigen::Vector2f right_hypotenuse = length_along_qRp * qRp / qRp.norm();        
             // ROS_INFO_STREAM("length along qRp: " << length_along_qRp << ", right_hypotenuse: " << right_hypotenuse[0] << ", " << right_hypotenuse[1]);
-            gap.rightBezierOrigin = r_pi2 * extendedGapOrigin; // right_hypotenuse + extendedGapOrigin;
+            gap.rightBezierOrigin_ = r_pi2 * extendedGapOrigin; // right_hypotenuse + extendedGapOrigin;
         } else 
         {
-            gap.termExtendedGapOrigin = extendedGapOrigin;
+            gap.termExtendedGapOrigin_ = extendedGapOrigin;
         }
 
         if (initial)
-            gap.mode.convex = true;
+            gap.mode.convex_ = true;
         else
-            gap.mode.terminal_convex = true;
+            gap.mode.termConvex_ = true;
         
         if (cfg_->debug.manipulation_debug_log)
             ROS_INFO_STREAM("        gap extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);

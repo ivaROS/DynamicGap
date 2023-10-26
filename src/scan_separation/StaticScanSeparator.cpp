@@ -100,12 +100,14 @@ namespace dynamic_gap
         }
 
         std::vector<dynamic_gap::Estimator *> obs_models;
-        for (auto gap : observed_gaps) {
-            obs_models.push_back(gap.leftGapPtModel);
-            obs_models.push_back(gap.rightGapPtModel);
+        for (const dynamic_gap::Gap & gap : observed_gaps) 
+        {
+            obs_models.push_back(gap.leftGapPtModel_);
+            obs_models.push_back(gap.rightGapPtModel_);
         }
 
-        for (auto & model : obs_models) {
+        for (dynamic_gap::Estimator * & model : obs_models) 
+        {
             model->isolateGapDynamics();
         }
         

@@ -407,8 +407,8 @@ namespace dynamic_gap
                                     min_dist_ang, min_dist);
             
             // Eigen::Vector4f state(rbt_in_cam_lc.pose.position.x, rbt_in_cam_lc.pose.position.y, current_rbt_vel.linear.x, current_rbt_vel.linear.y);
-            // Eigen::Vector4f left_rel_model = curr_leftGapPtModel->getState(); // flipping
-            // Eigen::Vector4f right_rel_model = curr_rightGapPtModel->getState(); // flipping
+            // Eigen::Vector4f left_rel_model = curr_leftGapPtModel_->getState(); // flipping
+            // Eigen::Vector4f right_rel_model = curr_rightGapPtModel_->getState(); // flipping
             // Eigen::Vector2f current_rbt_accel(rbt_accel.linear.x, rbt_accel.linear.y);
             // run_bearing_rate_barrier_function(state, right_rel_model, left_rel_model, current_rbt_accel, cmd_vel_x_safe, cmd_vel_y_safe, Psi_CBF);
         } else {

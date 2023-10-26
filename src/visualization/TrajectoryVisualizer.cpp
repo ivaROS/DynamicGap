@@ -38,18 +38,18 @@ namespace dynamic_gap
         trajectory_switch_pub.publish(marker);
     }
 
-    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) 
+    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
-        if (plan.size() < 1) 
-            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << plan.size() << " < 1");
+        if (globalPlan.size() < 1) 
+            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
 
-        geometry_msgs::PoseArray vis_arr;
-        vis_arr.header = plan.at(0).header;
-        for (auto & pose : plan) 
-            vis_arr.poses.push_back(pose.pose);
+        geometry_msgs::PoseArray poseArray;
+        poseArray.header = globalPlan.at(0).header;
+        for (const geometry_msgs::PoseStamped & pose : globalPlan) 
+            poseArray.poses.push_back(pose.pose);
 
-        entire_global_plan_pub.publish(vis_arr);
+        entire_global_plan_pub.publish(poseArray);
     }
 
     void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
@@ -105,7 +105,7 @@ namespace dynamic_gap
         trajectory_score.publish(score_arr);
     }
 
-    void TrajectoryVisualizer::pubAllTraj(const std::vector<geometry_msgs::PoseArray> & prr) 
+    void TrajectoryVisualizer::pubAllTraj(const std::vector<geometry_msgs::PoseArray> & trajectories) 
     {
         if (!cfg_->gap_viz.debug_viz) return;
 
@@ -121,14 +121,14 @@ namespace dynamic_gap
         
         visualization_msgs::MarkerArray vis_traj_arr;
         visualization_msgs::Marker lg_marker;
-        if (prr.size() == 0)
+        if (trajectories.size() == 0)
         {
             ROS_WARN_STREAM("traj count length 0");
             return;
         }
 
         // The above makes this safe
-        lg_marker.header.frame_id = prr.at(0).header.frame_id;
+        lg_marker.header.frame_id = trajectories.at(0).header.frame_id;
         lg_marker.header.stamp = ros::Time::now();
         lg_marker.ns = "allTraj";
         lg_marker.type = visualization_msgs::Marker::ARROW;
@@ -141,9 +141,9 @@ namespace dynamic_gap
         lg_marker.color.g = 1.0;
         lg_marker.lifetime = ros::Duration(100.0);
 
-        for (auto & arr : prr) 
+        for (const geometry_msgs::PoseArray & traj : trajectories) 
         {
-            for (auto pose : arr.poses) 
+            for (const geometry_msgs::Pose & pose : traj.poses) 
             {
                 lg_marker.id = int (vis_traj_arr.markers.size());
                 lg_marker.pose = pose;
@@ -153,17 +153,20 @@ namespace dynamic_gap
         all_traj_viz.publish(vis_traj_arr);
     }
 
-    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj) 
+    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet) 
     {
         try 
         { 
             geometry_msgs::PoseArray pub_traj;
-            if (traj.size() > 0) {
+            if (globalPlanSnippet.size() > 0) 
+            {
                 // Should be safe with this check
-                pub_traj.header = traj.at(0).header;
+                pub_traj.header = globalPlanSnippet.at(0).header;
             }
-            for (auto trajpose : traj) {
-                pub_traj.poses.push_back(trajpose.pose);
+
+            for (const geometry_msgs::PoseStamped & pose : globalPlanSnippet) 
+            {
+                pub_traj.poses.push_back(pose.pose);
             }
             relevant_global_plan_snippet_pub.publish(pub_traj);
         } catch (...) {
