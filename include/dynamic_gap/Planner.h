@@ -62,8 +62,8 @@ namespace dynamic_gap
         geometry_msgs::TransformStamped cam2odom_;
         geometry_msgs::TransformStamped rbt2cam_;
 
-        geometry_msgs::PoseStamped rbt_in_rbt;
-        geometry_msgs::PoseStamped rbt_in_cam;
+        geometry_msgs::PoseStamped rbtPoseInRbtFrame_;
+        geometry_msgs::PoseStamped rbtPoseInSensorFrame_;
 
         tf2_ros::Buffer tfBuffer_;
         tf2_ros::TransformListener *tfListener_;

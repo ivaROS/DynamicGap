@@ -54,8 +54,8 @@ namespace dynamic_gap
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
         rbt2odom_.transform.rotation.w = 1;
-        rbt_in_rbt.pose.orientation.w = 1;
-        rbt_in_rbt.header.frame_id = cfg_.robot_frame_id;
+        rbtPoseInRbtFrame_.pose.orientation.w = 1;
+        rbtPoseInRbtFrame_.header.frame_id = cfg_.robot_frame_id;
 
         log_vel_comp.set_capacity(cfg_.planning.halt_size);
 
@@ -286,13 +286,13 @@ namespace dynamic_gap
         }
     }
 
-    void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &odom_msg, 
-                                 const geometry_msgs::TwistStamped::ConstPtr &accel_msg)
+    void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
+                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
         // ROS_INFO_STREAM("joint pose acc cb");
 
-        // ROS_INFO_STREAM("accel time stamp: " << accel_msg->header.stamp.toSec());
-        currentRbtAcc_ = *accel_msg;
+        // ROS_INFO_STREAM("accel time stamp: " << rbtAccelMsg->header.stamp.toSec());
+        currentRbtAcc_ = *rbtAccelMsg;
         intermediateRbtAccs_.push_back(currentRbtAcc_);
 
         // deleting old sensor measurements already used in an update
@@ -305,40 +305,40 @@ namespace dynamic_gap
             }
         }    
 
-        // ROS_INFO_STREAM("odom time stamp: " << odom_msg->header.stamp.toSec());
+        // ROS_INFO_STREAM("odom time stamp: " << rbtOdomMsg->header.stamp.toSec());
 
-        // ROS_INFO_STREAM("acc - odom time difference: " << (accel_msg->header.stamp - odom_msg->header.stamp).toSec());
+        // ROS_INFO_STREAM("acc - odom time difference: " << (rbtAccelMsg->header.stamp - rbtOdomMsg->header.stamp).toSec());
 
         updateTF();
 
         // Transform the msg to odom frame
-        if(odom_msg->header.frame_id != cfg_.odom_frame_id)
+        if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
         {
             //std::cout << "odom msg is not in odom frame" << std::endl;
-            geometry_msgs::TransformStamped robot_pose_odom_trans = tfBuffer_.lookupTransform(cfg_.odom_frame_id, odom_msg->header.frame_id, ros::Time(0));
+            geometry_msgs::TransformStamped msgFrame2OdomFrame = tfBuffer_.lookupTransform(cfg_.odom_frame_id, rbtOdomMsg->header.frame_id, ros::Time(0));
 
-            geometry_msgs::PoseStamped in_pose, out_pose;
-            in_pose.header = odom_msg->header;
-            in_pose.pose = odom_msg->pose.pose;
+            geometry_msgs::PoseStamped rbtPoseMsgFrame, rbtPoseOdomFrame;
+            rbtPoseMsgFrame.header = rbtOdomMsg->header;
+            rbtPoseMsgFrame.pose = rbtOdomMsg->pose.pose;
 
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
 
-            tf2::doTransform(in_pose, out_pose, robot_pose_odom_trans);
-            robotPoseOdomFrame_ = out_pose;
+            tf2::doTransform(rbtPoseMsgFrame, rbtPoseOdomFrame, msgFrame2OdomFrame);
+            robotPoseOdomFrame_ = rbtPoseOdomFrame;
         }
         else
         {
-            robotPoseOdomFrame_.pose = odom_msg->pose.pose;
+            robotPoseOdomFrame_.pose = rbtOdomMsg->pose.pose;
         }
 
         //--------------- VELOCITY -------------------//
         // velocity always comes in wrt robot frame in STDR
-        geometry_msgs::TwistStamped ego_rbt_vel;
-        ego_rbt_vel.header = odom_msg->header;
-        ego_rbt_vel.header.frame_id = accel_msg->header.frame_id;
-        ego_rbt_vel.twist = odom_msg->twist.twist;
+        geometry_msgs::TwistStamped incomingRbtVel;
+        incomingRbtVel.header = rbtOdomMsg->header;
+        incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
+        incomingRbtVel.twist = rbtOdomMsg->twist.twist;
 
-        currentRbtVel_ = ego_rbt_vel;
+        currentRbtVel_ = incomingRbtVel;
         intermediateRbtVels_.push_back(currentRbtVel_);
 
         // deleting old sensor measurements already used in an update
@@ -353,52 +353,53 @@ namespace dynamic_gap
 
     }
     
-    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg) 
+    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg) 
     {
-        std::string robot_namespace = msg->child_frame_id;
-        // ROS_INFO_STREAM("robot_namespace: " << robot_namespace);
-        robot_namespace.erase(0,5); // removing "robot"
-        char *robot_name_char = strdup(robot_namespace.c_str());
-        int robot_id = std::atoi(robot_name_char);
-        // ROS_INFO_STREAM("robot_id: " << robot_id);
-        // I need BOTH odom and vel in robot2 frame
-        //std::cout << "odom msg is not in odom frame" << std::endl;
+        std::string agentNamespace = agentOdomMsg->child_frame_id;
+        // ROS_INFO_STREAM("agentNamespace: " << agentNamespace);
+        agentNamespace.erase(0,5); // removing "robot" from "robotN"
+        char * robotChars = strdup(agentNamespace.c_str());
+        int agentID = std::atoi(robotChars);
+        // ROS_INFO_STREAM("agentID: " << agentID);
+
         try 
         {
             // transforming Odometry message from map_static to robotN
-            geometry_msgs::TransformStamped agent_to_robot_odom_trans = tfBuffer_.lookupTransform(cfg_.robot_frame_id, msg->header.frame_id, ros::Time(0));
+            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, agentOdomMsg->header.frame_id, ros::Time(0));
 
-            geometry_msgs::PoseStamped in_pose, out_pose;
-            in_pose.header = msg->header;
-            in_pose.pose = msg->pose.pose;
-            // ROS_INFO_STREAM("updating inpose " << robot_namespace << " to: (" << in_pose.pose.position.x << ", " << in_pose.pose.position.y << ")");
+            geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
+            agentPoseMsgFrame.header = agentOdomMsg->header;
+            agentPoseMsgFrame.pose = agentOdomMsg->pose.pose;
+            // ROS_INFO_STREAM("updating inpose " << agentNamespace << " to: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-            tf2::doTransform(in_pose, out_pose, agent_to_robot_odom_trans);
+            tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
-            // ROS_INFO_STREAM("updating " << robot_namespace << " odom from " << agent_odom_vects[robot_id][0] << ", " << agent_odom_vects[robot_id][1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_[robot_id] = out_pose.pose;
-        } catch (tf2::TransformException &ex) {
-            ROS_INFO_STREAM("Odometry transform failed for " << robot_namespace);
+            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects[agentID][0] << ", " << agent_odom_vects[agentID][1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
+            currentTrueAgentPoses_[agentID] = agentPoseRobotFrame.pose;
+        } catch (tf2::TransformException &ex) 
+        {
+            ROS_INFO_STREAM("Odometry transform failed for " << agentNamespace);
         }
         
         try 
         {
-            std::string source_frame = msg->child_frame_id; 
+            std::string source_frame = agentOdomMsg->child_frame_id; 
             // std::cout << "in agentOdomCB" << std::endl;
             // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
-            geometry_msgs::TransformStamped agent_to_robot_trans = tfBuffer_.lookupTransform(cfg_.robot_frame_id, source_frame, ros::Time(0));
-            geometry_msgs::Vector3Stamped in_vel, out_vel;
-            in_vel.header = msg->header;
-            in_vel.header.frame_id = source_frame;
-            in_vel.vector = msg->twist.twist.linear;
-            // std::cout << "incoming vector: " << in_vel.vector.x << ", " << in_vel.vector.y << std::endl;
-            tf2::doTransform(in_vel, out_vel, agent_to_robot_trans);
-            // std::cout << "outcoming vector: " << out_vel.vector.x << ", " << out_vel.vector.y << std::endl;
+            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, source_frame, ros::Time(0));
+            geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
+            agentVelMsgFrame.header = agentOdomMsg->header;
+            agentVelMsgFrame.header.frame_id = source_frame;
+            agentVelMsgFrame.vector = agentOdomMsg->twist.twist.linear;
+            // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
+            tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
+            // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
-            currentTrueAgentVels_[robot_id] = out_vel;
-        } catch (tf2::TransformException &ex) {
-            ROS_INFO_STREAM("Velocity transform failed for " << robot_namespace);
+            currentTrueAgentVels_[agentID] = agentVelRobotFrame;
+        } catch (tf2::TransformException &ex) 
+        {
+            ROS_INFO_STREAM("Velocity transform failed for " << agentNamespace);
         }            
     }
 
@@ -449,7 +450,7 @@ namespace dynamic_gap
             cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
             rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
-            tf2::doTransform(rbt_in_rbt, rbt_in_cam, rbt2cam_);
+            tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
         } catch (tf2::TransformException &ex) {
             ROS_WARN("%s", ex.what());
             ros::Duration(0.1).sleep();
@@ -503,14 +504,14 @@ namespace dynamic_gap
         std::vector<geometry_msgs::PoseArray> ret_traj(vec.size());
         std::vector<std::vector<float>> ret_time_traj(vec.size());
         std::vector<std::vector<float>> ret_traj_scores(vec.size());
-        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam; // lc as local copy
+        // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame; // lc as local copy
 
         std::vector<dynamic_gap::Gap> curr_raw_gaps = associatedRawGaps_;
         try {
             for (size_t i = 0; i < vec.size(); i++) 
             {
                 if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("    generating traj for gap: " << i);
-                // std::cout << "starting generate trajectory with rbt_in_cam_lc: " << rbt_in_cam_lc.pose.position.x << ", " << rbt_in_cam_lc.pose.position.y << std::endl;
+                // std::cout << "starting generate trajectory with rbtPoseInSensorFrame_lc: " << rbtPoseInSensorFrame_lc.pose.position.x << ", " << rbtPoseInSensorFrame_lc.pose.position.y << std::endl;
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 std::tuple<geometry_msgs::PoseArray, std::vector<float>> return_tuple;
                 
@@ -520,7 +521,7 @@ namespace dynamic_gap
                 {
                     if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("        running g2g");
                     std::tuple<geometry_msgs::PoseArray, std::vector<float>> g2g_tuple;
-                    g2g_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbt_in_cam_lc, currentRbtVel_, run_g2g);
+                    g2g_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbtPoseInSensorFrame_, currentRbtVel_, run_g2g);
                     g2g_tuple = gapTrajGenerator_->forwardPassTrajectory(g2g_tuple);
                     std::vector<float> g2g_score_vec = trajScorer_->scoreTrajectory(std::get<0>(g2g_tuple), std::get<1>(g2g_tuple), curr_raw_gaps, 
                                                                                      currentTrueAgentPoses_, currentTrueAgentVels_, futureScans_, false, false);
@@ -529,7 +530,7 @@ namespace dynamic_gap
 
                     if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("        running ahpf");
                     std::tuple<geometry_msgs::PoseArray, std::vector<float>> ahpf_tuple;
-                    ahpf_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbt_in_cam_lc, currentRbtVel_, !run_g2g);
+                    ahpf_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !run_g2g);
                     ahpf_tuple = gapTrajGenerator_->forwardPassTrajectory(ahpf_tuple);
                     std::vector<float> ahpf_score_vec = trajScorer_->scoreTrajectory(std::get<0>(ahpf_tuple), std::get<1>(ahpf_tuple), curr_raw_gaps, 
                                                                                         currentTrueAgentPoses_, currentTrueAgentVels_, futureScans_, false, false);
@@ -539,7 +540,7 @@ namespace dynamic_gap
                     return_tuple = (g2g_score > ahpf_score) ? g2g_tuple : ahpf_tuple;
                     ret_traj_scores.at(i) = (g2g_score > ahpf_score) ? g2g_score_vec : ahpf_score_vec;
                 } else {
-                    return_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbt_in_cam_lc, currentRbtVel_, run_g2g);
+                    return_tuple = gapTrajGenerator_->generateTrajectory(vec.at(i), rbtPoseInSensorFrame_, currentRbtVel_, run_g2g);
                     return_tuple = gapTrajGenerator_->forwardPassTrajectory(return_tuple);
 
                     if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("    scoring trajectory for gap: " << i);
@@ -862,51 +863,56 @@ namespace dynamic_gap
     geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) 
     {
         if (cfg_.debug.control_debug_log) ROS_INFO_STREAM("[ctrlGeneration()]");
-        geometry_msgs::Twist raw_cmd_vel = geometry_msgs::Twist();
+        geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
 
-        if (cfg_.man.man_ctrl) { // MANUAL CONTROL
-            raw_cmd_vel = trajController_->manualControlLaw();
-        } else if (traj.poses.size() < 2) { // OBSTACLE AVOIDANCE CONTROL
-            sensor_msgs::LaserScan stored_scan_msgs;
+        if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
+        {
+            rawCmdVel = trajController_->manualControlLaw();
+        } else if (traj.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+        { 
+            // sensor_msgs::LaserScan stored_scan_msgs;
 
-            stored_scan_msgs = *scan_.get();
+            // stored_scan_msgs = ;
 
             ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
-            raw_cmd_vel = trajController_->obstacleAvoidanceControlLaw(stored_scan_msgs);
-            return raw_cmd_vel;
-        } else { // FEEDBACK CONTROL
+            rawCmdVel = trajController_->obstacleAvoidanceControlLaw(*scan_.get());
+            return rawCmdVel;
+        } else // FEEDBACK CONTROL 
+        {
             // Know Current Pose
-            geometry_msgs::PoseStamped curr_pose_local;
-            curr_pose_local.header.frame_id = cfg_.robot_frame_id;
-            curr_pose_local.pose.orientation.w = 1;
-            geometry_msgs::PoseStamped curr_pose_odom;
-            curr_pose_odom.header.frame_id = cfg_.odom_frame_id;
-            tf2::doTransform(curr_pose_local, curr_pose_odom, rbt2odom_);
-            geometry_msgs::Pose curr_pose = curr_pose_odom.pose;
+            geometry_msgs::PoseStamped currPoseStRobotFrame;
+            currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
+            currPoseStRobotFrame.pose.orientation.w = 1;
+            geometry_msgs::PoseStamped currPoseStWorldFrame;
+            currPoseStWorldFrame.header.frame_id = cfg_.odom_frame_id;
+            tf2::doTransform(currPoseStRobotFrame, currPoseStWorldFrame, rbt2odom_);
+            geometry_msgs::Pose currPoseWorldFrame = currPoseStWorldFrame.pose;
 
             // obtain current robot pose in odom frame
 
             // traj in odom frame here
             // returns a TrajPlan (poses and velocities, velocities are zero here)
-            dynamic_gap::TrajPlan orig_ref = trajController_->trajGen(traj);
+            // dynamic_gap::TrajPlan orig_ref = trajController_->trajGen(traj);
             
             // get point along trajectory to target/move towards
-            targetTrajectoryPoseIdx_ = trajController_->targetPoseIdx(curr_pose, orig_ref);
-            nav_msgs::Odometry ctrl_target_pose;
-            ctrl_target_pose.header = orig_ref.header;
-            ctrl_target_pose.pose.pose = orig_ref.poses.at(targetTrajectoryPoseIdx_);
-            ctrl_target_pose.twist.twist = orig_ref.twist.at(targetTrajectoryPoseIdx_);
+            targetTrajectoryPoseIdx_ = trajController_->targetPoseIdx(currPoseWorldFrame, traj);
+            // nav_msgs::Odometry ctrl_target_pose;
+            // geometry_msgs::Pose targetTrajectoryPose;
+            // ctrl_target_pose.header = traj.header;
+            // ctrl_target_pose.pose.pose = traj.poses.at(targetTrajectoryPoseIdx_);
+            geometry_msgs::Pose targetTrajectoryPose = traj.poses.at(targetTrajectoryPoseIdx_);
+            // ctrl_target_pose.twist.twist = geometry_msgs::Twist(); // orig_ref.twist.at(targetTrajectoryPoseIdx_);
             
-            geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
+            // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
             // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
             
-            raw_cmd_vel = trajController_->controlLaw(curr_pose, ctrl_target_pose, 
+            rawCmdVel = trajController_->controlLaw(currPoseWorldFrame, targetTrajectoryPose, 
                                                     staticScan_, currentPeakSplineVel_);
         }
-        geometry_msgs::PoseStamped rbt_in_cam_lc = rbt_in_cam;
+        // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
 
-        geometry_msgs::Twist cmd_vel = trajController_->processCmdVel(raw_cmd_vel,
-                        staticScan_, rbt_in_cam_lc, 
+        geometry_msgs::Twist cmd_vel = trajController_->processCmdVel(rawCmdVel,
+                        staticScan_, rbtPoseInSensorFrame_, 
                         currRightGapPtModel_, currLeftGapPtModel_,
                         currentRbtVel_, currentRbtAcc_); 
 

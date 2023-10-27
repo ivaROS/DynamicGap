@@ -58,12 +58,12 @@ namespace dynamic_gap
 
         private:
             // int signum(float dy);
+            float terminalGoalCost(const geometry_msgs::Pose & pose);
+            
             float dist2Pose(float theta, float dist, const geometry_msgs::Pose & pose);
 
             float scorePose(const geometry_msgs::Pose & pose);
             float chapterScore(float d);
-
-            float terminalGoalCost(const geometry_msgs::Pose & pose);
 
             int dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
                                         const sensor_msgs::LaserScan & dynamic_laser_scan, 
@@ -80,7 +80,7 @@ namespace dynamic_gap
             sensor_msgs::LaserScan staticScan_;
             // std::vector<dynamic_gap::Gap> gaps;
             geometry_msgs::PoseStamped localGoalRobotFrame_;
-            boost::mutex globalPlanMutex, egocircleMutex;
+            boost::mutex globalPlanMutex_, egocircleMutex_;
 
 
             // int search_idx = -1;

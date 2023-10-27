@@ -11,20 +11,20 @@ namespace dynamic_gap
 
     void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex);
+        boost::mutex::scoped_lock lock(egocircleMutex_);
         scan_ = scan;
     }
 
     void TrajectoryScorer::updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex);
+        boost::mutex::scoped_lock lock(egocircleMutex_);
         staticScan_ = staticScan;
     }
 
     void TrajectoryScorer::updateLocalGoal(const geometry_msgs::PoseStamped & localGoalOdomFrame, 
                                            const geometry_msgs::TransformStamped & odom2rbt) 
     {
-        boost::mutex::scoped_lock lock(globalPlanMutex);
+        boost::mutex::scoped_lock lock(globalPlanMutex_);
         tf2::doTransform(localGoalOdomFrame, localGoalRobotFrame_, odom2rbt);
     }
 
@@ -219,8 +219,8 @@ namespace dynamic_gap
     /*
     std::vector<float> TrajectoryScorer::scoreGaps()
     {
-        boost::mutex::scoped_lock planlock(globalPlanMutex);
-        boost::mutex::scoped_lock egolock(egocircleMutex);
+        boost::mutex::scoped_lock planlock(globalPlanMutex_);
+        boost::mutex::scoped_lock egolock(egocircleMutex_);
         if (gaps.size() < 1) {
             //ROS_WARN_STREAM("Observed num of gap: 0");
             return std::vector<float>(0);
@@ -376,7 +376,7 @@ namespace dynamic_gap
 
     float TrajectoryScorer::terminalGoalCost(const geometry_msgs::Pose & pose) 
     {
-        boost::mutex::scoped_lock planlock(globalPlanMutex);
+        boost::mutex::scoped_lock planlock(globalPlanMutex_);
         // ROS_INFO_STREAM(pose);
         if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                    final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << localGoalRobotFrame_.pose.position.x << ", " << localGoalRobotFrame_.pose.position.y << ")");
         float dx = pose.position.x - localGoalRobotFrame_.pose.position.x;
@@ -401,7 +401,7 @@ namespace dynamic_gap
                                                  const sensor_msgs::LaserScan & dynamicLaserScan, 
                                                  bool print) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex);
+        boost::mutex::scoped_lock lock(egocircleMutex_);
 
         // obtain orientation and idx of pose
         // float poseTheta = std::atan2(pose.position.y + 1e-3, pose.position.x + 1e-3);
@@ -441,7 +441,7 @@ namespace dynamic_gap
 
     float TrajectoryScorer::scorePose(const geometry_msgs::Pose & pose) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex);
+        boost::mutex::scoped_lock lock(egocircleMutex_);
         sensor_msgs::LaserScan scan = *scan_.get();
 
         // obtain orientation and idx of pose
