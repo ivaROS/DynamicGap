@@ -295,6 +295,7 @@ namespace dynamic_gap
 
             void setTerminalPoints(float termLeftIdx, float termLeftDist, float termRightIdx, float termRightDist) 
             {    
+
                 termLeftIdx_ = termLeftIdx;
                 termLeftDist_ = termLeftDist;
                 termRightIdx_ = termRightIdx;
@@ -307,6 +308,8 @@ namespace dynamic_gap
                 }
                 // ROS_INFO_STREAM("setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
             
+                terminalRightType_ = termRightDist_ < termLeftDist_;
+
                 setRadial(false);
             }
 

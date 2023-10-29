@@ -111,17 +111,17 @@ namespace dynamic_gap
 
         sensor_msgs::LaserScan staticScan_;
         boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
-        boost::shared_ptr<sensor_msgs::LaserScan const> inflatedScan_;
+        // boost::shared_ptr<sensor_msgs::LaserScan const> inflatedScan_;
         std::vector<sensor_msgs::LaserScan> futureScans_;
 
         dynamic_gap::DynamicGapConfig cfg_;
 
-        boost::mutex gapset_mutex;
+        boost::mutex gapsetMutex;
 
         geometry_msgs::PoseArray currentTrajectory_;
         std::vector<float> currentTrajectoryTiming_;
 
-        boost::circular_buffer<float> log_vel_comp;
+        boost::circular_buffer<float> cmdVelBuffer;
 
         ros::Time tPreviousFilterUpdate_;
 
@@ -190,7 +190,7 @@ namespace dynamic_gap
          * @param plan, vector of PoseStamped
          * @return boolean type on whether successfully registered goal
          */
-        bool setGoal(const std::vector<geometry_msgs::PoseStamped> &plan);
+        bool setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
 
         /**
          * update all tf transform at the beginning of every planning cycle
@@ -218,7 +218,7 @@ namespace dynamic_gap
          * Generate ctrl command to a target pose
          * TODO: fix vector pop and get rid of pose_counter
          * @param pose_arr_odom
-         * @return cmd_vel by assigning to pass by reference
+         * @return command velocity by assigning to pass by reference
          */
         geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory);
         
@@ -286,7 +286,7 @@ namespace dynamic_gap
          * @param command velocity
          * @return False if robot has been stuck for the past cfg.planning.halt_size iterations
          */
-        bool recordAndCheckVel(geometry_msgs::Twist cmd_vel);
+        bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
     
         std::vector<dynamic_gap::Gap> updateModels(const std::vector<dynamic_gap::Gap> & _observed_gaps, 
                                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,

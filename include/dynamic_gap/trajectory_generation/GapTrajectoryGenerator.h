@@ -36,9 +36,9 @@ namespace dynamic_gap {
             
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, const geometry_msgs::PoseStamped & , const geometry_msgs::TwistStamped &, bool);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
-            geometry_msgs::PoseArray transformBackTrajectory(const geometry_msgs::PoseArray &, 
+            geometry_msgs::PoseArray transformLocalTrajectoryToOdomFrame(const geometry_msgs::PoseArray &, 
                                                              const geometry_msgs::TransformStamped &);
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
 
         private: 
             void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);

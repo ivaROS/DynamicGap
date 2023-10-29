@@ -686,9 +686,8 @@ namespace dynamic_gap
     // }
 
     // Return in Odom frame (used for ctrl)
-    geometry_msgs::PoseArray GapTrajectoryGenerator::transformBackTrajectory(
-        const geometry_msgs::PoseArray & path,
-        const geometry_msgs::TransformStamped & planning2odom)
+    geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectoryToOdomFrame(const geometry_msgs::PoseArray & path,
+                                                                             const geometry_msgs::TransformStamped & planning2odom)
     {
         geometry_msgs::PoseArray retarr;
         geometry_msgs::PoseStamped outplaceholder;
@@ -707,7 +706,7 @@ namespace dynamic_gap
         return retarr;
     }
 
-    std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple)
+    std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple)
     {
         geometry_msgs::PoseArray pose_arr = std::get<0>(return_tuple);
         std::vector<float> time_arr = std::get<1>(return_tuple);

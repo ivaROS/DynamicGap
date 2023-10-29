@@ -31,10 +31,10 @@ namespace dynamic_gap
         return planner_.isGoalReached();
     }
 
-    bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & plan)
+    bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {
         ROS_INFO_STREAM("DynamicGap: setPlan");
-        return planner_.setGoal(plan);
+        return planner_.setGoal(globalPlanMapFrame);
     }
 
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
