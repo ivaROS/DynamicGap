@@ -186,8 +186,8 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped local_goal;
 
         goalSelector_->updateEgoCircle(scan_);
-        goalSelector_->updateLocalGoal(map2rbt_);
-        local_goal = goalSelector_->transformLocalGoalToOdomFrame(rbt2odom_);
+        goalSelector_->generateGlobalPathLocalWaypoint(map2rbt_);
+        local_goal = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
         goalvisualizer->localGoal(local_goal);
 
         // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
@@ -409,13 +409,14 @@ namespace dynamic_gap
         globalGoalOdomFrame_ = *std::prev(plan.end());
         tf2::doTransform(globalGoalOdomFrame_, globalGoalOdomFrame_, map2odom_);
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_);
+        
         // Store New Global Plan to Goal Selector
-        goalSelector_->setGoal(plan);
+        goalSelector_->updateGlobalPathMapFrame(plan);
         
         // Obtaining Local Goal by using global plan
-        goalSelector_->updateLocalGoal(map2rbt_);
+        goalSelector_->generateGlobalPathLocalWaypoint(map2rbt_);
         // return local goal (odom) frame
-        auto new_local_waypoint = goalSelector_->transformLocalGoalToOdomFrame(rbt2odom_);
+        auto new_local_waypoint = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
 
         {
             // Plan New
@@ -431,9 +432,9 @@ namespace dynamic_gap
         trajScorer_->updateLocalGoal(globalPathLocalWaypointOdomFrame_, odom2rbt_);
 
         // Visualization only
-        std::vector<geometry_msgs::PoseStamped> traj = goalSelector_->getRelevantGlobalPlan(map2rbt_);
+        std::vector<geometry_msgs::PoseStamped> traj = goalSelector_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
         trajVisualizer_->drawRelevantGlobalPlanSnippet(traj);
-        // trajVisualizer_->drawEntireGlobalPlan(goalselector->getOdomGlobalPlan());
+        // trajVisualizer_->drawEntireGlobalPlan(goalselector->getGlobalPathOdomFrame());
 
         hasGlobalGoal_ = true;
         return true;
@@ -471,11 +472,11 @@ namespace dynamic_gap
             // MANIPULATE POINTS AT T=0
             manip_set.at(i).initManipIndices();
             
-            // gapManipulator_->reduceGap(manip_set.at(i), goalSelector_->rbtFrameLocalGoal(), true);
+            // gapManipulator_->reduceGap(manip_set.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
             gapManipulator_->convertRadialGap(manip_set.at(i), true); 
             gapManipulator_->inflateGapSides(manip_set.at(i), true);
             gapManipulator_->radialExtendGap(manip_set.at(i), true);
-            gapManipulator_->setGapWaypoint(manip_set.at(i), goalSelector_->rbtFrameLocalGoal(), true);
+            gapManipulator_->setGapWaypoint(manip_set.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
             
             
             // MANIPULATE POINTS AT T=1
@@ -483,12 +484,12 @@ namespace dynamic_gap
             gapManipulator_->updateDynamicEgoCircle(manip_set.at(i), futureScans_);
             if ((!manip_set.at(i).crossed_ && !manip_set.at(i).closed_) || (manip_set.at(i).crossedBehind_)) 
             {
-                // gapManipulator_->reduceGap(manip_set.at(i), goalSelector_->rbtFrameLocalGoal(), false);
+                // gapManipulator_->reduceGap(manip_set.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
                 gapManipulator_->convertRadialGap(manip_set.at(i), false);
             }
             gapManipulator_->inflateGapSides(manip_set.at(i), false);
             gapManipulator_->radialExtendGap(manip_set.at(i), false);
-            gapManipulator_->setTerminalGapWaypoint(manip_set.at(i), goalSelector_->rbtFrameLocalGoal());
+            gapManipulator_->setTerminalGapWaypoint(manip_set.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
         }
 
         return manip_set;

@@ -170,7 +170,7 @@ namespace dynamic_gap
             }
             relevant_global_plan_snippet_pub.publish(pub_traj);
         } catch (...) {
-            ROS_FATAL_STREAM("getRelevantGlobalPlan");
+            ROS_FATAL_STREAM("getVisibleGlobalPlanSnippetRobotFrame");
         }
     }
 }

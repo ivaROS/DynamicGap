@@ -92,6 +92,7 @@ namespace dynamic_gap
                 //     radial_ = isRadial();
                 // }
 
+                // initializing convex polar gap coordinates to raw ones
                 convex.rightIdx_ = rightIdx_;
                 convex.leftIdx_ = leftIdx_;
                 convex.rightDist_ = rightDist_;
@@ -304,6 +305,8 @@ namespace dynamic_gap
                     termLeftIdx_ = (termLeftIdx_ + 1) % 512;
                 }
                 // ROS_INFO_STREAM("setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
+            
+                setRadial(false);
             }
 
             void printCartesianPoints(bool initial, bool simplified) 
