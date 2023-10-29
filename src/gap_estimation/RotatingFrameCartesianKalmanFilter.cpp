@@ -20,13 +20,13 @@
 
 namespace dynamic_gap 
 {
-    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string _side, int _index, float init_r, float init_beta, 
+    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string side, int modelID, float init_r, float init_beta, 
                                                                             const ros::Time & t_update, 
                                                                             const geometry_msgs::TwistStamped & lastRbtVel,
                                                                             const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
-        side = _side;
-        index = _index;
+        side_ = side;
+        modelID_ = modelID;
         initialize(init_r, init_beta, t_update, lastRbtVel, lastRbtAcc);
     }
 
@@ -322,7 +322,7 @@ namespace dynamic_gap
 
 
         if (print) {
-            ROS_INFO_STREAM("    update for model " << get_index()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+            ROS_INFO_STREAM("    update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
             ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
             ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
         }
@@ -712,9 +712,9 @@ namespace dynamic_gap
         return lastRbtVel_;
     }
 
-    int RotatingFrameCartesianKalmanFilter::get_index() 
+    int RotatingFrameCartesianKalmanFilter::getID() 
     {
-        return index;
+        return modelID_;
     }
 
     Eigen::Vector2f RotatingFrameCartesianKalmanFilter::get_x_tilde() 

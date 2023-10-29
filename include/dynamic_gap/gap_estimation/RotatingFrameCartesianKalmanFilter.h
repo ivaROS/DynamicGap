@@ -37,9 +37,6 @@ namespace dynamic_gap
             Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
-            std::string side;
-            int index;
-
             float life_time, start_time;
 
             std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
@@ -103,7 +100,7 @@ namespace dynamic_gap
                         const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                         const ros::Time & t_kf_update);
 
-            int get_index();
+            int getID();
             void inflate_model(float x, float y);
 
             void set_initialized(bool _initialized);

@@ -142,10 +142,10 @@ namespace dynamic_gap {
 			if (pair[1] % 2 == 0) 
 			{
 				previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
-				ROS_INFO_STREAM("    accepting transition of index " << previous_gaps[previous_gap_idx].rightGapPtModel_->get_index());
+				ROS_INFO_STREAM("    accepting transition of index " << previous_gaps[previous_gap_idx].rightGapPtModel_->getID());
 			} else {
 				previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
-				ROS_INFO_STREAM("    accepting transition of index " << previous_gaps[previous_gap_idx].leftGapPtModel_->get_index());
+				ROS_INFO_STREAM("    accepting transition of index " << previous_gaps[previous_gap_idx].leftGapPtModel_->getID());
 			}
 
 			ROS_INFO_STREAM("    from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
@@ -160,11 +160,11 @@ namespace dynamic_gap {
 				if (pair[1] % 2 == 0) 
 				{ 
 					previous_gaps.at(previous_gap_idx).getRCartesian(prev_x, prev_y);
-					ROS_INFO_STREAM("    rejecting transition of index " << previous_gaps[previous_gap_idx].rightGapPtModel_->get_index());
+					ROS_INFO_STREAM("    rejecting transition of index " << previous_gaps[previous_gap_idx].rightGapPtModel_->getID());
 				} else 
 				{
 					previous_gaps.at(previous_gap_idx).getLCartesian(prev_x, prev_y);
-					ROS_INFO_STREAM("    rejecting transition of index " << previous_gaps[previous_gap_idx].leftGapPtModel_->get_index());
+					ROS_INFO_STREAM("    rejecting transition of index " << previous_gaps[previous_gap_idx].leftGapPtModel_->getID());
 				}
 				ROS_INFO_STREAM("    from (" << prev_x << ", " << prev_y << ") to (" << curr_x << ", " << curr_y << ") with a distance of " << distMatrix[pair[0]][pair[1]]);
 			} else 
@@ -238,15 +238,15 @@ namespace dynamic_gap {
 						observed_gaps[int(std::floor(pair[0] / 2.0))].rightGapPtModel_= previous_gaps[int(std::floor(pair[1] / 2.0))].rightGapPtModel_;
 					} else { // prev right;
 						observed_gaps[int(std::floor(pair[0] / 2.0))].rightGapPtModel_= previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_;
-						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_->get_index());
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_->getID());
 					}
 				} else { // curr right
 					if (pair[1] % 2 == 0) { // prev left
 						observed_gaps[int(std::floor(pair[0] / 2.0))].leftGapPtModel_ = previous_gaps[int(std::floor(pair[1] / 2.0))].rightGapPtModel_;
-						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].rightGapPtModel_->get_index());
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].rightGapPtModel_->getID());
 					} else { // prev right
 						observed_gaps[int(std::floor(pair[0] / 2.0))].leftGapPtModel_ = previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_;
-						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_->get_index());
+						// ROS_INFO_STREAM("transitioning index " << previous_gaps[int(std::floor(pair[1] / 2.0))].leftGapPtModel_->getID());
 					}
 				} 
 			}

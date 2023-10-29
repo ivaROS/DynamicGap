@@ -29,6 +29,9 @@ namespace dynamic_gap
 
             Eigen::Matrix4f A_, STM_;
             
+            int modelID_;
+            std::string side_;
+
             virtual void linearize(int idx) = 0;
             virtual void discretizeQ(int idx) = 0;
             virtual Eigen::Matrix<float, 4, 1> integrate() = 0;
@@ -49,7 +52,7 @@ namespace dynamic_gap
             virtual void rewindPropagate(float dt) = 0;
 
             virtual Eigen::Vector2f get_x_tilde() = 0;
-            virtual int get_index() = 0;
+            virtual int getID() = 0;
 
             virtual void update(const Eigen::Vector2f & measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
