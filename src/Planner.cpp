@@ -861,7 +861,7 @@ namespace dynamic_gap
         return;
     }
 
-    geometry_msgs::Twist Planner::ctrlGeneration(geometry_msgs::PoseArray traj) 
+    geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory) 
     {
         if (cfg_.debug.control_debug_log) ROS_INFO_STREAM("[ctrlGeneration()]");
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
@@ -869,13 +869,13 @@ namespace dynamic_gap
         if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
         {
             rawCmdVel = trajController_->manualControlLaw();
-        } else if (traj.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+        } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
         { 
             // sensor_msgs::LaserScan stored_scan_msgs;
 
             // stored_scan_msgs = ;
 
-            ROS_INFO_STREAM("Available Execution Traj length: " << traj.poses.size() << " < 2");
+            ROS_INFO_STREAM("Available Execution Traj length: " << localTrajectory.poses.size() << " < 2");
             rawCmdVel = trajController_->obstacleAvoidanceControlLaw(*scan_.get());
             return rawCmdVel;
         } else // FEEDBACK CONTROL 
@@ -896,12 +896,12 @@ namespace dynamic_gap
             // dynamic_gap::TrajPlan orig_ref = trajController_->trajGen(traj);
             
             // get point along trajectory to target/move towards
-            targetTrajectoryPoseIdx_ = trajController_->targetPoseIdx(currPoseWorldFrame, traj);
+            targetTrajectoryPoseIdx_ = trajController_->targetPoseIdx(currPoseWorldFrame, localTrajectory);
             // nav_msgs::Odometry ctrl_target_pose;
             // geometry_msgs::Pose targetTrajectoryPose;
             // ctrl_target_pose.header = traj.header;
             // ctrl_target_pose.pose.pose = traj.poses.at(targetTrajectoryPoseIdx_);
-            geometry_msgs::Pose targetTrajectoryPose = traj.poses.at(targetTrajectoryPoseIdx_);
+            geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
             // ctrl_target_pose.twist.twist = geometry_msgs::Twist(); // orig_ref.twist.at(targetTrajectoryPoseIdx_);
             
             // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
@@ -913,9 +913,9 @@ namespace dynamic_gap
         // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
 
         geometry_msgs::Twist cmd_vel = trajController_->processCmdVel(rawCmdVel,
-                        staticScan_, rbtPoseInSensorFrame_, 
-                        currRightGapPtModel_, currLeftGapPtModel_,
-                        currentRbtVel_, currentRbtAcc_); 
+                                                                        staticScan_, rbtPoseInSensorFrame_, 
+                                                                        currRightGapPtModel_, currLeftGapPtModel_,
+                                                                        currentRbtVel_, currentRbtAcc_); 
 
         return cmd_vel;
     }

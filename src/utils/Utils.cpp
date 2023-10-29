@@ -13,18 +13,18 @@ namespace dynamic_gap
 
     float idx2theta(const int idx)
     {
-        return ((float) idx - half_num_scan) * M_PI / half_num_scan;
+        return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
 
-    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector) 
+    Eigen::Vector2f pol2car(const Eigen::Vector2f & polar_vector) 
     {
         return Eigen::Vector2f(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect) 
+    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect, 
+                              const Eigen::Vector2f & right_norm_vect) 
     {
         float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
         float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
@@ -39,8 +39,8 @@ namespace dynamic_gap
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect, 
+    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect,
+                              const Eigen::Vector2f & right_norm_vect, 
                               bool wrap) 
     {
         float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
@@ -58,17 +58,17 @@ namespace dynamic_gap
         return left_to_right_angle;
     }
 
-    float getGapDist(Eigen::Vector4f gapState)
+    float getGapDist(const Eigen::Vector4f & gapState)
     {
         return sqrt(pow(gapState[0], 2) + pow(gapState[1], 2));
     }
 
-    float getGapBearing(Eigen::Vector4f gapState)
+    float getGapBearing(const Eigen::Vector4f & gapState)
     {
         return std::atan2(gapState[1], gapState[0]);
     }    
    
-    float getGapBearingRateOfChange(Eigen::Vector4f gapState)
+    float getGapBearingRateOfChange(const Eigen::Vector4f & gapState)
     {
         return (gapState[0]*gapState[3] - gapState[1]*gapState[2]) / (pow(gapState[0], 2) + pow(gapState[1], 2));
     }
@@ -89,6 +89,12 @@ namespace dynamic_gap
         }
 
         return new_theta;
+    }
+
+    float quaternionToYaw(const tf::Quaternion & quat)
+    {
+        return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
+                            1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
     }
 
     int subtract_wrap(int a, int b) 

@@ -8,21 +8,26 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <boost/shared_ptr.hpp>
 #include <dynamic_gap/config/DynamicGapConfig.h>
+#include <tf/tf.h>
 
 namespace dynamic_gap 
 {
-    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector);
+    Eigen::Vector2f pol2car(const Eigen::Vector2f & polar_vector);
     float atanThetaWrap(float theta); 
     // float atanThetaWrap(float theta);
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, Eigen::Vector2f right_norm_vect);
-    float getLeftToRightAngle(Eigen::Vector2f, Eigen::Vector2f, bool wrap);
+    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect, const Eigen::Vector2f & right_norm_vect);
+    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect, const Eigen::Vector2f & right_norm_vect, bool wrap);
 
     float idx2theta(const int idx);
     int theta2idx(const float theta);
 
-    float getGapDist(Eigen::Vector4f gapState);
-    float getGapBearing(Eigen::Vector4f gapState);
-    float getGapBearingRateOfChange(Eigen::Vector4f gapState);
+    float getGapDist(const Eigen::Vector4f & gapState);
+    float getGapBearing(const Eigen::Vector4f & gapState);
+    float getGapBearingRateOfChange(const Eigen::Vector4f & gapState);
+
+    // float lawOfCosinesDistance()
+
+    float quaternionToYaw(const tf::Quaternion & quat);
 
     int subtract_wrap(int a, int b);
     bool isGapLocalGoalWithin(int goal_idx, int idx_lower, int idx_upper, int full_scan);

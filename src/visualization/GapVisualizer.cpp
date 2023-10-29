@@ -338,7 +338,7 @@ namespace dynamic_gap
 
         float num_curve_points = cfg_->traj.num_curve_points;
         // float num_extended_gap_origin_points = (cfg_->gap_manip.radial_extend) ? cfg_->traj.num_extended_gap_origin_points : 0.0;
-        float half_num_scan = gap.half_scan;
+        // float half_num_scan = gap.half_scan;
 
         Eigen::Vector2f left_gap_origin(gap.leftBezierOrigin_[0],       
                                         gap.leftBezierOrigin_[1]);
@@ -631,9 +631,8 @@ namespace dynamic_gap
 
         //ROS_INFO_STREAM("lidx: " << lidx << ", ldist: " << ldist << ", ridx: " << ridx << ", rdist: " << rdist);
         int gap_idx_size = (ridx - lidx);
-        if (gap_idx_size < 0) {
-            gap_idx_size += 2*gap.half_scan; // taking off int casting here
-        }
+        if (gap_idx_size < 0)
+            gap_idx_size += cfg_->scan.full_scan; // 2*gap.half_scan; // taking off int casting here
 
         int num_segments = gap_idx_size / cfg_->gap_viz.min_resoln + 1;
         float dist_step = (rdist - ldist) / num_segments;
@@ -716,7 +715,7 @@ namespace dynamic_gap
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
             linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
-            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(2*gap.half_scan);
+            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % cfg_->scan.full_scan; // int(2*gap.half_scan);
             sub_gap_ldist += dist_step;
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             liner.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
@@ -955,9 +954,8 @@ namespace dynamic_gap
 
         // num gaps really means segments within a gap
         int gap_idx_size = (ridx - lidx);
-        if (gap_idx_size < 0) {
-            gap_idx_size += int(2*gap.half_scan);
-        }
+        if (gap_idx_size < 0)
+            gap_idx_size += cfg_->scan.full_scan; // int(2*gap.half_scan);
 
         int num_segments = gap_idx_size / cfg_->gap_viz.min_resoln + 1;
         float dist_step = (rdist - ldist) / num_segments;
@@ -1011,7 +1009,7 @@ namespace dynamic_gap
             sub_gap_ltheta = idx2theta(sub_gap_lidx);
             linel.x = (sub_gap_ldist + viz_jitter) * cos(sub_gap_ltheta);
             linel.y = (sub_gap_ldist + viz_jitter) * sin(sub_gap_ltheta);
-            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % int(gap.half_scan * 2);
+            sub_gap_lidx = (sub_gap_lidx + cfg_->gap_viz.min_resoln) % cfg_->scan.full_scan; // int(gap.half_scan * 2);
             sub_gap_ldist += dist_step;
             
             sub_gap_ltheta = idx2theta(sub_gap_lidx);

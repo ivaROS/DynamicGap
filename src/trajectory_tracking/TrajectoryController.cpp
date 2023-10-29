@@ -34,6 +34,7 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
+    /*
     std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int minDistScanIdx) 
     {
         // get egocircle measurement
@@ -142,6 +143,7 @@ namespace dynamic_gap
         retArr.push_back(upperPoint);
         return retArr;
     }
+    */
 
     bool TrajectoryController::leqThres(const float dist) 
     {
@@ -155,7 +157,7 @@ namespace dynamic_gap
 
     float TrajectoryController::polDist(float range1, float theta1, float range2, float theta2) 
     {
-        return abs(pow(range1, 2) + pow(range2, 2) - 2 * range1 * range2 * std::cos(theta1 - theta2));
+        return sqrt(pow(range1, 2) + pow(range2, 2) - 2 * range1 * range2 * std::cos(theta1 - theta2));
     }
 
     // For non-blocking keyboard inputs
@@ -291,8 +293,8 @@ namespace dynamic_gap
         // float c_roll, c_pitch, c_yaw;
         // m_c.getRPY(c_roll, c_pitch, c_yaw);
 
-        float currYaw = std::atan2( 2.0 * (currQuat.w() * currQuat.z() + currQuat.x() * currQuat.y()), 
-                              1 - 2.0 * (currQuat.y() * currQuat.y() + currQuat.z() * currQuat.z()));
+        float currYaw = quaternionToYaw(currQuat); // std::atan2( 2.0 * (currQuat.w() * currQuat.z() + currQuat.x() * currQuat.y()), 
+                                                   //      1 - 2.0 * (currQuat.y() * currQuat.y() + currQuat.z() * currQuat.z()));
 
         // get current x,y,theta
         geometry_msgs::Point currPosn = current.position;
@@ -306,8 +308,8 @@ namespace dynamic_gap
         // float d_roll, d_pitch, desYaw;
         // m_d.getRPY(d_roll, d_pitch, desYaw);
 
-        float desYaw = std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
-                              1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
+        float desYaw = quaternionToYaw(desQuat); // std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
+                                                 //       1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
 
         // get desired x,y,theta
 
@@ -643,9 +645,9 @@ namespace dynamic_gap
                                                      float & velLinXSafe, float & velLinYSafe,
                                                      float & minDistTheta, float & minDist) 
 {
-        float r_min = cfg_->projection.r_min;
-        float r_norm = cfg_->projection.r_norm;
-        float r_norm_offset = cfg_->projection.r_norm_offset; 
+        // float r_min = cfg_->projection.r_min;
+        // float r_norm = cfg_->projection.r_norm;
+        // float r_norm_offset = cfg_->projection.r_norm_offset; 
 
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM("rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
@@ -657,85 +659,38 @@ namespace dynamic_gap
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
         int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
+        minDistTheta = idx2theta(minDistScanIdx); // (float)(minDistScanIdx) * scan.angle_increment + scan.angle_min;
 
-        float maxRange = r_norm + r_norm_offset;
+        float maxRange = cfg_->projection.r_norm + cfg_->projection.r_norm_offset;
         minDist = minScanDists.at(minDistScanIdx);
-        minDist = std::min(minDist, maxRange); // minDist >= maxRange ? maxRange : minDist;
+        // minDist = std::min(minDist, maxRange); // minDist >= maxRange ? maxRange : minDist;
         // if (minDist <= 0) 
         //     ROS_INFO_STREAM("Min dist <= 0, : " << minDist);
         // minDist = minDist <= 0 ? 0.01 : minDist;
         // minDist -= cfg_->rbt.r_inscr / 2;
 
         // find minimum ego circle distance
-        minDistTheta = idx2theta(minDistScanIdx); // (float)(minDistScanIdx) * scan.angle_increment + scan.angle_min;
-        float min_x = minDist * std::cos(minDistTheta) - rbtPoseInSensorFrame.pose.position.x;
-        float min_y = minDist * std::sin(minDistTheta) - rbtPoseInSensorFrame.pose.position.y;
-        minDist = sqrt(pow(min_x, 2) + pow(min_y, 2));
+        // float min_x = minDist * std::cos(minDistTheta) - rbtPoseInSensorFrame.pose.position.x;
+        // float min_y = minDist * std::sin(minDistTheta) - rbtPoseInSensorFrame.pose.position.y;
+        // minDist = sqrt(pow(min_x, 2) + pow(min_y, 2));
 
         if (cfg_->debug.control_debug_log) 
         {
             ROS_INFO_STREAM("minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
-            ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
+            // ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
         }
-        std::vector<geometry_msgs::Point> vec = findLocalLine(minDistScanIdx);
+        
+        // std::vector<geometry_msgs::Point> vec = findLocalLine(minDistScanIdx);
 
-        float projOpDotProd = 0.0;
-
-        float min_diff_x = 0;
-        float min_diff_y = 0;
-        Eigen::Vector3f PsiDerAndPsi;
-        if (cfg_->projection.line && vec.size() > 0) 
-        {
-            // Dist to 
-            Eigen::Vector2f lowerMinDistPt(vec.at(0).x, vec.at(0).y);
-            Eigen::Vector2f upperMinDistPt(vec.at(1).x, vec.at(1).y);
-            Eigen::Vector2f rbt(0, 0);
-            Eigen::Vector2f a = rbt - lowerMinDistPt;
-            Eigen::Vector2f b = upperMinDistPt - lowerMinDistPt;
-            Eigen::Vector2f c = rbt - upperMinDistPt;
-            
-            if (a.dot(b) < 0) // Pt 1 is closer than pt 2
-            { 
-                // ROS_INFO_STREAM("lowerMinDistPt");
-                min_diff_x = - lowerMinDistPt(0);
-                min_diff_y = - lowerMinDistPt(1);
-                PsiDerAndPsi = calculateProjectionOperator(min_diff_x, min_diff_y);
-                dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
-                projOpDotProd = cmdVelFeedback.dot(dPsiDx);
-            } else if (c.dot(-b) < 0)  // Pt 2 is closer than pt 1
-            {
-                min_diff_x = - upperMinDistPt(0);
-                min_diff_y = - upperMinDistPt(1);
-                PsiDerAndPsi = calculateProjectionOperator(min_diff_x, min_diff_y);
-                dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
-                projOpDotProd = cmdVelFeedback.dot(dPsiDx);
-            } else  // pt's are equidistant
-            {
-                float line_dist = (lowerMinDistPt(0) * upperMinDistPt(1) - upperMinDistPt(0) * lowerMinDistPt(1)) / (lowerMinDistPt - upperMinDistPt).norm();
-                float sign;
-                sign = line_dist < 0 ? -1 : 1;
-                line_dist *= sign;
-                
-                float line_si = (r_min / line_dist - r_min / r_norm) / (1. - r_min / r_norm);
-                float line_dPsiDx_base = r_min / (pow(line_dist, 2) * (r_min / r_norm - 1));
-                float line_dPsiDx_x = - (upperMinDistPt(1) - lowerMinDistPt(1)) / (lowerMinDistPt - upperMinDistPt).norm() * line_dPsiDx_base;
-                float line_dPsiDx_y = - (lowerMinDistPt(0) - upperMinDistPt(0)) / (lowerMinDistPt - upperMinDistPt).norm() * line_dPsiDx_base;
-                Eigen::Vector2f der(line_dPsiDx_x, line_dPsiDx_y);
-                der /= der.norm();
-                PsiDerAndPsi = Eigen::Vector3f(der(0), der(1), line_si);
-                dPsiDx = der;
-                // dPsiDx(1);// /= 3;
-                projOpDotProd = cmdVelFeedback.dot(dPsiDx);
-            }
-        } else 
-        {
-            min_diff_x = - min_x;
-            min_diff_y = - min_y;
-            PsiDerAndPsi = calculateProjectionOperator(min_diff_x, min_diff_y); // return Psi, and dPsiDx
-            dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
-            // dPsiDx(1);// /= 3; // deriv wrt y?
-            projOpDotProd = cmdVelFeedback.dot(dPsiDx);
-        }
+        // float projOpDotProd = 0.0;
+      
+        Eigen::Vector2f closestScanPtToRobot(-minDist * std::cos(minDistTheta), -minDist * std::sin(minDistTheta));
+        // float min_diff_x = - min_x; // reversing direction to point from scan pt to robot
+        // float min_diff_y = - min_y;
+        Eigen::Vector3f PsiDerAndPsi = calculateProjectionOperator(closestScanPtToRobot); // return Psi, and dPsiDx
+        dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
+        // dPsiDx(1);// /= 3; // deriv wrt y?
+        float projOpDotProd = cmdVelFeedback.dot(dPsiDx);
 
         Psi = PsiDerAndPsi(2);
 
@@ -780,24 +735,25 @@ namespace dynamic_gap
         */
     }
 
-    Eigen::Vector3f TrajectoryController::calculateProjectionOperator(float min_diff_x, float min_diff_y) 
+    Eigen::Vector3f TrajectoryController::calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot) 
     {
-        float r_min = cfg_->projection.r_min;
-        float r_norm = cfg_->projection.r_norm;
+        float rMin = cfg_->projection.r_min;
+        float rNorm = cfg_->projection.r_norm;
 
-        float minDist = sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
-        float Psi = (r_min / minDist - r_min / r_norm) / (1.0 - r_min / r_norm);
-        float base_const = pow(minDist, 3) * (r_min - r_norm);
-        float up_const = r_min * r_norm;
-        float dPsiDx_x = up_const * min_diff_x / base_const;
-        float dPsiDx_y = up_const * min_diff_y / base_const;
+        float minDist = closestScanPtToRobot.norm(); // sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
+        float Psi = (rMin / minDist - rMin / rNorm) / (1.0 - rMin / rNorm);
+        float derivativeDenominator = pow(minDist, 3) * (rMin - rNorm);
+        float derivatorNominatorTerm = rMin * rNorm;
+        float PsiDerivativeXTerm = derivatorNominatorTerm * closestScanPtToRobot[0] / derivativeDenominator;
+        float PsiDerivativeYTerm = derivatorNominatorTerm * closestScanPtToRobot[1] / derivativeDenominator;
 
-        float norm_dPsiDx = sqrt(pow(dPsiDx_x, 2) + pow(dPsiDx_y, 2));
-        float norm_dPsiDx_x = dPsiDx_x / norm_dPsiDx;
-        float norm_dPsiDx_y = dPsiDx_y / norm_dPsiDx;
-        return Eigen::Vector3f(norm_dPsiDx_x, norm_dPsiDx_y, Psi);
+        float dPsiDxNorm = sqrt(pow(PsiDerivativeXTerm, 2) + pow(PsiDerivativeYTerm, 2));
+        float normPsiDerivativeXTerm = PsiDerivativeXTerm / dPsiDxNorm;
+        float normPsiDerivativeYTerm = PsiDerivativeYTerm / dPsiDxNorm;
+        return Eigen::Vector3f(normPsiDerivativeXTerm, normPsiDerivativeYTerm, Psi);
     }
 
+    /*
     Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float quat_w, float quat_z)
     {
         std::complex<float> phase(quat_w, quat_z);
@@ -818,6 +774,7 @@ namespace dynamic_gap
 
         return g;
     }
+    */
 
     Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float theta)
     {
@@ -839,44 +796,45 @@ namespace dynamic_gap
         return g;
     }
 
-    int TrajectoryController::targetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & poseArray) 
+    int TrajectoryController::targetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & localTrajectory) 
     {
         // Find pose right ahead
-        std::vector<float> pose_diff(poseArray.poses.size());
+        std::vector<float> localTrajectoryDeviations(localTrajectory.poses.size());
         ROS_INFO_STREAM("[targetPoseIdx()]");
 
         // obtain distance from entire ref traj and current pose
-        for (int i = 0; i < pose_diff.size(); i++) // i will always be positive, so this is fine
+        for (int i = 0; i < localTrajectoryDeviations.size(); i++) // i will always be positive, so this is fine
         {
             // tf::Quaternion q_c(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, currPose.orientation.w);
             // float yaw_curr = std::atan2(2.0 * (q_c.w() * q_c.z() + q_c.x() * q_c.y()), 
             //                             1 - 2.0 * (q_c.y() * q_c.y() + q_c.z() * q_c.z()));
 
-            tf::Quaternion q_c_inv(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, -currPose.orientation.w);
+            tf::Quaternion currQuatInv(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, -currPose.orientation.w); // -w for inverse
   
-            tf::Quaternion q_des(poseArray.poses[i].orientation.x, poseArray.poses[i].orientation.y, 
-                                 poseArray.poses[i].orientation.z, poseArray.poses[i].orientation.w);
-            // float yaw_des = std::atan2( 2.0 * (q_des.w() * q_des.z() + q_des.x() * q_des.y()), 
-            //                           1 - 2.0 * (q_des.y() * q_des.y() + q_des.z() * q_des.z()));
+            tf::Quaternion desQuat(localTrajectory.poses[i].orientation.x, localTrajectory.poses[i].orientation.y, 
+                                   localTrajectory.poses[i].orientation.z, localTrajectory.poses[i].orientation.w);
+            // float yaw_des = std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
+            //                           1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
             
             
-            tf::Quaternion q_res = q_des * q_c_inv;
-            float yaw_res = std::atan2( 2.0 * (q_res.w() * q_res.z() + q_res.x() * q_res.y()), 
-                                      1 - 2.0 * (q_res.y() * q_res.y() + q_res.z() * q_res.z()));
+            tf::Quaternion deviationQuat = desQuat * currQuatInv;
+            float deviationYaw = quaternionToYaw(deviationQuat);
 
-            // ROS_INFO_STREAM("   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", yaw_res: " << yaw_res);
+            // ROS_INFO_STREAM("   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", deviationYaw: " << deviationYaw);
 
-            pose_diff[i] = sqrt(pow(currPose.position.x - poseArray.poses[i].position.x, 2) + 
-                                pow(currPose.position.y - poseArray.poses[i].position.y, 2)) + 
-                                0.5 * std::abs(yaw_res);
+            localTrajectoryDeviations[i] = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
+                                                pow(currPose.position.y - localTrajectory.poses[i].position.y, 2)) + 
+                                                0.5 * std::abs(deviationYaw);
         }
 
         // find pose in ref traj with smallest difference
-        auto min_element_iter = std::min_element(pose_diff.begin(), pose_diff.end());
+        auto minimumDeviationIter = std::min_element(localTrajectoryDeviations.begin(), localTrajectoryDeviations.end());
         
         // go n steps ahead of pose with smallest difference
-        int target_pose = std::distance(pose_diff.begin(), min_element_iter) + cfg_->control.ctrl_ahead_pose;
-        return std::min(target_pose, int(poseArray.poses.size() - 1));
+        int targetPose = std::distance(localTrajectoryDeviations.begin(), minimumDeviationIter) + cfg_->control.ctrl_ahead_pose;
+
+        // make sure pose does note exceed trajectory size
+        return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
 
     /*

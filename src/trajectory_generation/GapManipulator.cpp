@@ -443,7 +443,7 @@ namespace dynamic_gap
 
         float gap_idx_size = (lidx - ridx);
         if (gap_idx_size < 0.0)
-            gap_idx_size += (2*gap.half_scan);
+            gap_idx_size += cfg_->scan.full_scan_f; // (2*gap.half_scan);
 
         float gap_theta_size = gap_idx_size * cfg_->scan.angle_increment;
         // ROS_INFO_STREAM( "gap idx size: " << gap_idx_size << std::endl;
@@ -588,9 +588,9 @@ namespace dynamic_gap
 
 
         int gap_idx_size = (lidx - ridx);
-        if (gap_idx_size < 0) {
-            gap_idx_size += int(2*gap.half_scan);
-        }
+        if (gap_idx_size < 0)
+            gap_idx_size += cfg_->scan.full_scan; // int(2*gap.half_scan);
+
         // ROS_INFO_STREAM("gap_idx_size: " << gap_idx_size);
 
         bool right = gap.isRightType(initial);
@@ -660,7 +660,7 @@ namespace dynamic_gap
         int final_search_idx = right ? idx : ridx;
         int search_size = final_search_idx - init_search_idx;
         if (search_size < 0)
-            search_size += 2*int(gap.half_scan);
+            search_size += cfg_->scan.full_scan; // 2*int(gap.half_scan);
 
         // ROS_INFO_STREAM("init_search_idx: " << init_search_idx << ", final_search_idx: " << final_search_idx);
 
@@ -681,9 +681,8 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("wrapped init_search_idx: " << init_search_idx << ", wrapped final_search_idx: " << final_search_idx);
         search_size = final_search_idx - init_search_idx;
-        if (search_size < 0) {
-            search_size += int(2*gap.half_scan);
-        }
+        if (search_size < 0)
+            search_size += cfg_->scan.full_scan; // int(2*gap.half_scan);
 
         std::vector<float> dist(search_size);
 
@@ -701,7 +700,7 @@ namespace dynamic_gap
             float range, diff_in_idx;
             for (int i = 0; i < dist.size(); i++) 
             {
-                check_idx = (i + init_search_idx) % int(2 * gap.half_scan);
+                check_idx = (i + init_search_idx) % cfg_->scan.full_scan; // int(2 * gap.half_scan);
                 range = desScan.ranges.at(check_idx);
                 diff_in_idx = gap_idx_size + (search_size - i);
                 dist.at(i) = sqrt(pow(near_dist, 2) + pow(range, 2) -
@@ -713,7 +712,7 @@ namespace dynamic_gap
         }
 
         auto farside_iter = std::min_element(dist.begin(), dist.end());
-        int min_dist_idx = (init_search_idx + std::distance(dist.begin(), farside_iter)) % int(2*gap.half_scan);
+        int min_dist_idx = (init_search_idx + std::distance(dist.begin(), farside_iter)) % cfg_->scan.full_scan; // int(2*gap.half_scan);
         float min_dist = *farside_iter;
 
         // ROS_INFO_STREAM("from " << init_search_idx << " to " << final_search_idx << ", min dist of " << min_dist << " at " << min_dist_idx);         

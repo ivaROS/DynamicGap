@@ -50,11 +50,11 @@ namespace dynamic_gap
             // dynamic_gap::TrajPlan trajGen(geometry_msgs::PoseArray);
             
         private:
-            Eigen::Matrix2cf getComplexMatrix(float, float, float, float);
-            Eigen::Matrix2cf getComplexMatrix(float, float, float);
+            // Eigen::Matrix2cf getComplexMatrix(float, float, float, float);
+            Eigen::Matrix2cf getComplexMatrix(float x, float y, float theta);
             float dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
 
-            std::vector<geometry_msgs::Point> findLocalLine(int idx);
+            // std::vector<geometry_msgs::Point> findLocalLine(int idx);
             float polDist(float l1, float t1, float l2, float t2);
 
             bool leqThres(const float dist);
@@ -80,7 +80,7 @@ namespace dynamic_gap
             float leftGapSideCBF(const Eigen::Vector4f & state);
             Eigen::Vector4f leftGapSideCBFDerivative(const Eigen::Vector4f & state);
 
-            Eigen::Vector3f calculateProjectionOperator(float min_diff_x, float min_diff_y);
+            Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
 
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_;

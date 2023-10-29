@@ -220,7 +220,7 @@ namespace dynamic_gap
          * @param pose_arr_odom
          * @return cmd_vel by assigning to pass by reference
          */
-        geometry_msgs::Twist ctrlGeneration(geometry_msgs::PoseArray traj);
+        geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory);
         
         /**
          * Take current observed gaps and perform gap conversion

@@ -20,8 +20,8 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float minSafeDist_) : 
-                frame_(frame), rightIdx_(right_idx), rightDist_(rdist), radial_(radial), half_scan(half_scan), minSafeDist_(minSafeDist_)
+            Gap(std::string frame, int right_idx, float rdist, bool radial, float minSafeDist_) : 
+                frame_(frame), rightIdx_(right_idx), rightDist_(rdist), radial_(radial), minSafeDist_(minSafeDist_)
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
@@ -288,7 +288,8 @@ namespace dynamic_gap
                 if (idx_diff < 0) {
                     idx_diff += (2*half_scan);
                 } 
-                float gap_angle = (float(idx_diff) / float(half_scan)) * M_PI;
+                float resoln = M_PI / half_scan;
+                float gap_angle = float(idx_diff) * resoln;
                 return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gap_angle));
             }
 

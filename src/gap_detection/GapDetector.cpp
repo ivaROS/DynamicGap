@@ -86,7 +86,7 @@ namespace dynamic_gap
             if (radialGapSizeCheck(currRayDist, prevRayDist, scan_.angle_increment)) 
             {
                 // initializing a radial gap
-                dynamic_gap::Gap gap(frame, it - 1, prevRayDist, true, halfScanRayCount_, minScanDist_);
+                dynamic_gap::Gap gap(frame, it - 1, prevRayDist, true, minScanDist_);
                 gap.addLeftInformation(it, currRayDist);
                 // gap.setRadial();
 
@@ -102,7 +102,7 @@ namespace dynamic_gap
                 {
                     withinSweptGap = false;                    
                     if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    gap ending: infinity to finite");
-                    dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, halfScanRayCount_, minScanDist_);
+                    dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
                     gap.addLeftInformation(it, currRayDist);
                     // gap.setRadial();
 
@@ -132,7 +132,7 @@ namespace dynamic_gap
         if (withinSweptGap) 
         {
             // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    catching last gap");
-            dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, halfScanRayCount_, minScanDist_);
+            dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
             gap.addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
             // gap.setRadial();
             
@@ -205,7 +205,7 @@ namespace dynamic_gap
         int leftIdx = std::min(globalGoalScanIdx + artificial_gap_span, 2*half_num_scan - 1);
         ROS_INFO_STREAM("creating gap " << rightIdx << ", to " << leftIdx);
 
-        dynamic_gap::Gap gap(frame, rightIdx, scan_.ranges.at(rightIdx), true, half_num_scan, minScanDist_);
+        dynamic_gap::Gap gap(frame, rightIdx, scan_.ranges.at(rightIdx), true, minScanDist_);
         gap.addLeftInformation(leftIdx, scan_.ranges.at(leftIdx));
         // gap.setRadial();
         
