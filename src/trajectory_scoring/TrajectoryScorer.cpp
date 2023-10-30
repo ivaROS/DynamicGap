@@ -254,7 +254,7 @@ namespace dynamic_gap
         propagatedEgocirclePublisher_.publish(dynamicLaserScan);
     }
 
-    std::vector<float> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & traj, 
+    std::vector<float> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & path, 
                                                          const std::vector<float> & time_arr, 
                                                          const std::vector<dynamic_gap::Gap> & current_raw_gaps,
                                                          const std::vector<sensor_msgs::LaserScan> & future_scans) 
@@ -286,14 +286,14 @@ namespace dynamic_gap
 
         float t_i = 0.0;
         float t_iplus1 = 0.0;
-        // int counts = std::min(cfg_->planning.num_feasi_check, int(traj.poses.size()));        
+        // int counts = std::min(cfg_->planning.num_feasi_check, int(path.poses.size()));        
 
         /*
         int min_dist_idx, future_scan_idx;
         float theta, range;
         Eigen::Vector2d min_dist_pt(0.0, 0.0);
         if (current_raw_gaps.size() > 0) {
-            std::vector<float> dynamic_cost_val(traj.poses.size());
+            std::vector<float> dynamic_cost_val(path.poses.size());
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
                 t_iplus1 = time_arr[i];
@@ -301,7 +301,7 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("pulling scan for t_iplus1: " << t_iplus1 << " at idx: " << future_scan_idx);
                 dynamicLaserScan = future_scans[future_scan_idx];
                 // ROS_INFO_STREAM("pulled scan");
-                min_dist_idx = dynamicGetMinDistIndex(traj.poses.at(i), dynamicLaserScan, print);
+                min_dist_idx = dynamicGetMinDistIndex(path.poses.at(i), dynamicLaserScan, print);
                 // ROS_INFO_STREAM("min_dist_idx: " << min_dist_idx);
                 // add point to min_dist_array
                 theta = min_dist_idx * dynamicLaserScan.angle_increment + dynamicLaserScan.angle_min;
@@ -318,15 +318,15 @@ namespace dynamic_gap
 
 
                 // get cost of point
-                dynamic_cost_val.at(i) = dynamicScorePose(traj.poses.at(i), theta, range);
+                dynamic_cost_val.at(i) = dynamicScorePose(path.poses.at(i), theta, range);
                 // ROS_INFO_STREAM("dynamic_cost_val: " << dynamic_cost_val.at(i));
                 
                 if (dynamic_cost_val.at(i) < 0.0 && cfg_->debug.traj_debug_log) {
                     ROS_INFO_STREAM("at pose: " << i << " of " << dynamic_cost_val.size() << 
                                     "(t: " << t_iplus1 << "), score of: " << 
                                     dynamic_cost_val.at(i) << ", robot pose: " << 
-                                    traj.poses.at(i).position.x << ", " << traj.poses.at(i).position.y << 
-                                    ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1] << ", distance: " << dist2Pose(theta, range, traj.poses.at(i)));
+                                    path.poses.at(i).position.x << ", " << path.poses.at(i).position.y << 
+                                    ", closest point: " << min_dist_pt[0] << ", " << min_dist_pt[1] << ", distance: " << dist2Pose(theta, range, path.poses.at(i)));
                 }
                 
                 
@@ -339,11 +339,11 @@ namespace dynamic_gap
         } else {
         */
 
-        std::vector<float> staticPosewiseCosts(traj.poses.size());
+        std::vector<float> staticPosewiseCosts(path.poses.size());
         for (int i = 0; i < staticPosewiseCosts.size(); i++) 
         {
             // std::cout << "regular range at " << i << ": ";
-            staticPosewiseCosts.at(i) = scorePose(traj.poses.at(i)); //  / staticPosewiseCosts.size()
+            staticPosewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / staticPosewiseCosts.size()
         }
         totalTrajCost = std::accumulate(staticPosewiseCosts.begin(), staticPosewiseCosts.end(), float(0));
         if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                static pose-wise cost: " << totalTrajCost);
@@ -355,11 +355,12 @@ namespace dynamic_gap
         {
             // obtain terminalGoalCost, scale by w1
             float w1 = 1.0;
-            auto terminalCost = w1 * terminalGoalCost(*std::prev(traj.poses.end()));
+            float terminalCost = w1 * terminalGoalCost(*std::prev(path.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
-            if (terminalCost < 0.25 && totalTrajCost >= 0) {
+            if (terminalCost < 0.25 && totalTrajCost >= 0) 
+            {
                 // std::cout << "returning really good trajectory" << std::endl;
-                return std::vector<float>(traj.poses.size(), 100);
+                return std::vector<float>(path.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
             if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                terminal cost: " << -terminalCost);

@@ -36,8 +36,10 @@ namespace dynamic_gap
             void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
 
         private:
-            bool checkGoalVisibility(const geometry_msgs::PoseStamped & localGoal, float theta_r, float theta_l, float rdist, float ldist);
-
+            bool checkWaypointVisibility(const Eigen::Vector2f & leftPt, const Eigen::Vector2f & rightPt,
+                                                const Eigen::Vector2f & globalPathLocalWaypoint);
+            float setBiasedGapGoalTheta(float leftTheta, float rightTheta, float globalPathLocalWaypointTheta,
+                                        float leftToRightAngle, float rightToGoalAngle, float leftToGoalAngle);
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
             sensor_msgs::LaserScan staticScan_, dynamicScan_;
             const DynamicGapConfig* cfg_;

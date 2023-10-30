@@ -939,10 +939,10 @@ namespace dynamic_gap
             viz_offset = gap.isRightType(initial) ? -2 : 2;
         }
 
-        int lidx = initial ? gap.cvxRightIdx() : gap.cvxTermRIdx();
-        int ridx = initial ? gap.cvxLeftIdx() : gap.cvxTermLIdx();
-        float ldist = initial ? gap.cvxRightDist() : gap.cvxTermRDist();
-        float rdist = initial ? gap.cvxLeftDist() : gap.cvxTermLDist();
+        int lidx = initial ? gap.cvxRightIdx() : gap.cvxTermRightIdx();
+        int ridx = initial ? gap.cvxLeftIdx() : gap.cvxTermLeftIdx();
+        float ldist = initial ? gap.cvxRightDist() : gap.cvxTermRightDist();
+        float rdist = initial ? gap.cvxLeftDist() : gap.cvxTermLeftDist();
 
         std::string local_ns = ns;
 

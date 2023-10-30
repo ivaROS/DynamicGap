@@ -99,10 +99,10 @@ namespace dynamic_gap
             selectedGap.getLCartesian(xLeftTerm, yLeftTerm);
             selectedGap.getRCartesian(xRightTerm, yRightTerm);
 
-            // ldist = selectedGap.cvxTermLDist();
-            // rdist = selectedGap.cvxTermRDist();
-            // ltheta = idx2theta(selectedGap.cvxTermLIdx());
-            // rtheta = idx2theta(selectedGap.cvxTermRIdx());
+            // ldist = selectedGap.cvxTermLeftDist();
+            // rdist = selectedGap.cvxTermRightDist();
+            // ltheta = idx2theta(selectedGap.cvxTermLeftIdx());
+            // rtheta = idx2theta(selectedGap.cvxTermRightIdx());
             // float xLeftTerm = ldist * cos(ltheta);
             // float xLeftTerm = ldist * sin(ltheta);
             // float xRightTerm = rdist * cos(rtheta);

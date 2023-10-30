@@ -57,28 +57,28 @@ namespace dynamic_gap
             void setTermLDist(float termLDist) { termLeftDist_ = termLDist; }
 
             int cvxRightIdx() const { return convex.rightIdx_; }
-            void setCvxRIdx(int cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
+            void setCvxRightIdx(int cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
 
             int cvxLeftIdx() const { return convex.leftIdx_; }
-            void setCvxLIdx(int cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
+            void setCvxLeftIdx(int cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
 
             float cvxRightDist() const { return convex.rightDist_; }
-            void setCvxRDist(float cvxRightDist) { convex.rightDist_ = cvxRightDist; }
+            void setCvxRightDist(float cvxRightDist) { convex.rightDist_ = cvxRightDist; }
 
             float cvxLeftDist() const { return convex.leftDist_; }
-            void setCvxLDist(float cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
+            void setCvxLeftDist(float cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
 
-            int cvxTermRIdx() const { return convex.termRightIdx_; }
-            void setCvxTermRIdx(int cvxTermRIdx) { convex.termRightIdx_ = cvxTermRIdx; }
+            int cvxTermRightIdx() const { return convex.termRightIdx_; }
+            void setcvxTermRightIdx(int cvxTermRightIdx) { convex.termRightIdx_ = cvxTermRightIdx; }
 
-            int cvxTermLIdx() const { return convex.termLeftIdx_; }
-            void setCvxTermLIdx(int cvxTermLIdx) { convex.termLeftIdx_ = cvxTermLIdx; }
+            int cvxTermLeftIdx() const { return convex.termLeftIdx_; }
+            void setcvxTermLeftIdx(int cvxTermLeftIdx) { convex.termLeftIdx_ = cvxTermLeftIdx; }
 
-            float cvxTermRDist() const { return convex.termRightDist_; }
-            void setCvxTermRDist(float cvxTermRDist) { convex.termRightDist_ = cvxTermRDist; }
+            float cvxTermRightDist() const { return convex.termRightDist_; }
+            void setcvxTermRightDist(float cvxTermRightDist) { convex.termRightDist_ = cvxTermRightDist; }
 
-            float cvxTermLDist() const { return convex.termLeftDist_; }
-            void setCvxTermLDist(float cvxTermLDist) { convex.termLeftDist_ = cvxTermLDist; }
+            float cvxTermLeftDist() const { return convex.termLeftDist_; }
+            void setcvxTermLeftDist(float cvxTermLeftDist) { convex.termLeftDist_ = cvxTermLeftDist; }
 
             // Concluding the Gap after constructing with left information
             void addLeftInformation(int left_idx, float ldist) 

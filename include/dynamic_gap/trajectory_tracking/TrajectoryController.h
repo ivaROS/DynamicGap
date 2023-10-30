@@ -38,15 +38,15 @@ namespace dynamic_gap
                                             const geometry_msgs::Pose & desired,
                                             const sensor_msgs::LaserScan & inflated_egocircle, 
                                             const geometry_msgs::TwistStamped & currentPeakSplineVel_);
-            geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & raw_cmd_vel,
-                                                const sensor_msgs::LaserScan & inflated_egocircle, 
-                                                const geometry_msgs::PoseStamped & rbt_in_cam_lc, 
-                                                const dynamic_gap::Estimator * curr_rightGapPtModel, 
-                                                const dynamic_gap::Estimator * curr_leftGapPtModel,
-                                                const geometry_msgs::TwistStamped & current_rbt_vel, 
-                                                const geometry_msgs::TwistStamped & rbt_accel);
-            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
-            int targetPoseIdx(const geometry_msgs::Pose & curr_pose, const geometry_msgs::PoseArray & poseArray);
+            geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
+                                                const sensor_msgs::LaserScan & scan, 
+                                                const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
+                                                const dynamic_gap::Estimator * currGapRightPtModel, 
+                                                const dynamic_gap::Estimator * currGapLeftPtModel,
+                                                const geometry_msgs::TwistStamped & currRbtVel, 
+                                                const geometry_msgs::TwistStamped & currRbtAcc);
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            int targetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & localTrajectory);
             // dynamic_gap::TrajPlan trajGen(geometry_msgs::PoseArray);
             
         private:
@@ -60,19 +60,19 @@ namespace dynamic_gap
             bool leqThres(const float dist);
             bool geqThres(const float dist);
 
-            void runProjectionOperator(const sensor_msgs::LaserScan & inflated_egocircle, 
-                                         const geometry_msgs::PoseStamped & rbt_in_cam_lc,
-                                         Eigen::Vector2f & cmd_vel_fb, float & Psi, Eigen::Vector2f & Psi_der,
-                                         float & cmd_vel_x_safe, float & cmd_vel_y_safe,
-                                         float & min_dist_ang, float & min_dist);
+            void runProjectionOperator(const sensor_msgs::LaserScan & scan, 
+                                        const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
+                                        Eigen::Vector2f & cmdVelFeedback,
+                                        float & Psi, Eigen::Vector2f & dPsiDx,
+                                        float & velLinXSafe, float & velLinYSafe,
+                                        float & minDistTheta, float & minDist);
             void runBearingRateCBF(const Eigen::Vector4f & state, 
                                     const Eigen::Vector4f & rightGapPtState,
                                     const Eigen::Vector4f & leftGapPtState,
                                     const Eigen::Vector2f & currRbtAcc,
-                                    float & cmd_vel_x_safe, float & cmd_vel_y_safe, 
-                                    float & Psi_CBF);
-            void clipRobotVelocity(float & v_lin_x_fb, float & v_lin_y_fb, float & v_ang_fb);
-            void visualizeProjectionOperator(float weighted_cmd_vel_x_safe, float weighted_cmd_vel_y_safe);
+                                    float & velLinXSafe, float & velLinYSafe, float & PsiCBF);
+            void clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback);
+            void visualizeProjectionOperator(float weightedVelLinXSafe, float weightedVelLinYSafe);
 
 
             float rightGapSideCBF(const Eigen::Vector4f & state);

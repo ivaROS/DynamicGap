@@ -15,8 +15,8 @@ namespace dynamic_gap
     Eigen::Vector2f pol2car(const Eigen::Vector2f & polar_vector);
     float atanThetaWrap(float theta); 
     // float atanThetaWrap(float theta);
-    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect, const Eigen::Vector2f & right_norm_vect);
-    float getLeftToRightAngle(const Eigen::Vector2f & left_norm_vect, const Eigen::Vector2f & right_norm_vect, bool wrap);
+    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, const Eigen::Vector2f & rightVect);
+    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, const Eigen::Vector2f & rightVect, bool wrap);
 
     float idx2theta(const int idx);
     int theta2idx(const float theta);
@@ -30,9 +30,20 @@ namespace dynamic_gap
     float quaternionToYaw(const tf::Quaternion & quat);
 
     int subtract_wrap(int a, int b);
-    bool isGapLocalGoalWithin(int goal_idx, int idx_lower, int idx_upper, int full_scan);
+    bool isGlobalPathLocalWaypointWithinGapAngle(int goalIdx, int lowerIdx, int upperIdx);
     int signum(float value);
 
     static int half_num_scan = 256;
     static float angle_increment = (2*M_PI) / 511; //  0.0122959f;
+
+    static Eigen::Matrix2f Rpi2 = (Eigen::Matrix2f() << 0.0, -1.0, 1.0, 0.0).finished();
+    // Rpi2 << 0, -1, 1,0; 
+
+
+    //  {{0.0, -1.0}, {1.0, 0.0}}; // PI/2 counter clockwise
+    static Eigen::MatrixXf Rnegpi2 = (Eigen::Matrix2f() << 0.0, 1.0, -1.0, 0.0).finished();       //  = Rpi2;                // PI/2 clockwise;
+    // Rnegpi2 = -Rpi2;
+    // , Rnegpi2;
+    // Rpi2 << 0, -1, 1,0; 
+    // 
 }

@@ -101,12 +101,12 @@ namespace dynamic_gap
             Eigen::Vector2f vec_1 = p1 - rbt;
             Eigen::Vector2f vec_2 = p2 - rbt;
 
-            Eigen::Matrix2f r_pi2;
+            Eigen::Matrix2f Rpi2;
             float rot_angle = M_PI / 2;
-            r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), 
+            Rpi2 << std::cos(rot_angle), -std::sin(rot_angle), 
                      std::sin(rot_angle), std::cos(rot_angle);
-            Eigen::Matrix2f neg_r_pi2;
-            neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), 
+            Eigen::Matrix2f neg_Rpi2;
+            neg_Rpi2 << std::cos(-rot_angle), -std::sin(-rot_angle), 
                          std::sin(-rot_angle), std::cos(-rot_angle);
 
             Eigen::Vector2f goal_pt(gx, gy);
@@ -125,8 +125,8 @@ namespace dynamic_gap
             float _sigma = 0.50;
             // 0.05: jittery
 
-            Eigen::Vector2f c1 = r_pi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
-            Eigen::Vector2f c2 = neg_r_pi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
+            Eigen::Vector2f c1 = Rpi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
+            Eigen::Vector2f c2 = neg_Rpi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
 
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
             Eigen::Vector2f sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
