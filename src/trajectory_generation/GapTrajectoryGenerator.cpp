@@ -686,24 +686,29 @@ namespace dynamic_gap
     // }
 
     // Return in Odom frame (used for ctrl)
-    geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectoryToOdomFrame(const geometry_msgs::PoseArray & path,
-                                                                             const geometry_msgs::TransformStamped & planning2odom)
+    geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectory(const geometry_msgs::PoseArray & path,
+                                                                              const geometry_msgs::TransformStamped & transform,
+                                                                              const std::string & sourceFrame,
+                                                                              const std::string & destFrame)
     {
-        geometry_msgs::PoseArray retarr;
-        geometry_msgs::PoseStamped outplaceholder;
-        outplaceholder.header.frame_id = cfg_->odom_frame_id;
-        geometry_msgs::PoseStamped inplaceholder;
-        inplaceholder.header.frame_id = cfg_->robot_frame_id;
+        geometry_msgs::PoseArray transformedPath;
+
+        geometry_msgs::PoseStamped sourcePose;
+        sourcePose.header.frame_id = sourceFrame; // cfg_->robot_frame_id;
+
+        geometry_msgs::PoseStamped destPose;
+        destPose.header.frame_id = destFrame; // cfg_->odom_frame_id;
+
         for (const auto pose : path.poses)
         {
-            inplaceholder.pose = pose;
-            tf2::doTransform(inplaceholder, outplaceholder, planning2odom);
-            retarr.poses.push_back(outplaceholder.pose);
+            sourcePose.pose = pose;
+            tf2::doTransform(sourcePose, destPose, transform);
+            transformedPath.poses.push_back(destPose.pose);
         }
-        retarr.header.frame_id = cfg_->odom_frame_id;
-        retarr.header.stamp = ros::Time::now();
-        // ROS_WARN_STREAM("leaving transform back with length: " << retarr.poses.size());
-        return retarr;
+        transformedPath.header.frame_id = destFrame; // cfg_->odom_frame_id;
+        transformedPath.header.stamp = ros::Time::now();
+        // ROS_WARN_STREAM("leaving transform back with length: " << transformedPath.poses.size());
+        return transformedPath;
     }
 
     std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple)

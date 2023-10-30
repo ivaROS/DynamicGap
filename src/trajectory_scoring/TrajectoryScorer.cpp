@@ -255,13 +255,9 @@ namespace dynamic_gap
     }
 
     std::vector<float> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & traj, 
-                                                          const std::vector<float> & time_arr, 
-                                                          const std::vector<dynamic_gap::Gap> & current_raw_gaps,              
-                                                          const std::vector<geometry_msgs::Pose> & agentPoses,
-                                                          const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                                          const std::vector<sensor_msgs::LaserScan> & future_scans,
-                                                          bool print,
-                                                          bool vis) 
+                                                         const std::vector<float> & time_arr, 
+                                                         const std::vector<dynamic_gap::Gap> & current_raw_gaps,
+                                                         const std::vector<sensor_msgs::LaserScan> & future_scans) 
     {    
         if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            [scoreTrajectory()]");
         // Requires LOCAL FRAME

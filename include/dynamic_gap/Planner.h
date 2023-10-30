@@ -260,11 +260,10 @@ namespace dynamic_gap
                                                   const geometry_msgs::PoseArray & chosenPath,                                                        
                                                   const std::vector<float> & chosenPathTiming,
                                                   const std::vector<dynamic_gap::Gap> & feasibleGaps,
-                                                  bool curr_exec_gap_assoc, 
                                                   bool curr_exec_gap_feas);
 
-        int getCurrentRightGapModelID();
-        int getCurrentLeftGapModelID();
+        int getCurrentRightGapPtModelID();
+        int getCurrentLeftGapPtModelID();
 
         /**
          * Conglomeration of getting a plan Trajectory
@@ -307,12 +306,12 @@ namespace dynamic_gap
         void setCurrentGapPeakVelocities(float _peakVelX_, float _peakVelY_);
 
         void printGapModels(const std::vector<dynamic_gap::Gap> & gaps);
-        void printGapAssociations(const std::vector<dynamic_gap::Gap> & current_gaps, 
-                                  const std::vector<dynamic_gap::Gap> & previous_gaps, 
+        void printGapAssociations(const std::vector<dynamic_gap::Gap> & currentGaps, 
+                                  const std::vector<dynamic_gap::Gap> & previousGaps, 
                                   const std::vector<int> & association);
 
-        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(bool & isCurrentGapAssociated, 
-                                                             bool & isCurrentGapFeasible);
+        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(bool & isCurrentGapFeasible); // bool & isCurrentGapAssociated, 
+                                                             
 
         void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
         void visualizeComponents(const std::vector<dynamic_gap::Gap> & manip_gap_set);
@@ -322,6 +321,6 @@ namespace dynamic_gap
         geometry_msgs::PoseArray changeTrajectoryHelper(const dynamic_gap::Gap & chosenGap, 
                                                         const geometry_msgs::PoseArray & chosenPath, 
                                                         const std::vector<float> & chosenPathTiming, 
-                                                        bool chosenEmptyPath);
+                                                        bool switchToIncoming);
     };
 }

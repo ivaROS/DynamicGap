@@ -42,13 +42,9 @@ namespace dynamic_gap
         // std::vector<float> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
         geometry_msgs::PoseStamped getLocalGoal() {return localGoalRobotFrame_; }; // in robot frame
         std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & traj, 
-                                            const std::vector<float> & time_arr, 
-                                            const std::vector<dynamic_gap::Gap>& current_raw_gaps,
-                                            const std::vector<geometry_msgs::Pose> & agentPoses, 
-                                            const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                            const std::vector<sensor_msgs::LaserScan> & future_scans,
-                                            bool print,
-                                            bool vis);
+                                           const std::vector<float> & time_arr, 
+                                           const std::vector<dynamic_gap::Gap> & current_raw_gaps,
+                                           const std::vector<sensor_msgs::LaserScan> & future_scans);
         
         void recoverDynamicEgoCircle(float t_i, float t_iplus1, 
                                      std::vector<Eigen::Matrix<float, 4, 1> > & curr_agents_lc,                            

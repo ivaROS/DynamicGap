@@ -36,8 +36,10 @@ namespace dynamic_gap {
             
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, const geometry_msgs::PoseStamped & , const geometry_msgs::TwistStamped &, bool);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
-            geometry_msgs::PoseArray transformLocalTrajectoryToOdomFrame(const geometry_msgs::PoseArray &, 
-                                                             const geometry_msgs::TransformStamped &);
+            geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
+                                                              const geometry_msgs::TransformStamped & transform,
+                                                              const std::string & sourceFrame,
+                                                              const std::string & destFrame);
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
 
         private: 
