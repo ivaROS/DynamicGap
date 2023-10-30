@@ -200,7 +200,7 @@ namespace dynamic_gap
         void updateTF();
 
         /**
-         * Setter and Getter of Current Trajectory, this is performed in the compareToOldTraj function
+         * Setter and Getter of Current Trajectory, this is performed in the compareToCurrentTraj function
          */
         void setCurrentPath(const geometry_msgs::PoseArray & currentPath) { currentPath_ = currentPath; return; }
 
@@ -256,7 +256,7 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToOldTraj(const dynamic_gap::Gap & chosenGap, 
+        geometry_msgs::PoseArray compareToCurrentTraj(const dynamic_gap::Gap & chosenGap, 
                                                   const geometry_msgs::PoseArray & chosenPath,                                                        
                                                   const std::vector<float> & chosenPathTiming,
                                                   const std::vector<dynamic_gap::Gap> & feasibleGaps,

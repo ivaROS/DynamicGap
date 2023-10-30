@@ -686,13 +686,13 @@ namespace dynamic_gap
         }                       
     }
 
-    geometry_msgs::PoseArray Planner::compareToOldTraj(const dynamic_gap::Gap & incomingGap, 
+    geometry_msgs::PoseArray Planner::compareToCurrentTraj(const dynamic_gap::Gap & incomingGap, 
                                                        const geometry_msgs::PoseArray & incomingPathOdomFrame,                                                        
                                                        const std::vector<float> & incomingPathTiming,
                                                        const std::vector<dynamic_gap::Gap> & feasibleGaps, 
                                                        bool isIncomingGapFeasibleInput) // bool isIncomingGapAssociated,
     {
-        if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("[compareToOldTraj()]");
+        if (cfg_.debug.traj_debug_log) ROS_INFO_STREAM("[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapsetMutex);
         
         geometry_msgs::PoseArray currentPath = getCurrentPath();
@@ -886,7 +886,7 @@ namespace dynamic_gap
             currentTrajectoryPublisher_.publish(currentPath);
         } catch (...) 
         {
-            ROS_FATAL_STREAM("compareToOldTraj");
+            ROS_FATAL_STREAM("compareToCurrentTraj");
         }
 
 
@@ -1276,19 +1276,19 @@ namespace dynamic_gap
         ///////////////////////////////
         // GAP TRAJECTORY COMPARISON //
         ///////////////////////////////
-        std::chrono::steady_clock::time_point compareToOldTrajStartTime = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
         geometry_msgs::PoseArray chosenTraj;
         try 
         {
-            chosenTraj = compareToOldTraj(highestScoreGap, highestScorePath, highestScorePathTiming, manipulatedGaps, isCurrentGapFeasible); // isCurrentGapAssociated,
+            chosenTraj = compareToCurrentTraj(highestScoreGap, highestScorePath, highestScorePathTiming, manipulatedGaps, isCurrentGapFeasible); // isCurrentGapAssociated,
         } catch (std::out_of_range) 
         {
-            ROS_FATAL_STREAM("out of range in compareToOldTraj");
+            ROS_FATAL_STREAM("out of range in compareToCurrentTraj");
         }
 
-        float compareToOldTrajTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - compareToOldTrajStartTime).count() / 1.0e6;
-        ROS_INFO_STREAM("[compareToOldTraj() for " << gapCount << " gaps: "  << compareToOldTrajTimeTaken << " seconds]");
+        float compareToCurrentTrajTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - compareToCurrentTrajStartTime).count() / 1.0e6;
+        ROS_INFO_STREAM("[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
 
         float planningLoopTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - planningLoopStartTime).count() / 1.0e6;
 
