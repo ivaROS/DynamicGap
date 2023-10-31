@@ -178,9 +178,10 @@ namespace dynamic_gap
                                                         cfg_.debug.simplified_gaps_debug_log);
             // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
-            gapVisualizer_->drawGaps(associatedRawGaps_, std::string("raw"));
-            // gapVisualizer_->drawGaps(associatedSimplifiedGaps_, std::string("simp"));
-            gapVisualizer_->drawGapsModels(associatedRawGaps_);
+            // gapVisualizer_->drawGaps(associatedRawGaps_, std::string("raw"));
+            // gapVisualizer_->drawGapsModels(associatedRawGaps_);
+            gapVisualizer_->drawGaps(associatedSimplifiedGaps_, std::string("simp"));
+            gapVisualizer_->drawGapsModels(associatedSimplifiedGaps_);
         }
 
         geometry_msgs::PoseStamped local_goal;

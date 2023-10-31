@@ -20,8 +20,8 @@ namespace dynamic_gap
             Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rdist, bool radial, float minSafeDist_) : 
-                frame_(frame), rightIdx_(right_idx), rightDist_(rdist), radial_(radial), minSafeDist_(minSafeDist_)
+            Gap(std::string frame, int right_idx, float rangeRight, bool radial, float minSafeDist_) : 
+                frame_(frame), rightIdx_(right_idx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
@@ -81,10 +81,10 @@ namespace dynamic_gap
             void setcvxTermLeftDist(float cvxTermLeftDist) { convex.termLeftDist_ = cvxTermLeftDist; }
 
             // Concluding the Gap after constructing with left information
-            void addLeftInformation(int left_idx, float ldist) 
+            void addLeftInformation(int left_idx, float rangeLeft) 
             {
                 leftIdx_ = left_idx;
-                leftDist_ = ldist;
+                leftDist_ = rangeLeft;
                 rightType_ = rightDist_ < leftDist_;
 
                 // if (!radial_)
@@ -122,49 +122,49 @@ namespace dynamic_gap
             // edited by Max: float &x, float &y
             void getLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(leftIdx_);
-                x = (leftDist_) * cos(ltheta);
-                y = (leftDist_) * sin(ltheta);
+                float thetaLeft = idx2theta(leftIdx_);
+                x = (leftDist_) * cos(thetaLeft);
+                y = (leftDist_) * sin(thetaLeft);
             }
 
             // Get Right Cartesian Distance
             void getRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(rightIdx_);
-                x = (rightDist_) * cos(rtheta);
-                y = (rightDist_) * sin(rtheta);
+                float thetaRight = idx2theta(rightIdx_);
+                x = (rightDist_) * cos(thetaRight);
+                y = (rightDist_) * sin(thetaRight);
             }
 
             void getSimplifiedLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(convex.leftIdx_);
+                float thetaLeft = idx2theta(convex.leftIdx_);
                 // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (convex.leftDist_) * cos(ltheta);
-                y = (convex.leftDist_) * sin(ltheta);
+                x = (convex.leftDist_) * cos(thetaLeft);
+                y = (convex.leftDist_) * sin(thetaLeft);
             }
 
             void getSimplifiedRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(convex.rightIdx_);
+                float thetaRight = idx2theta(convex.rightIdx_);
                 // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (convex.rightDist_) * cos(rtheta);
-                y = (convex.rightDist_) * sin(rtheta);
+                x = (convex.rightDist_) * cos(thetaRight);
+                y = (convex.rightDist_) * sin(thetaRight);
             }
 
             void getSimplifiedTerminalLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(convex.termLeftIdx_);
+                float thetaLeft = idx2theta(convex.termLeftIdx_);
                 // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (convex.termLeftDist_) * cos(ltheta);
-                y = (convex.termLeftDist_) * sin(ltheta);
+                x = (convex.termLeftDist_) * cos(thetaLeft);
+                y = (convex.termLeftDist_) * sin(thetaLeft);
             }
 
             void getSimplifiedTerminalRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(convex.termRightIdx_);
+                float thetaRight = idx2theta(convex.termRightIdx_);
                 // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (convex.termRightDist_) * cos(rtheta);
-                y = (convex.termRightDist_) * sin(rtheta);
+                x = (convex.termRightDist_) * cos(thetaRight);
+                y = (convex.termRightDist_) * sin(thetaRight);
             }
 
             void initManipIndices() 
@@ -184,52 +184,48 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM("setRadial:");
                 // does resoln here imply 360 deg FOV?
-                int check_l_idx = initial ? leftIdx_ : termLeftIdx_;
-                int check_r_idx = initial ? rightIdx_ : termRightIdx_;
+                int checkLeftIdx = initial ? leftIdx_ : termLeftIdx_;
+                int checkRightIdx = initial ? rightIdx_ : termRightIdx_;
 
-                float check_l_dist = initial ? leftDist_ : termLeftDist_;
-                float check_r_dist = initial ? rightDist_ : termRightDist_;
+                float checkLeftDist = initial ? leftDist_ : termLeftDist_;
+                float checkRightDist = initial ? rightDist_ : termRightDist_;
 
-                // ROS_INFO_STREAM("   check_l_idx: " << check_l_idx);
-                // ROS_INFO_STREAM("   check_l_dist: " << check_l_dist);
-                // ROS_INFO_STREAM("   check_r_idx: " << check_r_idx);
-                // ROS_INFO_STREAM("   check_r_dist: " << check_r_dist);
+                // ROS_INFO_STREAM("   checkLeftIdx: " << checkLeftIdx);
+                // ROS_INFO_STREAM("   checkLeftDist: " << checkLeftDist);
+                // ROS_INFO_STREAM("   checkRightIdx: " << checkRightIdx);
+                // ROS_INFO_STREAM("   checkRightDist: " << checkRightDist);
 
                 float resoln = M_PI / half_scan;
-                float gap_angle = (check_l_idx - check_r_idx) * resoln;
-                if (gap_angle < 0)
-                    gap_angle += 2*M_PI;
+                float gapAngle = (checkLeftIdx - checkRightIdx) * resoln;
+                if (gapAngle < 0)
+                    gapAngle += 2*M_PI;
 
-                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
-                float short_side = rightType_ ? check_r_dist : check_l_dist;
+                // ROS_INFO_STREAM("   gapAngle: " << gapAngle);
+                float nearangeRight = rightType_ ? checkRightDist : checkLeftDist;
                 // law of cosines
-                float opp_side = sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * cos(gap_angle));
+                float leftPtToRightPtDist = sqrt(pow(checkRightDist, 2) + pow(checkLeftDist, 2) - 2 * checkRightDist * checkLeftDist * cos(gapAngle));
                 // law of sines
-                float small_angle = asin((short_side / opp_side) * sin(gap_angle));
-                // ROS_INFO_STREAM("short_side: " << short_side);
-                // ROS_INFO_STREAM("opp_side: " << opp_side);
-                // ROS_INFO_STREAM("small angle: " << small_angle);
+                float farSideAngle = asin((nearangeRight / leftPtToRightPtDist) * sin(gapAngle));
+                
+                // ROS_INFO_STREAM("nearangeRight: " << nearangeRight);
+                // ROS_INFO_STREAM("leftPtToRightPtDist: " << leftPtToRightPtDist);
+                // ROS_INFO_STREAM("small angle: " << farSideAngle);
 
-                // ROS_INFO_STREAM("   small_angle: " << small_angle);
-                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
-                float alpha = (M_PI - small_angle - gap_angle);
-                // ROS_INFO_STREAM("   alpha: " << alpha);
+                // ROS_INFO_STREAM("   farSideAngle: " << farSideAngle);
+                // ROS_INFO_STREAM("   gapAngle: " << gapAngle);
+                float nearSideAngle = (M_PI - farSideAngle - gapAngle);
+                // ROS_INFO_STREAM("   nearSideAngle: " << nearSideAngle);
 
                 if (initial)
-                    radial_ = alpha > 0.75 * M_PI;
+                    radial_ = nearSideAngle > 0.75 * M_PI;
                 else
-                    termRadial_ = alpha > 0.75 * M_PI;     
+                    termRadial_ = nearSideAngle > 0.75 * M_PI;     
             }
 
             bool isRadial(bool initial = true) const
             {
                 return (initial ? radial_ : termRadial_);
             }
-
-            // void setRadial()
-            // {
-            //     radial_ = false;
-            // }
 
             bool isRightType(bool initial = true) const
             {
@@ -239,79 +235,34 @@ namespace dynamic_gap
                     return terminalRightType_;
             }
 
-            /*
-            void resetFrame(std::string frame) 
-            {
-                frame_ = frame;
-            }
-            */
+            float getMinSafeDist() { return minSafeDist_; }
 
-            float getMinSafeDist() 
-            {
-                return minSafeDist_;
-            }
+            void setTerminalMinSafeDist(float _dist) { terminalMinSafeDist_ = _dist; }
+            float getTerminalMinSafeDist() { return terminalMinSafeDist_; }
 
-            void setTerminalMinSafeDist(float _dist) 
-            {
-                terminalMinSafeDist_ = _dist;
-            }
+            void setCategory(std::string category) { category_ = category; }
+            std::string getCategory() { return category_; }
 
-            float getTerminalMinSafeDist() 
-            {
-                return terminalMinSafeDist_;
-            }
+            void setCrossingPoint(float x, float y) { crossingPt_ << x,y; }
+            Eigen::Vector2f getCrossingPoint() { return crossingPt_; }
 
-            /*
-            std::string getFrame() 
-            {
-                return frame_;
-            }
-            */
+            void setClosingPoint(float x, float y) { closingPt_ << x,y; }
+            Eigen::Vector2f getClosingPoint() { return closingPt_; }
 
-            void setCategory(std::string category) 
-            {
-                // ROS_INFO_STREAM("setting category to: " << _category_);
-                category_ = category;
-            }
-
-            std::string getCategory() {
-                return category_;
-            }
-
-            void setCrossingPoint(float x, float y) {
-                // ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
-                crossingPt_ << x,y;
-            }
-
-            Eigen::Vector2f getCrossingPoint() {
-                return crossingPt_;
-            }
-
-            void setClosingPoint(float x, float y) {
-                // ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
-                closingPt_ << x,y;
-            }
-
-            Eigen::Vector2f getClosingPoint() {
-                return closingPt_;
-            }
-
-            // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
+            // used in calculating nearSideAngle, the angle formed between the two gap lines and the robot. (angle of the gap).
             // calculates the euclidean distance between the left and right gap points using the law of cosines
             float get_gap_euclidean_dist() const 
             {
-                int idx_diff = leftIdx_ - rightIdx_;
-                if (idx_diff < 0) {
-                    idx_diff += (2*half_scan);
-                } 
                 float resoln = M_PI / half_scan;
-                float gap_angle = float(idx_diff) * resoln;
-                return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gap_angle));
+                float gapAngle = (leftIdx_ - rightIdx_) * resoln;
+                if (gapAngle < 0)
+                    gapAngle += 2*M_PI;
+
+                return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gapAngle));
             }
 
             void setTerminalPoints(float termLeftIdx, float termLeftDist, float termRightIdx, float termRightDist) 
             {    
-
                 termLeftIdx_ = termLeftIdx;
                 termLeftDist_ = termLeftDist;
                 termRightIdx_ = termRightIdx;
@@ -331,46 +282,46 @@ namespace dynamic_gap
 
             void printCartesianPoints(bool initial, bool simplified) 
             {
-                float x_l, y_l, x_r, y_r;
-                float ltheta, rtheta, ldist, rdist;
+                float xLeft, yLeft, xRight, yRight;
+                float thetaLeft, thetaRight, rangeLeft, rangeRight;
                 if (initial) 
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(leftIdx_);
-                        rtheta = idx2theta(rightIdx_);
-                        ldist = leftDist_;
-                        rdist = rightDist_;
+                        thetaLeft = idx2theta(leftIdx_);
+                        thetaRight = idx2theta(rightIdx_);
+                        rangeLeft = leftDist_;
+                        rangeRight = rightDist_;
                     } else 
                     {
-                        ltheta = idx2theta(convex.leftIdx_);
-                        rtheta = idx2theta(convex.rightIdx_);    
-                        ldist = convex.leftDist_;
-                        rdist = convex.rightDist_;                                                         
+                        thetaLeft = idx2theta(convex.leftIdx_);
+                        thetaRight = idx2theta(convex.rightIdx_);    
+                        rangeLeft = convex.leftDist_;
+                        rangeRight = convex.rightDist_;                                                         
                     }
                 } else 
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(termLeftIdx_);
-                        rtheta = idx2theta(termRightIdx_);     
-                        ldist = termLeftDist_;
-                        rdist = termRightDist_;          
+                        thetaLeft = idx2theta(termLeftIdx_);
+                        thetaRight = idx2theta(termRightIdx_);     
+                        rangeLeft = termLeftDist_;
+                        rangeRight = termRightDist_;          
                     } else 
                     {
-                        ltheta = idx2theta(convex.termLeftIdx_);
-                        rtheta = idx2theta(convex.termRightIdx_);    
-                        ldist = convex.termLeftDist_;
-                        rdist = convex.termRightDist_;                       
+                        thetaLeft = idx2theta(convex.termLeftIdx_);
+                        thetaRight = idx2theta(convex.termRightIdx_);    
+                        rangeLeft = convex.termLeftDist_;
+                        rangeRight = convex.termRightDist_;                       
                     }
                 }
 
-                x_l = ldist * cos(ltheta);
-                y_l = ldist * sin(ltheta);
-                x_r = rdist * cos(rtheta);
-                y_r = rdist * sin(rtheta);
+                xLeft = rangeLeft * cos(thetaLeft);
+                yLeft = rangeLeft * sin(thetaLeft);
+                xRight = rangeRight * cos(thetaRight);
+                yRight = rangeRight * sin(thetaRight);
 
-                ROS_INFO_STREAM("x_l, y_l: (" << x_l << ", " << y_l << "), x_r,y_r: (" << x_r << ", " << y_r << ")");
+                ROS_INFO_STREAM("xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
             }   
             
             float gapLifespan_ = 5.0;
