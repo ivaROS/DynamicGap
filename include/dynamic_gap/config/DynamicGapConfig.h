@@ -94,9 +94,9 @@ namespace dynamic_gap
 
             struct GapManipulation 
             {
-                float epsilon1 = 0.18;
-                float epsilon2 = 0.18;
-                float rot_ratio = 1.5;
+                float epsilon1 = 0.20;
+                float epsilon2 = 0.30;
+                // float rot_ratio = 1.5;
                 float reduction_threshold = M_PI;
                 float reduction_target = M_PI;
                 int max_idx_diff = 256;

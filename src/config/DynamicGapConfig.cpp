@@ -60,7 +60,7 @@ namespace dynamic_gap
         // Gap Manipulation
         nh.param("epsilon2", gap_manip.epsilon2, gap_manip.epsilon2);
         nh.param("epsilon1", gap_manip.epsilon1, gap_manip.epsilon1);
-        nh.param("rot_ratio", gap_manip.rot_ratio, gap_manip.rot_ratio);
+        // nh.param("rot_ratio", gap_manip.rot_ratio, gap_manip.rot_ratio);
         nh.param("reduction_threshold", gap_manip.reduction_threshold, gap_manip.reduction_threshold);
         nh.param("reduction_target", gap_manip.reduction_target, gap_manip.reduction_target);        
         nh.param("max_idx_diff", gap_manip.max_idx_diff, gap_manip.max_idx_diff);

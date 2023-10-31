@@ -151,6 +151,22 @@ namespace dynamic_gap
                 y = (convex.rightDist_) * sin(rtheta);
             }
 
+            void getSimplifiedTerminalLCartesian(float &x, float &y) const
+            {
+                float ltheta = idx2theta(convex.termLeftIdx_);
+                // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.termLeftDist_) * cos(ltheta);
+                y = (convex.termLeftDist_) * sin(ltheta);
+            }
+
+            void getSimplifiedTerminalRCartesian(float &x, float &y) const
+            {
+                float rtheta = idx2theta(convex.termRightIdx_);
+                // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.termRightDist_) * cos(rtheta);
+                y = (convex.termRightDist_) * sin(rtheta);
+            }
+
             void initManipIndices() 
             {
                 convex.rightIdx_ = rightIdx_;

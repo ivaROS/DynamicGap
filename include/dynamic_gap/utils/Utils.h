@@ -29,7 +29,7 @@ namespace dynamic_gap
 
     float quaternionToYaw(const tf::Quaternion & quat);
 
-    int subtract_wrap(int a, int b);
+    int subtractAndWrapScanIndices(int a, int b);
     bool isGlobalPathLocalWaypointWithinGapAngle(int goalIdx, int lowerIdx, int upperIdx);
     int signum(float value);
 

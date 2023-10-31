@@ -97,7 +97,7 @@ namespace dynamic_gap
                             1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
     }
 
-    int subtract_wrap(int a, int b) 
+    int subtractAndWrapScanIndices(int a, int b) 
     {
         return (a < 0) ? a+b : a;
     }
