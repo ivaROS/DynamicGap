@@ -15,13 +15,15 @@ namespace dynamic_gap
             std::string robot_frame_id = "base_link";
             std::string sensor_frame_id = "camera_link";
 
+            
             struct GapVisualization 
             {
                 int min_resoln = 2;
-                bool fig_gen = true;
-                float viz_jitter = 0.05;
-                bool debug_viz = true;
+                // bool fig_gen = true;
+                // float viz_jitter = 0.05;
+                // bool debug_viz = true;
             } gap_viz;
+            
 
             struct Robot 
             {

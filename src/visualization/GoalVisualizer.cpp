@@ -26,7 +26,7 @@ namespace dynamic_gap
 
     void GoalVisualizer::localGoal(geometry_msgs::PoseStamped localGoal)
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
 
         visualization_msgs::Marker lg_marker;
         lg_marker.header.frame_id = localGoal.header.frame_id;
@@ -49,7 +49,7 @@ namespace dynamic_gap
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray& vis_arr, 
                                      const dynamic_gap::Gap & gap, bool initial) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
 
         visualization_msgs::Marker lg_marker;
         lg_marker.header.frame_id = gap.frame_;
@@ -81,7 +81,7 @@ namespace dynamic_gap
 
     void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap> & gaps) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
         visualization_msgs::MarkerArray clear_arr;

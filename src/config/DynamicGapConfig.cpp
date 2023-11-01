@@ -12,9 +12,9 @@ namespace dynamic_gap
 
         // Gap Visualization
         nh.param("min_resoln", gap_viz.min_resoln, gap_viz.min_resoln);
-        nh.param("fig_gen", gap_viz.fig_gen, gap_viz.fig_gen);
-        nh.param("viz_jitter", gap_viz.viz_jitter, gap_viz.viz_jitter);
-        nh.param("debug_viz", gap_viz.debug_viz, gap_viz.debug_viz);
+        // nh.param("fig_gen", gap_viz.fig_gen, gap_viz.fig_gen);
+        // nh.param("viz_jitter", gap_viz.viz_jitter, gap_viz.viz_jitter);
+        // nh.param("debug_viz", gap_viz.debug_viz, gap_viz.debug_viz);
 
         // Robot
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);

@@ -40,7 +40,7 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
         if (globalPlan.size() < 1) 
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
 
@@ -55,7 +55,7 @@ namespace dynamic_gap
     void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
                                             const std::vector<std::vector<float>> & cost) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
         visualization_msgs::MarkerArray score_arr;
         visualization_msgs::Marker lg_marker;
         if (prr.size() == 0)
@@ -107,7 +107,7 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::pubAllTraj(const std::vector<geometry_msgs::PoseArray> & trajectories) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
         visualization_msgs::MarkerArray clear_arr;
@@ -134,7 +134,7 @@ namespace dynamic_gap
         lg_marker.type = visualization_msgs::Marker::ARROW;
         lg_marker.action = visualization_msgs::Marker::ADD;
         lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = cfg_->gap_viz.fig_gen ? 0.04 : 0.01;// 0.01;
+        lg_marker.scale.y = 0.04;// 0.01;
         lg_marker.scale.z = 0.0001;
         lg_marker.color.a = 1;
         lg_marker.color.b = 1.0;
