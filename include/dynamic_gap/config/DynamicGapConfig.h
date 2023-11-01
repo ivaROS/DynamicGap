@@ -83,8 +83,8 @@ namespace dynamic_gap
                 bool static_scan_separation_debug_log = false;
                 bool simplified_gaps_debug_log = false;
                 bool future_scan_propagation_debug_log = false;
-                bool feasibility_debug_log = true;
-                bool manipulation_debug_log = false;
+                bool feasibility_debug_log = false;
+                bool manipulation_debug_log = true;
                 bool traj_debug_log = true;
                 bool control_debug_log = true;
             } debug;
