@@ -21,11 +21,11 @@ namespace dynamic_gap
         staticScan_ = staticScan;
     }
 
-    void TrajectoryScorer::updateLocalGoal(const geometry_msgs::PoseStamped & localGoalOdomFrame, 
-                                           const geometry_msgs::TransformStamped & odom2rbt) 
+    void TrajectoryScorer::transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
+                                                                      const geometry_msgs::TransformStamped & odom2rbt) 
     {
         boost::mutex::scoped_lock lock(globalPlanMutex_);
-        tf2::doTransform(localGoalOdomFrame, localGoalRobotFrame_, odom2rbt);
+        tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
     /*
@@ -228,10 +228,10 @@ namespace dynamic_gap
 
         // How fix this
         int num_of_scan = scan_.get()->ranges.size();
-        float goal_orientation = std::atan2(localGoalRobotFrame_.pose.position.y, localGoalRobotFrame_.pose.position.x);
+        float goal_orientation = std::atan2(globalPathLocalWaypointRobotFrame_.pose.position.y, globalPathLocalWaypointRobotFrame_.pose.position.x);
         int idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
         ROS_DEBUG_STREAM("Goal Orientation: " << goal_orientation << ", idx: " << idx);
-        ROS_DEBUG_STREAM(localGoalRobotFrame_.pose.position);
+        ROS_DEBUG_STREAM(globalPathLocalWaypointRobotFrame_.pose.position);
         auto costFn = [](dynamic_gap::Gap g, int goal_idx) -> float
         {
             int leftdist = std::abs(g.RIdx() - goal_idx);
@@ -255,9 +255,9 @@ namespace dynamic_gap
     }
 
     std::vector<float> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & path, 
-                                                         const std::vector<float> & time_arr, 
-                                                         const std::vector<dynamic_gap::Gap> & current_raw_gaps,
-                                                         const std::vector<sensor_msgs::LaserScan> & future_scans) 
+                                                         const std::vector<float> & pathTiming, 
+                                                         const std::vector<dynamic_gap::Gap> & rawGaps,
+                                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
         if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            [scoreTrajectory()]");
         // Requires LOCAL FRAME
@@ -266,7 +266,7 @@ namespace dynamic_gap
 
         /*
         std::vector<dynamic_gap::Estimator *> raw_models;
-        for (auto gap : current_raw_gaps) {
+        for (auto gap : rawGaps) {
             raw_models.push_back(gap.rightGapPtModel_);
             raw_models.push_back(gap.leftGapPtModel_);
         }
@@ -292,14 +292,14 @@ namespace dynamic_gap
         int min_dist_idx, future_scan_idx;
         float theta, range;
         Eigen::Vector2d min_dist_pt(0.0, 0.0);
-        if (current_raw_gaps.size() > 0) {
+        if (rawGaps.size() > 0) {
             std::vector<float> dynamic_cost_val(path.poses.size());
             for (int i = 0; i < dynamic_cost_val.size(); i++) {
                 // std::cout << "regular range at " << i << ": ";
-                t_iplus1 = time_arr[i];
+                t_iplus1 = pathTiming[i];
                 future_scan_idx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
                 // ROS_INFO_STREAM("pulling scan for t_iplus1: " << t_iplus1 << " at idx: " << future_scan_idx);
-                dynamicLaserScan = future_scans[future_scan_idx];
+                dynamicLaserScan = futureScans[future_scan_idx];
                 // ROS_INFO_STREAM("pulled scan");
                 min_dist_idx = dynamicGetMinDistIndex(path.poses.at(i), dynamicLaserScan, print);
                 // ROS_INFO_STREAM("min_dist_idx: " << min_dist_idx);
@@ -375,9 +375,9 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock planlock(globalPlanMutex_);
         // ROS_INFO_STREAM(pose);
-        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                    final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << localGoalRobotFrame_.pose.position.x << ", " << localGoalRobotFrame_.pose.position.y << ")");
-        float dx = pose.position.x - localGoalRobotFrame_.pose.position.x;
-        float dy = pose.position.y - localGoalRobotFrame_.pose.position.y;
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                    final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
+        float dx = pose.position.x - globalPathLocalWaypointRobotFrame_.pose.position.x;
+        float dy = pose.position.y - globalPathLocalWaypointRobotFrame_.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 

@@ -184,17 +184,15 @@ namespace dynamic_gap
             gapVisualizer_->drawGapsModels(associatedSimplifiedGaps_);
         }
 
-        geometry_msgs::PoseStamped local_goal;
-
         goalSelector_->updateEgoCircle(scan_);
         goalSelector_->generateGlobalPathLocalWaypoint(map2rbt_);
-        local_goal = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
-        goalvisualizer->localGoal(local_goal);
+        geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
+        goalvisualizer->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
 
         // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
 
         trajScorer_->updateEgoCircle(scan_);
-        trajScorer_->updateLocalGoal(local_goal, odom2rbt_);
+        trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
 
         // ROS_INFO_STREAM("Time elapsed after updating arbiter: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -430,12 +428,12 @@ namespace dynamic_gap
         }
 
         // Set new local goal to trajectory arbiter
-        trajScorer_->updateLocalGoal(globalPathLocalWaypointOdomFrame_, odom2rbt_);
+        trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame_, odom2rbt_);
 
         // Visualization only
         std::vector<geometry_msgs::PoseStamped> visibleGlobalPlanSnippetRobotFrame = goalSelector_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
         trajVisualizer_->drawRelevantGlobalPlanSnippet(visibleGlobalPlanSnippetRobotFrame);
-        // trajVisualizer_->drawEntireGlobalPlan(goalselector->getGlobalPathOdomFrame());
+        // trajVisualizer_->drawGlobalPlan(goalselector->getGlobalPathOdomFrame());
 
         hasGlobalGoal_ = true;
         return true;
@@ -581,8 +579,8 @@ namespace dynamic_gap
             ROS_FATAL_STREAM("generateGapTrajs");
         }
 
-        trajVisualizer_->pubAllScore(paths, pathPoseScores);
-        trajVisualizer_->pubAllTraj(paths);
+        trajVisualizer_->drawGapTrajectoryPoseScores(paths, pathPoseScores);
+        trajVisualizer_->drawGapTrajectories(paths);
         generatedPaths = paths;
         generatedPathTimings = pathTimings;
         return pathPoseScores;
@@ -847,13 +845,13 @@ namespace dynamic_gap
             if (cfg_.debug.traj_debug_log) 
                 ROS_INFO_STREAM("    current trajectory received a subscore of: " << currentPathSubscore);
 
-            std::vector<std::vector<float>> pathScores(2);
-            pathScores.at(0) = incomingPathPoseScores;
-            pathScores.at(1) = currentPathPoseScores;
+            std::vector<std::vector<float>> pathPoseScores(2);
+            pathPoseScores.at(0) = incomingPathPoseScores;
+            pathPoseScores.at(1) = currentPathPoseScores;
             std::vector<geometry_msgs::PoseArray> paths(2);
             paths.at(0) = incomingPathRobotFrame;
             paths.at(1) = reducedCurrentPathRobotFrame;
-            trajVisualizer_->pubAllScore(paths, pathScores);
+            trajVisualizer_->drawGapTrajectoryPoseScores(paths, pathPoseScores);
 
             
             if (currentPathSubscore == -std::numeric_limits<float>::infinity()) 
