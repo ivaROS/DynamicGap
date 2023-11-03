@@ -183,8 +183,8 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM("running addGapForGlobalGoal");
         ROS_INFO_STREAM("globalGoalScanIdx: " << globalGoalScanIdx);
-        int gap_idx = 0;
-        int half_num_scan = scan_.ranges.size() / 2;
+        int gapIdx = 0;
+        // int half_num_scan = scan_.ranges.size() / 2;
         // auto min_dist = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
 
         for (const dynamic_gap::Gap & rawGap : rawGaps) 
@@ -196,13 +196,13 @@ namespace dynamic_gap
                 ROS_INFO_STREAM("final goal is in gap: " << rawGap.RIdx() << ", " << rawGap.LIdx());
                 return;
             }
-            gap_idx += 1;
+            gapIdx += 1;
         }
 
         std::string frame = scan_.header.frame_id;
-        int artificial_gap_span = half_num_scan / 12;
-        int rightIdx = std::max(globalGoalScanIdx - artificial_gap_span, 0);
-        int leftIdx = std::min(globalGoalScanIdx + artificial_gap_span, 2*half_num_scan - 1);
+        int artificialGapIdxSpan = cfg_->scan.half_scan_f / 12;
+        int rightIdx = std::max(globalGoalScanIdx - artificialGapIdxSpan, 0);
+        int leftIdx = std::min(globalGoalScanIdx + artificialGapIdxSpan, cfg_->scan.full_scan - 1);
         ROS_INFO_STREAM("creating gap " << rightIdx << ", to " << leftIdx);
 
         dynamic_gap::Gap gap(frame, rightIdx, scan_.ranges.at(rightIdx), true, minScanDist_);
@@ -210,7 +210,7 @@ namespace dynamic_gap
         // gap.setRadial();
         
         gap.artificial_ = true;
-        rawGaps.insert(rawGaps.begin() + gap_idx, gap);        
+        rawGaps.insert(rawGaps.begin() + gapIdx, gap);        
         return;
     }    
 
@@ -236,7 +236,7 @@ namespace dynamic_gap
             // 1. Checking if raw gap left and simplified gap right (widest distances, encompassing both gaps) dist 
             //    is less than the dist of whatever separates the two gaps
             bool intergapDistTest = rawGap.LDist() <= inflatedMinIntergapRange && 
-                                      simplifiedGaps[j].RDist() <= inflatedMinIntergapRange;
+                                    simplifiedGaps[j].RDist() <= inflatedMinIntergapRange;
             
             // 2. Checking if current simplified gap is either right dist < left dist or swept 
             bool rightTypeOrSweptGap = simplifiedGaps[j].isRightType() || !simplifiedGaps[j].isRadial();
@@ -257,10 +257,10 @@ namespace dynamic_gap
     {
         // checking if difference between raw gap left dist and simplified gap right (widest distances, encompassing both gaps)
         // dist is sufficiently small (to fit robot)
-        bool raw_left_simp_right_dist_diff_check = std::abs(rawGap.LDist() - simplifiedGaps.back().RDist()) < 3 * cfg_->rbt.r_inscr;
+        bool adjacentGapPtDistDiffCheck = std::abs(rawGap.LDist() - simplifiedGaps.back().RDist()) < 3 * cfg_->rbt.r_inscr;
 
         // checking if difference is sufficiently small, and that current simplified gap is radial and right dist < left dist
-        return raw_left_simp_right_dist_diff_check && simplifiedGaps.back().isRadial() && simplifiedGaps.back().isRightType();
+        return adjacentGapPtDistDiffCheck && simplifiedGaps.back().isRadial() && simplifiedGaps.back().isRightType();
     }
 
     std::vector<dynamic_gap::Gap> GapDetector::gapSimplification(const std::vector<dynamic_gap::Gap> & rawGaps)

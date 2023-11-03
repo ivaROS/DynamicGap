@@ -242,14 +242,15 @@ namespace dynamic_gap
         float rX, rY;
 		if (idx % 2 == 0) 
         {
-			// thetaTilde = idx2theta(gap.RIdx()); // float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
-            // rangeTilde = gap.RDist();
-            gap.getRCartesian(rX, rY);
-		} else 
-        {
             // thetaTilde = idx2theta(gap.LIdx()); // float(g.LIdx() - g.half_scan) / g.half_scan * M_PI;
             // rangeTilde = gap.LDist();
-            gap.getLCartesian(rX, rY);
+            gap.getLCartesian(rX, rY);            
+		} else 
+        {
+			// thetaTilde = idx2theta(gap.RIdx()); // float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
+            // rangeTilde = gap.RDist();
+            gap.getRCartesian(rX, rY);            
+
 		}
 
         // ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
@@ -260,19 +261,8 @@ namespace dynamic_gap
         if (idx % 2 == 0) 
         {
             //std::cout << "entering left model update" << std::endl;
-            try {
-                gap.rightGapPtModel_->update(measurement, 
-                                            intermediateRbtVels, intermediateRbtAccs, 
-                                            print, currentTrueAgentPoses_, 
-                                            currentTrueAgentVels_,
-                                            tCurrentFilterUpdate);
-            } catch (...) 
+            try 
             {
-                ROS_INFO_STREAM("kf_update_loop fails");
-            }
-        } else {
-            //std::cout << "entering right model update" << std::endl;
-            try {
                 gap.leftGapPtModel_->update(measurement, 
                                             intermediateRbtVels, intermediateRbtAccs, 
                                             print, currentTrueAgentPoses_, 
@@ -280,7 +270,20 @@ namespace dynamic_gap
                                             tCurrentFilterUpdate);
             } catch (...) 
             {
-                ROS_INFO_STREAM("kf_update_loop fails");
+                ROS_INFO_STREAM("left estimator update fails");
+            }
+        } else {
+            //std::cout << "entering right model update" << std::endl;
+            try 
+            {
+                gap.rightGapPtModel_->update(measurement, 
+                                            intermediateRbtVels, intermediateRbtAccs, 
+                                            print, currentTrueAgentPoses_, 
+                                            currentTrueAgentVels_,
+                                            tCurrentFilterUpdate);
+            } catch (...) 
+            {
+                ROS_INFO_STREAM("right estimator update fails");
             }
         }
     }

@@ -62,13 +62,14 @@ namespace dynamic_gap
             float scorePose(const geometry_msgs::Pose & pose);
             float chapterScore(float d);
 
-            int dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
-                                        const sensor_msgs::LaserScan & dynamic_laser_scan, 
-                                        bool print);
+            // int dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
+            //                             const sensor_msgs::LaserScan & dynamicLaserScan, 
+            //                             bool print);
+
             float dynamicScorePose(const geometry_msgs::Pose & pose, float theta, float range);
             float dynamicChapterScore(float d);
 
-            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamic_laser_scan);
+            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
 
             std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Matrix<float, 4, 1> > & agentPoses);            
 

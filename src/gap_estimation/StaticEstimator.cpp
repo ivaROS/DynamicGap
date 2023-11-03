@@ -20,18 +20,18 @@
 
 namespace dynamic_gap 
 {
-    StaticEstimator::StaticEstimator(std::string side, int modelID, float init_r, float init_beta, 
+    StaticEstimator::StaticEstimator(std::string side, int modelID, float gapPtX, float gapPtY,
                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                         const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         side_ = side;
         modelID_ = modelID;
-        initialize(init_r, init_beta, t_update, lastRbtVel, lastRbtAcc);
+        initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
 
-    void StaticEstimator::initialize(float init_r, float init_beta,
-                                        const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                        const geometry_msgs::TwistStamped & lastRbtAcc) 
+    void StaticEstimator::initialize(float gapPtX, float gapPtY,
+                                     const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                     const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         // OBSERVATION MATRIX
         H_ << 1.0, 0.0, 0.0, 0.0,
@@ -62,19 +62,19 @@ namespace dynamic_gap
         this->t_last_update = t_update;
 
 
-        float v_rel_x = -lastRbtVel_.twist.linear.x;
-        float v_rel_y = -lastRbtVel_.twist.linear.y;
-        std::vector<float> measurement{init_r * std::cos(init_beta), 
-                                        init_r * std::sin(init_beta), 
-                                        v_rel_x, 
-                                        v_rel_y};
+        float gapPtVxRel = -lastRbtVel_.twist.linear.x;
+        float gapPtVyRel = -lastRbtVel_.twist.linear.y;
+        std::vector<float> measurement{gapPtX, 
+                                       gapPtY, 
+                                       gapPtVxRel, 
+                                       gapPtVyRel};
         
         x_tilde_ << measurement[0], measurement[1];
         x_hat_kmin1_plus_ << measurement[0], measurement[1], measurement[2], measurement[3];
         x_hat_k_minus_ = x_hat_kmin1_plus_; 
         x_hat_k_plus_ = x_hat_kmin1_plus_;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
-        x_ground_truth_gap_only << measurement[0], measurement[1], v_rel_x, v_rel_y;
+        x_ground_truth_gap_only << measurement[0], measurement[1], gapPtVxRel, gapPtVyRel;
 
         G_k_ << 1.0, 1.0,
              1.0, 1.0,

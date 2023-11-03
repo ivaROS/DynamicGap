@@ -20,19 +20,19 @@
 
 namespace dynamic_gap 
 {
-    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string side, int modelID, float init_r, float init_beta, 
+    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string side, int modelID, float gapPtX, float gapPtY, 
                                                                             const ros::Time & t_update, 
                                                                             const geometry_msgs::TwistStamped & lastRbtVel,
                                                                             const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         side_ = side;
         modelID_ = modelID;
-        initialize(init_r, init_beta, t_update, lastRbtVel, lastRbtAcc);
+        initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
 
-    void RotatingFrameCartesianKalmanFilter::initialize(float init_r, float init_beta,
-                                const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                const geometry_msgs::TwistStamped & lastRbtAcc) 
+    void RotatingFrameCartesianKalmanFilter::initialize(float gapPtX, float gapPtY,
+                                                        const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                                        const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         // OBSERVATION MATRIX
         H_ << 1.0, 0.0, 0.0, 0.0,
@@ -63,12 +63,12 @@ namespace dynamic_gap
         this->t_last_update = t_update;
 
 
-        float v_rel_x = -lastRbtVel_.twist.linear.x;
-        float v_rel_y = -lastRbtVel_.twist.linear.y;
-        std::vector<float> measurement{init_r * std::cos(init_beta), 
-                                        init_r * std::sin(init_beta), 
-                                        v_rel_x, 
-                                        v_rel_y};
+        float gapPtVxRel = -lastRbtVel_.twist.linear.x;
+        float gapPtVyRel = -lastRbtVel_.twist.linear.y;
+        std::vector<float> measurement{gapPtX, 
+                                       gapPtY, 
+                                       gapPtVxRel, 
+                                       gapPtVyRel};
         
         // ROS_INFO_STREAM("initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
 
@@ -77,7 +77,7 @@ namespace dynamic_gap
         x_hat_k_minus_ = x_hat_kmin1_plus_; 
         x_hat_k_plus_ = x_hat_kmin1_plus_;
         x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
-        x_ground_truth_gap_only << measurement[0], measurement[1], v_rel_x, v_rel_y;
+        x_ground_truth_gap_only << measurement[0], measurement[1], gapPtVxRel, gapPtVyRel;
 
         G_k_ << 1.0, 1.0,
              1.0, 1.0,

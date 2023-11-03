@@ -30,24 +30,24 @@ namespace dynamic_gap
 	class GapAssociator
 	{
 	public:
-		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assoc_thresh = cfg_->gap_assoc.assoc_thresh; };
+		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
-		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & observed_gaps, 
-														  const std::vector<dynamic_gap::Gap> & previous_gaps);
+		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & currentGaps, 
+														 const std::vector<dynamic_gap::Gap> & previousGaps);
 		std::vector<int> associateGaps(const std::vector< std::vector<float> > & distMatrix);
         void assignModels(std::vector<int> & association, 
-						  const std::vector< std::vector<float> > & distMatrix, 
-							std::vector<dynamic_gap::Gap>& observed_gaps, 
-							const std::vector<dynamic_gap::Gap> & previous_gaps, 
-							int & currentModelIdx_, 
-							const ros::Time & t_kf_update, 
-							const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                      		const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-					  		bool print);
+						const std::vector< std::vector<float> > & distMatrix, 
+						std::vector<dynamic_gap::Gap>& currentGaps, 
+						const std::vector<dynamic_gap::Gap> & previousGaps,
+						int & currentModelIdx_,
+						const ros::Time & scanTime, 
+						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+						bool print);
 
 	private:
 		const DynamicGapConfig* cfg_;
-		float assoc_thresh;
+		float assocThresh;
 		float Solve(const std::vector <std::vector<float> >& DistMatrix, std::vector<int>& Assignment);
 		void assignmentoptimal(int *assignment, float *cost, float *distMatrix, int nOfRows, int nOfColumns);
 		void buildassignmentvector(int *assignment, bool *starMatrix, int nOfRows, int nOfColumns);
@@ -58,8 +58,7 @@ namespace dynamic_gap
 		void step4(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim, int row, int col);
 		void step5(int *assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, int nOfRows, int nOfColumns, int minDim);
 	
-		std::vector< std::vector<float>> previous_gap_points;
-		std::vector< std::vector<float>> observed_gap_points;
+		std::vector< std::vector<float>> previousGapPoints, currentGapPoints;
 
 	};
 }

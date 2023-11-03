@@ -394,6 +394,7 @@ namespace dynamic_gap
         return dist;
     }
 
+    /*
     int TrajectoryScorer::dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
                                                  const sensor_msgs::LaserScan & dynamicLaserScan, 
                                                  bool print) 
@@ -427,7 +428,8 @@ namespace dynamic_gap
         // int min_dist_index = 
         return std::distance(scan2RbtDists.begin(), iter);
     }
-
+    */
+    
     float TrajectoryScorer::dynamicScorePose(const geometry_msgs::Pose & pose, float theta, float range) 
     {
         float dist = dist2Pose(theta, range, pose);
