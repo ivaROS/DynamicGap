@@ -88,7 +88,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot0/mod_laser_0
+          Topic: /robot5/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -99,7 +99,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot0
+          Reference Frame: robot5
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -157,7 +157,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -165,7 +165,7 @@ Visualization Manager:
               Marker Topic: /raw_gaps
               Name: MarkerArray
               Namespaces:
-                raw: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -355,7 +355,7 @@ Visualization Manager:
           Marker Topic: /robot1/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -363,7 +363,7 @@ Visualization Manager:
           Marker Topic: /robot2/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -371,7 +371,7 @@ Visualization Manager:
           Marker Topic: /robot3/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -379,7 +379,7 @@ Visualization Manager:
           Marker Topic: /robot4/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -387,7 +387,7 @@ Visualization Manager:
           Marker Topic: /robot5/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -588,7 +588,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.846357345581055
+      Distance: 16.543914794921875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -596,9 +596,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -4.771255016326904
-        Y: -4.231178283691406
-        Z: -4.268731117248535
+        X: -10.372577667236328
+        Y: -1.2378917932510376
+        Z: -4.27433967590332
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

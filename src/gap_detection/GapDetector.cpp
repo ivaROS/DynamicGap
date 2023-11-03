@@ -56,111 +56,118 @@ namespace dynamic_gap
     std::vector<dynamic_gap::Gap> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
                                                             geometry_msgs::PoseStamped globalGoalRbtFrame)
     {
-        if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("[gapDetection()]");
         std::vector<dynamic_gap::Gap> rawGaps;
-        scan_ = *scanPtr.get();
-        // get half scan value
-        fullScanRayCount_ = scan_.ranges.size();
-        halfScanRayCount_ = float(fullScanRayCount_ / 2);
 
-        minScanDist_ = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
-        maxScanDist_ = *std::max_element(scan_.ranges.begin(), scan_.ranges.end());
-        // ROS_INFO_STREAM("gapDetection min_dist: " << min_dist);
-
-        std::string frame = scan_.header.frame_id;
-        // starting the left point of the gap at front facing value
-        // std::cout << "max laser scan range: " << scan.range_max << std::endl;
-        int gapRIdx = 0;
-        float gapRDist = scan_.ranges[0];
-        // last as in previous scan
-        bool withinSweptGap = gapRDist >= maxScanDist_;
-        float currRayDist = scan_.ranges[0];
-        float prevRayDist = currRayDist;
-
-        // iterating through scan
-        for (unsigned int it = 1; it < fullScanRayCount_; ++it)
+        try
         {
-            currRayDist = scan_.ranges[it];
-            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    iter: " << it << ", dist: " << currRayDist);
+            if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("[gapDetection()]");
+            scan_ = *scanPtr.get();
+            // get half scan value
+            fullScanRayCount_ = scan_.ranges.size();
+            halfScanRayCount_ = float(fullScanRayCount_ / 2);
 
-            if (radialGapSizeCheck(currRayDist, prevRayDist, scan_.angle_increment)) 
+            minScanDist_ = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
+            maxScanDist_ = *std::max_element(scan_.ranges.begin(), scan_.ranges.end());
+            // ROS_INFO_STREAM("gapDetection min_dist: " << min_dist);
+
+            std::string frame = scan_.header.frame_id;
+            // starting the left point of the gap at front facing value
+            // std::cout << "max laser scan range: " << scan.range_max << std::endl;
+            int gapRIdx = 0;
+            float gapRDist = scan_.ranges[0];
+            // last as in previous scan
+            bool withinSweptGap = gapRDist >= maxScanDist_;
+            float currRayDist = scan_.ranges[0];
+            float prevRayDist = currRayDist;
+
+            // iterating through scan
+            for (unsigned int it = 1; it < fullScanRayCount_; ++it)
             {
-                // initializing a radial gap
-                dynamic_gap::Gap gap(frame, it - 1, prevRayDist, true, minScanDist_);
-                gap.addLeftInformation(it, currRayDist);
-                // gap.setRadial();
+                currRayDist = scan_.ranges.at(it);
+                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    iter: " << it << ", dist: " << currRayDist);
 
-                rawGaps.push_back(gap);
-
-                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding radial gap from: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");
-            }
-
-            // Either previous distance finite and current distance infinite or vice-versa, 
-            if (sweptGapStartedOrEnded(currRayDist, prevRayDist))
-            {
-                if (withinSweptGap) // Signals the ending of a gap
+                if (radialGapSizeCheck(currRayDist, prevRayDist, scan_.angle_increment)) 
                 {
-                    withinSweptGap = false;                    
-                    if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    gap ending: infinity to finite");
-                    dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                    // initializing a radial gap
+                    dynamic_gap::Gap gap(frame, it - 1, prevRayDist, true, minScanDist_);
                     gap.addLeftInformation(it, currRayDist);
                     // gap.setRadial();
 
-                    //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
-                    // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
-                    // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
-                    if (sweptGapSizeCheck(gap)) 
-                    {
-                        //std::cout << "adding candidate swept gap" << std::endl;
-                        // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding swept gap from: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");                
-                        rawGaps.push_back(gap);
-                    }
+                    rawGaps.push_back(gap);
+
+                    // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding radial gap from: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");
                 }
-                else // signals the beginning of a gap
+
+                // Either previous distance finite and current distance infinite or vice-versa, 
+                if (sweptGapStartedOrEnded(currRayDist, prevRayDist))
                 {
-                    // ROS_INFO_STREAM("gap starting: finite to infinity");
-                    gapRIdx = it - 1;
-                    gapRDist = prevRayDist;
-                    withinSweptGap = true;
+                    if (withinSweptGap) // Signals the ending of a gap
+                    {
+                        withinSweptGap = false;                    
+                        if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    gap ending: infinity to finite");
+                        dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                        gap.addLeftInformation(it, currRayDist);
+                        // gap.setRadial();
+
+                        //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
+                        // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
+                        // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
+                        if (sweptGapSizeCheck(gap)) 
+                        {
+                            //std::cout << "adding candidate swept gap" << std::endl;
+                            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding swept gap from: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");                
+                            rawGaps.push_back(gap);
+                        }
+                    }
+                    else // signals the beginning of a gap
+                    {
+                        // ROS_INFO_STREAM("gap starting: finite to infinity");
+                        gapRIdx = it - 1;
+                        gapRDist = prevRayDist;
+                        withinSweptGap = true;
+                    }
+
                 }
-
+                prevRayDist = currRayDist;
             }
-            prevRayDist = currRayDist;
-        }
 
-        // Catch the last gap (could be in the middle of a swept gap when laser scan ends)
-        if (withinSweptGap) 
-        {
-            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    catching last gap");
-            dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
-            gap.addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
-            // gap.setRadial();
-            
-            // ROS_INFO_STREAM("gapRIdx: " << gapRIdx << ", gapRDist: " << gapRDist);
-            // ROS_INFO_STREAM("last_scan_idx: " << last_scan_idx << ", last_scan_dist: " << last_scan_dist);
-            // ROS_INFO_STREAM("lidx: " << gap.LIdx() << ", ridx: " << gap.RIdx());
-            // ROS_INFO_STREAM("gap side dist: " << gap_dist_side);
-            if (sweptGapSizeCheck(gap)) 
+            // Catch the last gap (could be in the middle of a swept gap when laser scan ends)
+            if (withinSweptGap) 
             {
-                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding candidate last gap");
-                rawGaps.push_back(gap);
-                // ROS_INFO_STREAM("adding last gap: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");                
+                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    catching last gap");
+                dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                gap.addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
+                // gap.setRadial();
+                
+                // ROS_INFO_STREAM("gapRIdx: " << gapRIdx << ", gapRDist: " << gapRDist);
+                // ROS_INFO_STREAM("last_scan_idx: " << last_scan_idx << ", last_scan_dist: " << last_scan_dist);
+                // ROS_INFO_STREAM("lidx: " << gap.LIdx() << ", ridx: " << gap.RIdx());
+                // ROS_INFO_STREAM("gap side dist: " << gap_dist_side);
+                if (sweptGapSizeCheck(gap)) 
+                {
+                    // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    adding candidate last gap");
+                    rawGaps.push_back(gap);
+                    // ROS_INFO_STREAM("adding last gap: (" << gap.RIdx() << ", " << gap.RDist() << "), to (" << gap.LIdx() << ", " << gap.LDist() << ")");                
+                }
             }
-        }
-        
-        // Bridge the last gap around
-        if (bridgeCondition(rawGaps))
+            
+            // Bridge the last gap around
+            if (bridgeCondition(rawGaps))
+            {
+                // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    bridging first and last gaps");
+                rawGaps.back().addLeftInformation(rawGaps.front().LIdx(), rawGaps.front().LDist());
+                rawGaps.erase(rawGaps.begin());
+                // ROS_INFO_STREAM("revising last gap: (" << rawGaps.back().RIdx() << ", " << rawGaps.back().RDist() << "), to (" << rawGaps.back().LIdx() << ", " << rawGaps.back().LDist() << ")");                
+            }
+            
+            // if terminal_goal within laserscan and not within a gap, create a gap
+            int globalGoalScanIdx;
+            if (isGlobalGoalWithinGap(globalGoalRbtFrame, globalGoalScanIdx))
+                addGapForGlobalGoal(globalGoalScanIdx, rawGaps);
+        } catch (...)
         {
-            // if (cfg_->debug.gap_detection_debug_log) ROS_INFO_STREAM("    bridging first and last gaps");
-            rawGaps.back().addLeftInformation(rawGaps.front().LIdx(), rawGaps.front().LDist());
-            rawGaps.erase(rawGaps.begin());
-            // ROS_INFO_STREAM("revising last gap: (" << rawGaps.back().RIdx() << ", " << rawGaps.back().RDist() << "), to (" << rawGaps.back().LIdx() << ", " << rawGaps.back().LDist() << ")");                
+            ROS_FATAL_STREAM("[gapDetection() failed]");
         }
-        
-        // if terminal_goal within laserscan and not within a gap, create a gap
-        int globalGoalScanIdx;
-        if (isGlobalGoalWithinGap(globalGoalRbtFrame, globalGoalScanIdx))
-            addGapForGlobalGoal(globalGoalScanIdx, rawGaps);
 
         return rawGaps;
     }

@@ -383,12 +383,12 @@ namespace dynamic_gap
             // r_min = std::min(range_left, range_right);
 
             // // float wrapped_thetaLeft = atanThetaWrap(thetaLeft);
-            // float init_left_idx = (wrapped_thetaLeft - scan_angle_min_) / scan_angle_increment_;
-            // int left_idx = (int) std::floor(init_left_idx);
+            // float init_idxLeft = (wrapped_thetaLeft - scan_angle_min_) / scan_angle_increment_;
+            // int idxLeft = (int) std::floor(init_idxLeft);
 
             // // float wrapped_term_thetaRight = atanThetaWrap(thetaRight);
-            // float init_right_idx = (wrapped_term_thetaRight - scan_angle_min_) / scan_angle_increment_;
-            // int right_idx = (int) std::floor(init_right_idx);
+            // float init_idxRight = (wrapped_term_thetaRight - scan_angle_min_) / scan_angle_increment_;
+            // int idxRight = (int) std::floor(init_idxRight);
 
             leftCrossPt = rewindLeftGapState.head(2);
                             // range_left*std::cos(wrapped_thetaLeft), 
@@ -429,23 +429,23 @@ namespace dynamic_gap
         // auto egocircle = *msg.get();        
         
         float thetaLeft = getGapBearing(leftCrossPt);
-        int left_idx = theta2idx(thetaLeft);
-        float left_dist = getGapDist(leftCrossPt);
+        int idxLeft = theta2idx(thetaLeft);
+        float rangeLeft = getGapDist(leftCrossPt);
 
         // float wrapped_term_thetaLeft = atanThetaWrap(getGapBearing(leftCrossPt));
-        // float init_left_idx = (wrapped_term_thetaLeft - scan_angle_min_) / scan_angle_increment_;
-        // int left_idx = (int) std::floor(init_left_idx);
-        // float left_dist = getGapDist(leftCrossPt); // (1.0 / terminal_reciprocal_range_left);
+        // float init_idxLeft = (wrapped_term_thetaLeft - scan_angle_min_) / scan_angle_increment_;
+        // int idxLeft = (int) std::floor(init_idxLeft);
+        // float rangeLeft = getGapDist(leftCrossPt); // (1.0 / terminal_reciprocal_range_left);
 
         // float wrapped_term_thetaRight = atanThetaWrap(getGapBearing(rightCrossPt));
-        // float init_right_idx = (wrapped_term_thetaRight - scan_angle_min_) / scan_angle_increment_;
-        // int right_idx = (int) std::floor(init_right_idx);
-        // float right_dist = getGapDist(rightCrossPt); // (1.0 / terminal_reciprocal_range_right);
-        // if (left_idx == right_idx) right_idx++;
+        // float init_idxRight = (wrapped_term_thetaRight - scan_angle_min_) / scan_angle_increment_;
+        // int idxRight = (int) std::floor(init_idxRight);
+        // float rangeRight = getGapDist(rightCrossPt); // (1.0 / terminal_reciprocal_range_right);
+        // if (idxLeft == idxRight) idxRight++;
 
         float thetaRight = getGapBearing(rightCrossPt);
-        int right_idx = theta2idx(thetaRight);
-        float right_dist = getGapDist(rightCrossPt);
+        int idxRight = theta2idx(thetaRight);
+        float rangeRight = getGapDist(rightCrossPt);
 
         if (cfg_->debug.feasibility_debug_log) 
         {
@@ -453,7 +453,7 @@ namespace dynamic_gap
                                         leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << 
                                         rightCrossPt[0] << ", " << rightCrossPt[1] << ")");
         }
-        gap.setTerminalPoints(left_idx, left_dist, right_idx, right_dist);
+        gap.setTerminalPoints(idxLeft, rangeLeft, idxRight, rangeRight);
     }
 
 }

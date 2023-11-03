@@ -186,9 +186,9 @@ namespace dynamic_gap
 
         int poseIdx = poseIdxInScan(pose);
 
-        float scan_dist = scan.ranges.at(poseIdx);
+        float scanRangeAtPoseIdx = scan.ranges.at(poseIdx);
 
-        return scan_dist;
+        return scanRangeAtPoseIdx;
     }
 
     bool GoalSelector::isNotWithin(const float dist) 
