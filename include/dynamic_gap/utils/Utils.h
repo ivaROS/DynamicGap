@@ -41,7 +41,7 @@ namespace dynamic_gap
 
 
     //  {{0.0, -1.0}, {1.0, 0.0}}; // PI/2 counter clockwise
-    static Eigen::MatrixXf Rnegpi2 = (Eigen::Matrix2f() << 0.0, 1.0, -1.0, 0.0).finished();       //  = Rpi2;                // PI/2 clockwise;
+    static Eigen::Matrix2f Rnegpi2 = (Eigen::Matrix2f() << 0.0, 1.0, -1.0, 0.0).finished();       //  = Rpi2;                // PI/2 clockwise;
     // Rnegpi2 = -Rpi2;
     // , Rnegpi2;
     // Rpi2 << 0, -1, 1,0; 

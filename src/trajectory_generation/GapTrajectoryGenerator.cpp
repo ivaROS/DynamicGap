@@ -107,7 +107,7 @@ namespace dynamic_gap
             // float xRightTerm = rdist * cos(rtheta);
             // float yRightTerm = rdist * sin(rtheta);
 
-            Eigen::Vector2f extendedGapOrigin = selectedGap.extendedGapOrigin_;
+            // Eigen::Vector2f extendedGapOrigin = selectedGap.extendedGapOrigin_;
 
             Eigen::Vector2d initialGoal(selectedGap.goal.x_, selectedGap.goal.y_);
             Eigen::Vector2d terminalGoal(selectedGap.terminalGoal.x_, selectedGap.terminalGoal.y_);
@@ -165,11 +165,6 @@ namespace dynamic_gap
             
             Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
-            Eigen::Vector2d gapOriginExtension(extendedGapOrigin[0], extendedGapOrigin[1]);
-            Eigen::Vector2d leftBezierOrigin(selectedGap.leftBezierOrigin_[0],
-                                               selectedGap.leftBezierOrigin_[1]);
-            Eigen::Vector2d rightBezierOrigin(selectedGap.rightBezierOrigin_[0],
-                                                selectedGap.rightBezierOrigin_[1]);
 
             Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
                             gapSideAHPFCenters, allAHPFCenters;
@@ -178,15 +173,15 @@ namespace dynamic_gap
             int numLeftRGEPoints, numRightRGEPoints;
             // THIS IS BUILT WITH EXTENDED POINTS. 
             double start_time = ros::Time::now().toSec();
-            buildBezierCurve(selectedGap, gapCurvesPosns, 
-                             gapCurvesInwardNorms, gapSideAHPFCenters, allAHPFCenters,
-                             leftGapPtVel, rightGapPtVel, maxRbtVel, 
-                             leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
-                             gapOriginExtension, gapGoalTermPt, leftBezierWeight, rightBezierWeight, numCurvePts, 
-                             numLeftRGEPoints, numRightRGEPoints,
-                             initRbtPos, leftBezierOrigin, rightBezierOrigin);
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
-            // ROS_INFO_STREAM("after buildBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
+            buildExtendedBezierCurve(selectedGap, gapCurvesPosns, 
+                                        gapCurvesInwardNorms, gapSideAHPFCenters, allAHPFCenters,
+                                        leftGapPtVel, rightGapPtVel, maxRbtVel, 
+                                        leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
+                                        gapGoalTermPt, leftBezierWeight, rightBezierWeight, numCurvePts, 
+                                        numLeftRGEPoints, numRightRGEPoints,
+                                        initRbtPos);
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildExtendedBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
+            // ROS_INFO_STREAM("after buildExtendedBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
             selectedGap.leftWeight_ = leftBezierWeight;
             selectedGap.rightWeight_ = rightBezierWeight;
             selectedGap.leftRightCenters_ = gapSideAHPFCenters;
@@ -381,13 +376,13 @@ namespace dynamic_gap
         return arclengthDistance;
     }
 
-    Eigen::VectorXd GapTrajectoryGenerator::arclength_sample_bezier(Eigen::Vector2d bezierPt0, 
-                                                                    Eigen::Vector2d bezierPt1, 
-                                                                    Eigen::Vector2d bezierPt2, 
-                                                                    float numCurvePts,
-                                                                    float & desiredBezierPtToPtDistance) 
+    Eigen::VectorXd GapTrajectoryGenerator::arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
+                                                                        const Eigen::Vector2d & bezierPt1, 
+                                                                        const Eigen::Vector2d & bezierPt2, 
+                                                                        float numCurvePts,
+                                                                        float & desiredBezierPtToPtDistance) 
     {
-        // ROS_INFO_STREAM("running arclength sampling");
+        ROS_INFO_STREAM("   [arclengthParameterizeBezier()]");
         // ROS_INFO_STREAM("bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
         // ROS_INFO_STREAM("bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
         // ROS_INFO_STREAM("bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
@@ -448,8 +443,8 @@ namespace dynamic_gap
             }   
             // if (std::abs(currentBezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) < bezierPtToPtDistanceThresh) 
             // {
-                // ROS_INFO_STREAM("adding " << t_k);
             arclengthParameterization(arclengthParameterizationIdx, 0) = t_arclengthIdx;
+            ROS_INFO_STREAM("       adding: " << arclengthParameterization(arclengthParameterizationIdx, 0));
             arclengthParameterizationIdx += 1;
             t_kmin1 = t_arclengthIdx;
             // } else 
@@ -457,32 +452,121 @@ namespace dynamic_gap
 
         arclengthParameterization(int(numCurvePts) - 1, 0) = 1.0;
 
+        ROS_INFO_STREAM("       arclength parameterized indices: ");
+        for (int i = 0; i < int(numCurvePts); i++)
+            ROS_INFO_STREAM("           :" << arclengthParameterization(i, 0));
+
         return arclengthParameterization;
-        /*
-        ROS_INFO_STREAM("uniform indices: ");
-        for (int i = 0; i < int(numCurvePts); i++) {
-            ROS_INFO_STREAM(arclengthParameterization(i, 0));
-        }
-        */
+    
         // ROS_INFO_STREAM("total approx dist: " << bezierArclengthDistance);
     }
 
-    void GapTrajectoryGenerator::buildBezierCurve(dynamic_gap::Gap & selectedGap, 
-                                                    Eigen::MatrixXd & gapCurvesPosns,
-                                                    Eigen::MatrixXd & gapCurvesInwardNorms, 
-                                                    Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
-                                                    const Eigen::Vector2d & leftGapPtVel, const Eigen::Vector2d & rightGapPtVel, const Eigen::Vector2d & maxRbtVel,
-                                                    const Eigen::Vector2d & leftCurveInitPt, const Eigen::Vector2d & leftCurveTermPt, 
-                                                    const Eigen::Vector2d & rightCurveInitPt, const Eigen::Vector2d & rightCurveTermPt, 
-                                                    const Eigen::Vector2d & gapOriginExtension, const Eigen::Vector2d & gapGoalTermPt, 
-                                                    float leftBezierWeight, float rightBezierWeight, 
-                                                    float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
-                                                    const Eigen::Vector2d & initRbtPos,
-                                                    const Eigen::Vector2d & leftBezierOrigin_, const Eigen::Vector2d & rightBezierOrigin) 
+    void GapTrajectoryGenerator::buildExtendedGapOrigin(const int numRGEPoints,
+                                                        const Eigen::Vector2d & extendedGapOrigin,
+                                                        const Eigen::Vector2d & bezierOrigin,
+                                                        Eigen::MatrixXd & curvePosns,
+                                                        Eigen::MatrixXd & curveVels,
+                                                        Eigen::MatrixXd & curveInwardNorms,
+                                                        bool left)
+    {
+        ROS_INFO_STREAM("[buildExtendedGapOrigin()]");
+        Eigen::Vector2d currPt, currVel, currInwardVector, currInwardNorm;
+        float s = 0.0;
+
+        Eigen::Matrix2d rotMat;
+        if (left)
+            rotMat << Rnegpi2(0, 0), Rnegpi2(0, 1), Rnegpi2(1, 0), Rnegpi2(1, 1);
+        else
+            rotMat << Rpi2(0, 0), Rpi2(0, 1), Rpi2(1, 0), Rpi2(1, 1);
+        //  = (left ? Rnegpi2 : Rpi2);
+        for (float i = 0; i < numRGEPoints; i++) 
+        {
+            s = i / numRGEPoints;
+            // ROS_INFO_STREAM("s_left_rge: " << s);
+
+            // line equation from gapExtendedOrigin to bezierOrigin
+            currPt = (1 - s) * extendedGapOrigin + s * bezierOrigin;
+            currVel = (bezierOrigin - extendedGapOrigin);
+            currInwardVector = rotMat * currVel;
+            currInwardNorm = currInwardVector / currInwardVector.norm();
+            curvePosns.row(i) = currPt;
+            curveVels.row(i) = currVel;
+            curveInwardNorms.row(i) = currInwardNorm;
+        }
+    }
+
+    void GapTrajectoryGenerator::buildBezierCurve(const int numRGEPoints,
+                                                  const int totalNumCurvePts,
+                                                  const Eigen::VectorXd & arclengthParameters,
+                                                  const Eigen::Vector2d & bezierOrigin,
+                                                  const Eigen::Vector2d & bezierInitialPt,
+                                                  const Eigen::Vector2d & bezierTerminalPt,
+                                                  Eigen::MatrixXd & curvePosns,
+                                                  Eigen::MatrixXd & curveVels,
+                                                  Eigen::MatrixXd & curveInwardNorms,
+                                                  bool left)
+    {
+        Eigen::Vector2d currPt, currVel, currInwardVector, currInwardNorm;
+        float s = 0.0;
+        float eps = 0.0000001;
+
+        int counter = 0;
+        Eigen::Matrix2d rotMat;
+        if (left)
+            rotMat << Rnegpi2(0, 0), Rnegpi2(0, 1), Rnegpi2(1, 0), Rnegpi2(1, 1);
+        else
+            rotMat << Rpi2(0, 0), Rpi2(0, 1), Rpi2(1, 0), Rpi2(1, 1);
+        
+        for (float i = numRGEPoints; i < totalNumCurvePts; i++) 
+        {
+            s = arclengthParameters(counter, 0);
+            counter++;
+
+            // ROS_INFO_STREAM("s_left: " << s_left);
+            // pos_val0 = ;
+            // pos_val1 = ;
+            // pos_val2 = ;
+
+            // vel_val0 = ;
+            // vel_val1 = ;
+            // vel_val2 = ;
+            currPt = (1 - s) * (1 - s) * bezierOrigin + 
+                        2*(1 - s)*s * bezierInitialPt + 
+                        s*s * bezierTerminalPt;
+            currVel = (2*s - 2) * bezierOrigin + 
+                        (2 - 4*s) * bezierInitialPt + 
+                        2*s * bezierTerminalPt;
+            currInwardVector = rotMat * currVel;
+            currInwardNorm = currInwardVector / (currInwardVector.norm() + eps);
+            curvePosns.row(i) = currPt;
+            curveVels.row(i) = currVel;
+            curveInwardNorms.row(i) = currInwardNorm;
+        }
+    }
+
+    void GapTrajectoryGenerator::buildExtendedBezierCurve(dynamic_gap::Gap & selectedGap, 
+                                                            Eigen::MatrixXd & gapCurvesPosns,
+                                                            Eigen::MatrixXd & gapCurvesInwardNorms, 
+                                                            Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
+                                                            const Eigen::Vector2d & leftGapPtVel, const Eigen::Vector2d & rightGapPtVel, const Eigen::Vector2d & maxRbtVel,
+                                                            const Eigen::Vector2d & leftCurveInitPt, const Eigen::Vector2d & leftCurveTermPt, 
+                                                            const Eigen::Vector2d & rightCurveInitPt, const Eigen::Vector2d & rightCurveTermPt, 
+                                                            const Eigen::Vector2d & gapGoalTermPt, 
+                                                            float leftBezierWeight, float rightBezierWeight, 
+                                                            float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
+                                                            const Eigen::Vector2d & initRbtPos) 
     {  
-        // ROS_INFO_STREAM("building bezier curve");
+        ROS_INFO_STREAM("[buildExtendedBezierCurve()]");
         // Eigen::MatrixXd leftCurveVels, rightCurveVels, leftCurveInwardNorms, rightCurveInwardNorms,
         //                 leftCurvePosns, rightCurvePosns;
+
+        // convert from 2f to 2d
+        Eigen::Vector2d extendedGapOrigin(selectedGap.extendedGapOrigin_[0],
+                                          selectedGap.extendedGapOrigin_[1]);
+        Eigen::Vector2d leftBezierOrigin(selectedGap.leftBezierOrigin_[0],
+                                            selectedGap.leftBezierOrigin_[1]);
+        Eigen::Vector2d rightBezierOrigin(selectedGap.rightBezierOrigin_[0],
+                                            selectedGap.rightBezierOrigin_[1]);
 
 
         leftBezierWeight = leftGapPtVel.norm() / maxRbtVel.norm(); // capped at 1, we can scale down towards 0 until initial constraints are met?
@@ -491,98 +575,72 @@ namespace dynamic_gap
         // for a totally static gap, can get no velocity on first bezier curve point which corrupts vector field
         Eigen::Vector2d weightedLeftBezierPt0, weightedRightBezierPt0;
         if (leftGapPtVel.norm() > 0.0)
-            weightedLeftBezierPt0 = leftBezierOrigin_ + leftBezierWeight * (leftCurveInitPt - leftBezierOrigin_);
+            weightedLeftBezierPt0 = leftBezierOrigin + leftBezierWeight * (leftCurveInitPt - leftBezierOrigin);
         else
-            weightedLeftBezierPt0 = (0.95 * leftBezierOrigin_ + 0.05 * leftCurveTermPt);
+            weightedLeftBezierPt0 = (0.95 * leftBezierOrigin + 0.05 * leftCurveTermPt);
 
         if (rightGapPtVel.norm() >  0.0)
             weightedRightBezierPt0 = rightBezierOrigin + rightBezierWeight * (rightCurveInitPt - rightBezierOrigin);
         else
             weightedRightBezierPt0 = (0.95 * rightBezierOrigin + 0.05 * rightCurveTermPt);
         
+        // set left and right bezier points
         selectedGap.leftPt0_ = weightedLeftBezierPt0;
         selectedGap.leftPt1_ = leftCurveTermPt;
         selectedGap.rightPt0_ = weightedRightBezierPt0;
         selectedGap.rightPt1_ = rightCurveTermPt;  
 
         // float pos_val0, pos_val1, pos_val2, vel_val0, vel_val1, vel_val2;
-        Eigen::Vector2d curr_left_pt, curr_left_vel, left_inward_vect, rotated_curr_left_vel, left_inward_norm_vect,
-                        curr_right_pt, curr_right_vel, right_inward_vect, rotated_curr_right_vel, right_inward_norm_vect;
-        Eigen::Matrix2d rpi2, neg_rpi2;
-        float rot_val = M_PI/2;
-        float s, s_left, s_right;
-        rpi2 << std::cos(rot_val), -std::sin(rot_val), std::sin(rot_val), std::cos(rot_val);
-        neg_rpi2 << std::cos(-rot_val), -std::sin(-rot_val), std::sin(-rot_val), std::cos(-rot_val);
+        // Eigen::Vector2d rotated_curr_left_vel, curr_right_pt, curr_right_vel, right_inward_vect, rotated_curr_right_vel, right_inward_norm_vect;
+        // Eigen::Matrix2d rpi2, neg_rpi2;
+        // float rot_val = M_PI/2;
+        // float s, s_left, s_right;
+        // rpi2 << std::cos(rot_val), -std::sin(rot_val), std::sin(rot_val), std::cos(rot_val);
+        // neg_rpi2 << std::cos(-rot_val), -std::sin(-rot_val), std::sin(-rot_val), std::cos(-rot_val);
+        float desiredLeftBezierPtToPtDistance = 0.01; // will be set in arclengthParameterizeBezier  
+        ROS_INFO_STREAM("   arclength parameterizing left curve");
+        Eigen::VectorXd leftArclengthParameters = arclengthParameterizeBezier(leftBezierOrigin, weightedLeftBezierPt0, leftCurveTermPt, numCurvePts, desiredLeftBezierPtToPtDistance);        
+        numLeftRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - leftBezierOrigin).norm() / desiredLeftBezierPtToPtDistance)), 2) : 0;
 
-        
-        float des_left_dist = 0.01;        
-        Eigen::VectorXd left_indices = arclength_sample_bezier(leftBezierOrigin_, weightedLeftBezierPt0, leftCurveTermPt, numCurvePts, des_left_dist);
-        numLeftRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (gapOriginExtension - leftBezierOrigin_).norm() / des_left_dist)), 2) : 0;
+        ROS_INFO_STREAM("numLeftRGEPoints: " << numLeftRGEPoints);
 
-        int total_num_left_curve_points = numLeftRGEPoints + numCurvePts; 
-        Eigen::MatrixXd leftCurvePosns = Eigen::MatrixXd(total_num_left_curve_points, 2);
-        Eigen::MatrixXd leftCurveVels = Eigen::MatrixXd(total_num_left_curve_points, 2);
-        Eigen::MatrixXd leftCurveInwardNorms = Eigen::MatrixXd(total_num_left_curve_points, 2);
+        int totalNumLeftCurvePts = numLeftRGEPoints + numCurvePts; 
+        Eigen::MatrixXd leftCurvePosns = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
+        Eigen::MatrixXd leftCurveVels = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
+        Eigen::MatrixXd leftCurveInwardNorms = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
 
         ///////////////////////////////
         // Left radial gap extension //
         ///////////////////////////////
+        ROS_INFO_STREAM("   building left extended gap origin");
+        buildExtendedGapOrigin(numLeftRGEPoints, extendedGapOrigin, leftBezierOrigin, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);
 
-        // ROS_INFO_STREAM("true left RGE points: " << numLeftRGEPoints);
-        for (float i = 0; i < numLeftRGEPoints; i++) 
-        {
-            s = i / numLeftRGEPoints;
-            // ROS_INFO_STREAM("s_left_rge: " << s);
-            // pos_val0 = ;
-            // pos_val1 = s;
-            curr_left_pt = (1 - s) * gapOriginExtension + s * leftBezierOrigin_;
-            curr_left_vel = (leftBezierOrigin_ - gapOriginExtension);
-            left_inward_vect = neg_rpi2 * curr_left_vel;
-            left_inward_norm_vect = left_inward_vect / left_inward_vect.norm();
-            leftCurvePosns.row(i) = curr_left_pt;
-            leftCurveVels.row(i) = curr_left_vel;
-            leftCurveInwardNorms.row(i) = left_inward_norm_vect;
-        }
+        float desiredRightBezierPtToPtDistance = 0.01;
+        ROS_INFO_STREAM("   arclength parameterizing right curve");
+        Eigen::VectorXd rightArclengthParameters = arclengthParameterizeBezier(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, numCurvePts, desiredRightBezierPtToPtDistance);
+        numRightRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - rightBezierOrigin).norm() / desiredRightBezierPtToPtDistance)), 2) : 0;
 
-        float des_right_dist = 0.01;
-        Eigen::VectorXd right_indices = arclength_sample_bezier(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, numCurvePts, des_right_dist);
-        numRightRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (gapOriginExtension - rightBezierOrigin).norm() / des_right_dist)), 2) : 0;
-
-        int total_num_right_curve_points = numRightRGEPoints + numCurvePts; 
-        Eigen::MatrixXd rightCurvePosns = Eigen::MatrixXd(total_num_right_curve_points, 2);            
-        Eigen::MatrixXd rightCurveVels = Eigen::MatrixXd(total_num_right_curve_points, 2);
-        Eigen::MatrixXd rightCurveInwardNorms = Eigen::MatrixXd(total_num_right_curve_points, 2);
+        int totalNumRightCurvePts = numRightRGEPoints + numCurvePts; 
+        Eigen::MatrixXd rightCurvePosns = Eigen::MatrixXd(totalNumRightCurvePts, 2);            
+        Eigen::MatrixXd rightCurveVels = Eigen::MatrixXd(totalNumRightCurvePts, 2);
+        Eigen::MatrixXd rightCurveInwardNorms = Eigen::MatrixXd(totalNumRightCurvePts, 2);
         
         ////////////////////////////////
         // Right radial gap extension //
         ////////////////////////////////
+        ROS_INFO_STREAM("   building right extended gap origin");
+        buildExtendedGapOrigin(numRightRGEPoints, extendedGapOrigin, rightBezierOrigin, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);
 
-        // ROS_INFO_STREAM("true right RGE points: " << numRightRGEPoints);
-        for (float i = 0; i < numRightRGEPoints; i++) 
-        {
-            s = i / numRightRGEPoints;
-            // ROS_INFO_STREAM("s_right_rge: " << s);
-            // pos_val0 = ;
-            // pos_val1 = s;
-            curr_right_pt = (1 - s) * gapOriginExtension + s * rightBezierOrigin;
-            curr_right_vel = (rightBezierOrigin - gapOriginExtension);
-            right_inward_vect = rpi2 * curr_right_vel;
-            right_inward_norm_vect = right_inward_vect / right_inward_vect.norm();
-            rightCurvePosns.row(i) = curr_right_pt;
-            rightCurveVels.row(i) = curr_right_vel;
-            rightCurveInwardNorms.row(i) = right_inward_norm_vect;
-        }          
-
-        gapCurvesPosns = Eigen::MatrixXd(total_num_left_curve_points + total_num_right_curve_points, 2);
-        gapCurvesInwardNorms = Eigen::MatrixXd(total_num_left_curve_points + total_num_right_curve_points, 2);
-        gapSideAHPFCenters = Eigen::MatrixXd(total_num_left_curve_points + total_num_right_curve_points, 2);
-        allAHPFCenters = Eigen::MatrixXd(total_num_left_curve_points + total_num_right_curve_points + 1, 2);
+        gapCurvesPosns = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gapCurvesInwardNorms = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gapSideAHPFCenters = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        allAHPFCenters = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
              
         /*
-        ROS_INFO_STREAM("gapOriginExtension: " << gapOriginExtension[0] << ", " << gapOriginExtension[1]);
+        ROS_INFO_STREAM("extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
         ROS_INFO_STREAM("initRbtPos: " << initRbtPos[0] << ", " << initRbtPos[1]);
 
-        ROS_INFO_STREAM("leftBezierOrigin_: " << leftBezierOrigin_[0] << ", " << leftBezierOrigin_[1]);
+        ROS_INFO_STREAM("leftBezierOrigin: " << leftBezierOrigin[0] << ", " << leftBezierOrigin[1]);
         ROS_INFO_STREAM("leftCurveInitPt: " << leftCurveInitPt[0] << ", " << leftCurveInitPt[1]);
         ROS_INFO_STREAM("weightedLeftBezierPt0: " << weightedLeftBezierPt0[0] << ", " << weightedLeftBezierPt0[1]);       
         ROS_INFO_STREAM("leftCurveTermPt: " << leftCurveTermPt[0] << ", " << leftCurveTermPt[1]);
@@ -600,81 +658,66 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("radial extensions: ");
         // ADDING DISCRETE POINTS FOR RADIAL GAP EXTENSION
 
-        float eps = 0.0000001;
-
         // model gives: left_pt - rbt.
         // populating the quadratic weighted bezier
 
-        Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
-        origin << 0.0, 0.0;
-        float offset = 0.01; // (des_left_dist + des_right_dist) / 2.0;
+        // Eigen::Matrix<double, 1, 2> origin, centered_origin_inward_norm;
+        // origin << 0.0, 0.0;
+        float offset = 0.01; // (desiredLeftBezierPtToPtDistance + desiredRightBezierPtToPtDistance) / 2.0;
         // ROS_INFO_STREAM("offset: " << offset);
 
-        int counter = 0;
-        for (float i = numLeftRGEPoints; i < total_num_left_curve_points; i++) {
-            
-            s_left = left_indices(counter, 0);
-            counter++;
+        ///////////////////////
+        // Left Bezier curve //
+        ///////////////////////
+        ROS_INFO_STREAM("   building left bezier curve");
+        buildBezierCurve(numLeftRGEPoints, totalNumLeftCurvePts, leftArclengthParameters, 
+                            leftBezierOrigin, selectedGap.leftPt0_, selectedGap.leftPt1_, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);        
 
-            // ROS_INFO_STREAM("s_left: " << s_left);
-            // pos_val0 = ;
-            // pos_val1 = ;
-            // pos_val2 = ;
+        ////////////////////////
+        // Right Bezier curve //
+        ////////////////////////
+        ROS_INFO_STREAM("   building right bezier curve");
+        buildBezierCurve(numRightRGEPoints, totalNumRightCurvePts, rightArclengthParameters, 
+                            rightBezierOrigin, selectedGap.rightPt0_, selectedGap.rightPt1_, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, true);        
 
-            // vel_val0 = ;
-            // vel_val1 = ;
-            // vel_val2 = ;
-            curr_left_pt = (1 - s_left) * (1 - s_left) * leftBezierOrigin_ + 
-                            2*(1 - s_left)*s_left * weightedLeftBezierPt0 + 
-                            s_left*s_left * leftCurveTermPt;
-            curr_left_vel = (2*s_left - 2) * leftBezierOrigin_ + 
-                            (2 - 4*s_left) * weightedLeftBezierPt0 + 
-                            2*s_left * leftCurveTermPt;
-            rotated_curr_left_vel = neg_rpi2 * curr_left_vel;
-            left_inward_norm_vect = rotated_curr_left_vel / (rotated_curr_left_vel.norm() + eps);
-            leftCurvePosns.row(i) = curr_left_pt;
-            leftCurveVels.row(i) = curr_left_vel;
-            leftCurveInwardNorms.row(i) = left_inward_norm_vect;
-        }
+        // counter = 0;
+        // for (float i = numRightRGEPoints; i < totalNumRightCurvePts; i++) {
 
-        counter = 0;
-        for (float i = numRightRGEPoints; i < total_num_right_curve_points; i++) {
+        //     s_right = rightArclengthParameters(counter, 0);
+        //     counter++;
 
-            s_right = right_indices(counter, 0);
-            counter++;
+        //     // ROS_INFO_STREAM("s_right: " << s_right);
 
-            // ROS_INFO_STREAM("s_right: " << s_right);
+        //     // pos_val0 = ;
+        //     // pos_val1 = ;
+        //     // pos_val2 = ;
 
-            // pos_val0 = ;
-            // pos_val1 = ;
-            // pos_val2 = ;
+        //     // vel_val0 = ;
+        //     // vel_val1 = ;
+        //     // vel_val2 = ;
+        //     curr_right_pt = (1 - s_right) * (1 - s_right) * rightBezierOrigin + 
+        //                     2 * (1 - s_right) * s_right * weightedRightBezierPt0 + 
+        //                     s_right*s_right * rightCurveTermPt;
+        //     curr_right_vel = (2*s_right - 2) * rightBezierOrigin + 
+        //                      (2 - 4*s_right) * weightedRightBezierPt0 + 
+        //                      2*s_right * rightCurveTermPt;
+        //     rotated_curr_right_vel = rpi2 * curr_right_vel;
+        //     right_inward_norm_vect = rotated_curr_right_vel / (rotated_curr_right_vel.norm() + eps);
+        //     rightCurvePosns.row(i) = curr_right_pt;
+        //     rightCurveVels.row(i) = curr_right_vel;
+        //     rightCurveInwardNorms.row(i) = right_inward_norm_vect;
 
-            // vel_val0 = ;
-            // vel_val1 = ;
-            // vel_val2 = ;
-            curr_right_pt = (1 - s_right) * (1 - s_right) * rightBezierOrigin + 
-                            2 * (1 - s_right) * s_right * weightedRightBezierPt0 + 
-                            s_right*s_right * rightCurveTermPt;
-            curr_right_vel = (2*s_right - 2) * rightBezierOrigin + 
-                             (2 - 4*s_right) * weightedRightBezierPt0 + 
-                             2*s_right * rightCurveTermPt;
-            rotated_curr_right_vel = rpi2 * curr_right_vel;
-            right_inward_norm_vect = rotated_curr_right_vel / (rotated_curr_right_vel.norm() + eps);
-            rightCurvePosns.row(i) = curr_right_pt;
-            rightCurveVels.row(i) = curr_right_vel;
-            rightCurveInwardNorms.row(i) = right_inward_norm_vect;
-
-            /*
-            ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);
-            ROS_INFO_STREAM("left_vel " << i << ": " << curr_left_vel[0] << ", " << curr_left_vel[1]);
-            ROS_INFO_STREAM("left_inward_norm: " << left_inward_norm_vect[0] << ", " << left_inward_norm_vect[1]);
-            // ROS_INFO_STREAM("left_center: " << (curr_left_pt[0] - left_inward_norm[0]*offset) << ", " << (curr_left_pt[1] - left_inward_norm[1]*offset));
-            ROS_INFO_STREAM("right_pt " << i << ": " << curr_right_pt[0] << ", " << curr_right_pt[1]);
-            ROS_INFO_STREAM("right_vel " << i << ": " << curr_right_vel[0] << ", " << curr_right_vel[1]);
-            ROS_INFO_STREAM("right_inward_norm " << i << ": " << right_inward_norm_vect[0] << ", " << right_inward_norm_vect[1]);
-            // ROS_INFO_STREAM("curr_right_pt: " << curr_right_pt[0] << ", " << curr_right_pt[1]);
-            */
-        }
+        //     /*
+        //     ROS_INFO_STREAM("left_pt: " << curr_left_pt[0] << ", " << curr_left_pt[1]);
+        //     ROS_INFO_STREAM("left_vel " << i << ": " << curr_left_vel[0] << ", " << curr_left_vel[1]);
+        //     ROS_INFO_STREAM("left_inward_norm: " << left_inward_norm_vect[0] << ", " << left_inward_norm_vect[1]);
+        //     // ROS_INFO_STREAM("left_center: " << (curr_left_pt[0] - left_inward_norm[0]*offset) << ", " << (curr_left_pt[1] - left_inward_norm[1]*offset));
+        //     ROS_INFO_STREAM("right_pt " << i << ": " << curr_right_pt[0] << ", " << curr_right_pt[1]);
+        //     ROS_INFO_STREAM("right_vel " << i << ": " << curr_right_vel[0] << ", " << curr_right_vel[1]);
+        //     ROS_INFO_STREAM("right_inward_norm " << i << ": " << right_inward_norm_vect[0] << ", " << right_inward_norm_vect[1]);
+        //     // ROS_INFO_STREAM("curr_right_pt: " << curr_right_pt[0] << ", " << curr_right_pt[1]);
+        //     */
+        // }
         
         // Eigen::Vector2d left_origin_inward_norm = leftCurveInwardNorms.row(0);
         // Eigen::Vector2d right_origin_inward_norm = rightCurveInwardNorms.row(0);
