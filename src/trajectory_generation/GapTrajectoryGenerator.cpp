@@ -386,6 +386,10 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
         // ROS_INFO_STREAM("bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
         // ROS_INFO_STREAM("bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
+             // ROS_INFO_STREAM("running arclength sampling");
+        // ROS_INFO_STREAM("bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
+        // ROS_INFO_STREAM("bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
+        // ROS_INFO_STREAM("bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
         float bezierArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 0.0, 1.0, numCurvePts);
 
         float numBezierPtToPtIntegrationPoints = 5.0;
@@ -398,7 +402,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("number of points: " << numCurvePts);
         // ROS_INFO_STREAM("total distance: " << bezierArclengthDistance);
         // ROS_INFO_STREAM("desired distance interval: " << desiredBezierPtToPtDistance);
-        
+
         float t_interval = (1.0 / numBezierSamplePts);
         float t_k, t_kmin1, t_interp, t_interp_min1, t_lowerBound, t_upperBound;
         float currentBezierPtToPtArclengthDistance, bezierPtToPtArclengthDistance;
@@ -407,57 +411,51 @@ namespace dynamic_gap
             currentBezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, t_kmin1, t_k, numBezierPtToPtIntegrationPoints);
             // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_k << ": " << currentBezierPtToPtArclengthDistance);
 
-            float t_arclengthIdx = t_k;
-
-            if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) 
-            {
+            if (std::abs(currentBezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) < bezierPtToPtDistanceThresh) {
+                // ROS_INFO_STREAM("adding " << t_k);
+                arclengthParameterization(arclengthParameterizationIdx, 0) = t_k;
+                arclengthParameterizationIdx += 1;
+                t_kmin1 = t_k;
+            } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) {
                 t_interp_min1 = t_k - t_interval;
                 t_interp = (t_k + t_interp_min1) / 2.0;
                 bezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
 
-                // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << arclengthDistance);
+                // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
 
                 t_upperBound = t_k;
                 t_lowerBound = t_interp_min1;
-                while (abs(bezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) > bezierPtToPtDistanceThresh) 
-                {
-                    if (bezierPtToPtArclengthDistance < desiredBezierPtToPtDistance) 
-                    {
+                while ( abs(bezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) > bezierPtToPtDistanceThresh) {
+                    if (bezierPtToPtArclengthDistance < desiredBezierPtToPtDistance) {
                         t_lowerBound = t_interp;
                         t_interp = (t_interp + t_upperBound) / 2.0;
                         // ROS_INFO_STREAM("raising t_interp to: " << t_interp);
-                    } else 
-                    {
+                    } else {
                         t_upperBound = t_interp;
                         t_interp = (t_interp + t_lowerBound) / 2.0;
                         // ROS_INFO_STREAM("lowering t_interp to: " << t_interp);
+
                     }
                     bezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
-                    // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << arclengthDistance);
+                    // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
                 }
-                t_arclengthIdx = t_interp;
+                
                 // ROS_INFO_STREAM("adding " << t_interp);
-                // arclengthParameterization(arclengthParameterizationIdx, 0) = t_interp;
-                // arclengthParameterizationIdx += 1;
-                // t_kmin1 = t_interp;
+                arclengthParameterization(arclengthParameterizationIdx, 0) = t_interp;
+                arclengthParameterizationIdx += 1;
+                t_kmin1 = t_interp;
             }   
-            // if (std::abs(currentBezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) < bezierPtToPtDistanceThresh) 
-            // {
-            arclengthParameterization(arclengthParameterizationIdx, 0) = t_arclengthIdx;
-            ROS_INFO_STREAM("       adding: " << arclengthParameterization(arclengthParameterizationIdx, 0));
-            arclengthParameterizationIdx += 1;
-            t_kmin1 = t_arclengthIdx;
-            // } else 
         }
 
         arclengthParameterization(int(numCurvePts) - 1, 0) = 1.0;
 
-        ROS_INFO_STREAM("       arclength parameterized indices: ");
-        for (int i = 0; i < int(numCurvePts); i++)
-            ROS_INFO_STREAM("           :" << arclengthParameterization(i, 0));
-
         return arclengthParameterization;
-    
+        /*
+        ROS_INFO_STREAM("uniform indices: ");
+        for (int i = 0; i < int(numCurvePts); i++) {
+            ROS_INFO_STREAM(arclengthParameterization(i, 0));
+        }
+        */
         // ROS_INFO_STREAM("total approx dist: " << bezierArclengthDistance);
     }
 
