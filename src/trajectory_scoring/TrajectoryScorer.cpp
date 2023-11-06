@@ -43,9 +43,9 @@ namespace dynamic_gap
     {
         bool operator() (std::vector<float> & a, std::vector<float> & b) 
         {
-            float a_dist = pow(a[0], 2) + pow(a[1], 2);
-            float b_dist = pow(b[0], 2) + pow(b[1], 2);
-            return a_dist < b_dist;
+            float aNorm = pow(a[0], 2) + pow(a[1], 2);
+            float bNorm = pow(b[0], 2) + pow(b[1], 2);
+            return aNorm < bNorm;
         }
     };
 

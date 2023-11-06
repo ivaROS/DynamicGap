@@ -74,60 +74,62 @@ namespace dynamic_gap
     }
     
 
-    float GapFeasibilityChecker::gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::Estimator* leftGapPtModel, dynamic_gap::Estimator* rightGapPtModel) 
+    float GapFeasibilityChecker::gapSplinecheck(dynamic_gap::Gap & gap, 
+                                                dynamic_gap::Estimator* leftGapPtModel, 
+                                                dynamic_gap::Estimator* rightGapPtModel) 
     {
         if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("            [gapSplinecheck()]");        
-        Eigen::Vector2f crossing_pt(0.0, 0.0);
+        Eigen::Vector2f crossingPt(0.0, 0.0);
         // float start_time = ros::Time::now().toSec();
-        float gapCrossingTime = indivGapFindCrossingPoint(gap, crossing_pt, leftGapPtModel, rightGapPtModel);
+        float gapCrossingTime = indivGapFindCrossingPoint(gap, crossingPt, leftGapPtModel, rightGapPtModel);
         // ROS_INFO_STREAM("indivGapFindCrossingPoint time elapsed:" << ros::Time::now().toSec() - start_time);
 
-        Eigen::Vector2f starting_pos(0.0, 0.0);
-        Eigen::Vector2f starting_vel(leftGapPtModel->getRobotVel().twist.linear.x, leftGapPtModel->getRobotVel().twist.linear.y);
+        Eigen::Vector2f splineInitialPos(0.0, 0.0);
+        Eigen::Vector2f splineInitialVel(leftGapPtModel->getRobotVel().twist.linear.x, leftGapPtModel->getRobotVel().twist.linear.y);
         
-        Eigen::Vector2f ending_vel(0.0, 0.0);
+        Eigen::Vector2f splineTerminalVel(0.0, 0.0);
         
-        if (crossing_pt.norm() > 0) {
-            ending_vel << starting_vel.norm() * crossing_pt[0] / crossing_pt.norm(), starting_vel.norm() * crossing_pt[1] / crossing_pt.norm();
-        } 
+        if (crossingPt.norm() > 0)
+            splineTerminalVel = splineInitialVel.norm() * crossingPt / crossingPt.norm();
+            //  << splineInitialVel.norm() * crossingPt[0] / crossingPt.norm(), 
+            //                    splineInitialVel.norm() * crossingPt[1] / crossingPt.norm();
         
-        // ROS_INFO_STREAM("starting x: " << starting_pos[0] << ", " << starting_pos[1] << ", " << starting_vel[0] << ", " << starting_vel[1]);
-        // ROS_INFO_STREAM("ending x: " << crossing_pt[0] << ", " << crossing_pt[1] << ", ending_vel: " << ending_vel[0] << ", " << ending_vel[1]);
+        // ROS_INFO_STREAM("starting x: " << splineInitialPos[0] << ", " << splineInitialPos[1] << ", " << splineInitialVel[0] << ", " << splineInitialVel[1]);
+        // ROS_INFO_STREAM("ending x: " << crossingPt[0] << ", " << crossingPt[1] << ", splineTerminalVel: " << splineTerminalVel[0] << ", " << splineTerminalVel[1]);
         
         // start_time = ros::Time::now().toSec();
-        Eigen::MatrixXf A_spline = Eigen::MatrixXf::Random(4,4);
-        Eigen::VectorXf b_spline = Eigen::VectorXf::Random(4);
-        A_spline << 1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    1.0, gapCrossingTime, pow(gapCrossingTime,2), pow(gapCrossingTime,3),
-                    0.0, 1.0, 2*gapCrossingTime, 3*pow(gapCrossingTime,2);
-        b_spline << starting_pos[0], starting_vel[0], crossing_pt[0], ending_vel[0];
-        gap.splineXCoefs_ = A_spline.partialPivLu().solve(b_spline);
+        Eigen::MatrixXf splineAMat = Eigen::MatrixXf::Random(4,4);
+        Eigen::VectorXf splineBVec = Eigen::VectorXf::Random(4);
+        splineAMat << 1.0, 0.0, 0.0, 0.0,
+                      0.0, 1.0, 0.0, 0.0,
+                      1.0, gapCrossingTime, pow(gapCrossingTime,2), pow(gapCrossingTime,3),
+                      0.0, 1.0, 2*gapCrossingTime, 3*pow(gapCrossingTime,2);
+        splineBVec << splineInitialPos[0], splineInitialVel[0], crossingPt[0], splineTerminalVel[0];
+        gap.splineXCoefs_ = splineAMat.partialPivLu().solve(splineBVec);
 
         // std::cout << "x coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
-        float peak_velocity_time = gapCrossingTime/2.0;
-        float peakVelX_ = 3*gap.splineXCoefs_[3]*pow(peak_velocity_time, 2) + 
-                                 2*gap.splineXCoefs_[2]*peak_velocity_time + 
+        float slinePeakVelTime = gapCrossingTime/2.0;
+        float peakSplineVelX = 3*gap.splineXCoefs_[3]*pow(slinePeakVelTime, 2) + 
+                                 2*gap.splineXCoefs_[2]*slinePeakVelTime + 
                                  gap.splineXCoefs_[1];
         
-        b_spline << starting_pos[1], starting_vel[1], crossing_pt[1], ending_vel[1];
+        splineBVec << splineInitialPos[1], splineInitialVel[1], crossingPt[1], splineTerminalVel[1];
 
-        gap.splineYCoefs_ = A_spline.partialPivLu().solve(b_spline);
+        gap.splineYCoefs_ = splineAMat.partialPivLu().solve(splineBVec);
         //std::cout << "y coeffs: " << coeffs[0] << ", " << coeffs[1] << ", " << coeffs[2] << ", " << coeffs[3] << std::endl;
-        float peakVelY_ = 3*gap.splineYCoefs_[3]*pow(peak_velocity_time, 2) + 
-                                 2*gap.splineYCoefs_[2]*peak_velocity_time + 
+        float peakSplineVelY = 3*gap.splineYCoefs_[3]*pow(slinePeakVelTime, 2) + 
+                                 2*gap.splineYCoefs_[2]*slinePeakVelTime + 
                                  gap.splineYCoefs_[1];
         // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
-        // ROS_INFO_STREAM("peak velocity: " << peakVelX_ << ", " << peakVelY_);
-        gap.peakVelX_ = peakVelX_;
-        gap.peakVelY_ = peakVelY_;
+        // ROS_INFO_STREAM("peak velocity: " << peakSplineVelX << ", " << peakSplineVelY);
+        gap.peakVelX_ = peakSplineVelX;
+        gap.peakVelY_ = peakSplineVelY;
         
-        if (std::max(std::abs(peakVelX_), std::abs(peakVelY_)) <= cfg_->control.vx_absmax) {
+        if (std::max(std::abs(peakSplineVelX), std::abs(peakSplineVelY)) <= cfg_->control.vx_absmax)
             return gapCrossingTime;
-        } else {
-            return -1.0;
-        }
+        else
+            return -1.0; // communicating infeasibility
     }
  
     float GapFeasibilityChecker::indivGapFindCrossingPoint(dynamic_gap::Gap & gap, 
@@ -177,12 +179,12 @@ namespace dynamic_gap
 
         // float thetaLeft, thetaRight, thetaCenter;
        
-        float left_central_dot, right_central_dot;
-        bool first_cross = true;
-        bool bearing_crossing_check, range_closing_check;    
+        float leftBearingDotCentBearing, rightBearingDotCentBearing;
+        bool gapHasCrossed = true;
+        bool bearingsCrossed, crossedGapPtsDistCheck;    
 
-        bool left_opening = (getGapBearingRateOfChange(leftGapState) > 0.0);
-        bool right_opening = (getGapBearingRateOfChange(rightGapState) < 0.0);
+        bool leftSideOpening = (getGapBearingRateOfChange(leftGapState) > 0.0);
+        bool rightSideOpening = (getGapBearingRateOfChange(rightGapState) < 0.0);
         Eigen::Vector4f prevLeftGapState = leftGapState;
         Eigen::Vector4f prevRightGapState = rightGapState;
         // Eigen::Vector4f prev_left_frozen_mp_state = left_frozen_mp_state;        
@@ -194,14 +196,14 @@ namespace dynamic_gap
         for (float t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
         {
             // checking to see if left point is reachable
-            if (!(left_opening && (getGapDist(leftGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(leftSideOpening && (getGapDist(leftGapState) < cfg_->control.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM("propagating left");
                 leftGapPtModel->gapStatePropagate(cfg_->traj.integrate_stept);
             }
 
             // checking to see if right point is reachable
-            if (!(right_opening && (getGapDist(rightGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(rightSideOpening && (getGapDist(rightGapState) < cfg_->control.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM("propagating right");
                 rightGapPtModel->gapStatePropagate(cfg_->traj.integrate_stept);
@@ -240,12 +242,12 @@ namespace dynamic_gap
 
             centralBearingVect << std::cos(thetaCenter), std::sin(thetaCenter);
         
-            left_central_dot = leftBearingVect.dot(prevCentralBearingVect);
-            right_central_dot = rightBearingVect.dot(prevCentralBearingVect);
-            bearing_crossing_check = left_central_dot > 0.0 && right_central_dot > 0.0;
+            leftBearingDotCentBearing = leftBearingVect.dot(prevCentralBearingVect);
+            rightBearingDotCentBearing = rightBearingVect.dot(prevCentralBearingVect);
+            bearingsCrossed = leftBearingDotCentBearing > 0.0 && rightBearingDotCentBearing > 0.0;
 
             // checking for bearing crossing conditions for closing and crossing gaps
-            if (leftToRightAngle > M_PI && bearing_crossing_check) 
+            if (leftToRightAngle > M_PI && bearingsCrossed) 
             {
                 if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    bearing cross at " << t);
                 // CLOSING GAP CHECK
@@ -256,9 +258,9 @@ namespace dynamic_gap
                                  // (1.0 / prev_right_frozen_mp_state[0])*std::cos(prev_right_frozen_mp_state[1]), 
                                  //   (1.0 / prev_right_frozen_mp_state[0])*std::sin(prev_right_frozen_mp_state[1]);
 
-                range_closing_check = (leftCrossPt - rightCrossPt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
+                crossedGapPtsDistCheck = (leftCrossPt - rightCrossPt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
                 // IF POINTS ARE SUFFICIENTLY CLOSE TOGETHER, GAP HAS CLOSED
-                if (range_closing_check) 
+                if (crossedGapPtsDistCheck) 
                 {    
                     if (leftCrossPt.norm() < rightCrossPt.norm())
                         gapCrossingPt << rightCrossPt[0], rightCrossPt[1];
@@ -267,27 +269,27 @@ namespace dynamic_gap
 
                     gapCrossingPt += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gapCrossingPt / gapCrossingPt.norm());
                     gap.setClosingPoint(gapCrossingPt[0], gapCrossingPt[1]);
-                    float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
-                    // float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0f);
-                    if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap closed at " << ending_time); 
+                    float gapLifespan = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                    // float gapLifespan = std::max(t - cfg_->traj.integrate_stept, 0.0f);
+                    if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap closed at " << gapLifespan); 
 
                     gap.closed_ = true;
-                    return ending_time;
+                    return gapLifespan;
                 } else
                 {
-                    if (first_cross) 
+                    if (gapHasCrossed) 
                     {
                         float mid_x = (leftCrossPt[0] + rightCrossPt[0]) / 2;
                         float mid_y = (leftCrossPt[1] + rightCrossPt[1]) / 2;
                         //  ROS_INFO_STREAM("gap crosses but does not close at " << t << ", left point at: " << leftCrossPt[0] << ", " << leftCrossPt[1] << ", right point at " << rightCrossPt[0] << ", " << rightCrossPt[1]); 
 
                         gap.setCrossingPoint(mid_x, mid_y);
-                        first_cross = false;
+                        gapHasCrossed = false;
 
-                        float ending_time = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
-                        // float ending_time = std::max(t - cfg_->traj.integrate_stept, 0.0f);
+                        float gapLifespan = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
+                        // float gapLifespan = std::max(t - cfg_->traj.integrate_stept, 0.0f);
 
-                        if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap crossed at " << ending_time); 
+                        if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    considering gap crossed at " << gapLifespan); 
 
                         gap.crossed_ = true;
                     }
@@ -363,7 +365,7 @@ namespace dynamic_gap
 
         // float thetaLeft, thetaRight, range_left, range_right, r_min, leftToRightAngle;
         // REWINDING THE GAP FROM ITS CROSSED CONFIGURATION UNTIL THE GAP IS SUFFICIENTLY OPEN
-        for (float t_rew = t; t_rew >= 0.0; t_rew -= cfg_->traj.integrate_stept) 
+        for (float tRewind = t; tRewind >= 0.0; tRewind -= cfg_->traj.integrate_stept) 
         {
             leftGapPtModel->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
             rightGapPtModel->rewindPropagate(-1 * cfg_->traj.integrate_stept);
@@ -399,13 +401,13 @@ namespace dynamic_gap
 
             // if gap is sufficiently open
             // option 1: arc-length:
-            if (t_rew == 0 || (leftCrossPt - rightCrossPt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) // r_min * leftToRightAngle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio
+            if (tRewind == 0 || (leftCrossPt - rightCrossPt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) // r_min * leftToRightAngle > 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio
             { 
                 // if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("                    terminal points at time " << t_rew << ", left: (" << leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << rightCrossPt[0] << ", " << rightCrossPt[1]);
                 generateTerminalPoints(gap, rewindLeftGapState, rewindRightGapState);
                                         // wrapped_thetaLeft, left_rewind_mp_state[0], 
                                         // wrapped_term_thetaRight, right_rewind_mp_state[0]);
-                return t_rew;
+                return tRewind;
             }
             
         }
@@ -421,8 +423,8 @@ namespace dynamic_gap
     }
 
     void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap & gap, 
-                                                        Eigen::Vector4f leftCrossPt,
-                                                        Eigen::Vector4f rightCrossPt)
+                                                        const Eigen::Vector4f & leftCrossPt,
+                                                        const Eigen::Vector4f & rightCrossPt)
                                                         // float terminal_thetaLeft, float terminal_reciprocal_range_left, 
                                                         // float terminal_thetaRight, float terminal_reciprocal_range_right) 
     {

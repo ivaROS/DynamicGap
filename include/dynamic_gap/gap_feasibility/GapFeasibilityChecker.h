@@ -25,17 +25,21 @@ namespace dynamic_gap
             // void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_);
             
         private:
-            float gapSplinecheck(dynamic_gap::Gap & gap, dynamic_gap::Estimator* leftGapPtModel, dynamic_gap::Estimator* rightGapPtModel);
+            float gapSplinecheck(dynamic_gap::Gap & gap, 
+                                    dynamic_gap::Estimator* leftGapPtModel, 
+                                    dynamic_gap::Estimator* rightGapPtModel);
             float generateCrossedGapTerminalPoints(float t, dynamic_gap::Gap & gap, 
                                                     dynamic_gap::Estimator* leftGapPtModel, 
                                                     dynamic_gap::Estimator* rightGapPtModel);
             void generateTerminalPoints(dynamic_gap::Gap & gap, 
-                                        Eigen::Vector4f leftCrossPt,
-                                        Eigen::Vector4f rightCrossPt);
+                                        const Eigen::Vector4f & leftCrossPt,
+                                        const Eigen::Vector4f & rightCrossPt);
                                         // float terminal_thetaLeft, float terminal_reciprocal_range_left, 
                                         // float terminal_thetaRight, float terminal_reciprocal_range_right);
-            float indivGapFindCrossingPoint(dynamic_gap::Gap & gap, Eigen::Vector2f& gap_crossing_point, 
-                                            dynamic_gap::Estimator* leftGapPtModel, dynamic_gap::Estimator* rightGapPtModel);
+            float indivGapFindCrossingPoint(dynamic_gap::Gap & gap, 
+                                            Eigen::Vector2f & gap_crossing_point, 
+                                            dynamic_gap::Estimator* leftGapPtModel, 
+                                            dynamic_gap::Estimator* rightGapPtModel);
 
             // boost::shared_ptr<sensor_msgs::LaserScan const> msg;
             // float scan_angle_min_, scan_angle_increment_;

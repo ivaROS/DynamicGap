@@ -26,21 +26,24 @@
 // #include <sensor_msgs/LaserScan.h>
 #include "OsqpEigen/OsqpEigen.h"
 
-namespace dynamic_gap {
-
+namespace dynamic_gap 
+{
     class GapTrajectoryGenerator
     {
         public:
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
-            void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
+            // void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, const geometry_msgs::PoseStamped & , const geometry_msgs::TwistStamped &, bool);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap& selectedGap, 
+                                                                                        const geometry_msgs::PoseStamped & currPose, 
+                                                                                        const geometry_msgs::TwistStamped & currVel,
+                                                                                        bool runGoToGoal);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                               const geometry_msgs::TransformStamped & transform,
                                                               const std::string & sourceFrame,
                                                               const std::string & destFrame);
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj);
 
         private: 
             void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);
@@ -84,16 +87,14 @@ namespace dynamic_gap {
                                             float leftBezierWeight, float rightBezierWeight, 
                                             float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
                                             const Eigen::Vector2d & initRbtPos);
-            void setConstraintMatrix(Eigen::MatrixXd &A, 
-                                     int N, 
-                                     int Kplus1, 
-                                     const Eigen::MatrixXd & all_curve_pts, 
-                                     const Eigen::MatrixXd & all_inward_norms, 
-                                     const Eigen::MatrixXd & all_centers);
+            void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
+                                     const Eigen::MatrixXd & gapCurvesPosns, 
+                                     const Eigen::MatrixXd & gapCurvesInwardNorms,
+                                     const Eigen::MatrixXd & allAHPFCenters);
 
 
-            geometry_msgs::TransformStamped planning2odom;       
-            int numCurvePts;
+            // geometry_msgs::TransformStamped planning2odom;       
+            // int numCurvePts;
             const DynamicGapConfig* cfg_;
 
     };

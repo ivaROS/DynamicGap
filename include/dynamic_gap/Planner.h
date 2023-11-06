@@ -121,7 +121,7 @@ namespace dynamic_gap
         geometry_msgs::PoseArray currentPath_;
         std::vector<float> currentPathTiming_;
 
-        boost::circular_buffer<float> cmdVelBuffer;
+        boost::circular_buffer<float> cmdVelBuffer_;
 
         ros::Time tPreviousFilterUpdate_;
 

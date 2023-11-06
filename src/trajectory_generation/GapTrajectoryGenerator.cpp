@@ -69,7 +69,7 @@ namespace dynamic_gap
         try 
         {        
             // return geometry_msgs::PoseArray();
-            numCurvePts = cfg_->traj.num_curve_points;
+            int numCurvePts = cfg_->traj.num_curve_points;
             // ROS_INFO_STREAM("numCurvePts: " << numCurvePts);
 
             float generateTrajStartTime = ros::Time::now().toSec();
@@ -776,7 +776,7 @@ namespace dynamic_gap
     //     return traj_set;
     // }
 
-    // Return in Odom frame (used for ctrl)
+    // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                                               const geometry_msgs::TransformStamped & transform,
                                                                               const std::string & sourceFrame,
@@ -804,76 +804,75 @@ namespace dynamic_gap
 
     std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj)
     {
-        geometry_msgs::PoseArray pose_arr = std::get<0>(traj);
-        std::vector<float> time_arr = std::get<1>(traj);
-        Eigen::Quaternionf q;
-        geometry_msgs::Pose old_pose;
-        old_pose.position.x = 0;
-        old_pose.position.y = 0;
-        old_pose.position.z = 0;
-        old_pose.orientation.x = 0;
-        old_pose.orientation.y = 0;
-        old_pose.orientation.z = 0;
-        old_pose.orientation.w = 1;
-        geometry_msgs::Pose new_pose;
-        float dx, dy, result;
-        // std::cout << "entering at : " << pose_arr.poses.size() << std::endl;
+        geometry_msgs::PoseArray rawPath = std::get<0>(traj);
+        std::vector<float> rawPathTiming = std::get<1>(traj);
+        
+        geometry_msgs::Pose originPose;
+        originPose.position.x = 0;
+        originPose.position.y = 0;
+        originPose.position.z = 0;
+        originPose.orientation.x = 0;
+        originPose.orientation.y = 0;
+        originPose.orientation.z = 0;
+        originPose.orientation.w = 1;
+        // std::cout << "entering at : " << path.poses.size() << std::endl;
         //std::cout << "starting pose: " << posearr.poses[0].position.x << ", " << posearr.poses[0].position.y << std::endl; 
         //std::cout << "final pose: " << posearr.poses[posearr.poses.size() - 1].position.x << ", " << posearr.poses[posearr.poses.size() - 1].position.y << std::endl;
-        /*
-        if (pose_arr.poses.size() > 1) {
-            double total_dx = pose_arr.poses[0].position.x - pose_arr.poses[pose_arr.poses.size() - 1].position.x;
-            double total_dy = pose_arr.poses[0].position.y - pose_arr.poses[pose_arr.poses.size() - 1].position.y;
-            double total_dist = sqrt(pow(total_dx, 2) + pow(total_dy, 2));
-            ROS_WARN_STREAM("total distance: " << total_dist);
-        }
-        */
-        std::vector<geometry_msgs::Pose> shortened;
-        std::vector<float> shortened_time_arr;
-        shortened.push_back(old_pose);
-        shortened_time_arr.push_back(0.0);
-        float threshold = 0.1;
-        // ROS_INFO_STREAM("pose[0]: " << pose_arr.poses[0].position.x << ", " << pose_arr.poses[0].position.y);
-        for (int i = 1; i < pose_arr.poses.size(); i++) 
-        {
-            auto pose = pose_arr.poses[i];
-            dx = pose.position.x - shortened.back().position.x;
-            dy = pose.position.y - shortened.back().position.y;
-            result = sqrt(pow(dx, 2) + pow(dy, 2));
-            if (result > threshold) {
-                // ROS_INFO_STREAM("result " << i << " kept at " << result);
-                shortened.push_back(pose);
-                shortened_time_arr.push_back(time_arr[i]);
 
-            } else {
-                // ROS_INFO_STREAM("result " << i << " cut at " << result);
+        std::vector<geometry_msgs::Pose> processedPoses;
+        std::vector<float> processedPathTiming;
+        processedPoses.push_back(originPose);
+        processedPathTiming.push_back(0.0);
+        // ROS_INFO_STREAM("pose[0]: " << path.poses[0].position.x << ", " << path.poses[0].position.y);
+
+        float poseToPoseDistThreshold = 0.1;
+        float poseToPoseDiffX, poseToPoseDiffY, poseToPoseDist;
+        for (int i = 1; i < rawPath.poses.size(); i++) 
+        {
+            geometry_msgs::Pose rawPose = rawPath.poses[i];
+            poseToPoseDiffX = rawPose.position.x - processedPoses.back().position.x;
+            poseToPoseDiffY = rawPose.position.y - processedPoses.back().position.y;
+            poseToPoseDist = sqrt(pow(poseToPoseDiffX, 2) + pow(poseToPoseDiffY, 2));
+            if (poseToPoseDist > poseToPoseDistThreshold) 
+            {
+                // ROS_INFO_STREAM("poseToPoseDist " << i << " kept at " << poseToPoseDist);
+                processedPoses.push_back(rawPose);
+                processedPathTiming.push_back(rawPathTiming[i]);
+            } else 
+            {
+                // ROS_INFO_STREAM("poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
         // std::cout << "leaving at : " << shortened.size() << std::endl;
-        pose_arr.poses = shortened;
+        
+        geometry_msgs::PoseArray processedPath = rawPath;        
+        processedPath.poses = processedPoses;
 
-        // Fix rotation
-        for (int idx = 1; idx < pose_arr.poses.size(); idx++)
+        // Fix rotation along local trajectory
+        geometry_msgs::Pose processedPose, prevProcessedPose;
+        Eigen::Quaternionf q;
+        float poseToPoseDiffTheta;
+        for (int idx = 1; idx < processedPath.poses.size(); idx++)
         {
-            new_pose = pose_arr.poses[idx];
-            old_pose = pose_arr.poses[idx - 1];
-            dx = new_pose.position.x - old_pose.position.x;
-            dy = new_pose.position.y - old_pose.position.y;
-            result = std::atan2(dy, dx);
+            processedPose = processedPath.poses[idx];
+            prevProcessedPose = processedPath.poses[idx - 1];
+            poseToPoseDiffX = processedPose.position.x - prevProcessedPose.position.x;
+            poseToPoseDiffY = processedPose.position.y - prevProcessedPose.position.y;
+            poseToPoseDiffTheta = std::atan2(poseToPoseDiffY, poseToPoseDiffX);
             q = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
                 Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-                Eigen::AngleAxisf(result, Eigen::Vector3f::UnitZ());
+                Eigen::AngleAxisf(poseToPoseDiffTheta, Eigen::Vector3f::UnitZ());
             q.normalize();
-            pose_arr.poses[idx - 1].orientation.x = q.x();
-            pose_arr.poses[idx - 1].orientation.y = q.y();
-            pose_arr.poses[idx - 1].orientation.z = q.z();
-            pose_arr.poses[idx - 1].orientation.w = q.w();
+            processedPath.poses[idx - 1].orientation.x = q.x();
+            processedPath.poses[idx - 1].orientation.y = q.y();
+            processedPath.poses[idx - 1].orientation.z = q.z();
+            processedPath.poses[idx - 1].orientation.w = q.w();
         }
-        pose_arr.poses.pop_back();
-        shortened_time_arr.pop_back();
+        processedPath.poses.pop_back();
+        processedPathTiming.pop_back();
 
-        std::tuple<geometry_msgs::PoseArray, std::vector<float>> shortened_tuple(pose_arr, shortened_time_arr);
-        return shortened_tuple;
+        std::tuple<geometry_msgs::PoseArray, std::vector<float>> processedTrajectory(processedPath, processedPathTiming);
+        return processedTrajectory;
     }
 
 }

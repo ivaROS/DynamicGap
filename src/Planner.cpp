@@ -57,7 +57,7 @@ namespace dynamic_gap
         rbtPoseInRbtFrame_.pose.orientation.w = 1;
         rbtPoseInRbtFrame_.header.frame_id = cfg_.robot_frame_id;
 
-        cmdVelBuffer.set_capacity(cfg_.planning.halt_size);
+        cmdVelBuffer_.set_capacity(cfg_.planning.halt_size);
 
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
@@ -75,10 +75,12 @@ namespace dynamic_gap
         currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
         currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
 
-        sensor_msgs::LaserScan tmp_scan = sensor_msgs::LaserScan();
-        futureScans_.push_back(tmp_scan);
-        for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
-            futureScans_.push_back(tmp_scan);
+        // TODO: change this to a vector of pointers to laser scans
+        sensor_msgs::LaserScan tmpScan = sensor_msgs::LaserScan();
+        futureScans_ = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, tmpScan);
+        // futureScans_.push_back(tmpScan);
+        // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
+        //     futureScans_.push_back(tmpScan);
 
         staticScan_ = sensor_msgs::LaserScan();
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
@@ -98,22 +100,22 @@ namespace dynamic_gap
 
     bool Planner::isGoalReached()
     {
-        float dx = globalGoalOdomFrame_.pose.position.x - robotPoseOdomFrame_.pose.position.x;
-        float dy = globalGoalOdomFrame_.pose.position.y - robotPoseOdomFrame_.pose.position.y;
-        bool result = sqrt(pow(dx, 2) + pow(dy, 2)) < cfg_.goal.goal_tolerance;
+        float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - robotPoseOdomFrame_.pose.position.x;
+        float globalGoalYDiff = globalGoalOdomFrame_.pose.position.y - robotPoseOdomFrame_.pose.position.y;
+        bool reachedGlobalGoal = sqrt(pow(globalGoalXDiff, 2) + pow(globalGoalYDiff, 2)) < cfg_.goal.goal_tolerance;
         
-        if (result)
+        if (reachedGlobalGoal)
         {
             ROS_INFO_STREAM("[Reset] Goal Reached");
             return true;
         }
 
-        float waydx = globalPathLocalWaypointOdomFrame_.pose.position.x - robotPoseOdomFrame_.pose.position.x;
-        float waydy = globalPathLocalWaypointOdomFrame_.pose.position.y - robotPoseOdomFrame_.pose.position.y;
-        bool wayres = sqrt(pow(waydx, 2) + pow(waydy, 2)) < cfg_.goal.waypoint_tolerance;
-        if (wayres) {
+        float globalPathLocalWaypointDiffX = globalPathLocalWaypointOdomFrame_.pose.position.x - robotPoseOdomFrame_.pose.position.x;
+        float globalPathLocalWaypointDiffY = globalPathLocalWaypointOdomFrame_.pose.position.y - robotPoseOdomFrame_.pose.position.y;
+        bool reachedGlobalPathLocalWaypoint = sqrt(pow(globalPathLocalWaypointDiffX, 2) + pow(globalPathLocalWaypointDiffY, 2)) < cfg_.goal.waypoint_tolerance;
+        if (reachedGlobalPathLocalWaypoint)
             ROS_INFO_STREAM("[Reset] Waypoint reached, getting new one");
-        }
+
         return false;
     }
 
@@ -834,9 +836,9 @@ namespace dynamic_gap
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Compare the scores of the incoming trajectory with the score of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            int counts = std::min(incomingPathOdomFrame.poses.size(), reducedCurrentPathRobotFrame.poses.size()); // cfg_.planning.num_feasi_check, 
+            int poseCheckCount = std::min(incomingPathOdomFrame.poses.size(), reducedCurrentPathRobotFrame.poses.size()); // cfg_.planning.num_feasi_check, 
 
-            incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.begin() + counts, float(0));
+            incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.begin() + poseCheckCount, float(0));
             if (cfg_.debug.traj_debug_log) 
             {
                 ROS_INFO_STREAM("    re-scored incoming trajectory received a subscore of: " << incomingPathScore);
@@ -844,7 +846,7 @@ namespace dynamic_gap
             }
             
             std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentPathRobotFrame, reducedCurrentPathTiming, associatedRawGaps_, futureScans_);
-            float currentPathSubscore = std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + counts, float(0));
+            float currentPathSubscore = std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
             if (cfg_.debug.traj_debug_log) 
                 ROS_INFO_STREAM("    current trajectory received a subscore of: " << currentPathSubscore);
 
@@ -960,9 +962,9 @@ namespace dynamic_gap
         setCurrentPath(geometry_msgs::PoseArray());
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
-        ROS_INFO_STREAM("cmdVelBuffer size: " << cmdVelBuffer.size());
-        cmdVelBuffer.clear();
-        ROS_INFO_STREAM("cmdVelBuffer size after clear: " << cmdVelBuffer.size() << ", is full: " << cmdVelBuffer.capacity());
+        ROS_INFO_STREAM("cmdVelBuffer_ size: " << cmdVelBuffer_.size());
+        cmdVelBuffer_.clear();
+        ROS_INFO_STREAM("cmdVelBuffer_ size after clear: " << cmdVelBuffer_.size() << ", is full: " << cmdVelBuffer_.capacity());
         return;
     }
 
@@ -1374,9 +1376,9 @@ namespace dynamic_gap
     {
         float val = std::abs(cmdVel.linear.x) + std::abs(cmdVel.linear.y) + std::abs(cmdVel.angular.z);
 
-        cmdVelBuffer.push_back(val);
-        float cmdVelBufferSum = std::accumulate(cmdVelBuffer.begin(), cmdVelBuffer.end(), float(0));
-        bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer.full();
+        cmdVelBuffer_.push_back(val);
+        float cmdVelBufferSum = std::accumulate(cmdVelBuffer_.begin(), cmdVelBuffer_.end(), float(0));
+        bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
         
         if (!keepPlanning && !cfg_.man.man_ctrl) 
         {
