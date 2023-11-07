@@ -184,6 +184,8 @@ namespace dynamic_gap
             // gapVisualizer_->drawGapsModels(associatedRawGaps_);
             gapVisualizer_->drawGaps(associatedSimplifiedGaps_, std::string("simp"));
             gapVisualizer_->drawGapsModels(associatedSimplifiedGaps_);
+
+            readyToPlan = true;
         }
 
         goalSelector_->updateEgoCircle(scan_);
@@ -457,7 +459,8 @@ namespace dynamic_gap
             rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
             tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
-        } catch (tf2::TransformException &ex) {
+        } catch (tf2::TransformException &ex) 
+        {
             ROS_WARN("%s", ex.what());
             ros::Duration(0.1).sleep();
             return;
@@ -1161,6 +1164,11 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::runPlanningLoop() 
     {
+        if (!readyToPlan)
+            return geometry_msgs::PoseArray();
+
+        ROS_INFO_STREAM("[runPlanningLoop()]");
+
         // float getPlan_start_time = ros::WallTime::now().toSec();
 
         // float start_time = ros::WallTime::now().toSec();      

@@ -147,6 +147,8 @@ namespace dynamic_gap
 
         int trajectoryChangeCount_;
 
+        bool readyToPlan = false;
+
     public:
         Planner();
 

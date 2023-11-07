@@ -224,6 +224,8 @@ namespace dynamic_gap
             // if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);
 
             OsqpEigen::Solver solver;
+            double timeLimit = 0.5; // seconds
+            solver.settings()->setTimeLimit(timeLimit);
 
             // double initializeSolver_start_time = ros::WallTime::now().toSec();
             initializeSolver(solver, Kplus1, A);
@@ -245,7 +247,11 @@ namespace dynamic_gap
             // solve the QP problem
             // double optStart_time = ros::WallTime::now().toSec();
             if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
-                ROS_FATAL_STREAM("SOLVER FAILED TO SOLVE PROBLEM");
+            {
+                ROS_INFO_STREAM("SOLVER FAILED TO SOLVE PROBLEM");
+                std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+                return traj;
+            }
 
             // get the controller input
             Eigen::MatrixXd weights = solver.getSolution();
@@ -260,7 +266,7 @@ namespace dynamic_gap
             } 
             */  
 
-            
+
             AHPF ahpf(initRbtPos, gapGoalTermPt,
                         cfg_->control.vx_absmax, maxRbtAcc, allAHPFCenters, gapCurvesInwardNorms, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
@@ -279,8 +285,8 @@ namespace dynamic_gap
                 p.position.y += selectedgap.extendedGapOrigin_[1];
             }
             */
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            integration time taken: " << 
-                                                            (ros::Time::now().toSec() - integrationStartTime));
+            // if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            integration time taken: " << 
+            //                                                 (ros::Time::now().toSec() - integrationStartTime));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
             if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            generateTrajectory time taken: " << ros::Time::now().toSec() - generateTrajStartTime);
@@ -403,6 +409,9 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("total distance: " << bezierArclengthDistance);
         // ROS_INFO_STREAM("desired distance interval: " << desiredBezierPtToPtDistance);
 
+        int interpMaxIter = 100;
+        int interpIter = 0;
+
         float t_interval = (1.0 / numBezierSamplePts);
         float t_k, t_kmin1, t_interp, t_interp_min1, t_lowerBound, t_upperBound;
         float currentBezierPtToPtArclengthDistance, bezierPtToPtArclengthDistance;
@@ -427,7 +436,8 @@ namespace dynamic_gap
 
                 t_upperBound = t_k;
                 t_lowerBound = t_interp_min1;
-                while ( abs(bezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) > bezierPtToPtDistanceThresh) 
+                interpIter = 0;                
+                while ( abs(bezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) > bezierPtToPtDistanceThresh && interpIter < interpMaxIter) 
                 {
                     if (bezierPtToPtArclengthDistance < desiredBezierPtToPtDistance) 
                     {
@@ -443,6 +453,7 @@ namespace dynamic_gap
                     }
                     bezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
                     // ROS_INFO_STREAM("from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
+                    interpIter++;
                 }
                 
                 // ROS_INFO_STREAM("adding " << t_interp);
@@ -626,20 +637,20 @@ namespace dynamic_gap
                          leftBezierOrigin, selectedGap.leftPt0_, selectedGap.leftPt1_, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);        
 
 
-        ROS_INFO_STREAM("   leftBezierOrigin: " << leftBezierOrigin[0] << ", " << leftBezierOrigin[1]);
-        ROS_INFO_STREAM("   leftCurveInitPt: " << leftCurveInitPt[0] << ", " << leftCurveInitPt[1]);
-        ROS_INFO_STREAM("   selectedGap.leftPt0_: " << selectedGap.leftPt0_[0] << ", " << selectedGap.leftPt0_[1]);       
-        ROS_INFO_STREAM("   selectedGap.leftPt1_: " << selectedGap.leftPt1_[0] << ", " << selectedGap.leftPt1_[1]);
-        ROS_INFO_STREAM("   left_vel: " << leftGapPtVel[0] << ", " << leftGapPtVel[1]);
-        ROS_INFO_STREAM("   leftCurvePosns:");
-        for (int i = 0; i < leftCurvePosns.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << leftCurvePosns(i, 0) << ", " << leftCurvePosns(i, 1));
-        ROS_INFO_STREAM("   leftCurveVels:");
-        for (int i = 0; i < leftCurveVels.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << leftCurveVels(i, 0) << ", " << leftCurveVels(i, 1));
-        ROS_INFO_STREAM("   leftCurveInwardNorms:");
-        for (int i = 0; i < leftCurveInwardNorms.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << leftCurveInwardNorms(i, 0) << ", " << leftCurveInwardNorms(i, 1));
+        // ROS_INFO_STREAM("   leftBezierOrigin: " << leftBezierOrigin[0] << ", " << leftBezierOrigin[1]);
+        // ROS_INFO_STREAM("   leftCurveInitPt: " << leftCurveInitPt[0] << ", " << leftCurveInitPt[1]);
+        // ROS_INFO_STREAM("   selectedGap.leftPt0_: " << selectedGap.leftPt0_[0] << ", " << selectedGap.leftPt0_[1]);       
+        // ROS_INFO_STREAM("   selectedGap.leftPt1_: " << selectedGap.leftPt1_[0] << ", " << selectedGap.leftPt1_[1]);
+        // ROS_INFO_STREAM("   left_vel: " << leftGapPtVel[0] << ", " << leftGapPtVel[1]);
+        // ROS_INFO_STREAM("   leftCurvePosns:");
+        // for (int i = 0; i < leftCurvePosns.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << leftCurvePosns(i, 0) << ", " << leftCurvePosns(i, 1));
+        // ROS_INFO_STREAM("   leftCurveVels:");
+        // for (int i = 0; i < leftCurveVels.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << leftCurveVels(i, 0) << ", " << leftCurveVels(i, 1));
+        // ROS_INFO_STREAM("   leftCurveInwardNorms:");
+        // for (int i = 0; i < leftCurveInwardNorms.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << leftCurveInwardNorms(i, 0) << ", " << leftCurveInwardNorms(i, 1));
 
 
         float desiredRightBezierPtToPtDistance = 0.01;
@@ -665,20 +676,20 @@ namespace dynamic_gap
         buildBezierCurve(numRightRGEPoints, totalNumRightCurvePts, rightArclengthParameters, 
                             rightBezierOrigin, selectedGap.rightPt0_, selectedGap.rightPt1_, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);        
 
-        ROS_INFO_STREAM("   rightBezierOrigin: " << rightBezierOrigin[0] << ", " << rightBezierOrigin[1]);
-        ROS_INFO_STREAM("   rightCurveInitPt: " << rightCurveInitPt[0] << ", " << rightCurveInitPt[1]);
-        ROS_INFO_STREAM("   selectedGap.rightPt0_: " << selectedGap.rightPt0_[0] << ", " << selectedGap.rightPt0_[1]);       
-        ROS_INFO_STREAM("   selectedGap.rightPt1_: " << selectedGap.rightPt1_[0] << ", " << selectedGap.rightPt1_[1]);
-        ROS_INFO_STREAM("   right_vel: " << rightGapPtVel[0] << ", " << rightGapPtVel[1]);
-        ROS_INFO_STREAM("   rightCurvePosns:");
-        for (int i = 0; i < rightCurvePosns.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << rightCurvePosns(i, 0) << ", " << rightCurvePosns(i, 1));
-        ROS_INFO_STREAM("   rightCurveVels:");
-        for (int i = 0; i < rightCurveVels.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << rightCurveVels(i, 0) << ", " << rightCurveVels(i, 1));
-        ROS_INFO_STREAM("   rightCurveInwardNorms:");
-        for (int i = 0; i < rightCurveInwardNorms.rows(); i++)
-            ROS_INFO_STREAM("       " << i << ": " << rightCurveInwardNorms(i, 0) << ", " << rightCurveInwardNorms(i, 1));
+        // ROS_INFO_STREAM("   rightBezierOrigin: " << rightBezierOrigin[0] << ", " << rightBezierOrigin[1]);
+        // ROS_INFO_STREAM("   rightCurveInitPt: " << rightCurveInitPt[0] << ", " << rightCurveInitPt[1]);
+        // ROS_INFO_STREAM("   selectedGap.rightPt0_: " << selectedGap.rightPt0_[0] << ", " << selectedGap.rightPt0_[1]);       
+        // ROS_INFO_STREAM("   selectedGap.rightPt1_: " << selectedGap.rightPt1_[0] << ", " << selectedGap.rightPt1_[1]);
+        // ROS_INFO_STREAM("   right_vel: " << rightGapPtVel[0] << ", " << rightGapPtVel[1]);
+        // ROS_INFO_STREAM("   rightCurvePosns:");
+        // for (int i = 0; i < rightCurvePosns.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << rightCurvePosns(i, 0) << ", " << rightCurvePosns(i, 1));
+        // ROS_INFO_STREAM("   rightCurveVels:");
+        // for (int i = 0; i < rightCurveVels.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << rightCurveVels(i, 0) << ", " << rightCurveVels(i, 1));
+        // ROS_INFO_STREAM("   rightCurveInwardNorms:");
+        // for (int i = 0; i < rightCurveInwardNorms.rows(); i++)
+        //     ROS_INFO_STREAM("       " << i << ": " << rightCurveInwardNorms(i, 0) << ", " << rightCurveInwardNorms(i, 1));
 
         // ROS_INFO_STREAM("radial extensions: ");
         // ADDING DISCRETE POINTS FOR RADIAL GAP EXTENSION
