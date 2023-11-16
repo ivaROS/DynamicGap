@@ -26,45 +26,75 @@
 // #include <sensor_msgs/LaserScan.h>
 #include "OsqpEigen/OsqpEigen.h"
 
-namespace dynamic_gap {
-
+namespace dynamic_gap 
+{
     class GapTrajectoryGenerator
     {
         public:
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
-            void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
+            // void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap&, geometry_msgs::PoseStamped, geometry_msgs::TwistStamped, bool);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap& selectedGap, 
+                                                                                        const geometry_msgs::PoseStamped & currPose, 
+                                                                                        const geometry_msgs::TwistStamped & currVel,
+                                                                                        bool runGoToGoal);
             // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
-            geometry_msgs::PoseArray transformBackTrajectory(const geometry_msgs::PoseArray &, 
-                                                             const geometry_msgs::TransformStamped &);
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> forwardPassTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & return_tuple);
+            geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
+                                                              const geometry_msgs::TransformStamped & transform,
+                                                              const std::string & sourceFrame,
+                                                              const std::string & destFrame);
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj);
 
         private: 
             void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);
 
-            Eigen::VectorXd arclength_sample_bezier(Eigen::Vector2d pt_origin, Eigen::Vector2d pt_0, Eigen::Vector2d pt_1, float num_curve_points, float & des_dist_interval);        
-            void buildBezierCurve(dynamic_gap::Gap& selectedGap, 
-                                Eigen::MatrixXd & left_curve, Eigen::MatrixXd & right_curve, Eigen::MatrixXd & all_curve_pts, 
-                                Eigen::MatrixXd & left_curve_vel, Eigen::MatrixXd & right_curve_vel,
-                                Eigen::MatrixXd & left_curve_inward_norm, Eigen::MatrixXd & right_curve_inward_norm, 
-                                Eigen::MatrixXd & all_inward_norms, Eigen::MatrixXd & left_right_centers, Eigen::MatrixXd & all_centers,
-                                Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nom_vel,
-                                Eigen::Vector2d left_pt_0, Eigen::Vector2d left_pt_1, Eigen::Vector2d right_pt_0, Eigen::Vector2d right_pt_1, 
-                                Eigen::Vector2d gap_radial_extension, Eigen::Vector2d goal_pt_1, float & left_weight, float & right_weight, 
-                                float num_curve_points, 
-                                int & true_left_num_rge_points, int & true_right_num_rge_points, Eigen::Vector2d init_rbt_pos,
-                                Eigen::Vector2d left_bezier_origin, Eigen::Vector2d right_bezier_origin);
-            void setConstraintMatrix(Eigen::MatrixXd &A, 
-                                     int N, 
-                                     int Kplus1, 
-                                     const Eigen::MatrixXd & all_curve_pts, 
-                                     const Eigen::MatrixXd & all_inward_norms, 
-                                     const Eigen::MatrixXd & all_centers);
+            float calculateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
+                                                    const Eigen::Vector2d & bezierPt1, 
+                                                    const Eigen::Vector2d & bezierPt2, 
+                                                    float tStart, float tEnd, float numPoints);
+
+            Eigen::VectorXd arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
+                                                        const Eigen::Vector2d & bezierPt1, 
+                                                        const Eigen::Vector2d & bezierPt2, 
+                                                        float num_curve_points, 
+                                                        float & des_dist_interval);        
+
+            void buildExtendedGapOrigin(const int numRGEPoints,
+                                        const Eigen::Vector2d & extendedGapOrigin,
+                                        const Eigen::Vector2d & bezierOrigin,
+                                        Eigen::MatrixXd & curvePosns,
+                                        Eigen::MatrixXd & curveVels,
+                                        Eigen::MatrixXd & curveInwardNorms,
+                                        bool left);
+            void buildBezierCurve(const int numRGEPoints,
+                                    const int totalNumCurvePts,
+                                    const Eigen::VectorXd & arclengthParameters,
+                                    const Eigen::Vector2d & bezierOrigin,
+                                    const Eigen::Vector2d & bezierInitialPt,
+                                    const Eigen::Vector2d & bezierTerminalPt,
+                                    Eigen::MatrixXd & curvePosns,
+                                    Eigen::MatrixXd & curveVels,
+                                    Eigen::MatrixXd & curveInwardNorms,
+                                    bool left);
+            void buildExtendedBezierCurve(dynamic_gap::Gap & selectedGap, 
+                                            Eigen::MatrixXd & gapCurvesPosns,
+                                            Eigen::MatrixXd & gapCurvesInwardNorms, 
+                                            Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
+                                            const Eigen::Vector2d & leftGapPtVel, const Eigen::Vector2d & rightGapPtVel, const Eigen::Vector2d & maxRbtVel,
+                                            const Eigen::Vector2d & leftCurveInitPt, const Eigen::Vector2d & leftCurveTermPt, 
+                                            const Eigen::Vector2d & rightCurveInitPt, const Eigen::Vector2d & rightCurveTermPt, 
+                                            const Eigen::Vector2d & gapGoalTermPt, 
+                                            float leftBezierWeight, float rightBezierWeight, 
+                                            float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
+                                            const Eigen::Vector2d & initRbtPos);
+            void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
+                                     const Eigen::MatrixXd & gapCurvesPosns, 
+                                     const Eigen::MatrixXd & gapCurvesInwardNorms,
+                                     const Eigen::MatrixXd & allAHPFCenters);
 
 
-            geometry_msgs::TransformStamped planning2odom;       
-            int num_curve_points;
+            // geometry_msgs::TransformStamped planning2odom;       
+            // int numCurvePts;
             const DynamicGapConfig* cfg_;
 
     };

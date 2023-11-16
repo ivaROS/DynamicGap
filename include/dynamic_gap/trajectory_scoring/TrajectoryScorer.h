@@ -31,57 +31,58 @@ namespace dynamic_gap
         TrajectoryScorer& operator=(TrajectoryScorer other) {cfg_ = other.cfg_; return *this;};
         TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
         
-        void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-        void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
-        void updateLocalGoal(geometry_msgs::PoseStamped, geometry_msgs::TransformStamped);
+        void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+        void updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan);
+        void transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
+                                                        const geometry_msgs::TransformStamped & odom2rbt);
 
-        std::vector<float> scoreGaps();
+        // std::vector<float> scoreGaps();
         
         // Full Scoring
         // std::vector<float> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
-        geometry_msgs::PoseStamped getLocalGoal() {return local_goal; }; // in robot frame
-        std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & traj, 
-                                            const std::vector<float> & time_arr, 
-                                            const std::vector<dynamic_gap::Gap>& current_raw_gaps,
-                                            const std::vector<geometry_msgs::Pose> & _agent_odoms, 
-                                            const std::vector<geometry_msgs::Vector3Stamped> & _agent_vels,
-                                            const std::vector<sensor_msgs::LaserScan> & future_scans,
-                                            bool print,
-                                            bool vis);
+        // geometry_msgs::PoseStamped getLocalGoal() {return globalPathLocalWaypointRobotFrame_; }; // in robot frame
+        
+        std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & path, 
+                                                         const std::vector<float> & pathTiming, 
+                                                         const std::vector<dynamic_gap::Gap> & rawGaps,
+                                                         const std::vector<sensor_msgs::LaserScan> & futureScans);
         
         void recoverDynamicEgoCircle(float t_i, float t_iplus1, 
-                                     std::vector<Eigen::Matrix<float, 4, 1> > & curr_agents_lc,                            
-                                     sensor_msgs::LaserScan& dynamic_laser_scan,
-                                     bool print);
+                                    std::vector<Eigen::Matrix<float, 4, 1> > & propagatedAgents,
+                                    sensor_msgs::LaserScan & dynamicLaserScan,
+                                    bool print);
         
-        void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamic_laser_scan);
-
-        float terminalGoalCost(geometry_msgs::Pose pose);
 
         private:
-            const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> msg;
-            sensor_msgs::LaserScan static_scan;
-            std::vector<dynamic_gap::Gap> gaps;
-            geometry_msgs::PoseStamped local_goal;
-            boost::mutex gap_mutex, gplan_mutex, egocircle_mutex;
-
-            std::vector< std::vector<float> > sort_and_prune(const std::vector<Eigen::Matrix<float, 4, 1> > & _odom_vects);
-            // std::vector< std::vector<float> > sort_and_prune(std::vector<geometry_msgs::Pose> _odom_vects);
+            // int signum(float dy);
+            float terminalGoalCost(const geometry_msgs::Pose & pose);
             
-            int sgn_star(float dy);
-            float scorePose(geometry_msgs::Pose pose);
-            int dynamicGetMinDistIndex(geometry_msgs::Pose pose, 
-                                        const sensor_msgs::LaserScan & dynamic_laser_scan, 
-                                        bool print);
+            float dist2Pose(float theta, float dist, const geometry_msgs::Pose & pose);
 
-            float dynamicScorePose(geometry_msgs::Pose pose, float theta, float range);
+            float scorePose(const geometry_msgs::Pose & pose);
             float chapterScore(float d);
-            float dynamicChapterScore(float d);
-            float dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
-            
-            int search_idx = -1;
 
-            ros::Publisher propagatedEgocirclePublisher;
+            // int dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
+            //                             const sensor_msgs::LaserScan & dynamicLaserScan, 
+            //                             bool print);
+
+            float dynamicScorePose(const geometry_msgs::Pose & pose, float theta, float range);
+            float dynamicChapterScore(float d);
+
+            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
+
+            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Matrix<float, 4, 1> > & agentPoses);            
+
+            const DynamicGapConfig* cfg_;
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
+            sensor_msgs::LaserScan staticScan_;
+            // std::vector<dynamic_gap::Gap> gaps;
+            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_;
+            boost::mutex globalPlanMutex_, egocircleMutex_;
+
+
+            // int search_idx = -1;
+
+            ros::Publisher propagatedEgocirclePublisher_;
     };
 }

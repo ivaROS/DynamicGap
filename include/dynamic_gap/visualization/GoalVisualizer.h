@@ -9,16 +9,19 @@ namespace dynamic_gap
     {
         public: 
             using Visualizer::Visualizer;
+
             GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void localGoal(geometry_msgs::PoseStamped);
-            void drawGapGoal(visualization_msgs::MarkerArray&, const dynamic_gap::Gap &, bool initial);
-            void drawGapGoals(const std::vector<dynamic_gap::Gap> &);
+            void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
+            void drawGapGoals(const std::vector<dynamic_gap::Gap> & gaps);
+        
         private: 
-            ros::Publisher goal_pub;
-            ros::Publisher gapwp_pub;
-            std_msgs::ColorRGBA gapwp_color;
-            std_msgs::ColorRGBA terminal_gapwp_color;
-            std_msgs::ColorRGBA localGoal_color;
-            float prev_num_goals;
+            void drawGapGoal(visualization_msgs::MarkerArray&, const dynamic_gap::Gap &, bool initial);
+
+            ros::Publisher globalPathLocalWaypointPublisher;
+            ros::Publisher gapGoalsPublisher;
+            std_msgs::ColorRGBA gapGoalsColor;
+            std_msgs::ColorRGBA terminalGapGoalsColor;
+            std_msgs::ColorRGBA globalPathLocalWaypointColor;
+            // float prev_num_goals;
     };
 }

@@ -24,7 +24,7 @@ namespace dynamic_gap
 {
     typedef boost::array<float, 8> state_type;
 
-    struct polar_gap_field
+    struct PolarGapField
     {
         float x1, x2, y1, y2, gx, gy;
         float close_pt_x, close_pt_y, far_pt_x, far_pt_y, far_vec_x, far_vec_y, rbt_vec_x, rbt_vec_y, angle_gap;
@@ -34,7 +34,7 @@ namespace dynamic_gap
         float rbt_x_0, rbt_y_0;    
         float v_lin_max, a_lin_max;
 
-        polar_gap_field(float x1, float x2, float y1, float y2, float gx, 
+        PolarGapField(float x1, float x2, float y1, float y2, float gx, 
                         float gy, bool mode_agc, bool axial, 
                         float rbt_x_0, float rbt_y_0,
                         float v_lin_max, float a_lin_max)
@@ -45,8 +45,8 @@ namespace dynamic_gap
             ROS_INFO_STREAM("POLAR GAP FIELD");
         }
 
-        Eigen::Vector2f clip_velocities(float x_vel, float y_vel, float x_lim) {
-            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+        Eigen::Vector2f clipVelocities(float x_vel, float y_vel, float x_lim) {
+            // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2f original_vel(x_vel, y_vel);
             float abs_x_vel = std::abs(x_vel);
             float abs_y_vel = std::abs(y_vel);
@@ -101,12 +101,12 @@ namespace dynamic_gap
             Eigen::Vector2f vec_1 = p1 - rbt;
             Eigen::Vector2f vec_2 = p2 - rbt;
 
-            Eigen::Matrix2f r_pi2;
+            Eigen::Matrix2f Rpi2;
             float rot_angle = M_PI / 2;
-            r_pi2 << std::cos(rot_angle), -std::sin(rot_angle), 
+            Rpi2 << std::cos(rot_angle), -std::sin(rot_angle), 
                      std::sin(rot_angle), std::cos(rot_angle);
-            Eigen::Matrix2f neg_r_pi2;
-            neg_r_pi2 << std::cos(-rot_angle), -std::sin(-rot_angle), 
+            Eigen::Matrix2f neg_Rpi2;
+            neg_Rpi2 << std::cos(-rot_angle), -std::sin(-rot_angle), 
                          std::sin(-rot_angle), std::cos(-rot_angle);
 
             Eigen::Vector2f goal_pt(gx, gy);
@@ -125,8 +125,8 @@ namespace dynamic_gap
             float _sigma = 0.50;
             // 0.05: jittery
 
-            Eigen::Vector2f c1 = r_pi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
-            Eigen::Vector2f c2 = neg_r_pi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
+            Eigen::Vector2f c1 = Rpi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
+            Eigen::Vector2f c2 = neg_Rpi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
 
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
             Eigen::Vector2f sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
@@ -187,9 +187,9 @@ namespace dynamic_gap
                 vel_des = circulation_field + attraction_field;
                 // ROS_INFO_STREAM("   vel_des: (" << vel_des[0] << ", " << vel_des[1] << ")");
             }
-            vel_des = clip_velocities(vel_des[0], vel_des[1], v_lin_max);
+            vel_des = clipVelocities(vel_des[0], vel_des[1], v_lin_max);
             // Eigen::Vector2d acc(K_acc*(vel_des(0) - x[2]), K_acc*(vel_des(1) - x[3]));
-            // acc = clip_velocities(acc[0], acc[1], a_lin_max);
+            // acc = clipVelocities(acc[0], acc[1], a_lin_max);
 
             dxdt[0] = vel_des[0];
             dxdt[1] = vel_des[1];
@@ -199,7 +199,7 @@ namespace dynamic_gap
         }
     };
 
-    struct reachable_gap_APF 
+    struct AHPF 
     {
         Eigen::Vector2d rel_left_vel, rel_right_vel, 
                         goal_pt_0, goal_pt_1;
@@ -208,7 +208,7 @@ namespace dynamic_gap
                theta_right, theta_left, thetax, thetag, new_theta, 
                a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
                theta, eps, K_att; 
-        bool _radial, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
+        bool radial_, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
                         a_des, a_actual, nom_acc, nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel;
@@ -217,7 +217,7 @@ namespace dynamic_gap
         Eigen::MatrixXd weights, all_centers, all_inward_norms, gradient_of_pti_wrt_rbt, centers_to_rbt;
         Eigen::VectorXd rowwise_sq_norms;
 
-        reachable_gap_APF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1,
+        AHPF(Eigen::Vector2d init_rbt_pos, Eigen::Vector2d goal_pt_1,
                           float v_lin_max, Eigen::Vector2d nom_acc, Eigen::MatrixXd all_centers, Eigen::MatrixXd all_inward_norms, Eigen::MatrixXd weights,
                           Eigen::Vector2d nonrel_left_vel, Eigen::Vector2d nonrel_right_vel, Eigen::Vector2d nonrel_goal_vel) 
                           : init_rbt_pos(init_rbt_pos), goal_pt_1(goal_pt_1),
@@ -231,15 +231,15 @@ namespace dynamic_gap
             // clipping velocities
             // taking norm of sin/cos norm vector
             state_type new_x = x;
-            Eigen::Vector2d rbt_vel = clip_velocities(new_x[2], new_x[3], v_lin_max);
+            Eigen::Vector2d rbt_vel = clipVelocities(new_x[2], new_x[3], v_lin_max);
             new_x[2] = rbt_vel[0];
             new_x[3] = rbt_vel[1];
 
             return new_x;
         }
 
-        Eigen::Vector2d clip_velocities(float x_vel, float y_vel, float x_lim) {
-            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) {
+            // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
             float abs_x_vel = std::abs(x_vel);
             float abs_y_vel = std::abs(y_vel);
@@ -270,7 +270,7 @@ namespace dynamic_gap
             past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
             past_right_point = abs_right_pos.dot(rel_right_pos) < 0;
             
-            if (_radial) {
+            if (radial_) {
                 past_gap_points = past_left_point || past_right_point;
             } else {
                 past_gap_points = past_left_point && past_right_point;
@@ -278,11 +278,11 @@ namespace dynamic_gap
             
             pass_gap = past_gap_points || past_goal;
 
-            ROS_INFO_STREAM("t: " << t);
-            ROS_INFO_STREAM("rbt state: " << x[0] << ", " << x[1]);
-            ROS_INFO_STREAM("left state: " << x[2] << ", " << x[3]);
-            ROS_INFO_STREAM("right state: " << x[4] << ", " << x[5]);
-            ROS_INFO_STREAM("goal state: " << x[6] << ", " << x[7]);
+            ROS_INFO_STREAM("               t: " << t);
+            ROS_INFO_STREAM("               rbt state: " << x[0] << ", " << x[1]);
+            ROS_INFO_STREAM("               left state: " << x[2] << ", " << x[3]);
+            ROS_INFO_STREAM("               right state: " << x[4] << ", " << x[5]);
+            ROS_INFO_STREAM("               goal state: " << x[6] << ", " << x[7]);
 
             if (pass_gap) {
                 // ROS_INFO_STREAM("past gap");
@@ -345,7 +345,7 @@ namespace dynamic_gap
             v_des = v_lin_max * (v_raw / v_raw.norm());
 
             // CLIPPING DESIRED VELOCITIES
-            // v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
+            // v_cmd = clipVelocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
 
@@ -363,20 +363,21 @@ namespace dynamic_gap
         }
     };
     
-    struct g2g {
+    struct GoToGoal 
+    {
         float goal_vel_x, goal_vel_y, v_lin_max;
         bool goal_reached;
-        g2g(float initial_goal_x, float initial_goal_y, 
+        GoToGoal(float initial_goal_x, float initial_goal_y, 
             float terminal_goal_x, float terminal_goal_y, 
-            float gap_lifespan, float v_lin_max)
+            float gapLifespan_, float v_lin_max)
         : goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max) 
         {
-            goal_vel_x = (terminal_goal_x - initial_goal_x) / gap_lifespan; // absolute velocity (not relative to robot)
-            goal_vel_y = (terminal_goal_y - initial_goal_y) / gap_lifespan;
+            goal_vel_x = (terminal_goal_x - initial_goal_x) / gapLifespan_; // absolute velocity (not relative to robot)
+            goal_vel_y = (terminal_goal_y - initial_goal_y) / gapLifespan_;
         }
 
-        Eigen::Vector2d clip_velocities(float x_vel, float y_vel, float x_lim) {
-            // std::cout << "in clip_velocities with " << x_vel << ", " << y_vel << std::endl;
+        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) {
+            // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
             float abs_x_vel = std::abs(x_vel);
             float abs_y_vel = std::abs(y_vel);
@@ -414,7 +415,7 @@ namespace dynamic_gap
             v_des[0] = (x[6] - x[0]);
             v_des[1] = (x[7] - x[1]);
             
-            Eigen::Vector2d v_cmd = clip_velocities(v_des[0], v_des[1], v_lin_max);
+            Eigen::Vector2d v_cmd = clipVelocities(v_des[0], v_des[1], v_lin_max);
 
             dxdt[0] = v_cmd[0];
             dxdt[1] = v_cmd[1];
@@ -425,24 +426,24 @@ namespace dynamic_gap
     };
 
     // this is an observer?
-    struct write_trajectory
+    struct TrajectoryLogger
     {
         geometry_msgs::PoseArray& _posearr;
         std::string _frame_id;
         float _scale;
         std::vector<float>& _timearr;
 
-        write_trajectory(geometry_msgs::PoseArray& posearr, std::string frame_id, 
-                         float scale, std::vector<float>& timearr): 
-                         _posearr(posearr), _frame_id(frame_id), _scale(scale), _timearr(timearr) {}
+        TrajectoryLogger(geometry_msgs::PoseArray& posearr, std::string frame_id, 
+                         std::vector<float>& timearr): 
+                         _posearr(posearr), _frame_id(frame_id), _timearr(timearr) {}
 
         void operator()( const state_type &x , float t )
         {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = _frame_id;
-            // if this _coefs is not 1.0, will cause jump between initial and next poses
-            pose.pose.position.x = x[0] / _scale;
-            pose.pose.position.y = x[1] / _scale;
+
+            pose.pose.position.x = x[0];
+            pose.pose.position.y = x[1];
             pose.pose.position.z = 0;
 
             pose.pose.orientation.x = 0;

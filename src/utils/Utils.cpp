@@ -13,86 +13,110 @@ namespace dynamic_gap
 
     float idx2theta(const int idx)
     {
-        return ((float) idx - half_num_scan) * M_PI / half_num_scan;
+        return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
 
-    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector) 
+    Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
     {
-        return Eigen::Vector2f(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
+        return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect) 
+    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, 
+                              const Eigen::Vector2f & rightVect) 
     {
-        float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
+        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
-        float left_to_right_angle = std::atan2(determinant, dot_product);
+        float leftToRightAngle = std::atan2(determinant, dotProduct);
         
-        if (left_to_right_angle < 0)
-            left_to_right_angle += 2*M_PI; 
+        if (leftToRightAngle < 0)
+            leftToRightAngle += 2*M_PI; 
 
-        return left_to_right_angle;
+        return leftToRightAngle;
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect, 
+    float getLeftToRightAngle(const Eigen::Vector2f & leftVect,
+                              const Eigen::Vector2f & rightVect, 
                               bool wrap) 
     {
-        float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
+        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
-        float left_to_right_angle = std::atan2(determinant, dot_product);
+        float leftToRightAngle = std::atan2(determinant, dotProduct);
 
         // wrapping to 0 < angle < 2pi
-        if (wrap && left_to_right_angle < 0) 
+        if (wrap && leftToRightAngle < 0) 
         {
-            ROS_INFO_STREAM("wrapping " << left_to_right_angle);
-            left_to_right_angle += 2*M_PI; 
+            // ROS_INFO_STREAM("wrapping " << leftToRightAngle);
+            leftToRightAngle += 2*M_PI; 
         }
 
-        return left_to_right_angle;
+        return leftToRightAngle;
+    }
+
+    float getGapDist(const Eigen::Vector4f & gapState)
+    {
+        return sqrt(pow(gapState[0], 2) + pow(gapState[1], 2));
+    }
+
+    float getGapBearing(const Eigen::Vector4f & gapState)
+    {
+        return std::atan2(gapState[1], gapState[0]);
+    }    
+   
+    float getGapBearingRateOfChange(const Eigen::Vector4f & gapState)
+    {
+        return (gapState[0]*gapState[3] - gapState[1]*gapState[2]) / (pow(gapState[0], 2) + pow(gapState[1], 2));
     }
 
     float atanThetaWrap(float theta) 
     {
-        float new_theta = theta;
-        while (new_theta <= -M_PI) 
+        float wrappedTheta = theta;
+        while (wrappedTheta <= -M_PI) 
         {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+            wrappedTheta += 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to wrappedTheta: " << wrappedTheta);
         } 
         
-        while (new_theta >= M_PI) 
+        while (wrappedTheta >= M_PI) 
         {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+            wrappedTheta -= 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to wrappedTheta: " << wrappedTheta);
         }
 
-        return new_theta;
+        return wrappedTheta;
     }
 
-    /*
-    float atanThetaWrap(float theta) 
+    float quaternionToYaw(const tf::Quaternion & quat)
     {
-        float new_theta = theta;
-        while (new_theta <= -M_PI) 
-        {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        } 
-        
-        while (new_theta >= M_PI) 
-        {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        }
+        return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
+                            1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
+    }
 
-        return new_theta;
-    }   
-    */
+    int subtractAndWrapScanIndices(int a, int b) 
+    {
+        return (a < 0) ? a+b : a;
+    }
+
+    bool isGlobalPathLocalWaypointWithinGapAngle(int goalIdx, int lowerIdx, int upperIdx) 
+    {
+        if (lowerIdx < upperIdx) 
+        {
+            // ROS_INFO_STREAM("no wrapping, is goal idx between " << lowerIdx << " and " << upperIdx);
+            return (goalIdx > lowerIdx && goalIdx < upperIdx); //if no wrapping occurs
+        } else 
+        {
+            // ROS_INFO_STREAM("wrapping, is goal idx between " << lowerIdx << " and " << full_scan << ", or between " << 0 << " and " << upperIdx);
+            return (goalIdx > lowerIdx && goalIdx < (2*half_num_scan)) || (goalIdx > 0 && goalIdx < upperIdx); // if wrapping occurs
+        }
+    }
+
+    int signum(float value) 
+    {
+        return (value < 0 ? -1 : 1);
+    }
 }

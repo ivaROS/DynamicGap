@@ -6,168 +6,165 @@ namespace dynamic_gap
     TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
-        entire_global_plan_pub = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
-        trajectory_score = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
-        all_traj_viz = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
-        relevant_global_plan_snippet_pub = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
-        trajectory_switch_pub = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
+        trajSwitchIdxPublisher = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
+        globalPlanPublisher = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
+        trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
+        gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
+        globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
     }
 
-    void TrajectoryVisualizer::drawTrajectorySwitchCount(int switch_index, const geometry_msgs::PoseArray & switch_traj) 
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(int trajSwitchIndex, const geometry_msgs::PoseArray & chosenTraj) 
     {
-        geometry_msgs::Pose last_pose;
-        if (switch_traj.poses.size() > 0)
-            last_pose = switch_traj.poses[switch_traj.poses.size() - 1];
-        else 
-            last_pose = geometry_msgs::Pose();
+        geometry_msgs::Pose lastTrajPose = (chosenTraj.poses.size() > 0) ? chosenTraj.poses[chosenTraj.poses.size() - 1] : 
+                                                                            geometry_msgs::Pose();
 
-        visualization_msgs::Marker marker;
-        marker.header = switch_traj.header;
-        marker.ns = "traj_switch_count";
-        marker.id = 0;
-        marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        marker.action = visualization_msgs::Marker::ADD;
-        marker.pose.position = last_pose.position;
-        marker.pose.orientation = last_pose.orientation;;
-        marker.scale.z = 0.3;
-        marker.color.a = 1.0; // Don't forget to set the alpha!
-        marker.color.r = 0.0;
-        marker.color.g = 0.0;
-        marker.color.b = 0.0;
-        marker.text = "SWITCH: " + std::to_string(switch_index);
-        trajectory_switch_pub.publish(marker);
+        visualization_msgs::Marker trajSwitchIdxMarker;
+        trajSwitchIdxMarker.header = chosenTraj.header;
+        trajSwitchIdxMarker.ns = "traj_switch_count";
+        trajSwitchIdxMarker.id = 0;
+        trajSwitchIdxMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        trajSwitchIdxMarker.action = visualization_msgs::Marker::ADD;
+        trajSwitchIdxMarker.pose.position = lastTrajPose.position;
+        trajSwitchIdxMarker.pose.orientation = lastTrajPose.orientation;;
+        trajSwitchIdxMarker.scale.z = 0.3;
+        trajSwitchIdxMarker.color.a = 1.0; // Don't forget to set the alpha!
+        trajSwitchIdxMarker.color.r = 0.0;
+        trajSwitchIdxMarker.color.g = 0.0;
+        trajSwitchIdxMarker.color.b = 0.0;
+        trajSwitchIdxMarker.text = "SWITCH: " + std::to_string(trajSwitchIndex);
+        trajSwitchIdxPublisher.publish(trajSwitchIdxMarker);
     }
 
-    void TrajectoryVisualizer::drawEntireGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan) 
+    void TrajectoryVisualizer::drawGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
-        if (plan.size() < 1) 
-            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << plan.size() << " < 1");
+        // if (!cfg_->gap_viz.debug_viz) return;
+        if (globalPlan.size() < 1) 
+            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
 
-        geometry_msgs::PoseArray vis_arr;
-        vis_arr.header = plan.at(0).header;
-        for (auto & pose : plan) 
-            vis_arr.poses.push_back(pose.pose);
+        geometry_msgs::PoseArray globalPlanPoseArray;
+        globalPlanPoseArray.header = globalPlan.at(0).header;
+        for (const geometry_msgs::PoseStamped & pose : globalPlan) 
+            globalPlanPoseArray.poses.push_back(pose.pose);
 
-        entire_global_plan_pub.publish(vis_arr);
+        globalPlanPublisher.publish(globalPlanPoseArray);
     }
 
-    void TrajectoryVisualizer::pubAllScore(const std::vector<geometry_msgs::PoseArray> & prr, 
-                                            const std::vector<std::vector<float>> & cost) 
+    void TrajectoryVisualizer::drawGapTrajectories(const std::vector<geometry_msgs::PoseArray> & trajs) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
-        visualization_msgs::MarkerArray score_arr;
-        visualization_msgs::Marker lg_marker;
-        if (prr.size() == 0)
+        // if (!cfg_->gap_viz.debug_viz) return;
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clearMarkerArray;
+        visualization_msgs::Marker clearMarker;
+        clearMarker.id = 0;
+        clearMarker.ns =  "clear";
+        clearMarker.action = visualization_msgs::Marker::DELETEALL;
+        clearMarkerArray.markers.push_back(clearMarker);
+        gapTrajectoriesPublisher.publish(clearMarkerArray);
+
+        if (trajs.size() == 0)
         {
-            ROS_WARN_STREAM("traj count length 0");
+            ROS_WARN_STREAM("no trajectories to visualize");
+            return;
+        }
+        
+        visualization_msgs::MarkerArray gapTrajMarkerArray;
+        visualization_msgs::Marker gapTrajMarker;
+
+        // The above makes this safe
+        gapTrajMarker.header.frame_id = trajs.at(0).header.frame_id;
+        gapTrajMarker.header.stamp = ros::Time::now();
+        gapTrajMarker.ns = "allTraj";
+        gapTrajMarker.type = visualization_msgs::Marker::ARROW;
+        gapTrajMarker.action = visualization_msgs::Marker::ADD;
+        gapTrajMarker.scale.x = 0.1;
+        gapTrajMarker.scale.y = 0.04; // 0.01;
+        gapTrajMarker.scale.z = 0.0001;
+        gapTrajMarker.color.a = 1;
+        gapTrajMarker.color.b = 1.0;
+        gapTrajMarker.color.g = 1.0;
+        gapTrajMarker.lifetime = ros::Duration(0);
+
+        for (const geometry_msgs::PoseArray & traj : trajs) 
+        {
+            for (const geometry_msgs::Pose & pose : traj.poses) 
+            {
+                gapTrajMarker.id = int (gapTrajMarkerArray.markers.size());
+                gapTrajMarker.pose = pose;
+                gapTrajMarkerArray.markers.push_back(gapTrajMarker);
+            }
+        }
+        gapTrajectoriesPublisher.publish(gapTrajMarkerArray);
+    }
+
+    void TrajectoryVisualizer::drawGapTrajectoryPoseScores(const std::vector<geometry_msgs::PoseArray> & trajs, 
+                                           const std::vector<std::vector<float>> & trajPoseScores) 
+    {
+        // if (!cfg_->gap_viz.debug_viz) return;
+        visualization_msgs::MarkerArray trajPoseScoresMarkerArray;
+        visualization_msgs::Marker trajPoseScoresMarker;
+        if (trajs.size() == 0)
+        {
+            ROS_WARN_STREAM("no trajectories to visualize");
             return;
         }
 
         // The above ensures this is safe
-        lg_marker.header.frame_id = prr.at(0).header.frame_id;
-        lg_marker.header.stamp = ros::Time::now();
-        lg_marker.ns = "trajScore";
-        lg_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        lg_marker.action = visualization_msgs::Marker::ADD;
-        lg_marker.pose.orientation.w = 1;
-        lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = 0.1;
-        lg_marker.scale.z = 0.05;
+        trajPoseScoresMarker.header.frame_id = trajs.at(0).header.frame_id;
+        trajPoseScoresMarker.header.stamp = ros::Time::now();
+        trajPoseScoresMarker.ns = "trajScore";
+        trajPoseScoresMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        trajPoseScoresMarker.action = visualization_msgs::Marker::ADD;
+        trajPoseScoresMarker.pose.orientation.w = 1;
+        trajPoseScoresMarker.scale.x = 0.1;
+        trajPoseScoresMarker.scale.y = 0.1;
+        trajPoseScoresMarker.scale.z = 0.05;
 
-        lg_marker.color.a = 1;
-        lg_marker.color.r = 1;
-        lg_marker.color.g = 1;
-        lg_marker.color.b = 1;
-        lg_marker.lifetime = ros::Duration(100.0);
+        trajPoseScoresMarker.color.a = 1;
+        trajPoseScoresMarker.color.r = 1;
+        trajPoseScoresMarker.color.g = 1;
+        trajPoseScoresMarker.color.b = 1;
+        trajPoseScoresMarker.lifetime = ros::Duration(0);
 
+        // ROS_FATAL_STREAM_COND(!trajs.size() == trajPoseScores.size(), "drawGapTrajectoryPoseScores size mismatch, trajs: "
+        //                                         << trajs.size() << ", trajPoseScores: " << trajPoseScores.size());
 
-        ROS_FATAL_STREAM_COND(!prr.size() == cost.size(), "pubAllScore size mismatch, prr: "
-            << prr.size() << ", cost: " << cost.size());
-
-        for (int i = 0; i < prr.size(); i++) 
+        for (int i = 0; i < trajs.size(); i++) 
         {
-            ROS_FATAL_STREAM_COND(!prr.at(i).poses.size() == cost.at(i).size(), "pubAllScore size mismatch," << i << "th "
-                << prr.at(i).poses.size() << ", cost: " << cost.at(i).size());
+            // ROS_FATAL_STREAM_COND(!trajs.at(i).poses.size() == trajPoseScores.at(i).size(), "drawGapTrajectoryPoseScores size mismatch," << i << "th "
+            //     << trajs.at(i).poses.size() << ", trajPoseScores: " << trajPoseScores.at(i).size());
             
-            for (int j = 0; j < prr.at(i).poses.size(); j++) 
+            for (int j = 0; j < trajs.at(i).poses.size(); j++) 
             {
-                lg_marker.id = int (score_arr.markers.size());
-                lg_marker.pose = prr.at(i).poses.at(j);
+                trajPoseScoresMarker.id = int (trajPoseScoresMarkerArray.markers.size());
+                trajPoseScoresMarker.pose = trajs.at(i).poses.at(j);
 
                 std::stringstream stream;
-                stream << std::fixed << std::setprecision(2) << cost.at(i).at(j);
-                lg_marker.text = stream.str();
+                stream << std::fixed << std::setprecision(2) << trajPoseScores.at(i).at(j);
+                trajPoseScoresMarker.text = stream.str();
 
-                score_arr.markers.push_back(lg_marker);
+                trajPoseScoresMarkerArray.markers.push_back(trajPoseScoresMarker);
             }
         }
-        trajectory_score.publish(score_arr);
+        trajPoseScoresPublisher.publish(trajPoseScoresMarkerArray);
     }
 
-    void TrajectoryVisualizer::pubAllTraj(const std::vector<geometry_msgs::PoseArray> & prr) 
+    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet) 
     {
-        if (!cfg_->gap_viz.debug_viz) return;
+        // try 
+        // { 
 
-        // First, clearing topic.
-        visualization_msgs::MarkerArray clear_arr;
-        visualization_msgs::Marker clear_marker;
-        clear_marker.id = 0;
-        clear_marker.ns =  "allTraj";
-        clear_marker.action = visualization_msgs::Marker::DELETEALL;
-        clear_arr.markers.push_back(clear_marker);
-        all_traj_viz.publish(clear_arr);
+        geometry_msgs::PoseArray globalPlanSnippetPoseArray;
+        if (globalPlanSnippet.size() > 0)             // Should be safe with this check
+            globalPlanSnippetPoseArray.header = globalPlanSnippet.at(0).header;
 
-        
-        visualization_msgs::MarkerArray vis_traj_arr;
-        visualization_msgs::Marker lg_marker;
-        if (prr.size() == 0)
-        {
-            ROS_WARN_STREAM("traj count length 0");
-            return;
-        }
+        for (const geometry_msgs::PoseStamped & pose : globalPlanSnippet) 
+            globalPlanSnippetPoseArray.poses.push_back(pose.pose);
 
-        // The above makes this safe
-        lg_marker.header.frame_id = prr.at(0).header.frame_id;
-        lg_marker.header.stamp = ros::Time::now();
-        lg_marker.ns = "allTraj";
-        lg_marker.type = visualization_msgs::Marker::ARROW;
-        lg_marker.action = visualization_msgs::Marker::ADD;
-        lg_marker.scale.x = 0.1;
-        lg_marker.scale.y = cfg_->gap_viz.fig_gen ? 0.04 : 0.01;// 0.01;
-        lg_marker.scale.z = 0.0001;
-        lg_marker.color.a = 1;
-        lg_marker.color.b = 1.0;
-        lg_marker.color.g = 1.0;
-        lg_marker.lifetime = ros::Duration(100.0);
+        globalPlanSnippetPublisher.publish(globalPlanSnippetPoseArray);
 
-        for (auto & arr : prr) 
-        {
-            for (auto pose : arr.poses) 
-            {
-                lg_marker.id = int (vis_traj_arr.markers.size());
-                lg_marker.pose = pose;
-                vis_traj_arr.markers.push_back(lg_marker);
-            }
-        }
-        all_traj_viz.publish(vis_traj_arr);
-    }
-
-    void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj) 
-    {
-        try 
-        { 
-            geometry_msgs::PoseArray pub_traj;
-            if (traj.size() > 0) {
-                // Should be safe with this check
-                pub_traj.header = traj.at(0).header;
-            }
-            for (auto trajpose : traj) {
-                pub_traj.poses.push_back(trajpose.pose);
-            }
-            relevant_global_plan_snippet_pub.publish(pub_traj);
-        } catch (...) {
-            ROS_FATAL_STREAM("getRelevantGlobalPlan");
-        }
+        // } catch (...) {
+        //     ROS_FATAL_STREAM("getVisibleGlobalPlanSnippetRobotFrame");
+        // }
     }
 }

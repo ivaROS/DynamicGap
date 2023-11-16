@@ -29,37 +29,36 @@ namespace dynamic_gap
             GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
             // Map Frame
-            void setGoal(const std::vector<geometry_msgs::PoseStamped> &);
-            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-            void updateLocalGoal(geometry_msgs::TransformStamped map2rbt);
-            geometry_msgs::PoseStamped transformLocalGoalToOdomFrame(geometry_msgs::TransformStamped rbt2odom);
-            geometry_msgs::PoseStamped rbtFrameLocalGoal() {return local_goal;};
-            std::vector<geometry_msgs::PoseStamped> getOdomGlobalPlan();
-            std::vector<geometry_msgs::PoseStamped> getRelevantGlobalPlan(geometry_msgs::TransformStamped);
+            void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPath);
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            void generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt);
+            geometry_msgs::PoseStamped getGlobalPathLocalWaypointOdomFrame(const geometry_msgs::TransformStamped & rbt2odom);
+            geometry_msgs::PoseStamped getGlobalPathLocalWaypointRobotFrame() { return globalPathLocalWaypointRobotFrame_; };
+            std::vector<geometry_msgs::PoseStamped> getGlobalPathOdomFrame();
+            std::vector<geometry_msgs::PoseStamped> getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt);
 
 
         private:
             const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser;
-            std::vector<geometry_msgs::PoseStamped> global_plan;
-            std::vector<geometry_msgs::PoseStamped> mod_plan;
-            geometry_msgs::PoseStamped local_goal; // Robot Frame
-            boost::mutex goal_select_mutex;
-            boost::mutex lscan_mutex;
-            boost::mutex gplan_mutex;
+            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr_;
+            std::vector<geometry_msgs::PoseStamped> globalPlanMapFrame_;
+            // std::vector<geometry_msgs::PoseStamped> mod_plan;
+            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; // Robot Frame
+            boost::mutex goalSelectMutex_;
+            boost::mutex scanMutex_;
+            boost::mutex globalPlanMutex_;
 
-            float threshold = 3;
+            // float threshold = 3;
 
             // If distance to robot is within
             bool isNotWithin(const float dist);
             // Pose to robot, when all in rbt frames
-            float dist2rbt(geometry_msgs::PoseStamped);
-            float scanDistsAtPlanIndices(geometry_msgs::PoseStamped pose, 
-                                            const sensor_msgs::LaserScan & stored_scan_msgs);
-            int PoseIndexInSensorMsg(geometry_msgs::PoseStamped pose);
-            float getPoseOrientation(geometry_msgs::PoseStamped);
-            bool VisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose);
-            bool NoTVisibleOrPossiblyObstructed(geometry_msgs::PoseStamped pose);
+            float poseNorm(const geometry_msgs::PoseStamped & pose);
+            float calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose);
+            int poseIdxInScan(const geometry_msgs::PoseStamped & pose);
+            float getPoseOrientation(const geometry_msgs::PoseStamped & pose);
+            // bool poseVisible(geometry_msgs::PoseStamped pose);
+            // bool poseNotVisible(geometry_msgs::PoseStamped pose);
 
     };
 }

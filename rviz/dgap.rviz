@@ -35,7 +35,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -88,7 +88,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /point_scan
+          Topic: /robot0/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -173,7 +173,7 @@ Visualization Manager:
               Marker Topic: /goals
               Name: Marker
               Namespaces:
-                local_goal: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray

@@ -1,236 +1,156 @@
 #pragma once
 
-// #include <ros/console.h>
 #include <ros/ros.h>
-// #include <dynamic_gap/dgConfig.h>
-// #include <Eigen/Core>
-#include <boost/thread/mutex.hpp>
+#include <sensor_msgs/LaserScan.h>
+#include <boost/shared_ptr.hpp>
 
-namespace dynamic_gap {
-    class DynamicGapConfig {
+namespace dynamic_gap 
+{
+    class DynamicGapConfig 
+    {
+        // DEFAULT VALUES, CAN BE OVERRIDEN THROUGH ROS PARAMETERS
         public:
-            std::string map_frame_id;
-            std::string odom_frame_id;
-            std::string robot_frame_id;
-            std::string sensor_frame_id;
+            std::string map_frame_id = "map";
+            std::string odom_frame_id = "odom";
+            std::string robot_frame_id = "base_link";
+            std::string sensor_frame_id = "camera_link";
 
+            
             struct GapVisualization 
             {
-                int min_resoln;
-                bool fig_gen;
-                float viz_jitter;
-                bool debug_viz;
+                int min_resoln = 2;
+                // bool fig_gen = true;
+                // float viz_jitter = 0.05;
+                // bool debug_viz = true;
             } gap_viz;
+            
 
             struct Robot 
             {
-                float r_inscr;
-                int num_obsts;
-                float max_range;
-                int half_num_scan;
+                float r_inscr = 0.2;
             } rbt;
+
+            struct Environment
+            {
+                int num_obsts = 0; // needs to be updated from launch file
+            } env;
+
+            struct Scan
+            {
+                float angle_min = -M_PI;
+                float angle_max = M_PI;
+                int half_scan = 256;
+                float half_scan_f = 256.;
+                int full_scan = 512;
+                float full_scan_f = 512.;
+                float angle_increment = (2 * M_PI) / (full_scan_f - 1);
+                float range_max = 4.99;
+                float range_min = 0.0;
+            } scan;
 
             struct PlanningMode 
             {
-                bool projection_inflated;
-                bool planning_inflated;
-                bool holonomic;
-                bool full_fov;
-                bool projection_operator;
-                bool far_feasible;
-                int num_feasi_check;
-                int halt_size;
-                bool egocircle_prop_cheat;
+                bool projection_inflated = false;
+                bool holonomic = true;
+                bool full_fov = true;
+                bool projection_operator = false;
+                bool far_feasible = true;
+                int num_feasi_check = 20;
+                int halt_size = 5;
+                bool egocircle_prop_cheat = true;
+                bool dynamic_feasibility_check = true;
             } planning;            
 
             struct ManualControl 
             {
-                bool man_ctrl;
-                float man_x;
-                float man_y;
-                float man_theta;
+                bool man_ctrl = false;
+                float man_x = 0.0;
+                float man_y = 0.0;
+                float man_theta = 0.0;
             } man;
 
             struct Goal 
             {
-                float goal_tolerance;
-                float waypoint_tolerance;
+                float goal_tolerance = 0.2;
+                float waypoint_tolerance = 0.1;
             } goal;
 
             struct Debug 
             {
-                bool raw_gaps_debug_log;
-                bool static_scan_separation_debug_log;
-                bool simplified_gaps_debug_log;
-                bool feasibility_debug_log;
-                bool manipulation_debug_log;
-                bool traj_debug_log;
-                bool control_debug_log;
+                bool gap_detection_debug_log = false;
+                bool gap_simplification_debug_log = false;
+                bool raw_gaps_debug_log = false;
+                bool static_scan_separation_debug_log = false;
+                bool simplified_gaps_debug_log = false;
+                bool future_scan_propagation_debug_log = false;
+                bool feasibility_debug_log = false;
+                bool manipulation_debug_log = true;
+                bool traj_debug_log = true;
+                bool control_debug_log = true;
             } debug;
 
             struct GapAssociation 
             {
-                float assoc_thresh;
+                float assoc_thresh = 0.15;
             } gap_assoc;           
-
-            struct GapEstimation 
-            {
-                float R_scalar;
-                float Q_scalar;
-            } gap_est;
 
             struct GapManipulation 
             {
-                float epsilon1;
-                float epsilon2;
-                float rot_ratio;
-                float reduction_threshold;
-                float reduction_target;
-                int max_idx_diff;
-                bool radial_extend;
-                bool radial_convert;
+                float epsilon1 = 0.20;
+                float epsilon2 = 0.30;
+                // float rot_ratio = 1.5;
+                float reduction_threshold = M_PI;
+                float reduction_target = M_PI;
+                int max_idx_diff = 256;
+                bool radial_extend = true;
+                bool radial_convert = true;
             } gap_manip;
 
             struct Trajectory 
             {
-                bool synthesized_frame;
-                float scale;
-                float integrate_maxt;
-                float integrate_stept;
-                float max_pose_pen_dist;
-                float cobs;
-                float pose_exp_weight;
-                float inf_ratio;
-                float terminal_weight;
-                float waypoint_ratio;
-                int num_curve_points;
-                int num_qB_points;
+                bool synthesized_frame = true;
+                float scale = 1.0;
+                float integrate_maxt = 5.0;
+                float integrate_stept = 0.5;
+                float max_pose_pen_dist = 0.5;
+                float cobs = -1.0;
+                float pose_exp_weight = 5.0;
+                float inf_ratio = 1.21;
+                float terminal_weight = 10.0;
+                float waypoint_ratio = 1.5;
+                int num_curve_points = 20;
+                int num_extended_gap_origin_points = 6;
             } traj;            
 
             struct ControlParams 
             {
-                float k_fb_x;
-                float k_fb_y;
-                float k_fb_theta;
-                int ctrl_ahead_pose;
-                float vx_absmax;
-                float vy_absmax;
-                float vang_absmax;
-                float ax_absmax;
-                float ay_absmax;
-                float aang_absmax;
+                float k_fb_x = 0.5;
+                float k_fb_y = 0.5;
+                float k_fb_theta = 0.5;
+                int ctrl_ahead_pose = 2;
+                float vx_absmax = 0.5;
+                float vy_absmax = 0.5;
+                float vang_absmax = 1.5;
+                float ax_absmax = 3.0;
+                float ay_absmax = 3.0;
+                float aang_absmax = 3.0;
             } control;
             
             struct ProjectionParam 
             {
-                float k_po_x;
-                float k_po_theta;
+                float k_po_x = 1.0;
+                float k_po_theta = 1.0;
 
-                float r_min;
-                float r_norm;
-                float r_norm_offset;
-                float cbf_param;                
-                float k_CBF;
+                float r_min = 0.35;
+                float r_norm = 1.0;
+                float r_norm_offset = 0.5;
+                float cbf_param = 0.1;                
+                float k_CBF = 1.0;
 
-                bool line;
+                bool line = false;
             } projection;
 
-        DynamicGapConfig() {
-            map_frame_id = "map";
-            odom_frame_id = "odom";
-            robot_frame_id = "base_link";
-            sensor_frame_id = "camera_link";
-
-            gap_viz.min_resoln = 2;
-            gap_viz.fig_gen = true;
-            gap_viz.viz_jitter = 0.05;
-            gap_viz.debug_viz = true;
-
-            rbt.r_inscr = 0.2;
-            rbt.num_obsts = 0;
-            rbt.max_range = 4.99;
-
-            planning.projection_inflated = false;
-            planning.planning_inflated = false;
-            planning.holonomic = true;
-            planning.full_fov = true;
-            planning.projection_operator = false;
-            planning.num_feasi_check = 20;
-            planning.far_feasible = true;
-            planning.halt_size = 5;
-            planning.egocircle_prop_cheat = false;
-
-            man.man_ctrl = false;
-            man.man_x = 0;
-            man.man_y = 0;
-            man.man_theta = 0;
-
-            goal.goal_tolerance = 0.2;
-            goal.waypoint_tolerance = 0.1;
-
-            debug.raw_gaps_debug_log = false;
-            debug.static_scan_separation_debug_log = false;
-            debug.simplified_gaps_debug_log = false;
-            debug.feasibility_debug_log = true;
-            debug.manipulation_debug_log = false;
-            debug.traj_debug_log = true;
-            debug.control_debug_log = true;             
-
-            gap_assoc.assoc_thresh = 0.15;
-
-            gap_est.R_scalar = 0.1;
-            gap_est.Q_scalar = 0.5;
-
-            gap_manip.epsilon1 = 0.18;
-            gap_manip.epsilon2 = 0.18;
-            gap_manip.rot_ratio = 1.5;
-            gap_manip.reduction_threshold = M_PI;
-            gap_manip.reduction_target = M_PI;
-            gap_manip.max_idx_diff = 256;
-            gap_manip.radial_extend = true;
-            gap_manip.radial_convert = true;
-
-            traj.synthesized_frame = true;
-            traj.scale = 1;
-            traj.integrate_maxt = 5;
-            traj.integrate_stept = 0.50;
-            traj.max_pose_pen_dist = 0.5;
-            traj.cobs = -1.0;
-            traj.pose_exp_weight = 5;
-            traj.inf_ratio = 1.21;
-            traj.terminal_weight = 10;
-            traj.waypoint_ratio = 1.5;
-            traj.num_curve_points = 20;
-            traj.num_qB_points = 6;     
-            
-            control.k_fb_x = 0.5;
-            control.k_fb_y = 0.5;
-            control.k_fb_theta = 0.5;
-            control.ctrl_ahead_pose = 2;
-            control.vx_absmax = 0.5;
-            control.vy_absmax = 0.5;
-            control.vang_absmax = 1.5;
-            control.ax_absmax = 3.0;
-            control.ay_absmax = 3.0;
-            control.aang_absmax = 3.0;
-
-            projection.k_po_x = 1.0;
-            projection.k_po_theta = 1.0;
-            projection.r_min = 0.35;
-            projection.r_norm = 1.0;
-            projection.r_norm_offset = 0.5;
-            projection.cbf_param = 0.1;
-            projection.k_CBF = 1.0;
-            projection.line = false;
-        }
-
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
-
-        // void reconfigure(dgConfig& cfg);
-
-        boost::mutex & configMutex() {return config_mutex;}
-
-        private: 
-            boost::mutex config_mutex; 
+        void updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
     };
 }
