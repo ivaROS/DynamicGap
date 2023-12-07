@@ -65,6 +65,9 @@ namespace dynamic_gap
             RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
                         const geometry_msgs::TwistStamped & lastRbtVel,
                         const geometry_msgs::TwistStamped & lastRbtAcc);
+            // RotatingFrameCartesianKalmanFilter(const Estimator & model);
+
+            ~RotatingFrameCartesianKalmanFilter();
 
             void initialize(float, float, const ros::Time & t_update,
                             const geometry_msgs::TwistStamped & lastRbtVel,

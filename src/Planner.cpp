@@ -13,7 +13,13 @@ namespace dynamic_gap
         ros::NodeHandle nh("planner_node");
     }
 
-    Planner::~Planner() {}
+    Planner::~Planner()
+    {
+        delete tfListener_;
+        delete gapDetector_, gapAssociator_, gapFeasibilityChecker_, gapManipulator_, gapVisualizer_, gapTrajGenerator_;
+        delete goalSelector_, goalVisualizer_,
+        delete trajScorer_, trajVisualizer_, trajController_;
+    }
 
     bool Planner::initialize(const ros::NodeHandle& unh)
     {
@@ -42,7 +48,7 @@ namespace dynamic_gap
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh, cfg_);
         trajScorer_ = new dynamic_gap::TrajectoryScorer(nh, cfg_);
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(nh, cfg_);
-        goalvisualizer = new dynamic_gap::GoalVisualizer(nh, cfg_);
+        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh, cfg_);
         gapManipulator_ = new dynamic_gap::GapManipulator(nh, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh, cfg_);
         gapAssociator_ = new dynamic_gap::GapAssociator(nh, cfg_);
@@ -191,7 +197,7 @@ namespace dynamic_gap
         goalSelector_->updateEgoCircle(scan_);
         goalSelector_->generateGlobalPathLocalWaypoint(map2rbt_);
         geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
-        goalvisualizer->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
+        goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
 
         // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
 
@@ -1320,7 +1326,7 @@ namespace dynamic_gap
         // gapVisualizer_->drawReachableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);
-        // goalvisualizer->drawGapGoals(manipulatedGaps);
+        // goalVisualizer_->drawGapGoals(manipulatedGaps);
     }
 
     void Planner::printGapAssociations(const std::vector<dynamic_gap::Gap> & currentGaps, 

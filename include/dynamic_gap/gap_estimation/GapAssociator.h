@@ -48,6 +48,18 @@ namespace dynamic_gap
 	private:
 		const DynamicGapConfig* cfg_;
 		float assocThresh;
+		
+		void handOffModel(int i,
+							std::vector<dynamic_gap::Gap> & currentGaps, 
+							const std::vector<dynamic_gap::Gap> & previousGaps,
+							std::vector<int> & pair);	
+		void instantiateNewModel(int i,
+								std::vector<dynamic_gap::Gap> & currentGaps, 
+								int & currentModelIdx_,
+								const ros::Time & scanTime,
+								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
+								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
+
 		float Solve(const std::vector <std::vector<float> >& DistMatrix, std::vector<int>& Assignment);
 		void assignmentoptimal(int *assignment, float *cost, float *distMatrix, int nOfRows, int nOfColumns);
 		void buildassignmentvector(int *assignment, bool *starMatrix, int nOfRows, int nOfColumns);

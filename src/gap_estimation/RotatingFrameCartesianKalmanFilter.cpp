@@ -30,6 +30,17 @@ namespace dynamic_gap
         initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
 
+    // copy constructor for copying models
+    // RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(const Estimator & model) : Estimator(model)
+    // {     
+    //     return;
+    // }
+
+    RotatingFrameCartesianKalmanFilter::~RotatingFrameCartesianKalmanFilter()
+    {
+        return;
+    }
+
     void RotatingFrameCartesianKalmanFilter::initialize(float gapPtX, float gapPtY,
                                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                                         const geometry_msgs::TwistStamped & lastRbtAcc) 

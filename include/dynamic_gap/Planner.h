@@ -92,7 +92,7 @@ namespace dynamic_gap
         dynamic_gap::GapVisualizer * gapVisualizer_;
         dynamic_gap::GoalSelector * goalSelector_;
         dynamic_gap::TrajectoryVisualizer * trajVisualizer_;
-        dynamic_gap::GoalVisualizer * goalvisualizer;
+        dynamic_gap::GoalVisualizer * goalVisualizer_;
         dynamic_gap::TrajectoryScorer * trajScorer_;
         dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_;
         dynamic_gap::GapManipulator * gapManipulator_;
