@@ -33,10 +33,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("frozen left betadot: " << leftGapBearingRateOfChange);
         // ROS_INFO_STREAM("frozen right betadot: " << rightGapBearingRateOfChange);
 
-        // float start_time = ros::Time::now().toSec();
         float crossing_time = gapSplinecheck(gap, leftGapPtModel, rightGapPtModel);
-        // ROS_INFO_STREAM("gapSplinecheck time elapsed:" << ros::Time::now().toSec() - start_time);
-
 
         bool feasible = false;
         if (gap.artificial_) 
@@ -80,9 +77,7 @@ namespace dynamic_gap
     {
         if (cfg_->debug.feasibility_debug_log) ROS_INFO_STREAM("            [gapSplinecheck()]");        
         Eigen::Vector2f crossingPt(0.0, 0.0);
-        // float start_time = ros::Time::now().toSec();
         float gapCrossingTime = indivGapFindCrossingPoint(gap, crossingPt, leftGapPtModel, rightGapPtModel);
-        // ROS_INFO_STREAM("indivGapFindCrossingPoint time elapsed:" << ros::Time::now().toSec() - start_time);
 
         Eigen::Vector2f splineInitialPos(0.0, 0.0);
         Eigen::Vector2f splineInitialVel(leftGapPtModel->getRobotVel().twist.linear.x, leftGapPtModel->getRobotVel().twist.linear.y);
@@ -97,7 +92,6 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("starting x: " << splineInitialPos[0] << ", " << splineInitialPos[1] << ", " << splineInitialVel[0] << ", " << splineInitialVel[1]);
         // ROS_INFO_STREAM("ending x: " << crossingPt[0] << ", " << crossingPt[1] << ", splineTerminalVel: " << splineTerminalVel[0] << ", " << splineTerminalVel[1]);
         
-        // start_time = ros::Time::now().toSec();
         Eigen::MatrixXf splineAMat = Eigen::MatrixXf::Random(4,4);
         Eigen::VectorXf splineBVec = Eigen::VectorXf::Random(4);
         splineAMat << 1.0, 0.0, 0.0, 0.0,
@@ -120,7 +114,6 @@ namespace dynamic_gap
         float peakSplineVelY = 3*gap.splineYCoefs_[3]*pow(slinePeakVelTime, 2) + 
                                  2*gap.splineYCoefs_[2]*slinePeakVelTime + 
                                  gap.splineYCoefs_[1];
-        // ROS_INFO_STREAM("spline build time elapsed:" << ros::Time::now().toSec() - start_time);
 
         // ROS_INFO_STREAM("peak velocity: " << peakSplineVelX << ", " << peakSplineVelY);
         gap.peakVelX_ = peakSplineVelX;

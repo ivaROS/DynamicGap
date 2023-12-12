@@ -274,7 +274,6 @@ namespace dynamic_gap
     {
         if (cfg_->debug.gap_simplification_debug_log) ROS_INFO_STREAM("[gapSimplification()]");
 
-        //double start_time = ros::Time::now().toSec();
         std::vector<dynamic_gap::Gap> simplifiedGaps;
 
         // Insert first
@@ -341,7 +340,6 @@ namespace dynamic_gap
             }
             // ROS_INFO_STREAM("---");
         }
-        //ROS_INFO_STREAM("gapSimplification time elapsed: " << ros::Time::now().toSec() - start_time); 
 
         return simplifiedGaps;
     }

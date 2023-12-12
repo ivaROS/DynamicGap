@@ -259,7 +259,7 @@ namespace dynamic_gap
                                                          const std::vector<dynamic_gap::Gap> & rawGaps,
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
-        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            [scoreTrajectory()]");
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("         [scoreTrajectory()]");
         // Requires LOCAL FRAME
         // Should be no racing condition
         // float start_time = ros::WallTime::now().toSec();
@@ -346,7 +346,7 @@ namespace dynamic_gap
             staticPosewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / staticPosewiseCosts.size()
         }
         totalTrajCost = std::accumulate(staticPosewiseCosts.begin(), staticPosewiseCosts.end(), float(0));
-        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                static pose-wise cost: " << totalTrajCost);
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("             static pose-wise cost: " << totalTrajCost);
         // }
 
 
@@ -363,7 +363,7 @@ namespace dynamic_gap
                 return std::vector<float>(path.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                terminal cost: " << -terminalCost);
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            terminal cost: " << -terminalCost);
             posewiseCosts.at(0) -= terminalCost;
         }
         
@@ -375,7 +375,7 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock planlock(globalPlanMutex_);
         // ROS_INFO_STREAM(pose);
-        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("                    final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
+        if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
         float dx = pose.position.x - globalPathLocalWaypointRobotFrame_.pose.position.x;
         float dy = pose.position.y - globalPathLocalWaypointRobotFrame_.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));
@@ -473,7 +473,7 @@ namespace dynamic_gap
         float theta = idx2theta(minDistIdx); // std::distance(scan2RbtDists.begin(), iter) * scan.angle_increment - M_PI;
         float cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
-        ROS_INFO_STREAM("                robot pose: " << pose.position.x << ", " << pose.position.y << 
+        ROS_INFO_STREAM("            robot pose: " << pose.position.x << ", " << pose.position.y << 
                     ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", static cost: " << cost);
         return cost;
     }

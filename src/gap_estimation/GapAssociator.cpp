@@ -52,7 +52,8 @@ namespace dynamic_gap
 	std::vector<std::vector<float>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap> & currentGaps, 
 																	const std::vector<dynamic_gap::Gap> & previousGaps) 
 	{
-		float start_time = ros::Time::now().toSec(); 
+		std::chrono::steady_clock::time_point obtainDistMatrixStartTime = std::chrono::steady_clock::now();
+
 		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
 		// ROS_INFO_STREAM("getting previous points:");
@@ -82,7 +83,8 @@ namespace dynamic_gap
 
 		return distMatrix;
 
-		// ROS_INFO_STREAM("obtainDistMatrix time elapsed: " << ros::Time::now().toSec() - start_time);
+		float obtainDistMatrixTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - obtainDistMatrixStartTime).count() / 1.0e6;
+		ROS_INFO_STREAM("obtainDistMatrix time taken: " << obtainDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
 	}
 	
 	void printGapAssociations(const std::vector<dynamic_gap::Gap> & currentGaps, 
@@ -236,7 +238,7 @@ namespace dynamic_gap
 									 bool print)
 	{
 		if (print) ROS_INFO_STREAM("[assignModels()]");
-		// float start_time = ros::Time::now().toSec();
+		std::chrono::steady_clock::time_point assignModelsStartTime = std::chrono::steady_clock::now();
 		// initializing models for current gaps
 		// float gapPtX, gapPtY;
 
@@ -316,14 +318,15 @@ namespace dynamic_gap
 			
 		// }
 
-		//ROS_INFO_STREAM("assignModels time elapsed: " << ros::Time::now().toSec() - start_time); 
+		float assignModelsTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - assignModelsStartTime).count() / 1.0e6;
+		if (print) ROS_INFO_STREAM("assignModels time taken: " << assignModelsTime << " seconds for " << currentGaps.size() << " gaps");
 	}
         
 
 	std::vector<int> GapAssociator::associateGaps(const std::vector< std::vector<float> > & distMatrix) 
 	{
 		// NEW ASSIGNMENT OBTAINED
-		//float start_time = ros::Time::now().toSec();
+		std::chrono::steady_clock::time_point associateGapsStartTime = std::chrono::steady_clock::now();
 
 		// std::cout << "obtaining new assignment" << std::endl;
 		std::vector<int> association;
@@ -334,8 +337,9 @@ namespace dynamic_gap
 			//std::cout << "done solving" << std::endl;
         }
 
-		//ROS_INFO_STREAM("associateGaps time elapsed: " << ros::Time::now().toSec() - start_time);
-        return association;
+		float associateGapsTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - associateGapsStartTime).count() / 1.0e6;
+		// ROS_INFO_STREAM("associateGaps time taken: " << associateGapsTime << " seconds for " << currentGapPoints.size() << " gaps");
+		return association;
     }
 	
 	//********************************************************//

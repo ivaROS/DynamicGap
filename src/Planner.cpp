@@ -143,7 +143,6 @@ namespace dynamic_gap
 
 
             // std::chrono::steady_clock::time_point gap_detection_start_time = std::chrono::steady_clock::now();
-            // ROS_INFO_STREAM("Time elapsed before raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
             rawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
             // float gap_detection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_detection_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
@@ -160,7 +159,6 @@ namespace dynamic_gap
             associatedRawGaps_ = updateModels(rawGaps_, intermediateRbtVels, 
                                                 intermediateRbtAccs, tCurrentFilterUpdate,
                                                 cfg_.debug.raw_gaps_debug_log);
-            // ROS_INFO_STREAM("Time elapsed after raw gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             staticScan_ = staticScanSeparator_->staticDynamicScanSeparation(associatedRawGaps_, scan_, cfg_.debug.static_scan_separation_debug_log);
             staticScanPublisher_.publish(staticScan_);
@@ -184,7 +182,6 @@ namespace dynamic_gap
             associatedSimplifiedGaps_ = updateModels(simplifiedGaps_, intermediateRbtVels, 
                                                         intermediateRbtAccs, tCurrentFilterUpdate,
                                                         cfg_.debug.simplified_gaps_debug_log);
-            // ROS_INFO_STREAM("Time elapsed after observed gaps processing: " << (ros::WallTime::now().toSec() - start_time));
 
             // gapVisualizer_->drawGaps(associatedRawGaps_, std::string("raw"));
             // gapVisualizer_->drawGapsModels(associatedRawGaps_);
@@ -199,19 +196,14 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
         goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
 
-        // ROS_INFO_STREAM("Time elapsed after updating goal selector: " << (ros::WallTime::now().toSec() - start_time));
 
         trajScorer_->updateEgoCircle(scan_);
         trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
 
-        // ROS_INFO_STREAM("Time elapsed after updating arbiter: " << (ros::WallTime::now().toSec() - start_time));
 
         gapManipulator_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
         // gapFeasibilityChecker_->updateEgoCircle(scan_);
-        // ROS_INFO_STREAM("Time elapsed after updating rest: " << (ros::WallTime::now().toSec() - start_time));
-
-        // ROS_INFO_STREAM("laserscan time elapsed: " << ros::WallTime::now().toSec() - start_time);
 
         previousRawGaps_ = associatedRawGaps_;
         previousSimplifiedGaps_ = associatedSimplifiedGaps_;
@@ -228,7 +220,6 @@ namespace dynamic_gap
         if (print) ROS_INFO_STREAM("[updateModels()]");
         std::vector<dynamic_gap::Gap> associatedGaps = gaps;
         
-        // double start_time = ros::WallTime::now().toSec();
         for (int i = 0; i < 2*associatedGaps.size(); i++) 
         {
             if (print) ROS_INFO_STREAM("    update gap model " << i << " of " << 2*associatedGaps.size());
@@ -236,7 +227,6 @@ namespace dynamic_gap
             if (print) ROS_INFO_STREAM("");
 		}
 
-        //ROS_INFO_STREAM("updateModels time elapsed: " << ros::WallTime::now().toSec() - start_time);
         return associatedGaps;
     }
 
@@ -488,7 +478,7 @@ namespace dynamic_gap
 
             // MANIPULATE POINTS AT T=0            
             // gapManipulator_->reduceGap(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
-            gapManipulator_->convertRadialGap(manipulatedGaps[i], true); 
+            gapManipulator_->convertRadialGap(manipulatedGaps[i], true);
             gapManipulator_->inflateGapSides(manipulatedGaps[i], true);
             gapManipulator_->radialExtendGap(manipulatedGaps[i], true);
             gapManipulator_->setGapWaypoint(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
@@ -714,9 +704,7 @@ namespace dynamic_gap
         // std::vector<dynamic_gap::Gap> curr_raw_gaps = associatedRawGaps_;
 
         try 
-        {
-            // float curr_time = ros::WallTime::now().toSec();
-            
+        {            
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapPtModelID() << ", current right gap index: " << getCurrentRightGapPtModelID());
 
             // First, checking if the current gap we are within is still valid (associated and feasible)
@@ -1175,9 +1163,6 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM("[runPlanningLoop()]");
 
-        // float getPlan_start_time = ros::WallTime::now().toSec();
-
-        // float start_time = ros::WallTime::now().toSec();      
         // std::chrono::steady_clock::time_point start_time_c;
 
         bool isCurrentGapFeasible; // isCurrentGapAssociated, 
@@ -1310,7 +1295,7 @@ namespace dynamic_gap
 
         float planningLoopTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - planningLoopStartTime).count() / 1.0e6;
 
-        ROS_INFO_STREAM("planning loop for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds");
+        ROS_INFO_STREAM("[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
         
         // geometry_msgs::PoseArray chosenTraj;
 

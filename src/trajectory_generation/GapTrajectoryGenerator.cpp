@@ -72,7 +72,8 @@ namespace dynamic_gap
             int numCurvePts = cfg_->traj.num_curve_points;
             // ROS_INFO_STREAM("numCurvePts: " << numCurvePts);
 
-            float generateTrajStartTime = ros::Time::now().toSec();
+		    std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+
             path.header.stamp = ros::Time::now();
             TrajectoryLogger corder(path, cfg_->robot_frame_id, pathTiming);
             path.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
@@ -150,6 +151,8 @@ namespace dynamic_gap
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
                 std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+                float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
+                if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
                 return traj;
             }
 
@@ -172,7 +175,7 @@ namespace dynamic_gap
             float leftBezierWeight, rightBezierWeight;
             int numLeftRGEPoints, numRightRGEPoints;
             // THIS IS BUILT WITH EXTENDED POINTS. 
-            double start_time = ros::Time::now().toSec();
+		    std::chrono::steady_clock::time_point buildExtendedBezierCurveStartTime = std::chrono::steady_clock::now();
             buildExtendedBezierCurve(selectedGap, gapCurvesPosns, 
                                         gapCurvesInwardNorms, gapSideAHPFCenters, allAHPFCenters,
                                         leftGapPtVel, rightGapPtVel, maxRbtVel, 
@@ -180,7 +183,9 @@ namespace dynamic_gap
                                         gapGoalTermPt, leftBezierWeight, rightBezierWeight, numCurvePts, 
                                         numLeftRGEPoints, numRightRGEPoints,
                                         initRbtPos);
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildExtendedBezierCurve time taken: " << (ros::Time::now().toSec() - start_time));
+            float buildExtendedBezierCurveTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - buildExtendedBezierCurveStartTime).count() / 1.0e6;
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
+
             // ROS_INFO_STREAM("after buildExtendedBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
             selectedGap.leftWeight_ = leftBezierWeight;
             selectedGap.rightWeight_ = rightBezierWeight;
@@ -208,7 +213,6 @@ namespace dynamic_gap
                                                     x[0], x[1],
                                                     cfg_->control.vx_absmax, cfg_->control.vx_absmax);
             */
-            // float start_time = ros::Time::now().toSec();
 
             /*
             SETTING UP SOLVER
@@ -231,7 +235,6 @@ namespace dynamic_gap
             initializeSolver(solver, Kplus1, A);
             // if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            initializeSolver time taken: " << ros::WallTime::now().toSec() - initializeSolver_start_time);
 
-            // ROS_INFO_STREAM("setConstraintMatrix time elapsed: " << (ros::Time::now().toSec() - start_time));
             // ROS_INFO_STREAM("A: " << A);
             
             // Eigen::MatrixXd b = Eigen::MatrixXd::Zero(Kplus1, 1);
@@ -245,13 +248,15 @@ namespace dynamic_gap
             // if(!solver.setPrimalVariable(w_0)) return;
             
             // solve the QP problem
-            // double optStart_time = ros::WallTime::now().toSec();
+		    std::chrono::steady_clock::time_point solveProblemStartTime = std::chrono::steady_clock::now();
             if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
             {
                 ROS_INFO_STREAM("SOLVER FAILED TO SOLVE PROBLEM");
                 std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
                 return traj;
             }
+            float solveProblemTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - solveProblemStartTime).count() / 1.0e6;
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            solveProblem time taken: " << solveProblemTime << " seconds");
 
             // get the controller input
             Eigen::MatrixXd weights = solver.getSolution();
@@ -271,7 +276,6 @@ namespace dynamic_gap
                         cfg_->control.vx_absmax, maxRbtAcc, allAHPFCenters, gapCurvesInwardNorms, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
 
-            float integrationStartTime = ros::Time::now().toSec();
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     ahpf, x, 0.0f, selectedGap.gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
@@ -285,11 +289,10 @@ namespace dynamic_gap
                 p.position.y += selectedgap.extendedGapOrigin_[1];
             }
             */
-            // if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            integration time taken: " << 
-            //                                                 (ros::Time::now().toSec() - integrationStartTime));
 
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
-            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            generateTrajectory time taken: " << ros::Time::now().toSec() - generateTrajStartTime);
+            float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
+            if (cfg_->debug.traj_debug_log) ROS_INFO_STREAM("            generateTrajectory (ahpf) time taken: " << generateTrajectoryTime << " seconds");
             return traj;
             
         } catch (...) 
@@ -388,7 +391,7 @@ namespace dynamic_gap
                                                                         float numCurvePts,
                                                                         float & desiredBezierPtToPtDistance) 
     {
-        ROS_INFO_STREAM("   [arclengthParameterizeBezier()]");
+        ROS_INFO_STREAM("               [arclengthParameterizeBezier()]");
         // ROS_INFO_STREAM("bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
         // ROS_INFO_STREAM("bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
         // ROS_INFO_STREAM("bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
@@ -483,7 +486,7 @@ namespace dynamic_gap
                                                         Eigen::MatrixXd & curveInwardNorms,
                                                         bool left)
     {
-        ROS_INFO_STREAM("[buildExtendedGapOrigin()]");
+        ROS_INFO_STREAM("               [buildExtendedGapOrigin()]");
         Eigen::Vector2d currPt, currVel, currInwardVector, currInwardNorm;
         float s = 0.0;
 
@@ -570,7 +573,7 @@ namespace dynamic_gap
                                                             float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
                                                             const Eigen::Vector2d & initRbtPos) 
     {  
-        ROS_INFO_STREAM("[buildExtendedBezierCurve()]");
+        ROS_INFO_STREAM("            [buildExtendedBezierCurve()]");
         // Eigen::MatrixXd leftCurveVels, rightCurveVels, leftCurveInwardNorms, rightCurveInwardNorms,
         //                 leftCurvePosns, rightCurvePosns;
 

@@ -203,8 +203,11 @@ namespace dynamic_gap
         else if (key == 'a')
             manualVelY_ += manualVelLinIncrement_;
         else if (key == 's')
+        {
             manualVelX_ = 0.0f;
-        else if (key == 'd')
+            manualVelY_ = 0.0f;
+            manualVelAng_ = 0.0f;
+        } else if (key == 'd')
             manualVelY_ -= manualVelLinIncrement_;
         else if (key == 'o')
             manualVelAng_ += manualVelAngIncrement_;
