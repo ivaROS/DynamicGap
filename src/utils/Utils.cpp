@@ -73,6 +73,10 @@ namespace dynamic_gap
         return (gapState[0]*gapState[3] - gapState[1]*gapState[2]) / (pow(gapState[0], 2) + pow(gapState[1], 2));
     }
 
+    // TODO: pretty print function for matrix to string
+
+    // TODO: pretty print for function vector to string
+
     float atanThetaWrap(float theta) 
     {
         float wrappedTheta = theta;

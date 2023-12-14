@@ -42,7 +42,7 @@ namespace dynamic_gap
               _axial(axial), rbt_x_0(rbt_x_0), 
               rbt_y_0(rbt_y_0), v_lin_max(v_lin_max), a_lin_max(a_lin_max) 
         {
-            ROS_INFO_STREAM("POLAR GAP FIELD");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "POLAR GAP FIELD");
         }
 
         Eigen::Vector2f clipVelocities(float x_vel, float y_vel, float x_lim) {
@@ -69,10 +69,10 @@ namespace dynamic_gap
 
             if (getLeftToRightAngle(p2, p1) < M_PI)
             {
-                // ROS_INFO_STREAM("don't need to switch");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "don't need to switch");
             } else
             {
-                // ROS_INFO_STREAM("now need to switch");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "now need to switch");
                 std::swap(y1, y2);
                 std::swap(x1, x2);
                 p1 << x1, y1;
@@ -87,16 +87,16 @@ namespace dynamic_gap
             }
             */
 
-            // ROS_INFO_STREAM("   t: " << t);
-            // ROS_INFO_STREAM("   rbt_0: (" << rbt_x_0 << ", " << rbt_y_0 << ")");
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   t: " << t);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   rbt_0: (" << rbt_x_0 << ", " << rbt_y_0 << ")");
 
-            // ROS_INFO_STREAM("   rbt: (" << x[0] << ", " << x[1] << ")");
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   rbt: (" << x[0] << ", " << x[1] << ")");
 
             Eigen::Vector2f rbt(x[0], x[1]);
 
-            // ROS_INFO_STREAM("   p1: " << p1[0] << ", " << p1[1]);
-            // ROS_INFO_STREAM("   p2: " << p2[0] << ", " << p2[1]);
-            // ROS_INFO_STREAM("   p_goal: " << gx << ", " << gy);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   p1: " << p1[0] << ", " << p1[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   p2: " << p2[0] << ", " << p2[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   p_goal: " << gx << ", " << gy);
 
             Eigen::Vector2f vec_1 = p1 - rbt;
             Eigen::Vector2f vec_2 = p2 - rbt;
@@ -167,12 +167,12 @@ namespace dynamic_gap
                 double curr_to_right_vect_norm = curr_to_right_vect.norm();
                 double w1 = curr_to_left_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
                 double w2 = curr_to_right_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
-                // ROS_INFO_STREAM("   c1: (" << c1[0] << ", " << c1[1] << ")");
-                // ROS_INFO_STREAM("   c2: (" << c2[0] << ", " << c2[1] << ")");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   c1: (" << c1[0] << ", " << c1[1] << ")");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   c2: (" << c2[0] << ", " << c2[1] << ")");
 
                 Eigen::Vector2f weighted_circulation_sum = w1*c1 + w2*c2;
 
-                // ROS_INFO_STREAM("   weighted_circulation_sum: (" << weighted_circulation_sum[0] << ", " 
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   weighted_circulation_sum: (" << weighted_circulation_sum[0] << ", " 
                 //                                                  << weighted_circulation_sum[1] << ")");
 
                 Eigen::Vector2f circulation_field = coeffs * weighted_circulation_sum / (weighted_circulation_sum.norm() + eps);
@@ -181,11 +181,11 @@ namespace dynamic_gap
                 //std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
                 //std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
                 //std::cout << "left weight: " << w2 << ", left circulation component: (" << c2[0] << ", " << c2[1] << "), right weight: " << w1 << ", right circulation component: (" << c1[0] << ", " << c1[1] << ")" << std::endl;  
-                // ROS_INFO_STREAM("   circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   circulation: (" << circulation_field[0] << ", " << circulation_field[1] << ")");
                 //std::cout << "robot to goal: (" << goal_vec[0] << ", " << goal_vec[1] << ")" << std::endl;
-                // ROS_INFO_STREAM("   attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   attraction: (" << attraction_field[0] << ", " << attraction_field[1] << ")");
                 vel_des = circulation_field + attraction_field;
-                // ROS_INFO_STREAM("   vel_des: (" << vel_des[0] << ", " << vel_des[1] << ")");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   vel_des: (" << vel_des[0] << ", " << vel_des[1] << ")");
             }
             vel_des = clipVelocities(vel_des[0], vel_des[1], v_lin_max);
             // Eigen::Vector2d acc(K_acc*(vel_des(0) - x[2]), K_acc*(vel_des(1) - x[3]));
@@ -278,54 +278,54 @@ namespace dynamic_gap
             
             pass_gap = past_gap_points || past_goal;
 
-            // ROS_INFO_STREAM("               t: " << t);
-            // ROS_INFO_STREAM("               rbt state: " << x[0] << ", " << x[1]);
-            // ROS_INFO_STREAM("               left state: " << x[2] << ", " << x[3]);
-            // ROS_INFO_STREAM("               right state: " << x[4] << ", " << x[5]);
-            // ROS_INFO_STREAM("               goal state: " << x[6] << ", " << x[7]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               t: " << t);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               rbt state: " << x[0] << ", " << x[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               left state: " << x[2] << ", " << x[3]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               right state: " << x[4] << ", " << x[5]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               goal state: " << x[6] << ", " << x[7]);
 
             if (pass_gap) {
-                // ROS_INFO_STREAM("past gap");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "past gap");
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
                 dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
                 return;
             } 
 
-            // ROS_INFO_STREAM("left_pos: " << abs_left_pos[0] << ", " << abs_left_pos[1]);            
-            // ROS_INFO_STREAM("right_pos: " << abs_right_pos[0] << ", " << abs_right_pos[1]);
-            // ROS_INFO_STREAM("goal_pos: " << abs_goal_pos[0] << ", " << abs_goal_pos[1]);            
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "left_pos: " << abs_left_pos[0] << ", " << abs_left_pos[1]);            
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "right_pos: " << abs_right_pos[0] << ", " << abs_right_pos[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "goal_pos: " << abs_goal_pos[0] << ", " << abs_goal_pos[1]);            
 
             // APF
 
             rg = rel_goal_pos.norm();
 
             K_att = - pow(rg, 2);
-            // ROS_INFO_STREAM("attractive term: " << K_att);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "attractive term: " << K_att);
 
             // Eigen::MatrixXd gradient_of_pti_wrt_centers(Kplus1, 2); // (2, Kplus1); //other one used is Kplus1, 2
    
-            // ROS_INFO_STREAM("all_centers size: " << all_centers.rows() << ", " << all_centers.cols());
-            // ROS_INFO_STREAM("all_inward_norms size: " << all_inward_norms.rows() << ", " << all_inward_norms.cols());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "all_centers size: " << all_centers.rows() << ", " << all_centers.cols());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "all_inward_norms size: " << all_inward_norms.rows() << ", " << all_inward_norms.cols());
 
             centers_to_rbt = (-all_centers).rowwise() + rbt.transpose(); // size (r: Kplus1, c: 2)
-            // ROS_INFO_STREAM("centers_to_rbt size: " << centers_to_rbt.rows() << ", " << centers_to_rbt.cols());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "centers_to_rbt size: " << centers_to_rbt.rows() << ", " << centers_to_rbt.cols());
 
             Eigen::Index maxIndex;
             float maxNorm = centers_to_rbt.rowwise().norm().minCoeff(&maxIndex);
             /*
             for (int i = 0; i < centers_to_rbt.rows(); i++) {
-                ROS_INFO_STREAM("row " << i << ": " << centers_to_rbt.row(i));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "row " << i << ": " << centers_to_rbt.row(i));
             }
             */
             if (maxIndex > 0) {
-                // ROS_INFO_STREAM("min norm index: " << maxIndex);
-                // ROS_INFO_STREAM("min norm center to rbt dir: " << centers_to_rbt.row(maxIndex));
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm index: " << maxIndex);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center to rbt dir: " << centers_to_rbt.row(maxIndex));
                 Eigen::Vector2d min_norm_center_to_rbt = centers_to_rbt.row(maxIndex);
-                // ROS_INFO_STREAM("min norm center: " << min_norm_center);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center: " << min_norm_center);
                 Eigen::Vector2d min_norm_inward_norm = all_inward_norms.row(maxIndex - 1);
-                // ROS_INFO_STREAM("min norm inward dir: " << min_norm_inward_norm);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm inward dir: " << min_norm_inward_norm);
                 if (min_norm_center_to_rbt.dot(min_norm_inward_norm) < 0) {
-                    // ROS_INFO_STREAM("out of gap");
+                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "out of gap");
                     dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
                     dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
                     return;
@@ -333,10 +333,10 @@ namespace dynamic_gap
             }
 
             rowwise_sq_norms = centers_to_rbt.rowwise().squaredNorm();
-            // ROS_INFO_STREAM("rowwise_sq_norms size: " << rowwise_sq_norms.rows() << ", " << rowwise_sq_norms.cols());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "rowwise_sq_norms size: " << rowwise_sq_norms.rows() << ", " << rowwise_sq_norms.cols());
 
             gradient_of_pti_wrt_rbt = centers_to_rbt.array().colwise() / (rowwise_sq_norms.array() + eps);          
-            // ROS_INFO_STREAM("gradient_of_pti_wrt_rbt size: " << gradient_of_pti_wrt_rbt.rows() << ", " << gradient_of_pti_wrt_rbt.cols());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "gradient_of_pti_wrt_rbt size: " << gradient_of_pti_wrt_rbt.rows() << ", " << gradient_of_pti_wrt_rbt.cols());
 
             // output of AHPF
             v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
@@ -346,7 +346,7 @@ namespace dynamic_gap
 
             // CLIPPING DESIRED VELOCITIES
             // v_cmd = clipVelocities(v_des[0], v_des[1], v_lin_max);
-            // ROS_INFO_STREAM("v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
             // set desired acceleration based on desired velocity
 
             dxdt[0] = v_des[0]; // rbt_x
@@ -397,10 +397,10 @@ namespace dynamic_gap
             float goal_norm = sqrt(pow(x[6] - x[0], 2) + pow(x[7] - x[1], 2));
             Eigen::Vector2d v_des(0.0, 0.0);
 
-            // ROS_INFO_STREAM("t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", goal_norm: " << goal_norm);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", goal_norm: " << goal_norm);
 
             if (goal_norm < 0.1) {  // we want to make it so once robot reaches gap, trajectory ends, even if goal keeps moving
-                // ROS_INFO_STREAM("t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
                 v_des(0) = 0;
                 v_des(1) = 0;
 

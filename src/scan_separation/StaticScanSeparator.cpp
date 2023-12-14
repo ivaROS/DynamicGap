@@ -32,14 +32,13 @@ namespace dynamic_gap
 
     void StaticScanSeparator::createAgentFromModels(dynamic_gap::Estimator * currModel,    
                                                     dynamic_gap::Estimator * prevModel,
-                                                    std::vector<Eigen::Matrix<float, 4, 1> > & agents,
-                                                    bool print) 
+                                                    std::vector<Eigen::Matrix<float, 4, 1> > & agents) 
     {
         Eigen::Matrix<float, 4, 1> currState = currModel->getGapState();
         Eigen::Matrix<float, 4, 1> prevState = prevModel->getGapState();
         
         Eigen::Matrix<float, 4, 1> newAgentState = (currState + prevState) / 2;
-        // if (print) ROS_INFO_STREAM("instantiating agent: " << newAgentState[0] << ", " << newAgentState[1] << ", " << newAgentState[2] << ", " << newAgentState[3]);
+        // ROS_INFO_STREAM("instantiating agent: " << newAgentState[0] << ", " << newAgentState[1] << ", " << newAgentState[2] << ", " << newAgentState[3]);
         agents.push_back(newAgentState);                                  
     }
 
@@ -103,8 +102,7 @@ namespace dynamic_gap
     }
 
     sensor_msgs::LaserScan StaticScanSeparator::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & rawGaps, 
-                                                                            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr,
-                                                                            bool print) 
+                                                                            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr) 
     {
         sensor_msgs::LaserScan scan = *scanPtr.get(); 
         try
@@ -138,7 +136,7 @@ namespace dynamic_gap
                 if (checkModelSimilarity(currModel, prevModel)) 
                 {
                     clearAgentFromStaticScan(currModel, prevModel, scan);
-                    createAgentFromModels(currModel, prevModel, agents, print);
+                    createAgentFromModels(currModel, prevModel, agents);
                 }
 
                 prevModel = currModel;
@@ -151,7 +149,7 @@ namespace dynamic_gap
             if (checkModelSimilarity(currModel, prevModel)) 
             {
                 clearAgentFromStaticScan(currModel, prevModel, scan);
-                createAgentFromModels(currModel, prevModel, agents, print);
+                createAgentFromModels(currModel, prevModel, agents);
             }
 
             currAgents = agents;
@@ -163,7 +161,7 @@ namespace dynamic_gap
             // 
         } catch (...)
         {
-            ROS_FATAL_STREAM("[staticDynamicScanSeparation() failed");
+            ROS_ERROR_STREAM("[staticDynamicScanSeparation() failed");
         }
 
         return scan;

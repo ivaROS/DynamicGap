@@ -115,7 +115,7 @@ namespace dynamic_gap
 
         if (centRange < fwdRange && centRange < revRange) 
         {
-            // ROS_INFO_STREAM("Non line");
+            // ROS_INFO_STREAM_NAMED("Controller", "Non line");
             Eigen::Vector2f centMinFwdPt = centPtCart - fwdPtCart;
             Eigen::Vector2f revMinFwdPt = revPtCart - fwdPtCart;
             Eigen::Vector2f revMinFwdNorm = revMinFwdPt / revMinFwdPt.norm(); 
@@ -191,12 +191,12 @@ namespace dynamic_gap
 
     geometry_msgs::Twist TrajectoryController::manualControlLaw() 
     {
-        ROS_INFO_STREAM("Manual Control");
+        ROS_INFO_STREAM_NAMED("Controller", "Manual Control");
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
 
         char key = getch();
-        // ROS_INFO_STREAM("Keyboard input: " << key);
+        // ROS_INFO_STREAM_NAMED("Controller", "Keyboard input: " << key);
 
         if (key == 'w')
             manualVelX_ += manualVelLinIncrement_;
@@ -226,7 +226,7 @@ namespace dynamic_gap
     */
     geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(const sensor_msgs::LaserScan & scan) 
     {
-        ROS_INFO_STREAM("obstacle avoidance control");
+        ROS_INFO_STREAM_NAMED("Controller", "obstacle avoidance control");
         float safeDirX = 0;
         float safeDirY = 0;                                   
         
@@ -247,11 +247,10 @@ namespace dynamic_gap
         float cmdVelY = cfg_->projection.k_CBF * safeDirY;
         float cmdVelTheta = 0.0;
 
-        if (cfg_->debug.control_debug_log) 
-        {
-            ROS_INFO_STREAM("raw safe vels: " << cmdVelX << ", " << cmdVelY);
-            ROS_INFO_STREAM("weighted safe vels: " << cmdVelX << ", " << cmdVelY);
-        }
+
+        ROS_INFO_STREAM_NAMED("Controller", "raw safe vels: " << cmdVelX << ", " << cmdVelY);
+        ROS_INFO_STREAM_NAMED("Controller", "weighted safe vels: " << cmdVelX << ", " << cmdVelY);
+
         clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
 
 
@@ -259,10 +258,7 @@ namespace dynamic_gap
         if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
             cmdVelX += 0.3;
 
-        if (cfg_->debug.control_debug_log) 
-        {
-            ROS_INFO_STREAM("final safe vels: " << cmdVelX << ", " << cmdVelY);
-        }
+        ROS_INFO_STREAM_NAMED("Controller", "final safe vels: " << cmdVelX << ", " << cmdVelY);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
         cmdVel.linear.x = cmdVelX;
@@ -277,7 +273,7 @@ namespace dynamic_gap
                                                           const sensor_msgs::LaserScan & scan, 
                                                           const geometry_msgs::TwistStamped & currentPeakSplineVel_) 
     {    
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("    [controlLaw()]");
+        ROS_INFO_STREAM_NAMED("Controller", "    [controlLaw()]");
         // Setup Vars
         boost::mutex::scoped_lock lock(egocircleLock_);
 
@@ -286,8 +282,8 @@ namespace dynamic_gap
         // float velLinYFeedback = 0;
         // float velAngFeedback = 0;
 
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        feedback control");
-        // ROS_INFO_STREAM("r_min: " << r_min);
+        ROS_INFO_STREAM_NAMED("Controller", "        feedback control");
+        // ROS_INFO_STREAM_NAMED("Controller", "r_min: " << r_min);
 
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         geometry_msgs::Quaternion currOrient = current.orientation;
@@ -333,21 +329,18 @@ namespace dynamic_gap
         float peakSplineSpeed = sqrt(pow(currentPeakSplineVel_.twist.linear.x, 2) + pow(currentPeakSplineVel_.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
 
-        if (cfg_->debug.control_debug_log) 
-        {
-            ROS_INFO_STREAM("        generating control signal");            
-            ROS_INFO_STREAM("        desired pose x: " << desPosn.x << ", y: " << desPosn.y << ", yaw: " << desYaw);
-            ROS_INFO_STREAM("        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
-            ROS_INFO_STREAM("        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
-            ROS_INFO_STREAM("        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
-            ROS_INFO_STREAM("        gap peak velocity: " << currentPeakSplineVel_.twist.linear.x << ", " << currentPeakSplineVel_.twist.linear.y);           
-        }
+        ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
+        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desPosn.x << ", y: " << desPosn.y << ", yaw: " << desYaw);
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+        ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
+        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
+        ROS_INFO_STREAM_NAMED("Controller", "        gap peak velocity: " << currentPeakSplineVel_.twist.linear.x << ", " << currentPeakSplineVel_.twist.linear.y);           
         
         if (peakSplineSpeed > cmdSpeed) 
         {
             velLinXFeedback *= 1.25 * (peakSplineSpeed / cmdSpeed);
             velLinYFeedback *= 1.25 * (peakSplineSpeed / cmdSpeed);
-            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
+            ROS_INFO_STREAM_NAMED("Controller", "        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
         }
     
         cmdVel.linear.x = velLinXFeedback;
@@ -364,7 +357,7 @@ namespace dynamic_gap
                                                              const geometry_msgs::TwistStamped & currRbtVel, 
                                                              const geometry_msgs::TwistStamped & currRbtAcc) 
     {
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("    [processCmdVel()]");
+        ROS_INFO_STREAM_NAMED("Controller", "    [processCmdVel()]");
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
 
@@ -372,11 +365,11 @@ namespace dynamic_gap
         float velLinYFeedback = rawCmdVel.linear.y;
         float velAngFeedback = rawCmdVel.angular.z;
 
-        // ROS_INFO_STREAM(rbtPoseInSensorFrame.pose);
+        // ROS_INFO_STREAM_NAMED("Controller", rbtPoseInSensorFrame.pose);
         float minDistTheta = 0;
         float minDist = 0;
 
-        // ROS_INFO_STREAM("feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
+        // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
 
         // if (scan.ranges.size() < 500) {
         //     ROS_FATAL_STREAM("Scan range incorrect controlLaw");
@@ -388,7 +381,7 @@ namespace dynamic_gap
         
         if (cfg_->planning.projection_operator && (currGapRightPtModel != nullptr && currGapLeftPtModel != nullptr))
         {
-            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        running projection operator");
+            ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
             
             float Psi = 0.0;
             Eigen::Vector2f dPsiDx(0.0, 0.0);
@@ -415,7 +408,7 @@ namespace dynamic_gap
         float weightedVelLinXSafe = cfg_->projection.k_CBF * velLinXSafe;
         float weightedVelLinYSafe = cfg_->projection.k_CBF * velLinYSafe;
 
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        safe command velocity, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
+        ROS_INFO_STREAM_NAMED("Controller", "        safe command velocity, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
 
         // cmdVel_safe
         if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
@@ -447,15 +440,15 @@ namespace dynamic_gap
                 velLinXFeedback = 0;
         }
 
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        summed command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
+        ROS_INFO_STREAM_NAMED("Controller", "        summed command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
-        if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("        clipped command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
+        ROS_INFO_STREAM_NAMED("Controller", "        clipped command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
 
         cmdVel.linear.x = velLinXFeedback;
         cmdVel.linear.y = velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
 
-        // ROS_INFO_STREAM("ultimate command velocity: " << cmdVel.linear.x << ", " << cmdVel.linear.y << ", " << cmdVel.angular.z);
+        // ROS_INFO_STREAM_NAMED("Controller", "ultimate command velocity: " << cmdVel.linear.x << ", " << cmdVel.linear.y << ", " << cmdVel.angular.z);
 
         return cmdVel;
     }
@@ -521,9 +514,9 @@ namespace dynamic_gap
         Eigen::Vector4f dHRightDx = rightGapSideCBFDerivative(rightGapPtState);
 
         // need to potentially ignore if gap is non-convex
-        ROS_INFO_STREAM("rbt velocity: " << state[2] << ", " << state[3] << ", currRbtAcc: " << currRbtAcc[0] << ", " << currRbtAcc[1]);
-        ROS_INFO_STREAM("left rel state: " << leftGapPtState[0] << ", " << leftGapPtState[1] << ", " << leftGapPtState[2] << ", " << leftGapPtState[3]);
-        ROS_INFO_STREAM("right rel state: " << rightGapPtState[0] << ", " << rightGapPtState[1] << ", " << rightGapPtState[2] << ", " << rightGapPtState[3]);
+        ROS_INFO_STREAM_NAMED("Controller", "rbt velocity: " << state[2] << ", " << state[3] << ", currRbtAcc: " << currRbtAcc[0] << ", " << currRbtAcc[1]);
+        ROS_INFO_STREAM_NAMED("Controller", "left rel state: " << leftGapPtState[0] << ", " << leftGapPtState[1] << ", " << leftGapPtState[2] << ", " << leftGapPtState[3]);
+        ROS_INFO_STREAM_NAMED("Controller", "right rel state: " << rightGapPtState[0] << ", " << rightGapPtState[1] << ", " << rightGapPtState[2] << ", " << rightGapPtState[3]);
 
         Eigen::Vector2f leftBearingVect(leftGapPtState[0], leftGapPtState[1]);
         Eigen::Vector2f rightBearingVect(rightGapPtState[0], rightGapPtState[1]);
@@ -540,12 +533,12 @@ namespace dynamic_gap
         if (leftToRightAngle < 0)
             leftToRightAngle += 2*M_PI; 
 
-        ROS_INFO_STREAM("L_to_R angle: " << leftToRightAngle);
-        ROS_INFO_STREAM("left CBF: " << hLeft);
-        ROS_INFO_STREAM("left CBF partials: " << dHLeftDx[0] << ", " << dHLeftDx[1] << ", " << dHLeftDx[2] << ", " << dHLeftDx[3]);
+        ROS_INFO_STREAM_NAMED("Controller", "L_to_R angle: " << leftToRightAngle);
+        ROS_INFO_STREAM_NAMED("Controller", "left CBF: " << hLeft);
+        ROS_INFO_STREAM_NAMED("Controller", "left CBF partials: " << dHLeftDx[0] << ", " << dHLeftDx[1] << ", " << dHLeftDx[2] << ", " << dHLeftDx[3]);
 
-        ROS_INFO_STREAM("right CBF: " << hRight);
-        ROS_INFO_STREAM("right CBF partials: " << dHRightDx[0] << ", " << dHRightDx[1] << ", " << dHRightDx[2] << ", " << dHRightDx[3]);
+        ROS_INFO_STREAM_NAMED("Controller", "right CBF: " << hRight);
+        ROS_INFO_STREAM_NAMED("Controller", "right CBF partials: " << dHRightDx[0] << ", " << dHRightDx[1] << ", " << dHRightDx[2] << ", " << dHRightDx[3]);
 
         float cbfParam = 1.0;
         bool cvxGap = leftToRightAngle < M_PI;
@@ -553,7 +546,7 @@ namespace dynamic_gap
         float PsileftGapSideCBF = dHLeftDx.dot(dxdt) + cbfParam * hLeft;
         float PsirightGapSideCBF = dHRightDx.dot(dxdt) + cbfParam * hRight;
         
-        ROS_INFO_STREAM("PsileftGapSideCBF: " << PsileftGapSideCBF << ", PsirightGapSideCBF: " << PsirightGapSideCBF);
+        ROS_INFO_STREAM_NAMED("Controller", "PsileftGapSideCBF: " << PsileftGapSideCBF << ", PsirightGapSideCBF: " << PsirightGapSideCBF);
         float velLinXSafeLeft = 0;
         float velLinYSafeLeft = 0;
         float velLinXSafeRight = 0;
@@ -580,9 +573,9 @@ namespace dynamic_gap
         
         if (velLinXSafe != 0 || velLinYSafe != 0) 
         {
-            ROS_INFO_STREAM("cmdVel_safe left: " << velLinXSafeLeft << ", " << velLinXSafeLeft);
-            ROS_INFO_STREAM("cmdVel_safe right: " << velLinXSafeRight << ", " << velLinYSafeRight);
-            ROS_INFO_STREAM("cmdVel_safe x: " << velLinXSafe << ", cmdVel_safe y: " << velLinYSafe);
+            ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe left: " << velLinXSafeLeft << ", " << velLinXSafeLeft);
+            ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe right: " << velLinXSafeRight << ", " << velLinYSafeRight);
+            ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe x: " << velLinXSafe << ", cmdVel_safe y: " << velLinYSafe);
         }
     }
 
@@ -653,7 +646,7 @@ namespace dynamic_gap
         // float r_norm_offset = cfg_->projection.r_norm_offset; 
 
         // iterates through current egocircle and finds the minimum distance to the robot's pose
-        // ROS_INFO_STREAM("rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
+        // ROS_INFO_STREAM_NAMED("Controller", "rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
         std::vector<float> minScanDists(scan.ranges.size());
         for (int i = 0; i < minScanDists.size(); i++) 
         {
@@ -668,7 +661,7 @@ namespace dynamic_gap
         minDist = minScanDists.at(minDistScanIdx);
         // minDist = std::min(minDist, maxRange); // minDist >= maxRange ? maxRange : minDist;
         // if (minDist <= 0) 
-        //     ROS_INFO_STREAM("Min dist <= 0, : " << minDist);
+        //     ROS_INFO_STREAM_NAMED("Controller", "Min dist <= 0, : " << minDist);
         // minDist = minDist <= 0 ? 0.01 : minDist;
         // minDist -= cfg_->rbt.r_inscr / 2;
 
@@ -677,11 +670,8 @@ namespace dynamic_gap
         // float min_y = minDist * std::sin(minDistTheta) - rbtPoseInSensorFrame.pose.position.y;
         // minDist = sqrt(pow(min_x, 2) + pow(min_y, 2));
 
-        if (cfg_->debug.control_debug_log) 
-        {
-            ROS_INFO_STREAM("minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
-            // ROS_INFO_STREAM("min_x: " << min_x << ", min_y: " << min_y);
-        }
+        ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
+        // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
         
         // std::vector<geometry_msgs::Point> vec = findLocalLine(minDistScanIdx);
 
@@ -697,17 +687,14 @@ namespace dynamic_gap
 
         Psi = PsiDerAndPsi(2);
 
-        if (cfg_->debug.control_debug_log) 
-        {
-            ROS_INFO_STREAM("dPsiDx: " << dPsiDx[0] << ", " << dPsiDx[1]);
-            ROS_INFO_STREAM("Psi: " << Psi << ", dot product check: " << projOpDotProd);
-        }
+        ROS_INFO_STREAM_NAMED("Controller", "dPsiDx: " << dPsiDx[0] << ", " << dPsiDx[1]);
+        ROS_INFO_STREAM_NAMED("Controller", "Psi: " << Psi << ", dot product check: " << projOpDotProd);
 
-        if(Psi >= 0 && projOpDotProd >= 0)
+        if (Psi >= 0 && projOpDotProd >= 0)
         {
             velLinXSafe = - Psi * projOpDotProd * PsiDerAndPsi(0);
             velLinYSafe = - Psi * projOpDotProd * PsiDerAndPsi(1);
-            if (cfg_->debug.control_debug_log) ROS_INFO_STREAM("cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
+            ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
         }
 
         /*
@@ -803,7 +790,7 @@ namespace dynamic_gap
     {
         // Find pose right ahead
         std::vector<float> localTrajectoryDeviations(localTrajectory.poses.size());
-        ROS_INFO_STREAM("[targetPoseIdx()]");
+        ROS_INFO_STREAM_NAMED("Controller", "[targetPoseIdx()]");
 
         // obtain distance from entire ref traj and current pose
         for (int i = 0; i < localTrajectoryDeviations.size(); i++) // i will always be positive, so this is fine
@@ -823,7 +810,7 @@ namespace dynamic_gap
             tf::Quaternion deviationQuat = desQuat * currQuatInv;
             float deviationYaw = quaternionToYaw(deviationQuat);
 
-            // ROS_INFO_STREAM("   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", deviationYaw: " << deviationYaw);
+            // ROS_INFO_STREAM_NAMED("Controller", "   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", deviationYaw: " << deviationYaw);
 
             localTrajectoryDeviations[i] = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
                                                 pow(currPose.position.y - localTrajectory.poses[i].position.y, 2)) + 

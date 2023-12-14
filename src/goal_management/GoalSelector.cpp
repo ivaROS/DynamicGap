@@ -148,7 +148,7 @@ namespace dynamic_gap
 
         if (closestPlanPose == scanMinusPlanPoseNormDiffs.end()) 
         {
-            ROS_FATAL_STREAM("No Global Plan pose within Robot scan");
+            ROS_ERROR_STREAM("No Global Plan pose within Robot scan");
             return std::vector<geometry_msgs::PoseStamped>(0);
         }
 

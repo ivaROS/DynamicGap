@@ -182,7 +182,7 @@ namespace dynamic_gap
 
             void setRadial(bool initial = true)
             {
-                // ROS_INFO_STREAM("setRadial:");
+                // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
                 // does resoln here imply 360 deg FOV?
                 int checkLeftIdx = initial ? leftIdx_ : termLeftIdx_;
                 int checkRightIdx = initial ? rightIdx_ : termRightIdx_;
@@ -190,31 +190,31 @@ namespace dynamic_gap
                 float checkLeftDist = initial ? leftDist_ : termLeftDist_;
                 float checkRightDist = initial ? rightDist_ : termRightDist_;
 
-                // ROS_INFO_STREAM("   checkLeftIdx: " << checkLeftIdx);
-                // ROS_INFO_STREAM("   checkLeftDist: " << checkLeftDist);
-                // ROS_INFO_STREAM("   checkRightIdx: " << checkRightIdx);
-                // ROS_INFO_STREAM("   checkRightDist: " << checkRightDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftDist: " << checkLeftDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightDist: " << checkRightDist);
 
                 float resoln = M_PI / half_scan;
                 float gapAngle = (checkLeftIdx - checkRightIdx) * resoln;
                 if (gapAngle < 0)
                     gapAngle += 2*M_PI;
 
-                // ROS_INFO_STREAM("   gapAngle: " << gapAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearangeRight = rightType_ ? checkRightDist : checkLeftDist;
                 // law of cosines
                 float leftPtToRightPtDist = sqrt(pow(checkRightDist, 2) + pow(checkLeftDist, 2) - 2 * checkRightDist * checkLeftDist * cos(gapAngle));
                 // law of sines
                 float farSideAngle = asin((nearangeRight / leftPtToRightPtDist) * sin(gapAngle));
                 
-                // ROS_INFO_STREAM("nearangeRight: " << nearangeRight);
-                // ROS_INFO_STREAM("leftPtToRightPtDist: " << leftPtToRightPtDist);
-                // ROS_INFO_STREAM("small angle: " << farSideAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "nearangeRight: " << nearangeRight);
+                // ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "small angle: " << farSideAngle);
 
-                // ROS_INFO_STREAM("   farSideAngle: " << farSideAngle);
-                // ROS_INFO_STREAM("   gapAngle: " << gapAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   farSideAngle: " << farSideAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearSideAngle = (M_PI - farSideAngle - gapAngle);
-                // ROS_INFO_STREAM("   nearSideAngle: " << nearSideAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
 
                 if (initial)
                     radial_ = nearSideAngle > 0.75 * M_PI;
@@ -270,10 +270,10 @@ namespace dynamic_gap
 
                 if (termLeftIdx_ == termRightIdx_) 
                 {
-                    // ROS_INFO_STREAM("terminal indices are the same");
+                    // ROS_INFO_STREAM_NAMED("Gap", "terminal indices are the same");
                     termLeftIdx_ = (termLeftIdx_ + 1) % 512;
                 }
-                // ROS_INFO_STREAM("setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
+                // ROS_INFO_STREAM_NAMED("Gap", "setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
             
                 terminalRightType_ = termRightDist_ < termLeftDist_;
 
@@ -321,7 +321,7 @@ namespace dynamic_gap
                 xRight = rangeRight * cos(thetaRight);
                 yRight = rangeRight * sin(thetaRight);
 
-                ROS_INFO_STREAM("xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
+                ROS_INFO_STREAM_NAMED("Gap", "xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
             }   
             
             float gapLifespan_ = 5.0;

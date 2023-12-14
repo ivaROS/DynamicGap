@@ -293,14 +293,12 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> updateModels(const std::vector<dynamic_gap::Gap> & _observed_gaps, 
                                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                                    const ros::Time & t_kf_update,
-                                                    bool print);
+                                                    const ros::Time & t_kf_update);
 
         void updateModel(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                    const ros::Time & t_kf_update,
-                                    bool print);
+                                    const ros::Time & t_kf_update);
 
         void setCurrentLeftModel(dynamic_gap::Estimator * left_model);
         void setCurrentRightModel(dynamic_gap::Estimator * right_model);

@@ -23,7 +23,7 @@ namespace dynamic_gap
 
     DynamicGapPlanner::~DynamicGapPlanner()
     {
-        ROS_INFO_STREAM("Planner terminated");
+        ROS_INFO_STREAM_NAMED("Planner", "Planner terminated");
     }
 
     bool DynamicGapPlanner::isGoalReached()
@@ -33,13 +33,13 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {
-        ROS_INFO_STREAM("DynamicGap: setPlan");
+        ROS_INFO_STREAM_NAMED("Planner", "DynamicGap: setPlan");
         return planner_.setGoal(globalPlanMapFrame);
     }
 
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
     {
-        // ROS_INFO_STREAM("DynamicGap: initialize");
+        // ROS_INFO_STREAM_NAMED("Planner", "DynamicGap: initialize");
         plannerName_ = name;
         pnh_ = ros::NodeHandle("~/" + plannerName_); // pnh: planner node handle?
         planner_.initialize(pnh_);

@@ -12,6 +12,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <ros/console.h>
 
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
@@ -44,8 +45,7 @@ namespace dynamic_gap
 						int & currentModelIdx_,
 						const ros::Time & scanTime, 
 						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-						bool print);
+						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
 
 	private:
 		const DynamicGapConfig* cfg_;

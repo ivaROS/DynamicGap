@@ -4,7 +4,6 @@
 #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>
 
-// #include <ros/console.h>
 // #include <traj_generator.h>
 // #include <turtlebot_trajectory_generator/near_identity.h>
 #include <math.h>

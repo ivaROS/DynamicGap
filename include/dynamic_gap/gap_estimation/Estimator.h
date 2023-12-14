@@ -57,7 +57,6 @@ namespace dynamic_gap
             virtual void update(const Eigen::Vector2f & measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                bool print,
                                 const std::vector<geometry_msgs::Pose> & agentPoses,
                                 const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                                 const ros::Time & t_kf_update) = 0;
