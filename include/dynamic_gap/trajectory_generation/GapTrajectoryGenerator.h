@@ -50,12 +50,13 @@ namespace dynamic_gap
             float calculateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
                                                     const Eigen::Vector2d & bezierPt1, 
                                                     const Eigen::Vector2d & bezierPt2, 
-                                                    float tStart, float tEnd, float numPoints);
+                                                    const float & tStart, const float & tEnd, 
+                                                    const float & numPoints);
 
             Eigen::VectorXd arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
                                                         const Eigen::Vector2d & bezierPt1, 
                                                         const Eigen::Vector2d & bezierPt2, 
-                                                        float num_curve_points, 
+                                                        const float & num_curve_points, 
                                                         float & des_dist_interval);        
 
             void buildExtendedGapOrigin(const int numRGEPoints,
