@@ -235,17 +235,9 @@ namespace dynamic_gap
         // float thetaTilde, rangeTilde;
         float rX, rY;
 		if (idx % 2 == 0) 
-        {
-            // thetaTilde = idx2theta(gap.LIdx()); // float(g.LIdx() - g.half_scan) / g.half_scan * M_PI;
-            // rangeTilde = gap.LDist();
             gap.getLCartesian(rX, rY);            
-		} else 
-        {
-			// thetaTilde = idx2theta(gap.RIdx()); // float(g.RIdx() - g.half_scan) / g.half_scan * M_PI;
-            // rangeTilde = gap.RDist();
+		else 
             gap.getRCartesian(rX, rY);            
-
-		}
 
         // ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
 
@@ -371,7 +363,7 @@ namespace dynamic_gap
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
             tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
-            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects[agentID][0] << ", " << agent_odom_vects[agentID][1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
+            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
             currentTrueAgentPoses_.at(agentID) = agentPoseRobotFrame.pose;
         } catch (tf2::TransformException &ex) 
         {
@@ -392,8 +384,8 @@ namespace dynamic_gap
             tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
             // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
-            currentTrueAgentVels_[agentID] = agentVelRobotFrame;
-        } catch (tf2::TransformException &ex) 
+            currentTrueAgentVels_.at(agentID) = agentVelRobotFrame;
+        } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "Velocity transform failed for " << agentNamespace);
         }            
@@ -468,26 +460,26 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
-            manipulatedGaps[i].initManipIndices();
+            manipulatedGaps.at(i).initManipIndices();
 
             // MANIPULATE POINTS AT T=0            
-            // gapManipulator_->reduceGap(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
-            gapManipulator_->convertRadialGap(manipulatedGaps[i], true);
-            gapManipulator_->inflateGapSides(manipulatedGaps[i], true);
-            gapManipulator_->radialExtendGap(manipulatedGaps[i], true);
-            gapManipulator_->setGapWaypoint(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
+            // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
+            gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
+            gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
+            gapManipulator_->radialExtendGap(manipulatedGaps.at(i), true);
+            gapManipulator_->setGapWaypoint(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
             
             // MANIPULATE POINTS AT T=1
             ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
-            gapManipulator_->updateDynamicEgoCircle(manipulatedGaps[i], futureScans_);
-            if ((!manipulatedGaps[i].crossed_ && !manipulatedGaps[i].closed_) || (manipulatedGaps[i].crossedBehind_)) 
+            gapManipulator_->updateDynamicEgoCircle(manipulatedGaps.at(i), futureScans_);
+            if ((!manipulatedGaps.at(i).crossed_ && !manipulatedGaps.at(i).closed_) || (manipulatedGaps.at(i).crossedBehind_)) 
             {
-                // gapManipulator_->reduceGap(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
-                gapManipulator_->convertRadialGap(manipulatedGaps[i], false);
+                // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
+                gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
             }
-            gapManipulator_->inflateGapSides(manipulatedGaps[i], false);
-            gapManipulator_->radialExtendGap(manipulatedGaps[i], false);
-            gapManipulator_->setTerminalGapWaypoint(manipulatedGaps[i], goalSelector_->getGlobalPathLocalWaypointRobotFrame());
+            gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
+            gapManipulator_->radialExtendGap(manipulatedGaps.at(i), false);
+            gapManipulator_->setTerminalGapWaypoint(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
         }
 
         return manipulatedGaps;
@@ -523,7 +515,7 @@ namespace dynamic_gap
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running goToGoal");
 
                     std::tuple<geometry_msgs::PoseArray, std::vector<float>> goToGoalTraj;
-                    goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps[i], rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
+                    goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
                     std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(std::get<0>(goToGoalTraj), std::get<1>(goToGoalTraj), 
                                                                                         associatedRawGaps_, 
@@ -533,7 +525,7 @@ namespace dynamic_gap
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
                     std::tuple<geometry_msgs::PoseArray, std::vector<float>> ahpfTraj;
-                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps[i], rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
+                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
                     ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
                     std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(std::get<0>(ahpfTraj), std::get<1>(ahpfTraj), 
                                                                                      associatedRawGaps_, 
@@ -544,17 +536,17 @@ namespace dynamic_gap
                     if (goToGoalScore > ahpfScore)
                     {
                         traj = goToGoalTraj;
-                        pathPoseScores[i] = goToGoalPoseScores;
+                        pathPoseScores.at(i) = goToGoalPoseScores;
                     } else
                     {
                         traj = ahpfTraj;
-                        pathPoseScores[i] = ahpfPoseScores;
+                        pathPoseScores.at(i) = ahpfPoseScores;
                     }
                     // traj =  ? goToGoalTraj : ahpfTraj;
                     // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;
                 } else 
                 {
-                    traj = gapTrajGenerator_->generateTrajectory(gaps[i], rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
+                    traj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
                     traj = gapTrajGenerator_->processTrajectory(traj);
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring trajectory for gap: " << i);
@@ -878,7 +870,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
         for (size_t i = 0; i < pathPoseNorms.size(); i++) // i will always be positive, so this is fine
         {
-            pathPoseNorms[i] = sqrt(pow(curr.poses.at(i).position.x, 2) + 
+            pathPoseNorms.at(i) = sqrt(pow(curr.poses.at(i).position.x, 2) + 
                                     pow(curr.poses.at(i).position.y, 2));
         }
 
@@ -1045,17 +1037,17 @@ namespace dynamic_gap
             // obtain crossing point
 
             ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
-            isGapFeasible = gapFeasibilityChecker_->indivGapFeasibilityCheck(gaps[i]);
+            isGapFeasible = gapFeasibilityChecker_->indivGapFeasibilityCheck(gaps.at(i));
             isGapFeasible = true;
 
             if (isGapFeasible) 
             {
-                gaps[i].addTerminalRightInformation();
-                feasibleGaps.push_back(gaps[i]);
-                // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps[i].peakVelX_ << ", " << gaps[i].peakVelY_);
+                gaps.at(i).addTerminalRightInformation();
+                feasibleGaps.push_back(gaps.at(i));
+                // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i).peakVelX_ << ", " << gaps.at(i).peakVelY_);
             }
 
-            if (gaps[i].leftGapPtModel_->getID() == currentLeftGapPtModelID && gaps[i].rightGapPtModel_->getID() == currentRightGapPtModelID) 
+            if (gaps.at(i).leftGapPtModel_->getID() == currentLeftGapPtModelID && gaps.at(i).rightGapPtModel_->getID() == currentRightGapPtModelID) 
             {
                 // isCurrentGapAssociated = true;
                 isCurrentGapFeasible = true;
@@ -1090,18 +1082,18 @@ namespace dynamic_gap
         dynamicScan.ranges = scan.ranges;
 
         float t_i = 0.0;
-        futureScans_[0] = dynamicScan; // at t = 0.0
+        futureScans_.at(0) = dynamicScan; // at t = 0.0
 
-        std::vector<Eigen::Matrix<float, 4, 1> > currentAgents;
+        std::vector<Eigen::Vector4f > currentAgents;
         
         if (cfg_.planning.egocircle_prop_cheat) 
         {
-            Eigen::Matrix<float, 4, 1> ithAgentState;
+            Eigen::Vector4f ithAgentState;
             currentAgents.clear();
             for (int i = 0; i < currentAgentCount_; i++) 
             {
-                ithAgentState << currentTrueAgentPoses_[i].position.x, currentTrueAgentPoses_[i].position.y, 
-                                 currentTrueAgentVels_[i].vector.x, currentTrueAgentVels_[i].vector.y;
+                ithAgentState << currentTrueAgentPoses_.at(i).position.x, currentTrueAgentPoses_.at(i).position.y, 
+                                 currentTrueAgentVels_.at(i).vector.x, currentTrueAgentVels_.at(i).vector.y;
                 currentAgents.push_back(ithAgentState);
             }
         } else {
@@ -1110,7 +1102,7 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("ScanPropagation", "    detected agents: ");
         for (int i = 0; i < currentAgents.size(); i++)
-            ROS_INFO_STREAM_NAMED("ScanPropagation", "        agent" << i << " position: " << currentAgents[i][0] << ", " << currentAgents[i][1] << ", velocity: " << currentAgents[i][2] << ", " << currentAgents[i][3]);
+            ROS_INFO_STREAM_NAMED("ScanPropagation", "        agent" << i << " position: " << currentAgents.at(i)[0] << ", " << currentAgents.at(i)[1] << ", velocity: " << currentAgents.at(i)[2] << ", " << currentAgents.at(i)[3]);
         
         int futureScanTimeIdx;
         for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
@@ -1239,9 +1231,9 @@ namespace dynamic_gap
         dynamic_gap::Gap highestScoreGap;
         if (highestScoreTrajIdx >= 0) 
         {
-            highestScorePath = paths[highestScoreTrajIdx];
-            highestScorePathTiming = pathTimings[highestScoreTrajIdx];
-            highestScoreGap = manipulatedGaps[highestScoreTrajIdx];
+            highestScorePath = paths.at(highestScoreTrajIdx);
+            highestScorePathTiming = pathTimings.at(highestScoreTrajIdx);
+            highestScoreGap = manipulatedGaps.at(highestScoreTrajIdx);
         } else 
         {
             highestScorePath = geometry_msgs::PoseArray();
@@ -1295,30 +1287,30 @@ namespace dynamic_gap
         std::cout << "association size: " << association.size() << std::endl;
 
         for (int i = 0; i < association.size(); i++)
-            std::cout << association[i] << ", ";
+            std::cout << association.at(i) << ", ";
         std::cout << "" << std::endl;
 
         float currX, currY, prevX, prevY;
         for (int i = 0; i < association.size(); i++) 
         {
-            std::vector<int> pair{i, association[i]};
-            std::cout << "pair (" << i << ", " << association[i] << "). ";
-            int currentGapIdx = int(std::floor(pair[0] / 2.0));
-            int previousGapIdx = int(std::floor(pair[1] / 2.0));
+            std::vector<int> pair{i, association.at(i)};
+            std::cout << "pair (" << i << ", " << association.at(i) << "). ";
+            int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
+            int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
 
-            if (pair[0] % 2 == 0)  // curr left
+            if (pair.at(0) % 2 == 0)  // curr left
                 currentGaps.at(currentGapIdx).getSimplifiedRCartesian(currX, currY);
             else // curr right
                 currentGaps.at(currentGapIdx).getSimplifiedLCartesian(currX, currY);
             
-            if (association[i] >= 0) 
+            if (association.at(i) >= 0 && association.at(i) > 0) 
             {
-                if (pair[1] % 2 == 0) // prev left
+                if (pair.at(1) % 2 == 0) // prev left
                     previousGaps.at(previousGapIdx).getSimplifiedRCartesian(prevX, prevY);
                 else // prev right
                     previousGaps.at(previousGapIdx).getSimplifiedLCartesian(prevX, prevY);
                 
-                std::cout << "From (" << prevX << ", " << prevY << ") to (" << currX << ", " << currY << ") with a distance of " << simpDistMatrix_[pair[0]][pair[1]] << std::endl;
+                std::cout << "From (" << prevX << ", " << prevY << ") to (" << currX << ", " << currY << ") with a distance of " << simpDistMatrix_.at(pair.at(0)).at(pair.at(1)) << std::endl;
             } else 
             {
                 std::cout << "From NULL to (" << currX << ", " <<  currY << ")" << std::endl;
@@ -1332,12 +1324,12 @@ namespace dynamic_gap
         float x, y;
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            dynamic_gap::Gap gap = gaps[i];
+            dynamic_gap::Gap gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap.RIdx() << " to "  << gap.LIdx() << ", left model: " << gap.leftGapPtModel_->getID() << ", rightGapPtModel: " << gap.rightGapPtModel_->getID());
-            Eigen::Matrix<float, 4, 1> left_state = gap.leftGapPtModel_->getState();
+            Eigen::Vector4f left_state = gap.leftGapPtModel_->getState();
             gap.getLCartesian(x, y);            
             ROS_INFO_STREAM_NAMED("Planner", "        left point: (" << x << ", " << y << "), left model: (" << left_state[0] << ", " << left_state[1] << ", " << left_state[2] << ", " << left_state[3] << ")");
-            Eigen::Matrix<float, 4, 1> right_state = gap.rightGapPtModel_->getState();
+            Eigen::Vector4f right_state = gap.rightGapPtModel_->getState();
             gap.getRCartesian(x, y);
             ROS_INFO_STREAM_NAMED("Planner", "        right point: (" << x << ", " << y << "), right model: (" << right_state[0] << ", " << right_state[1] << ", " << right_state[2] << ", " << right_state[3] << ")");
         }
@@ -1353,7 +1345,7 @@ namespace dynamic_gap
         
         if (!keepPlanning && !cfg_.man.man_ctrl) 
         {
-            ROS_FATAL_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
+            ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             reset();
         }

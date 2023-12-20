@@ -9,12 +9,13 @@ namespace dynamic_gap
     **/
 
 
-    bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, dynamic_gap::Estimator * prevModel) 
+    bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, 
+                                                   dynamic_gap::Estimator * prevModel) 
     {
         float eps = 0.00001;
         
-        Eigen::Matrix<float, 4, 1> currState = currModel->getGapState();
-        Eigen::Matrix<float, 4, 1> prevState = prevModel->getGapState();
+        Eigen::Vector4f currState = currModel->getGapState();
+        Eigen::Vector4f prevState = prevModel->getGapState();
         
         Eigen::Vector2f currGapPtVel(currState[2], currState[3]);
         Eigen::Vector2f prevGapPtVel(prevState[2], prevState[3]);
@@ -37,12 +38,12 @@ namespace dynamic_gap
 
     void StaticScanSeparator::createAgentFromModels(dynamic_gap::Estimator * currModel,    
                                                     dynamic_gap::Estimator * prevModel,
-                                                    std::vector<Eigen::Matrix<float, 4, 1> > & agents) 
+                                                    std::vector<Eigen::Vector4f > & agents) 
     {
-        Eigen::Matrix<float, 4, 1> currState = currModel->getGapState();
-        Eigen::Matrix<float, 4, 1> prevState = prevModel->getGapState();
+        Eigen::Vector4f currState = currModel->getGapState();
+        Eigen::Vector4f prevState = prevModel->getGapState();
         
-        Eigen::Matrix<float, 4, 1> newAgentState = (currState + prevState) / 2;
+        Eigen::Vector4f newAgentState = (currState + prevState) / 2;
         // ROS_INFO_STREAM("instantiating agent: " << newAgentState[0] << ", " << newAgentState[1] << ", " << newAgentState[2] << ", " << newAgentState[3]);
         agents.push_back(newAgentState);                                  
     }
@@ -100,8 +101,8 @@ namespace dynamic_gap
 
     bool compareModelBearingValues(dynamic_gap::Estimator* model1, dynamic_gap::Estimator* model2) 
     {
-        Eigen::Matrix<float, 4, 1> state1 = model1->getGapState();
-        Eigen::Matrix<float, 4, 1> state2 = model2->getGapState();
+        Eigen::Vector4f state1 = model1->getGapState();
+        Eigen::Vector4f state2 = model2->getGapState();
         
         return atan2(state1[1], state1[0]) < atan2(state2[1], state2[0]);
     }
@@ -131,7 +132,7 @@ namespace dynamic_gap
             dynamic_gap::Estimator * prevModel = gapModels[0];
             dynamic_gap::Estimator * currModel = gapModels[1];
 
-            std::vector<Eigen::Matrix<float, 4, 1> > agents;
+            std::vector<Eigen::Vector4f > agents;
 
             // ROS_INFO_STREAM("looping through models");
             for (int i = 1; i < gapModels.size(); i++) 
@@ -148,7 +149,7 @@ namespace dynamic_gap
             }
 
             // bridging models
-            prevModel = gapModels[gapModels.size() - 1];
+            prevModel = gapModels.back();
             currModel = gapModels[0];
 
             if (checkModelSimilarity(currModel, prevModel)) 

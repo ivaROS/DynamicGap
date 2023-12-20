@@ -91,9 +91,9 @@ namespace dynamic_gap
         x_ground_truth_gap_only << measurement[0], measurement[1], gapPtVxRel, gapPtVyRel;
 
         G_k_ << 1.0, 1.0,
-             1.0, 1.0,
-             1.0, 1.0,
-             1.0, 1.0;
+                1.0, 1.0,
+                1.0, 1.0,
+                1.0, 1.0;
 
         // dt = 0.0;
 
@@ -156,8 +156,8 @@ namespace dynamic_gap
         }
 
         // Inserting placeholder odometry to represent the time that the incoming laser scan was received
-        intermediateRbtVels_.push_back(intermediateRbtVels_[intermediateRbtVels_.size() - 1]);
-        intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp = t_update;
+        intermediateRbtVels_.push_back(intermediateRbtVels_.back());
+        intermediateRbtVels_.back().header.stamp = t_update;
 
         for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
         {
@@ -193,7 +193,7 @@ namespace dynamic_gap
 
     void RotatingFrameCartesianKalmanFilter::rewindPropagate(float rew_dt) 
     {
-        Eigen::Matrix<float, 4, 1> new_rewind_x;     
+        Eigen::Vector4f new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
         Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
@@ -214,7 +214,7 @@ namespace dynamic_gap
 
     void RotatingFrameCartesianKalmanFilter::gapStatePropagate(float froz_dt) 
     {
-        Eigen::Matrix<float, 4, 1> new_frozen_x;     
+        Eigen::Vector4f new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
         Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
@@ -234,11 +234,11 @@ namespace dynamic_gap
     }
     
 
-    Eigen::Matrix<float, 4, 1> RotatingFrameCartesianKalmanFilter::integrate() 
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::integrate() 
     {
         ROS_INFO_STREAM_NAMED("GapEstimation", "    [integrate()]");
-        Eigen::Matrix<float, 4, 1> x_intermediate = x_hat_kmin1_plus_;
-        Eigen::Matrix<float, 4, 1> new_x = x_hat_kmin1_plus_;
+        Eigen::Vector4f x_intermediate = x_hat_kmin1_plus_;
+        Eigen::Vector4f new_x = x_hat_kmin1_plus_;
 
         for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {

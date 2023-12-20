@@ -76,10 +76,10 @@ namespace dynamic_gap
             // starting the left point of the gap at front facing value
             // std::cout << "max laser scan range: " << scan.range_max << std::endl;
             int gapRIdx = 0;
-            float gapRDist = scan_.ranges[0];
+            float gapRDist = scan_.ranges.at(0);
             // last as in previous scan
             bool withinSweptGap = gapRDist >= maxScanDist_;
-            float currRayDist = scan_.ranges[0];
+            float currRayDist = scan_.ranges.at(0);
             float prevRayDist = currRayDist;
 
             // iterating through scan
@@ -232,26 +232,26 @@ namespace dynamic_gap
         int lastMergeable = -1;
 
         int startIdx, endIdx;
-        // ROS_INFO_STREAM_NAMED("GapDetector", "attempting merge with raw gap: (" << rawGaps[i].RIdx() << ", " << rawGaps[i].RDist() << ") to (" << rawGaps[i].LIdx() << ", " << rawGaps[i].LDist() << ")");
+        // ROS_INFO_STREAM_NAMED("GapDetector", "attempting merge with raw gap: (" << rawGaps.at(i).RIdx() << ", " << rawGaps.at(i).RDist() << ") to (" << rawGaps.at(i).LIdx() << ", " << rawGaps.at(i).LDist() << ")");
         for (int j = (simplifiedGaps.size() - 1); j >= 0; j--)
         {
             // ROS_INFO_STREAM_NAMED("GapDetector", "on simplified gap " << j << " of " << simplifiedGaps.size() << ": ");
-            // ROS_INFO_STREAM_NAMED("GapDetector", "points: (" << simplifiedGaps[j].RIdx() << ", " << simplifiedGaps[j].RDist() << ") to (" << simplifiedGaps[j].LIdx() << ", " << simplifiedGaps[j].LDist() << ")");
-            startIdx = std::min(simplifiedGaps[j].LIdx(), rawGap.RIdx());
-            endIdx = std::max(simplifiedGaps[j].LIdx(), rawGap.RIdx());
+            // ROS_INFO_STREAM_NAMED("GapDetector", "points: (" << simplifiedGaps.at(j).RIdx() << ", " << simplifiedGaps.at(j).RDist() << ") to (" << simplifiedGaps.at(j).LIdx() << ", " << simplifiedGaps.at(j).LDist() << ")");
+            startIdx = std::min(simplifiedGaps.at(j).LIdx(), rawGap.RIdx());
+            endIdx = std::max(simplifiedGaps.at(j).LIdx(), rawGap.RIdx());
             float minIntergapRange = *std::min_element(scan_.ranges.begin() + startIdx, scan_.ranges.begin() + endIdx);
             float inflatedMinIntergapRange = minIntergapRange - 2 * cfg_->rbt.r_inscr;
 
             // 1. Checking if raw gap left and simplified gap right (widest distances, encompassing both gaps) dist 
             //    is less than the dist of whatever separates the two gaps
             bool intergapDistTest = rawGap.LDist() <= inflatedMinIntergapRange && 
-                                    simplifiedGaps[j].RDist() <= inflatedMinIntergapRange;
+                                    simplifiedGaps.at(j).RDist() <= inflatedMinIntergapRange;
             
             // 2. Checking if current simplified gap is either right dist < left dist or swept 
-            bool rightTypeOrSweptGap = simplifiedGaps[j].isRightType() || !simplifiedGaps[j].isRadial();
+            bool rightTypeOrSweptGap = simplifiedGaps.at(j).isRightType() || !simplifiedGaps.at(j).isRadial();
 
             // 3. Making sure that this merged gap is not too large
-            bool mergedGapSizeCheck = (rawGap.LIdx() - simplifiedGaps[j].RIdx()) < cfg_->gap_manip.max_idx_diff;
+            bool mergedGapSizeCheck = (rawGap.LIdx() - simplifiedGaps.at(j).RIdx()) < cfg_->gap_manip.max_idx_diff;
 
             // ROS_INFO_STREAM_NAMED("GapDetector", "simp_left_raw_right_dist_test: " << simp_left_raw_right_dist_test << ", rightTypeOrSweptGap: " << rightTypeOrSweptGap << ", mergedGapSizeCheck: " << mergedGapSizeCheck);
             if (intergapDistTest && rightTypeOrSweptGap && mergedGapSizeCheck)
@@ -278,69 +278,75 @@ namespace dynamic_gap
 
         std::vector<dynamic_gap::Gap> simplifiedGaps;
 
-        // Insert first
-        bool markToStart = true;
-
-        // float curr_left_dist = 0.0;
-        int lastMergeable = -1;
-        
-        for (const dynamic_gap::Gap & rawGap : rawGaps)
+        try
         {
-            // ROS_INFO_STREAM_NAMED("GapDetector", "on raw gap: (" << rawGap.RIdx() << ", " << rawGap.RDist() << ") to (" << rawGap.LIdx() << ", " << rawGap.LDist() << ")");
-            
-            if (markToStart)
-            {   
-                // if we have not started simplification, this raw gap is swept, and right dist < left dist, then we can merge gaps
-                if (rawGap.isRadial() && rawGap.isRightType())
-                {
-                    // ROS_INFO_STREAM_NAMED("GapDetector", "starting simplification");
-                    markToStart = false;
-                }
+            // Insert first
+            bool markToStart = true;
 
-                simplifiedGaps.push_back(rawGap);
-            } else {
-                if (rawGap.isRadial()) // if gap is radial
-                {
-                    if (rawGap.isRightType()) // if right dist < left dist
+            // float curr_left_dist = 0.0;
+            int lastMergeable = -1;
+            
+            for (const dynamic_gap::Gap & rawGap : rawGaps)
+            {
+                // ROS_INFO_STREAM_NAMED("GapDetector", "on raw gap: (" << rawGap.RIdx() << ", " << rawGap.RDist() << ") to (" << rawGap.LIdx() << ", " << rawGap.LDist() << ")");
+                
+                if (markToStart)
+                {   
+                    // if we have not started simplification, this raw gap is swept, and right dist < left dist, then we can merge gaps
+                    if (rawGap.isRadial() && rawGap.isRightType())
                     {
-                        // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (radial, right<left)");
-                        simplifiedGaps.push_back(rawGap);
+                        // ROS_INFO_STREAM_NAMED("GapDetector", "starting simplification");
+                        markToStart = false;
+                    }
+
+                    simplifiedGaps.push_back(rawGap);
+                } else {
+                    if (rawGap.isRadial()) // if gap is radial
+                    {
+                        if (rawGap.isRightType()) // if right dist < left dist
+                        {
+                            // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (radial, right<left)");
+                            simplifiedGaps.push_back(rawGap);
+                        }
+                        else
+                        {
+                            // curr_left_dist = rawGap.LDist();
+                            lastMergeable = checkSimplifiedGapsMergeability(rawGap, simplifiedGaps);
+
+                            if (lastMergeable != -1) 
+                            {
+                                // ROS_INFO_STREAM_NAMED("GapDetector", "erasing simplified gaps from " << (lastMergeable + 1) << " to " << simplifiedGaps.size());
+                                simplifiedGaps.erase(simplifiedGaps.begin() + lastMergeable + 1, simplifiedGaps.end());
+                                simplifiedGaps.back().addLeftInformation(rawGap.LIdx(), rawGap.LDist());
+                                // simplifiedGaps.back().setRadial();
+                                // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplified gap into (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
+                            } else 
+                            {
+                                // ROS_INFO_STREAM_NAMED("GapDetector", "no merge, adding raw gap (swept, left<right)");                            
+                                simplifiedGaps.push_back(rawGap);
+                            }
+                        }
                     }
                     else
-                    {
+                    { // If current raw gap is swept
                         // curr_left_dist = rawGap.LDist();
-                        lastMergeable = checkSimplifiedGapsMergeability(rawGap, simplifiedGaps);
-
-                        if (lastMergeable != -1) 
+                        if (mergeSweptGapCondition(rawGap, simplifiedGaps))
                         {
-                            // ROS_INFO_STREAM_NAMED("GapDetector", "erasing simplified gaps from " << (lastMergeable + 1) << " to " << simplifiedGaps.size());
-                            simplifiedGaps.erase(simplifiedGaps.begin() + lastMergeable + 1, simplifiedGaps.end());
                             simplifiedGaps.back().addLeftInformation(rawGap.LIdx(), rawGap.LDist());
                             // simplifiedGaps.back().setRadial();
-                            // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplified gap into (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
+                            // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplifed gap to (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
                         } else 
                         {
-                            // ROS_INFO_STREAM_NAMED("GapDetector", "no merge, adding raw gap (swept, left<right)");                            
+                            // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (swept)");                            
                             simplifiedGaps.push_back(rawGap);
                         }
                     }
                 }
-                else
-                { // If current raw gap is swept
-                    // curr_left_dist = rawGap.LDist();
-                    if (mergeSweptGapCondition(rawGap, simplifiedGaps))
-                    {
-                        simplifiedGaps.back().addLeftInformation(rawGap.LIdx(), rawGap.LDist());
-                        // simplifiedGaps.back().setRadial();
-                        // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplifed gap to (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
-                    } else 
-                    {
-                        // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (swept)");                            
-                        simplifiedGaps.push_back(rawGap);
-                    }
-                }
+                // ROS_INFO_STREAM_NAMED("GapDetector", "---");
             }
-            // ROS_INFO_STREAM_NAMED("GapDetector", "---");
+        } catch (...)
+        {
+            ROS_ERROR_STREAM_NAMED("GapDetector", "[gapSimplification() failed]");
         }
 
         return simplifiedGaps;

@@ -85,7 +85,7 @@ namespace dynamic_gap
             Eigen::Vector2f get_x_tilde();
 
             geometry_msgs::TwistStamped getRobotVel();
-            Eigen::Matrix<float, 4, 1> integrate();
+            Eigen::Vector4f integrate();
             void linearize(int idx);
             void discretizeQ(int idx);
 

@@ -122,7 +122,7 @@ namespace dynamic_gap
         float scanRange, scanTheta;
         for (int i = 0; i < scan.ranges.size(); i++) 
         {
-            scanRange = scan.ranges[i];
+            scanRange = scan.ranges.at(i);
             scanTheta =  idx2theta(i); // scan.angle_min + i * scan.angle_increment;
 
             safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
@@ -566,8 +566,6 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
         // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
         
-        // std::vector<geometry_msgs::Point> vec = findLocalLine(minDistScanIdx);
-
         // float projOpDotProd = 0.0;
       
         Eigen::Vector2f closestScanPtToRobot(-minDist * std::cos(minDistTheta), -minDist * std::sin(minDistTheta));
@@ -705,7 +703,7 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM_NAMED("Controller", "   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", deviationYaw: " << deviationYaw);
 
-            localTrajectoryDeviations[i] = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
+            localTrajectoryDeviations.at(i) = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
                                                 pow(currPose.position.y - localTrajectory.poses[i].position.y, 2)) + 
                                                 0.5 * std::abs(deviationYaw);
         }

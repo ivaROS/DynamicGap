@@ -36,19 +36,13 @@ namespace dynamic_gap
         void transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
                                                         const geometry_msgs::TransformStamped & odom2rbt);
 
-        // std::vector<float> scoreGaps();
-        
-        // Full Scoring
-        // std::vector<float> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
-        // geometry_msgs::PoseStamped getLocalGoal() {return globalPathLocalWaypointRobotFrame_; }; // in robot frame
-        
         std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & path, 
                                                          const std::vector<float> & pathTiming, 
                                                          const std::vector<dynamic_gap::Gap> & rawGaps,
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans);
         
         void recoverDynamicEgoCircle(float t_i, float t_iplus1, 
-                                    std::vector<Eigen::Matrix<float, 4, 1> > & propagatedAgents,
+                                    std::vector<Eigen::Vector4f > & propagatedAgents,
                                     sensor_msgs::LaserScan & dynamicLaserScan,
                                     bool print);
         
@@ -71,12 +65,11 @@ namespace dynamic_gap
 
             void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
 
-            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Matrix<float, 4, 1> > & agentPoses);            
+            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Vector4f > & agentPoses);            
 
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
             sensor_msgs::LaserScan staticScan_;
-            // std::vector<dynamic_gap::Gap> gaps;
             geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_;
             boost::mutex globalPlanMutex_, egocircleMutex_;
 

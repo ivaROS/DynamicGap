@@ -28,28 +28,17 @@ namespace dynamic_gap
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
-    /*
-    bool compareModelBearings(dynamic_gap::RotatingFrameCartesianKalmanFilter* model_one, 
-                              dynamic_gap::RotatingFrameCartesianKalmanFilter* model_two) 
-    {
-        Eigen::Matrix<float, 4, 1> state_one = model_one->getGapState();
-        Eigen::Matrix<float, 4, 1> state_two = model_two->getGapState();
-        
-        return atan2(state_one[1], state_one[0]) < atan2(state_two[1], state_two[0]);
-    }
-    */
-
     struct Comparator 
     {
         bool operator() (std::vector<float> & a, std::vector<float> & b) 
         {
-            float aNorm = pow(a[0], 2) + pow(a[1], 2);
-            float bNorm = pow(b[0], 2) + pow(b[1], 2);
+            float aNorm = pow(a.at(0), 2) + pow(a.at(1), 2);
+            float bNorm = pow(b.at(0), 2) + pow(b.at(1), 2);
             return aNorm < bNorm;
         }
     };
 
-    std::vector<std::vector<float>> TrajectoryScorer::sortAndPrune(const std::vector<Eigen::Matrix<float, 4, 1> > & agentPoses)
+    std::vector<std::vector<float>> TrajectoryScorer::sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses)
     {
         // Declare vector of pairs
         std::vector< std::vector<float> > A;
@@ -63,7 +52,7 @@ namespace dynamic_gap
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "pose: " << std::to_string(it.second[0]) << ", " << std::to_string(it.second[1]));
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "ego pose: " << pt1[0] << ", " << pt1[1]);
 
-            std::vector<float> agentPose{agentPoses[i][0], agentPoses[i][1]};
+            std::vector<float> agentPose{agentPoses.at(i)[0], agentPoses.at(i)[1]};
             
             dist = sqrt(pow(agentPose[0], 2) + pow(agentPose[1], 2));
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "dist: " << dist);
@@ -90,7 +79,7 @@ namespace dynamic_gap
     }
 
     void TrajectoryScorer::recoverDynamicEgoCircle(float t_i, float t_iplus1, 
-                                                   std::vector<Eigen::Matrix<float, 4, 1> > & propagatedAgents,
+                                                   std::vector<Eigen::Vector4f > & propagatedAgents,
                                                    sensor_msgs::LaserScan & dynamicLaserScan,
                                                    bool print) 
     {   
@@ -106,12 +95,12 @@ namespace dynamic_gap
         // propagate poses forward (all odoms and vels are in robot frame)
         for (int i = 0; i < propagatedAgents.size(); i++) 
         {
-            ROS_INFO_STREAM_NAMED("TrajectoryScorer", "        agent" << i << " moving from (" << propagatedAgents[i][0] << ", " << propagatedAgents[i][1] << ")");
+            ROS_INFO_STREAM_NAMED("TrajectoryScorer", "        agent" << i << " moving from (" << propagatedAgents.at(i)[0] << ", " << propagatedAgents.at(i)[1] << ")");
 
-            propagatedAgents[i][0] += propagatedAgents[i][2]*interval;
-            propagatedAgents[i][1] += propagatedAgents[i][3]*interval;
+            propagatedAgents.at(i)[0] += propagatedAgents.at(i)[2]*interval;
+            propagatedAgents.at(i)[1] += propagatedAgents.at(i)[3]*interval;
             
-            ROS_INFO_STREAM_NAMED("TrajectoryScorer", "                                  to (" << propagatedAgents[i][0] << ", " << propagatedAgents[i][1] << ")");
+            ROS_INFO_STREAM_NAMED("TrajectoryScorer", "                                  to (" << propagatedAgents.at(i)[0] << ", " << propagatedAgents.at(i)[1] << ")");
         }
 
         // basically running modify_scan                                                          
@@ -127,10 +116,10 @@ namespace dynamic_gap
         {
             theta = theta2idx(i); // dynamicLaserScan.angle_min + i*dynamicLaserScan.angle_increment;
             // cout << "i: " << i << " rad: " << rad << endl;
-            // cout << "original distance " << modified_laser_scan.ranges[i] << endl;
-            dynamicLaserScan.ranges[i] = std::min(dynamicLaserScan.ranges[i], cfg_->scan.range_max);
-            // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "i: " << i << ", rad: " << rad << ", range: " << dynamicLaserScan.ranges[i]);
-            range = dynamicLaserScan.ranges[i];
+            // cout << "original distance " << modified_laser_scan.ranges.at(i) << endl;
+            dynamicLaserScan.ranges.at(i) = std::min(dynamicLaserScan.ranges.at(i), cfg_->scan.range_max);
+            // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "i: " << i << ", rad: " << rad << ", range: " << dynamicLaserScan.ranges.at(i));
+            range = dynamicLaserScan.ranges.at(i);
             
             scanPt << range*cos(theta), range*sin(theta);
 
@@ -139,7 +128,7 @@ namespace dynamic_gap
             // TODO: sort map here according to distance from robot. Then, can break after first intersection
             for (int j = 0; j < agentPoses.size(); j++) 
             {
-                agentPose = agentPoses[j];
+                agentPose = agentPoses.at(j);
                 // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "ODOM MAP SECOND: " << agentPose[0] << ", " << agentPose[1]);
                 // int idx_dist = std::distance(odom_map.begin(), it);
                 // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "EGO ROBOT ODOM: " << pt1[0] << ", " << pt1[1]);
@@ -179,26 +168,26 @@ namespace dynamic_gap
                     {
                         intersection0MinusScan = intersection0 - centeredScanPt;
 
-                        if (dist0 < dynamicLaserScan.ranges[i] && dist0 < scanPtMinus.norm() && 
+                        if (dist0 < dynamicLaserScan.ranges.at(i) && dist0 < scanPtMinus.norm() && 
                             intersection0MinusScan.norm() < scanPtMinus.norm()) 
                         {
                             ROS_INFO_STREAM_NAMED("TrajectoryScorer", "        at i: " << i << ", changed distance from " << 
-                                                                        dynamicLaserScan.ranges[i] << " to " << dist0);
+                                                                        dynamicLaserScan.ranges.at(i) << " to " << dist0);
 
-                            dynamicLaserScan.ranges[i] = dist0;
+                            dynamicLaserScan.ranges.at(i) = dist0;
                             break;
                         }
                     } else 
                     {
                         intersection1MinusScan = intersection1 - centeredScanPt;
 
-                        if (dist1 < dynamicLaserScan.ranges[i] && dist1 < scanPtMinus.norm() && 
+                        if (dist1 < dynamicLaserScan.ranges.at(i) && dist1 < scanPtMinus.norm() && 
                             intersection1MinusScan.norm() < scanPtMinus.norm()) 
                         {
                             ROS_INFO_STREAM_NAMED("TrajectoryScorer", "        at i: " << i << ", changed distance from " << 
-                                            dynamicLaserScan.ranges[i] << " to " << dist1); 
+                                            dynamicLaserScan.ranges.at(i) << " to " << dist1); 
 
-                            dynamicLaserScan.ranges[i] = dist1;
+                            dynamicLaserScan.ranges.at(i) = dist1;
                             break;
                         }
                     }

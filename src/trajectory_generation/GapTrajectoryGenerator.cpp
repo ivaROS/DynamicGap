@@ -391,9 +391,9 @@ namespace dynamic_gap
                                                                         float & desiredBezierPtToPtDistance) 
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               [arclengthParameterizeBezier()]");
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
 
         float bezierArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
                                                                         0.0, 1.0, numCurvePts);
@@ -405,9 +405,9 @@ namespace dynamic_gap
         desiredBezierPtToPtDistance = epsilonDivide(bezierArclengthDistance, (numCurvePts - 1));
         float bezierPtToPtDistanceThresh = desiredBezierPtToPtDistance / 100.0;
 
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   number of points: " << numCurvePts);
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   total distance: " << bezierArclengthDistance);
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   desired distance interval: " << desiredBezierPtToPtDistance);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   number of points: " << numCurvePts);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   total distance: " << bezierArclengthDistance);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   desired distance interval: " << desiredBezierPtToPtDistance);
 
         int interpMaxIter = 100;
         int interpIter = 0;
@@ -431,9 +431,6 @@ namespace dynamic_gap
                 {
                     arclengthParameterization(arclengthParameterizationIdx, 0) = t_k;
                     arclengthParameterizationIdx += 1;
-                } else
-                {
-                    ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "                   OVER-INDEXED PARAMETERIZATION");
                 }
             } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) 
             {
@@ -470,9 +467,6 @@ namespace dynamic_gap
                 {                
                     arclengthParameterization(arclengthParameterizationIdx, 0) = t_interp;
                     arclengthParameterizationIdx += 1;
-                } else
-                {
-                    ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "                   OVER-INDEXED PARAMETERIZATION");
                 }
             }   
             t_kmin1 = arclengthParameterization(arclengthParameterizationIdx - 1, 0);
@@ -480,18 +474,18 @@ namespace dynamic_gap
 
         arclengthParameterization(arclengthParameterization.rows() - 1, 0) = 1.0;
         
-        /*
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "uniform indices: ");
+        
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "uniform indices: ");
         for (int i = 0; i < arclengthParameterization.rows(); i++)
         {
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", arclengthParameterization(i, 0));
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", arclengthParameterization(i, 0));
             if (i > 0)
             {
                 if (arclengthParameterization(i, 0) <= arclengthParameterization(i - 1, 0))
                     ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "       BAD PARAMETERIZATION");
             }
         }
-        */        
+         
         return arclengthParameterization;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "total approx dist: " << bezierArclengthDistance);
     }
@@ -712,14 +706,6 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "allAHPFCenters worked");
     }
 
-    // If i try to delete this DGap breaks
-    // [[deprecated("Use single trajectory generation")]]
-    // std::vector<geometry_msgs::PoseArray> GapTrajectoryGenerator::generateTrajectory(std::vector<dynamic_gap::Gap> gapset) 
-    // {
-    //     std::vector<geometry_msgs::PoseArray> traj_set(gapset.size());
-    //     return traj_set;
-    // }
-
     // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                                               const geometry_msgs::TransformStamped & transform,
@@ -781,7 +767,7 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
                 processedPoses.push_back(rawPose);
-                processedPathTiming.push_back(rawPathTiming[i]);
+                processedPathTiming.push_back(rawPathTiming.at(i));
             } else 
             {
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
@@ -798,8 +784,8 @@ namespace dynamic_gap
         float poseToPoseDiffTheta;
         for (int idx = 1; idx < processedPath.poses.size(); idx++)
         {
-            processedPose = processedPath.poses[idx];
-            prevProcessedPose = processedPath.poses[idx - 1];
+            processedPose = processedPath.poses.at(idx);
+            prevProcessedPose = processedPath.poses.at(idx-1);
             poseToPoseDiffX = processedPose.position.x - prevProcessedPose.position.x;
             poseToPoseDiffY = processedPose.position.y - prevProcessedPose.position.y;
             poseToPoseDiffTheta = std::atan2(poseToPoseDiffY, poseToPoseDiffX);
@@ -807,10 +793,10 @@ namespace dynamic_gap
                 Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
                 Eigen::AngleAxisf(poseToPoseDiffTheta, Eigen::Vector3f::UnitZ());
             q.normalize();
-            processedPath.poses[idx - 1].orientation.x = q.x();
-            processedPath.poses[idx - 1].orientation.y = q.y();
-            processedPath.poses[idx - 1].orientation.z = q.z();
-            processedPath.poses[idx - 1].orientation.w = q.w();
+            processedPath.poses.at(idx-1).orientation.x = q.x();
+            processedPath.poses.at(idx-1).orientation.y = q.y();
+            processedPath.poses.at(idx-1).orientation.z = q.z();
+            processedPath.poses.at(idx-1).orientation.w = q.w();
         }
         processedPath.poses.pop_back();
         processedPathTiming.pop_back();

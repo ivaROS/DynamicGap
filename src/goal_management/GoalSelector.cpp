@@ -72,7 +72,7 @@ namespace dynamic_gap
         if (local_gplan.size() < 1) // relevant global plan snippet
             return;
 
-        globalPathLocalWaypointRobotFrame_ = local_gplan[local_gplan.size() - 1];
+        globalPathLocalWaypointRobotFrame_ = local_gplan.back();
 
         // Max: do we need anything below this? I don't think so.
 

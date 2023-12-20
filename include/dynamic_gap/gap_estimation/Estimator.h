@@ -34,7 +34,7 @@ namespace dynamic_gap
 
             virtual void linearize(int idx) = 0;
             virtual void discretizeQ(int idx) = 0;
-            virtual Eigen::Matrix<float, 4, 1> integrate() = 0;
+            virtual Eigen::Vector4f integrate() = 0;
 
         public:
 

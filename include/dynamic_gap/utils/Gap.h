@@ -324,6 +324,19 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("Gap", "xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
             }   
             
+            void setGoal(bool initial, const Eigen::Vector2f & goalVector)
+            {
+                if (initial)
+                {
+                    goal.x_ = goalVector[0];
+                    goal.y_ = goalVector[1];
+                } else
+                {
+                    terminalGoal.x_ = goalVector[0];
+                    terminalGoal.y_ = goalVector[1];
+                }
+            }
+
             float gapLifespan_ = 5.0;
 
             float minSafeDist_, terminalMinSafeDist_;

@@ -143,7 +143,7 @@ namespace dynamic_gap
         std::vector<geometry_msgs::Pose> currentTrueAgentPoses_;
         std::vector<geometry_msgs::Vector3Stamped> currentTrueAgentVels_;
 
-        std::vector<Eigen::Matrix<float, 4, 1> > currentEstimatedAgentStates_;
+        std::vector<Eigen::Vector4f > currentEstimatedAgentStates_;
 
         int trajectoryChangeCount_;
 

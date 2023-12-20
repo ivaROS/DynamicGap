@@ -15,7 +15,7 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawTrajectorySwitchCount(int trajSwitchIndex, const geometry_msgs::PoseArray & chosenTraj) 
     {
-        geometry_msgs::Pose lastTrajPose = (chosenTraj.poses.size() > 0) ? chosenTraj.poses[chosenTraj.poses.size() - 1] : 
+        geometry_msgs::Pose lastTrajPose = (chosenTraj.poses.size() > 0) ? chosenTraj.poses.back() : 
                                                                             geometry_msgs::Pose();
 
         visualization_msgs::Marker trajSwitchIdxMarker;

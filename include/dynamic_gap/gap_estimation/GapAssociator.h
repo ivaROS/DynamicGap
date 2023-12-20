@@ -38,7 +38,7 @@ namespace dynamic_gap
 		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & currentGaps, 
 														 const std::vector<dynamic_gap::Gap> & previousGaps);
 		std::vector<int> associateGaps(const std::vector< std::vector<float> > & distMatrix);
-        void assignModels(std::vector<int> & association, 
+        void assignModels(const std::vector<int> & association, 
 						const std::vector< std::vector<float> > & distMatrix, 
 						std::vector<dynamic_gap::Gap>& currentGaps, 
 						const std::vector<dynamic_gap::Gap> & previousGaps,
