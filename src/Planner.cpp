@@ -294,7 +294,7 @@ namespace dynamic_gap
         // deleting old sensor measurements already used in an update
         for (int i = 0; i < intermediateRbtAccs_.size(); i++)
         {
-            if (intermediateRbtAccs_[i].header.stamp <= tPreviousFilterUpdate_)
+            if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousFilterUpdate_)
             {
                 intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
                 i--;
@@ -340,7 +340,7 @@ namespace dynamic_gap
         // deleting old sensor measurements already used in an update
         for (int i = 0; i < intermediateRbtVels_.size(); i++)
         {
-            if (intermediateRbtVels_[i].header.stamp <= tPreviousFilterUpdate_)
+            if (intermediateRbtVels_.at(i).header.stamp <= tPreviousFilterUpdate_)
             {
                 intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
                 i--;
@@ -372,7 +372,7 @@ namespace dynamic_gap
             tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
             // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects[agentID][0] << ", " << agent_odom_vects[agentID][1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_[agentID] = agentPoseRobotFrame.pose;
+            currentTrueAgentPoses_.at(agentID) = agentPoseRobotFrame.pose;
         } catch (tf2::TransformException &ex) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "Odometry transform failed for " << agentNamespace);
@@ -1164,7 +1164,7 @@ namespace dynamic_gap
         }
 
 
-        float feasibilityTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - feasibilityStartTime).count() / 1.0e6;
+        float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck() for " << gapCount << " gaps: " << feasibilityTimeTaken << " seconds]");
         
         /////////////////////////////
@@ -1179,7 +1179,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("Planner", "out of range in getFutureScans");
         }
 
-        float scanPropagationTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - scanPropagationStartTime).count() / 1.0e6;
+        float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
         
         //////////////////////
@@ -1195,7 +1195,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM("out of range in gapManipulate");
         }
 
-        float gapManipulationTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gapManipulateStartTime).count() / 1.0e6;
+        float gapManipulationTimeTaken = timeTaken(gapManipulateStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[gapManipulate() for " << gapCount << " gaps: " << gapManipulationTimeTaken << " seconds]");
 
         ///////////////////////////////////////////
@@ -1213,7 +1213,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("Planner", "out of range in generateGapTrajs");
         }
 
-        float generateGapTrajsTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateGapTrajsStartTime).count() / 1.0e6;
+        float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
         visualizeComponents(manipulatedGaps); // need to run after generateGapTrajs to see what weights for reachable gap are
@@ -1231,7 +1231,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("Planner", "out of range in pickTraj");
         }
 
-        float pickTrajTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - pickTrajStartTime).count() / 1.0e6;
+        float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
 
         geometry_msgs::PoseArray highestScorePath;
@@ -1262,10 +1262,10 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("Planner", "out of range in compareToCurrentTraj");
         }
 
-        float compareToCurrentTrajTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - compareToCurrentTrajStartTime).count() / 1.0e6;
+        float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
 
-        float planningLoopTimeTaken = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - planningLoopStartTime).count() / 1.0e6;
+        float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
 
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
         

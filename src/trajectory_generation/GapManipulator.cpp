@@ -297,9 +297,9 @@ namespace dynamic_gap
 
             Eigen::Vector2f gapGoalAngularOffset(0.0, 0.0); 
             if ( (leftToGapGoalAngle / leftToRightAngle) < 0.1) // biased gap goal on left side
-                gapGoalAngularOffset = Rnegpi2 * (leftPt / leftPt.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;    
+                gapGoalAngularOffset = Rnegpi2 * unitNorm(leftPt) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;    
             else                                                // biased gap goal on right side
-                gapGoalAngularOffset = Rpi2 * (rightPt / rightPt.norm()) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+                gapGoalAngularOffset = Rpi2 * unitNorm(rightPt) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
             /*
             if (biasedGapGoalTheta == rightTheta) 
@@ -316,7 +316,7 @@ namespace dynamic_gap
             }
             */
 
-            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal / biasedGapGoal.norm();
+            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
             Eigen::Vector2f gapGoalOffset = gapGoalRadialOffset + gapGoalAngularOffset;
             
             ROS_INFO_STREAM_NAMED("GapManipulator", "            biasedGapGoal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);
@@ -405,7 +405,7 @@ namespace dynamic_gap
 
         float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
         float leftToGoalAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypoint, true);
-        float gapGoalRange = (rightPt.norm() - leftPt.norm()) * leftToGoalAngle / leftToRightAngle + leftPt.norm();
+        float gapGoalRange = (rightPt.norm() - leftPt.norm()) * epsilonDivide(leftToGoalAngle, leftToRightAngle) + leftPt.norm();
 
         /*
         float half_angle = std::asin(cfg_->rbt.r_inscr / dist2goal);
@@ -521,8 +521,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "orig_gap_size: " << orig_gap_size);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "leftToNewRightIdxSpan: " << leftToNewRightIdxSpan << ", leftToNewLeftIdxSpan: " << leftToNewLeftIdxSpan);
 
-            float newLeftDist = leftDist + (rightDist - leftDist) * leftToNewLeftIdxSpan / gapIdxSpan;
-            float newRightDist = leftDist +  (rightDist - leftDist) * leftToNewRightIdxSpan / gapIdxSpan;
+            float newLeftDist = leftDist + (rightDist - leftDist) * epsilonDivide(leftToNewLeftIdxSpan, gapIdxSpan);
+            float newRightDist = leftDist +  (rightDist - leftDist) * epsilonDivide(leftToNewRightIdxSpan, gapIdxSpan);
 
             if (initial) 
             {
@@ -734,8 +734,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "translation norm: " << nearToFarDistance);
             
             // augmenting near to far direction by pivoted point, multiplying by min dist        
-            nearToFarTranslationMatrix(0, 2) *= minDistRange / nearToFarDistance;     
-            nearToFarTranslationMatrix(1, 2) *= minDistRange / nearToFarDistance;
+            nearToFarTranslationMatrix(0, 2) *= epsilonDivide(minDistRange, nearToFarDistance);     
+            nearToFarTranslationMatrix(1, 2) *= epsilonDivide(minDistRange, nearToFarDistance);
             Eigen::Matrix3f pivotedPtMatrix = nearPtTranslationMatrix * (nomPivotAngleRotationMatrix * nearToFarTranslationMatrix);
 
             float pivotedPtDist = sqrt(pow(pivotedPtMatrix(0, 2), 2) + pow(pivotedPtMatrix(1, 2), 2));
@@ -855,7 +855,7 @@ namespace dynamic_gap
             Eigen::Vector2f eB(std::cos(thetaCenter), std::sin(thetaCenter));
             // ROS_INFO_STREAM_NAMED("GapManipulator", "eB: (" << eB[0] << ", " << eB[1] << ")");
 
-            Eigen::Vector2f norm_eB = eB / eB.norm();
+            Eigen::Vector2f norm_eB = unitNorm(eB); 
             // angular size of gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "normalized eB: " << norm_eB[0] << ", " << norm_eB[1]);
 
@@ -953,8 +953,8 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-inflate gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
-            Eigen::Vector2f leftUnitNorm = leftPt / leftPt.norm();
-            Eigen::Vector2f rightUnitNorm = rightPt / rightPt.norm();
+            Eigen::Vector2f leftUnitNorm = unitNorm(leftPt);
+            Eigen::Vector2f rightUnitNorm = unitNorm(rightPt);
             float leftToRightAngle = getLeftToRightAngle(leftUnitNorm, rightUnitNorm, true);
 
             // inflate inwards by radius * infl
@@ -1005,8 +1005,8 @@ namespace dynamic_gap
 
                 float leftToInflatedLeftAngle = getLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm, false);
                 float leftToInflatedRightAngle = getLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm, false);
-                inflatedLeftRange = leftDist + (rightDist - leftDist) * leftToInflatedLeftAngle / leftToRightAngle;
-                inflatedRightRange =  leftDist + (rightDist - leftDist) * leftToInflatedRightAngle / leftToRightAngle;
+                inflatedLeftRange = leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
+                inflatedRightRange =  leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
                 // if (cfg_->debug.manipulation_debug_log) 
                 // {
                 //     ROS_INFO_STREAM_NAMED("GapManipulator", "        post-angular-inflation gap, left: " << inflatedLeftIdx << ", : " << inflatedLeftRange << 

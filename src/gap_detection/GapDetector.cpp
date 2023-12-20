@@ -64,6 +64,8 @@ namespace dynamic_gap
             scan_ = *scanPtr.get();
             // get half scan value
             fullScanRayCount_ = scan_.ranges.size();
+            ROS_WARN_STREAM_COND_NAMED(fullScanRayCount_ != cfg_->scan.full_scan, "GapDetector", "Scan is wrong size, should be " << cfg_->scan.full_scan);
+
             halfScanRayCount_ = float(fullScanRayCount_ / 2);
 
             minScanDist_ = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());

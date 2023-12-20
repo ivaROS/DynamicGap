@@ -45,17 +45,21 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "POLAR GAP FIELD");
         }
 
-        Eigen::Vector2f clipVelocities(float x_vel, float y_vel, float x_lim) {
+        Eigen::Vector2f clipVelocities(float x_vel, float y_vel, float x_lim) 
+        {
             // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2f original_vel(x_vel, y_vel);
             float abs_x_vel = std::abs(x_vel);
             float abs_y_vel = std::abs(y_vel);
-            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) 
+            {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2f clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                // Eigen::Vector2f clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                Eigen::Vector2f clipped_vel = epsilonDivide(x_lim * original_vel,  std::max(abs_x_vel, abs_y_vel));
+
                 return clipped_vel;
             }
         }
@@ -122,11 +126,11 @@ namespace dynamic_gap
 
             float ang_diff_1 = std::abs(thetax - theta1);
             float ang_diff_2 = std::abs(theta2 - thetax);
-            float _sigma = 0.50;
+            float _sigma = 0.50; // must be > 0
             // 0.05: jittery
 
-            Eigen::Vector2f c1 = Rpi2 * (vec_1 / vec_1.norm()) * exp(- ang_diff_1 / _sigma); // on robot's right
-            Eigen::Vector2f c2 = neg_Rpi2 * (vec_2 / vec_2.norm()) * exp(- ang_diff_2 / _sigma); // on robot's left
+            Eigen::Vector2f c1 = Rpi2 * unitNorm(vec_1) * exp(- ang_diff_1 / _sigma); // on robot's right
+            Eigen::Vector2f c2 = neg_Rpi2 * unitNorm(vec_2) * exp(- ang_diff_2 / _sigma); // on robot's left
 
             // Since local goal will definitely be within the range of the gap, this limit poses no difference
             Eigen::Vector2f sub_goal_vec(rg * cos(new_theta), rg * sin(new_theta));
@@ -158,15 +162,16 @@ namespace dynamic_gap
 
             Eigen::Vector2f final_goal_vec(0,0);
 
-            float eps = 0.0000001;
+            // float eps = 0.0000001;
             if (!pass_gap)
             {
                 float coeffs = past_gap_points ? 0.0 : 1.0;
 
-                double curr_to_left_vect_norm = curr_to_left_vect.norm();
-                double curr_to_right_vect_norm = curr_to_right_vect.norm();
-                double w1 = curr_to_left_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
-                double w2 = curr_to_right_vect_norm / (curr_to_left_vect_norm + curr_to_right_vect_norm);
+                float curr_to_left_vect_norm = curr_to_left_vect.norm();
+                float curr_to_right_vect_norm = curr_to_right_vect.norm();
+
+                float w1 = epsilonDivide(curr_to_left_vect_norm, curr_to_left_vect_norm + curr_to_right_vect_norm);
+                float w2 = epsilonDivide(curr_to_right_vect_norm, curr_to_left_vect_norm + curr_to_right_vect_norm);
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   c1: (" << c1[0] << ", " << c1[1] << ")");
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   c2: (" << c2[0] << ", " << c2[1] << ")");
 
@@ -175,8 +180,8 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   weighted_circulation_sum: (" << weighted_circulation_sum[0] << ", " 
                 //                                                  << weighted_circulation_sum[1] << ")");
 
-                Eigen::Vector2f circulation_field = coeffs * weighted_circulation_sum / (weighted_circulation_sum.norm() + eps);
-                Eigen::Vector2f attraction_field = sub_goal_vec / sub_goal_vec.norm();
+                Eigen::Vector2f circulation_field = coeffs * unitNorm(weighted_circulation_sum);
+                Eigen::Vector2f attraction_field = unitNorm(sub_goal_vec);
                 // std::cout << "inte_t: " << t << std::endl;
                 //std::cout << "robot to left: (" << vec_2[0] << ", " << vec_2[1] << "), robot to right: (" << vec_1[0] << ", " << vec_1[1] << ")" << std::endl;
                 //std::cout << "angular difference to left: " << ang_diff_2 << ", angular difference to right: " << ang_diff_1 << std::endl;
@@ -227,7 +232,8 @@ namespace dynamic_gap
                             eps = 0.0000001;              
                         }
         
-        state_type adjust_state(const state_type &x) {
+        state_type adjust_state(const state_type &x) 
+        {
             // clipping velocities
             // taking norm of sin/cos norm vector
             state_type new_x = x;
@@ -238,20 +244,26 @@ namespace dynamic_gap
             return new_x;
         }
 
-        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) {
+        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) 
+        {
             // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
-            float abs_x_vel = std::abs(x_vel);
-            float abs_y_vel = std::abs(y_vel);
-            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+            double abs_x_vel = std::abs(x_vel);
+            double abs_y_vel = std::abs(y_vel);
+            double max_x_vel = x_lim; // converting to double
+            if (abs_x_vel <= max_x_vel && abs_y_vel <= max_x_vel) 
+            {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                // Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                Eigen::Vector2d clipped_vel = epsilonDivide(max_x_vel * original_vel,  std::max(abs_x_vel, abs_y_vel));
+
                 return clipped_vel;
             }
         }
+
         void operator()(const state_type &x, state_type &dxdt, const float t)
         { 
             // state_type new_x = adjust_state(x);
@@ -270,7 +282,8 @@ namespace dynamic_gap
             past_left_point = abs_left_pos.dot(rel_left_pos) < 0;
             past_right_point = abs_right_pos.dot(rel_right_pos) < 0;
             
-            if (radial_) {
+            if (radial_) 
+            {
                 past_gap_points = past_left_point || past_right_point;
             } else {
                 past_gap_points = past_left_point && past_right_point;
@@ -284,7 +297,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               right state: " << x[4] << ", " << x[5]);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               goal state: " << x[6] << ", " << x[7]);
 
-            if (pass_gap) {
+            if (pass_gap) 
+            {
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "past gap");
                 dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
                 dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
@@ -310,6 +324,8 @@ namespace dynamic_gap
             centers_to_rbt = (-all_centers).rowwise() + rbt.transpose(); // size (r: Kplus1, c: 2)
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "centers_to_rbt size: " << centers_to_rbt.rows() << ", " << centers_to_rbt.cols());
 
+            /// CHECK TO SEE IF ROBOT HAS LEFT GAP ///
+
             Eigen::Index maxIndex;
             float maxNorm = centers_to_rbt.rowwise().norm().minCoeff(&maxIndex);
             /*
@@ -317,15 +333,17 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "row " << i << ": " << centers_to_rbt.row(i));
             }
             */
-            if (maxIndex > 0) {
+            if (maxIndex > 0) 
+            {
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm index: " << maxIndex);
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center to rbt dir: " << centers_to_rbt.row(maxIndex));
                 Eigen::Vector2d min_norm_center_to_rbt = centers_to_rbt.row(maxIndex);
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center: " << min_norm_center);
                 Eigen::Vector2d min_norm_inward_norm = all_inward_norms.row(maxIndex - 1);
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm inward dir: " << min_norm_inward_norm);
-                if (min_norm_center_to_rbt.dot(min_norm_inward_norm) < 0) {
-                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "out of gap");
+                if (min_norm_center_to_rbt.dot(min_norm_inward_norm) < 0) 
+                {
+                    ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "During AHPF trajectory synthesis, robot has left gap");
                     dxdt[0] = 0; dxdt[1] = 0; dxdt[2] = 0; dxdt[3] = 0; 
                     dxdt[4] = 0; dxdt[5] = 0; dxdt[6] = 0; dxdt[7] = 0;
                     return;
@@ -342,12 +360,11 @@ namespace dynamic_gap
             v_raw = K_att * gradient_of_pti_wrt_rbt.transpose() * weights;
 
             // Normalizing raw output and scaling by velocity limit
-            v_des = v_lin_max * (v_raw / v_raw.norm());
+            v_des = v_lin_max * unitNorm(v_raw);
 
             // CLIPPING DESIRED VELOCITIES
             // v_cmd = clipVelocities(v_des[0], v_des[1], v_lin_max);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "v_cmd: " << v_cmd[0] << ", " << v_cmd[1]);
-            // set desired acceleration based on desired velocity
 
             dxdt[0] = v_des[0]; // rbt_x
             dxdt[1] = v_des[1]; // rbt_y
@@ -365,28 +382,29 @@ namespace dynamic_gap
     
     struct GoToGoal 
     {
-        float goal_vel_x, goal_vel_y, v_lin_max;
+        float v_lin_max; // goal_vel_x, goal_vel_y, 
         bool goal_reached;
         GoToGoal(float initial_goal_x, float initial_goal_y, 
-            float terminal_goal_x, float terminal_goal_y, 
-            float gapLifespan_, float v_lin_max)
-        : goal_vel_x(goal_vel_x), goal_vel_y(goal_vel_y), v_lin_max(v_lin_max) 
-        {
-            goal_vel_x = (terminal_goal_x - initial_goal_x) / gapLifespan_; // absolute velocity (not relative to robot)
-            goal_vel_y = (terminal_goal_y - initial_goal_y) / gapLifespan_;
-        }
+                 float terminal_goal_x, float terminal_goal_y, 
+                 float gapLifespan_, float v_lin_max)
+        : v_lin_max(v_lin_max) { }
 
-        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) {
+        Eigen::Vector2d clipVelocities(float x_vel, float y_vel, float x_lim) 
+        {
             // std::cout << "in clipVelocities with " << x_vel << ", " << y_vel << std::endl;
             Eigen::Vector2d original_vel(x_vel, y_vel);
-            float abs_x_vel = std::abs(x_vel);
-            float abs_y_vel = std::abs(y_vel);
-            if (abs_x_vel <= x_lim && abs_y_vel <= x_lim) {
+            double abs_x_vel = std::abs(x_vel);
+            double abs_y_vel = std::abs(y_vel);
+            double max_x_vel = x_lim; // converting to double
+            if (abs_x_vel <= max_x_vel && abs_y_vel <= max_x_vel) 
+            {
                 // std::cout << "not clipping" << std::endl;
                 return original_vel;
             } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << original_vel.norm() << std::endl;
-                Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                // Eigen::Vector2d clipped_vel = x_lim * original_vel / std::max(abs_x_vel, abs_y_vel);
+                Eigen::Vector2d clipped_vel = epsilonDivide(max_x_vel * original_vel,  std::max(abs_x_vel, abs_y_vel));
+
                 return clipped_vel;
             }
         }

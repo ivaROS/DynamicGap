@@ -82,7 +82,7 @@ namespace dynamic_gap
         }
 
 
-		float obtainDistMatrixTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - obtainDistMatrixStartTime).count() / 1.0e6;
+		float obtainDistMatrixTime = timeTaken(obtainDistMatrixStartTime);
 		ROS_INFO_STREAM_NAMED("GapAssociator","obtainDistMatrix time taken: " << obtainDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
 
 		return distMatrix;
@@ -329,7 +329,7 @@ namespace dynamic_gap
 			
 		// }
 
-		float assignModelsTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - assignModelsStartTime).count() / 1.0e6;
+		float assignModelsTime = timeTaken(assignModelsStartTime);
 		ROS_INFO_STREAM_NAMED("GapAssociator","assignModels time taken: " << assignModelsTime << " seconds for " << currentGaps.size() << " gaps");
 	}
         
@@ -348,7 +348,7 @@ namespace dynamic_gap
 			//std::cout << "done solving" << std::endl;
         }
 
-		float associateGapsTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - associateGapsStartTime).count() / 1.0e6;
+		// float associateGapsTime = timeTaken(associateGapsStartTime);
 		// ROS_INFO_STREAM_NAMED("GapAssociator","associateGaps time taken: " << associateGapsTime << " seconds for " << currentGapPoints.size() << " gaps");
 		return association;
     }

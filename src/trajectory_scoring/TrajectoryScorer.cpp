@@ -118,7 +118,7 @@ namespace dynamic_gap
         Eigen::Vector2d scanPt, centeredAgentPt, centeredScanPt, intersection0, intersection1, 
                         intersection0MinusAgent, intersection0MinusScan, intersection1MinusAgent, intersection1MinusScan, 
                         scanPtMinus;
-        float theta, range, deltaX, deltaY, dr, determinant, discriminant, dist0, dist1;
+        float theta, range, deltaX, deltaY, dr, drSq, determinant, discriminant, dist0, dist1;
         std::vector<float> agentPose;
 
         std::vector<std::vector<float>> agentPoses = sortAndPrune(propagatedAgents);
@@ -156,18 +156,18 @@ namespace dynamic_gap
                 deltaX = centeredScanPt[0] - centeredAgentPt[0];
                 deltaY = centeredScanPt[1] - centeredAgentPt[1];
                 // dx_dy << deltaX, deltaY;
-                dr = sqrt(pow(deltaX, 2) + pow(deltaY, 2)); // dx_dy.norm();
-
+                dr = sqrt(pow(deltaX, 2) + pow(deltaY, 2)); 
+                drSq = pow(dr, 2);
                 determinant = centeredAgentPt[0]*centeredScanPt[1] - centeredScanPt[0]*centeredAgentPt[1];
                 discriminant = pow(cfg_->rbt.r_inscr,2) * pow(dr, 2) - pow(determinant, 2);
 
                 if (discriminant > 0) 
                 {
-                    intersection0 << (determinant*deltaY + signum(deltaY) * deltaX * sqrt(discriminant)) / pow(dr, 2),
-                                     (-determinant * deltaX + abs(deltaY)*sqrt(discriminant)) / pow(dr, 2);
+                    intersection0 << epsilonDivide(determinant*deltaY + signum(deltaY) * deltaX * sqrt(discriminant), drSq),
+                                     epsilonDivide(-determinant * deltaX + abs(deltaY)*sqrt(discriminant), drSq);
                                         
-                    intersection1 << (determinant*deltaY - signum(deltaY) * deltaX * sqrt(discriminant)) / pow(dr, 2),
-                                     (-determinant * deltaX - abs(deltaY)*sqrt(discriminant)) / pow(dr, 2);
+                    intersection1 << epsilonDivide(determinant*deltaY - signum(deltaY) * deltaX * sqrt(discriminant), drSq),
+                                     epsilonDivide(-determinant * deltaX - abs(deltaY)*sqrt(discriminant), drSq);
                     intersection0MinusAgent = intersection0 - centeredAgentPt;
                     intersection1MinusAgent = intersection1 - centeredAgentPt;
                     scanPtMinus = centeredScanPt - centeredAgentPt;
@@ -206,40 +206,6 @@ namespace dynamic_gap
             }
         }
     }
-
-    // Does things in rbt frame
-    /*
-    std::vector<float> TrajectoryScorer::scoreGaps()
-    {
-        boost::mutex::scoped_lock planlock(globalPlanMutex_);
-        boost::mutex::scoped_lock egolock(egocircleMutex_);
-        if (gaps.size() < 1) {
-            //ROS_WARN_STREAM("Observed num of gap: 0");
-            return std::vector<float>(0);
-        }
-
-        // How fix this
-        int num_of_scan = scan_.get()->ranges.size();
-        float goal_orientation = std::atan2(globalPathLocalWaypointRobotFrame_.pose.position.y, globalPathLocalWaypointRobotFrame_.pose.position.x);
-        int idx = goal_orientation / (M_PI / (num_of_scan / 2)) + (num_of_scan / 2);
-        ROS_DEBUG_STREAM("Goal Orientation: " << goal_orientation << ", idx: " << idx);
-        ROS_DEBUG_STREAM(globalPathLocalWaypointRobotFrame_.pose.position);
-        auto costFn = [](dynamic_gap::Gap g, int goal_idx) -> float
-        {
-            int leftdist = std::abs(g.RIdx() - goal_idx);
-            int rightdist = std::abs(g.LIdx() - goal_idx);
-            return std::min(leftdist, rightdist);
-        };
-
-        std::vector<float> cost(gaps.size());
-        for (int i = 0; i < cost.size(); i++) 
-        {
-            cost.at(i) = costFn(gaps.at(i), idx);
-        }
-
-        return cost;
-    }
-    */
 
     void TrajectoryScorer::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan) 
     {

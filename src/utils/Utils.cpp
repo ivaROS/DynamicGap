@@ -123,4 +123,38 @@ namespace dynamic_gap
     {
         return (value < 0 ? -1 : 1);
     }
+
+    // to avoid dividing by zero
+    float epsilonDivide(const float & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2f epsilonDivide(const Eigen::Vector2f & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2d epsilonDivide(const Eigen::Vector2d & numerator, const double & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }    
+
+    Eigen::Vector2f unitNorm(const Eigen::Vector2f & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    Eigen::Vector2d unitNorm(const Eigen::Vector2d & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    float timeTaken(const std::chrono::steady_clock::time_point & startTime)
+    {
+        float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
+        float timeTakenInSeconds = timeTakenInMilliseconds / 1.0e6;
+        return timeTakenInSeconds;
+    }
+
 }

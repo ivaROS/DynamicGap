@@ -201,13 +201,13 @@ namespace dynamic_gap
                     gapAngle += 2*M_PI;
 
                 // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
-                float nearangeRight = rightType_ ? checkRightDist : checkLeftDist;
+                float nearRange = rightType_ ? checkRightDist : checkLeftDist;
                 // law of cosines
                 float leftPtToRightPtDist = sqrt(pow(checkRightDist, 2) + pow(checkLeftDist, 2) - 2 * checkRightDist * checkLeftDist * cos(gapAngle));
                 // law of sines
-                float farSideAngle = asin((nearangeRight / leftPtToRightPtDist) * sin(gapAngle));
+                float farSideAngle = asin(epsilonDivide(nearRange, leftPtToRightPtDist) * sin(gapAngle));
                 
-                // ROS_INFO_STREAM_NAMED("Gap", "nearangeRight: " << nearangeRight);
+                // ROS_INFO_STREAM_NAMED("Gap", "nearRange: " << nearRange);
                 // ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
                 // ROS_INFO_STREAM_NAMED("Gap", "small angle: " << farSideAngle);
 

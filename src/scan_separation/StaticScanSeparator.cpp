@@ -3,6 +3,11 @@
 namespace dynamic_gap
 {
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
+    /* This code is heavily experimental. Does not really work.
+     *
+     *
+    **/
+
 
     bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, dynamic_gap::Estimator * prevModel) 
     {
@@ -14,8 +19,8 @@ namespace dynamic_gap
         Eigen::Vector2f currGapPtVel(currState[2], currState[3]);
         Eigen::Vector2f prevGapPtVel(prevState[2], prevState[3]);
 
-        Eigen::Vector2f currGapPtVelUnitNorm = currGapPtVel / (currGapPtVel.norm() + eps);
-        Eigen::Vector2f prevGapPtVelUnitNorm = prevGapPtVel / (prevGapPtVel.norm() + eps);
+        Eigen::Vector2f currGapPtVelUnitNorm = unitNorm(currGapPtVel);
+        Eigen::Vector2f prevGapPtVelUnitNorm = unitNorm(prevGapPtVel);
         // ROS_INFO_STREAM("currGapPtVelocity: " << currState[2] << ", " << currState[3] << ", prevGapPtVelocity: " << prevState[2] << ", " << prevState[3]);
         // ROS_INFO_STREAM("currGapPtVelUnitNorm: " << currGapPtVelUnitNorm[0] << ", " << currGapPtVelUnitNorm[1]);
         // ROS_INFO_STREAM("prevGapPtVelUnitNorm: " << prevGapPtVelUnitNorm[0] << ", " << prevGapPtVelUnitNorm[1]);

@@ -84,8 +84,7 @@ namespace dynamic_gap
         
         Eigen::Vector2f splineTerminalVel(0.0, 0.0);
         
-        if (crossingPt.norm() > 0)
-            splineTerminalVel = splineInitialVel.norm() * crossingPt / crossingPt.norm();
+        splineTerminalVel = splineInitialVel.norm() * unitNorm(crossingPt);
             //  << splineInitialVel.norm() * crossingPt[0] / crossingPt.norm(), 
             //                    splineInitialVel.norm() * crossingPt[1] / crossingPt.norm();
         
@@ -133,17 +132,17 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                [indivGapFindCrossingPoint()]");
         // auto egocircle = *msg.get();
 
-        float xLeft, yLeft, xRight, yRight;
+        // float xLeft, yLeft, xRight, yRight;
 
         float thetaLeft = idx2theta(gap.LIdx());
         float thetaRight = idx2theta(gap.RIdx());
-        xLeft = gap.LDist() * cos(thetaLeft);
-        yLeft = gap.LDist() * sin(thetaLeft);
-        xRight = gap.RDist() * cos(thetaRight);
-        yRight = gap.RDist() * sin(thetaRight);
+        // xLeft = gap.LDist() * cos(thetaLeft);
+        // yLeft = gap.LDist() * sin(thetaLeft);
+        // xRight = gap.RDist() * cos(thetaRight);
+        // yRight = gap.RDist() * sin(thetaRight);
        
-        Eigen::Vector2f leftBearingVect(xLeft / gap.LDist(), yLeft / gap.LDist());
-        Eigen::Vector2f rightBearingVect(xRight / gap.RDist(), yRight / gap.RDist());
+        Eigen::Vector2f leftBearingVect(cos(thetaLeft), sin(thetaLeft)); // (xLeft / gap.LDist(), yLeft / gap.LDist());
+        Eigen::Vector2f rightBearingVect(cos(thetaRight), sin(thetaRight)); // (xRight / gap.RDist(), yRight / gap.RDist());
 
         float leftToRightAngle = getLeftToRightAngle(leftBearingVect, rightBearingVect);
         
@@ -260,7 +259,7 @@ namespace dynamic_gap
                     else
                         gapCrossingPt << leftCrossPt[0], leftCrossPt[1];
 
-                    gapCrossingPt += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * (gapCrossingPt / gapCrossingPt.norm());
+                    gapCrossingPt += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(gapCrossingPt);;
                     gap.setClosingPoint(gapCrossingPt[0], gapCrossingPt[1]);
                     float gapLifespan = generateCrossedGapTerminalPoints(t, gap, leftGapPtModel, rightGapPtModel);
                     // float gapLifespan = std::max(t - cfg_->traj.integrate_stept, 0.0f);

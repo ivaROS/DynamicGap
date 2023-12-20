@@ -658,44 +658,6 @@ namespace dynamic_gap
         return return_x;
     }
 
-    /*
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_modified_polar_state() {
-        // y state:
-        // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4f mp_state;
-        Eigen::Vector4f cart_state = getState();
-        mp_state << 1.0 / sqrt(pow(cart_state[0], 2) + pow(cart_state[1], 2)),
-                    std::atan2(cart_state[1], cart_state[0]),
-                    (cart_state[0]*cart_state[2] + cart_state[1]*cart_state[3]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2)),
-                    (cart_state[0]*cart_state[3] - cart_state[1]*cart_state[2]) / (pow(cart_state[0], 2) + pow(cart_state[1], 2));
-        return mp_state;
-    }
-
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_rewind_modified_polar_state() {
-        // y state:
-        // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4f rewind_mp_state;
-        Eigen::Vector4f rewind_cart_state = getRewindGapState();
-        rewind_mp_state << 1.0 / sqrt(pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
-                           std::atan2(rewind_cart_state[1], rewind_cart_state[0]),
-                           (rewind_cart_state[0]*rewind_cart_state[2] + rewind_cart_state[1]*rewind_cart_state[3]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2)),
-                           (rewind_cart_state[0]*rewind_cart_state[3] - rewind_cart_state[1]*rewind_cart_state[2]) / (pow(rewind_cart_state[0], 2) + pow(rewind_cart_state[1], 2));
-        return rewind_mp_state;
-    }
-
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::get_frozen_modified_polar_state() {
-        // y state:
-        // [1/r, beta, rdot/r, betadot]
-        Eigen::Vector4f frozen_mp_state;
-        Eigen::Vector4f frozen_cart_state = getGapState();
-        frozen_mp_state << 1.0 / sqrt(pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
-                           std::atan2(frozen_cart_state[1], frozen_cart_state[0]),
-                           (frozen_cart_state[0]*frozen_cart_state[2] + frozen_cart_state[1]*frozen_cart_state[3]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2)),
-                           (frozen_cart_state[0]*frozen_cart_state[3] - frozen_cart_state[1]*frozen_cart_state[2]) / (pow(frozen_cart_state[0], 2) + pow(frozen_cart_state[1], 2));
-        return frozen_mp_state;
-    }
-    */
-
     geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() 
     {
         return lastRbtVel_;
