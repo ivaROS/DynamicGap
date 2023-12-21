@@ -42,38 +42,45 @@ namespace dynamic_gap
 	std::vector<std::vector<float>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap> & currentGaps, 
 																	const std::vector<dynamic_gap::Gap> & previousGaps) 
 	{
-		std::chrono::steady_clock::time_point obtainDistMatrixStartTime = std::chrono::steady_clock::now();
-
-		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
-		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
-		// ROS_INFO_STREAM_NAMED("GapAssociator","getting previous points:");
-		previousGapPoints = obtainGapPoints(previousGaps);
-		// ROS_INFO_STREAM_NAMED("GapAssociator","getting current points:");
-        currentGapPoints = obtainGapPoints(currentGaps);
-        
-		std::vector<std::vector<float>> distMatrix(currentGapPoints.size(), std::vector<float>(previousGapPoints.size()));
-        //std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix.at(0).size() << std::endl;
-		// populate distance matrix
-		// ROS_INFO_STREAM_NAMED("GapAssociator","Distance matrix: ");
-        for (int i = 0; i < distMatrix.size(); i++) 
+		std::vector<std::vector<float>> distMatrix(2 * currentGaps.size(), std::vector<float>(2 * previousGaps.size()));
+		
+		try
 		{
-            for (int j = 0; j < distMatrix.at(i).size(); j++) 
+			std::chrono::steady_clock::time_point obtainDistMatrixStartTime = std::chrono::steady_clock::now();
+
+			//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
+			//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
+			// ROS_INFO_STREAM_NAMED("GapAssociator","getting previous points:");
+			previousGapPoints = obtainGapPoints(previousGaps);
+			// ROS_INFO_STREAM_NAMED("GapAssociator","getting current points:");
+			currentGapPoints = obtainGapPoints(currentGaps);
+			
+			//std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix.at(0).size() << std::endl;
+			// populate distance matrix
+			// ROS_INFO_STREAM_NAMED("GapAssociator","Distance matrix: ");
+			for (int i = 0; i < distMatrix.size(); i++) 
 			{
-                float pointToPointDist = 0;
-                //std::cout << i << ", " << j <<std::endl;
-                for (int k = 0; k < currentGapPoints.at(i).size(); k++) 
-                    pointToPointDist += pow(currentGapPoints.at(i).at(k) - previousGapPoints.at(j).at(k), 2);
+				for (int j = 0; j < distMatrix.at(i).size(); j++) 
+				{
+					float pointToPointDist = 0;
+					//std::cout << i << ", " << j <<std::endl;
+					for (int k = 0; k < currentGapPoints.at(i).size(); k++) 
+						pointToPointDist += pow(currentGapPoints.at(i).at(k) - previousGapPoints.at(j).at(k), 2);
 
-                //std::cout << "pointToPointDist: " << pointToPointDist << std::endl;
-                distMatrix.at(i).at(j) = sqrt(pointToPointDist);
-                // ROS_INFO_STREAM_NAMED("GapAssociator",distMatrix.at(i).at(j) << ", ");
-            }
-			// ROS_INFO_STREAM_NAMED("GapAssociator","" << std::endl;
-        }
+					//std::cout << "pointToPointDist: " << pointToPointDist << std::endl;
+					distMatrix.at(i).at(j) = sqrt(pointToPointDist);
+					// ROS_INFO_STREAM_NAMED("GapAssociator",distMatrix.at(i).at(j) << ", ");
+				}
+				// ROS_INFO_STREAM_NAMED("GapAssociator","" << std::endl;
+			}
 
 
-		float obtainDistMatrixTime = timeTaken(obtainDistMatrixStartTime);
-		ROS_INFO_STREAM_NAMED("GapAssociator","obtainDistMatrix time taken: " << obtainDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
+			float obtainDistMatrixTime = timeTaken(obtainDistMatrixStartTime);
+			ROS_INFO_STREAM_NAMED("GapAssociator", "obtainDistMatrix time taken: " << obtainDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
+		} catch (...)
+		{
+			ROS_WARN_STREAM_NAMED("GapAssociator", "obtainDistMatrix failed");
+		}
 
 		return distMatrix;
 }
@@ -349,20 +356,28 @@ namespace dynamic_gap
 
 	std::vector<int> GapAssociator::associateGaps(const std::vector< std::vector<float> > & distMatrix) 
 	{
-		// NEW ASSIGNMENT OBTAINED
-		std::chrono::steady_clock::time_point associateGapsStartTime = std::chrono::steady_clock::now();
-
-		// std::cout << "obtaining new assignment" << std::endl;
 		std::vector<int> association;
-        if (distMatrix.size() > 0 && distMatrix.at(0).size() > 0) 
-		{
-			//std::cout << "solving" << std::endl;
-            float cost = Solve(distMatrix, association);
-			//std::cout << "done solving" << std::endl;
-        }
 
-		// float associateGapsTime = timeTaken(associateGapsStartTime);
-		// ROS_INFO_STREAM_NAMED("GapAssociator","associateGaps time taken: " << associateGapsTime << " seconds for " << currentGapPoints.size() << " gaps");
+		try
+		{
+			// NEW ASSIGNMENT OBTAINED
+			std::chrono::steady_clock::time_point associateGapsStartTime = std::chrono::steady_clock::now();
+
+			// std::cout << "obtaining new assignment" << std::endl;
+			if (distMatrix.size() > 0 && distMatrix.at(0).size() > 0) 
+			{
+				//std::cout << "solving" << std::endl;
+				float cost = Solve(distMatrix, association);
+				//std::cout << "done solving" << std::endl;
+			}
+
+			// float associateGapsTime = timeTaken(associateGapsStartTime);
+			// ROS_INFO_STREAM_NAMED("GapAssociator","associateGaps time taken: " << associateGapsTime << " seconds for " << currentGapPoints.size() << " gaps");
+		} catch (...)
+		{
+			ROS_WARN_STREAM_NAMED("GapAssociator", "associateGaps failed");			
+		}
+
 		return association;
     }
 	
