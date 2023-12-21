@@ -14,7 +14,7 @@ namespace dynamic_gap
             StaticScanSeparator& operator=(StaticScanSeparator other) {cfg_ = other.cfg_; return *this; }
 
             StaticScanSeparator(const StaticScanSeparator &t) {cfg_ = t.cfg_;}
-            std::vector<Eigen::Vector4f > getCurrAgents() { return currAgents; }
+            std::vector<Eigen::Vector4f> getCurrAgents() { return currAgents; }
 
             sensor_msgs::LaserScan staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & observed_gaps, 
                                                                 boost::shared_ptr<sensor_msgs::LaserScan const> msg);
@@ -23,7 +23,7 @@ namespace dynamic_gap
             bool checkModelSimilarity(dynamic_gap::Estimator * currModel, dynamic_gap::Estimator * prevModel);
             void createAgentFromModels(dynamic_gap::Estimator * currModel,    
                                         dynamic_gap::Estimator * prevModel,
-                                        std::vector<Eigen::Vector4f > & agents);
+                                        std::vector<Eigen::Vector4f> & agents);
             void clearAgentFromStaticScan(dynamic_gap::Estimator * currModel, 
                                             dynamic_gap::Estimator * prevModel,
                                             sensor_msgs::LaserScan & curr_scan);           

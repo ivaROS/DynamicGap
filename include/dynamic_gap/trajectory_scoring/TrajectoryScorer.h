@@ -42,7 +42,7 @@ namespace dynamic_gap
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans);
         
         void recoverDynamicEgoCircle(float t_i, float t_iplus1, 
-                                    std::vector<Eigen::Vector4f > & propagatedAgents,
+                                    std::vector<Eigen::Vector4f> & propagatedAgents,
                                     sensor_msgs::LaserScan & dynamicLaserScan,
                                     bool print);
         
@@ -65,7 +65,7 @@ namespace dynamic_gap
 
             void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
 
-            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Vector4f > & agentPoses);            
+            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses);            
 
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_;

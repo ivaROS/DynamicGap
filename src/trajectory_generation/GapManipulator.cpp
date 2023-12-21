@@ -40,7 +40,7 @@ namespace dynamic_gap
                 setGapWaypoint(gap, globalPathLocalWaypoint, false);
             } else if (gap.getCategory() == "closing") 
             {
-                std::string closingGapType;
+                std::string closingGapType = "";
                 if (gap.crossed_) 
                 {
                     closingGapType = "crossed";
@@ -48,7 +48,6 @@ namespace dynamic_gap
 
                     gap.terminalGoal.x_ = crossingPt[0];
                     gap.terminalGoal.y_ = crossingPt[1];
-                    // gap.terminalGoal.set = true;
                 } else if (gap.closed_) 
                 {
                     closingGapType = "closed";
@@ -57,7 +56,6 @@ namespace dynamic_gap
                 
                     gap.terminalGoal.x_ = closing_pt[0];
                     gap.terminalGoal.y_ = closing_pt[1];
-                    // gap.terminalGoal.set = true;
                 } else 
                 {
                     closingGapType = "existent";
@@ -79,8 +77,8 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapWaypoint()]");
 
-            int leftIdx, rightIdx;
-            float leftDist, rightDist;
+            int leftIdx = 0, rightIdx = 0;
+            float leftDist = 0.0, rightDist = 0.0;
             if (initial) 
             {
                 leftIdx = gap.cvxLeftIdx();
@@ -95,11 +93,6 @@ namespace dynamic_gap
                 rightDist = gap.cvxTermRightDist();
             }
 
-            // int leftIdx = initial ? gap.cvxLeftIdx() : gap.cvxTermLeftIdx();
-            // int rightIdx = initial ? gap.cvxRightIdx() : gap.cvxTermRightIdx();
-            // float leftDist = initial ? gap.cvxLeftDist() : gap.cvxTermLeftDist();
-            // float rightDist = initial ? gap.cvxRightDist() : gap.cvxTermRightDist();
-
             float leftTheta = idx2theta(leftIdx);
             float rightTheta = idx2theta(rightIdx);
 
@@ -111,17 +104,10 @@ namespace dynamic_gap
             Eigen::Vector2f leftPt(xLeft, yLeft);
             Eigen::Vector2f rightPt(xRight, yRight);
 
-            // auto lr = (pl - pr) / (pl - pr).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pr;
-            // auto leftTheta = std::atan2(leftPt[1], leftPt[0]);
-            // auto lf = (pr - pl) / (pr - pl).norm() * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio + pl; // why are we doing this? we are inflating already.
-            // auto rightTheta = std::atan2(rightPt[1], rightPt[0]);
-
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapWaypoint()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap polar points, left: (" << leftIdx << ", " << leftDist << ") , right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
-            // Eigen::Vector2f left_vect_robot = leftPt / leftPt.norm();
-            // Eigen::Vector2f right_vect_robot = rightPt / rightPt.norm();
             float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
 
             // Second condition: if angle smaller than M_PI / 3
@@ -220,7 +206,7 @@ namespace dynamic_gap
     float GapManipulator::setBiasedGapGoalTheta(float leftTheta, float rightTheta, float globalPathLocalWaypointTheta,
                                                 float leftToRightAngle, float rightToGoalAngle, float leftToGoalAngle)
     {
-        float biasedGapGoalTheta;
+        float biasedGapGoalTheta = 0.0;
         if (leftTheta > rightTheta) // gap is not behind robot
         { 
             biasedGapGoalTheta = std::min(leftTheta, std::max(rightTheta, globalPathLocalWaypointTheta));
@@ -259,25 +245,12 @@ namespace dynamic_gap
             return true;
 
         // Should be sufficiently far, otherwise we are in trouble
-        // float goal_angle = std::atan2(globalPathLocalWaypoint.pose.position.y, globalPathLocalWaypoint.pose.position.x);
 
         // get gap's range at globalPathLocalWaypoint idx
-        // Eigen::Vector2f left_norm_vect(std::cos(leftTheta), std::sin(leftTheta));
-        // Eigen::Vector2f right_norm_vect(std::cos(rightTheta), std::sin(rightTheta));
-        // Eigen::Vector2f goal_norm_vect(std::cos(goal_angle), std::sin(goal_angle));
 
         float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
         float leftToGoalAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypoint, true);
         float gapGoalRange = (rightPt.norm() - leftPt.norm()) * epsilonDivide(leftToGoalAngle, leftToRightAngle) + leftPt.norm();
-
-        /*
-        float half_angle = std::asin(cfg_->rbt.r_inscr / dist2goal);
-        // int index = std::ceil(half_angle / scan.angle_increment) * 1.5;
-        int index = (int)(scan.ranges.size()) / 8;
-        int lower_bound = goal_index - index;
-        int upper_bound = goal_index + index;
-        float minScanRange_round_goal = *std::min_element(scan.ranges.begin() + lower_bound, scan.ranges.begin() + upper_bound);
-        */
 
         return dist2goal < gapGoalRange;
     }
@@ -290,25 +263,21 @@ namespace dynamic_gap
             // msg is from egocircle
             // only part of msg used is angle_increment
 
-            int leftIdx, rightIdx;
-            float leftDist, rightDist;
+            int leftIdx = 0, rightIdx = 0;
+            float leftDist = 0.0, rightDist = 0.0;
             if (initial) 
             {
                 leftIdx = gap.cvxLeftIdx();
                 rightIdx = gap.cvxRightIdx();
                 leftDist = gap.cvxLeftDist();
                 rightDist = gap.cvxRightDist();
-            } else {
+            } else 
+            {
                 leftIdx = gap.cvxTermLeftIdx();
                 rightIdx = gap.cvxTermRightIdx();
                 leftDist = gap.cvxTermLeftDist();
                 rightDist = gap.cvxTermRightDist();
             }
-
-            // int leftIdx = initial ? gap.cvxLeftIdx() : gap.cvxTermLeftIdx();
-            // int rightIdx = initial ? gap.cvxRightIdx() : gap.cvxTermRightIdx();
-            // float leftDist = initial ? gap.cvxLeftDist() : gap.cvxTermLeftDist();
-            // float rightDist = initial ? gap.cvxRightDist() : gap.cvxTermRightDist();
 
             float gapIdxSpan = (leftIdx - rightIdx);
             if (gapIdxSpan < 0.0)
@@ -321,21 +290,13 @@ namespace dynamic_gap
             if (gapAngle < cfg_->gap_manip.reduction_threshold)
                 return;
 
-            // float xLeft = (leftDist) * cos(((float) leftIdx - half_num_scan) * M_PI / half_num_scan);
-            // float yLeft = (leftDist) * sin(((float) leftIdx - half_num_scan) * M_PI / half_num_scan);
-            // float xRight = (rightDist) * cos(((float) rightIdx - half_num_scan) * M_PI / half_num_scan);
-            // float yRight = (rightDist) * sin(((float) rightIdx - half_num_scan) * M_PI / half_num_scan);
-
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [reduceGap()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-reduce gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "pre-reduce gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
             // the desired size for the reduced gap?
             // target is pi
             int targetGapIdxSpan = cfg_->gap_manip.reduction_target / cfg_->scan.angle_increment;
-            // int leftIdxBiasedRight = ();
-            // int rightIdxBiasedLeft = ; 
-
+ 
             int leftIdxBiasedRight = subtractAndWrapScanIndices(leftIdx - targetGapIdxSpan, cfg_->scan.full_scan);
             int rightIdxBiasedLeft = (rightIdx + targetGapIdxSpan) % cfg_->scan.full_scan; // num_of_scan is int version of 2*half_scan
 
@@ -377,7 +338,6 @@ namespace dynamic_gap
             }
 
             // removed some float casting here
-            // float orig_gap_size = subtractAndWrapScanIndices(leftIdx - rightIdx, cfg_->scan.full_scan);
             float leftToNewLeftIdxSpan = subtractAndWrapScanIndices(leftIdx - newLeftIdx, cfg_->scan.full_scan);
             float leftToNewRightIdxSpan = subtractAndWrapScanIndices(leftIdx - newRightIdx, cfg_->scan.full_scan);
 
@@ -395,10 +355,6 @@ namespace dynamic_gap
                 gap.setCvxRightDist(newRightDist);
                 gap.mode.reduced_ = true;
 
-                // xLeft = gap.cvxLeftDist() * cos(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yLeft = gap.cvxLeftDist() * sin(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // xRight = gap.cvxRightDist() * cos(((float) gap.cvxRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yRight = gap.cvxRightDist() * sin(((float) gap.cvxRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
             } else 
             {
                 gap.setcvxTermLeftIdx(newLeftIdx);
@@ -407,10 +363,6 @@ namespace dynamic_gap
                 gap.setcvxTermRightDist(newRightDist);
                 gap.mode.termReduced_ = true;
 
-                // xLeft = gap.cvxTermLeftDist() * cos(((float) gap.cvxTermLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yLeft = gap.cvxTermLeftDist() * sin(((float) gap.cvxTermLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // xRight = gap.cvxTermRightDist() * cos(((float) gap.cvxTermRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yRight = gap.cvxTermRightDist() * sin(((float) gap.cvxTermRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
             }
 
 
@@ -433,11 +385,9 @@ namespace dynamic_gap
                 return;
             }
 
-            // if (stored_scan_msgs.ranges.size() != 512) {ROS_ERROR_STREAM_NAMED("GapManipulator", "Scan range incorrect gap manip");}
-
             sensor_msgs::LaserScan desScan;
-            int leftIdx, rightIdx;
-            float leftDist, rightDist;
+            int leftIdx = 0, rightIdx = 0;
+            float leftDist = 0.0, rightDist = 0.0;
             if (initial) 
             {
                 desScan = *scan_.get();
@@ -458,21 +408,17 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RGC gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
             // ROS_INFO_STREAM_NAMED("GapManipulator", "pre-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
-            // float leftTheta = idx2theta(leftIdx);
-            // float rightTheta = idx2theta(rightIdx);
-
             bool right = gap.isRightType(initial);
             // Rotate radial gap by an amount theta so that its width is visible
             
             // start with a nominal pivot angle, we will adjust this angle to find the actual theta that we pivot by
             float nomPivotAngle = std::atan2(cfg_->gap_manip.epsilon2, cfg_->gap_manip.epsilon1) + 1e-3;
-            // float theta = right ? (nomPivotAngle + 1e-3): -(nomPivotAngle + 1e-3);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "left: " << left << ", nomPivotAngle: " << nomPivotAngle);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "theta to pivot: " << theta);
-            int nearIdx, farIdx;
-            float nearDist, farDist;
-            float nearTheta, farTheta;
-            float signedNomPivotAngle;
+            int nearIdx = 0, farIdx = 0;
+            float nearDist = 0.0, farDist = 0.0;
+            float nearTheta = 0.0, farTheta = 0.0;
+            float signedNomPivotAngle = 0.0;
 
             if (right) 
             {
@@ -480,8 +426,6 @@ namespace dynamic_gap
                 nearDist = rightDist;
                 farIdx = leftIdx;
                 farDist = leftDist;
-                // nearTheta = rightTheta;
-                // farTheta = leftTheta;
                 signedNomPivotAngle = nomPivotAngle;
             } else 
             {
@@ -507,7 +451,6 @@ namespace dynamic_gap
             nearPtTranslationMatrix << 1., 0., nearDist * cos(nearTheta),
                                     0., 1., nearDist * sin(nearTheta),
                                     0., 0., 1.;
-            // Eigen::Matrix3f farPtTranslationMatrix;
             farPtTranslationMatrix  << 1., 0., farDist * cos(farTheta),
                                     0., 1., farDist * sin(farTheta),
                                     0., 0., 1.;
@@ -526,7 +469,7 @@ namespace dynamic_gap
 
             // Search along current scan to from initial gap point to pivoted gap point
             // to obtain range value to assign to the pivoted gap point
-            int scanSearchStartIdx, scanSearchEndIdx;
+            int scanSearchStartIdx = 0, scanSearchEndIdx = 0;
             if (right)
             {   
                 scanSearchStartIdx = leftIdx;
@@ -536,18 +479,6 @@ namespace dynamic_gap
                 scanSearchStartIdx = nomPivotedIdx;
                 scanSearchEndIdx = rightIdx;
             }
-            // offset: original right index or the pivoted left
-            // int scanSearchStartIdx = right ? leftIdx : nomPivotedIdx;
-            // upperbound: pivoted right index or original left  
-            // int scanSearchEndIdx = right ? nomPivotedIdx : rightIdx;
-
-            // For wraparound (check to see if this happens)
-            // scanSearchStartIdx = std::max(scanSearchStartIdx, 0);
-            // scanSearchEndIdx = std::min(scanSearchEndIdx, cfg_->scan.full_scan - 1);
-
-            // int scanSearchSize = scanSearchEndIdx - scanSearchStartIdx;
-            // if (scanSearchSize < 0)
-            //     scanSearchSize += cfg_->scan.full_scan; // 2*int(gap.half_scan);
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "scanSearchStartIdx: " << scanSearchStartIdx << ", scanSearchEndIdx: " << scanSearchEndIdx);
 
@@ -566,10 +497,9 @@ namespace dynamic_gap
             // that's shortest distance between near point and laser scan
             // ROS_INFO_STREAM_NAMED("GapManipulator", "ranges size: " << stored_scan_msgs.ranges.size());
             std::vector<float> nearPtToScanDists(scanSearchSize);
-            // try
-            // {
-            int checkIdx;
-            float checkRange, checkIdxSpan;
+
+            int checkIdx = 0;
+            float checkRange = 0.0, checkIdxSpan = 0.0;
             for (int i = 0; i < nearPtToScanDists.size(); i++) 
             {
                 checkIdx = (i + scanSearchStartIdx) % cfg_->scan.full_scan; // int(2 * gap.half_scan);
@@ -579,9 +509,6 @@ namespace dynamic_gap
                                             2.0 * nearDist * checkRange * cos(checkIdxSpan * cfg_->scan.angle_increment));
                 // ROS_INFO_STREAM_NAMED("GapManipulator", "checking idx: " << checkIdx << ", range of: " << range << ", diff in idx: " << checkIdxSpan << ", dist of " << dist.at(i));
             }
-            // } catch(...) {
-            //     ROS_ERROR_STREAM_NAMED("GapManipulator", "convertRadialGap outofBound");
-            // }
 
             auto minDistIter = std::min_element(nearPtToScanDists.begin(), nearPtToScanDists.end());
             int minDistIdx = (scanSearchStartIdx + std::distance(nearPtToScanDists.begin(), minDistIter)) % cfg_->scan.full_scan; // int(2*gap.half_scan);
@@ -593,7 +520,7 @@ namespace dynamic_gap
 
             float nearToFarDistance = sqrt(pow(nearToFarTranslationMatrix(0, 2), 2) + pow(nearToFarTranslationMatrix(1, 2), 2));
             // ROS_INFO_STREAM_NAMED("GapManipulator", "nearToFarDistance: " << nearToFarDistance);
-            // float coefs = nearToFarTranslationMatrix.block<2, 1>(0, 2).norm();
+
             // ROS_INFO_STREAM_NAMED("GapManipulator", "translation norm: " << nearToFarDistance);
             
             // augmenting near to far direction by pivoted point, multiplying by min dist        
@@ -603,10 +530,10 @@ namespace dynamic_gap
 
             float pivotedPtDist = sqrt(pow(pivotedPtMatrix(0, 2), 2) + pow(pivotedPtMatrix(1, 2), 2));
             float pivotedPtTheta = std::atan2(pivotedPtMatrix(1, 2), pivotedPtMatrix(0, 2));
-            // idx = int (half_num_scan * nomPivotedTheta / M_PI) + half_num_scan;
+
             int pivotedPtIdx = theta2idx(pivotedPtTheta); 
 
-            float newLeftIdx, newRightIdx, newLeftDist, newRightDist;
+            float newLeftIdx = 0.0, newRightIdx = 0.0, newLeftDist = 0.0, newRightDist = 0.0;
             if (right) 
             {
                 newLeftIdx = pivotedPtIdx;
@@ -629,10 +556,6 @@ namespace dynamic_gap
                 gap.setCvxRightDist(newRightDist);
                 gap.mode.RGC_ = true;
 
-                // xLeft = gap.cvxLeftDist() * cos(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yLeft = gap.cvxLeftDist() * sin(((float) gap.cvxLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // xRight = gap.cvxRightDist() * cos(((float) gap.cvxRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yRight = gap.cvxRightDist() * sin(((float) gap.cvxRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
             } else 
             {
                 gap.setcvxTermLeftIdx(newLeftIdx);
@@ -641,10 +564,6 @@ namespace dynamic_gap
                 gap.setcvxTermRightDist(newRightDist);
                 gap.mode.termRGC_ = true;
 
-                // xLeft = gap.cvxTermLeftDist() * cos(((float) gap.cvxTermLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yLeft = gap.cvxTermLeftDist() * sin(((float) gap.cvxTermLeftIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // xRight = gap.cvxTermRightDist() * cos(((float) gap.cvxTermRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
-                // yRight = gap.cvxTermRightDist() * sin(((float) gap.cvxTermRightIdx() - gap.half_scan) / gap.half_scan * M_PI);
             }
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftDist << "), right: (" << newRightIdx << ", " << newRightDist << ")");
@@ -663,12 +582,8 @@ namespace dynamic_gap
             if (!cfg_->gap_manip.radial_extend)
                 return;
 
-            //  = initial ? *msg.get() : dynamic_scan;
-            // int half_num_scan = gap.half_scan; // changing this
-            
-            // sensor_msgs::LaserScan stored_scan_msgs;
-            int leftIdx, rightIdx;
-            float leftDist, rightDist;
+            int leftIdx = 0, rightIdx = 0;
+            float leftDist = 0.0, rightDist = 0.0;
             if (initial) 
             {
                 leftIdx = gap.cvxLeftIdx();
@@ -683,11 +598,6 @@ namespace dynamic_gap
                 rightDist = gap.cvxTermRightDist();
             }
 
-            // int leftIdx = initial ? gap.cvxLeftIdx() : gap.cvxTermLeftIdx();
-            // int rightIdx = initial ? gap.cvxRightIdx() : gap.cvxTermRightIdx();
-            // float leftDist = initial ? gap.cvxLeftDist() : gap.cvxTermLeftDist();
-            // float rightDist = initial ? gap.cvxRightDist() : gap.cvxTermRightDist();
-
             float leftTheta = idx2theta(leftIdx);
             float rightTheta = idx2theta(rightIdx);
             float xLeft = leftDist * cos(leftTheta);
@@ -698,9 +608,6 @@ namespace dynamic_gap
             Eigen::Vector2f leftPt(xLeft, yLeft);
             Eigen::Vector2f rightPt(xRight, yRight);
 
-            // Eigen::Vector2f eL_robot = leftPt / leftPt.norm();
-            // Eigen::Vector2f eR_robot = rightPt / rightPt.norm();
-
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [radialExtendGap()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
@@ -709,8 +616,6 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
 
             float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
-
-            // float thetaLeft_robot = std::atan2(leftPt[1], leftPt[0]);
 
             float thetaCenter = (leftTheta - 0.5*leftToRightAngle);
 
@@ -730,31 +635,14 @@ namespace dynamic_gap
             Eigen::Vector2f extendedGapOrigin =  - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * norm_eB; //
             // ROS_INFO_STREAM_NAMED("GapManipulator", "extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
 
-            // Eigen::Vector2f fwd_extendedGapOrigin = -extendedGapOrigin; 
-            Eigen::Matrix2f Rpi2, Rnegpi2;
-            Rpi2 << 0, -1, 1, 0;
-            Rnegpi2 = -Rpi2;
-
             
             if (initial) 
             {
                 gap.extendedGapOrigin_ = extendedGapOrigin;
-                // Eigen::Vector2f qLp = leftPt - extendedGapOrigin;
-                // float theta_btw_qLp_and_extendedGapOrigin = std::acos(fwd_extendedGapOrigin.dot(qLp) / (fwd_extendedGapOrigin.norm() * qLp.norm()));
-                // float length_along_qLp = fwd_extendedGapOrigin.norm() / cos(theta_btw_qLp_and_extendedGapOrigin);
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "theta between qLp and extendedGapOrigin: " << theta_btw_qLp_and_extendedGapOrigin);
-                //Eigen::Vector2f left_hypotenuse = length_along_qLp * qLp / qLp.norm();        
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "length along qLp: " << length_along_qLp << ", left_hypotenuse: " << left_hypotenuse[0] << ", " << left_hypotenuse[1]);
-                
-                gap.leftBezierOrigin_ =  Rnegpi2 * extendedGapOrigin; // left_hypotenuse + extendedGapOrigin;
+ 
+                gap.leftBezierOrigin_ =  Rnegpi2 * extendedGapOrigin;
 
-                // Eigen::Vector2f qRp = rightPt - extendedGapOrigin;
-                // float theta_btw_qRp_and_extendedGapOrigin = std::acos(fwd_extendedGapOrigin.dot(qRp) / (fwd_extendedGapOrigin.norm() * qRp.norm()));
-                // float length_along_qRp = fwd_extendedGapOrigin.norm() / cos(theta_btw_qRp_and_extendedGapOrigin);
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "theta between qRp and extendedGapOrigin: " << theta_btw_qRp_and_extendedGapOrigin);
-                // Eigen::Vector2f right_hypotenuse = length_along_qRp * qRp / qRp.norm();        
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "length along qRp: " << length_along_qRp << ", right_hypotenuse: " << right_hypotenuse[0] << ", " << right_hypotenuse[1]);
-                gap.rightBezierOrigin_ = Rpi2 * extendedGapOrigin; // right_hypotenuse + extendedGapOrigin;
+                gap.rightBezierOrigin_ = Rpi2 * extendedGapOrigin;
                 gap.mode.convex_ = true;
             
             } else 
@@ -778,9 +666,9 @@ namespace dynamic_gap
         {
             // get points
 
-            int leftIdx, rightIdx;
-            float leftDist, rightDist;
-            // sensor_msgs::LaserScan stored_scan_msgs =  // initial ? *msg.get() : dynamic_scan;
+            int leftIdx = 0, rightIdx = 0;
+            float leftDist = 0.0, rightDist = 0.0;
+
             sensor_msgs::LaserScan desScan;
             if (initial) 
             {
@@ -797,10 +685,6 @@ namespace dynamic_gap
                 leftDist = gap.cvxTermLeftDist();
                 rightDist = gap.cvxTermRightDist();
             }
-            // int leftIdx = initial ? gap.cvxLeftIdx() : gap.cvxTermLeftIdx();
-            // int rightIdx = initial ? gap.cvxRightIdx() : gap.cvxTermRightIdx();
-            // float leftDist = initial ? gap.cvxLeftDist() : gap.cvxTermLeftDist();
-            // float rightDist = initial ? gap.cvxRightDist() : gap.cvxTermRightDist();
 
             float leftTheta = idx2theta(leftIdx);
             float rightTheta = idx2theta(rightIdx);
@@ -822,10 +706,6 @@ namespace dynamic_gap
 
             // inflate inwards by radius * infl
             // rotate by pi/2, norm
-            // Eigen::Matrix2f Rpi2, Rnegpi2;
-            // Rpi2 << 0, -1,
-            //             1, 0;
-            // Rnegpi2 = -Rpi2;
             
             // PERFORMING ANGULAR INFLATION
             Eigen::Vector2f leftInflationVector = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * Rnegpi2 * leftUnitNorm;
@@ -834,10 +714,6 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "leftTheta: " << leftTheta << ", inflatedLeftTheta: " << inflatedLeftTheta); // << ", leftThetaeft_infl: " << leftThetaeft_infl
 
-            // float rightTheta_infl = ((M_PI / 2) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio) / rightPt.norm(); // using s = r*theta
-            // float inflatedRightTheta = rightTheta + rightTheta_infl;
-            // inflatedRightTheta = atanThetaWrap(inflatedRightTheta);
-            
             Eigen::Vector2f rightInflationVector = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * Rpi2 * rightUnitNorm;
             Eigen::Vector2f inflatedRightPt = rightPt + rightInflationVector;
             float inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
@@ -849,8 +725,8 @@ namespace dynamic_gap
             float newLeftToRightAngle = getLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm, false);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "newLeftToRightAngle: " << newLeftToRightAngle);
 
-            int inflatedLeftIdx, inflatedRightIdx;
-            float inflatedLeftRange, inflatedRightRange;
+            int inflatedLeftIdx = 0, inflatedRightIdx = 0;
+            float inflatedLeftRange = 0.0, inflatedRightRange = 0.0;
             if (newLeftToRightAngle < 0) 
             {
                 // ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
@@ -858,14 +734,12 @@ namespace dynamic_gap
                 inflatedLeftIdx = leftIdx;
                 inflatedLeftRange = leftDist;
                 inflatedRightRange = rightDist;
-            } else {
+            } else 
+            {
                 // need to make sure L/R don't cross each other
                 inflatedRightIdx = theta2idx(inflatedRightTheta);
                 inflatedLeftIdx = theta2idx(inflatedLeftTheta);
                 
-                // float leftDist_robot = leftDist;
-                // float rightDist_robot = rightDist;
-
                 float leftToInflatedLeftAngle = getLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm, false);
                 float leftToInflatedRightAngle = getLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm, false);
                 inflatedLeftRange = leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
@@ -894,9 +768,6 @@ namespace dynamic_gap
 
             if (inflatedRightIdx == inflatedLeftIdx) // ROS_INFO_STREAM_NAMED("GapManipulator", "manipulated indices are same");
                 inflatedLeftIdx++;
-
-            // float new_l_range = inflatedLeftRange; // std::min(inflatedLeftRange, stored_scan_msgs.ranges.at(inflatedLeftIdx));
-            // float new_r_range = inflatedRightRange; // std::min(inflatedRightRange, stored_scan_msgs.ranges.at(inflatedRightIdx)); // should this be ranges.at - r_infl? 
 
             if (initial) 
             {

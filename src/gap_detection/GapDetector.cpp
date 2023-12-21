@@ -93,7 +93,6 @@ namespace dynamic_gap
                     // initializing a radial gap
                     dynamic_gap::Gap gap(frame, it - 1, prevRayDist, true, minScanDist_);
                     gap.addLeftInformation(it, currRayDist);
-                    // gap.setRadial();
 
                     rawGaps.push_back(gap);
 
@@ -109,7 +108,6 @@ namespace dynamic_gap
                         ROS_INFO_STREAM_NAMED("GapDetector", "    gap ending: infinity to finite");
                         dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
                         gap.addLeftInformation(it, currRayDist);
-                        // gap.setRadial();
 
                         //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                         // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
@@ -139,7 +137,6 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM_NAMED("GapDetector", "    catching last gap");
                 dynamic_gap::Gap gap(frame, gapRIdx, gapRDist, false, minScanDist_);
                 gap.addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
-                // gap.setRadial();
                 
                 // ROS_INFO_STREAM_NAMED("GapDetector", "gapRIdx: " << gapRIdx << ", gapRDist: " << gapRDist);
                 // ROS_INFO_STREAM_NAMED("GapDetector", "last_scan_idx: " << last_scan_idx << ", last_scan_dist: " << last_scan_dist);
@@ -216,7 +213,6 @@ namespace dynamic_gap
 
         dynamic_gap::Gap gap(frame, rightIdx, scan_.ranges.at(rightIdx), true, minScanDist_);
         gap.addLeftInformation(leftIdx, scan_.ranges.at(leftIdx));
-        // gap.setRadial();
         
         gap.artificial_ = true;
         rawGaps.insert(rawGaps.begin() + gapIdx, gap);        
@@ -231,7 +227,7 @@ namespace dynamic_gap
     {
         int lastMergeable = -1;
 
-        int startIdx, endIdx;
+        int startIdx = -1, endIdx = -1;
         // ROS_INFO_STREAM_NAMED("GapDetector", "attempting merge with raw gap: (" << rawGaps.at(i).RIdx() << ", " << rawGaps.at(i).RDist() << ") to (" << rawGaps.at(i).LIdx() << ", " << rawGaps.at(i).LDist() << ")");
         for (int j = (simplifiedGaps.size() - 1); j >= 0; j--)
         {
@@ -318,7 +314,6 @@ namespace dynamic_gap
                                 // ROS_INFO_STREAM_NAMED("GapDetector", "erasing simplified gaps from " << (lastMergeable + 1) << " to " << simplifiedGaps.size());
                                 simplifiedGaps.erase(simplifiedGaps.begin() + lastMergeable + 1, simplifiedGaps.end());
                                 simplifiedGaps.back().addLeftInformation(rawGap.LIdx(), rawGap.LDist());
-                                // simplifiedGaps.back().setRadial();
                                 // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplified gap into (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
                             } else 
                             {
@@ -333,7 +328,6 @@ namespace dynamic_gap
                         if (mergeSweptGapCondition(rawGap, simplifiedGaps))
                         {
                             simplifiedGaps.back().addLeftInformation(rawGap.LIdx(), rawGap.LDist());
-                            // simplifiedGaps.back().setRadial();
                             // ROS_INFO_STREAM_NAMED("GapDetector", "merging last simplifed gap to (" << simplifiedGaps.back().RIdx() << ", " << simplifiedGaps.back().RDist() << ") to (" << simplifiedGaps.back().LIdx() << ", " << simplifiedGaps.back().LDist() << ")");
                         } else 
                         {

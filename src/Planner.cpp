@@ -233,7 +233,7 @@ namespace dynamic_gap
 		dynamic_gap::Gap gap = gaps[int(idx / 2.0)];
  
         // float thetaTilde, rangeTilde;
-        float rX, rY;
+        float rX = 0.0, rY = 0.0;
 		if (idx % 2 == 0) 
             gap.getLCartesian(rX, rY);            
 		else 
@@ -1030,7 +1030,7 @@ namespace dynamic_gap
         // isCurrentGapAssociated = false;
         isCurrentGapFeasible = false;
 
-        bool isGapFeasible;
+        bool isGapFeasible = false;
         std::vector<dynamic_gap::Gap> feasibleGaps;
         for (size_t i = 0; i < gaps.size(); i++) 
         {
@@ -1084,7 +1084,7 @@ namespace dynamic_gap
         float t_i = 0.0;
         futureScans_.at(0) = dynamicScan; // at t = 0.0
 
-        std::vector<Eigen::Vector4f > currentAgents;
+        std::vector<Eigen::Vector4f> currentAgents;
         
         if (cfg_.planning.egocircle_prop_cheat) 
         {
@@ -1104,7 +1104,7 @@ namespace dynamic_gap
         for (int i = 0; i < currentAgents.size(); i++)
             ROS_INFO_STREAM_NAMED("ScanPropagation", "        agent" << i << " position: " << currentAgents.at(i)[0] << ", " << currentAgents.at(i)[1] << ", velocity: " << currentAgents.at(i)[2] << ", " << currentAgents.at(i)[3]);
         
-        int futureScanTimeIdx;
+        int futureScanTimeIdx = -1;
         for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
         {
             dynamicScan.ranges = scan.ranges;
@@ -1129,14 +1129,14 @@ namespace dynamic_gap
 
         // std::chrono::steady_clock::time_point start_time_c;
 
-        bool isCurrentGapFeasible; // isCurrentGapAssociated, 
+        bool isCurrentGapFeasible = false; // isCurrentGapAssociated, 
 
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
         ///////////////////////////
         // GAP FEASIBILITY CHECK //
         ///////////////////////////
-        int gapCount;
+        int gapCount = -1;
         std::vector<dynamic_gap::Gap> feasibleGaps;
         std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
         if (cfg_.planning.dynamic_feasibility_check)
@@ -1166,7 +1166,7 @@ namespace dynamic_gap
         try 
         {
             getFutureScans();
-        } catch (std::out_of_range) 
+        } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "out of range in getFutureScans");
         }
@@ -1182,7 +1182,7 @@ namespace dynamic_gap
         try 
         {
             manipulatedGaps = gapManipulate(feasibleGaps);
-        } catch (std::out_of_range) 
+        } catch (...) 
         {
             ROS_INFO_STREAM("out of range in gapManipulate");
         }
@@ -1200,7 +1200,7 @@ namespace dynamic_gap
         try 
         {
             pathPoseScores = generateGapTrajs(manipulatedGaps, paths, pathTimings);
-        } catch (std::out_of_range) 
+        } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "out of range in generateGapTrajs");
         }
@@ -1214,11 +1214,11 @@ namespace dynamic_gap
         // GAP TRAJECTORY SELECTION //
         //////////////////////////////
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        int highestScoreTrajIdx;
+        int highestScoreTrajIdx = -1;
         try 
         {
             highestScoreTrajIdx = pickTraj(paths, pathPoseScores);
-        } catch (std::out_of_range) 
+        } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "out of range in pickTraj");
         }
@@ -1249,7 +1249,7 @@ namespace dynamic_gap
         try 
         {
             chosenTraj = compareToCurrentTraj(highestScoreGap, highestScorePath, highestScorePathTiming, manipulatedGaps, isCurrentGapFeasible); // isCurrentGapAssociated,
-        } catch (std::out_of_range) 
+        } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "out of range in compareToCurrentTraj");
         }
@@ -1290,7 +1290,7 @@ namespace dynamic_gap
             std::cout << association.at(i) << ", ";
         std::cout << "" << std::endl;
 
-        float currX, currY, prevX, prevY;
+        float currX = 0.0, currY = 0.0, prevX = 0.0, prevY = 0.0;
         for (int i = 0; i < association.size(); i++) 
         {
             std::vector<int> pair{i, association.at(i)};
@@ -1321,7 +1321,7 @@ namespace dynamic_gap
     void Planner::printGapModels(const std::vector<dynamic_gap::Gap> & gaps) 
     {
         // THIS IS NOT FOR MANIPULATED GAPS
-        float x, y;
+        float x = 0.0, y = 0.0;
         for (size_t i = 0; i < gaps.size(); i++)
         {
             dynamic_gap::Gap gap = gaps.at(i);

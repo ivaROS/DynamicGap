@@ -38,7 +38,7 @@ namespace dynamic_gap
 
     void StaticScanSeparator::createAgentFromModels(dynamic_gap::Estimator * currModel,    
                                                     dynamic_gap::Estimator * prevModel,
-                                                    std::vector<Eigen::Vector4f > & agents) 
+                                                    std::vector<Eigen::Vector4f> & agents) 
     {
         Eigen::Vector4f currState = currModel->getGapState();
         Eigen::Vector4f prevState = prevModel->getGapState();
@@ -132,7 +132,7 @@ namespace dynamic_gap
             dynamic_gap::Estimator * prevModel = gapModels[0];
             dynamic_gap::Estimator * currModel = gapModels[1];
 
-            std::vector<Eigen::Vector4f > agents;
+            std::vector<Eigen::Vector4f> agents;
 
             // ROS_INFO_STREAM("looping through models");
             for (int i = 1; i < gapModels.size(); i++) 

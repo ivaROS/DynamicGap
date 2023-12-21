@@ -247,7 +247,7 @@ namespace dynamic_gap
         int midGapIdx = rightIdx; //  + viz_offset;
         float midGapDist = rightDist;
 
-        float midGapTheta;
+        float midGapTheta = 0.0;
         for (int i = 0; i < num_segments; i++)
         {
             midGapPts.clear();
@@ -396,7 +396,7 @@ namespace dynamic_gap
 
         marker.lifetime = ros::Duration(0);
 
-        float midGapTheta;
+        float midGapTheta = 0.0;
         for (int i = 0; i < num_segments; i++)
         {
             midGapPts.clear();
@@ -621,7 +621,7 @@ namespace dynamic_gap
         Eigen::Vector4f leftModelState = (groundTruth) ? gap.leftGapPtModel_->getTrueState() : gap.leftGapPtModel_->getState();
         Eigen::Vector4f rightModelState = (groundTruth) ? gap.rightGapPtModel_->getTrueState() : gap.rightGapPtModel_->getState();
            
-        Eigen::Vector2f gapVel;
+        Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)
         {
             modelMarker.pose.position.x = leftModelState[0];
@@ -910,7 +910,7 @@ namespace dynamic_gap
         // int num_pts_per_side = g.allCurvePts_.rows() / 2;
         // ROS_INFO_STREAM("number of all_curve_pts: " << g.allCurvePts_.rows());
         // ROS_INFO_STREAM("drawReachableGap from " << g.numLeftRGEPoints_ << " to " << g.numLeftRGEPoints_ + num_curve_points - 1);
-        Eigen::Vector2d curvePt;        
+        Eigen::Vector2d curvePt(0.0, 0.0);        
         for (int i = gap.numLeftRGEPoints_; i < (gap.numLeftRGEPoints_ + num_curve_points - 1); i++) 
         {            
             midCurvePts.clear();  

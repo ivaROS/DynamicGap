@@ -572,14 +572,16 @@ namespace dynamic_gap
         x_ground_truth_gap_only[0] = x_tilde_[0];
         x_ground_truth_gap_only[1] = x_tilde_[1];
         
-        float robot_i_odom_dist;
+        float robot_i_odom_dist = 0.0;
         float min_dist = std::numeric_limits<float>::infinity();
         int min_idx = -1;
-        for (int i = 0; i < agentPoses_.size(); i++) {
+        for (int i = 0; i < agentPoses_.size(); i++) 
+        {
             robot_i_odom_dist = sqrt(pow(agentPoses_[i].position.x - x_hat_kmin1_plus_[0], 2) + 
                                      pow(agentPoses_[i].position.y - x_hat_kmin1_plus_[1], 2));
             
-            if (robot_i_odom_dist < min_dist) {
+            if (robot_i_odom_dist < min_dist) 
+            {
                 min_dist = robot_i_odom_dist;
                 min_idx = i;
             }

@@ -23,36 +23,6 @@ namespace dynamic_gap
         scanPtr_ = scan;
     }
 
-    // // this boolean is flipped from poseVisible. 
-    // bool GoalSelector::poseNotVisible(geometry_msgs::PoseStamped pose) 
-    // {
-    //     int poseScanIdx = poseIdxInScan(pose);
-
-    //     sensor_msgs::LaserScan scan = *scanPtr_.get();
-    //     bool check = poseNorm(pose) > (scan.ranges.at(poseScanIdx) - (cfg_->rbt.r_inscr / 2.0));
-    //     return check;
-    // }
-
-    // // We are iterating through the global trajectory snippet, checking each pose 
-    // bool GoalSelector::poseVisible(geometry_msgs::PoseStamped pose)
-    // {
-    //     return !poseNotVisible(pose);
-
-    //     /*
-    //     // Max: commenting this old method out because I don't understand why we would
-    //     // use the second boolean condition.
-
-    //     int laserScanIdx = poseIdxInScan(pose);
-    //     float epsilon2 = cfg_->gap_manip.epsilon2;
-    //     sensor_msgs::LaserScan scan = *scanPtr_.get();
-    //     // first piece of bool: is the distance from pose to rbt less than laserscan range - robot diameter (z-buffer idea)
-    //     // second piece of bool: distance from pose to rbt greater than laserscan range + some epsilon*2 (obstructed?)
-    //     bool check = poseNorm(pose) < (scan.ranges.at(laserScanIdx) - cfg_->rbt.r_inscr / 2) || 
-    //                  poseNorm(pose) > (scan.ranges.at(laserScanIdx) + epsilon2 * 2);
-    //     return check;
-    //     */
-    // }    
-
     void GoalSelector::generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt) 
     {
         boost::mutex::scoped_lock glock(goalSelectMutex_);
@@ -60,10 +30,6 @@ namespace dynamic_gap
         
         if (globalPlanMapFrame_.size() < 2) // No Global Path
             return;
-
-        // if ((*scan_.get()).ranges.size() < 500) {
-        //     ROS_FATAL_STREAM("Scan range incorrect goalselector");
-        // }
 
         // ROS_INFO_STREAM("running generateGlobalPathLocalWaypoint");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
@@ -75,35 +41,6 @@ namespace dynamic_gap
         globalPathLocalWaypointRobotFrame_ = local_gplan.back();
 
         // Max: do we need anything below this? I don't think so.
-
-        // // finding first place in global plan where we are visible/obstructed 
-        // // going from END to BEGIN to find the first place that we are visible or unobstructed
-        // auto result_rev = std::find_if(local_gplan.rbegin(), 
-        //                                 local_gplan.rend(), 
-        //                                 std::bind1st(std::mem_fun(&GoalSelector::poseVisible), this));
-
-
-
-        // // finding first place where we are not visible?
-        // // going from BEGIN to END to find the first place that is NOT visible or is possibly obstructed
-        // auto result_fwd = std::find_if(local_gplan.begin(), local_gplan.end(), 
-        //     std::bind1st(std::mem_fun(&GoalSelector::poseNotVisible), this));
-
-
-        // if (cfg_->planning.far_feasible) 
-        // {
-        //     // if we have gotten all the way to the end of the snippet, set that as the local goal
-        //     // if whole snippet is not visible/ possibly obstructed?
-        //     if (result_rev == local_gplan.rend()) {
-        //         result_rev = std::prev(result_rev); 
-        //     }
-        //     globalPathLocalWaypointRobotFrame_ = *result_rev;
-        // } else {
-        //     result_fwd = (result_fwd == local_gplan.end()) ? result_fwd - 1 : result_fwd;
-        //     globalPathLocalWaypointRobotFrame_ = local_gplan.at(result_fwd - local_gplan.begin());
-        // }
-
-        // ROS_INFO_STREAM("setting local goal (in robot frame) to " << local_goal.pose.position.x << ", " << local_goal.pose.position.y); 
     }
 
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt) 
@@ -179,10 +116,6 @@ namespace dynamic_gap
     float GoalSelector::calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose) 
     {
         sensor_msgs::LaserScan scan = *scanPtr_.get();
-
-        // float plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
-        // int half_num_scan = scan.ranges.size() / 2;
-        // int plan_idx = int (half_num_scan * plan_theta / M_PI) + half_num_scan;
 
         int poseIdx = poseIdxInScan(pose);
 

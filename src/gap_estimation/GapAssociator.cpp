@@ -17,25 +17,16 @@ namespace dynamic_gap
 	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
+		int lidx = 0, ridx = 0;
+		float ldist = 0.0, rdist = 0.0, ltheta = 0.0, rtheta = 0.0;
 		for (const dynamic_gap::Gap & gap : gaps) 
 		{	
-			// this is still true, I just don't know how to handle indexing right now
-            // populating the coordinates of the gap points (in rbt frame) to compute distances
-			//std::cout << "adding left points" << std::endl;
-			//std::cout << "convex l dist: " << g.convex.leftDist_ << ", half scan: " << g.half_scan << ", convex l idx: " << g.convex.leftIdx_ << std::endl;
-			//std::cout << "convex r dist: " << g.convex.rightDist_ << ", half scan: " << g.half_scan << ", convex r idx: " << g.convex.rightIdx_ << std::endl;
-			// std::string print_string;					
-
-			int lidx = gap.LIdx();
-			int ridx = gap.RIdx();
-			float ldist = gap.LDist();
-			float rdist = gap.RDist();
-			float ltheta = idx2theta(lidx);
-			float rtheta = idx2theta(ridx);		
-			// float left_x = 
-			// float left_y = 
-			// float right_x = 
-			// float right_y = 
+			lidx = gap.LIdx();
+			ridx = gap.RIdx();
+			ldist = gap.LDist();
+			rdist = gap.RDist();
+			ltheta = idx2theta(lidx);
+			rtheta = idx2theta(ridx);		
 
 			points.at(count).at(0) = ldist * cos(ltheta);
 			points.at(count).at(1) = ldist * sin(ltheta);
@@ -44,7 +35,6 @@ namespace dynamic_gap
 			points.at(count).at(1) = rdist * sin(rtheta);
 
 			count++;
-			// ROS_INFO_STREAM_NAMED("GapAssociator",print_string);
         }
 		return points;
 	}
@@ -95,15 +85,16 @@ namespace dynamic_gap
 	{
         // std::cout << "printing associations" << std::endl;
 
-        float currX, currY, prevX, prevY;
+        float currX = 0.0, currY = 0.0, prevX = 0.0, prevY = 0.0;
+		int currentGapIdx = 0, previousGapIdx = 0;
         for (int i = 0; i < association.size(); i++) 
 		{
             std::vector<int> pair{i, association.at(i)};
             ROS_INFO_STREAM_NAMED("GapAssociator","pair (" << i << ", " << association.at(i) << ")");
             if (i >= 0 && association.at(i) >= 0) 
 			{
-                int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
-                int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
+                currentGapIdx = int(std::floor(pair.at(0) / 2.0));
+                previousGapIdx = int(std::floor(pair.at(1) / 2.0));
 
                 if (pair.at(0) % 2 == 0) // curr left
                     currentGaps.at(currentGapIdx).getLCartesian(currX, currY);
@@ -132,9 +123,9 @@ namespace dynamic_gap
 	{
 		int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
 		int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
-		float currX, currY, prevX, prevY;
 		ROS_INFO_STREAM_NAMED("GapAssociator","    pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 
+		float currX = 0.0, currY = 0.0, prevX = 0.0, prevY = 0.0;
 		if (validAssociation) 
 		{
 			if (pair.at(0) % 2 == 0)  // curr left
@@ -153,7 +144,8 @@ namespace dynamic_gap
 			}
 
 			ROS_INFO_STREAM_NAMED("GapAssociator","    from (" << prevX << ", " << prevY << ") to (" << currX << ", " << currY << ") with a distance of " << distMatrix.at(pair.at(0)).at(pair.at(1)));
-		} else {
+		} else 
+		{
 			if (pair.at(0) % 2 == 0)  // curr left
 				currentGaps.at(currentGapIdx).getLCartesian(currX, currY);
 			else

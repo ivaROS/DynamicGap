@@ -8,19 +8,8 @@ namespace dynamic_gap
         cfg_ = & cfg;
         distanceThresh_ = 0.1;
 
-        // holonomic = cfg_->planning.holonomic;
-        // full_fov = ;
-        // projection_operator = cfg_->planning.projection_operator;
-
-        // k_fb_x_ = cfg_->control.k_fb_x;
-        // k_fb_y_ = cfg_->control.k_fb_y;
         k_fb_theta_ = (cfg_->planning.holonomic && cfg_->planning.full_fov) ? 0.8 : cfg_->control.k_fb_theta;
 
-        // k_po_x_ = cfg_->projection.k_po_x;
-        // k_CBF_ = cfg_->projection.k_CBF;
-        // k_po_theta_ = cfg_->projection.k_po_theta;
-
-        // cmd_counter_ = 0;
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
         manualVelAng_ = 0.0f;
@@ -119,11 +108,11 @@ namespace dynamic_gap
         float safeDirX = 0;
         float safeDirY = 0;                                   
         
-        float scanRange, scanTheta;
+        float scanRange = 0.0, scanTheta = 0.0;
         for (int i = 0; i < scan.ranges.size(); i++) 
         {
             scanRange = scan.ranges.at(i);
-            scanTheta =  idx2theta(i); // scan.angle_min + i * scan.angle_increment;
+            scanTheta =  idx2theta(i);
 
             safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
             safeDirY += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
@@ -142,8 +131,6 @@ namespace dynamic_gap
 
         clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
 
-
-        // float cmdVel_safe_norm = ;
         if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
             cmdVelX += 0.3;
 
@@ -167,9 +154,6 @@ namespace dynamic_gap
         boost::mutex::scoped_lock lock(egocircleLock_);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-        // float v_lin_x_fb = 0;
-        // float velLinYFeedback = 0;
-        // float velAngFeedback = 0;
 
         ROS_INFO_STREAM_NAMED("Controller", "        feedback control");
         // ROS_INFO_STREAM_NAMED("Controller", "r_min: " << r_min);
@@ -177,12 +161,7 @@ namespace dynamic_gap
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         geometry_msgs::Quaternion currOrient = current.orientation;
         tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
-        // tf::Matrix3x3 m_c(q_c);
-        // float c_roll, c_pitch, c_yaw;
-        // m_c.getRPY(c_roll, c_pitch, c_yaw);
-
-        float currYaw = quaternionToYaw(currQuat); // std::atan2( 2.0 * (currQuat.w() * currQuat.z() + currQuat.x() * currQuat.y()), 
-                                                   //      1 - 2.0 * (currQuat.y() * currQuat.y() + currQuat.z() * currQuat.z()));
+        float currYaw = quaternionToYaw(currQuat); 
 
         // get current x,y,theta
         geometry_msgs::Point currPosn = current.position;
@@ -192,16 +171,10 @@ namespace dynamic_gap
         geometry_msgs::Point desPosn = desired.position;
         geometry_msgs::Quaternion desOrient = desired.orientation;
         tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
-        // tf::Matrix3x3 m_d(desQuat);
-        // float d_roll, d_pitch, desYaw;
-        // m_d.getRPY(d_roll, d_pitch, desYaw);
 
-        float desYaw = quaternionToYaw(desQuat); // std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
-                                                 //       1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
+        float desYaw = quaternionToYaw(desQuat);
 
         // get desired x,y,theta
-
-
         Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
 
         // get x,y,theta error
@@ -259,10 +232,6 @@ namespace dynamic_gap
         float minDist = 0;
 
         // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
-
-        // if (scan.ranges.size() < 500) {
-        //     ROS_FATAL_STREAM("Scan range incorrect controlLaw");
-        // }
 
         // applies PO
         float velLinXSafe = 0;
@@ -482,7 +451,7 @@ namespace dynamic_gap
     Eigen::Vector4f TrajectoryController::leftGapSideCBFDerivative(const Eigen::Vector4f & leftGapPtState) 
     {
         // current design: h_right = -betadot
-        Eigen::Vector4f dHLeftDX;
+        Eigen::Vector4f dHLeftDX(0.0, 0.0, 0.0, 0.0);
         
         float r = sqrt(pow(leftGapPtState(0), 2) + pow(leftGapPtState(1), 2));
         float rCrossV = leftGapPtState(0)*leftGapPtState(3) - leftGapPtState(1)*leftGapPtState(2);
@@ -512,7 +481,7 @@ namespace dynamic_gap
     Eigen::Vector4f TrajectoryController::rightGapSideCBFDerivative(const Eigen::Vector4f & rightGapPtState) 
     {
         // current design: h_left = betadot
-        Eigen::Vector4f dHRightDX;
+        Eigen::Vector4f dHRightDX(0.0, 0.0, 0.0, 0.0);
         float r = sqrt(pow(rightGapPtState(0), 2) + pow(rightGapPtState(1), 2));
         float rCrossV = rightGapPtState(0)*rightGapPtState(3) - rightGapPtState(1)*rightGapPtState(2);
         float rSq = pow(r, 2);
@@ -534,46 +503,30 @@ namespace dynamic_gap
                                                      float & velLinXSafe, float & velLinYSafe,
                                                      float & minDistTheta, float & minDist) 
 {
-        // float r_min = cfg_->projection.r_min;
-        // float r_norm = cfg_->projection.r_norm;
-        // float r_norm_offset = cfg_->projection.r_norm_offset; 
-
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM_NAMED("Controller", "rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
         std::vector<float> minScanDists(scan.ranges.size());
+        float theta = 0.0, dist = 0.0;
         for (int i = 0; i < minScanDists.size(); i++) 
         {
-            float theta = idx2theta(i); // i * scan.angle_increment - M_PI;
-            float dist = scan.ranges.at(i);
+            theta = idx2theta(i);
+            dist = scan.ranges.at(i);
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
         int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
-        minDistTheta = idx2theta(minDistScanIdx); // (float)(minDistScanIdx) * scan.angle_increment + scan.angle_min;
+        minDistTheta = idx2theta(minDistScanIdx);
 
         float maxRange = cfg_->projection.r_norm + cfg_->projection.r_norm_offset;
         minDist = minScanDists.at(minDistScanIdx);
-        // minDist = std::min(minDist, maxRange); // minDist >= maxRange ? maxRange : minDist;
-        // if (minDist <= 0) 
-        //     ROS_INFO_STREAM_NAMED("Controller", "Min dist <= 0, : " << minDist);
-        // minDist = minDist <= 0 ? 0.01 : minDist;
-        // minDist -= cfg_->rbt.r_inscr / 2;
-
-        // find minimum ego circle distance
-        // float min_x = minDist * std::cos(minDistTheta) - rbtPoseInSensorFrame.pose.position.x;
-        // float min_y = minDist * std::sin(minDistTheta) - rbtPoseInSensorFrame.pose.position.y;
-        // minDist = sqrt(pow(min_x, 2) + pow(min_y, 2));
 
         ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
         // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
-        
-        // float projOpDotProd = 0.0;
-      
+              
         Eigen::Vector2f closestScanPtToRobot(-minDist * std::cos(minDistTheta), -minDist * std::sin(minDistTheta));
-        // float min_diff_x = - min_x; // reversing direction to point from scan pt to robot
-        // float min_diff_y = - min_y;
+
         Eigen::Vector3f PsiDerAndPsi = calculateProjectionOperator(closestScanPtToRobot); // return Psi, and dPsiDx
         dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
-        // dPsiDx(1);// /= 3; // deriv wrt y?
+
         float projOpDotProd = cmdVelFeedback.dot(dPsiDx);
 
         Psi = PsiDerAndPsi(2);
@@ -634,29 +587,6 @@ namespace dynamic_gap
         return Eigen::Vector3f(normPsiDerivativeXTerm, normPsiDerivativeYTerm, Psi);
     }
 
-    /*
-    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float quat_w, float quat_z)
-    {
-        std::complex<float> phase(quat_w, quat_z);
-        phase = phase * phase;
-
-        Eigen::Matrix2cf g(2, 2);
-        //g.real()(0,0) = phase.real();
-        g.real()(0, 1) = x;
-        g.real()(1, 0) = 0;
-        g.real()(1, 1) = 1;
-
-        //g.imag()(0,0) = phase.imag();
-        g.imag()(0, 1) = y;
-        g.imag()(1, 0) = 0;
-        g.imag()(1, 1) = 0;
-
-        g(0, 0) = phase;
-
-        return g;
-    }
-    */
-
     Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float theta)
     {
         std::complex<float> phase(std::cos(theta), std::sin(theta));
@@ -686,17 +616,10 @@ namespace dynamic_gap
         // obtain distance from entire ref traj and current pose
         for (int i = 0; i < localTrajectoryDeviations.size(); i++) // i will always be positive, so this is fine
         {
-            // tf::Quaternion q_c(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, currPose.orientation.w);
-            // float yaw_curr = std::atan2(2.0 * (q_c.w() * q_c.z() + q_c.x() * q_c.y()), 
-            //                             1 - 2.0 * (q_c.y() * q_c.y() + q_c.z() * q_c.z()));
-
             tf::Quaternion currQuatInv(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, -currPose.orientation.w); // -w for inverse
   
             tf::Quaternion desQuat(localTrajectory.poses[i].orientation.x, localTrajectory.poses[i].orientation.y, 
                                    localTrajectory.poses[i].orientation.z, localTrajectory.poses[i].orientation.w);
-            // float yaw_des = std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
-            //                           1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
-            
             
             tf::Quaternion deviationQuat = desQuat * currQuatInv;
             float deviationYaw = quaternionToYaw(deviationQuat);
@@ -717,22 +640,6 @@ namespace dynamic_gap
         // make sure pose does note exceed trajectory size
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
-
-    /*
-    dynamic_gap::TrajPlan TrajectoryController::trajGen(geometry_msgs::PoseArray orig_traj)
-    {
-        dynamic_gap::TrajPlan traj;
-        traj.header.frame_id = cfg_->odom_frame_id;
-        for(size_t i = 0; i < orig_traj.poses.size(); i++)
-        {
-            geometry_msgs::Pose ni_pose = orig_traj.poses[i];
-            geometry_msgs::Twist ni_twist = geometry_msgs::Twist();
-            traj.poses.push_back(ni_pose);
-            traj.twist.push_back(ni_twist);
-        }
-        return traj;
-    }
-    */
 
     float TrajectoryController::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) 
     {

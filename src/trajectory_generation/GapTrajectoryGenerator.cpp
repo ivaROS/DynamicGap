@@ -82,33 +82,13 @@ namespace dynamic_gap
                                   0.0, 0.0); // currVel.linear.x, currVel.linear.y
 
             // get gap points in cartesian
-            float xLeft, yLeft, xRight, yRight;
+            float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
             selectedGap.getLCartesian(xLeft, yLeft);
             selectedGap.getRCartesian(xRight, yRight);
 
-            // float ldist = selectedGap.cvxLeftDist();
-            // float rdist = selectedGap.cvxRightDist();
-            // float ltheta = idx2theta(selectedGap.cvxLeftIdx());
-            // float rtheta = idx2theta(selectedGap.cvxRightIdx());
-            // float xLeft = ldist * cos(ltheta);
-            // float yLeft = ldist * sin(ltheta);
-            // float xRight = rdist * cos(rtheta);
-            // float yRight = rdist * sin(rtheta);
-
-            float xLeftTerm, yLeftTerm, xRightTerm, yRightTerm;
+            float xLeftTerm = 0.0, yLeftTerm = 0.0, xRightTerm = 0.0, yRightTerm = 0.0;
             selectedGap.getLCartesian(xLeftTerm, yLeftTerm);
             selectedGap.getRCartesian(xRightTerm, yRightTerm);
-
-            // ldist = selectedGap.cvxTermLeftDist();
-            // rdist = selectedGap.cvxTermRightDist();
-            // ltheta = idx2theta(selectedGap.cvxTermLeftIdx());
-            // rtheta = idx2theta(selectedGap.cvxTermRightIdx());
-            // float xLeftTerm = ldist * cos(ltheta);
-            // float yLeftTerm = ldist * sin(ltheta);
-            // float xRightTerm = rdist * cos(rtheta);
-            // float yRightTerm = rdist * sin(rtheta);
-
-            // Eigen::Vector2f extendedGapOrigin = selectedGap.extendedGapOrigin_;
 
             Eigen::Vector2d initialGoal(selectedGap.goal.x_, selectedGap.goal.y_);
             Eigen::Vector2d terminalGoal(selectedGap.terminalGoal.x_, selectedGap.terminalGoal.y_);
@@ -139,7 +119,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
 
             if (runGoToGoal) 
-            { //   || selectedGap.goal.goalwithin
+            {
                 state_type x = {rbtState[0], rbtState[1], 0.0, 0.0, 0.0, 0.0, selectedGap.goal.x_, selectedGap.goal.y_};
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Goal to Goal");
                 GoToGoal goToGoal(selectedGap.goal.x_, selectedGap.goal.y_,
@@ -169,8 +149,8 @@ namespace dynamic_gap
             Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
                             gapSideAHPFCenters, allAHPFCenters;
             
-            float leftBezierWeight, rightBezierWeight;
-            int numLeftRGEPoints, numRightRGEPoints;
+            float leftBezierWeight = 0.0, rightBezierWeight = 0.0;
+            int numLeftRGEPoints = 0, numRightRGEPoints = 0;
             // THIS IS BUILT WITH EXTENDED POINTS. 
 		    std::chrono::steady_clock::time_point buildExtendedBezierCurveStartTime = std::chrono::steady_clock::now();
             buildExtendedBezierCurve(selectedGap, gapCurvesPosns, 
@@ -234,8 +214,6 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "A: " << A);
             
-            // Eigen::MatrixXd b = Eigen::MatrixXd::Zero(Kplus1, 1);
-
             //ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Hessian: " << hessian);
             //ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Gradient: " << gradient);
             //ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "linearMatrix: " << linearMatrix);
@@ -269,6 +247,7 @@ namespace dynamic_gap
             */  
 
 
+            // AHPF
             AHPF ahpf(initRbtPos, gapGoalTermPt,
                         cfg_->control.vx_absmax, maxRbtAcc, allAHPFCenters, gapCurvesInwardNorms, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
@@ -276,7 +255,9 @@ namespace dynamic_gap
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     ahpf, x, 0.0f, selectedGap.gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
+            
             /*
+            // POLAR GAP FIELD
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     polarGapField, x, 0.0f, selectedGap.gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
@@ -309,7 +290,6 @@ namespace dynamic_gap
         Eigen::MatrixXd dIthGradientPtdAhpfCenters(Kplus1, 2); // (2, Kplus1); // 
         Eigen::MatrixXd ABoundaryPts(Kplus1, N);
         Eigen::MatrixXd ANegativeOne = Eigen::MatrixXd::Zero(Kplus1, 1);
-        // Eigen::MatrixXd negativeOne = 
 
         float eps = 0.0000001;
         // allAHPFCenters size: (Kplus1 rows, 2 cols)
@@ -320,7 +300,6 @@ namespace dynamic_gap
         {
             ithBoundaryPt = gapCurvesPosns.row(i);
             ithBoundaryInwardNorm = gapCurvesInwardNorms.row(i);
-            //Eigen::Matrix<double, 1, 2> ithBoundaryInwardNorm = gapCurvesInwardNorms.row(i);        
             
             // doing boundary - allAHPFCenters
             ahpfCentersToBoundaryPt = (-allAHPFCenters).rowwise() + ithBoundaryPt.transpose(); // must be in this order for matrices to work
@@ -333,7 +312,6 @@ namespace dynamic_gap
 
             ABoundaryPts.col(i) = dIthGradientPtdAhpfCenters * ithBoundaryInwardNorm; // A_pi;
 
-            // ABoundaryPts.col(i) = dIthGradientPtdAhpfCenters * ithBoundaryInwardNorm;
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "ithBoundaryInwardNorm size: " << ithBoundaryInwardNorm.rows() << ", " << ithBoundaryInwardNorm.cols());
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "dIthGradientPtdAhpfCenters size: " << dIthGradientPtdAhpfCenters.rows() << ", " << dIthGradientPtdAhpfCenters.cols());
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "A_pi size: " << A_pi.rows() << ", " << A_pi.cols());
@@ -361,8 +339,9 @@ namespace dynamic_gap
         float steps = numPoints - 1;
 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "performing numerical integration between " << tStart << " and " << tEnd);
-        float t_i, t_iplus1, bezierPtToPtDist;
-        Eigen::Vector2d bezierPt_i, bezierPt_iplus1;
+        float t_i = 0.0, t_iplus1 = 0.0, bezierPtToPtDist = 0.0;
+        Eigen::Vector2d bezierPt_i(0.0, 0.0);
+        Eigen::Vector2d bezierPt_iplus1(0.0, 0.0);
 
         // Integrating along a Bezier curve from tStart to tEnd with numPoints to get an arclength distance
         for (int i = 0; i < steps; i++) 
@@ -411,12 +390,10 @@ namespace dynamic_gap
 
         int interpMaxIter = 100;
         int interpIter = 0;
-        // Eigen::VectorXd arclengthParameterization = Eigen::MatrixXd::Zero(int(numCurvePts), 1);
 
         float t_interval = epsilonDivide(1.0, numBezierSamplePts);
-        float t_interp, t_lowerBound, t_upperBound, 
-              currentBezierPtToPtArclengthDistance, bezierPtToPtArclengthDistance, t_kmin1;
-        t_interp = t_lowerBound = t_upperBound = currentBezierPtToPtArclengthDistance = bezierPtToPtArclengthDistance = t_kmin1 = 0.0;
+        float t_interp = 0.0, t_lowerBound = 0.0, t_upperBound = 0.0, 
+              currentBezierPtToPtArclengthDistance = 0.0, bezierPtToPtArclengthDistance = 0.0, t_kmin1 = 0.0;
         
         for (float t_k = 0.0; t_k <= 1.0; t_k += t_interval) 
         {
@@ -499,7 +476,10 @@ namespace dynamic_gap
                                                         bool left)
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               [buildExtendedGapOrigin()]");
-        Eigen::Vector2d currPt, currVel, currInwardVector, currInwardNorm;
+        Eigen::Vector2d currPt(0.0, 0.0);
+        Eigen::Vector2d currVel(0.0, 0.0);
+        Eigen::Vector2d currInwardVector(0.0, 0.0);
+        Eigen::Vector2d currInwardNorm(0.0, 0.0);
         float s = 0.0;
 
         Eigen::Matrix2d rotMat;
@@ -535,7 +515,10 @@ namespace dynamic_gap
                                                   Eigen::MatrixXd & curveInwardNorms,
                                                   bool left)
     {
-        Eigen::Vector2d currPt, currVel, currInwardVector, currInwardNorm;
+        Eigen::Vector2d currPt(0.0, 0.0);
+        Eigen::Vector2d currVel(0.0, 0.0);
+        Eigen::Vector2d currInwardVector(0.0, 0.0);
+        Eigen::Vector2d currInwardNorm(0.0, 0.0);
         float s = 0.0;
         float eps = 0.0000001;
 
@@ -552,13 +535,6 @@ namespace dynamic_gap
             counter++;
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "s_left: " << s_left);
-            // pos_val0 = ;
-            // pos_val1 = ;
-            // pos_val2 = ;
-
-            // vel_val0 = ;
-            // vel_val1 = ;
-            // vel_val2 = ;
             currPt = (1 - s) * (1 - s) * bezierOrigin + 
                         2*(1 - s)*s * bezierInitialPt + 
                         s*s * bezierTerminalPt;
@@ -601,7 +577,8 @@ namespace dynamic_gap
         rightBezierWeight = epsilonDivide(rightGapPtVel.norm(), maxRbtVel.norm());
 
         // for a totally static gap, can get no velocity on first bezier curve point which corrupts vector field
-        Eigen::Vector2d weightedLeftBezierPt0, weightedRightBezierPt0;
+        Eigen::Vector2d weightedLeftBezierPt0(0.0, 0.0);
+        Eigen::Vector2d weightedRightBezierPt0(0.0, 0.0);
         if (leftGapPtVel.norm() > 0.0)
             weightedLeftBezierPt0 = leftBezierOrigin + leftBezierWeight * (leftCurveInitPt - leftBezierOrigin);
         else
@@ -618,19 +595,11 @@ namespace dynamic_gap
         selectedGap.rightPt0_ = weightedRightBezierPt0;
         selectedGap.rightPt1_ = rightCurveTermPt;  
 
-        // float pos_val0, pos_val1, pos_val2, vel_val0, vel_val1, vel_val2;
-        // Eigen::Vector2d rotated_curr_left_vel, curr_right_pt, curr_right_vel, right_inward_vect, rotated_curr_right_vel, right_inward_norm_vect;
-        // Eigen::Matrix2d rpi2, neg_rpi2;
-        // float rot_val = M_PI/2;
-        // float s, s_left, s_right;
-        // rpi2 << std::cos(rot_val), -std::sin(rot_val), std::sin(rot_val), std::cos(rot_val);
-        // neg_rpi2 << std::cos(-rot_val), -std::sin(-rot_val), std::sin(-rot_val), std::cos(-rot_val);
         float desiredLeftBezierPtToPtDistance = 0.01; // will be set in arclengthParameterizeBezier  
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               arclength parameterizing left curve");
         Eigen::VectorXd leftArclengthParameters = arclengthParameterizeBezier(leftBezierOrigin, weightedLeftBezierPt0, leftCurveTermPt, numCurvePts, desiredLeftBezierPtToPtDistance);        
         
         numLeftRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - leftBezierOrigin).norm() / desiredLeftBezierPtToPtDistance)), 2) : 0;
-        // numLeftRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( epsilonDivide((extendedGapOrigin - leftBezierOrigin).norm(), desiredLeftBezierPtToPtDistance))), 2) : 0;
 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "numLeftRGEPoints: " << numLeftRGEPoints);
 
@@ -657,7 +626,6 @@ namespace dynamic_gap
         Eigen::VectorXd rightArclengthParameters = arclengthParameterizeBezier(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, numCurvePts, desiredRightBezierPtToPtDistance);
 
         numRightRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - rightBezierOrigin).norm() / desiredRightBezierPtToPtDistance)), 2) : 0;
-        // numRightRGEPoints = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( epsilonDivide((extendedGapOrigin - rightBezierOrigin).norm(), desiredRightBezierPtToPtDistance))), 2) : 0;
 
         int totalNumRightCurvePts = numRightRGEPoints + numCurvePts; 
         Eigen::MatrixXd rightCurvePosns = Eigen::MatrixXd(totalNumRightCurvePts, 2);            
@@ -677,7 +645,7 @@ namespace dynamic_gap
         buildBezierCurve(numRightRGEPoints, totalNumRightCurvePts, rightArclengthParameters, 
                             rightBezierOrigin, selectedGap.rightPt0_, selectedGap.rightPt1_, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);        
 
-        float offset = 0.01; // (desiredLeftBezierPtToPtDistance + desiredRightBezierPtToPtDistance) / 2.0;
+        float offset = 0.01;
 
         gapCurvesPosns = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
         gapCurvesInwardNorms = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
@@ -685,7 +653,7 @@ namespace dynamic_gap
         allAHPFCenters = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
-        gapCurvesPosns << leftCurvePosns, rightCurvePosns; // origin, 
+        gapCurvesPosns << leftCurvePosns, rightCurvePosns; 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "gapCurvesPosns worked");
         gapCurvesInwardNorms << leftCurveInwardNorms, rightCurveInwardNorms; // centered_origin_inward_norm, 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "gapCurvesInwardNorms worked");
@@ -700,7 +668,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "gapCurvesInwardNorms: " << gapCurvesInwardNorms);
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "allAHPFCenters: " << allAHPFCenters);
 
-        Eigen::Matrix<double, 1, 2> goal; // (1, 2);
+        Eigen::Matrix<double, 1, 2> goal;
         goal << gapGoalTermPt[0], gapGoalTermPt[1];
         allAHPFCenters << goal, gapSideAHPFCenters;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "allAHPFCenters worked");
@@ -756,7 +724,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pose[0]: " << path.poses[0].position.x << ", " << path.poses[0].position.y);
 
         float poseToPoseDistThreshold = 0.1;
-        float poseToPoseDiffX, poseToPoseDiffY, poseToPoseDist;
+        float poseToPoseDiffX = 0.0, poseToPoseDiffY = 0.0, poseToPoseDist = 0.0;
         for (int i = 1; i < rawPath.poses.size(); i++) 
         {
             geometry_msgs::Pose rawPose = rawPath.poses[i];
@@ -781,7 +749,7 @@ namespace dynamic_gap
         // Fix rotation along local trajectory
         geometry_msgs::Pose processedPose, prevProcessedPose;
         Eigen::Quaternionf q;
-        float poseToPoseDiffTheta;
+        float poseToPoseDiffTheta = 0.0;
         for (int idx = 1; idx < processedPath.poses.size(); idx++)
         {
             processedPose = processedPath.poses.at(idx);
