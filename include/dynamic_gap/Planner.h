@@ -66,7 +66,7 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped rbtPoseInSensorFrame_;
 
         tf2_ros::Buffer tfBuffer_;
-        tf2_ros::TransformListener *tfListener_;
+        tf2_ros::TransformListener * tfListener_ = NULL;
 
         ros::NodeHandle nh;
         ros::Publisher currentTrajectoryPublisher_;
@@ -87,18 +87,18 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap> associatedRawGaps_;
         std::vector<dynamic_gap::Gap> associatedSimplifiedGaps_;
         
-        dynamic_gap::GapDetector * gapDetector_;
-        dynamic_gap::StaticScanSeparator * staticScanSeparator_;
-        dynamic_gap::GapVisualizer * gapVisualizer_;
-        dynamic_gap::GoalSelector * goalSelector_;
-        dynamic_gap::TrajectoryVisualizer * trajVisualizer_;
-        dynamic_gap::GoalVisualizer * goalVisualizer_;
-        dynamic_gap::TrajectoryScorer * trajScorer_;
-        dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_;
-        dynamic_gap::GapManipulator * gapManipulator_;
-        dynamic_gap::TrajectoryController * trajController_;
-        dynamic_gap::GapAssociator * gapAssociator_;
-        dynamic_gap::GapFeasibilityChecker * gapFeasibilityChecker_;
+        dynamic_gap::GapDetector * gapDetector_ = NULL;
+        dynamic_gap::StaticScanSeparator * staticScanSeparator_ = NULL;
+        dynamic_gap::GapVisualizer * gapVisualizer_ = NULL;
+        dynamic_gap::GoalSelector * goalSelector_ = NULL;
+        dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL;
+        dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL;
+        dynamic_gap::TrajectoryScorer * trajScorer_ = NULL;
+        dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL;
+        dynamic_gap::GapManipulator * gapManipulator_ = NULL;
+        dynamic_gap::TrajectoryController * trajController_ = NULL;
+        dynamic_gap::GapAssociator * gapAssociator_ = NULL;
+        dynamic_gap::GapFeasibilityChecker * gapFeasibilityChecker_ = NULL;
 
         // Status
         bool hasGlobalGoal_ = false;

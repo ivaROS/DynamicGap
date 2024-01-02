@@ -9,14 +9,17 @@
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
-  <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
-  <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
-  <arg name="projection_operator" default="false"/>
+  <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel" />
+  <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)" />
+  <arg name="projection_operator" default="false" />
 
-  <arg name="debug" default="false"/>
+  <arg name="debug" default="true" />
+
+  <arg name="xterm_prefix" value="xterm -e gdb -ex run --args" />
+  <arg name="valgrind_prefix" value="valgrind --leak-check=full" />
 
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
-  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
+  <arg name="debug_prefix" value="$(arg valgrind_prefix)" if="$(arg debug)"/>
 
   <!-- 
   <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">

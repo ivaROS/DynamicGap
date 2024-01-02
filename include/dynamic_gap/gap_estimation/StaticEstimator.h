@@ -54,21 +54,18 @@ namespace dynamic_gap
             bool plot;
             bool plotted;
 
-            ros::Time t_last_update;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            geometry_msgs::TwistStamped lastRbtVel_;
-            geometry_msgs::TwistStamped lastRbtAcc_;
-
         public:
 
-            StaticEstimator(std::string, int, float, float,const ros::Time & t_update,
-                        const geometry_msgs::TwistStamped & lastRbtVel,
-                        const geometry_msgs::TwistStamped & lastRbtAcc);
+            // StaticEstimator(std::string, int, float, float,const ros::Time & t_update,
+            //             const geometry_msgs::TwistStamped & lastRbtVel,
+            //             const geometry_msgs::TwistStamped & lastRbtAcc);
 
-            void initialize(float, float, const ros::Time & t_update,
-                            const geometry_msgs::TwistStamped & lastRbtVel,
+            void initialize(const std::string & side, const int & modelID, 
+                            const float & gapPtX, const float & gapPtY,
+                            const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
+            // void transfer(const int & placeholder);
+            void transfer(const Estimator & placeholder);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();

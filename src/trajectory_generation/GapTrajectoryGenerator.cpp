@@ -146,8 +146,11 @@ namespace dynamic_gap
             Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
 
-            Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
-                            gapSideAHPFCenters, allAHPFCenters;
+            // initialized to size 1x1, resized later
+            Eigen::MatrixXd gapCurvesPosns(1, 1);
+            Eigen::MatrixXd gapCurvesInwardNorms(1, 1);
+            Eigen::MatrixXd gapSideAHPFCenters(1, 1); 
+            Eigen::MatrixXd allAHPFCenters(1, 1);
             
             float leftBezierWeight = 0.0, rightBezierWeight = 0.0;
             int numLeftRGEPoints = 0, numRightRGEPoints = 0;
@@ -647,10 +650,10 @@ namespace dynamic_gap
 
         float offset = 0.01;
 
-        gapCurvesPosns = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        gapCurvesInwardNorms = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        gapSideAHPFCenters = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        allAHPFCenters = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
+        gapCurvesPosns.resize(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gapCurvesInwardNorms.resize(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gapSideAHPFCenters.resize(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        allAHPFCenters.resize(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
 
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
         gapCurvesPosns << leftCurvePosns, rightCurvePosns; 

@@ -20,15 +20,17 @@
 
 namespace dynamic_gap 
 {
-    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(std::string side, int modelID, float gapPtX, float gapPtY, 
+    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter() {}
+
+    /*
+    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(float gapPtX, float gapPtY, 
                                                                             const ros::Time & t_update, 
                                                                             const geometry_msgs::TwistStamped & lastRbtVel,
                                                                             const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
-        side_ = side;
-        modelID_ = modelID;
-        initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
+        initialize(side, modelID, gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
+    */
 
     // copy constructor for copying models
     // RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(const Estimator & model) : Estimator(model)
@@ -41,13 +43,18 @@ namespace dynamic_gap
         return;
     }
 
-    void RotatingFrameCartesianKalmanFilter::initialize(float gapPtX, float gapPtY,
+    void RotatingFrameCartesianKalmanFilter::initialize(const std::string & side, const int & modelID,
+                                                        const float & gapPtX, const float & gapPtY,
                                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                                         const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
+        side_ = side;
+        modelID_ = modelID;
+        ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
+
         // OBSERVATION MATRIX
         H_ << 1.0, 0.0, 0.0, 0.0,
-             0.0, 1.0, 0.0, 0.0;
+              0.0, 1.0, 0.0, 0.0;
         H_transpose_ = H_.transpose();
         
         R_scalar = 0.01;
@@ -73,22 +80,21 @@ namespace dynamic_gap
         this->lastRbtAcc_ = lastRbtAcc;
         this->t_last_update = t_update;
 
-
         float gapPtVxRel = -lastRbtVel_.twist.linear.x;
         float gapPtVyRel = -lastRbtVel_.twist.linear.y;
-        std::vector<float> measurement{gapPtX, 
-                                       gapPtY, 
-                                       gapPtVxRel, 
-                                       gapPtVyRel};
+        // std::vector<float> measurement{gapPtX, 
+        //                                gapPtY, 
+        //                                gapPtVxRel, 
+        //                                gapPtVyRel};
         
         // ROS_INFO_STREAM_NAMED("GapEstimation", "initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
 
-        x_tilde_ << measurement[0], measurement[1];
-        x_hat_kmin1_plus_ << measurement[0], measurement[1], measurement[2], measurement[3];
+        x_tilde_ << gapPtX, gapPtY;
+        x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVxRel;
         x_hat_k_minus_ = x_hat_kmin1_plus_; 
         x_hat_k_plus_ = x_hat_kmin1_plus_;
-        x_ground_truth << measurement[0], measurement[1], 0.0, 0.0;
-        x_ground_truth_gap_only << measurement[0], measurement[1], gapPtVxRel, gapPtVyRel;
+        x_ground_truth << gapPtX, gapPtY, 0.0, 0.0;
+        x_ground_truth_gap_only << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
 
         G_k_ << 1.0, 1.0,
                 1.0, 1.0,
@@ -109,10 +115,85 @@ namespace dynamic_gap
         // life_time_threshold = 7.5;
         eyes = Eigen::MatrixXf::Identity(4,4);
 
-        plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        // plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
         perfect = false;
-        plotted = false;
-        plot = true;
+        // plotted = false;
+        // plot = true;
+    }
+
+    // void RotatingFrameCartesianKalmanFilter::transfer(const int & placeholder)
+    // {
+    // }
+
+    void RotatingFrameCartesianKalmanFilter::transfer(const Estimator & model)
+    {
+        this->side_ = model.side_;
+        this->modelID_ = model.modelID_;
+        ROS_INFO_STREAM_NAMED("GapEstimation", "    transfer model: " << modelID_);
+
+        // OBSERVATION MATRIX
+        this->H_ = model.H_;
+        this->H_transpose_ = model.H_transpose_;
+
+        this->Q_scalar = model.Q_scalar;
+        this->R_scalar = model.R_scalar;
+        this->Q_k_ = model.Q_k_;
+        this->R_k_ = model.R_k_;
+
+        // COVARIANCE MATRIX
+        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
+        // larger P_0 helps with GT values that are non-zero
+        // larger P_0 gives more weight to measurements (behaves like Q)
+        this->P_kmin1_plus_ = model.P_kmin1_plus_;
+        this->P_k_minus_ = model.P_k_minus_;
+        this->P_k_plus_ = model.P_k_plus_;
+
+        this->lastRbtVel_ = model.lastRbtVel_;
+        this->lastRbtAcc_ = model.lastRbtAcc_;
+        this->t_last_update = model.t_last_update;
+
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
+
+        this->x_tilde_ = model.x_tilde_;
+        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
+        this->x_hat_k_minus_ = model.x_hat_k_minus_;
+        this->x_hat_k_plus_ = model.x_hat_k_plus_;
+
+        float gapPtVxRel = -lastRbtVel_.twist.linear.x;
+        float gapPtVyRel = -lastRbtVel_.twist.linear.y;
+        x_ground_truth << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], 0.0, 0.0;
+        x_ground_truth_gap_only << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], gapPtVxRel, gapPtVyRel;
+
+        this->G_k_ = model.G_k_;
+
+
+        // dt = 0.0;
+
+        this->A_ = model.A_;
+        this->STM_ = model.STM_;
+
+        // this->frozen_x = model.frozen_x;
+
+        // life_time = 0.0;
+        // life_time_threshold = 7.5;
+        this->eyes = model.eyes;
+
+        // plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        // perfect = false;
+        // plotted = false;
+        // plot = true;
+
+
+        // this->dQ_ = model.dQ_;
+
+        // this->innovation_ = model.innovation_;
+        // this->residual_ = model.residual_;
+
+
+        // this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        // this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
+
+        return;
     }
 
     void RotatingFrameCartesianKalmanFilter::processEgoRobotVelsAndAccs(const ros::Time & t_update)
@@ -353,11 +434,9 @@ namespace dynamic_gap
         x_ground_truth = update_ground_truth_cartesian_state();
 
         x_hat_k_minus_ = integrate();
-
         
         ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_minus_: " << x_hat_k_minus_[0] << ", " << x_hat_k_minus_[1] << ", " 
                                                                       << x_hat_k_minus_[2] << ", " << x_hat_k_minus_[3]);
-        
 
         P_intermediate = P_kmin1_plus_;
         new_P = P_kmin1_plus_;
@@ -365,7 +444,27 @@ namespace dynamic_gap
         {
             linearize(i);
 
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "    A_: " << A_(0, 0) << ", " << A_(0, 1) << ", " << A_(0, 2) << ", " << A_(0, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        " << A_(1, 0) << ", " << A_(1, 1) << ", " << A_(1, 2) << ", " << A_(1, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        " << A_(2, 0) << ", " << A_(2, 1) << ", " << A_(2, 2) << ", " << A_(2, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        " << A_(3, 0) << ", " << A_(3, 1) << ", " << A_(3, 2) << ", " << A_(3, 3));     
+
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "    STM_: " << STM_(0, 0) << ", " << STM_(0, 1) << ", " << STM_(0, 2) << ", " << STM_(0, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "          " << STM_(1, 0) << ", " << STM_(1, 1) << ", " << STM_(1, 2) << ", " << STM_(1, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "          " << STM_(2, 0) << ", " << STM_(2, 1) << ", " << STM_(2, 2) << ", " << STM_(2, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "          " << STM_(3, 0) << ", " << STM_(3, 1) << ", " << STM_(3, 2) << ", " << STM_(3, 3));     
+
             discretizeQ(i);
+
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "    dQ_: " << dQ_(0, 0) << ", " << dQ_(0, 1) << ", " << dQ_(0, 2) << ", " << dQ_(0, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "         " << dQ_(1, 0) << ", " << dQ_(1, 1) << ", " << dQ_(1, 2) << ", " << dQ_(1, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "         " << dQ_(2, 0) << ", " << dQ_(2, 1) << ", " << dQ_(2, 2) << ", " << dQ_(2, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "         " << dQ_(3, 0) << ", " << dQ_(3, 1) << ", " << dQ_(3, 2) << ", " << dQ_(3, 3));     
+
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "    P_intermediate: " << P_intermediate(0, 0) << ", " << P_intermediate(0, 1) << ", " << P_intermediate(0, 2) << ", " << P_intermediate(0, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "                    " << P_intermediate(1, 0) << ", " << P_intermediate(1, 1) << ", " << P_intermediate(1, 2) << ", " << P_intermediate(1, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "                    " << P_intermediate(2, 0) << ", " << P_intermediate(2, 1) << ", " << P_intermediate(2, 2) << ", " << P_intermediate(2, 3));
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "                    " << P_intermediate(3, 0) << ", " << P_intermediate(3, 1) << ", " << P_intermediate(3, 2) << ", " << P_intermediate(3, 3));     
 
             new_P = STM_ * P_intermediate * STM_.transpose() + dQ_;
 
@@ -395,10 +494,28 @@ namespace dynamic_gap
         // R_k_ << cfg_->gap_est.R_xx, 0.0,
         //        0.0, cfg_->gap_est.R_yy;
 
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "H_transpose_: " << H_transpose_(0, 0) << ", " << H_transpose_(0, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "              " << H_transpose_(1, 0) << ", " << H_transpose_(1, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "              " << H_transpose_(2, 0) << ", " << H_transpose_(2, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "              " << H_transpose_(3, 0) << ", " << H_transpose_(3, 1));
+
         tmp_mat = H_*P_k_minus_*H_transpose_ + R_k_;
 
         G_k_ = P_k_minus_ * H_transpose_ * tmp_mat.inverse();
 
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "G_k_: " << G_k_(0, 0) << ", " << G_k_(0, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << G_k_(1, 0) << ", " << G_k_(1, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << G_k_(2, 0) << ", " << G_k_(2, 1));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << G_k_(3, 0) << ", " << G_k_(3, 1));
+
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "eyes: " << eyes(0, 0) << ", " << eyes(0, 1) << ", " << eyes(0, 2) << ", " << eyes(0, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << eyes(1, 0) << ", " << eyes(1, 1) << ", " << eyes(1, 2) << ", " << eyes(1, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << eyes(2, 0) << ", " << eyes(2, 1) << ", " << eyes(2, 2) << ", " << eyes(2, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "      " << eyes(3, 0) << ", " << eyes(3, 1) << ", " << eyes(3, 2) << ", " << eyes(3, 3));
+
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "H_: " << H_(0, 0) << ", " << H_(0, 1) << ", " << H_(0, 2) << ", " << H_(0, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    " << H_(1, 0) << ", " << H_(1, 1) << ", " << H_(1, 2) << ", " << H_(1, 3));
+        
         P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
     
         // ROS_INFO_STREAM_NAMED("GapEstimation", "2");
@@ -420,21 +537,19 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "4");
 
-        /*
-        ROS_INFO_STREAM_NAMED("GapEstimation", "G_k_: " << G_k_(0, 0) << ", " << G_k_(0, 1));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "     " << G_k_(1, 0) << ", " << G_k_(1, 1));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "     " << G_k_(2, 0) << ", " << G_k_(2, 1));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "     " << G_k_(3, 0) << ", " << G_k_(3, 1));
-        */
-
         ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    P_k_plus_: " << P_k_plus_(0, 0) << ", " << P_k_plus_(0, 1) << ", " << P_k_plus_(0, 2) << ", " << P_k_plus_(0, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(1, 0) << ", " << P_k_plus_(1, 1) << ", " << P_k_plus_(1, 2) << ", " << P_k_plus_(1, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(2, 0) << ", " << P_k_plus_(2, 1) << ", " << P_k_plus_(2, 2) << ", " << P_k_plus_(2, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(3, 0) << ", " << P_k_plus_(3, 1) << ", " << P_k_plus_(3, 2) << ", " << P_k_plus_(3, 3));             
         ROS_INFO_STREAM_NAMED("GapEstimation", "    x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
         ROS_INFO_STREAM_NAMED("GapEstimation", "    -----------");
 
         return;
     }    
 
-    void RotatingFrameCartesianKalmanFilter::plot_models() {
+    void RotatingFrameCartesianKalmanFilter::plot_models() 
+    {
         /*
         if (plot && !plotted && print) {
             if (life_time <= life_time_threshold) {

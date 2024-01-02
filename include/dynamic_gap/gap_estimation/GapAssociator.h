@@ -45,7 +45,8 @@ namespace dynamic_gap
 						int & currentModelIdx_,
 						const ros::Time & scanTime, 
 						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
+						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+						const bool & rawGaps);
 
 	private:
 		const DynamicGapConfig* cfg_;

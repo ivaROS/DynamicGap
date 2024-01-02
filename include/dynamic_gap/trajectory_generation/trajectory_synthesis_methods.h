@@ -209,11 +209,12 @@ namespace dynamic_gap
         Eigen::Vector2d rel_left_vel, rel_right_vel, 
                         goal_pt_0, goal_pt_1;
 
-        float v_lin_max, a_lin_max, rg, 
-               theta_right, theta_left, thetax, thetag, new_theta, 
-               a_x_rbt, a_y_rbt, a_x_rel, a_y_rel, v_nom,
-               theta, eps, K_att; 
-        bool radial_, past_gap_points, past_goal, past_left_point, past_right_point, pass_gap;
+        float v_lin_max = 0.0, a_lin_max = 0.0, rg = 0.0, 
+               theta_right = 0.0, theta_left = 0.0, thetax = 0.0, thetag = 0.0, new_theta = 0.0, 
+               a_x_rbt = 0.0, a_y_rbt = 0.0, a_x_rel = 0.0, a_y_rel = 0.0, v_nom = 0.0,
+               theta = 0.0, eps = 0.0, K_att = 0.0; 
+        bool radial_ = false, past_gap_points = false, past_goal = false, past_left_point = false, 
+             past_right_point = false, pass_gap = false;
         Eigen::Vector2d init_rbt_pos, rbt, rel_right_pos, rel_left_pos, abs_left_pos, abs_right_pos, 
                         abs_goal_pos, rel_goal_pos, c_left, c_right, sub_goal_vec, v_des, v_cmd, v_raw, 
                         a_des, a_actual, nom_acc, nonrel_left_vel, nonrel_right_vel, nonrel_goal_vel;
