@@ -306,7 +306,6 @@ namespace dynamic_gap
 					instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);				
 				}
 				printGapTransition(currentGaps, previousGaps, distMatrix, pair, validAssociation);
-
 			}
 
 			// delete previous models

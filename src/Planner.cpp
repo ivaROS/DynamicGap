@@ -203,14 +203,16 @@ namespace dynamic_gap
         // delete prevGaps models
         for (dynamic_gap::Gap & gap : previousRawGaps_)
         {
-            delete gap.leftGapPtModel_;
-            delete gap.rightGapPtModel_;
+            ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete raw gaps" << gap.leftGapPtModel_->getID() << " and " << gap.rightGapPtModel_->getID());                
+            // delete gap.leftGapPtModel_;
+            // delete gap.rightGapPtModel_;
         }
         
         for (dynamic_gap::Gap & gap : previousSimplifiedGaps_)
         {
-            delete gap.leftGapPtModel_;
-            delete gap.rightGapPtModel_;   
+            ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete simplified gaps" << gap.leftGapPtModel_->getID() << " and " << gap.rightGapPtModel_->getID());                
+            // delete gap.leftGapPtModel_;
+            // delete gap.rightGapPtModel_;   
         }
 
         // prevGaps clear
