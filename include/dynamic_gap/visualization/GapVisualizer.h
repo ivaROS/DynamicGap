@@ -9,35 +9,35 @@ namespace dynamic_gap
         using Visualizer::Visualizer;
         public: 
             GapVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void drawGaps(const std::vector<dynamic_gap::Gap> & gaps, std::string ns);
-            void drawManipGaps(const std::vector<dynamic_gap::Gap> & gaps, std::string ns);
-            void drawGapsModels(const std::vector<dynamic_gap::Gap> & gaps);
-            void drawReachableGaps(const std::vector<dynamic_gap::Gap> & gaps);
-            // void drawGapSplines(const std::vector<dynamic_gap::Gap> & gaps);
+            void drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns);
+            void drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns);
+            void drawGapsModels(const std::vector<dynamic_gap::Gap *> & gaps);
+            void drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps);
+            // void drawGapSplines(const std::vector<dynamic_gap::Gap *> & gaps);
 
         private:
             void initialize(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
 
-            void drawGap(visualization_msgs::MarkerArray &, const dynamic_gap::Gap & gap, std::string ns, bool initial);
+            void drawGap(visualization_msgs::MarkerArray &, dynamic_gap::Gap * gap, std::string ns, bool initial);
 
-            void drawManipGap(visualization_msgs::MarkerArray & markerArray, const dynamic_gap::Gap & gap, std::string ns, bool initial);
+            void drawManipGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, std::string ns, bool initial);
 
             void drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
-                               const dynamic_gap::Gap & gap, std::string ns); // visualization_msgs::MarkerArray & gap_vel_error_arr, 
+                               dynamic_gap::Gap * gap, std::string ns); // visualization_msgs::MarkerArray & gap_vel_error_arr, 
             // void drawGapGroundTruthModels(visualization_msgs::MarkerArray & gapModelMarkerArray,   
-            //                                 const dynamic_gap::Gap & gap, std::string ns);
+            //                                 dynamic_gap::Gap * gap, std::string ns);
 
-            void drawModel(visualization_msgs::Marker & modelMarker, const dynamic_gap::Gap & gap, bool left, int & id, std::string ns, bool ground_truth);
+            void drawModel(visualization_msgs::Marker & modelMarker, dynamic_gap::Gap * gap, bool left, int & id, std::string ns, bool ground_truth);
             // void draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker modelMarker, 
-            //                             const dynamic_gap::Gap & gap, bool left, std::string ns);
+            //                             dynamic_gap::Gap * gap, bool left, std::string ns);
 
-            void drawReachableGap(visualization_msgs::MarkerArray & markerArray, const dynamic_gap::Gap & gap);
-            void drawReachableGapsCenters(const std::vector<dynamic_gap::Gap> & gap);
-            void drawReachableGapCenters(visualization_msgs::MarkerArray & markerArray, const dynamic_gap::Gap & gap);
-            // void drawReachableGapNoRGE(visualization_msgs::MarkerArray & markerArray, const dynamic_gap::Gap & gap);
+            void drawReachableGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
+            void drawReachableGapsCenters(const std::vector<dynamic_gap::Gap *> & gap);
+            void drawReachableGapCenters(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
+            // void drawReachableGapNoRGE(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
             
 
-            // void drawGapSpline(visualization_msgs::MarkerArray & markerArray, const dynamic_gap::Gap & gap);
+            // void drawGapSpline(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
 
             std::map<std::string, std_msgs::ColorRGBA> colorMap;
             ros::Publisher rawGapsPublisher;

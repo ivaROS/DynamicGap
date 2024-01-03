@@ -33,11 +33,10 @@ namespace dynamic_gap
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             // void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap& selectedGap, 
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap * selectedGap, 
                                                                                         const geometry_msgs::PoseStamped & currPose, 
                                                                                         const geometry_msgs::TwistStamped & currVel,
                                                                                         bool runGoToGoal);
-            // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
             geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                               const geometry_msgs::TransformStamped & transform,
                                                               const std::string & sourceFrame,
@@ -76,7 +75,7 @@ namespace dynamic_gap
                                     Eigen::MatrixXd & curveVels,
                                     Eigen::MatrixXd & curveInwardNorms,
                                     bool left);
-            void buildExtendedBezierCurve(dynamic_gap::Gap & selectedGap, 
+            void buildExtendedBezierCurve(dynamic_gap::Gap * selectedGap, 
                                             Eigen::MatrixXd & gapCurvesPosns,
                                             Eigen::MatrixXd & gapCurvesInwardNorms, 
                                             Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,

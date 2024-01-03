@@ -38,7 +38,7 @@ namespace dynamic_gap
 
         std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & path, 
                                                          const std::vector<float> & pathTiming, 
-                                                         const std::vector<dynamic_gap::Gap> & rawGaps,
+                                                         const std::vector<dynamic_gap::Gap *> & rawGaps,
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans);
         
         void recoverDynamicEgoCircle(float t_i, float t_iplus1, 

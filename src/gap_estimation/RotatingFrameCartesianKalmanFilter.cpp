@@ -20,7 +20,45 @@
 
 namespace dynamic_gap 
 {
-    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter() {}
+    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter() 
+    {
+        // OBSERVATION MATRIX
+        H_ << 1.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0;
+        H_transpose_ = H_.transpose();
+        
+        R_scalar = 0.01;
+        Q_scalar = 0.5;
+
+        Q_k_ << 0.0, 0.0, 0.0, 0.0,
+               0.0, 0.0, 0.0, 0.0,
+               0.0, 0.0, Q_scalar, 0.0,
+               0.0, 0.0, 0.0, Q_scalar;
+
+        G_k_ << 1.0, 1.0,
+                1.0, 1.0,
+                1.0, 1.0,
+                1.0, 1.0;
+
+        // dt = 0.0;
+
+        A_ << 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0;
+        STM_ = A_;
+
+        frozen_x << 0.0, 0.0, 0.0, 0.0;
+
+        // life_time = 0.0;
+        // life_time_threshold = 7.5;
+        eyes = Eigen::MatrixXf::Identity(4,4);
+
+        // plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
+        perfect = false;
+        // plotted = false;
+        // plot = true;               
+    }
 
     /*
     RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(float gapPtX, float gapPtY, 
@@ -52,19 +90,6 @@ namespace dynamic_gap
         modelID_ = modelID;
         ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
 
-        // OBSERVATION MATRIX
-        H_ << 1.0, 0.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, 0.0;
-        H_transpose_ = H_.transpose();
-        
-        R_scalar = 0.01;
-        Q_scalar = 0.5;
-
-        Q_k_ << 0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, 0.0, 0.0,
-               0.0, 0.0, Q_scalar, 0.0,
-               0.0, 0.0, 0.0, Q_scalar;
-
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
@@ -95,30 +120,6 @@ namespace dynamic_gap
         x_hat_k_plus_ = x_hat_kmin1_plus_;
         x_ground_truth << gapPtX, gapPtY, 0.0, 0.0;
         x_ground_truth_gap_only << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
-
-        G_k_ << 1.0, 1.0,
-                1.0, 1.0,
-                1.0, 1.0,
-                1.0, 1.0;
-
-        // dt = 0.0;
-
-        A_ << 0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.0, 0.0,
-             0.0, 0.0, 0.0, 0.0;
-        STM_ = A_;
-
-        frozen_x << 0.0, 0.0, 0.0, 0.0;
-
-        // life_time = 0.0;
-        // life_time_threshold = 7.5;
-        eyes = Eigen::MatrixXf::Identity(4,4);
-
-        // plot_dir = "/home/masselmeier/catkin_ws/src/DynamicGap/estimator_plots/";   
-        perfect = false;
-        // plotted = false;
-        // plot = true;
     }
 
     // void RotatingFrameCartesianKalmanFilter::transfer(const int & placeholder)

@@ -30,14 +30,22 @@ namespace dynamic_gap
                 rightBezierOrigin_ << 0.0, 0.0;
 
                 // Here, you can define what type of model you want to use
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
             };
+
+            /*
+            // For now, just using the default copy constructor
+            Gap(const dynamic_gap::Gap & otherGap)
+            {
+
+            }
+            */
 
             ~Gap() 
             {
-                // delete leftGapPtModel_;
-                // delete rightGapPtModel_;
+                delete leftGapPtModel_;
+                delete rightGapPtModel_;
             };
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
