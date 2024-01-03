@@ -17,7 +17,7 @@ namespace dynamic_gap
     class Gap
     {
         public:
-            // Gap() {};
+            Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
             Gap(std::string frame, int right_idx, float rangeRight, bool radial, float minSafeDist_) : 
@@ -25,20 +25,11 @@ namespace dynamic_gap
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
-                
-                leftBezierOrigin_ << 0.0, 0.0;
                 rightBezierOrigin_ << 0.0, 0.0;
-
-                // Here, you can define what type of model you want to use
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                leftBezierOrigin_ << 0.0, 0.0;
             };
 
-            ~Gap() 
-            {
-                // delete leftGapPtModel_;
-                // delete rightGapPtModel_;
-            };
+            ~Gap() {};
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
             int LIdx() const { return leftIdx_; }
@@ -291,8 +282,8 @@ namespace dynamic_gap
 
             void printCartesianPoints(bool initial, bool simplified) 
             {
-                float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
-                float thetaLeft = 0.0, thetaRight = 0.0, rangeLeft = 0.0, rangeRight = 0.0;
+                float xLeft, yLeft, xRight, yRight;
+                float thetaLeft, thetaRight, rangeLeft, rangeRight;
                 if (initial) 
                 {
                     if (simplified) 
@@ -348,7 +339,7 @@ namespace dynamic_gap
 
             float gapLifespan_ = 5.0;
 
-            float minSafeDist_ = 0.0, terminalMinSafeDist_ = 0.0;
+            float minSafeDist_, terminalMinSafeDist_;
             Eigen::Vector2f extendedGapOrigin_, termExtendedGapOrigin_;
             Eigen::Vector2f leftBezierOrigin_, rightBezierOrigin_;
             float half_scan = 256;
@@ -359,7 +350,7 @@ namespace dynamic_gap
             bool rightType_ = false;
             bool terminalRightType_ = false;
 
-            float peakVelX_ = 0.0, peakVelY_ = 0.0;
+            float peakVelX_, peakVelY_ = 0.0;
 
             struct GapMode 
             {
@@ -373,7 +364,7 @@ namespace dynamic_gap
 
             struct Goal 
             {
-                float x_ = 0.0, y_ = 0.0;
+                float x_, y_;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
@@ -381,17 +372,16 @@ namespace dynamic_gap
 
             struct TerminalGoal 
             {
-                float x_ = 0.0, y_ = 0.0;
+                float x_, y_;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
             } terminalGoal;
 
-            Estimator * rightGapPtModel_ = NULL;
-            Estimator * leftGapPtModel_ = NULL;
-
+            Estimator * rightGapPtModel_;
+            Estimator * leftGapPtModel_;
             // int _index;
-            std::string category_ = "";
+            std::string category_;
             Eigen::Vector2f crossingPt_, closingPt_;
 
             bool crossed_ = false;
@@ -400,12 +390,12 @@ namespace dynamic_gap
 
             bool artificial_ = false;
 
-            float leftWeight_ = 0.0, rightWeight_ = 0.0;
+            float leftWeight_, rightWeight_;
             Eigen::MatrixXd leftRightCenters_, allCurvePts_;
             Eigen::Vector4f splineXCoefs_, splineYCoefs_;
 
             Eigen::Vector2d leftPt0_, leftPt1_, rightPt0_, rightPt1_;
-            int numLeftRGEPoints_ = 0, numRightRGEPoints_ = 0;
+            int numLeftRGEPoints_, numRightRGEPoints_;
 
         private:
 

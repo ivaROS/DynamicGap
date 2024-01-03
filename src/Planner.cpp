@@ -153,7 +153,8 @@ namespace dynamic_gap
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         rawGaps_, previousRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs, true);
+                                        intermediateRbtVels, intermediateRbtAccs);
+            
             associatedRawGaps_ = updateModels(rawGaps_, intermediateRbtVels, 
                                                 intermediateRbtAccs, tCurrentFilterUpdate);
 
@@ -174,7 +175,7 @@ namespace dynamic_gap
             gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                         simplifiedGaps_, previousSimplifiedGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs, true);
+                                        intermediateRbtVels, intermediateRbtAccs);
             associatedSimplifiedGaps_ = updateModels(simplifiedGaps_, intermediateRbtVels, 
                                                         intermediateRbtAccs, tCurrentFilterUpdate);
 
@@ -200,34 +201,16 @@ namespace dynamic_gap
         trajController_->updateEgoCircle(scan_);
         // gapFeasibilityChecker_->updateEgoCircle(scan_);
 
-        // delete prevGaps models
-        for (dynamic_gap::Gap & gap : previousRawGaps_)
-        {
-            delete gap.leftGapPtModel_;
-            delete gap.rightGapPtModel_;
-        }
-        
-        for (dynamic_gap::Gap & gap : previousSimplifiedGaps_)
-        {
-            delete gap.leftGapPtModel_;
-            delete gap.rightGapPtModel_;   
-        }
-
-        // prevGaps clear
-        previousRawGaps_.clear();
-        previousSimplifiedGaps_.clear();
-
         previousRawGaps_ = associatedRawGaps_;
         previousSimplifiedGaps_ = associatedSimplifiedGaps_;
-
         tPreviousFilterUpdate_ = tCurrentFilterUpdate;
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     std::vector<dynamic_gap::Gap> Planner::updateModels(const std::vector<dynamic_gap::Gap> & gaps, 
-                                                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                                        const ros::Time & tCurrentFilterUpdate) 
+                                                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                                                         const ros::Time & tCurrentFilterUpdate) 
     {
         ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
         std::vector<dynamic_gap::Gap> associatedGaps = gaps;
@@ -272,31 +255,19 @@ namespace dynamic_gap
             if (idx % 2 == 0) 
             {
                 //std::cout << "entering left model update" << std::endl;
-                if (gap.leftGapPtModel_)
-                {
-                    gap.leftGapPtModel_->update(measurement, 
-                                                intermediateRbtVels, intermediateRbtAccs, 
-                                                currentTrueAgentPoses_, 
-                                                currentTrueAgentVels_,
-                                                tCurrentFilterUpdate);                    
-                } else
-                {
-                    ROS_WARN_STREAM_NAMED("GapEstimation", "left model is null");
-                }
+                gap.leftGapPtModel_->update(measurement, 
+                                            intermediateRbtVels, intermediateRbtAccs, 
+                                            currentTrueAgentPoses_, 
+                                            currentTrueAgentVels_,
+                                            tCurrentFilterUpdate);
             } else 
             {
-                if (gap.rightGapPtModel_)
-                {
-                    gap.rightGapPtModel_->update(measurement, 
-                                                intermediateRbtVels, intermediateRbtAccs, 
-                                                currentTrueAgentPoses_, 
-                                                currentTrueAgentVels_,
-                                                tCurrentFilterUpdate);                    
-                } else
-                {                
-                    ROS_WARN_STREAM_NAMED("GapEstimation", "right model is null");
-                    //std::cout << "entering right model update" << std::endl;
-                }
+                //std::cout << "entering right model update" << std::endl;
+                gap.rightGapPtModel_->update(measurement, 
+                                            intermediateRbtVels, intermediateRbtAccs, 
+                                            currentTrueAgentPoses_, 
+                                            currentTrueAgentVels_,
+                                            tCurrentFilterUpdate);
             } 
         } catch (...) 
         {
@@ -949,7 +920,7 @@ namespace dynamic_gap
     int Planner::getCurrentRightGapPtModelID() 
     {
         // std::cout << "get current left" << std::endl;
-        if (currRightGapPtModel_) 
+        if (currRightGapPtModel_ != NULL) 
         {
             // std::cout << "model is not  null" << std::endl;
             return currRightGapPtModel_->getID();
@@ -963,7 +934,7 @@ namespace dynamic_gap
     int Planner::getCurrentLeftGapPtModelID() 
     {
         // std::cout << "get current right" << std::endl;
-        if (currLeftGapPtModel_) 
+        if (currLeftGapPtModel_ != NULL) 
         {
             // std::cout << "model is not  null" << std::endl;
             return currLeftGapPtModel_->getID();
@@ -1319,34 +1290,30 @@ namespace dynamic_gap
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
 
-        // geometry_msgs::PoseArray highestScorePath;
-        // std::vector<float> highestScorePathTiming;
-        // dynamic_gap::Gap highestScoreGap;
-        geometry_msgs::PoseArray chosenTraj = geometry_msgs::PoseArray();
-
+        geometry_msgs::PoseArray highestScorePath;
+        std::vector<float> highestScorePathTiming;
+        dynamic_gap::Gap highestScoreGap;
         if (highestScoreTrajIdx >= 0) 
         {
-            // highestScoreGap = manipulatedGaps.at(highestScoreTrajIdx);
-            // highestScorePath = paths.at(highestScoreTrajIdx);
-            // highestScorePathTiming = pathTimings.at(highestScoreTrajIdx);
-
-            ///////////////////////////////
-            // GAP TRAJECTORY COMPARISON //
-            ///////////////////////////////
-            std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
-
-            chosenTraj = compareToCurrentTraj(manipulatedGaps.at(highestScoreTrajIdx), 
-                                              paths.at(highestScoreTrajIdx),
-                                              pathTimings.at(highestScoreTrajIdx), 
-                                              manipulatedGaps, 
-                                              isCurrentGapFeasible);
-            float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
-            ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
+            highestScorePath = paths.at(highestScoreTrajIdx);
+            highestScorePathTiming = pathTimings.at(highestScoreTrajIdx);
+            highestScoreGap = manipulatedGaps.at(highestScoreTrajIdx);
         } else 
         {
-            // highestScorePath = geometry_msgs::PoseArray();
-            // highestScoreGap = dynamic_gap::Gap();
+            highestScorePath = geometry_msgs::PoseArray();
+            highestScoreGap = dynamic_gap::Gap();
         }
+
+        ///////////////////////////////
+        // GAP TRAJECTORY COMPARISON //
+        ///////////////////////////////
+        std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
+
+        geometry_msgs::PoseArray chosenTraj;
+        chosenTraj = compareToCurrentTraj(highestScoreGap, highestScorePath, highestScorePathTiming, manipulatedGaps, isCurrentGapFeasible);
+        float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
+        ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
+
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");

@@ -30,6 +30,7 @@ namespace dynamic_gap
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
             
             Eigen::Matrix4f Q_1, Q_2, Q_3; // covariance noise matrix
+            float R_scalar, Q_scalar;
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
@@ -38,40 +39,38 @@ namespace dynamic_gap
 
             float life_time, start_time;
 
-            // std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
-            //                                   previous_ego_accels, previous_ego_vels, previous_times,
-            //                                   previous_gap_only_states, vel_euler_derivatives;
-            // float life_time_threshold;
+            std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
+                                              previous_ego_accels, previous_ego_vels, previous_times,
+                                              previous_gap_only_states, vel_euler_derivatives;
+            float life_time_threshold;
+            Eigen::Matrix4f eyes;
+            std::string plot_dir;
 
             std::vector<geometry_msgs::Pose> agentPoses_;
             std::vector<geometry_msgs::Vector3Stamped> agentVels_;
 
-            bool perfect = false;
-            // bool plot = false;
-            // bool plotted = false;
-            // std::string plot_dir;
+            bool perfect;
+            bool plot;
+            bool plotted;
 
-            // std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            // std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            // geometry_msgs::TwistStamped lastRbtVel_;
-            // geometry_msgs::TwistStamped lastRbtAcc_;
+            ros::Time t_last_update;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
+            geometry_msgs::TwistStamped lastRbtVel_;
+            geometry_msgs::TwistStamped lastRbtAcc_;
 
         public:
 
-            RotatingFrameCartesianKalmanFilter();
-            // RotatingFrameCartesianKalmanFilter(float, float, const ros::Time & t_update,
-            //             const geometry_msgs::TwistStamped & lastRbtVel,
-            //             const geometry_msgs::TwistStamped & lastRbtAcc);
+            RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
+                        const geometry_msgs::TwistStamped & lastRbtVel,
+                        const geometry_msgs::TwistStamped & lastRbtAcc);
             // RotatingFrameCartesianKalmanFilter(const Estimator & model);
 
             ~RotatingFrameCartesianKalmanFilter();
 
-            void initialize(const std::string & side, const int & modelID, 
-                            const float & gapPtX, const float & gapPtY,
-                            const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+            void initialize(float, float, const ros::Time & t_update,
+                            const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
-            // void transfer(const int & placeholder);
-            void transfer(const Estimator & placeholder);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();

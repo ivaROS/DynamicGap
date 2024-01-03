@@ -20,24 +20,19 @@
 
 namespace dynamic_gap 
 {
-    /*
     StaticEstimator::StaticEstimator(std::string side, int modelID, float gapPtX, float gapPtY,
                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                         const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
-
-        initialize(side, modelID_, gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
+        side_ = side;
+        modelID_ = modelID;
+        initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
-    */
 
-    void StaticEstimator::initialize(const std::string & side, const int & modelID, 
-                                     const float & gapPtX, const float & gapPtY,
+    void StaticEstimator::initialize(float gapPtX, float gapPtY,
                                      const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                      const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
-        side_ = side;
-        modelID_ = modelID;
-
         // OBSERVATION MATRIX
         H_ << 1.0, 0.0, 0.0, 0.0,
              0.0, 1.0, 0.0, 0.0;
@@ -104,14 +99,6 @@ namespace dynamic_gap
         perfect = false;
         plotted = false;
         plot = true;
-    }
-
-    // void StaticEstimator::transfer(const int & placeholder)
-    // {
-    // }
-
-    void StaticEstimator::transfer(const Estimator & model)
-    {
     }
 
     void StaticEstimator::processEgoRobotVelsAndAccs(const ros::Time & t_update)

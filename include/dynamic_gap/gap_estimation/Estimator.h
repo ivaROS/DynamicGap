@@ -14,10 +14,9 @@ namespace dynamic_gap
 {
     class Estimator 
     {
-        public:
+        protected:
             Eigen::Matrix<float, 2, 4> H_; // observation matrix
             Eigen::Matrix<float, 4, 2> H_transpose_;
-            float R_scalar, Q_scalar;
             Eigen::Matrix2f R_k_; // measurement noise matrix
             Eigen::Matrix4f Q_k_; // covariance noise matrix
             Eigen::Matrix4f dQ_; // discretized covariance noise matrix
@@ -33,25 +32,11 @@ namespace dynamic_gap
             int modelID_;
             std::string side_;
 
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            geometry_msgs::TwistStamped lastRbtVel_;
-            geometry_msgs::TwistStamped lastRbtAcc_;    
-
-            ros::Time t_last_update;
-
-            Eigen::Matrix4f eyes;
-
             virtual void linearize(int idx) = 0;
             virtual void discretizeQ(int idx) = 0;
             virtual Eigen::Vector4f integrate() = 0;
 
-            virtual void initialize(const std::string & side, const int & modelID, 
-                                    const float & gapPtX, const float & gapPtY,
-                                    const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                    const geometry_msgs::TwistStamped & lastRbtAcc) = 0;
-            // virtual void transfer(const int & placeholder) = 0;
-            virtual void transfer(const Estimator & placeholder) = 0;
+        public:
 
             virtual Eigen::Vector4f getState() = 0;
             virtual Eigen::Vector4f getTrueState() = 0;
