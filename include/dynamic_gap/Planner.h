@@ -80,12 +80,12 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped globalGoalOdomFrame_, globalGoalRobotFrame_;
 
         // Gaps:
-        std::vector<dynamic_gap::Gap *> rawGaps_, simplifiedGaps_;
+        std::vector<dynamic_gap::Gap *> currRawGaps_, simplifiedGaps_;
 
-        std::vector<dynamic_gap::Gap *> previousRawGaps_, previousSimplifiedGaps_;
+        std::vector<dynamic_gap::Gap *> prevRawGaps_, prevSimplifiedGaps_;
 
-        std::vector<dynamic_gap::Gap *> associatedRawGaps_;
-        std::vector<dynamic_gap::Gap *> associatedSimplifiedGaps_;
+        // std::vector<dynamic_gap::Gap *> associatedRawGaps_;
+        // std::vector<dynamic_gap::Gap *> associatedSimplifiedGaps_;
         
         dynamic_gap::GapDetector * gapDetector_ = NULL;
         dynamic_gap::StaticScanSeparator * staticScanSeparator_ = NULL;
