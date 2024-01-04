@@ -131,8 +131,8 @@ namespace dynamic_gap
 
         int currentModelIdx_;
 
-        dynamic_gap::Estimator * currLeftGapPtModel_;
-        dynamic_gap::Estimator * currRightGapPtModel_;
+        dynamic_gap::Estimator * currLeftGapPtModel_ = NULL;
+        dynamic_gap::Estimator * currRightGapPtModel_ = NULL;
         
         geometry_msgs::TwistStamped currentPeakSplineVel_;
 

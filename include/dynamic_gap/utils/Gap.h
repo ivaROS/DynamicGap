@@ -20,8 +20,8 @@ namespace dynamic_gap
             // Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rangeRight, bool radial, float minSafeDist_) : 
-                frame_(frame), rightIdx_(right_idx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
+            Gap(std::string frame, int rightIdx, float rangeRight, bool radial, float minSafeDist_) : 
+                frame_(frame), rightIdx_(rightIdx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
@@ -34,13 +34,81 @@ namespace dynamic_gap
                 rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
             };
 
-            /*
+            
             // For now, just using the default copy constructor
+            //      used in 
             Gap(const dynamic_gap::Gap & otherGap)
             {
+                ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                frame_ = otherGap.frame_;
 
+                // copy all the variables
+                leftIdx_ = otherGap.leftIdx_;
+                leftDist_ = otherGap.leftDist_;
+                rightIdx_ = otherGap.rightIdx_;
+                rightDist_ = otherGap.rightDist_;
+
+                termLeftIdx_ = otherGap.termLeftIdx_;
+                termLeftDist_ = otherGap.termLeftDist_;
+                termRightIdx_ = otherGap.termRightIdx_;
+                termRightDist_ = otherGap.termRightDist_;
+
+                convex.leftIdx_ = otherGap.convex.leftIdx_;
+                convex.leftDist_ = otherGap.convex.leftDist_;
+                convex.rightIdx_ = otherGap.convex.rightIdx_;
+                convex.rightDist_ = otherGap.convex.rightDist_;
+
+                convex.termLeftIdx_ = otherGap.convex.termLeftIdx_;
+                convex.termLeftDist_ = otherGap.convex.termLeftDist_;
+                convex.termRightIdx_ = otherGap.convex.termRightIdx_;
+                convex.termRightDist_ = otherGap.convex.termRightDist_;
+
+                rightType_ = otherGap.rightType_;
+                terminalRightType_ = otherGap.terminalRightType_;
+
+                radial_ = otherGap.radial_;
+                termRadial_ = otherGap.termRadial_;
+
+                minSafeDist_ = otherGap.minSafeDist_;
+                terminalMinSafeDist_ = otherGap.terminalMinSafeDist_;
+
+                category_ = otherGap.category_;
+
+                crossingPt_ = otherGap.crossingPt_;
+                closingPt_ = otherGap.closingPt_;
+
+                goal.x_ = otherGap.goal.x_;
+                goal.y_ = otherGap.goal.y_;
+
+                terminalGoal.x_ = otherGap.terminalGoal.x_;
+                terminalGoal.y_ = otherGap.terminalGoal.y_;
+
+                gapLifespan_ = otherGap.gapLifespan_;
+
+                peakVelX_ = otherGap.peakVelX_;
+                peakVelY_ = otherGap.peakVelY_;
+
+                crossed_ = otherGap.crossed_;
+                closed_ = otherGap.closed_;
+                crossedBehind_ = otherGap.crossedBehind_;
+                artificial_ = otherGap.artificial_;
+
+                mode.reduced_ = otherGap.mode.reduced_;
+                mode.convex_ = otherGap.mode.convex_;
+                mode.RGC_ = otherGap.mode.RGC_;
+                mode.termReduced_ = otherGap.mode.termReduced_;
+                mode.termConvex_ = otherGap.mode.termConvex_;
+                mode.termRGC_ = otherGap.mode.termRGC_;
+
+                // make new models
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+
+                // transfer models (need to deep copy the models, not just the pointers)
+                leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
+                rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
             }
-            */
 
             ~Gap() 
             {

@@ -130,7 +130,7 @@ namespace dynamic_gap
     {
         this->side_ = model.side_;
         this->modelID_ = model.modelID_;
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    transfer model: " << modelID_);
+        ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
 
         // OBSERVATION MATRIX
         this->H_ = model.H_;

@@ -175,7 +175,6 @@ namespace dynamic_gap
     void GapVisualizer::drawGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, 
                                 std::string ns, bool initial) 
     {
-        // ROS_INFO_STREAM(g._left_idx << ", " << g._leftDist << ", " << g._right_idx << ", " << g._rdist << ", " << g.frame_);
         // if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
         // int viz_offset = 0;

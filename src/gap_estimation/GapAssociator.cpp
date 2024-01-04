@@ -128,11 +128,13 @@ namespace dynamic_gap
 							const std::vector<int> & pair,
 							const bool & validAssociation) 
 	{
+		/*
+		// may be broken
 		int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
 		int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
 		ROS_INFO_STREAM_NAMED("GapAssociator","    pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 
-		/*
+
 		float currX = 0.0, currY = 0.0, prevX = 0.0, prevY = 0.0;
 		if (pair.at(0) % 2 == 0)  // curr left
 			currentGaps.at(currentGapIdx)->getLCartesian(currX, currY);
@@ -215,11 +217,14 @@ namespace dynamic_gap
 									 const std::vector<dynamic_gap::Gap *> & previousGaps,
 									 std::vector<int> & pair)
 	{
+		ROS_INFO_STREAM_NAMED("GapAssociator", "					[handOffModel()]");
 		int currentGapIdx = int(std::floor(i / 2.0));
 		int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
+		ROS_INFO_STREAM_NAMED("GapAssociator", "					currentGapIdx: " << currentGapIdx << ", previousGapIdx: " << previousGapIdx);
 
 		if (pair.at(0) % 2 == 0)  // curr left
 		{
+			ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering left");
 			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
 			currentGaps.at(currentGapIdx)->leftGapPtModel_->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 																			  				*previousGaps.at(previousGapIdx)->rightGapPtModel_);			
@@ -227,6 +232,7 @@ namespace dynamic_gap
 			// 																  previousGaps.at(previousGapIdx)->rightGapPtModel_;
 		} else // curr right
 		{
+			ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering right");
 			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
 			currentGaps.at(currentGapIdx)->rightGapPtModel_->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 																			   				 *previousGaps.at(previousGapIdx)->rightGapPtModel_);		
@@ -243,10 +249,9 @@ namespace dynamic_gap
 			vectorString += std::to_string(vector.at(i));
 			if (vector.at(i) != vector.back())
 				vectorString += ", ";
-			else
-				vectorString += "]";
-		}
 
+		}
+		vectorString += "]";
 		return vectorString;
 	}
 
@@ -275,37 +280,42 @@ namespace dynamic_gap
 
 			for (int i = 0; i < currentGapPoints.size(); i++) 
 			{
-				
-				int previousGapPtIdx = association.at(i);
-				std::vector<int> pair{i, previousGapPtIdx};
 				bool validAssociation = false;
-
-				// ROS_INFO_STREAM_NAMED("GapAssociator","			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
-
-				if (i < association.size() && pair.at(1) >= 0) // try association
+				if (i < association.size()) // clause 1: previous gaps size
 				{
-					// if current gap pt has valid association and association is under distance threshold
-					bool assoc_idx_in_range = previousGaps.size() > int(std::floor(pair.at(1) / 2.0));
-					// bool assoc_idx_out_of_range = (pair.at(1) < 0);
-					bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
-					validAssociation = assoc_dist_in_thresh; // !assoc_idx_out_of_range &&  
-					if (validAssociation) 
+					std::vector<int> pair{i, association.at(i)};	
+					ROS_INFO_STREAM_NAMED("GapAssociator","			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
+					if (association.at(i) >= 0) // clause 2: association existence check
 					{
-						// ROS_INFO_STREAM_NAMED("GapAssociator", "				association meets distance threshold");
-						//std::cout << "associating" << std::endl;	
-						//std::cout << "distance under threshold" << std::endl;
-						handOffModel(i, currentGaps, previousGaps, pair);
-					} else
+						ROS_INFO_STREAM_NAMED("GapAssociator","			checking association distance");
+
+						// checking if current gap pt has association under distance threshold
+						bool assoc_idx_in_range = previousGaps.size() > int(std::floor(pair.at(1) / 2.0));
+
+						bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
+						validAssociation = assoc_dist_in_thresh;
+						if (validAssociation) 
+						{
+							ROS_INFO_STREAM_NAMED("GapAssociator", "				association meets distance threshold");
+							//std::cout << "associating" << std::endl;	
+							//std::cout << "distance under threshold" << std::endl;
+							handOffModel(i, currentGaps, previousGaps, pair);
+						} else
+						{
+							ROS_INFO_STREAM_NAMED("GapAssociator", "				association does not meet distance threshold");
+							instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);
+						}
+					} else // instantiate new model
 					{
-						// ROS_INFO_STREAM_NAMED("GapAssociator", "				association does not meet distance threshold");
-						instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);
+						ROS_INFO_STREAM_NAMED("GapAssociator","			current gap point not associated");
+						instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);				
 					}
-				} else // instantiate new model
+					printGapTransition(currentGaps, previousGaps, distMatrix, pair, validAssociation);
+				} else
 				{
-					// ROS_INFO_STREAM_NAMED("GapAssociator", "				association is invalid");
+					ROS_INFO_STREAM_NAMED("GapAssociator","			association does not exist");
 					instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);				
 				}
-				printGapTransition(currentGaps, previousGaps, distMatrix, pair, validAssociation);
 			}
 
 			// delete previous models

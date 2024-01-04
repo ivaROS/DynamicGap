@@ -200,26 +200,28 @@ namespace dynamic_gap
         trajController_->updateEgoCircle(scan_);
         // gapFeasibilityChecker_->updateEgoCircle(scan_);
 
-        // delete prevGaps models
-        
+        // delete not associated gaps
+        for (dynamic_gap::Gap * rawGap : rawGaps_)
+            delete rawGap;
+        rawGaps_.clear();
+
+        for (dynamic_gap::Gap * simplifiedGap : simplifiedGaps_)
+            delete simplifiedGap;
+        simplifiedGaps_.clear();
+
+        // delete previous gaps
         for (dynamic_gap::Gap * previousRawGap : previousRawGaps_)
         {
             // ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete raw gaps" << gap->leftGapPtModel_->getID() << " and " << gap->rightGapPtModel_->getID());                
             delete previousRawGap;
-            // delete gap->leftGapPtModel_;
-            // delete gap->rightGapPtModel_;
         }
+        previousRawGaps_.clear();
         
         for (dynamic_gap::Gap * previousSimplifiedGap : previousSimplifiedGaps_)
         {
             delete previousSimplifiedGap;
             // ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete simplified gaps" << gap->leftGapPtModel_->getID() << " and " << gap->rightGapPtModel_->getID());                
-            // delete gap->leftGapPtModel_;
-            // delete gap->rightGapPtModel_;   
         }
-
-        // prevGaps clear
-        previousRawGaps_.clear();
         previousSimplifiedGaps_.clear();
 
         previousRawGaps_ = associatedRawGaps_;
@@ -950,6 +952,20 @@ namespace dynamic_gap
         currentPeakSplineVel_.twist.linear.x = peakVelX;
         currentPeakSplineVel_.twist.linear.y = peakVelY;
     }
+    
+    int Planner::getCurrentLeftGapPtModelID() 
+    {
+        ROS_INFO_STREAM_NAMED("Planner", "[getCurrentLeftGapPtModelID()]");
+        if (currLeftGapPtModel_) 
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "      model not null, has ID: " << currLeftGapPtModel_->getID());
+            return currLeftGapPtModel_->getID();
+        } else 
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "      model is null");
+            return -1;
+        }    
+    }
 
     int Planner::getCurrentRightGapPtModelID() 
     {
@@ -963,20 +979,6 @@ namespace dynamic_gap
             // std::cout << "model is null" << std::endl;
             return -1;
         }
-    }
-    
-    int Planner::getCurrentLeftGapPtModelID() 
-    {
-        // std::cout << "get current right" << std::endl;
-        if (currLeftGapPtModel_) 
-        {
-            // std::cout << "model is not  null" << std::endl;
-            return currLeftGapPtModel_->getID();
-        } else 
-        {
-            // std::cout << "model is null" << std::endl;
-            return -1;
-        }    
     }
 
     void Planner::reset()
@@ -1002,7 +1004,8 @@ namespace dynamic_gap
 
             if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
             {
-                rawCmdVel = trajController_->manualControlLaw();
+                rawCmdVel.linear.y = -0.5;
+                // rawCmdVel = trajController_->manualControlLaw();
             } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
             { 
                 // sensor_msgs::LaserScan scan_msgs;
@@ -1259,6 +1262,9 @@ namespace dynamic_gap
 
     geometry_msgs::PoseArray Planner::runPlanningLoop() 
     {
+        return geometry_msgs::PoseArray();
+
+        /*
         if (!readyToPlan)
             return geometry_msgs::PoseArray();
 
@@ -1364,6 +1370,7 @@ namespace dynamic_gap
         feasibleGaps.clear();
 
         return chosenTraj;
+        */
     }
 
     bool Planner::recordAndCheckVel(const geometry_msgs::Twist & cmdVel) 
