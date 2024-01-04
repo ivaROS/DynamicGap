@@ -318,33 +318,6 @@ namespace dynamic_gap
 				}
 			}
 
-			// delete previous models
-			
-			// BROKEN RIGHT NOW
-
-			/*
-			for (int previousGapPtIdx = 0; previousGapPtIdx < previousGapPoints.size(); previousGapPtIdx++) 
-			{
-				// bool deleteModel = true;
-				int previousGapIdx = int(std::floor(previousGapPtIdx / 2.0));
-
-				// for (int currentGapPtIdx = 0; currentGapPtIdx < association.size(); currentGapPtIdx++)
-				// {
-				// 	if (association[currentGapPtIdx] == previousGapPtIdx) // or if association was rejected
-				// 		deleteModel = false;
-				// }
-
-				// if (deleteModel)
-				// {
-				ROS_INFO_STREAM_NAMED("GapAssociator","	deleting previous gap model " << previousGapPtIdx << ", gap: " << previousGapIdx);
-				if (previousGapPtIdx % 2 == 0)
-					delete previousGaps.at(previousGapIdx)->leftGapPtModel_;
-				else
-					delete previousGaps.at(previousGapIdx)->rightGapPtModel_;
-				// }
-			}
-			*/
-
 			// printGapAssociations(currentGaps, previousGaps, association, distMatrix);
 
 			// ASSOCIATING MODELS

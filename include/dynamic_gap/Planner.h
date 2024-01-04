@@ -80,7 +80,7 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped globalGoalOdomFrame_, globalGoalRobotFrame_;
 
         // Gaps:
-        std::vector<dynamic_gap::Gap *> currRawGaps_, simplifiedGaps_;
+        std::vector<dynamic_gap::Gap *> currRawGaps_, currSimplifiedGaps_;
 
         std::vector<dynamic_gap::Gap *> prevRawGaps_, prevSimplifiedGaps_;
 
@@ -290,15 +290,16 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
     
-        std::vector<dynamic_gap::Gap *> updateModels(const std::vector<dynamic_gap::Gap *> & _observed_gaps, 
-                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                                    const ros::Time & t_kf_update);
+        void updateModels(std::vector<dynamic_gap::Gap *> & _observed_gaps, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                            const ros::Time & t_kf_update);
 
-        void updateModel(int i, std::vector<dynamic_gap::Gap *>& _observed_gaps, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                    const ros::Time & t_kf_update);
+        void updateModel(int i, 
+                            std::vector<dynamic_gap::Gap *>& _observed_gaps, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                            const ros::Time & t_kf_update);
 
         void setCurrentLeftModel(dynamic_gap::Estimator * left_model);
         void setCurrentRightModel(dynamic_gap::Estimator * right_model);

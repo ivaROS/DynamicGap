@@ -36,7 +36,7 @@ namespace dynamic_gap
             Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
-            float life_time, start_time;
+            float life_time = 0.0, start_time = 0.0;
 
             // std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
             //                                   previous_ego_accels, previous_ego_vels, previous_times,

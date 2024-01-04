@@ -17,7 +17,7 @@ namespace dynamic_gap
         public:
             Eigen::Matrix<float, 2, 4> H_; // observation matrix
             Eigen::Matrix<float, 4, 2> H_transpose_;
-            float R_scalar, Q_scalar;
+            float R_scalar = 0.0, Q_scalar = 0.0;
             Eigen::Matrix2f R_k_; // measurement noise matrix
             Eigen::Matrix4f Q_k_; // covariance noise matrix
             Eigen::Matrix4f dQ_; // discretized covariance noise matrix
@@ -30,8 +30,8 @@ namespace dynamic_gap
 
             Eigen::Matrix4f A_, STM_;
             
-            int modelID_;
-            std::string side_;
+            int modelID_ = 0;
+            std::string side_ = "";
 
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        

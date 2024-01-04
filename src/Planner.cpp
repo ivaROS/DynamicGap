@@ -18,14 +18,19 @@ namespace dynamic_gap
         delete tfListener_;
         
         delete gapDetector_;
-
+        delete gapAssociator_;
+        
         // delete current gaps
         for (dynamic_gap::Gap * rawGap : currRawGaps_)
             delete rawGap;
         currRawGaps_.clear();
 
+        // for (dynamic_gap::Gap * simplifiedGap : currSimplifiedGaps_)
+        //     delete simplifiedGap;
+        // currSimplifiedGaps_.clear();
+        
         /*
-        delete gapAssociator_, gapFeasibilityChecker_, gapManipulator_, gapVisualizer_, gapTrajGenerator_;
+        , gapFeasibilityChecker_, gapManipulator_, gapVisualizer_, gapTrajGenerator_;
         delete goalSelector_, goalVisualizer_,
         delete trajScorer_, trajVisualizer_, trajController_;
         */
@@ -52,6 +57,8 @@ namespace dynamic_gap
         initialized_ = true;
 
         gapDetector_ = new dynamic_gap::GapDetector(cfg_);
+        gapAssociator_ = new dynamic_gap::GapAssociator(nh, cfg_);
+
         // staticScanSeparator_ = new dynamic_gap::StaticScanSeparator(cfg_);
         // gapVisualizer_ = new dynamic_gap::GapVisualizer(nh, cfg_);
         // goalSelector_ = new dynamic_gap::GoalSelector(nh, cfg_);
@@ -61,7 +68,6 @@ namespace dynamic_gap
         // goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh, cfg_);
         // gapManipulator_ = new dynamic_gap::GapManipulator(nh, cfg_);
         // trajController_ = new dynamic_gap::TrajectoryController(nh, cfg_);
-        // gapAssociator_ = new dynamic_gap::GapAssociator(nh, cfg_);
         // gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh, cfg_);
 
         // MAP FRAME ID SHOULD BE: known_map
@@ -152,10 +158,9 @@ namespace dynamic_gap
             // float gap_detection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_detection_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
 
-            /*
             ROS_INFO_STREAM_NAMED("GapAssociator", "RAW GAP ASSOCIATING");    
             rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
-            rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);         // ASSOCIATE GAPS PASSES BY REFERENCE
+            rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         currRawGaps_, prevRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
@@ -163,18 +168,19 @@ namespace dynamic_gap
             updateModels(currRawGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
-            staticScan_ = staticScanSeparator_->staticDynamicScanSeparation(currRawGaps_, scan_);
-            staticScanPublisher_.publish(staticScan_);
-            trajScorer_->updateStaticEgoCircle(staticScan_);
-            gapManipulator_->updateStaticEgoCircle(staticScan_);
-            currentEstimatedAgentStates_ = staticScanSeparator_->getCurrAgents();
+            // staticScan_ = staticScanSeparator_->staticDynamicScanSeparation(currRawGaps_, scan_);
+            // staticScanPublisher_.publish(staticScan_);
+            // trajScorer_->updateStaticEgoCircle(staticScan_);
+            // gapManipulator_->updateStaticEgoCircle(staticScan_);
+            
+            // currentEstimatedAgentStates_ = staticScanSeparator_->getCurrAgents();
 
             // std::chrono::steady_clock::time_point gap_simplification_start_time = std::chrono::steady_clock::now();
             
-            currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
+            // currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
             // float gap_simplification_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_simplification_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
-            
+            /*
             ROS_INFO_STREAM_NAMED("GapAssociator", "SIMPLIFIED GAP ASSOCIATING");    
             simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
             simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
@@ -209,50 +215,37 @@ namespace dynamic_gap
         // gapFeasibilityChecker_->updateEgoCircle(scan_);
         */
 
-        /*
-        for (dynamic_gap::Gap * simplifiedGap : currSimplifiedGaps_)
-            delete simplifiedGap;
-        currSimplifiedGaps_.clear();
-        */
         // delete previous gaps
         for (dynamic_gap::Gap * prevRawGap : prevRawGaps_)
-        {
-            // ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete raw gaps" << gap->leftGapPtModel_->getID() << " and " << gap->rightGapPtModel_->getID());                
             delete prevRawGap;
-        }
         prevRawGaps_.clear();
         
-        /*
-        for (dynamic_gap::Gap * prevSimplifiedGap : prevSimplifiedGaps_)
-        {
-            delete prevSimplifiedGap;
-            // ROS_INFO_STREAM_NAMED("GapAssociator", "trying to delete simplified gaps" << gap->leftGapPtModel_->getID() << " and " << gap->rightGapPtModel_->getID());                
-        }
-        prevSimplifiedGaps_.clear();
+        // for (dynamic_gap::Gap * prevSimplifiedGap : prevSimplifiedGaps_)
+        //     delete prevSimplifiedGap;
+        // prevSimplifiedGaps_.clear();
 
-        prevSimplifiedGaps_ = currSimplifiedGaps_;
+        prevRawGaps_ = currRawGaps_;
+        // prevSimplifiedGaps_ = currSimplifiedGaps_;
 
         tPreviousFilterUpdate_ = tCurrentFilterUpdate;
-        */
-        prevRawGaps_ = currRawGaps_;
     }
 
-    /*
+    
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    std::vector<dynamic_gap::Gap *> Planner::updateModels(const std::vector<dynamic_gap::Gap *> & gaps, 
-                                                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                                        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                                        const ros::Time & tCurrentFilterUpdate) 
+    void Planner::updateModels(std::vector<dynamic_gap::Gap *> & gaps, 
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                                const ros::Time & tCurrentFilterUpdate) 
     {
         ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
-        std::vector<dynamic_gap::Gap *> associatedGaps = gaps;
+        // std::vector<dynamic_gap::Gap *> associatedGaps = gaps;
         
         try
         {
-            for (int i = 0; i < 2*associatedGaps.size(); i++) 
+            for (int i = 0; i < 2*gaps.size(); i++) 
             {
-                ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*associatedGaps.size());
-                updateModel(i, associatedGaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
+                ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
+                updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
                 ROS_INFO_STREAM_NAMED("GapEstimation", "");
             }
         } catch (...)
@@ -260,7 +253,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("GapEstimation", "updateModels failed");
         }
 
-        return associatedGaps;
+        return;
     }
 
     void Planner::updateModel(int idx, std::vector<dynamic_gap::Gap *> & gaps, 
@@ -318,7 +311,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("GapEstimation", "updateModel failed");
         }        
     }
-    */
+    
 
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                  const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
