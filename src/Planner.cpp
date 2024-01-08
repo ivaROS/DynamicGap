@@ -19,18 +19,19 @@ namespace dynamic_gap
         
         delete gapDetector_;
         delete gapAssociator_;
+        delete gapVisualizer_;
         
         // delete current gaps
         for (dynamic_gap::Gap * rawGap : currRawGaps_)
             delete rawGap;
         currRawGaps_.clear();
 
-        // for (dynamic_gap::Gap * simplifiedGap : currSimplifiedGaps_)
-        //     delete simplifiedGap;
-        // currSimplifiedGaps_.clear();
+        for (dynamic_gap::Gap * simplifiedGap : currSimplifiedGaps_)
+            delete simplifiedGap;
+        currSimplifiedGaps_.clear();
         
         /*
-        , gapFeasibilityChecker_, gapManipulator_, gapVisualizer_, gapTrajGenerator_;
+        , gapFeasibilityChecker_, gapManipulator_, gapTrajGenerator_;
         delete goalSelector_, goalVisualizer_,
         delete trajScorer_, trajVisualizer_, trajController_;
         */
@@ -58,9 +59,9 @@ namespace dynamic_gap
 
         gapDetector_ = new dynamic_gap::GapDetector(cfg_);
         gapAssociator_ = new dynamic_gap::GapAssociator(nh, cfg_);
-
         // staticScanSeparator_ = new dynamic_gap::StaticScanSeparator(cfg_);
-        // gapVisualizer_ = new dynamic_gap::GapVisualizer(nh, cfg_);
+        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh, cfg_);
+
         // goalSelector_ = new dynamic_gap::GoalSelector(nh, cfg_);
         // trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh, cfg_);
         // trajScorer_ = new dynamic_gap::TrajectoryScorer(nh, cfg_);
@@ -164,7 +165,7 @@ namespace dynamic_gap
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         currRawGaps_, prevRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs, true);
+                                        intermediateRbtVels, intermediateRbtAccs);
             updateModels(currRawGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
@@ -177,17 +178,17 @@ namespace dynamic_gap
 
             // std::chrono::steady_clock::time_point gap_simplification_start_time = std::chrono::steady_clock::now();
             
-            // currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
+            currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
             // float gap_simplification_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_simplification_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
-            /*
+            
             ROS_INFO_STREAM_NAMED("GapAssociator", "SIMPLIFIED GAP ASSOCIATING");    
             simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
             simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
             gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                         currSimplifiedGaps_, prevSimplifiedGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs, true);
+                                        intermediateRbtVels, intermediateRbtAccs);
             updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
@@ -197,7 +198,6 @@ namespace dynamic_gap
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
 
             readyToPlan = true;
-            */
         }
 
         /*
@@ -220,12 +220,12 @@ namespace dynamic_gap
             delete prevRawGap;
         prevRawGaps_.clear();
         
-        // for (dynamic_gap::Gap * prevSimplifiedGap : prevSimplifiedGaps_)
-        //     delete prevSimplifiedGap;
-        // prevSimplifiedGaps_.clear();
+        for (dynamic_gap::Gap * prevSimplifiedGap : prevSimplifiedGaps_)
+            delete prevSimplifiedGap;
+        prevSimplifiedGaps_.clear();
 
         prevRawGaps_ = currRawGaps_;
-        // prevSimplifiedGaps_ = currSimplifiedGaps_;
+        prevSimplifiedGaps_ = currSimplifiedGaps_;
 
         tPreviousFilterUpdate_ = tCurrentFilterUpdate;
     }

@@ -262,8 +262,7 @@ namespace dynamic_gap
 									 int & currentModelIdx_,
                                      const ros::Time & scanTime, 
 									 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                      				 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-									 const bool & rawGaps)
+                      				 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs)
 	{
 		try
 		{
@@ -287,6 +286,10 @@ namespace dynamic_gap
 					ROS_INFO_STREAM_NAMED("GapAssociator","			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 					if (association.at(i) >= 0) // clause 2: association existence check
 					{
+						ROS_INFO_STREAM_NAMED("GapAssociator","				current point: (" << currentGapPoints.at(i).at(0) << ", " << currentGapPoints.at(i).at(1) << ")");
+						ROS_INFO_STREAM_NAMED("GapAssociator","				previous point: (" << previousGapPoints.at(association.at(i)).at(0) << ", " << previousGapPoints.at(association.at(i)).at(1) << ")");
+						ROS_INFO_STREAM_NAMED("GapAssociator","				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
+											
 						ROS_INFO_STREAM_NAMED("GapAssociator","			checking association distance");
 
 						// checking if current gap pt has association under distance threshold

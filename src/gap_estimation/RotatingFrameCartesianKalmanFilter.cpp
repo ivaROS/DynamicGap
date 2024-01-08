@@ -75,20 +75,20 @@ namespace dynamic_gap
                                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                                         const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
-        side_ = side;
-        modelID_ = modelID;
+        this->side_ = side;
+        this->modelID_ = modelID;
         ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
         // larger P_0 gives more weight to measurements (behaves like Q)
-        P_kmin1_plus_ << 0.01, 0.0, 0.0, 0.0,
+        this->P_kmin1_plus_ << 0.01, 0.0, 0.0, 0.0,
                          0.0, 0.01, 0.0, 0.0,
                          0.0, 0.0, 0.10, 0.0,
                          0.0, 0.0, 0.0, 0.10;
-        P_k_minus_ = P_kmin1_plus_;
-        P_k_plus_ = P_kmin1_plus_;
+        this->P_k_minus_ = P_kmin1_plus_;
+        this->P_k_plus_ = P_kmin1_plus_;
 
         this->lastRbtVel_ = lastRbtVel;
         this->lastRbtAcc_ = lastRbtAcc;
@@ -96,15 +96,21 @@ namespace dynamic_gap
 
         float gapPtVxRel = -lastRbtVel_.twist.linear.x;
         float gapPtVyRel = -lastRbtVel_.twist.linear.y;
-        
+
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "        gapPtVxRel: " << gapPtVxRel << ", gapPtVyRel: " << gapPtVyRel);
+
         // ROS_INFO_STREAM_NAMED("GapEstimation", "initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
 
-        x_tilde_ << gapPtX, gapPtY;
-        x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVxRel;
-        x_hat_k_minus_ = x_hat_kmin1_plus_; 
-        x_hat_k_plus_ = x_hat_kmin1_plus_;
-        x_ground_truth << gapPtX, gapPtY, 0.0, 0.0;
-        x_ground_truth_gap_only << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
+        this->x_tilde_ << gapPtX, gapPtY;
+        
+        this->x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "        x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", : " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+
+        this->x_hat_k_minus_ = x_hat_kmin1_plus_; 
+        this->x_hat_k_plus_ = x_hat_kmin1_plus_;
+        
+        this->x_ground_truth << gapPtX, gapPtY, 0.0, 0.0;
+        this->x_ground_truth_gap_only << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
     }
 
     // For transferring an existing model state to a new model
@@ -141,8 +147,8 @@ namespace dynamic_gap
 
         float gapPtVxRel = -lastRbtVel_.twist.linear.x;
         float gapPtVyRel = -lastRbtVel_.twist.linear.y;
-        x_ground_truth << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], 0.0, 0.0;
-        x_ground_truth_gap_only << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], gapPtVxRel, gapPtVyRel;
+        this->x_ground_truth << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], 0.0, 0.0;
+        this->x_ground_truth_gap_only << x_hat_kmin1_plus_[0], x_hat_kmin1_plus_[1], gapPtVxRel, gapPtVyRel;
 
         this->G_k_ = model.G_k_;
 
@@ -374,10 +380,10 @@ namespace dynamic_gap
         }
 
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        ROS_INFO_STREAM_NAMED("GapEstimation", "    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
         ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
         ROS_INFO_STREAM_NAMED("GapEstimation", "    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
-        /*
+
         processEgoRobotVelsAndAccs(t_update);
 
         // get_intermediateRbtVels__accs();
@@ -503,7 +509,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(3, 0) << ", " << P_k_plus_(3, 1) << ", " << P_k_plus_(3, 2) << ", " << P_k_plus_(3, 3));             
         ROS_INFO_STREAM_NAMED("GapEstimation", "    x_GT: " << x_ground_truth[0] << ", " << x_ground_truth[1] << ", " << x_ground_truth[2] << ", " << x_ground_truth[3]);
         ROS_INFO_STREAM_NAMED("GapEstimation", "    -----------");
-        */
+
         return;
     }    
 
