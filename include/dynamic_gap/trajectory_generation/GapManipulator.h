@@ -23,7 +23,7 @@ namespace dynamic_gap
             GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-            void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
+            // void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
             void updateDynamicEgoCircle(dynamic_gap::Gap * gap,
                                         const std::vector<sensor_msgs::LaserScan> &);
 

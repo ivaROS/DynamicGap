@@ -8,21 +8,23 @@ namespace dynamic_gap
         scan_ = msg_;
     }
 
+    /*
     void GapManipulator::updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan) 
     {
         boost::mutex::scoped_lock lock(egolock);
         staticScan_ = staticScan;
     }
+    */
 
     void GapManipulator::updateDynamicEgoCircle(dynamic_gap::Gap * gap,
-                                                const std::vector<sensor_msgs::LaserScan> & future_scans) 
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
-        dynamicScan_ = staticScan_;
+        // dynamicScan_ = staticScan_;
         float t_iplus1 = gap->gapLifespan_;
 
         int futureScanIdx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
 
-        dynamicScan_ = future_scans.at(futureScanIdx);
+        dynamicScan_ = futureScans.at(futureScanIdx);
 
         float dynamicScanMinDist = *std::min_element(dynamicScan_.ranges.begin(), dynamicScan_.ranges.end());
         gap->setTerminalMinSafeDist(dynamicScanMinDist);
@@ -397,7 +399,7 @@ namespace dynamic_gap
                 rightDist = gap->cvxRightDist();
             } else 
             {
-                desScan = dynamicScan_;
+                desScan = *scan_.get(); // dynamicScan_;
                 leftIdx = gap->cvxTermLeftIdx();
                 rightIdx = gap->cvxTermRightIdx();
                 leftDist = gap->cvxTermLeftDist();
