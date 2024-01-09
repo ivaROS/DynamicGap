@@ -118,6 +118,7 @@ namespace dynamic_gap
 
         boost::mutex gapsetMutex;
 
+        dynamic_gap::Gap * currentGap_ = NULL;
         geometry_msgs::PoseArray currentPath_;
         std::vector<float> currentPathTiming_;
 
@@ -200,6 +201,13 @@ namespace dynamic_gap
          * @return None, all registered via internal variables in TransformStamped
          */
         void updateTF();
+
+        /**
+         * Setter and Getter of Current Gap, this is performed in the compareToCurrentTraj function
+         */
+        void setCurrentGap(dynamic_gap::Gap * currentGap) { delete currentGap_; currentGap_ = currentGap; return; }
+
+        dynamic_gap::Gap * getCurrentGap() { return currentGap_; }
 
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToCurrentTraj function
