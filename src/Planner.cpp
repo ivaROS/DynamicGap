@@ -1009,14 +1009,17 @@ namespace dynamic_gap
 
             if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
             {
+                ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
                 rawCmdVel = trajController_->manualControlLaw();
             } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
             { 
-                ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2");
+                ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
                 rawCmdVel = trajController_->obstacleAvoidanceControlLaw(*scan_.get());
                 return rawCmdVel;
             } else // FEEDBACK CONTROL 
             {
+                ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
+
                 // Know Current Pose
                 geometry_msgs::PoseStamped currPoseStRobotFrame;
                 currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;

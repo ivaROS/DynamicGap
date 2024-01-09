@@ -64,7 +64,7 @@ namespace dynamic_gap
 
             struct ManualControl 
             {
-                bool man_ctrl = true;
+                bool man_ctrl = false;
                 float man_x = 0.0;
                 float man_y = 0.0;
                 float man_theta = 0.0;
