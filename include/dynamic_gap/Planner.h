@@ -270,7 +270,7 @@ namespace dynamic_gap
                                                   const geometry_msgs::PoseArray & chosenPath,                                                        
                                                   const std::vector<float> & chosenPathTiming,
                                                   const std::vector<dynamic_gap::Gap *> & feasibleGaps,
-                                                  bool curr_exec_gap_feas);
+                                                  const bool & curr_exec_gap_feas);
 
         int getCurrentRightGapPtModelID();
         int getCurrentLeftGapPtModelID();
@@ -303,7 +303,7 @@ namespace dynamic_gap
                             const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                             const ros::Time & t_kf_update);
 
-        void updateModel(int i, 
+        void updateModel(const int & i, 
                             std::vector<dynamic_gap::Gap *>& _observed_gaps, 
                             const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                             const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
@@ -312,7 +312,7 @@ namespace dynamic_gap
         void setCurrentLeftModel(dynamic_gap::Estimator * left_model);
         void setCurrentRightModel(dynamic_gap::Estimator * right_model);
 
-        void setCurrentGapPeakVelocities(float _peakVelX_, float _peakVelY_);
+        void setCurrentGapPeakVelocities(const float & peakVelX, const float & peakVelY);
 
         void printGapModels(const std::vector<dynamic_gap::Gap *> & gaps);
         void printGapAssociations(const std::vector<dynamic_gap::Gap *> & currentGaps, 
@@ -330,6 +330,6 @@ namespace dynamic_gap
         geometry_msgs::PoseArray changeTrajectoryHelper(dynamic_gap::Gap * chosenGap, 
                                                         const geometry_msgs::PoseArray & chosenPath, 
                                                         const std::vector<float> & chosenPathTiming, 
-                                                        bool switchToIncoming);
+                                                        const bool & switchToIncoming);
     };
 }

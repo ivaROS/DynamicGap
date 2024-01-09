@@ -14,13 +14,13 @@
 namespace dynamic_gap 
 {
     Eigen::Vector2f pol2car(const Eigen::Vector2f & polar_vector);
-    float atanThetaWrap(float theta); 
+    float atanThetaWrap(const float & theta); 
     // float atanThetaWrap(float theta);
     float getLeftToRightAngle(const Eigen::Vector2f & leftVect, const Eigen::Vector2f & rightVect);
-    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, const Eigen::Vector2f & rightVect, bool wrap);
+    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, const Eigen::Vector2f & rightVect, const bool & wrap);
 
-    float idx2theta(const int idx);
-    int theta2idx(const float theta);
+    float idx2theta(const int & idx);
+    int theta2idx(const float & theta);
 
     float getGapDist(const Eigen::Vector4f & gapState);
     float getGapBearing(const Eigen::Vector4f & gapState);
@@ -30,8 +30,8 @@ namespace dynamic_gap
 
     float quaternionToYaw(const tf::Quaternion & quat);
 
-    int subtractAndWrapScanIndices(int a, int b);
-    bool isGlobalPathLocalWaypointWithinGapAngle(int goalIdx, int lowerIdx, int upperIdx);
+    int subtractAndWrapScanIndices(const int & a, const int & b);
+    bool isGlobalPathLocalWaypointWithinGapAngle(const int & goalIdx, const int & lowerIdx, const int & upperIdx);
     int signum(float value);
 
     float epsilonDivide(const float & numerator, const float & denominator);

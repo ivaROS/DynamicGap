@@ -9,8 +9,8 @@ namespace dynamic_gap
         using Visualizer::Visualizer;
         public: 
             GapVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            void drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns);
-            void drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns);
+            void drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns);
+            void drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns);
             void drawGapsModels(const std::vector<dynamic_gap::Gap *> & gaps);
             void drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps);
             // void drawGapSplines(const std::vector<dynamic_gap::Gap *> & gaps);
@@ -18,16 +18,17 @@ namespace dynamic_gap
         private:
             void initialize(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
 
-            void drawGap(visualization_msgs::MarkerArray &, dynamic_gap::Gap * gap, std::string ns, bool initial);
+            void drawGap(visualization_msgs::MarkerArray &, dynamic_gap::Gap * gap, const std::string & ns, const bool & initial);
 
-            void drawManipGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, std::string ns, bool initial);
+            void drawManipGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, const std::string & ns, const bool & initial);
 
             void drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
-                               dynamic_gap::Gap * gap, std::string ns); // visualization_msgs::MarkerArray & gap_vel_error_arr, 
+                               dynamic_gap::Gap * gap, const std::string & ns); // visualization_msgs::MarkerArray & gap_vel_error_arr, 
             // void drawGapGroundTruthModels(visualization_msgs::MarkerArray & gapModelMarkerArray,   
             //                                 dynamic_gap::Gap * gap, std::string ns);
 
-            void drawModel(visualization_msgs::Marker & modelMarker, dynamic_gap::Gap * gap, bool left, int & id, std::string ns, bool ground_truth);
+            void drawModel(visualization_msgs::Marker & modelMarker, 
+                            dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns, const bool & ground_truth);
             // void draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker modelMarker, 
             //                             dynamic_gap::Gap * gap, bool left, std::string ns);
 

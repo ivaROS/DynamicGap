@@ -20,16 +20,17 @@
 
 namespace dynamic_gap 
 {
-    StaticEstimator::StaticEstimator(std::string side, int modelID, float gapPtX, float gapPtY,
-                                        const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                        const geometry_msgs::TwistStamped & lastRbtAcc) 
+    StaticEstimator::StaticEstimator(const std::string & side, const int & modelID, 
+                                     const float & gapPtX, const float & gapPtY,
+                                     const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                     const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         side_ = side;
         modelID_ = modelID;
         initialize(gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
     }
 
-    void StaticEstimator::initialize(float gapPtX, float gapPtY,
+    void StaticEstimator::initialize(const float & gapPtX, const float & gapPtY,
                                      const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                                      const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
@@ -171,11 +172,13 @@ namespace dynamic_gap
         //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
     }
 
-    void StaticEstimator::setRewindState() {
+    void StaticEstimator::setRewindState() 
+    {
         rewind_x = frozen_x;
     }
 
-    void StaticEstimator::rewindPropagate(float rew_dt) {
+    void StaticEstimator::rewindPropagate(const float & rew_dt) 
+    {
         Eigen::Vector4f new_rewind_x;     
         new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -195,7 +198,8 @@ namespace dynamic_gap
         rewind_x = new_rewind_x; 
     }
 
-    void StaticEstimator::gapStatePropagate(float froz_dt) {
+    void StaticEstimator::gapStatePropagate(const float & froz_dt) 
+    {
         Eigen::Vector4f new_frozen_x;     
         new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
@@ -256,7 +260,7 @@ namespace dynamic_gap
         return x_intermediate;
     }
 
-    void StaticEstimator::linearize(int idx) 
+    void StaticEstimator::linearize(const int & idx) 
     {
         float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();    
         float ang_vel_ego = intermediateRbtVels_[idx].twist.angular.z;
@@ -269,7 +273,7 @@ namespace dynamic_gap
         STM_ = (A_*dt).exp();
     }
 
-    void StaticEstimator::discretizeQ(int idx) 
+    void StaticEstimator::discretizeQ(const int & idx) 
     {
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
@@ -369,130 +373,6 @@ namespace dynamic_gap
 
         return;
     }    
-
-    void StaticEstimator::plot_models() 
-    {
-        /*
-        if (plot && !plotted && print) {
-            if (life_time <= life_time_threshold) {
-                std::vector<double> rel_state{x_hat_k_plus_[0], x_hat_k_plus_[1], x_hat_k_plus_[2], x_hat_k_plus_[3]};
-                std::vector<double> gap_only_state{x_hat_k_plus_[0], x_hat_k_plus_[1], x_hat_k_plus_[2] + v_ego[0], x_hat_k_plus_[3] + v_ego[1]};
-     
-                std::vector<double> ground_truths{x_ground_truth[0], x_ground_truth[1], x_ground_truth[2], x_ground_truth[3]};
-                std::vector<double> ground_truths_gap_only{x_ground_truth_gap_only[0], x_ground_truth_gap_only[1], x_ground_truth_gap_only[2], x_ground_truth_gap_only[3]};
-     
-                std::vector<double> ego_vels{v_ego[0], v_ego[1], v_ego[2]};
-                std::vector<double> ego_accels{a_ego[0], a_ego[1], a_ego[2]};
-                std::vector<double> times{life_time, dt};
-  
-                previous_states.push_back(rel_state);
-                previous_gap_only_states.push_back(gap_only_state);
-                previous_measurements.push_back(ground_truths);
-                previous_measurements_gap_only.push_back(ground_truths_gap_only);
-                previous_ego_accels.push_back(ego_accels);
-                previous_ego_vels.push_back(ego_vels);
-                previous_times.push_back(times);      
-            } else {
-                plot_states();
-            }
-        }
-        */
-    }
-
-    /*
-    void StaticEstimator::plot_states() {
-        //std::cout << "in plot states" << std::endl;
-        int n = previous_states.size();
-        std::vector<double> t(n), r_xs(n), r_ys(n), v_xs(n), v_ys(n), 
-                            r_xs_GT(n), r_ys_GT(n), v_xs_GT(n), v_ys_GT(n),
-                            v_ego_angs(n), a_ego_angs(n), a_xs(n), a_ys(n), 
-                            v_x_egos(n), v_y_egos(n), dts(n), gap_only_r_xs(n),
-                            gap_only_r_ys(n), gap_only_v_xs(n), gap_only_v_ys(n),
-                            gap_only_r_xs_GT(n), gap_only_r_ys_GT(n), gap_only_v_xs_GT(n), gap_only_v_ys_GT(n);
-
-        for(int i=0; i < previous_states.size(); i++) {
-            t.at(i) = previous_times[i][0];
-            dts.at(i) = previous_times[i][1];
-
-            r_xs.at(i) = previous_states[i][0];
-            r_ys.at(i) = previous_states[i][1];
-            v_xs.at(i) = previous_states[i][2];
-            v_ys.at(i) = previous_states[i][3];
-
-            gap_only_r_xs.at(i) = previous_gap_only_states[i][0];
-            gap_only_r_ys.at(i) = previous_gap_only_states[i][1];
-            gap_only_v_xs.at(i) = previous_gap_only_states[i][2];
-            gap_only_v_ys.at(i) = previous_gap_only_states[i][3];
-
-            gap_only_r_xs_GT.at(i) = previous_measurements_gap_only[i][0];
-            gap_only_r_ys_GT.at(i) = previous_measurements_gap_only[i][1];
-            gap_only_v_xs_GT.at(i) = previous_measurements_gap_only[i][2];
-            gap_only_v_ys_GT.at(i) = previous_measurements_gap_only[i][3];            
-
-            r_xs_GT.at(i) = previous_measurements[i][0];
-            r_ys_GT.at(i) = previous_measurements[i][1];
-            v_xs_GT.at(i) = previous_measurements[i][2];
-            v_ys_GT.at(i) = previous_measurements[i][3];
-
-            v_x_egos.at(i) = previous_ego_vels[i][0];
-            v_y_egos.at(i) = previous_ego_vels[i][1];
-            v_ego_angs.at(i) = previous_ego_vels[i][2];
-
-            a_xs.at(i) = previous_ego_accels[i][0];
-            a_ys.at(i) = previous_ego_accels[i][1];
-            a_ego_angs.at(i) = previous_ego_accels[i][2];
-        }
-
-        plt::figure_size(1200, 780);
-        plt::scatter(t, v_x_egos, 25.0, {{"label", "v_x_ego"}});
-        // plt::scatter(t, v_y_egos, 25.0, {{"label", "v_y_ego"}});
-        plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ang_ego"}});
-        plt::scatter(t, a_xs, 25.0, {{"label", "a_x_ego"}});
-        plt::scatter(t, a_ego_angs, 25.0, {{"label", "a_ang_ego"}});
-        // plt::scatter(t, a_ys, 25.0, {{"label", "a_y_ego"}});
-        // plt::scatter(t, dts, 25.0, {{"label", "dts"}});
-        plt::xlim(0, 15);
-        plt::legend();
-        plt::save(plot_dir + std::to_string(index) + "_other_info.png");
-        plt::close();
-        
-        plt::figure_size(1200, 780);
-        plt::scatter(t, gap_only_r_xs_GT, 25.0, {{"label", "r_x (GT)"}});
-        plt::scatter(t, gap_only_r_xs, 25.0, {{"label", "r_x"}});
-        plt::xlim(0, 15);
-        plt::legend();
-        plt::save(plot_dir + std::to_string(index) + "_r_x.png");
-        plt::close();
-
-        plt::figure_size(1200, 780);
-        plt::scatter(t, gap_only_r_ys_GT, 25.0, {{"label", "r_y (GT)"}});
-        plt::scatter(t, gap_only_r_ys, 25.0, {{"label", "r_y"}});
-        plt::xlim(0, 15);
-        plt::legend();
-        plt::save(plot_dir + std::to_string(index) + "_r_y.png");
-        plt::close();
-
-        plt::figure_size(1200, 780);
-        plt::scatter(t, gap_only_v_xs_GT, 25.0, {{"label", "v_x (GT)"}});
-        plt::scatter(t, gap_only_v_xs, 25.0, {{"label", "v_x"}});
-        // plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ang_ego"}});
-        plt::xlim(0, 15);
-        plt::legend();
-        plt::save(plot_dir + std::to_string(index) + "_v_x.png");
-        plt::close();
-
-        plt::figure_size(1200, 780);
-        plt::scatter(t, gap_only_v_ys_GT, 25.0, {{"label", "v_y (GT)"}});
-        plt::scatter(t, gap_only_v_ys, 25.0, {{"label", "v_y"}});
-        // plt::scatter(t, v_ego_angs, 25.0, {{"label", "v_ang_ego"}});
-        plt::xlim(0, 15);
-        plt::legend();
-        plt::save(plot_dir + std::to_string(index) + "_v_y.png");
-        plt::close();
-
-        plotted = true;
-    }
-    */
 
     Eigen::Vector4f StaticEstimator::update_ground_truth_cartesian_state() 
     {

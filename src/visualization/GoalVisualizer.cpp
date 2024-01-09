@@ -70,7 +70,7 @@ namespace dynamic_gap
     }
 
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-                                     dynamic_gap::Gap * gap, bool initial) 
+                                     dynamic_gap::Gap * gap, const bool & initial) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 

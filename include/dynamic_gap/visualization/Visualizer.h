@@ -25,8 +25,8 @@ namespace dynamic_gap
             ~Visualizer() {};
 
             Visualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            Visualizer& operator=(Visualizer other) {cfg_ = other.cfg_; return *this; };
-            Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
+            // Visualizer& operator=(Visualizer other) {cfg_ = other.cfg_; return *this; };
+            // Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
 
         protected:
             const DynamicGapConfig* cfg_;

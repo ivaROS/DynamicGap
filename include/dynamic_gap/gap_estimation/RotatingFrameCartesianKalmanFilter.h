@@ -70,7 +70,6 @@ namespace dynamic_gap
                             const float & gapPtX, const float & gapPtY,
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
-            // void transfer(const int & placeholder);
             void transfer(const Estimator & placeholder);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
@@ -87,11 +86,11 @@ namespace dynamic_gap
 
             geometry_msgs::TwistStamped getRobotVel();
             Eigen::Vector4f integrate();
-            void linearize(int idx);
-            void discretizeQ(int idx);
+            void linearize(const int & idx);
+            void discretizeQ(const int & idx);
 
-            void gapStatePropagate(float dt);
-            void rewindPropagate(float dt);
+            void gapStatePropagate(const float & dt);
+            void rewindPropagate(const float & dt);
             void isolateGapDynamics();
             void setRewindState();
 
@@ -103,12 +102,5 @@ namespace dynamic_gap
                         const ros::Time & t_kf_update);
 
             int getID();
-            void inflate_model(float x, float y);
-
-            void set_initialized(bool _initialized);
-            bool get_initialized();
-            void plot_states();
-            void get_intermediate_vels_accs();
-            void plot_models();
-    };
+     };
 }

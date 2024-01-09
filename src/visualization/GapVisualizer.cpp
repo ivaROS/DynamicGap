@@ -142,7 +142,7 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
     }
 
-    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns) 
+    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -173,7 +173,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, 
-                                std::string ns, bool initial) 
+                                const std::string & ns, const bool & initial) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
         //ROS_INFO_STREAM("in draw gap");
@@ -289,7 +289,7 @@ namespace dynamic_gap
         markerArray.markers.push_back(marker);
     }
     
-    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, std::string ns) 
+    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -314,7 +314,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, 
-                                        std::string ns, bool initial) 
+                                        const std::string & ns, const bool & initial) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -570,7 +570,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                        dynamic_gap::Gap * gap, std::string ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
+                                        dynamic_gap::Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
@@ -607,8 +607,8 @@ namespace dynamic_gap
     */    
 
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
-                                    dynamic_gap::Gap * gap, bool left, int & id, std::string ns,
-                                    bool groundTruth) 
+                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns,
+                                    const bool & groundTruth) 
     {
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();

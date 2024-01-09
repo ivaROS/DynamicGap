@@ -42,8 +42,8 @@ namespace dynamic_gap
 
             Eigen::Matrix4f eyes;
 
-            virtual void linearize(int idx) = 0;
-            virtual void discretizeQ(int idx) = 0;
+            virtual void linearize(const int & idx) = 0;
+            virtual void discretizeQ(const int & idx) = 0;
             virtual Eigen::Vector4f integrate() = 0;
 
             virtual void initialize(const std::string & side, const int & modelID, 
@@ -63,8 +63,8 @@ namespace dynamic_gap
             virtual Eigen::Vector4f getRewindGapState() = 0;
             virtual void setRewindState() = 0;
 
-            virtual void gapStatePropagate(float dt) = 0;
-            virtual void rewindPropagate(float dt) = 0;
+            virtual void gapStatePropagate(const float & dt) = 0;
+            virtual void rewindPropagate(const float & dt) = 0;
 
             virtual Eigen::Vector2f get_x_tilde() = 0;
             virtual int getID() = 0;

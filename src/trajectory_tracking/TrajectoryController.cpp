@@ -23,17 +23,7 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-    bool TrajectoryController::leqThres(const float dist) 
-    {
-        return dist <= distanceThresh_;
-    }
-
-    bool TrajectoryController::geqThres(const float dist) 
-    {
-        return dist >= distanceThresh_;
-    }
-
-    float TrajectoryController::polDist(float range1, float theta1, float range2, float theta2) 
+    float TrajectoryController::polDist(const float & range1, const float & theta1, const float & range2, const float & theta2) 
     {
         return sqrt(pow(range1, 2) + pow(range2, 2) - 2 * range1 * range2 * std::cos(theta1 - theta2));
     }
@@ -311,7 +301,8 @@ namespace dynamic_gap
         return cmdVel;
     }
     
-    void TrajectoryController::visualizeProjectionOperator(float weightedVelLinXSafe, float weightedVelLinYSafe) 
+    void TrajectoryController::visualizeProjectionOperator(const float & weightedVelLinXSafe, 
+                                                           const float & weightedVelLinYSafe) 
     {
         visualization_msgs::Marker projOpMarker;
         projOpMarker.header.frame_id = cfg_->robot_frame_id;
@@ -587,7 +578,7 @@ namespace dynamic_gap
         return Eigen::Vector3f(normPsiDerivativeXTerm, normPsiDerivativeYTerm, Psi);
     }
 
-    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float theta)
+    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(const float & x, const float & y, const float & theta)
     {
         std::complex<float> phase(std::cos(theta), std::sin(theta));
 
@@ -641,7 +632,7 @@ namespace dynamic_gap
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
 
-    float TrajectoryController::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) 
+    float TrajectoryController::dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose) 
     {
         float x = dist * std::cos(theta);
         float y = dist * std::sin(theta);

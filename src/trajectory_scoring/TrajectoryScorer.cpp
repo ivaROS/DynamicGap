@@ -78,10 +78,11 @@ namespace dynamic_gap
         return A;
     }
 
-    void TrajectoryScorer::recoverDynamicEgoCircle(float t_i, float t_iplus1, 
+    void TrajectoryScorer::recoverDynamicEgoCircle(const float & t_i, 
+                                                   const float & t_iplus1, 
                                                    std::vector<Eigen::Vector4f> & propagatedAgents,
                                                    sensor_msgs::LaserScan & dynamicLaserScan,
-                                                   bool print) 
+                                                   const bool & print) 
     {   
         ROS_INFO_STREAM_NAMED("TrajectoryScorer", "    [recoverDynamicEgoCircle()]");
         float interval = t_iplus1 - t_i;
@@ -326,7 +327,7 @@ namespace dynamic_gap
     }
 
     // if we wanted to incorporate how egocircle can change, 
-    float TrajectoryScorer::dist2Pose(float theta, float range, const geometry_msgs::Pose & pose) 
+    float TrajectoryScorer::dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
     {
         // ego circle point in local frame, pose in local frame
         // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
@@ -374,7 +375,7 @@ namespace dynamic_gap
     }
     */
     
-    float TrajectoryScorer::dynamicScorePose(const geometry_msgs::Pose & pose, float theta, float range) 
+    float TrajectoryScorer::dynamicScorePose(const geometry_msgs::Pose & pose, const float & theta, const float & range) 
     {
         float dist = dist2Pose(theta, range, pose);
         float cost = dynamicChapterScore(dist);
@@ -413,7 +414,7 @@ namespace dynamic_gap
         return cost;
     }
 
-    float TrajectoryScorer::dynamicChapterScore(float d) 
+    float TrajectoryScorer::dynamicChapterScore(const float & d) 
     {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         float inflRbtRad = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
@@ -430,7 +431,7 @@ namespace dynamic_gap
         return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (d - inflRbtRad));
     }
 
-    float TrajectoryScorer::chapterScore(float d) 
+    float TrajectoryScorer::chapterScore(const float & d) 
     {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         // std::cout << "in chapterScore with distance: " << d << std::endl;

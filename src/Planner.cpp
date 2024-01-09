@@ -262,7 +262,7 @@ namespace dynamic_gap
         return;
     }
 
-    void Planner::updateModel(int idx, std::vector<dynamic_gap::Gap *> & gaps, 
+    void Planner::updateModel(const int & idx, std::vector<dynamic_gap::Gap *> & gaps, 
                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                const ros::Time & tCurrentFilterUpdate) 
@@ -702,7 +702,7 @@ namespace dynamic_gap
     geometry_msgs::PoseArray Planner::changeTrajectoryHelper(dynamic_gap::Gap * incomingGap, 
                                                              const geometry_msgs::PoseArray & incomingPath, 
                                                              const std::vector<float> & incomingPathTiming, 
-                                                             bool switchToIncoming) 
+                                                             const bool & switchToIncoming) 
     {
         trajectoryChangeCount_++;
 
@@ -739,7 +739,7 @@ namespace dynamic_gap
                                                        const geometry_msgs::PoseArray & incomingPathOdomFrame,                                                        
                                                        const std::vector<float> & incomingPathTiming,
                                                        const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
-                                                       bool isIncomingGapFeasibleInput) // bool isIncomingGapAssociated,
+                                                       const bool & isIncomingGapFeasibleInput) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapsetMutex);
@@ -954,7 +954,7 @@ namespace dynamic_gap
         currRightGapPtModel_ = rightModel; 
     }
 
-    void Planner::setCurrentGapPeakVelocities(float peakVelX, float peakVelY) 
+    void Planner::setCurrentGapPeakVelocities(const float & peakVelX, const float & peakVelY)
     {
         currentPeakSplineVel_.twist.linear.x = peakVelX;
         currentPeakSplineVel_.twist.linear.y = peakVelY;

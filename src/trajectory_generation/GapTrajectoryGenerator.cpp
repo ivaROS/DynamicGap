@@ -2,7 +2,7 @@
 
 namespace dynamic_gap 
 {
-    void GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, int Kplus1, 
+    void GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, const int & Kplus1, 
                                                     const Eigen::MatrixXd & A) 
     {
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "initializing solver");
@@ -59,7 +59,7 @@ namespace dynamic_gap
     std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::generateTrajectory(dynamic_gap::Gap * selectedGap, 
                                                                                                         const geometry_msgs::PoseStamped & currPose, 
                                                                                                         const geometry_msgs::TwistStamped & currVel,
-                                                                                                        bool runGoToGoal) 
+                                                                                                        const bool & runGoToGoal) 
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        [generateTrajectory()]");
 
@@ -122,9 +122,7 @@ namespace dynamic_gap
             {
                 state_type x = {rbtState[0], rbtState[1], 0.0, 0.0, 0.0, 0.0, selectedGap->goal.x_, selectedGap->goal.y_};
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Goal to Goal");
-                GoToGoal goToGoal(selectedGap->goal.x_, selectedGap->goal.y_,
-                             selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_,
-                             selectedGap->gapLifespan_, cfg_->control.vx_absmax);
+                GoToGoal goToGoal(cfg_->control.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
                 std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
@@ -248,8 +246,7 @@ namespace dynamic_gap
 
 
             // AHPF
-            AHPF ahpf(initRbtPos, gapGoalTermPt,
-                        cfg_->control.vx_absmax, maxRbtAcc, allAHPFCenters, gapCurvesInwardNorms, weights,
+            AHPF ahpf(cfg_->control.vx_absmax, allAHPFCenters, gapCurvesInwardNorms, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
@@ -282,7 +279,7 @@ namespace dynamic_gap
 
     }
 
-    void GapTrajectoryGenerator::setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
+    void GapTrajectoryGenerator::setConstraintMatrix(Eigen::MatrixXd &A, const int & N, const int & Kplus1, 
                                                         const Eigen::MatrixXd & gapCurvesPosns, 
                                                         const Eigen::MatrixXd & gapCurvesInwardNorms,
                                                         const Eigen::MatrixXd & allAHPFCenters) 
@@ -467,13 +464,13 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "total approx dist: " << bezierArclengthDistance);
     }
 
-    void GapTrajectoryGenerator::buildExtendedGapOrigin(const int numRGEPoints,
+    void GapTrajectoryGenerator::buildExtendedGapOrigin(const int & numRGEPoints,
                                                         const Eigen::Vector2d & extendedGapOrigin,
                                                         const Eigen::Vector2d & bezierOrigin,
                                                         Eigen::MatrixXd & curvePosns,
                                                         Eigen::MatrixXd & curveVels,
                                                         Eigen::MatrixXd & curveInwardNorms,
-                                                        bool left)
+                                                        const bool & left)
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               [buildExtendedGapOrigin()]");
         Eigen::Vector2d currPt(0.0, 0.0);
@@ -504,8 +501,8 @@ namespace dynamic_gap
         }
     }
 
-    void GapTrajectoryGenerator::buildBezierCurve(const int numRGEPoints,
-                                                  const int totalNumCurvePts,
+    void GapTrajectoryGenerator::buildBezierCurve(const int & numRGEPoints,
+                                                  const int & totalNumCurvePts,
                                                   const Eigen::VectorXd & arclengthParameters,
                                                   const Eigen::Vector2d & bezierOrigin,
                                                   const Eigen::Vector2d & bezierInitialPt,
@@ -513,7 +510,7 @@ namespace dynamic_gap
                                                   Eigen::MatrixXd & curvePosns,
                                                   Eigen::MatrixXd & curveVels,
                                                   Eigen::MatrixXd & curveInwardNorms,
-                                                  bool left)
+                                                  const bool & left)
     {
         Eigen::Vector2d currPt(0.0, 0.0);
         Eigen::Vector2d currVel(0.0, 0.0);
@@ -553,12 +550,19 @@ namespace dynamic_gap
                                                             Eigen::MatrixXd & gapCurvesPosns,
                                                             Eigen::MatrixXd & gapCurvesInwardNorms, 
                                                             Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
-                                                            const Eigen::Vector2d & leftGapPtVel, const Eigen::Vector2d & rightGapPtVel, const Eigen::Vector2d & maxRbtVel,
-                                                            const Eigen::Vector2d & leftCurveInitPt, const Eigen::Vector2d & leftCurveTermPt, 
-                                                            const Eigen::Vector2d & rightCurveInitPt, const Eigen::Vector2d & rightCurveTermPt, 
+                                                            const Eigen::Vector2d & leftGapPtVel, 
+                                                            const Eigen::Vector2d & rightGapPtVel, 
+                                                            const Eigen::Vector2d & maxRbtVel,
+                                                            const Eigen::Vector2d & leftCurveInitPt, 
+                                                            const Eigen::Vector2d & leftCurveTermPt, 
+                                                            const Eigen::Vector2d & rightCurveInitPt, 
+                                                            const Eigen::Vector2d & rightCurveTermPt, 
                                                             const Eigen::Vector2d & gapGoalTermPt, 
-                                                            float leftBezierWeight, float rightBezierWeight, 
-                                                            float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
+                                                            float & leftBezierWeight, 
+                                                            float & rightBezierWeight, 
+                                                            const float & numCurvePts, 
+                                                            int & numLeftRGEPoints, 
+                                                            int & numRightRGEPoints,
                                                             const Eigen::Vector2d & initRbtPos) 
     {  
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            [buildExtendedBezierCurve()]");

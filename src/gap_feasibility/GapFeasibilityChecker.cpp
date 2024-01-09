@@ -292,7 +292,7 @@ namespace dynamic_gap
         return cfg_->traj.integrate_maxt;
     }
 
-    float GapFeasibilityChecker::generateCrossedGapTerminalPoints(float t, dynamic_gap::Gap * gap, 
+    float GapFeasibilityChecker::generateCrossedGapTerminalPoints(const float & t, dynamic_gap::Gap * gap, 
                                                                     dynamic_gap::Estimator* leftGapPtModel, 
                                                                     dynamic_gap::Estimator* rightGapPtModel) 
     {    

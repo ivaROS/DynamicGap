@@ -7,7 +7,7 @@ namespace dynamic_gap
     /**
      * Checking if scan distance registers an obstacle (finite range value)
     **/
-    bool GapDetector::isFinite(float rayDist)
+    bool GapDetector::isFinite(const float & rayDist)
     {
         return rayDist < maxScanDist_;
     }
@@ -16,7 +16,7 @@ namespace dynamic_gap
      * Determining if swept gap has either started (finite scan --> infinite scan)
      * or ended (infinite scan --> finite scan)
     **/
-    bool GapDetector::sweptGapStartedOrEnded(float currRayDist, float prevRayDist)
+    bool GapDetector::sweptGapStartedOrEnded(const float & currRayDist, const float & prevRayDist)
     {
         return isFinite(prevRayDist) != isFinite(currRayDist);
     }
@@ -31,7 +31,7 @@ namespace dynamic_gap
     }
 
     // Checking if robot can fit between gap between consecutive scan points (precondition to radial gap)
-    bool GapDetector::radialGapSizeCheck(float currRayDist, float prevRayDist, float gapAngle)
+    bool GapDetector::radialGapSizeCheck(const float & currRayDist, const float & prevRayDist, const float & gapAngle)
     {
         if (!(prevRayDist < maxScanDist_ && currRayDist < maxScanDist_))
             return false;
@@ -193,8 +193,7 @@ namespace dynamic_gap
         return (finalGoalDist < globalGoalScanIdxDist);
     }   
 
-    void GapDetector::addGapForGlobalGoal(int globalGoalScanIdx,
-                                          std::vector<dynamic_gap::Gap *> & rawGaps) 
+    void GapDetector::addGapForGlobalGoal(const int & globalGoalScanIdx, std::vector<dynamic_gap::Gap *> & rawGaps)
     {
         ROS_INFO_STREAM_NAMED("GapDetector", "running addGapForGlobalGoal");
         ROS_INFO_STREAM_NAMED("GapDetector", "globalGoalScanIdx: " << globalGoalScanIdx);

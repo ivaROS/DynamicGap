@@ -177,7 +177,7 @@ namespace dynamic_gap
 		*/
 	}
 
-	void GapAssociator::instantiateNewModel(int i,
+	void GapAssociator::instantiateNewModel(const int & i,
 											const std::vector<dynamic_gap::Gap *> & currentGaps, 
 											int & currentModelIdx_,
 											const ros::Time & scanTime,
@@ -212,10 +212,10 @@ namespace dynamic_gap
 		currentModelIdx_ += 1;
 	}
 
-	void GapAssociator::handOffModel(int i,
+	void GapAssociator::handOffModel(const int & i,
 									 const std::vector<dynamic_gap::Gap *> & currentGaps, 
 									 const std::vector<dynamic_gap::Gap *> & previousGaps,
-									 std::vector<int> & pair)
+									 const std::vector<int> & pair)
 	{
 		ROS_INFO_STREAM_NAMED("GapAssociator", "					[handOffModel()]");
 		int currentGapIdx = int(std::floor(i / 2.0));

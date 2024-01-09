@@ -73,7 +73,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapManipulator::setGapWaypoint(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, bool initial) 
+    void GapManipulator::setGapWaypoint(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, const bool & initial) 
     {
         try
         {
@@ -205,8 +205,8 @@ namespace dynamic_gap
         }      
     }
 
-    float GapManipulator::setBiasedGapGoalTheta(float leftTheta, float rightTheta, float globalPathLocalWaypointTheta,
-                                                float leftToRightAngle, float rightToGoalAngle, float leftToGoalAngle)
+    float GapManipulator::setBiasedGapGoalTheta(const float & leftTheta, const float & rightTheta, const float & globalPathLocalWaypointTheta,
+                                                const float & leftToRightAngle, const float & rightToGoalAngle, const float & leftToGoalAngle)
     {
         float biasedGapGoalTheta = 0.0;
         if (leftTheta > rightTheta) // gap is not behind robot
@@ -258,7 +258,7 @@ namespace dynamic_gap
     }
 
     // In place modification
-    void GapManipulator::reduceGap(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, bool initial) 
+    void GapManipulator::reduceGap(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, const bool & initial) 
     {        
         try
         {
@@ -377,7 +377,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapManipulator::convertRadialGap(dynamic_gap::Gap * gap, bool initial) 
+    void GapManipulator::convertRadialGap(dynamic_gap::Gap * gap, const bool & initial) 
     {
         try 
         {
@@ -577,7 +577,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapManipulator::radialExtendGap(dynamic_gap::Gap * gap, bool initial) 
+    void GapManipulator::radialExtendGap(dynamic_gap::Gap * gap, const bool & initial) 
     {
         try
         {
@@ -662,7 +662,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapManipulator::inflateGapSides(dynamic_gap::Gap * gap, bool initial) 
+    void GapManipulator::inflateGapSides(dynamic_gap::Gap * gap, const bool & initial) 
     {
         try 
         {
