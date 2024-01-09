@@ -66,7 +66,7 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped rbtPoseInSensorFrame_;
 
         tf2_ros::Buffer tfBuffer_;
-        tf2_ros::TransformListener *tfListener_;
+        tf2_ros::TransformListener * tfListener_ = NULL;
 
         ros::NodeHandle nh;
         ros::Publisher currentTrajectoryPublisher_;
@@ -80,25 +80,25 @@ namespace dynamic_gap
         geometry_msgs::PoseStamped globalGoalOdomFrame_, globalGoalRobotFrame_;
 
         // Gaps:
-        std::vector<dynamic_gap::Gap> rawGaps_, simplifiedGaps_;
+        std::vector<dynamic_gap::Gap *> currRawGaps_, currSimplifiedGaps_;
 
-        std::vector<dynamic_gap::Gap> previousRawGaps_, previousSimplifiedGaps_;
+        std::vector<dynamic_gap::Gap *> prevRawGaps_, prevSimplifiedGaps_;
 
-        std::vector<dynamic_gap::Gap> associatedRawGaps_;
-        std::vector<dynamic_gap::Gap> associatedSimplifiedGaps_;
+        // std::vector<dynamic_gap::Gap *> associatedRawGaps_;
+        // std::vector<dynamic_gap::Gap *> associatedSimplifiedGaps_;
         
-        dynamic_gap::GapDetector * gapDetector_;
-        dynamic_gap::StaticScanSeparator * staticScanSeparator_;
-        dynamic_gap::GapVisualizer * gapVisualizer_;
-        dynamic_gap::GoalSelector * goalSelector_;
-        dynamic_gap::TrajectoryVisualizer * trajVisualizer_;
-        dynamic_gap::GoalVisualizer * goalVisualizer_;
-        dynamic_gap::TrajectoryScorer * trajScorer_;
-        dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_;
-        dynamic_gap::GapManipulator * gapManipulator_;
-        dynamic_gap::TrajectoryController * trajController_;
-        dynamic_gap::GapAssociator * gapAssociator_;
-        dynamic_gap::GapFeasibilityChecker * gapFeasibilityChecker_;
+        dynamic_gap::GapDetector * gapDetector_ = NULL;
+        dynamic_gap::StaticScanSeparator * staticScanSeparator_ = NULL;
+        dynamic_gap::GapVisualizer * gapVisualizer_ = NULL;
+        dynamic_gap::GoalSelector * goalSelector_ = NULL;
+        dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL;
+        dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL;
+        dynamic_gap::TrajectoryScorer * trajScorer_ = NULL;
+        dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL;
+        dynamic_gap::GapManipulator * gapManipulator_ = NULL;
+        dynamic_gap::TrajectoryController * trajController_ = NULL;
+        dynamic_gap::GapAssociator * gapAssociator_ = NULL;
+        dynamic_gap::GapFeasibilityChecker * gapFeasibilityChecker_ = NULL;
 
         // Status
         bool hasGlobalGoal_ = false;
@@ -118,6 +118,7 @@ namespace dynamic_gap
 
         boost::mutex gapsetMutex;
 
+        dynamic_gap::Gap * currentGap_ = NULL;
         geometry_msgs::PoseArray currentPath_;
         std::vector<float> currentPathTiming_;
 
@@ -131,8 +132,8 @@ namespace dynamic_gap
 
         int currentModelIdx_;
 
-        dynamic_gap::Estimator * currLeftGapPtModel_;
-        dynamic_gap::Estimator * currRightGapPtModel_;
+        dynamic_gap::Estimator * currLeftGapPtModel_ = NULL;
+        dynamic_gap::Estimator * currRightGapPtModel_ = NULL;
         
         geometry_msgs::TwistStamped currentPeakSplineVel_;
 
@@ -202,6 +203,13 @@ namespace dynamic_gap
         void updateTF();
 
         /**
+         * Setter and Getter of Current Gap, this is performed in the compareToCurrentTraj function
+         */
+        void setCurrentGap(dynamic_gap::Gap * currentGap) { delete currentGap_; currentGap_ = currentGap; return; }
+
+        dynamic_gap::Gap * getCurrentGap() { return currentGap_; }
+
+        /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToCurrentTraj function
          */
         void setCurrentPath(const geometry_msgs::PoseArray & currentPath) { currentPath_ = currentPath; return; }
@@ -229,13 +237,13 @@ namespace dynamic_gap
          * @param None, directly taken from private variable space
          * @return gap_set, simplfied radial prioritized gaps
          */
-        std::vector<dynamic_gap::Gap> gapManipulate(const std::vector<dynamic_gap::Gap> & _observed_gaps);
+        std::vector<dynamic_gap::Gap *> gapManipulate(const std::vector<dynamic_gap::Gap *> & _observed_gaps);
 
         /**
          * 
          *
          */
-        std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<float>>& res_time_traj);
+        std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<float>>& res_time_traj);
 
         /**
          * Callback function to config object
@@ -258,10 +266,10 @@ namespace dynamic_gap
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToCurrentTraj(const dynamic_gap::Gap & chosenGap, 
+        geometry_msgs::PoseArray compareToCurrentTraj(dynamic_gap::Gap * chosenGap, 
                                                   const geometry_msgs::PoseArray & chosenPath,                                                        
                                                   const std::vector<float> & chosenPathTiming,
-                                                  const std::vector<dynamic_gap::Gap> & feasibleGaps,
+                                                  const std::vector<dynamic_gap::Gap *> & feasibleGaps,
                                                   bool curr_exec_gap_feas);
 
         int getCurrentRightGapPtModelID();
@@ -290,35 +298,36 @@ namespace dynamic_gap
          */
         bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
     
-        std::vector<dynamic_gap::Gap> updateModels(const std::vector<dynamic_gap::Gap> & _observed_gaps, 
-                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                                    const ros::Time & t_kf_update);
+        void updateModels(std::vector<dynamic_gap::Gap *> & _observed_gaps, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                            const ros::Time & t_kf_update);
 
-        void updateModel(int i, std::vector<dynamic_gap::Gap>& _observed_gaps, 
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                    const ros::Time & t_kf_update);
+        void updateModel(int i, 
+                            std::vector<dynamic_gap::Gap *>& _observed_gaps, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                            const ros::Time & t_kf_update);
 
         void setCurrentLeftModel(dynamic_gap::Estimator * left_model);
         void setCurrentRightModel(dynamic_gap::Estimator * right_model);
 
         void setCurrentGapPeakVelocities(float _peakVelX_, float _peakVelY_);
 
-        void printGapModels(const std::vector<dynamic_gap::Gap> & gaps);
-        void printGapAssociations(const std::vector<dynamic_gap::Gap> & currentGaps, 
-                                  const std::vector<dynamic_gap::Gap> & previousGaps, 
+        void printGapModels(const std::vector<dynamic_gap::Gap *> & gaps);
+        void printGapAssociations(const std::vector<dynamic_gap::Gap *> & currentGaps, 
+                                  const std::vector<dynamic_gap::Gap *> & previousGaps, 
                                   const std::vector<int> & association);
 
-        std::vector<dynamic_gap::Gap> gapSetFeasibilityCheck(bool & isCurrentGapFeasible); // bool & isCurrentGapAssociated, 
+        std::vector<dynamic_gap::Gap *> gapSetFeasibilityCheck(bool & isCurrentGapFeasible); // bool & isCurrentGapAssociated, 
                                                              
 
         void agentOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
-        void visualizeComponents(const std::vector<dynamic_gap::Gap> & manip_gap_set);
+        void visualizeComponents(const std::vector<dynamic_gap::Gap *> & manip_gap_set);
 
         void getFutureScans();        
 
-        geometry_msgs::PoseArray changeTrajectoryHelper(const dynamic_gap::Gap & chosenGap, 
+        geometry_msgs::PoseArray changeTrajectoryHelper(dynamic_gap::Gap * chosenGap, 
                                                         const geometry_msgs::PoseArray & chosenPath, 
                                                         const std::vector<float> & chosenPathTiming, 
                                                         bool switchToIncoming);

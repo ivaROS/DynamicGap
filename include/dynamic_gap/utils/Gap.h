@@ -17,19 +17,104 @@ namespace dynamic_gap
     class Gap
     {
         public:
-            Gap() {};
+            // Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rangeRight, bool radial, float minSafeDist_) : 
-                frame_(frame), rightIdx_(right_idx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
+            Gap(std::string frame, int rightIdx, float rangeRight, bool radial, float minSafeDist_) : 
+                frame_(frame), rightIdx_(rightIdx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
-                rightBezierOrigin_ << 0.0, 0.0;
+                
                 leftBezierOrigin_ << 0.0, 0.0;
+                rightBezierOrigin_ << 0.0, 0.0;
+
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
             };
 
-            ~Gap() {};
+            
+            // For now, just using the default copy constructor
+            //      used in 
+            Gap(const dynamic_gap::Gap & otherGap)
+            {
+                ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                frame_ = otherGap.frame_;
+
+                // copy all the variables
+                leftIdx_ = otherGap.leftIdx_;
+                leftDist_ = otherGap.leftDist_;
+                rightIdx_ = otherGap.rightIdx_;
+                rightDist_ = otherGap.rightDist_;
+
+                termLeftIdx_ = otherGap.termLeftIdx_;
+                termLeftDist_ = otherGap.termLeftDist_;
+                termRightIdx_ = otherGap.termRightIdx_;
+                termRightDist_ = otherGap.termRightDist_;
+
+                convex.leftIdx_ = otherGap.convex.leftIdx_;
+                convex.leftDist_ = otherGap.convex.leftDist_;
+                convex.rightIdx_ = otherGap.convex.rightIdx_;
+                convex.rightDist_ = otherGap.convex.rightDist_;
+
+                convex.termLeftIdx_ = otherGap.convex.termLeftIdx_;
+                convex.termLeftDist_ = otherGap.convex.termLeftDist_;
+                convex.termRightIdx_ = otherGap.convex.termRightIdx_;
+                convex.termRightDist_ = otherGap.convex.termRightDist_;
+
+                rightType_ = otherGap.rightType_;
+                terminalRightType_ = otherGap.terminalRightType_;
+
+                radial_ = otherGap.radial_;
+                termRadial_ = otherGap.termRadial_;
+
+                minSafeDist_ = otherGap.minSafeDist_;
+                terminalMinSafeDist_ = otherGap.terminalMinSafeDist_;
+
+                category_ = otherGap.category_;
+
+                crossingPt_ = otherGap.crossingPt_;
+                closingPt_ = otherGap.closingPt_;
+
+                goal.x_ = otherGap.goal.x_;
+                goal.y_ = otherGap.goal.y_;
+
+                terminalGoal.x_ = otherGap.terminalGoal.x_;
+                terminalGoal.y_ = otherGap.terminalGoal.y_;
+
+                gapLifespan_ = otherGap.gapLifespan_;
+
+                peakVelX_ = otherGap.peakVelX_;
+                peakVelY_ = otherGap.peakVelY_;
+
+                crossed_ = otherGap.crossed_;
+                closed_ = otherGap.closed_;
+                crossedBehind_ = otherGap.crossedBehind_;
+                artificial_ = otherGap.artificial_;
+
+                mode.reduced_ = otherGap.mode.reduced_;
+                mode.convex_ = otherGap.mode.convex_;
+                mode.RGC_ = otherGap.mode.RGC_;
+                mode.termReduced_ = otherGap.mode.termReduced_;
+                mode.termConvex_ = otherGap.mode.termConvex_;
+                mode.termRGC_ = otherGap.mode.termRGC_;
+
+                // make new models
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+
+                // transfer models (need to deep copy the models, not just the pointers)
+                leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
+                rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
+            }
+
+            ~Gap() 
+            {
+                delete leftGapPtModel_;
+                delete rightGapPtModel_;
+            };
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
             int LIdx() const { return leftIdx_; }
@@ -282,8 +367,8 @@ namespace dynamic_gap
 
             void printCartesianPoints(bool initial, bool simplified) 
             {
-                float xLeft, yLeft, xRight, yRight;
-                float thetaLeft, thetaRight, rangeLeft, rangeRight;
+                float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+                float thetaLeft = 0.0, thetaRight = 0.0, rangeLeft = 0.0, rangeRight = 0.0;
                 if (initial) 
                 {
                     if (simplified) 
@@ -339,7 +424,7 @@ namespace dynamic_gap
 
             float gapLifespan_ = 5.0;
 
-            float minSafeDist_, terminalMinSafeDist_;
+            float minSafeDist_ = 0.0, terminalMinSafeDist_ = 0.0;
             Eigen::Vector2f extendedGapOrigin_, termExtendedGapOrigin_;
             Eigen::Vector2f leftBezierOrigin_, rightBezierOrigin_;
             float half_scan = 256;
@@ -350,7 +435,7 @@ namespace dynamic_gap
             bool rightType_ = false;
             bool terminalRightType_ = false;
 
-            float peakVelX_, peakVelY_ = 0.0;
+            float peakVelX_ = 0.0, peakVelY_ = 0.0;
 
             struct GapMode 
             {
@@ -364,7 +449,7 @@ namespace dynamic_gap
 
             struct Goal 
             {
-                float x_, y_;
+                float x_ = 0.0, y_ = 0.0;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
@@ -372,16 +457,17 @@ namespace dynamic_gap
 
             struct TerminalGoal 
             {
-                float x_, y_;
+                float x_ = 0.0, y_ = 0.0;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
             } terminalGoal;
 
-            Estimator * rightGapPtModel_;
-            Estimator * leftGapPtModel_;
+            Estimator * rightGapPtModel_ = NULL;
+            Estimator * leftGapPtModel_ = NULL;
+
             // int _index;
-            std::string category_;
+            std::string category_ = "";
             Eigen::Vector2f crossingPt_, closingPt_;
 
             bool crossed_ = false;
@@ -390,12 +476,12 @@ namespace dynamic_gap
 
             bool artificial_ = false;
 
-            float leftWeight_, rightWeight_;
+            float leftWeight_ = 0.0, rightWeight_ = 0.0;
             Eigen::MatrixXd leftRightCenters_, allCurvePts_;
             Eigen::Vector4f splineXCoefs_, splineYCoefs_;
 
             Eigen::Vector2d leftPt0_, leftPt1_, rightPt0_, rightPt1_;
-            int numLeftRGEPoints_, numRightRGEPoints_;
+            int numLeftRGEPoints_ = 0, numRightRGEPoints_ = 0;
 
         private:
 

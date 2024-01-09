@@ -16,7 +16,7 @@ namespace dynamic_gap
             StaticScanSeparator(const StaticScanSeparator &t) {cfg_ = t.cfg_;}
             std::vector<Eigen::Vector4f> getCurrAgents() { return currAgents; }
 
-            sensor_msgs::LaserScan staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & observed_gaps, 
+            sensor_msgs::LaserScan staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap *> & observed_gaps, 
                                                                 boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         private:

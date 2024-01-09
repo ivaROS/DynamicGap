@@ -57,8 +57,9 @@ namespace dynamic_gap
                 bool far_feasible = true;
                 int num_feasi_check = 20;
                 int halt_size = 5;
+                bool gap_feasibility_check = true;
+                bool future_scan_propagation = false;
                 bool egocircle_prop_cheat = true;
-                bool dynamic_feasibility_check = true;
             } planning;            
 
             struct ManualControl 

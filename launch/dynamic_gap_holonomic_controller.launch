@@ -13,7 +13,10 @@
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="false"/>
 
-  <arg name="debug" default="false"/>
+  <arg name="debug" default="false" />
+
+  <arg name="xterm_prefix" value="xterm -e gdb -ex run --args" />
+  <arg name="valgrind_prefix" value="valgrind --leak-check=full" />
 
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>

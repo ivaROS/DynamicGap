@@ -107,7 +107,7 @@ namespace dynamic_gap
         return atan2(state1[1], state1[0]) < atan2(state2[1], state2[0]);
     }
 
-    sensor_msgs::LaserScan StaticScanSeparator::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & rawGaps, 
+    sensor_msgs::LaserScan StaticScanSeparator::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap *> & rawGaps, 
                                                                             boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr) 
     {
         sensor_msgs::LaserScan scan = *scanPtr.get(); 
@@ -117,13 +117,13 @@ namespace dynamic_gap
                 return scan;
 
             std::vector<dynamic_gap::Estimator *> gapModels;
-            for (const dynamic_gap::Gap & gap : rawGaps) 
+            for (dynamic_gap::Gap * gap : rawGaps) 
             {
-                gapModels.push_back(gap.leftGapPtModel_);
-                gapModels.push_back(gap.rightGapPtModel_);
+                gapModels.push_back(gap->leftGapPtModel_);
+                gapModels.push_back(gap->rightGapPtModel_);
             }
 
-            for (dynamic_gap::Estimator * & model : gapModels) 
+            for (dynamic_gap::Estimator * model : gapModels) 
                 model->isolateGapDynamics();
             
             sort(gapModels.begin(), gapModels.end(), compareModelBearingValues);

@@ -35,13 +35,13 @@ namespace dynamic_gap
 	public:
 		GapAssociator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
-		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap> & currentGaps, 
-														 const std::vector<dynamic_gap::Gap> & previousGaps);
+		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap *> & currentGaps, 
+														 const std::vector<dynamic_gap::Gap *> & previousGaps);
 		std::vector<int> associateGaps(const std::vector< std::vector<float> > & distMatrix);
         void assignModels(const std::vector<int> & association, 
 						const std::vector< std::vector<float> > & distMatrix, 
-						std::vector<dynamic_gap::Gap>& currentGaps, 
-						const std::vector<dynamic_gap::Gap> & previousGaps,
+						std::vector<dynamic_gap::Gap *>& currentGaps, 
+						const std::vector<dynamic_gap::Gap *> & previousGaps,
 						int & currentModelIdx_,
 						const ros::Time & scanTime, 
 						const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
@@ -52,11 +52,11 @@ namespace dynamic_gap
 		float assocThresh;
 		
 		void handOffModel(int i,
-							std::vector<dynamic_gap::Gap> & currentGaps, 
-							const std::vector<dynamic_gap::Gap> & previousGaps,
-							std::vector<int> & pair);	
+						  const std::vector<dynamic_gap::Gap *> & currentGaps, 
+						  const std::vector<dynamic_gap::Gap *> & previousGaps,
+						  std::vector<int> & pair);	
 		void instantiateNewModel(int i,
-								std::vector<dynamic_gap::Gap> & currentGaps, 
+								const std::vector<dynamic_gap::Gap *> & currentGaps, 
 								int & currentModelIdx_,
 								const ros::Time & scanTime,
 								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 

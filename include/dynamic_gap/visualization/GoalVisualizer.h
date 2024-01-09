@@ -12,10 +12,10 @@ namespace dynamic_gap
 
             GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
             void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
-            void drawGapGoals(const std::vector<dynamic_gap::Gap> & gaps);
+            void drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps);
         
         private: 
-            void drawGapGoal(visualization_msgs::MarkerArray&, const dynamic_gap::Gap &, bool initial);
+            void drawGapGoal(visualization_msgs::MarkerArray&, dynamic_gap::Gap *, bool initial);
 
             ros::Publisher globalPathLocalWaypointPublisher;
             ros::Publisher gapGoalsPublisher;
