@@ -55,9 +55,9 @@ namespace dynamic_gap
     class Planner
     {
     private:
-        geometry_msgs::TransformStamped map2rbt_;        // Transform
-        geometry_msgs::TransformStamped odom2rbt_;
-        geometry_msgs::TransformStamped rbt2odom_;
+        geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
+        geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
+        geometry_msgs::TransformStamped rbt2odom_; /**< Transformation from robot frame to odometry frame */
         geometry_msgs::TransformStamped map2odom_;
         geometry_msgs::TransformStamped cam2odom_;
         geometry_msgs::TransformStamped rbt2cam_;
