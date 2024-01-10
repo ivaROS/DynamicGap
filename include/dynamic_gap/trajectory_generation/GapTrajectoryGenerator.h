@@ -8,6 +8,7 @@
 // #include <turtlebot_trajectory_generator/near_identity.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/trajectory_generation/trajectory_synthesis_methods.h>
 // #include <vector>
@@ -33,15 +34,15 @@ namespace dynamic_gap
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             // void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap * selectedGap, 
-                                                                                        const geometry_msgs::PoseStamped & currPose, 
-                                                                                        const geometry_msgs::TwistStamped & currVel,
-                                                                                        const bool & runGoToGoal);
+            dynamic_gap::Trajectory generateTrajectory(dynamic_gap::Gap * selectedGap, 
+                                                        const geometry_msgs::PoseStamped & currPose, 
+                                                        const geometry_msgs::TwistStamped & currVel,
+                                                        const bool & runGoToGoal);
             geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                               const geometry_msgs::TransformStamped & transform,
                                                               const std::string & sourceFrame,
                                                               const std::string & destFrame);
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj);
+            dynamic_gap::Trajectory processTrajectory(const dynamic_gap::Trajectory & traj);
 
         private: 
             void initializeSolver(OsqpEigen::Solver & solver, const int & Kplus1, const Eigen::MatrixXd & A);

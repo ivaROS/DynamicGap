@@ -54,8 +54,8 @@ namespace dynamic_gap
     {
         // int half_num_scan = scan.ranges.size() / 2;
 
-        Eigen::Vector2f currModelMeasurement = currModel->get_x_tilde();
-        Eigen::Vector2f prevModelMeasurement = prevModel->get_x_tilde();
+        Eigen::Vector2f currModelMeasurement = currModel->getXTilde();
+        Eigen::Vector2f prevModelMeasurement = prevModel->getXTilde();
 
         float currModelTheta = std::atan2(currModelMeasurement[1], currModelMeasurement[0]);
         float prevModelTheta = std::atan2(prevModelMeasurement[1], prevModelMeasurement[0]);

@@ -90,7 +90,7 @@ namespace dynamic_gap
 
         this->lastRbtVel_ = lastRbtVel;
         this->lastRbtAcc_ = lastRbtAcc;
-        this->t_last_update = t_update;
+        this->tLastUpdate_ = t_update;
 
         float gapPtVxRel = -lastRbtVel_.twist.linear.x;
         float gapPtVyRel = -lastRbtVel_.twist.linear.y;
@@ -99,7 +99,7 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "initializing model with x: " << measurement[0] << ", y: " << measurement[1]);
 
-        this->x_tilde_ << gapPtX, gapPtY;
+        this->xTilde_ << gapPtX, gapPtY;
         
         this->x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
         // ROS_INFO_STREAM_NAMED("GapEstimation", "        x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", : " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
@@ -117,13 +117,13 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
 
         // OBSERVATION MATRIX
-        this->H_ = model.H_;
-        this->H_transpose_ = model.H_transpose_;
+        // this->H_ = model.H_;
+        // this->H_transpose_ = model.H_transpose_;
 
-        this->Q_scalar = model.Q_scalar;
-        this->R_scalar = model.R_scalar;
-        this->Q_k_ = model.Q_k_;
-        this->R_k_ = model.R_k_;
+        // this->Q_scalar = model.Q_scalar;
+        // this->R_scalar = model.R_scalar;
+        // this->Q_k_ = model.Q_k_;
+        // this->R_k_ = model.R_k_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -133,19 +133,19 @@ namespace dynamic_gap
 
         this->lastRbtVel_ = model.lastRbtVel_;
         this->lastRbtAcc_ = model.lastRbtAcc_;
-        this->t_last_update = model.t_last_update;
+        this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->x_tilde_ = model.x_tilde_;
+        // this->xTilde_ = model.xTilde_;
         this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
         this->x_hat_k_minus_ = model.x_hat_k_minus_;
         this->x_hat_k_plus_ = model.x_hat_k_plus_;
 
         this->G_k_ = model.G_k_;
 
-        this->A_ = model.A_;
-        this->STM_ = model.STM_;
+        // this->A_ = model.A_;
+        // this->STM_ = model.STM_;
 
-        this->eyes = model.eyes;
+        // this->eyes = model.eyes;
 
         return;
     }
@@ -154,7 +154,7 @@ namespace dynamic_gap
     {
         /*
         // Printing original dt values from intermediate odom measurements
-        ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - t_last_update difference:" << (intermediateRbtVels_[0].header.stamp - t_last_update).toSec() << " sec");
+        ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
 
         for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
         {
@@ -170,7 +170,7 @@ namespace dynamic_gap
         //      3. Always at end of time of incoming laser scan measurement
 
         // Erasing odometry measurements that are from *before* the last update 
-        while (!intermediateRbtVels_.empty() && t_last_update > intermediateRbtVels_[0].header.stamp)
+        while (!intermediateRbtVels_.empty() && tLastUpdate_ > intermediateRbtVels_[0].header.stamp)
         {
             intermediateRbtVels_.erase(intermediateRbtVels_.begin());
             intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
@@ -178,10 +178,10 @@ namespace dynamic_gap
 
         // Inserting placeholder odometry to represent the time of the last update
         intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
-        intermediateRbtVels_[0].header.stamp = t_last_update;
+        intermediateRbtVels_[0].header.stamp = tLastUpdate_;
 
         intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
-        intermediateRbtAccs_[0].header.stamp = t_last_update;
+        intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
 
         // Erasing odometry measurements that occur *after* the incoming laser scan was received
         while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
@@ -210,8 +210,8 @@ namespace dynamic_gap
         Eigen::Vector4f cartesian_state = getState();
         
         // fixing position (otherwise can get bugs)
-        cartesian_state[0] = x_tilde_[0];
-        cartesian_state[1] = x_tilde_[1];
+        cartesian_state[0] = xTilde_[0];
+        cartesian_state[1] = xTilde_[1];
 
         // update cartesian
         cartesian_state[2] += lastRbtVel_.twist.linear.x;
@@ -378,7 +378,7 @@ namespace dynamic_gap
 
         // get_intermediateRbtVels__accs();
 
-        x_tilde_ = measurement; 
+        xTilde_ = measurement; 
                 // << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                 //    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
@@ -430,13 +430,13 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(2, 0) << ", " << P_k_minus_(2, 1) << ", " << P_k_minus_(2, 2) << ", " << P_k_minus_(2, 3));
         ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(3, 0) << ", " << P_k_minus_(3, 1) << ", " << P_k_minus_(3, 2) << ", " << P_k_minus_(3, 3));     
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    x_tilde_: " << x_tilde_[0] << ", " << x_tilde_[1]);
+        ROS_INFO_STREAM_NAMED("GapEstimation", "    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
-        innovation_ = x_tilde_ - H_*x_hat_k_minus_;
+        innovation_ = xTilde_ - H_*x_hat_k_minus_;
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
-        residual_ = x_tilde_ - H_*x_hat_k_plus_;
+        residual_ = xTilde_ - H_*x_hat_k_plus_;
         
-        float sensor_noise_factor = R_scalar * x_tilde_.norm();
+        float sensor_noise_factor = R_scalar * xTilde_.norm();
         R_k_ << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 
@@ -474,7 +474,7 @@ namespace dynamic_gap
 
         x_hat_kmin1_plus_ = x_hat_k_plus_;
         P_kmin1_plus_ = P_k_plus_;
-        t_last_update = t_update;
+        tLastUpdate_ = t_update;
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "3");
 
@@ -533,8 +533,8 @@ namespace dynamic_gap
         return modelID_;
     }
 
-    Eigen::Vector2f RotatingFrameCartesianKalmanFilter::get_x_tilde() 
+    Eigen::Vector2f RotatingFrameCartesianKalmanFilter::getXTilde() 
     {
-        return x_tilde_;
+        return xTilde_;
     }
 }

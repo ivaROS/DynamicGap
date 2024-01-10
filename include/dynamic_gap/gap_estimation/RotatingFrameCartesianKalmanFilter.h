@@ -28,10 +28,23 @@ namespace dynamic_gap
     {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
-            
+
+            Eigen::Matrix<float, 2, 4> H_; // observation matrix
+            Eigen::Matrix<float, 4, 2> H_transpose_;
+            float R_scalar = 0.0, Q_scalar = 0.0;
+            Eigen::Matrix2f R_k_; // measurement noise matrix
+            Eigen::Matrix4f Q_k_; // covariance noise matrix
+            Eigen::Matrix4f dQ_; // discretized covariance noise matrix
+
             Eigen::Matrix4f Q_1, Q_2, Q_3; // covariance noise matrix
 
-            Eigen::Matrix2f tmp_mat; //  place holder for inverse
+            Eigen::Matrix4f A_, STM_;
+
+            Eigen::Matrix4f eyes;
+
+            Eigen::Vector2f innovation_, residual_;
+
+            Eigen::Matrix2f tmp_mat; //  place holder for inverse calculations
 
             Eigen::Vector4f frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
@@ -53,14 +66,13 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
             void transfer(const Estimator & placeholder);
 
-            // Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();
             // Eigen::Vector4f getTrueState();
             
             Eigen::Vector4f getGapState();
             Eigen::Vector4f getRewindGapState();
 
-            Eigen::Vector2f get_x_tilde();
+            Eigen::Vector2f getXTilde();
 
             geometry_msgs::TwistStamped getRobotVel();
             Eigen::Vector4f integrate();

@@ -56,10 +56,10 @@ namespace dynamic_gap
         if(!solver.initSolver()) { ROS_FATAL_STREAM("SOLVER FAILED TO INITIALIZE SOLVER");}
     }
 
-    std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::generateTrajectory(dynamic_gap::Gap * selectedGap, 
-                                                                                                        const geometry_msgs::PoseStamped & currPose, 
-                                                                                                        const geometry_msgs::TwistStamped & currVel,
-                                                                                                        const bool & runGoToGoal) 
+    dynamic_gap::Trajectory GapTrajectoryGenerator::generateTrajectory(dynamic_gap::Gap * selectedGap, 
+                                                                        const geometry_msgs::PoseStamped & currPose, 
+                                                                        const geometry_msgs::TwistStamped & currVel,
+                                                                        const bool & runGoToGoal) 
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        [generateTrajectory()]");
 
@@ -125,7 +125,7 @@ namespace dynamic_gap
                 GoToGoal goToGoal(cfg_->control.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
-                std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+                dynamic_gap::Trajectory traj(path, pathTiming);
                 float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
                 return traj;
@@ -225,7 +225,7 @@ namespace dynamic_gap
             if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "SOLVER FAILED TO SOLVE PROBLEM");
-                std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+                dynamic_gap::Trajectory traj(path, pathTiming);
                 return traj;
             }
             float solveProblemTime = timeTaken(solveProblemStartTime);
@@ -265,7 +265,7 @@ namespace dynamic_gap
             }
             */
 
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+            dynamic_gap::Trajectory traj(path, pathTiming);
             float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (ahpf) time taken: " << generateTrajectoryTime << " seconds");
             return traj;
@@ -273,7 +273,7 @@ namespace dynamic_gap
         } catch (...) 
         {
             ROS_FATAL_STREAM("integrator");
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> traj(path, pathTiming);
+            dynamic_gap::Trajectory traj(path, pathTiming);
             return traj;
         }
 
@@ -704,10 +704,10 @@ namespace dynamic_gap
         return transformedPath;
     }
 
-    std::tuple<geometry_msgs::PoseArray, std::vector<float>> GapTrajectoryGenerator::processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj)
+    dynamic_gap::Trajectory GapTrajectoryGenerator::processTrajectory(const dynamic_gap::Trajectory & traj)
     {
-        geometry_msgs::PoseArray rawPath = std::get<0>(traj);
-        std::vector<float> rawPathTiming = std::get<1>(traj);
+        geometry_msgs::PoseArray rawPath = traj.getPath();
+        std::vector<float> rawPathTiming = traj.getPathTiming();
         
         geometry_msgs::Pose originPose;
         originPose.position.x = 0;
@@ -773,7 +773,7 @@ namespace dynamic_gap
         processedPath.poses.pop_back();
         processedPathTiming.pop_back();
 
-        std::tuple<geometry_msgs::PoseArray, std::vector<float>> processedTrajectory(processedPath, processedPathTiming);
+        dynamic_gap::Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;
     }
 

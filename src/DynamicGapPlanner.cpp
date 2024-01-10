@@ -65,9 +65,9 @@ namespace dynamic_gap
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
-        geometry_msgs::PoseArray localTrajectory = planner_.runPlanningLoop();
+        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
-        cmd_vel = planner_.ctrlGeneration(localTrajectory);
+        cmd_vel = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
         return planner_.recordAndCheckVel(cmd_vel);
     }

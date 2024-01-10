@@ -17,7 +17,7 @@ namespace dynamic_gap
     bool GapDetector::sweptGapSizeCheck(dynamic_gap::Gap * gap)
     {
         bool largeGap = gap->LIdx() - gap->RIdx() > (3 * halfScanRayCount_ / 2);
-        bool canRobotFit = gap->get_gap_euclidean_dist() > 3 * cfg_->rbt.r_inscr;
+        bool canRobotFit = gap->getGapEuclideanDist() > 3 * cfg_->rbt.r_inscr;
         
         return largeGap || canRobotFit;
     }

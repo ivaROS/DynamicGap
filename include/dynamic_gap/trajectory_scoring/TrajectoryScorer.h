@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <numeric>
@@ -36,8 +37,7 @@ namespace dynamic_gap
         void transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
                                                         const geometry_msgs::TransformStamped & odom2rbt);
 
-        std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & path, 
-                                            const std::vector<float> & pathTiming, 
+        std::vector<float> scoreTrajectory(const dynamic_gap::Trajectory & traj,
                                             const std::vector<dynamic_gap::Gap *> & rawGaps,
                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
         

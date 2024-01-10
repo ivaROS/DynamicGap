@@ -201,14 +201,16 @@ namespace dynamic_gap
         propagatedEgocirclePublisher_.publish(dynamicLaserScan);
     }
 
-    std::vector<float> TrajectoryScorer::scoreTrajectory(const geometry_msgs::PoseArray & path, 
-                                                         const std::vector<float> & pathTiming, 
+    std::vector<float> TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
                                                          const std::vector<dynamic_gap::Gap *> & rawGaps,
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [scoreTrajectory()]");
         // Requires LOCAL FRAME
         // Should be no racing condition
+
+        geometry_msgs::PoseArray path = traj.getPath();
+        std::vector<float> pathTiming = traj.getPathTiming();
 
         /*
         std::vector<dynamic_gap::Estimator *> raw_models;

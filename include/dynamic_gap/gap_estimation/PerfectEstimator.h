@@ -46,7 +46,7 @@ namespace dynamic_gap
             std::vector<geometry_msgs::Pose> agentPoses_;
             std::vector<geometry_msgs::Vector3Stamped> agentVels_;
 
-            ros::Time t_last_update;
+            ros::Time tLastUpdate_;
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
             geometry_msgs::TwistStamped lastRbtVel_;
@@ -62,7 +62,7 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
             void transfer(const Estimator & placeholder);
 
-            Eigen::Vector4f update_ground_truth_cartesian_state();
+            Eigen::Vector4f updateStateFromEnv();
             Eigen::Vector4f getState();
             // Eigen::Vector4f getTrueState();
 
@@ -72,12 +72,12 @@ namespace dynamic_gap
             // Eigen::Vector4f get_frozen_modified_polar_state();
             // Eigen::Vector4f get_rewind_modified_polar_state();
 
-            Eigen::Vector2f get_x_tilde();
+            Eigen::Vector2f getXTilde();
 
             geometry_msgs::TwistStamped getRobotVel();
-            Eigen::Vector4f integrate();
-            void linearize(const int & idx);
-            void discretizeQ(const int & idx);
+            // Eigen::Vector4f integrate();
+            // void linearize(const int & idx);
+            // void discretizeQ(const int & idx);
 
             void gapStatePropagate(const float & dt);
             void rewindPropagate(const float & dt);

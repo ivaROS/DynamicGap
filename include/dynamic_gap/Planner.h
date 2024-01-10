@@ -21,6 +21,7 @@
 
 #include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/gap_estimation/GapAssociator.h>
 // #include <dynamic_gap/helper.h>
 // #include <dynamic_gap/trajectory_follower.h>
@@ -119,8 +120,8 @@ namespace dynamic_gap
         boost::mutex gapsetMutex;
 
         dynamic_gap::Gap * currentGap_ = NULL;
-        geometry_msgs::PoseArray currentPath_;
-        std::vector<float> currentPathTiming_;
+        dynamic_gap::Trajectory currentTraj_;
+        // std::vector<float> currentPathTiming_;
 
         boost::circular_buffer<float> cmdVelBuffer_;
 
@@ -212,13 +213,18 @@ namespace dynamic_gap
         /**
          * Setter and Getter of Current Trajectory, this is performed in the compareToCurrentTraj function
          */
-        void setCurrentPath(const geometry_msgs::PoseArray & currentPath) { currentPath_ = currentPath; return; }
+        // void setCurrentPath(const geometry_msgs::PoseArray & currentPath) { currentPath_ = currentPath; return; }
 
-        geometry_msgs::PoseArray getCurrentPath() { return currentPath_;}
+        // geometry_msgs::PoseArray getCurrentPath() { return currentPath_;}
 
-        void setCurrentPathTiming(const std::vector<float> & currentPathTiming) { currentPathTiming_ = currentPathTiming; return; }
+        void setCurrentTraj(const dynamic_gap::Trajectory & currentTraj) { currentTraj_ = currentTraj; return; }
+
+        dynamic_gap::Trajectory getCurrentTraj() { return currentTraj_; }
+
+
+        // void setCurrentPathTiming(const std::vector<float> & currentPathTiming) { currentPathTiming_ = currentPathTiming; return; }
         
-        std::vector<float> getCurrentPathTiming() { return currentPathTiming_; }
+        // std::vector<float> getCurrentPathTiming() { return currentPathTiming_; }
 
         int getCurrentAgentCount() { return currentAgentCount_; }
 
@@ -243,7 +249,8 @@ namespace dynamic_gap
          * 
          *
          */
-        std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *>& vec, std::vector<geometry_msgs::PoseArray>& res, std::vector<std::vector<float>>& res_time_traj);
+        std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *>& manipulatedGaps, 
+                                                         std::vector<dynamic_gap::Trajectory> & trajs);
 
         /**
          * Callback function to config object
@@ -258,28 +265,27 @@ namespace dynamic_gap
          * @param Vector of corresponding trajectory scores
          * @return the best trajectory
          */
-        int pickTraj(const std::vector<geometry_msgs::PoseArray> & paths, 
-                     const std::vector<std::vector<float>> & pathTimings);
+        int pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
+                     const std::vector<std::vector<float>> & pathPoseScores);
 
         /**
          * Compare to the old trajectory and pick the best one
          * @param incoming trajectory
          * @return the best trajectory  
          */
-        geometry_msgs::PoseArray compareToCurrentTraj(dynamic_gap::Gap * chosenGap, 
-                                                  const geometry_msgs::PoseArray & chosenPath,                                                        
-                                                  const std::vector<float> & chosenPathTiming,
-                                                  const std::vector<dynamic_gap::Gap *> & feasibleGaps,
-                                                  const bool & curr_exec_gap_feas);
+        dynamic_gap::Trajectory compareToCurrentTraj(dynamic_gap::Gap * chosenGap, 
+                                                        const dynamic_gap::Trajectory & incomingTraj,                                                        
+                                                        const std::vector<dynamic_gap::Gap *> & feasibleGaps,
+                                                        const bool & isIncomingGapFeasibleInput);
 
         int getCurrentRightGapPtModelID();
         int getCurrentLeftGapPtModelID();
 
         /**
          * Conglomeration of getting a plan Trajectory
-         * @return the trajectory
+         * @return the trajectory (in odom frame)
          */
-        geometry_msgs::PoseArray runPlanningLoop();        
+        dynamic_gap::Trajectory runPlanningLoop();        
 
         /**
          * Gets the current position along the currently executing Trajectory
@@ -327,9 +333,8 @@ namespace dynamic_gap
 
         void getFutureScans();        
 
-        geometry_msgs::PoseArray changeTrajectoryHelper(dynamic_gap::Gap * chosenGap, 
-                                                        const geometry_msgs::PoseArray & chosenPath, 
-                                                        const std::vector<float> & chosenPathTiming, 
+        dynamic_gap::Trajectory changeTrajectoryHelper(dynamic_gap::Gap * incomingGap, 
+                                                        const dynamic_gap::Trajectory & incomingTraj, 
                                                         const bool & switchToIncoming);
     };
 }

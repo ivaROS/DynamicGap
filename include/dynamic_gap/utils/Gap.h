@@ -336,7 +336,7 @@ namespace dynamic_gap
 
             // used in calculating nearSideAngle, the angle formed between the two gap lines and the robot. (angle of the gap).
             // calculates the euclidean distance between the left and right gap points using the law of cosines
-            float get_gap_euclidean_dist() const 
+            float getGapEuclideanDist() const 
             {
                 float resoln = M_PI / half_scan;
                 float gapAngle = (leftIdx_ - rightIdx_) * resoln;
