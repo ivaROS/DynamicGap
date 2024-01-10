@@ -14,9 +14,10 @@ namespace dynamic_gap
 {
     class Estimator 
     {
-        protected:
+        public:
             Eigen::Matrix<float, 2, 4> H_; // observation matrix
             Eigen::Matrix<float, 4, 2> H_transpose_;
+            float R_scalar = 0.0, Q_scalar = 0.0;
             Eigen::Matrix2f R_k_; // measurement noise matrix
             Eigen::Matrix4f Q_k_; // covariance noise matrix
             Eigen::Matrix4f dQ_; // discretized covariance noise matrix
@@ -29,14 +30,28 @@ namespace dynamic_gap
 
             Eigen::Matrix4f A_, STM_;
             
-            int modelID_;
-            std::string side_;
+            int modelID_ = 0;
+            std::string side_ = "";
 
-            virtual void linearize(int idx) = 0;
-            virtual void discretizeQ(int idx) = 0;
-            virtual Eigen::Matrix<float, 4, 1> integrate() = 0;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
+            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
+            geometry_msgs::TwistStamped lastRbtVel_;
+            geometry_msgs::TwistStamped lastRbtAcc_;    
 
-        public:
+            ros::Time t_last_update;
+
+            Eigen::Matrix4f eyes;
+
+            virtual void linearize(const int & idx) = 0;
+            virtual void discretizeQ(const int & idx) = 0;
+            virtual Eigen::Vector4f integrate() = 0;
+
+            virtual void initialize(const std::string & side, const int & modelID, 
+                                    const float & gapPtX, const float & gapPtY,
+                                    const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                    const geometry_msgs::TwistStamped & lastRbtAcc) = 0;
+            // virtual void transfer(const int & placeholder) = 0;
+            virtual void transfer(const Estimator & placeholder) = 0;
 
             virtual Eigen::Vector4f getState() = 0;
             virtual Eigen::Vector4f getTrueState() = 0;
@@ -48,8 +63,8 @@ namespace dynamic_gap
             virtual Eigen::Vector4f getRewindGapState() = 0;
             virtual void setRewindState() = 0;
 
-            virtual void gapStatePropagate(float dt) = 0;
-            virtual void rewindPropagate(float dt) = 0;
+            virtual void gapStatePropagate(const float & dt) = 0;
+            virtual void rewindPropagate(const float & dt) = 0;
 
             virtual Eigen::Vector2f get_x_tilde() = 0;
             virtual int getID() = 0;

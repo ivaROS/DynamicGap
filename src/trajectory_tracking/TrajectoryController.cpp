@@ -8,19 +8,8 @@ namespace dynamic_gap
         cfg_ = & cfg;
         distanceThresh_ = 0.1;
 
-        // holonomic = cfg_->planning.holonomic;
-        // full_fov = ;
-        // projection_operator = cfg_->planning.projection_operator;
-
-        // k_fb_x_ = cfg_->control.k_fb_x;
-        // k_fb_y_ = cfg_->control.k_fb_y;
         k_fb_theta_ = (cfg_->planning.holonomic && cfg_->planning.full_fov) ? 0.8 : cfg_->control.k_fb_theta;
 
-        // k_po_x_ = cfg_->projection.k_po_x;
-        // k_CBF_ = cfg_->projection.k_CBF;
-        // k_po_theta_ = cfg_->projection.k_po_theta;
-
-        // cmd_counter_ = 0;
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
         manualVelAng_ = 0.0f;
@@ -34,128 +23,7 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-    /*
-    std::vector<geometry_msgs::Point> TrajectoryController::findLocalLine(int minDistScanIdx) 
-    {
-        // get egocircle measurement
-        auto egocircle = *scan_.get();
-        std::vector<float> interScanPtDists(egocircle.ranges.size());
-
-        // if (!msg_) {
-        //     return std::vector<geometry_msgs::Point>(0);
-        // }
-        
-        // if (egocircle.ranges.size() < 500) {
-        //     ROS_FATAL_STREAM("Scan range incorrect findLocalLine");
-        // }
-
-        // iterating through egocircle
-        float range_i, theta_i, range_imin1, theta_imin1;
-        for (int i = 1; i < interScanPtDists.size(); i++) 
-        {
-            // current distance/idx
-            range_i = egocircle.ranges.at(i);
-            theta_i = idx2theta(i); // float(i) * egocircle.angle_increment + egocircle.angle_min;
-            // prior distance/idx
-            range_imin1 = egocircle.ranges.at(i - 1);
-            theta_imin1 = idx2theta(i - 1); // float(i - 1) * egocircle.angle_increment + egocircle.angle_min;
-            
-            
-            if (range_i > cfg_->scan.range_max)  // if current distance is big, set dist to big
-                interScanPtDists.at(i) = 10;
-            else                                 // else, get distance between two indices
-                interScanPtDists.at(i) = polDist(range_i, theta_i, range_imin1, theta_imin1);
-        }
-
-        interScanPtDists.at(0) = polDist(egocircle.ranges.at(0), egocircle.angle_min, 
-                                         egocircle.ranges.at(egocircle.ranges.size() - 1), idx2theta(egocircle.ranges.size() - 1));
-
-        // searching forward for the first place where interpoint distances exceed threshold (0.1) (starting from the minDistScanIdx).
-        auto fwdIter = std::find_if(interScanPtDists.begin() + minDistScanIdx, interScanPtDists.end(), 
-                                        std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
-
-        // searching backward for first place where interpoint distances exceed threshold (0.1)
-        auto revIter = std::find_if(interScanPtDists.rbegin() + (interScanPtDists.size() - minDistScanIdx), interScanPtDists.rend(),
-                                        std::bind1st(std::mem_fun(&TrajectoryController::geqThres), this));
-        
-        if (revIter == interScanPtDists.rend())
-            return std::vector<geometry_msgs::Point>(0);
-
-        // get index for big enough distance
-        int fwdIdx = std::distance(interScanPtDists.begin(), std::prev(fwdIter));
-        int revIdx = std::distance(revIter, interScanPtDists.rend());
-
-        // are indices valid
-        // int minDistScanIdx_range = 0;
-        // int max_idx_range = int(egocircle.ranges.size() - 1);
-        // if (fwdIdx < minDistScanIdx_range || fwdIdx > max_idx_range || revIdx < minDistScanIdx_range || revIdx > max_idx_range) {
-        //     return std::vector<geometry_msgs::Point>(0);
-        // }
-        
-        float fwdRange = egocircle.ranges.at(fwdIdx);
-        float revRange = egocircle.ranges.at(revIdx);
-        float centRange = egocircle.ranges.at(minDistScanIdx);
-
-        float fwdTheta = idx2theta(fwdIdx); // float(fwdIdx) * egocircle.angle_increment + egocircle.angle_min;
-        float revTheta = idx2theta(revIdx); // float(revIdx) * egocircle.angle_increment + egocircle.angle_min;
-        float centTheta = idx2theta(minDistScanIdx);
-
-        if (fwdIdx < minDistScanIdx || revIdx > minDistScanIdx)
-            return std::vector<geometry_msgs::Point>(0);
-
-        // Eigen::Vector2f fwd_polar(fwdRange, fwdTheta);
-        // Eigen::Vector2f rev_polar(revRange, revTheta);
-        // Eigen::Vector2f cent_polar(centRange, centTheta); // float(minDistScanIdx) * egocircle.angle_increment + egocircle.angle_min);
-        Eigen::Vector2f fwdPtCart(fwdRange * std::cos(fwdTheta), fwdRange * std::sin(fwdTheta)); // pol2car(fwd_polar);
-        Eigen::Vector2f revPtCart(revRange * std::cos(revTheta), revRange * std::sin(revTheta)); // pol2car(rev_polar);
-        Eigen::Vector2f centPtCart(centRange * std::cos(centTheta), centRange * std::sin(centTheta)); // pol2car(cent_polar);
-
-        Eigen::Vector2f projFwdPt;
-        Eigen::Vector2f projRevPt;
-
-        if (centRange < fwdRange && centRange < revRange) 
-        {
-            // ROS_INFO_STREAM_NAMED("Controller", "Non line");
-            Eigen::Vector2f centMinFwdPt = centPtCart - fwdPtCart;
-            Eigen::Vector2f revMinFwdPt = revPtCart - fwdPtCart;
-            Eigen::Vector2f revMinFwdNorm = revMinFwdPt / revMinFwdPt.norm(); 
-            Eigen::Vector2f projection = (centMinFwdPt.dot(revMinFwdNorm)) * revMinFwdNorm;
-            Eigen::Vector2f orthogonal = centMinFwdPt - projection;
-            projFwdPt = fwdPtCart + orthogonal;
-            projRevPt = revPtCart + orthogonal;
-        } else 
-        {
-            projFwdPt = fwdPtCart;
-            projRevPt = revPtCart;
-        }
-
-        geometry_msgs::Point lowerPoint;
-        lowerPoint.x = projFwdPt(0);
-        lowerPoint.y = projFwdPt(1);
-        // lowerPoint.z = 3;
-        geometry_msgs::Point upperPoint;
-        upperPoint.x = projRevPt(0);
-        upperPoint.y = projRevPt(1);
-        // upperPoint.z = 3;
-        // if form convex hull
-        std::vector<geometry_msgs::Point> retArr;
-        retArr.push_back(lowerPoint);
-        retArr.push_back(upperPoint);
-        return retArr;
-    }
-    */
-
-    bool TrajectoryController::leqThres(const float dist) 
-    {
-        return dist <= distanceThresh_;
-    }
-
-    bool TrajectoryController::geqThres(const float dist) 
-    {
-        return dist >= distanceThresh_;
-    }
-
-    float TrajectoryController::polDist(float range1, float theta1, float range2, float theta2) 
+    float TrajectoryController::polDist(const float & range1, const float & theta1, const float & range2, const float & theta2) 
     {
         return sqrt(pow(range1, 2) + pow(range2, 2) - 2 * range1 * range2 * std::cos(theta1 - theta2));
     }
@@ -230,14 +98,14 @@ namespace dynamic_gap
         float safeDirX = 0;
         float safeDirY = 0;                                   
         
-        float scanRange, scanTheta;
+        float scanRange = 0.0, scanTheta = 0.0;
         for (int i = 0; i < scan.ranges.size(); i++) 
         {
-            scanRange = scan.ranges[i];
-            scanTheta =  idx2theta(i); // scan.angle_min + i * scan.angle_increment;
+            scanRange = scan.ranges.at(i);
+            scanTheta =  idx2theta(i);
 
-            safeDirX += (-1.0 * std::cos(scanTheta)) / pow(scanRange, 2);
-            safeDirY += (-1.0 * std::sin(scanTheta)) / pow(scanRange, 2);
+            safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
+            safeDirY += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
         }
 
         safeDirX /= scan.ranges.size();
@@ -253,8 +121,6 @@ namespace dynamic_gap
 
         clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
 
-
-        // float cmdVel_safe_norm = ;
         if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
             cmdVelX += 0.3;
 
@@ -278,9 +144,6 @@ namespace dynamic_gap
         boost::mutex::scoped_lock lock(egocircleLock_);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-        // float v_lin_x_fb = 0;
-        // float velLinYFeedback = 0;
-        // float velAngFeedback = 0;
 
         ROS_INFO_STREAM_NAMED("Controller", "        feedback control");
         // ROS_INFO_STREAM_NAMED("Controller", "r_min: " << r_min);
@@ -288,12 +151,7 @@ namespace dynamic_gap
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         geometry_msgs::Quaternion currOrient = current.orientation;
         tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
-        // tf::Matrix3x3 m_c(q_c);
-        // float c_roll, c_pitch, c_yaw;
-        // m_c.getRPY(c_roll, c_pitch, c_yaw);
-
-        float currYaw = quaternionToYaw(currQuat); // std::atan2( 2.0 * (currQuat.w() * currQuat.z() + currQuat.x() * currQuat.y()), 
-                                                   //      1 - 2.0 * (currQuat.y() * currQuat.y() + currQuat.z() * currQuat.z()));
+        float currYaw = quaternionToYaw(currQuat); 
 
         // get current x,y,theta
         geometry_msgs::Point currPosn = current.position;
@@ -303,16 +161,10 @@ namespace dynamic_gap
         geometry_msgs::Point desPosn = desired.position;
         geometry_msgs::Quaternion desOrient = desired.orientation;
         tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
-        // tf::Matrix3x3 m_d(desQuat);
-        // float d_roll, d_pitch, desYaw;
-        // m_d.getRPY(d_roll, d_pitch, desYaw);
 
-        float desYaw = quaternionToYaw(desQuat); // std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
-                                                 //       1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
+        float desYaw = quaternionToYaw(desQuat);
 
         // get desired x,y,theta
-
-
         Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
 
         // get x,y,theta error
@@ -338,8 +190,8 @@ namespace dynamic_gap
         
         if (peakSplineSpeed > cmdSpeed) 
         {
-            velLinXFeedback *= 1.25 * (peakSplineSpeed / cmdSpeed);
-            velLinYFeedback *= 1.25 * (peakSplineSpeed / cmdSpeed);
+            velLinXFeedback *= 1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed);
+            velLinYFeedback *= 1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed);
             ROS_INFO_STREAM_NAMED("Controller", "        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
         }
     
@@ -370,10 +222,6 @@ namespace dynamic_gap
         float minDist = 0;
 
         // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
-
-        // if (scan.ranges.size() < 500) {
-        //     ROS_FATAL_STREAM("Scan range incorrect controlLaw");
-        // }
 
         // applies PO
         float velLinXSafe = 0;
@@ -453,7 +301,8 @@ namespace dynamic_gap
         return cmdVel;
     }
     
-    void TrajectoryController::visualizeProjectionOperator(float weightedVelLinXSafe, float weightedVelLinYSafe) 
+    void TrajectoryController::visualizeProjectionOperator(const float & weightedVelLinXSafe, 
+                                                           const float & weightedVelLinYSafe) 
     {
         visualization_msgs::Marker projOpMarker;
         projOpMarker.header.frame_id = cfg_->robot_frame_id;
@@ -491,8 +340,8 @@ namespace dynamic_gap
             // std::cout << "not clipping" << std::endl;
         } else 
         {
-            velLinXFeedback *= cfg_->control.vx_absmax / std::max(speedLinXFeedback, speedLinYFeedback);
-            velLinYFeedback *= cfg_->control.vy_absmax / std::max(speedLinXFeedback, speedLinYFeedback);
+            velLinXFeedback *= epsilonDivide(cfg_->control.vx_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
+            velLinYFeedback *= epsilonDivide(cfg_->control.vy_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
         }
 
         // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, velAngFeedback));
@@ -521,8 +370,8 @@ namespace dynamic_gap
         Eigen::Vector2f leftBearingVect(leftGapPtState[0], leftGapPtState[1]);
         Eigen::Vector2f rightBearingVect(rightGapPtState[0], rightGapPtState[1]);
 
-        Eigen::Vector2f leftBearingNorm = leftBearingVect / leftBearingVect.norm();
-        Eigen::Vector2f rightBearingNorm = rightBearingVect / rightBearingVect.norm();
+        Eigen::Vector2f leftBearingNorm = unitNorm(leftBearingVect);
+        Eigen::Vector2f rightBearingNorm = unitNorm(rightBearingVect);
 
         float determinant = rightBearingNorm[0]*leftBearingNorm[1] - rightBearingNorm[1]*leftBearingNorm[0];      
         float dot = rightBearingNorm[0]*leftBearingNorm[0] + rightBearingNorm[1]*leftBearingNorm[1];
@@ -555,7 +404,7 @@ namespace dynamic_gap
         if (cvxGap && PsileftGapSideCBF < 0)  // right less than left
         {
             Eigen::Vector2f Lg_h_left(dHLeftDx[0], dHLeftDx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2f cmdVelSafeLeft = -(Lg_h_left * PsileftGapSideCBF) / (Lg_h_left.dot(Lg_h_left));
+            Eigen::Vector2f cmdVelSafeLeft = epsilonDivide(-(Lg_h_left * PsileftGapSideCBF), Lg_h_left.dot(Lg_h_left));
             velLinXSafeLeft = cmdVelSafeLeft[0];
             velLinYSafeLeft = cmdVelSafeLeft[1];    
         }
@@ -563,7 +412,7 @@ namespace dynamic_gap
         if (cvxGap && PsirightGapSideCBF < 0) // left less than or equal to right
         { 
             Eigen::Vector2f Lg_h_right(dHRightDx[0], dHRightDx[1]); // Lie derivative of h wrt x (we are doing command velocities)
-            Eigen::Vector2f cmdVelSafeRight = -(Lg_h_right * PsirightGapSideCBF) / (Lg_h_right.dot(Lg_h_right));
+            Eigen::Vector2f cmdVelSafeRight = epsilonDivide(-(Lg_h_right * PsirightGapSideCBF), Lg_h_right.dot(Lg_h_right));
             velLinXSafeRight = cmdVelSafeRight[0];
             velLinYSafeRight = cmdVelSafeRight[1];      
         }
@@ -593,16 +442,18 @@ namespace dynamic_gap
     Eigen::Vector4f TrajectoryController::leftGapSideCBFDerivative(const Eigen::Vector4f & leftGapPtState) 
     {
         // current design: h_right = -betadot
-        Eigen::Vector4f dHLeftDX;
+        Eigen::Vector4f dHLeftDX(0.0, 0.0, 0.0, 0.0);
         
         float r = sqrt(pow(leftGapPtState(0), 2) + pow(leftGapPtState(1), 2));
         float rCrossV = leftGapPtState(0)*leftGapPtState(3) - leftGapPtState(1)*leftGapPtState(2);
+        float rSq = pow(r, 2);
+        float rSqSq = pow(r, 4);
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
         
-        dHLeftDX(0) =  leftGapPtState(3)/pow(r,2) - 2*leftGapPtState(0)*rCrossV/pow(r,4);
-        dHLeftDX(1) = -leftGapPtState(2)/pow(r,2) - 2*leftGapPtState(1)*rCrossV/pow(r,4);
-        dHLeftDX(2) = -leftGapPtState(1) / pow(r,2);
-        dHLeftDX(3) =  leftGapPtState(0) / pow(r,2);
+        dHLeftDX(0) =  epsilonDivide(leftGapPtState(3), rSq) - epsilonDivide(2*leftGapPtState(0)*rCrossV, rSqSq);
+        dHLeftDX(1) = epsilonDivide(-leftGapPtState(2), rSq) - epsilonDivide(2*leftGapPtState(1)*rCrossV, rSqSq);
+        dHLeftDX(2) = epsilonDivide(-leftGapPtState(1), rSq);
+        dHLeftDX(3) =  epsilonDivide(leftGapPtState(0), rSq);
 
         return dHLeftDX;
     }
@@ -621,15 +472,17 @@ namespace dynamic_gap
     Eigen::Vector4f TrajectoryController::rightGapSideCBFDerivative(const Eigen::Vector4f & rightGapPtState) 
     {
         // current design: h_left = betadot
-        Eigen::Vector4f dHRightDX;
+        Eigen::Vector4f dHRightDX(0.0, 0.0, 0.0, 0.0);
         float r = sqrt(pow(rightGapPtState(0), 2) + pow(rightGapPtState(1), 2));
         float rCrossV = rightGapPtState(0)*rightGapPtState(3) - rightGapPtState(1)*rightGapPtState(2);
+        float rSq = pow(r, 2);
+        float rSqSq = pow(r, 4);
 
         // derivative with respect to r_ox, r_oy, v_ox, v_oy
-        dHRightDX(0) = -rightGapPtState(3) / pow(r,2) + 2*rightGapPtState(0)*rCrossV / pow(r, 4);
-        dHRightDX(1) =  rightGapPtState(2) / pow(r,2) + 2*rightGapPtState(1)*rCrossV / pow(r, 4);
-        dHRightDX(2) =  rightGapPtState(1) / pow(r,2);
-        dHRightDX(3) = -rightGapPtState(0) / pow(r,2);
+        dHRightDX(0) = epsilonDivide(-rightGapPtState(3), rSq) + epsilonDivide(2*rightGapPtState(0)*rCrossV, rSqSq);
+        dHRightDX(1) =  epsilonDivide(rightGapPtState(2), rSq) + epsilonDivide(2*rightGapPtState(1)*rCrossV, rSqSq);
+        dHRightDX(2) =  epsilonDivide(rightGapPtState(1), rSq);
+        dHRightDX(3) = epsilonDivide(-rightGapPtState(0), rSq);
         return dHRightDX;
     }
 
@@ -641,48 +494,30 @@ namespace dynamic_gap
                                                      float & velLinXSafe, float & velLinYSafe,
                                                      float & minDistTheta, float & minDist) 
 {
-        // float r_min = cfg_->projection.r_min;
-        // float r_norm = cfg_->projection.r_norm;
-        // float r_norm_offset = cfg_->projection.r_norm_offset; 
-
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM_NAMED("Controller", "rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
         std::vector<float> minScanDists(scan.ranges.size());
+        float theta = 0.0, dist = 0.0;
         for (int i = 0; i < minScanDists.size(); i++) 
         {
-            float theta = idx2theta(i); // i * scan.angle_increment - M_PI;
-            float dist = scan.ranges.at(i);
+            theta = idx2theta(i);
+            dist = scan.ranges.at(i);
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
         int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
-        minDistTheta = idx2theta(minDistScanIdx); // (float)(minDistScanIdx) * scan.angle_increment + scan.angle_min;
+        minDistTheta = idx2theta(minDistScanIdx);
 
         float maxRange = cfg_->projection.r_norm + cfg_->projection.r_norm_offset;
         minDist = minScanDists.at(minDistScanIdx);
-        // minDist = std::min(minDist, maxRange); // minDist >= maxRange ? maxRange : minDist;
-        // if (minDist <= 0) 
-        //     ROS_INFO_STREAM_NAMED("Controller", "Min dist <= 0, : " << minDist);
-        // minDist = minDist <= 0 ? 0.01 : minDist;
-        // minDist -= cfg_->rbt.r_inscr / 2;
-
-        // find minimum ego circle distance
-        // float min_x = minDist * std::cos(minDistTheta) - rbtPoseInSensorFrame.pose.position.x;
-        // float min_y = minDist * std::sin(minDistTheta) - rbtPoseInSensorFrame.pose.position.y;
-        // minDist = sqrt(pow(min_x, 2) + pow(min_y, 2));
 
         ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
         // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
-        
-        // std::vector<geometry_msgs::Point> vec = findLocalLine(minDistScanIdx);
-
-        // float projOpDotProd = 0.0;
-      
+              
         Eigen::Vector2f closestScanPtToRobot(-minDist * std::cos(minDistTheta), -minDist * std::sin(minDistTheta));
-        // float min_diff_x = - min_x; // reversing direction to point from scan pt to robot
-        // float min_diff_y = - min_y;
+
         Eigen::Vector3f PsiDerAndPsi = calculateProjectionOperator(closestScanPtToRobot); // return Psi, and dPsiDx
         dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
-        // dPsiDx(1);// /= 3; // deriv wrt y?
+
         float projOpDotProd = cmdVelFeedback.dot(dPsiDx);
 
         Psi = PsiDerAndPsi(2);
@@ -734,39 +569,16 @@ namespace dynamic_gap
         float Psi = (rMin / minDist - rMin / rNorm) / (1.0 - rMin / rNorm);
         float derivativeDenominator = pow(minDist, 3) * (rMin - rNorm);
         float derivatorNominatorTerm = rMin * rNorm;
-        float PsiDerivativeXTerm = derivatorNominatorTerm * closestScanPtToRobot[0] / derivativeDenominator;
-        float PsiDerivativeYTerm = derivatorNominatorTerm * closestScanPtToRobot[1] / derivativeDenominator;
+        float PsiDerivativeXTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[0], derivativeDenominator);
+        float PsiDerivativeYTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[1], derivativeDenominator);
 
         float dPsiDxNorm = sqrt(pow(PsiDerivativeXTerm, 2) + pow(PsiDerivativeYTerm, 2));
-        float normPsiDerivativeXTerm = PsiDerivativeXTerm / dPsiDxNorm;
-        float normPsiDerivativeYTerm = PsiDerivativeYTerm / dPsiDxNorm;
+        float normPsiDerivativeXTerm = epsilonDivide(PsiDerivativeXTerm, dPsiDxNorm);
+        float normPsiDerivativeYTerm = epsilonDivide(PsiDerivativeYTerm, dPsiDxNorm);
         return Eigen::Vector3f(normPsiDerivativeXTerm, normPsiDerivativeYTerm, Psi);
     }
 
-    /*
-    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float quat_w, float quat_z)
-    {
-        std::complex<float> phase(quat_w, quat_z);
-        phase = phase * phase;
-
-        Eigen::Matrix2cf g(2, 2);
-        //g.real()(0,0) = phase.real();
-        g.real()(0, 1) = x;
-        g.real()(1, 0) = 0;
-        g.real()(1, 1) = 1;
-
-        //g.imag()(0,0) = phase.imag();
-        g.imag()(0, 1) = y;
-        g.imag()(1, 0) = 0;
-        g.imag()(1, 1) = 0;
-
-        g(0, 0) = phase;
-
-        return g;
-    }
-    */
-
-    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(float x, float y, float theta)
+    Eigen::Matrix2cf TrajectoryController::getComplexMatrix(const float & x, const float & y, const float & theta)
     {
         std::complex<float> phase(std::cos(theta), std::sin(theta));
 
@@ -795,24 +607,17 @@ namespace dynamic_gap
         // obtain distance from entire ref traj and current pose
         for (int i = 0; i < localTrajectoryDeviations.size(); i++) // i will always be positive, so this is fine
         {
-            // tf::Quaternion q_c(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, currPose.orientation.w);
-            // float yaw_curr = std::atan2(2.0 * (q_c.w() * q_c.z() + q_c.x() * q_c.y()), 
-            //                             1 - 2.0 * (q_c.y() * q_c.y() + q_c.z() * q_c.z()));
-
             tf::Quaternion currQuatInv(currPose.orientation.x, currPose.orientation.y, currPose.orientation.z, -currPose.orientation.w); // -w for inverse
   
             tf::Quaternion desQuat(localTrajectory.poses[i].orientation.x, localTrajectory.poses[i].orientation.y, 
                                    localTrajectory.poses[i].orientation.z, localTrajectory.poses[i].orientation.w);
-            // float yaw_des = std::atan2( 2.0 * (desQuat.w() * desQuat.z() + desQuat.x() * desQuat.y()), 
-            //                           1 - 2.0 * (desQuat.y() * desQuat.y() + desQuat.z() * desQuat.z()));
-            
             
             tf::Quaternion deviationQuat = desQuat * currQuatInv;
             float deviationYaw = quaternionToYaw(deviationQuat);
 
             // ROS_INFO_STREAM_NAMED("Controller", "   pose" << i << ", yaw_curr: " << yaw_curr << ", yaw_des: " << yaw_des << ", deviationYaw: " << deviationYaw);
 
-            localTrajectoryDeviations[i] = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
+            localTrajectoryDeviations.at(i) = sqrt(pow(currPose.position.x - localTrajectory.poses[i].position.x, 2) + 
                                                 pow(currPose.position.y - localTrajectory.poses[i].position.y, 2)) + 
                                                 0.5 * std::abs(deviationYaw);
         }
@@ -827,23 +632,7 @@ namespace dynamic_gap
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
 
-    /*
-    dynamic_gap::TrajPlan TrajectoryController::trajGen(geometry_msgs::PoseArray orig_traj)
-    {
-        dynamic_gap::TrajPlan traj;
-        traj.header.frame_id = cfg_->odom_frame_id;
-        for(size_t i = 0; i < orig_traj.poses.size(); i++)
-        {
-            geometry_msgs::Pose ni_pose = orig_traj.poses[i];
-            geometry_msgs::Twist ni_twist = geometry_msgs::Twist();
-            traj.poses.push_back(ni_pose);
-            traj.twist.push_back(ni_twist);
-        }
-        return traj;
-    }
-    */
-
-    float TrajectoryController::dist2Pose(float theta, float dist, geometry_msgs::Pose pose) 
+    float TrajectoryController::dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose) 
     {
         float x = dist * std::cos(theta);
         float y = dist * std::sin(theta);

@@ -30,47 +30,47 @@ namespace dynamic_gap
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
             
             Eigen::Matrix4f Q_1, Q_2, Q_3; // covariance noise matrix
-            float R_scalar, Q_scalar;
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
             Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
-            float life_time, start_time;
+            float life_time = 0.0, start_time = 0.0;
 
-            std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
-                                              previous_ego_accels, previous_ego_vels, previous_times,
-                                              previous_gap_only_states, vel_euler_derivatives;
-            float life_time_threshold;
-            Eigen::Matrix4f eyes;
-            std::string plot_dir;
+            // std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
+            //                                   previous_ego_accels, previous_ego_vels, previous_times,
+            //                                   previous_gap_only_states, vel_euler_derivatives;
+            // float life_time_threshold;
 
             std::vector<geometry_msgs::Pose> agentPoses_;
             std::vector<geometry_msgs::Vector3Stamped> agentVels_;
 
-            bool perfect;
-            bool plot;
-            bool plotted;
+            bool perfect = false;
+            // bool plot = false;
+            // bool plotted = false;
+            // std::string plot_dir;
 
-            ros::Time t_last_update;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            geometry_msgs::TwistStamped lastRbtVel_;
-            geometry_msgs::TwistStamped lastRbtAcc_;
+            // std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
+            // std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
+            // geometry_msgs::TwistStamped lastRbtVel_;
+            // geometry_msgs::TwistStamped lastRbtAcc_;
 
         public:
 
-            RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
-                        const geometry_msgs::TwistStamped & lastRbtVel,
-                        const geometry_msgs::TwistStamped & lastRbtAcc);
+            RotatingFrameCartesianKalmanFilter();
+            // RotatingFrameCartesianKalmanFilter(float, float, const ros::Time & t_update,
+            //             const geometry_msgs::TwistStamped & lastRbtVel,
+            //             const geometry_msgs::TwistStamped & lastRbtAcc);
             // RotatingFrameCartesianKalmanFilter(const Estimator & model);
 
             ~RotatingFrameCartesianKalmanFilter();
 
-            void initialize(float, float, const ros::Time & t_update,
-                            const geometry_msgs::TwistStamped & lastRbtVel,
+            void initialize(const std::string & side, const int & modelID, 
+                            const float & gapPtX, const float & gapPtY,
+                            const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
+            void transfer(const Estimator & placeholder);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();
@@ -85,12 +85,12 @@ namespace dynamic_gap
             Eigen::Vector2f get_x_tilde();
 
             geometry_msgs::TwistStamped getRobotVel();
-            Eigen::Matrix<float, 4, 1> integrate();
-            void linearize(int idx);
-            void discretizeQ(int idx);
+            Eigen::Vector4f integrate();
+            void linearize(const int & idx);
+            void discretizeQ(const int & idx);
 
-            void gapStatePropagate(float dt);
-            void rewindPropagate(float dt);
+            void gapStatePropagate(const float & dt);
+            void rewindPropagate(const float & dt);
             void isolateGapDynamics();
             void setRewindState();
 
@@ -102,12 +102,5 @@ namespace dynamic_gap
                         const ros::Time & t_kf_update);
 
             int getID();
-            void inflate_model(float x, float y);
-
-            void set_initialized(bool _initialized);
-            bool get_initialized();
-            void plot_states();
-            void get_intermediate_vels_accs();
-            void plot_models();
-    };
+     };
 }

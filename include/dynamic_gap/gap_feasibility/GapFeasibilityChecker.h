@@ -17,26 +17,26 @@ namespace dynamic_gap
     class GapFeasibilityChecker 
     {
         public: 
-            GapFeasibilityChecker(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            GapFeasibilityChecker& operator=(GapFeasibilityChecker & other) {cfg_ = other.cfg_; return *this; };
-            GapFeasibilityChecker(const GapFeasibilityChecker &t) {cfg_ = t.cfg_;};
+            GapFeasibilityChecker(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
+            // GapFeasibilityChecker& operator=(GapFeasibilityChecker & other) {cfg_ = other.cfg_; return *this; };
+            // GapFeasibilityChecker(const GapFeasibilityChecker &t) {cfg_ = t.cfg_;};
 
-            bool indivGapFeasibilityCheck(dynamic_gap::Gap & gap);
+            bool indivGapFeasibilityCheck(dynamic_gap::Gap * gap);
             // void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_);
             
         private:
-            float gapSplinecheck(dynamic_gap::Gap & gap, 
-                                    dynamic_gap::Estimator* leftGapPtModel, 
-                                    dynamic_gap::Estimator* rightGapPtModel);
-            float generateCrossedGapTerminalPoints(float t, dynamic_gap::Gap & gap, 
+            float gapSplinecheck(dynamic_gap::Gap * gap, 
+                                 dynamic_gap::Estimator * leftGapPtModel, 
+                                 dynamic_gap::Estimator * rightGapPtModel);
+            float generateCrossedGapTerminalPoints(const float & t, dynamic_gap::Gap * gap, 
                                                     dynamic_gap::Estimator* leftGapPtModel, 
                                                     dynamic_gap::Estimator* rightGapPtModel);
-            void generateTerminalPoints(dynamic_gap::Gap & gap, 
+            void generateTerminalPoints(dynamic_gap::Gap * gap, 
                                         const Eigen::Vector4f & leftCrossPt,
                                         const Eigen::Vector4f & rightCrossPt);
                                         // float terminal_thetaLeft, float terminal_reciprocal_range_left, 
                                         // float terminal_thetaRight, float terminal_reciprocal_range_right);
-            float indivGapFindCrossingPoint(dynamic_gap::Gap & gap, 
+            float indivGapFindCrossingPoint(dynamic_gap::Gap * gap, 
                                             Eigen::Vector2f & gap_crossing_point, 
                                             dynamic_gap::Estimator* leftGapPtModel, 
                                             dynamic_gap::Estimator* rightGapPtModel);

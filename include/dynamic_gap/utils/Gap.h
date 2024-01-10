@@ -17,71 +17,156 @@ namespace dynamic_gap
     class Gap
     {
         public:
-            Gap() {};
+            // Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rangeRight, bool radial, float minSafeDist_) : 
-                frame_(frame), rightIdx_(right_idx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
+            Gap(const std::string & frame, const int & rightIdx, const float & rangeRight, const bool & radial, const float & minSafeDist_) : 
+                frame_(frame), rightIdx_(rightIdx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
-                rightBezierOrigin_ << 0.0, 0.0;
+                
                 leftBezierOrigin_ << 0.0, 0.0;
+                rightBezierOrigin_ << 0.0, 0.0;
+
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
             };
 
-            ~Gap() {};
+            
+            // For now, just using the default copy constructor
+            //      used in 
+            Gap(const dynamic_gap::Gap & otherGap)
+            {
+                ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                frame_ = otherGap.frame_;
+
+                // copy all the variables
+                leftIdx_ = otherGap.leftIdx_;
+                leftDist_ = otherGap.leftDist_;
+                rightIdx_ = otherGap.rightIdx_;
+                rightDist_ = otherGap.rightDist_;
+
+                termLeftIdx_ = otherGap.termLeftIdx_;
+                termLeftDist_ = otherGap.termLeftDist_;
+                termRightIdx_ = otherGap.termRightIdx_;
+                termRightDist_ = otherGap.termRightDist_;
+
+                convex.leftIdx_ = otherGap.convex.leftIdx_;
+                convex.leftDist_ = otherGap.convex.leftDist_;
+                convex.rightIdx_ = otherGap.convex.rightIdx_;
+                convex.rightDist_ = otherGap.convex.rightDist_;
+
+                convex.termLeftIdx_ = otherGap.convex.termLeftIdx_;
+                convex.termLeftDist_ = otherGap.convex.termLeftDist_;
+                convex.termRightIdx_ = otherGap.convex.termRightIdx_;
+                convex.termRightDist_ = otherGap.convex.termRightDist_;
+
+                rightType_ = otherGap.rightType_;
+                terminalRightType_ = otherGap.terminalRightType_;
+
+                radial_ = otherGap.radial_;
+                termRadial_ = otherGap.termRadial_;
+
+                minSafeDist_ = otherGap.minSafeDist_;
+                terminalMinSafeDist_ = otherGap.terminalMinSafeDist_;
+
+                category_ = otherGap.category_;
+
+                crossingPt_ = otherGap.crossingPt_;
+                closingPt_ = otherGap.closingPt_;
+
+                goal.x_ = otherGap.goal.x_;
+                goal.y_ = otherGap.goal.y_;
+
+                terminalGoal.x_ = otherGap.terminalGoal.x_;
+                terminalGoal.y_ = otherGap.terminalGoal.y_;
+
+                gapLifespan_ = otherGap.gapLifespan_;
+
+                peakVelX_ = otherGap.peakVelX_;
+                peakVelY_ = otherGap.peakVelY_;
+
+                crossed_ = otherGap.crossed_;
+                closed_ = otherGap.closed_;
+                crossedBehind_ = otherGap.crossedBehind_;
+                artificial_ = otherGap.artificial_;
+
+                mode.reduced_ = otherGap.mode.reduced_;
+                mode.convex_ = otherGap.mode.convex_;
+                mode.RGC_ = otherGap.mode.RGC_;
+                mode.termReduced_ = otherGap.mode.termReduced_;
+                mode.termConvex_ = otherGap.mode.termConvex_;
+                mode.termRGC_ = otherGap.mode.termRGC_;
+
+                // make new models
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+
+                // transfer models (need to deep copy the models, not just the pointers)
+                leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
+                rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
+            }
+
+            ~Gap() 
+            {
+                delete leftGapPtModel_;
+                delete rightGapPtModel_;
+            };
             
             // Setters and Getters for LR Distance and Index (initial and terminal gaps)
             int LIdx() const { return leftIdx_; }
-            void setLIdx(int lidx) { leftIdx_ = lidx; }
+            void setLIdx(const int & lidx) { leftIdx_ = lidx; }
 
             int RIdx() const { return rightIdx_; }
-            void setRIdx(int ridx) { rightIdx_ = ridx; }
+            void setRIdx(const int & ridx) { rightIdx_ = ridx; }
 
             float LDist() const { return leftDist_; }
-            void setLDist(float ldist) { leftDist_ = ldist; }
+            void setLDist(const float & ldist) { leftDist_ = ldist; }
 
             float RDist() const { return rightDist_; }
-            void setRDist(float rdist) { rightDist_ = rdist; }
-
-            int termRIdx() const { return termRightIdx_; }
-            void setTermRIdx(int termRightIdx_) { termRightIdx_ = termRightIdx_; }
+            void setRDist(const float & rdist) { rightDist_ = rdist; }
 
             int termLIdx() const { return termLeftIdx_; }
-            void setTermLIdx(int termLeftIdx_) { termLeftIdx_ = termLeftIdx_; }
+            void setTermLIdx(const int & termLeftIdx) { termLeftIdx_ = termLeftIdx; }
 
-            float termRDist() const { return termRightDist_; }
-            void setTermRDist(float termRDist) { termRightDist_ = termRDist; }
+            int termRIdx() const { return termRightIdx_; }
+            void setTermRIdx(const int & termRightIdx) { termRightIdx_ = termRightIdx; }
 
             float termLDist() const { return termLeftDist_; }
-            void setTermLDist(float termLDist) { termLeftDist_ = termLDist; }
+            void setTermLDist(const float & termLDist) { termLeftDist_ = termLDist; }
 
-            int cvxRightIdx() const { return convex.rightIdx_; }
-            void setCvxRightIdx(int cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
+            float termRDist() const { return termRightDist_; }
+            void setTermRDist(const float & termRDist) { termRightDist_ = termRDist; }
 
             int cvxLeftIdx() const { return convex.leftIdx_; }
-            void setCvxLeftIdx(int cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
+            void setCvxLeftIdx(const int & cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
 
-            float cvxRightDist() const { return convex.rightDist_; }
-            void setCvxRightDist(float cvxRightDist) { convex.rightDist_ = cvxRightDist; }
+            int cvxRightIdx() const { return convex.rightIdx_; }
+            void setCvxRightIdx(const int & cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
 
             float cvxLeftDist() const { return convex.leftDist_; }
-            void setCvxLeftDist(float cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
+            void setCvxLeftDist(const float & cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
 
-            int cvxTermRightIdx() const { return convex.termRightIdx_; }
-            void setcvxTermRightIdx(int cvxTermRightIdx) { convex.termRightIdx_ = cvxTermRightIdx; }
+            float cvxRightDist() const { return convex.rightDist_; }
+            void setCvxRightDist(const float & cvxRightDist) { convex.rightDist_ = cvxRightDist; }
 
             int cvxTermLeftIdx() const { return convex.termLeftIdx_; }
-            void setcvxTermLeftIdx(int cvxTermLeftIdx) { convex.termLeftIdx_ = cvxTermLeftIdx; }
+            void setcvxTermLeftIdx(const int & cvxTermLeftIdx) { convex.termLeftIdx_ = cvxTermLeftIdx; }
 
-            float cvxTermRightDist() const { return convex.termRightDist_; }
-            void setcvxTermRightDist(float cvxTermRightDist) { convex.termRightDist_ = cvxTermRightDist; }
+            int cvxTermRightIdx() const { return convex.termRightIdx_; }
+            void setcvxTermRightIdx(const int & cvxTermRightIdx) { convex.termRightIdx_ = cvxTermRightIdx; }
 
             float cvxTermLeftDist() const { return convex.termLeftDist_; }
-            void setcvxTermLeftDist(float cvxTermLeftDist) { convex.termLeftDist_ = cvxTermLeftDist; }
+            void setcvxTermLeftDist(const float & cvxTermLeftDist) { convex.termLeftDist_ = cvxTermLeftDist; }
+
+            float cvxTermRightDist() const { return convex.termRightDist_; }
+            void setcvxTermRightDist(const float & cvxTermRightDist) { convex.termRightDist_ = cvxTermRightDist; }
 
             // Concluding the Gap after constructing with left information
-            void addLeftInformation(int left_idx, float rangeLeft) 
+            void addLeftInformation(const int & left_idx, const float & rangeLeft) 
             {
                 leftIdx_ = left_idx;
                 leftDist_ = rangeLeft;
@@ -180,7 +265,7 @@ namespace dynamic_gap
                 convex.termLeftDist_ = termLeftDist_;
             }
 
-            void setRadial(bool initial = true)
+            void setRadial(const bool & initial = true)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
                 // does resoln here imply 360 deg FOV?
@@ -201,13 +286,13 @@ namespace dynamic_gap
                     gapAngle += 2*M_PI;
 
                 // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
-                float nearangeRight = rightType_ ? checkRightDist : checkLeftDist;
+                float nearRange = rightType_ ? checkRightDist : checkLeftDist;
                 // law of cosines
                 float leftPtToRightPtDist = sqrt(pow(checkRightDist, 2) + pow(checkLeftDist, 2) - 2 * checkRightDist * checkLeftDist * cos(gapAngle));
                 // law of sines
-                float farSideAngle = asin((nearangeRight / leftPtToRightPtDist) * sin(gapAngle));
+                float farSideAngle = asin(epsilonDivide(nearRange, leftPtToRightPtDist) * sin(gapAngle));
                 
-                // ROS_INFO_STREAM_NAMED("Gap", "nearangeRight: " << nearangeRight);
+                // ROS_INFO_STREAM_NAMED("Gap", "nearRange: " << nearRange);
                 // ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
                 // ROS_INFO_STREAM_NAMED("Gap", "small angle: " << farSideAngle);
 
@@ -222,12 +307,12 @@ namespace dynamic_gap
                     termRadial_ = nearSideAngle > 0.75 * M_PI;     
             }
 
-            bool isRadial(bool initial = true) const
+            bool isRadial(const bool & initial = true) const
             {
                 return (initial ? radial_ : termRadial_);
             }
 
-            bool isRightType(bool initial = true) const
+            bool isRightType(const bool & initial = true) const
             {
                 if (initial)
                     return rightType_;
@@ -237,16 +322,16 @@ namespace dynamic_gap
 
             float getMinSafeDist() { return minSafeDist_; }
 
-            void setTerminalMinSafeDist(float _dist) { terminalMinSafeDist_ = _dist; }
+            void setTerminalMinSafeDist(const float & dist) { terminalMinSafeDist_ = dist; }
             float getTerminalMinSafeDist() { return terminalMinSafeDist_; }
 
-            void setCategory(std::string category) { category_ = category; }
+            void setCategory(const std::string & category) { category_ = category; }
             std::string getCategory() { return category_; }
 
-            void setCrossingPoint(float x, float y) { crossingPt_ << x,y; }
+            void setCrossingPoint(const float & x, const float & y) { crossingPt_ << x,y; }
             Eigen::Vector2f getCrossingPoint() { return crossingPt_; }
 
-            void setClosingPoint(float x, float y) { closingPt_ << x,y; }
+            void setClosingPoint(const float & x, const float & y) { closingPt_ << x,y; }
             Eigen::Vector2f getClosingPoint() { return closingPt_; }
 
             // used in calculating nearSideAngle, the angle formed between the two gap lines and the robot. (angle of the gap).
@@ -261,7 +346,8 @@ namespace dynamic_gap
                 return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gapAngle));
             }
 
-            void setTerminalPoints(float termLeftIdx, float termLeftDist, float termRightIdx, float termRightDist) 
+            void setTerminalPoints(const float & termLeftIdx, const float & termLeftDist, 
+                                   const float & termRightIdx, const float & termRightDist) 
             {    
                 termLeftIdx_ = termLeftIdx;
                 termLeftDist_ = termLeftDist;
@@ -280,10 +366,10 @@ namespace dynamic_gap
                 setRadial(false);
             }
 
-            void printCartesianPoints(bool initial, bool simplified) 
+            void printCartesianPoints(const bool & initial, const bool & simplified) 
             {
-                float xLeft, yLeft, xRight, yRight;
-                float thetaLeft, thetaRight, rangeLeft, rangeRight;
+                float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+                float thetaLeft = 0.0, thetaRight = 0.0, rangeLeft = 0.0, rangeRight = 0.0;
                 if (initial) 
                 {
                     if (simplified) 
@@ -324,9 +410,22 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("Gap", "xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
             }   
             
+            void setGoal(const bool & initial, const Eigen::Vector2f & goalVector)
+            {
+                if (initial)
+                {
+                    goal.x_ = goalVector[0];
+                    goal.y_ = goalVector[1];
+                } else
+                {
+                    terminalGoal.x_ = goalVector[0];
+                    terminalGoal.y_ = goalVector[1];
+                }
+            }
+
             float gapLifespan_ = 5.0;
 
-            float minSafeDist_, terminalMinSafeDist_;
+            float minSafeDist_ = 0.0, terminalMinSafeDist_ = 0.0;
             Eigen::Vector2f extendedGapOrigin_, termExtendedGapOrigin_;
             Eigen::Vector2f leftBezierOrigin_, rightBezierOrigin_;
             float half_scan = 256;
@@ -337,7 +436,7 @@ namespace dynamic_gap
             bool rightType_ = false;
             bool terminalRightType_ = false;
 
-            float peakVelX_, peakVelY_ = 0.0;
+            float peakVelX_ = 0.0, peakVelY_ = 0.0;
 
             struct GapMode 
             {
@@ -351,7 +450,7 @@ namespace dynamic_gap
 
             struct Goal 
             {
-                float x_, y_;
+                float x_ = 0.0, y_ = 0.0;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
@@ -359,16 +458,17 @@ namespace dynamic_gap
 
             struct TerminalGoal 
             {
-                float x_, y_;
+                float x_ = 0.0, y_ = 0.0;
                 // bool set = false;
                 // bool discard = false;
                 // bool goalwithin = false;
             } terminalGoal;
 
-            Estimator * rightGapPtModel_;
-            Estimator * leftGapPtModel_;
+            Estimator * rightGapPtModel_ = NULL;
+            Estimator * leftGapPtModel_ = NULL;
+
             // int _index;
-            std::string category_;
+            std::string category_ = "";
             Eigen::Vector2f crossingPt_, closingPt_;
 
             bool crossed_ = false;
@@ -377,12 +477,12 @@ namespace dynamic_gap
 
             bool artificial_ = false;
 
-            float leftWeight_, rightWeight_;
+            float leftWeight_ = 0.0, rightWeight_ = 0.0;
             Eigen::MatrixXd leftRightCenters_, allCurvePts_;
             Eigen::Vector4f splineXCoefs_, splineYCoefs_;
 
             Eigen::Vector2d leftPt0_, leftPt1_, rightPt0_, rightPt1_;
-            int numLeftRGEPoints_, numRightRGEPoints_;
+            int numLeftRGEPoints_ = 0, numRightRGEPoints_ = 0;
 
         private:
 

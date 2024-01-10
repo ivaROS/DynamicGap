@@ -50,15 +50,10 @@ namespace dynamic_gap
             // dynamic_gap::TrajPlan trajGen(geometry_msgs::PoseArray);
             
         private:
-            // Eigen::Matrix2cf getComplexMatrix(float, float, float, float);
-            Eigen::Matrix2cf getComplexMatrix(float x, float y, float theta);
-            float dist2Pose(float theta, float dist, geometry_msgs::Pose pose);
+            Eigen::Matrix2cf getComplexMatrix(const float & x, const float & y, const float & theta);
+            float dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose);
 
-            // std::vector<geometry_msgs::Point> findLocalLine(int idx);
-            float polDist(float l1, float t1, float l2, float t2);
-
-            bool leqThres(const float dist);
-            bool geqThres(const float dist);
+            float polDist(const float & l1, const float & t1, const float & l2, const float & t2);
 
             void runProjectionOperator(const sensor_msgs::LaserScan & scan, 
                                         const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
@@ -72,7 +67,7 @@ namespace dynamic_gap
                                     const Eigen::Vector2f & currRbtAcc,
                                     float & velLinXSafe, float & velLinYSafe, float & PsiCBF);
             void clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback);
-            void visualizeProjectionOperator(float weightedVelLinXSafe, float weightedVelLinYSafe);
+            void visualizeProjectionOperator(const float & weightedVelLinXSafe, const float & weightedVelLinYSafe);
 
 
             float rightGapSideCBF(const Eigen::Vector4f & state);

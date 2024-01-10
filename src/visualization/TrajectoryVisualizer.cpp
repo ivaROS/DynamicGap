@@ -13,9 +13,9 @@ namespace dynamic_gap
         globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
     }
 
-    void TrajectoryVisualizer::drawTrajectorySwitchCount(int trajSwitchIndex, const geometry_msgs::PoseArray & chosenTraj) 
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const geometry_msgs::PoseArray & chosenTraj) 
     {
-        geometry_msgs::Pose lastTrajPose = (chosenTraj.poses.size() > 0) ? chosenTraj.poses[chosenTraj.poses.size() - 1] : 
+        geometry_msgs::Pose lastTrajPose = (chosenTraj.poses.size() > 0) ? chosenTraj.poses.back() : 
                                                                             geometry_msgs::Pose();
 
         visualization_msgs::Marker trajSwitchIdxMarker;

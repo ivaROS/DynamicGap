@@ -33,11 +33,10 @@ namespace dynamic_gap
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             // void updateTF(geometry_msgs::TransformStamped tf) {planning2odom = tf;};
             
-            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap& selectedGap, 
+            std::tuple<geometry_msgs::PoseArray, std::vector<float>> generateTrajectory(dynamic_gap::Gap * selectedGap, 
                                                                                         const geometry_msgs::PoseStamped & currPose, 
                                                                                         const geometry_msgs::TwistStamped & currVel,
-                                                                                        bool runGoToGoal);
-            // std::vector<geometry_msgs::PoseArray> generateTrajectory(std::vector<dynamic_gap::Gap>);
+                                                                                        const bool & runGoToGoal);
             geometry_msgs::PoseArray transformLocalTrajectory(const geometry_msgs::PoseArray & path,
                                                               const geometry_msgs::TransformStamped & transform,
                                                               const std::string & sourceFrame,
@@ -45,28 +44,29 @@ namespace dynamic_gap
             std::tuple<geometry_msgs::PoseArray, std::vector<float>> processTrajectory(const std::tuple<geometry_msgs::PoseArray, std::vector<float>> & traj);
 
         private: 
-            void initializeSolver(OsqpEigen::Solver & solver, int Kplus1, const Eigen::MatrixXd & A);
+            void initializeSolver(OsqpEigen::Solver & solver, const int & Kplus1, const Eigen::MatrixXd & A);
 
             float calculateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
                                                     const Eigen::Vector2d & bezierPt1, 
                                                     const Eigen::Vector2d & bezierPt2, 
-                                                    float tStart, float tEnd, float numPoints);
+                                                    const float & tStart, const float & tEnd, 
+                                                    const float & numPoints);
 
             Eigen::VectorXd arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
                                                         const Eigen::Vector2d & bezierPt1, 
                                                         const Eigen::Vector2d & bezierPt2, 
-                                                        float num_curve_points, 
+                                                        const float & num_curve_points, 
                                                         float & des_dist_interval);        
 
-            void buildExtendedGapOrigin(const int numRGEPoints,
+            void buildExtendedGapOrigin(const int & numRGEPoints,
                                         const Eigen::Vector2d & extendedGapOrigin,
                                         const Eigen::Vector2d & bezierOrigin,
                                         Eigen::MatrixXd & curvePosns,
                                         Eigen::MatrixXd & curveVels,
                                         Eigen::MatrixXd & curveInwardNorms,
-                                        bool left);
-            void buildBezierCurve(const int numRGEPoints,
-                                    const int totalNumCurvePts,
+                                        const bool & left);
+            void buildBezierCurve(const int & numRGEPoints,
+                                    const int & totalNumCurvePts,
                                     const Eigen::VectorXd & arclengthParameters,
                                     const Eigen::Vector2d & bezierOrigin,
                                     const Eigen::Vector2d & bezierInitialPt,
@@ -74,19 +74,26 @@ namespace dynamic_gap
                                     Eigen::MatrixXd & curvePosns,
                                     Eigen::MatrixXd & curveVels,
                                     Eigen::MatrixXd & curveInwardNorms,
-                                    bool left);
-            void buildExtendedBezierCurve(dynamic_gap::Gap & selectedGap, 
+                                    const bool & left);
+            void buildExtendedBezierCurve(dynamic_gap::Gap * selectedGap, 
                                             Eigen::MatrixXd & gapCurvesPosns,
                                             Eigen::MatrixXd & gapCurvesInwardNorms, 
                                             Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
-                                            const Eigen::Vector2d & leftGapPtVel, const Eigen::Vector2d & rightGapPtVel, const Eigen::Vector2d & maxRbtVel,
-                                            const Eigen::Vector2d & leftCurveInitPt, const Eigen::Vector2d & leftCurveTermPt, 
-                                            const Eigen::Vector2d & rightCurveInitPt, const Eigen::Vector2d & rightCurveTermPt, 
+                                            const Eigen::Vector2d & leftGapPtVel, 
+                                            const Eigen::Vector2d & rightGapPtVel, 
+                                            const Eigen::Vector2d & maxRbtVel,
+                                            const Eigen::Vector2d & leftCurveInitPt, 
+                                            const Eigen::Vector2d & leftCurveTermPt, 
+                                            const Eigen::Vector2d & rightCurveInitPt, 
+                                            const Eigen::Vector2d & rightCurveTermPt, 
                                             const Eigen::Vector2d & gapGoalTermPt, 
-                                            float leftBezierWeight, float rightBezierWeight, 
-                                            float numCurvePts, int numLeftRGEPoints, int numRightRGEPoints,
+                                            float & leftBezierWeight, 
+                                            float & rightBezierWeight, 
+                                            const float & numCurvePts, 
+                                            int & numLeftRGEPoints, 
+                                            int & numRightRGEPoints,
                                             const Eigen::Vector2d & initRbtPos);
-            void setConstraintMatrix(Eigen::MatrixXd &A, int N, int Kplus1, 
+            void setConstraintMatrix(Eigen::MatrixXd &A, const int & N, const int & Kplus1, 
                                      const Eigen::MatrixXd & gapCurvesPosns, 
                                      const Eigen::MatrixXd & gapCurvesInwardNorms,
                                      const Eigen::MatrixXd & allAHPFCenters);

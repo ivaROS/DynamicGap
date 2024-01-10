@@ -19,27 +19,32 @@ namespace dynamic_gap
     {
         public: 
             GapManipulator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
-            GapManipulator& operator=(GapManipulator & other) {cfg_ = other.cfg_; return *this; };
-            GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
+            // GapManipulator& operator=(GapManipulator & other) {cfg_ = other.cfg_; return *this; };
+            // GapManipulator(const GapManipulator &t) {cfg_ = t.cfg_;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const>);
-            void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
-            void updateDynamicEgoCircle(dynamic_gap::Gap&,
+            // void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
+            void updateDynamicEgoCircle(dynamic_gap::Gap * gap,
                                         const std::vector<sensor_msgs::LaserScan> &);
 
-            void setGapWaypoint(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localgoal, bool initial); //, sensor_msgs::LaserScan const dynamic_laser_scan);
-            void setTerminalGapWaypoint(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localgoal);
+            void setGapWaypoint(dynamic_gap::Gap * gap, 
+                                const geometry_msgs::PoseStamped & localgoal, 
+                                const bool & initial); 
+            void setTerminalGapWaypoint(dynamic_gap::Gap * gap, 
+                                        const geometry_msgs::PoseStamped & localgoal);
             
-            void reduceGap(dynamic_gap::Gap& gap, const geometry_msgs::PoseStamped & localGoal, bool initial); //), sensor_msgs::LaserScan const);
-            void convertRadialGap(dynamic_gap::Gap& gap, bool initial); //, sensor_msgs::LaserScan const);
-            void radialExtendGap(dynamic_gap::Gap& gap, bool initial); //, sensor_msgs::LaserScan const);
-            void inflateGapSides(dynamic_gap::Gap& gap, bool initial);
+            void reduceGap(dynamic_gap::Gap * gap, 
+                            const geometry_msgs::PoseStamped & localGoal, 
+                            const bool & initial); //), sensor_msgs::LaserScan const);
+            void convertRadialGap(dynamic_gap::Gap * gap, const bool & initial); //, sensor_msgs::LaserScan const);
+            void radialExtendGap(dynamic_gap::Gap * gap, const bool & initial); //, sensor_msgs::LaserScan const);
+            void inflateGapSides(dynamic_gap::Gap * gap, const bool & initial);
 
         private:
             bool checkWaypointVisibility(const Eigen::Vector2f & leftPt, const Eigen::Vector2f & rightPt,
                                                 const Eigen::Vector2f & globalPathLocalWaypoint);
-            float setBiasedGapGoalTheta(float leftTheta, float rightTheta, float globalPathLocalWaypointTheta,
-                                        float leftToRightAngle, float rightToGoalAngle, float leftToGoalAngle);
+            float setBiasedGapGoalTheta(const float & leftTheta, const float & rightTheta, const float & globalPathLocalWaypointTheta,
+                                        const float & leftToRightAngle, const float & rightToGoalAngle, const float & leftToGoalAngle);
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
             sensor_msgs::LaserScan staticScan_, dynamicScan_;
             const DynamicGapConfig* cfg_;

@@ -25,8 +25,8 @@ namespace dynamic_gap
     {
         public: 
             GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
-            GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
+            // GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
+            // GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
             // Map Frame
             void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPath);
@@ -42,23 +42,19 @@ namespace dynamic_gap
             const DynamicGapConfig* cfg_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr_;
             std::vector<geometry_msgs::PoseStamped> globalPlanMapFrame_;
-            // std::vector<geometry_msgs::PoseStamped> mod_plan;
             geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; // Robot Frame
             boost::mutex goalSelectMutex_;
             boost::mutex scanMutex_;
             boost::mutex globalPlanMutex_;
 
-            // float threshold = 3;
-
             // If distance to robot is within
             bool isNotWithin(const float dist);
+
             // Pose to robot, when all in rbt frames
             float poseNorm(const geometry_msgs::PoseStamped & pose);
             float calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose);
             int poseIdxInScan(const geometry_msgs::PoseStamped & pose);
             float getPoseOrientation(const geometry_msgs::PoseStamped & pose);
-            // bool poseVisible(geometry_msgs::PoseStamped pose);
-            // bool poseNotVisible(geometry_msgs::PoseStamped pose);
 
     };
 }

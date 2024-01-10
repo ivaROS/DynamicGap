@@ -6,12 +6,12 @@ namespace dynamic_gap
 
     // Utils::~Utils() {}
 
-    int theta2idx(const float theta)
+    int theta2idx(const float & theta)
     {
         return int((theta + M_PI) / angle_increment);
     }
 
-    float idx2theta(const int idx)
+    float idx2theta(const int & idx)
     {
         return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
@@ -41,7 +41,7 @@ namespace dynamic_gap
     // FROM GAP_MANIPULATOR
     float getLeftToRightAngle(const Eigen::Vector2f & leftVect,
                               const Eigen::Vector2f & rightVect, 
-                              bool wrap) 
+                              const bool & wrap) 
     {
         float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
         float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
@@ -77,7 +77,7 @@ namespace dynamic_gap
 
     // TODO: pretty print for function vector to string
 
-    float atanThetaWrap(float theta) 
+    float atanThetaWrap(const float & theta) 
     {
         float wrappedTheta = theta;
         while (wrappedTheta <= -M_PI) 
@@ -101,12 +101,12 @@ namespace dynamic_gap
                             1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
     }
 
-    int subtractAndWrapScanIndices(int a, int b) 
+    int subtractAndWrapScanIndices(const int & a, const int & b) 
     {
         return (a < 0) ? a+b : a;
     }
 
-    bool isGlobalPathLocalWaypointWithinGapAngle(int goalIdx, int lowerIdx, int upperIdx) 
+    bool isGlobalPathLocalWaypointWithinGapAngle(const int & goalIdx, const int & lowerIdx, const int & upperIdx) 
     {
         if (lowerIdx < upperIdx) 
         {
@@ -119,8 +119,42 @@ namespace dynamic_gap
         }
     }
 
-    int signum(float value) 
+    int signum(const float & value) 
     {
         return (value < 0 ? -1 : 1);
     }
+
+    // to avoid dividing by zero
+    float epsilonDivide(const float & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2f epsilonDivide(const Eigen::Vector2f & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2d epsilonDivide(const Eigen::Vector2d & numerator, const double & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }    
+
+    Eigen::Vector2f unitNorm(const Eigen::Vector2f & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    Eigen::Vector2d unitNorm(const Eigen::Vector2d & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    float timeTaken(const std::chrono::steady_clock::time_point & startTime)
+    {
+        float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
+        float timeTakenInSeconds = timeTakenInMilliseconds / 1.0e6;
+        return timeTakenInSeconds;
+    }
+
 }
