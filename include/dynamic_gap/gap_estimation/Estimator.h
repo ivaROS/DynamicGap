@@ -54,7 +54,7 @@ namespace dynamic_gap
             virtual void transfer(const Estimator & placeholder) = 0;
 
             virtual Eigen::Vector4f getState() = 0;
-            virtual Eigen::Vector4f getTrueState() = 0;
+            // virtual Eigen::Vector4f getTrueState() = 0;
             virtual geometry_msgs::TwistStamped getRobotVel() = 0;
             virtual void isolateGapDynamics() = 0;
             virtual Eigen::Vector4f getGapState() = 0;

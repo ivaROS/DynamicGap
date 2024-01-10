@@ -24,7 +24,7 @@
 
 namespace dynamic_gap 
 {
-    class StaticEstimator : public Estimator 
+    class PerfectEstimator : public Estimator 
     {
         private:
             void processEgoRobotVelsAndAccs(const ros::Time & t_update);
@@ -34,25 +34,17 @@ namespace dynamic_gap
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
+            Eigen::Vector4f frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
-
-            float life_time, start_time;
 
             std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
                                               previous_ego_accels, previous_ego_vels, previous_times,
                                               previous_gap_only_states, vel_euler_derivatives;
-            float life_time_threshold;
             Eigen::Matrix4f eyes;
             std::string plot_dir;
 
             std::vector<geometry_msgs::Pose> agentPoses_;
             std::vector<geometry_msgs::Vector3Stamped> agentVels_;
-
-            bool perfect;
-            bool print;
-            bool plot;
-            bool plotted;
 
             ros::Time t_last_update;
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
@@ -62,18 +54,17 @@ namespace dynamic_gap
 
         public:
 
-            StaticEstimator(const std::string & side, const int & modelID, 
+            PerfectEstimator();
+
+            void initialize(const std::string & side, const int & modelID, 
                             const float & gapPtX, const float & gapPtY,
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
-
-            void initialize(const float & gapPtX, const float & gapPtY,
-                            const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                            const geometry_msgs::TwistStamped & lastRbtAcc);
+            void transfer(const Estimator & placeholder);
 
             Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();
-            Eigen::Vector4f getTrueState();
+            // Eigen::Vector4f getTrueState();
 
             Eigen::Vector4f getGapState();
             Eigen::Vector4f getRewindGapState();

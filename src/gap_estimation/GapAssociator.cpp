@@ -195,7 +195,7 @@ namespace dynamic_gap
 		if (i % 2 == 0) 
 		{   // curr left
 			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
-			// currentGaps.at(currentGapIdx)->leftGapPtModel = new dynamic_gap::StaticEstimator("left", currentModelIdx_, init_r, init_beta, 
+			// currentGaps.at(currentGapIdx)->leftGapPtModel = new dynamic_gap::PerfectEstimator("left", currentModelIdx_, init_r, init_beta, 
 			// 			
 			// delete currentGaps.at(currentGapIdx)->leftGapPtModel_; 																						
 			currentGaps.at(currentGapIdx)->leftGapPtModel_->initialize("left", currentModelIdx_, gapPtX, gapPtY, 
@@ -203,7 +203,7 @@ namespace dynamic_gap
 		} else 
 		{
 			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
-			// currentGaps.at(currentGapIdx)->rightGapPtModel_= new dynamic_gap::StaticEstimator("right", currentModelIdx_, init_r, init_beta, 
+			// currentGaps.at(currentGapIdx)->rightGapPtModel_= new dynamic_gap::PerfectEstimator("right", currentModelIdx_, init_r, init_beta, 
 			// 																						scanTime, lastRbtVel, lastRbtAcc);
 			// delete currentGaps.at(currentGapIdx)->rightGapPtModel_;
 			currentGaps.at(currentGapIdx)->rightGapPtModel_->initialize("right", currentModelIdx_, gapPtX, gapPtY,

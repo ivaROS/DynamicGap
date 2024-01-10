@@ -33,36 +33,17 @@ namespace dynamic_gap
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
+            Eigen::Vector4f frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
             float life_time = 0.0, start_time = 0.0;
 
-            // std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
-            //                                   previous_ego_accels, previous_ego_vels, previous_times,
-            //                                   previous_gap_only_states, vel_euler_derivatives;
-            // float life_time_threshold;
-
             std::vector<geometry_msgs::Pose> agentPoses_;
             std::vector<geometry_msgs::Vector3Stamped> agentVels_;
-
-            bool perfect = false;
-            // bool plot = false;
-            // bool plotted = false;
-            // std::string plot_dir;
-
-            // std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            // std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            // geometry_msgs::TwistStamped lastRbtVel_;
-            // geometry_msgs::TwistStamped lastRbtAcc_;
 
         public:
 
             RotatingFrameCartesianKalmanFilter();
-            // RotatingFrameCartesianKalmanFilter(float, float, const ros::Time & t_update,
-            //             const geometry_msgs::TwistStamped & lastRbtVel,
-            //             const geometry_msgs::TwistStamped & lastRbtAcc);
-            // RotatingFrameCartesianKalmanFilter(const Estimator & model);
 
             ~RotatingFrameCartesianKalmanFilter();
 
@@ -72,15 +53,12 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
             void transfer(const Estimator & placeholder);
 
-            Eigen::Vector4f update_ground_truth_cartesian_state();
+            // Eigen::Vector4f update_ground_truth_cartesian_state();
             Eigen::Vector4f getState();
-            Eigen::Vector4f getTrueState();
+            // Eigen::Vector4f getTrueState();
             
             Eigen::Vector4f getGapState();
             Eigen::Vector4f getRewindGapState();
-            // Eigen::Vector4f get_modified_polar_state();
-            // Eigen::Vector4f get_frozen_modified_polar_state();
-            // Eigen::Vector4f get_rewind_modified_polar_state();
 
             Eigen::Vector2f get_x_tilde();
 

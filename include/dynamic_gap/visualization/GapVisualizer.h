@@ -28,7 +28,7 @@ namespace dynamic_gap
             //                                 dynamic_gap::Gap * gap, std::string ns);
 
             void drawModel(visualization_msgs::Marker & modelMarker, 
-                            dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns, const bool & ground_truth);
+                            dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns);
             // void draw_model_vel_error(visualization_msgs::Marker & model_vel_error_pt, visualization_msgs::Marker modelMarker, 
             //                             dynamic_gap::Gap * gap, bool left, std::string ns);
 

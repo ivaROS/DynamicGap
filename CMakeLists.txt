@@ -83,7 +83,7 @@ add_library(${PROJECT_NAME}
   src/config/DynamicGapConfig.cpp
   src/gap_detection/GapDetector.cpp
   src/gap_estimation/GapAssociator.cpp
-  src/gap_estimation/StaticEstimator.cpp
+  src/gap_estimation/PerfectEstimator.cpp
   src/gap_estimation/RotatingFrameCartesianKalmanFilter.cpp
   src/gap_feasibility/GapFeasibilityChecker.cpp
   src/goal_management/GoalSelector.cpp

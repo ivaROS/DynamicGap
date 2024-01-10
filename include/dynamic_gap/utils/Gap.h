@@ -10,7 +10,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
-#include <dynamic_gap/gap_estimation/StaticEstimator.h>
+#include <dynamic_gap/gap_estimation/PerfectEstimator.h>
 
 namespace dynamic_gap
 {

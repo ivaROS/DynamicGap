@@ -574,17 +574,16 @@ namespace dynamic_gap
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
-        bool groundTruth = false;
 
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
         // visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
-        drawModel(leftModelMarker, gap, left, id, ns, groundTruth);
+        drawModel(leftModelMarker, gap, left, id, ns);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
         // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
-        drawModel(rightModelMarker, gap, !left, id, ns, groundTruth);
+        drawModel(rightModelMarker, gap, !left, id, ns);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
         // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
@@ -607,8 +606,7 @@ namespace dynamic_gap
     */    
 
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
-                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns,
-                                    const bool & groundTruth) 
+                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();
@@ -617,8 +615,8 @@ namespace dynamic_gap
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f leftModelState = (groundTruth) ? gap->leftGapPtModel_->getTrueState() : gap->leftGapPtModel_->getState();
-        Eigen::Vector4f rightModelState = (groundTruth) ? gap->rightGapPtModel_->getTrueState() : gap->rightGapPtModel_->getState();
+        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getState();
+        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getState();
            
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)
