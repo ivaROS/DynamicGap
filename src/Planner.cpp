@@ -885,10 +885,10 @@ namespace dynamic_gap
             std::vector<std::vector<float>> pathPoseScores(2);
             pathPoseScores.at(0) = incomingPathPoseScores;
             pathPoseScores.at(1) = currentPathPoseScores;
-            std::vector<dynamic_gap::Trajectory> trajs(2);
-            trajs.at(0) = incomingTraj;
-            trajs.at(1) = reducedCurrentTraj;
-            trajVisualizer_->drawGapTrajectoryPoseScores(trajs, pathPoseScores);
+            // std::vector<dynamic_gap::Trajectory> trajs(2);
+            // trajs.at(0) = incomingTraj;
+            // trajs.at(1) = reducedCurrentTraj;
+            // trajVisualizer_->drawGapTrajectoryPoseScores(trajs, pathPoseScores);
 
             
             if (currentPathSubscore == -std::numeric_limits<float>::infinity()) 

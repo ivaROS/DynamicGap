@@ -6,6 +6,7 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
+#include <numeric>
 #include <map>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>

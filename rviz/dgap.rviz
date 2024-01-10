@@ -7,15 +7,13 @@ Panels:
         - /Global Options1
         - /Map1
         - /Egorobot Data1
-        - /Egorobot Data1/LaserScan1
-        - /Egorobot Data1/Axes1
-        - /Egorobot Data1/LaserScan2
         - /Dynamic Gap1
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/MarkerArray4
         - /Dynamic Gap1/Trajectories1
+        - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/Marker1
-        - /Dynamic Gap1/Marker1
+        - /MarkerArray2
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -157,7 +155,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -173,7 +171,7 @@ Visualization Manager:
               Marker Topic: /goals
               Name: Marker
               Namespaces:
-                {}
+                local_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -181,7 +179,7 @@ Visualization Manager:
               Marker Topic: /manip_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -201,7 +199,7 @@ Visualization Manager:
               Marker Topic: /dg_model_vel
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -229,7 +227,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -271,17 +269,17 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /gap_splines
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Marker
@@ -560,6 +558,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /traj_score
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -588,7 +594,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 45.8775749206543
+      Distance: 16.623872756958008
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -596,9 +602,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -4.615814208984375
-        Y: -1.5393234491348267
-        Z: -4.268575668334961
+        X: -4.923227787017822
+        Y: -1.4853092432022095
+        Z: -4.268881797790527
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
