@@ -4,24 +4,16 @@ namespace dynamic_gap
 {
     ////////////////// GAP DETECTION ///////////////////////
     
-    /**
-     * Checking if scan distance registers an obstacle (finite range value)
-    **/
-    bool GapDetector::isFinite(const float & rayDist)
+    bool GapDetector::isFinite(const float & range)
     {
-        return rayDist < maxScanDist_;
+        return range < maxScanDist_;
     }
 
-    /**
-     * Determining if swept gap has either started (finite scan --> infinite scan)
-     * or ended (infinite scan --> finite scan)
-    **/
-    bool GapDetector::sweptGapStartedOrEnded(const float & currRayDist, const float & prevRayDist)
+    bool GapDetector::sweptGapStartedOrEnded(const float & currRange, const float & prevRange)
     {
-        return isFinite(prevRayDist) != isFinite(currRayDist);
+        return isFinite(prevRange) != isFinite(currRange);
     }
 
-    // Checking if swept gap is either very large, or if robot can fit within gap (precondition to swept gap)
     bool GapDetector::sweptGapSizeCheck(dynamic_gap::Gap * gap)
     {
         bool largeGap = gap->LIdx() - gap->RIdx() > (3 * halfScanRayCount_ / 2);
@@ -30,14 +22,15 @@ namespace dynamic_gap
         return largeGap || canRobotFit;
     }
 
-    // Checking if robot can fit between gap between consecutive scan points (precondition to radial gap)
-    bool GapDetector::radialGapSizeCheck(const float & currRayDist, const float & prevRayDist, const float & gapAngle)
+    bool GapDetector::radialGapSizeCheck(const float & currRange, 
+                                         const float & prevRange, 
+                                         const float & gapAngle)
     {
-        if (!(prevRayDist < maxScanDist_ && currRayDist < maxScanDist_))
+        if (!(prevRange < maxScanDist_ && currRange < maxScanDist_))
             return false;
 
         // Euclidean distance between current and previous points
-        float consecScanPointDist = sqrt(pow(prevRayDist, 2) + pow(currRayDist, 2) - 2 * prevRayDist * currRayDist * cos(gapAngle));
+        float consecScanPointDist = sqrt(pow(prevRange, 2) + pow(currRange, 2) - 2 * prevRange * currRange * cos(gapAngle));
 
         bool canRobotFit = consecScanPointDist > 3 * cfg_->rbt.r_inscr;
         
@@ -54,7 +47,7 @@ namespace dynamic_gap
     }
 
     std::vector<dynamic_gap::Gap *> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
-                                                            geometry_msgs::PoseStamped globalGoalRbtFrame)
+                                                                const geometry_msgs::PoseStamped & globalGoalRbtFrame)
     {
         std::vector<dynamic_gap::Gap *> rawGaps;
 
@@ -79,20 +72,20 @@ namespace dynamic_gap
             float gapRDist = scan_.ranges.at(0);
             // last as in previous scan
             bool withinSweptGap = gapRDist >= maxScanDist_;
-            float currRayDist = scan_.ranges.at(0);
-            float prevRayDist = currRayDist;
+            float currRange = scan_.ranges.at(0);
+            float prevRange = currRange;
 
             // iterating through scan
             for (unsigned int it = 1; it < fullScanRayCount_; ++it)
             {
-                currRayDist = scan_.ranges.at(it);
-                ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRayDist);
+                currRange = scan_.ranges.at(it);
+                ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRange);
 
-                if (radialGapSizeCheck(currRayDist, prevRayDist, scan_.angle_increment)) 
+                if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
                 {
                     // initializing a radial gap
-                    dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, it - 1, prevRayDist, true, minScanDist_);
-                    gap->addLeftInformation(it, currRayDist);
+                    dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, it - 1, prevRange, true, minScanDist_);
+                    gap->addLeftInformation(it, currRange);
 
                     rawGaps.push_back(gap);
 
@@ -100,14 +93,14 @@ namespace dynamic_gap
                 }
 
                 // Either previous distance finite and current distance infinite or vice-versa, 
-                if (sweptGapStartedOrEnded(currRayDist, prevRayDist))
+                if (sweptGapStartedOrEnded(currRange, prevRange))
                 {
                     if (withinSweptGap) // Signals the ending of a gap
                     {
                         withinSweptGap = false;                    
                         ROS_INFO_STREAM_NAMED("GapDetector", "    gap ending: infinity to finite");
                         dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
-                        gap->addLeftInformation(it, currRayDist);
+                        gap->addLeftInformation(it, currRange);
 
                         //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
                         // Inscribed radius gets enforced here, or unless using inflated egocircle, then no need for range diff
@@ -126,12 +119,12 @@ namespace dynamic_gap
                     {
                         ROS_INFO_STREAM_NAMED("GapDetector", "gap starting: finite to infinity");
                         gapRIdx = it - 1;
-                        gapRDist = prevRayDist;
+                        gapRDist = prevRange;
                         withinSweptGap = true;
                     }
 
                 }
-                prevRayDist = currRayDist;
+                prevRange = currRange;
             }
 
             // Catch the last gap (could be in the middle of a swept gap when laser scan ends)
@@ -170,7 +163,7 @@ namespace dynamic_gap
             
             // if terminal_goal within laserscan and not within a gap, create a gap
             int globalGoalScanIdx;
-            if (isGlobalGoalWithinGap(globalGoalRbtFrame, globalGoalScanIdx))
+            if (isGlobalGoalWithinScan(globalGoalRbtFrame, globalGoalScanIdx))
                 addGapForGlobalGoal(globalGoalScanIdx, rawGaps);
         } catch (...)
         {
@@ -180,7 +173,7 @@ namespace dynamic_gap
         return rawGaps;
     }
 
-    bool GapDetector::isGlobalGoalWithinGap(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
+    bool GapDetector::isGlobalGoalWithinScan(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
                                             int & globalGoalScanIdx)
     {
         float finalGoalDist = sqrt(pow(globalGoalRbtFrame.pose.position.x, 2) + pow(globalGoalRbtFrame.pose.position.y, 2));
@@ -229,7 +222,6 @@ namespace dynamic_gap
 
     ////////////////// GAP SIMPLIFICATION ///////////////////////
 
-    // iterating backwards through simplified gaps to see if/where they can be merged
     int GapDetector::checkSimplifiedGapsMergeability(dynamic_gap::Gap * rawGap, 
                                                      const std::vector<dynamic_gap::Gap *> & simplifiedGaps)
     {
