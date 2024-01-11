@@ -13,7 +13,7 @@
 
 namespace dynamic_gap 
 {
-	std::vector< std::vector<float>> obtainGapPoints(const std::vector<dynamic_gap::Gap *> & gaps) 
+	std::vector< std::vector<float>> GapAssociator::obtainGapPoints(const std::vector<dynamic_gap::Gap *> & gaps) 
 	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
@@ -179,7 +179,7 @@ namespace dynamic_gap
 
 	void GapAssociator::instantiateNewModel(const int & i,
 											const std::vector<dynamic_gap::Gap *> & currentGaps, 
-											int & currentModelIdx_,
+											int & currentModelIdx,
 											const ros::Time & scanTime,
 									 		const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
                       				 		const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs)
@@ -195,37 +195,35 @@ namespace dynamic_gap
 		if (i % 2 == 0) 
 		{   // curr left
 			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
-			// currentGaps.at(currentGapIdx)->leftGapPtModel = new dynamic_gap::PerfectEstimator("left", currentModelIdx_, init_r, init_beta, 
+			// currentGaps.at(currentGapIdx)->leftGapPtModel = new dynamic_gap::PerfectEstimator("left", currentModelIdx, init_r, init_beta, 
 			// 			
 			// delete currentGaps.at(currentGapIdx)->leftGapPtModel_; 																						
-			currentGaps.at(currentGapIdx)->leftGapPtModel_->initialize("left", currentModelIdx_, gapPtX, gapPtY, 
+			currentGaps.at(currentGapIdx)->leftGapPtModel_->initialize("left", currentModelIdx, gapPtX, gapPtY, 
 																			scanTime, lastRbtVel, lastRbtAcc);				
 		} else 
 		{
 			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
-			// currentGaps.at(currentGapIdx)->rightGapPtModel_= new dynamic_gap::PerfectEstimator("right", currentModelIdx_, init_r, init_beta, 
+			// currentGaps.at(currentGapIdx)->rightGapPtModel_= new dynamic_gap::PerfectEstimator("right", currentModelIdx, init_r, init_beta, 
 			// 																						scanTime, lastRbtVel, lastRbtAcc);
 			// delete currentGaps.at(currentGapIdx)->rightGapPtModel_;
-			currentGaps.at(currentGapIdx)->rightGapPtModel_->initialize("right", currentModelIdx_, gapPtX, gapPtY,
+			currentGaps.at(currentGapIdx)->rightGapPtModel_->initialize("right", currentModelIdx, gapPtX, gapPtY,
 																			scanTime, lastRbtVel, lastRbtAcc);				
 		}
-		currentModelIdx_ += 1;
+		currentModelIdx += 1;
 	}
 
-	void GapAssociator::handOffModel(const int & i,
+	void GapAssociator::handOffModel(const std::vector<int> & pair,
 									 const std::vector<dynamic_gap::Gap *> & currentGaps, 
-									 const std::vector<dynamic_gap::Gap *> & previousGaps,
-									 const std::vector<int> & pair)
+									 const std::vector<dynamic_gap::Gap *> & previousGaps)
 	{
 		ROS_INFO_STREAM_NAMED("GapAssociator", "					[handOffModel()]");
-		int currentGapIdx = int(std::floor(i / 2.0));
+		int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
 		int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
 		ROS_INFO_STREAM_NAMED("GapAssociator", "					currentGapIdx: " << currentGapIdx << ", previousGapIdx: " << previousGapIdx);
 
 		if (pair.at(0) % 2 == 0)  // curr left
 		{
 			ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering left");
-			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
 			currentGaps.at(currentGapIdx)->leftGapPtModel_->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 																			  				*previousGaps.at(previousGapIdx)->rightGapPtModel_);			
 			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPtModel_ :
@@ -233,7 +231,6 @@ namespace dynamic_gap
 		} else // curr right
 		{
 			ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering right");
-			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = new dynamic_gap::RotatingFrameCartesianKalmanFilter();		
 			currentGaps.at(currentGapIdx)->rightGapPtModel_->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 																			   				 *previousGaps.at(previousGapIdx)->rightGapPtModel_);		
 			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPtModel_ :
@@ -259,7 +256,7 @@ namespace dynamic_gap
 									 const std::vector<std::vector<float>> & distMatrix, 
 									 std::vector<dynamic_gap::Gap *> & currentGaps, 
 									 const std::vector<dynamic_gap::Gap *> & previousGaps,
-									 int & currentModelIdx_,
+									 int & currentModelIdx,
                                      const ros::Time & scanTime, 
 									 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                       				 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs)
@@ -302,22 +299,22 @@ namespace dynamic_gap
 							ROS_INFO_STREAM_NAMED("GapAssociator", "				association meets distance threshold");
 							//std::cout << "associating" << std::endl;	
 							//std::cout << "distance under threshold" << std::endl;
-							handOffModel(i, currentGaps, previousGaps, pair);
+							handOffModel(pair, currentGaps, previousGaps);
 						} else
 						{
 							ROS_INFO_STREAM_NAMED("GapAssociator", "				association does not meet distance threshold");
-							instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);
+							instantiateNewModel(i, currentGaps, currentModelIdx, scanTime, intermediateRbtVels, intermediateRbtAccs);
 						}
 					} else // instantiate new model
 					{
 						ROS_INFO_STREAM_NAMED("GapAssociator","			current gap point not associated");
-						instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);				
+						instantiateNewModel(i, currentGaps, currentModelIdx, scanTime, intermediateRbtVels, intermediateRbtAccs);				
 					}
 					printGapTransition(currentGaps, previousGaps, distMatrix, pair, validAssociation);
 				} else
 				{
 					ROS_INFO_STREAM_NAMED("GapAssociator","			association does not exist");
-					instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);				
+					instantiateNewModel(i, currentGaps, currentModelIdx, scanTime, intermediateRbtVels, intermediateRbtAccs);				
 				}
 			}
 
@@ -344,8 +341,8 @@ namespace dynamic_gap
 
 			for (int i = 0; i < currentGapPoints.size(); i++) 
 			{
-				instantiateNewModel(i, currentGaps, currentModelIdx_, scanTime, intermediateRbtVels, intermediateRbtAccs);
-				// currentModelIdx_ += 1;
+				instantiateNewModel(i, currentGaps, currentModelIdx, scanTime, intermediateRbtVels, intermediateRbtAccs);
+				// currentModelIdx += 1;
 			}
 		}
 	}
