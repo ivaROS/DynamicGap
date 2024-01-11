@@ -66,23 +66,23 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
             void transfer(const Estimator & placeholder);
 
-            Eigen::Vector4f getState();
+            // Eigen::Vector4f getState();
             // Eigen::Vector4f getTrueState();
             
-            Eigen::Vector4f getGapState();
-            Eigen::Vector4f getRewindGapState();
+            // Eigen::Vector4f getGapState();
+            // Eigen::Vector4f getRewindGapState();
 
-            Eigen::Vector2f getXTilde();
+            // Eigen::Vector2f getXTilde();
 
-            geometry_msgs::TwistStamped getRobotVel();
+            // geometry_msgs::TwistStamped getRobotVel();
             Eigen::Vector4f integrate();
             void linearize(const int & idx);
             void discretizeQ(const int & idx);
 
-            void gapStatePropagate(const float & dt);
-            void rewindPropagate(const float & dt);
-            void isolateGapDynamics();
-            void setRewindState();
+            // void gapStatePropagate(const float & dt);
+            // void rewindPropagate(const float & dt);
+            // void isolateGapDynamics();
+            // void setRewindState();
 
             void update(const Eigen::Vector2f & measurement,
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
@@ -91,6 +91,6 @@ namespace dynamic_gap
                         const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                         const ros::Time & t_kf_update);
 
-            int getID();
+            // int getID();
      };
 }

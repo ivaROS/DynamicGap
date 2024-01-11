@@ -28,7 +28,7 @@ namespace dynamic_gap
 
     void PerfectEstimator::initialize(const std::string & side, const int & modelID,
                                       const float & gapPtX, const float & gapPtY,
-                                      const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
+                                      const ros::Time & tUpdate, const geometry_msgs::TwistStamped & lastRbtVel,
                                       const geometry_msgs::TwistStamped & lastRbtAcc) 
     {
         this->side_ = side;
@@ -37,14 +37,14 @@ namespace dynamic_gap
 
         this->lastRbtVel_ = lastRbtVel;
         this->lastRbtAcc_ = lastRbtAcc;
-        this->tLastUpdate_ = t_update;
+        this->tLastUpdate_ = tUpdate;
     }
 
     // For transferring an existing model state to a new model
-    void PerfectEstimator::transfer(const Estimator & model)
+    void PerfectEstimator::transfer(const Estimator & incomingModel)
     {
-        this->side_ = model.side_;
-        this->modelID_ = model.modelID_;
+        this->side_ = incomingModel.side_;
+        this->modelID_ = incomingModel.modelID_;
 
         ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
 
@@ -59,20 +59,20 @@ namespace dynamic_gap
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
-        this->P_kmin1_plus_ = model.P_kmin1_plus_;
-        this->P_k_minus_ = model.P_k_minus_;
-        this->P_k_plus_ = model.P_k_plus_;
+        this->P_kmin1_plus_ = incomingModel.P_kmin1_plus_;
+        this->P_k_minus_ = incomingModel.P_k_minus_;
+        this->P_k_plus_ = incomingModel.P_k_plus_;
 
-        this->lastRbtVel_ = model.lastRbtVel_;
-        this->lastRbtAcc_ = model.lastRbtAcc_;
-        this->tLastUpdate_ = model.tLastUpdate_;
+        this->lastRbtVel_ = incomingModel.lastRbtVel_;
+        this->lastRbtAcc_ = incomingModel.lastRbtAcc_;
+        this->tLastUpdate_ = incomingModel.tLastUpdate_;
 
-        // this->xTilde_ = model.xTilde_;
-        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
-        this->x_hat_k_minus_ = model.x_hat_k_minus_;
-        this->x_hat_k_plus_ = model.x_hat_k_plus_;
+        // this->xTilde_ = incomingModel.xTilde_;
+        this->x_hat_kmin1_plus_ = incomingModel.x_hat_kmin1_plus_;
+        this->x_hat_k_minus_ = incomingModel.x_hat_k_minus_;
+        this->x_hat_k_plus_ = incomingModel.x_hat_k_plus_;
 
-        this->G_k_ = model.G_k_;
+        this->G_k_ = incomingModel.G_k_;
 
         // this->A_ = model.A_;
         // this->STM_ = model.STM_;
@@ -82,7 +82,7 @@ namespace dynamic_gap
         return;
     }
 
-    void PerfectEstimator::processEgoRobotVelsAndAccs(const ros::Time & t_update)
+    void PerfectEstimator::processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
     {
         /*
         // Printing original dt values from intermediate odom measurements
@@ -93,7 +93,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
         }
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "   t_update" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (t_update - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
+        ROS_INFO_STREAM_NAMED("GapEstimation", "   tUpdate" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (tUpdate - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
         */
 
         // Tweaking ego robot velocities/acceleration to make sure that updates:
@@ -116,7 +116,7 @@ namespace dynamic_gap
         intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
 
         // Erasing odometry measurements that occur *after* the incoming laser scan was received
-        while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
+        while (!intermediateRbtVels_.empty() && tUpdate < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
         {
             intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
             intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
@@ -124,7 +124,7 @@ namespace dynamic_gap
 
         // Inserting placeholder odometry to represent the time that the incoming laser scan was received
         intermediateRbtVels_.push_back(intermediateRbtVels_.back());
-        intermediateRbtVels_.back().header.stamp = t_update;
+        intermediateRbtVels_.back().header.stamp = tUpdate;
 
         for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
         {
@@ -136,26 +136,26 @@ namespace dynamic_gap
         }
     }
 
-    void PerfectEstimator::isolateGapDynamics() 
-    {
-        Eigen::Vector4f cartesian_state = getState();
+    // void PerfectEstimator::isolateGapDynamics() 
+    // {
+    //     Eigen::Vector4f cartesian_state = getState();
         
-        // fixing position (otherwise can get bugs)
-        cartesian_state[0] = xTilde_[0];
-        cartesian_state[1] = xTilde_[1];
+    //     // fixing position (otherwise can get bugs)
+    //     cartesian_state[0] = xTilde_[0];
+    //     cartesian_state[1] = xTilde_[1];
 
-        // update cartesian
-        cartesian_state[2] += lastRbtVel_.twist.linear.x;
-        cartesian_state[3] += lastRbtVel_.twist.linear.y;
-        frozen_x = cartesian_state;
+    //     // update cartesian
+    //     cartesian_state[2] += lastRbtVel_.twist.linear.x;
+    //     cartesian_state[3] += lastRbtVel_.twist.linear.y;
+    //     frozen_x = cartesian_state;
 
-        //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
-    }
+    //     //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+    // }
 
-    void PerfectEstimator::setRewindState() 
-    {
-        rewind_x = frozen_x;
-    }
+    // void PerfectEstimator::setRewindState() 
+    // {
+    //     rewind_x = frozen_x;
+    // }
 
     void PerfectEstimator::rewindPropagate(const float & rew_dt) 
     {
@@ -198,33 +198,13 @@ namespace dynamic_gap
         new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*froz_dt;
         frozen_x = new_frozen_x; 
     }
-    
-
-    /*
-    Eigen::Vector4f PerfectEstimator::integrate() 
-    {
-        // ROS_INFO_STREAM_NAMED("GapEstimation", "INTEGRATING");
-        Eigen::Vector4f placeholder;
-        return placeholder;
-    }
-
-    void PerfectEstimator::linearize(const int & idx) 
-    {
-        return;
-    }
-
-    void PerfectEstimator::discretizeQ(const int & idx) 
-    {
-        return;
-    }
-    */
 
     void PerfectEstimator::update(const Eigen::Vector2f & measurement, 
                                  const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                  const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                                  const std::vector<geometry_msgs::Pose> & agentPoses,
                                  const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                 const ros::Time & t_update) 
+                                 const ros::Time & tUpdate) 
     {
         
         agentPoses_ = agentPoses;
@@ -258,7 +238,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
         ROS_INFO_STREAM_NAMED("GapEstimation", "current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
-        processEgoRobotVelsAndAccs(t_update);
+        processEgoRobotVelsAndAccs(tUpdate);
 
         xTilde_ = measurement;
 
@@ -269,7 +249,7 @@ namespace dynamic_gap
 
         x_hat_kmin1_plus_ = x_hat_k_plus_;
         P_kmin1_plus_ = P_k_plus_;
-        tLastUpdate_ = t_update;
+        tLastUpdate_ = tUpdate;
         
         if (intermediateRbtVels_.size() > 0)
             lastRbtVel_ = intermediateRbtVels_.back();
@@ -338,42 +318,40 @@ namespace dynamic_gap
     }
 
 
-    Eigen::Vector4f PerfectEstimator::getState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
+    // Eigen::Vector4f PerfectEstimator::getState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
 
-        return x_hat_k_plus_;
-    }
+    //     return x_hat_k_plus_;
+    // }
 
-    Eigen::Vector4f PerfectEstimator::getGapState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4f return_x = frozen_x;
-        return return_x;
-    }
+    // Eigen::Vector4f PerfectEstimator::getGapState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
+    //     return frozen_x;
+    // }
 
-    Eigen::Vector4f PerfectEstimator::getRewindGapState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4f return_x = rewind_x;
-        return return_x;
-    }
+    // Eigen::Vector4f PerfectEstimator::getRewindGapState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
+    //     return rewind_x;
+    // }
 
-    geometry_msgs::TwistStamped PerfectEstimator::getRobotVel() 
-    {
-        return lastRbtVel_;
-    }
+    // geometry_msgs::TwistStamped PerfectEstimator::getRobotVel() 
+    // {
+    //     return lastRbtVel_;
+    // }
 
-    int PerfectEstimator::getID() 
-    {
-        return modelID_;
-    }
+    // int PerfectEstimator::getID() 
+    // {
+    //     return modelID_;
+    // }
 
-    Eigen::Vector2f PerfectEstimator::getXTilde() 
-    {
-        return xTilde_;
-    }
+    // Eigen::Vector2f PerfectEstimator::getXTilde() 
+    // {
+    //     return xTilde_;
+    // }
 }

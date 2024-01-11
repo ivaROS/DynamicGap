@@ -205,69 +205,68 @@ namespace dynamic_gap
         }
     }
 
-    void RotatingFrameCartesianKalmanFilter::isolateGapDynamics() 
-    {
-        Eigen::Vector4f cartesian_state = getState();
+    // void RotatingFrameCartesianKalmanFilter::isolateGapDynamics() 
+    // {
+    //     Eigen::Vector4f cartesian_state = getState();
         
-        // fixing position (otherwise can get bugs)
-        cartesian_state[0] = xTilde_[0];
-        cartesian_state[1] = xTilde_[1];
+    //     // fixing position (otherwise can get bugs)
+    //     cartesian_state[0] = xTilde_[0];
+    //     cartesian_state[1] = xTilde_[1];
 
-        // update cartesian
-        cartesian_state[2] += lastRbtVel_.twist.linear.x;
-        cartesian_state[3] += lastRbtVel_.twist.linear.y;
-        frozen_x = cartesian_state;
+    //     // update cartesian
+    //     cartesian_state[2] += lastRbtVel_.twist.linear.x;
+    //     cartesian_state[3] += lastRbtVel_.twist.linear.y;
+    //     frozen_x = cartesian_state;
 
-        //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
-    }
+    //     //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
+    // }
 
-    void RotatingFrameCartesianKalmanFilter::setRewindState() 
-    {
-        rewind_x = frozen_x;
-    }
+    // void RotatingFrameCartesianKalmanFilter::setRewindState() 
+    // {
+    //     rewind_x = frozen_x;
+    // }
 
-    void RotatingFrameCartesianKalmanFilter::rewindPropagate(const float & rew_dt) 
-    {
-        Eigen::Vector4f new_rewind_x;     
-        new_rewind_x << 0.0, 0.0, 0.0, 0.0;
+    // void RotatingFrameCartesianKalmanFilter::rewindPropagate(const float & rew_dt) 
+    // {
+    //     Eigen::Vector4f new_rewind_x;     
+    //     new_rewind_x << 0.0, 0.0, 0.0, 0.0;
 
-        Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
+    //     Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
 
-        Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-        float frozen_ang_vel_ego = 0.0;
+    //     Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
+    //     float frozen_ang_vel_ego = 0.0;
 
-        float vdot_x_body = frozen_linear_acc_ego[0];
-        float vdot_y_body = frozen_linear_acc_ego[1];
+    //     float vdot_x_body = frozen_linear_acc_ego[0];
+    //     float vdot_y_body = frozen_linear_acc_ego[1];
 
-        // discrete euler update of state (ignoring rbt acceleration, set as 0)
-        new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*rew_dt;
-        new_rewind_x[1] = rewind_x[1] + (rewind_x[3] - rewind_x[0]*frozen_ang_vel_ego)*rew_dt;
-        new_rewind_x[2] = rewind_x[2] + (rewind_x[3]*frozen_ang_vel_ego - vdot_x_body)*rew_dt;
-        new_rewind_x[3] = rewind_x[3] + (-rewind_x[2]*frozen_ang_vel_ego - vdot_y_body)*rew_dt;
-        rewind_x = new_rewind_x; 
-    }
+    //     // discrete euler update of state (ignoring rbt acceleration, set as 0)
+    //     new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*rew_dt;
+    //     new_rewind_x[1] = rewind_x[1] + (rewind_x[3] - rewind_x[0]*frozen_ang_vel_ego)*rew_dt;
+    //     new_rewind_x[2] = rewind_x[2] + (rewind_x[3]*frozen_ang_vel_ego - vdot_x_body)*rew_dt;
+    //     new_rewind_x[3] = rewind_x[3] + (-rewind_x[2]*frozen_ang_vel_ego - vdot_y_body)*rew_dt;
+    //     rewind_x = new_rewind_x; 
+    // }
 
-    void RotatingFrameCartesianKalmanFilter::gapStatePropagate(const float & froz_dt) 
-    {
-        Eigen::Vector4f new_frozen_x;     
-        new_frozen_x << 0.0, 0.0, 0.0, 0.0;
+    // void RotatingFrameCartesianKalmanFilter::gapStatePropagate(const float & froz_dt) 
+    // {
+    //     Eigen::Vector4f new_frozen_x;     
+    //     new_frozen_x << 0.0, 0.0, 0.0, 0.0;
 
-        Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
+    //     Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
 
-        Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-        float frozen_ang_vel_ego = 0.0;
+    //     Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
+    //     float frozen_ang_vel_ego = 0.0;
 
-        float vdot_x_body = frozen_linear_acc_ego[0];
-        float vdot_y_body = frozen_linear_acc_ego[1];
+    //     float vdot_x_body = frozen_linear_acc_ego[0];
+    //     float vdot_y_body = frozen_linear_acc_ego[1];
 
-        // discrete euler update of state (ignoring rbt acceleration, set as 0)
-        new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*froz_dt;
-        new_frozen_x[1] = frozen_x[1] + (frozen_x[3] - frozen_x[0]*frozen_ang_vel_ego)*froz_dt;
-        new_frozen_x[2] = frozen_x[2] + (frozen_x[3]*frozen_ang_vel_ego - vdot_x_body)*froz_dt;
-        new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*froz_dt;
-        frozen_x = new_frozen_x; 
-    }
-    
+    //     // discrete euler update of state (ignoring rbt acceleration, set as 0)
+    //     new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*froz_dt;
+    //     new_frozen_x[1] = frozen_x[1] + (frozen_x[3] - frozen_x[0]*frozen_ang_vel_ego)*froz_dt;
+    //     new_frozen_x[2] = frozen_x[2] + (frozen_x[3]*frozen_ang_vel_ego - vdot_x_body)*froz_dt;
+    //     new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*froz_dt;
+    //     frozen_x = new_frozen_x; 
+    // }
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::integrate() 
     {
@@ -499,42 +498,40 @@ namespace dynamic_gap
         return;
     }    
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
+    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
 
-        return x_hat_k_plus_;
-    }
+    //     return x_hat_k_plus_;
+    // }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getGapState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4f return_x = frozen_x;
-        return return_x;
-    }
+    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getGapState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
+    //     return frozen_x;
+    // }
 
-    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getRewindGapState() 
-    {
-        // x state:
-        // [r_x, r_y, v_x, v_y]
-        Eigen::Vector4f return_x = rewind_x;
-        return return_x;
-    }
+    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getRewindGapState() 
+    // {
+    //     // x state:
+    //     // [r_x, r_y, v_x, v_y]
+    //     return rewind_x;
+    // }
 
-    geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() 
-    {
-        return lastRbtVel_;
-    }
+    // geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() 
+    // {
+    //     return lastRbtVel_;
+    // }
 
-    int RotatingFrameCartesianKalmanFilter::getID() 
-    {
-        return modelID_;
-    }
+    // int RotatingFrameCartesianKalmanFilter::getID() 
+    // {
+    //     return modelID_;
+    // }
 
-    Eigen::Vector2f RotatingFrameCartesianKalmanFilter::getXTilde() 
-    {
-        return xTilde_;
-    }
+    // Eigen::Vector2f RotatingFrameCartesianKalmanFilter::getXTilde() 
+    // {
+    //     return xTilde_;
+    // }
 }

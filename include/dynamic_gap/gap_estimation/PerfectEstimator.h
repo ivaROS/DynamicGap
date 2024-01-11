@@ -34,7 +34,6 @@ namespace dynamic_gap
 
             Eigen::Matrix2f tmp_mat; //  place holder for inverse
 
-            Eigen::Vector4f frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
 
             std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
@@ -60,7 +59,7 @@ namespace dynamic_gap
                             const float & gapPtX, const float & gapPtY,
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
-            void transfer(const Estimator & placeholder);
+            void transfer(const Estimator & incomingModel);
 
             Eigen::Vector4f updateStateFromEnv();
             Eigen::Vector4f getState();
@@ -89,8 +88,8 @@ namespace dynamic_gap
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
                         const std::vector<geometry_msgs::Pose> & agentPoses,
                         const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                        const ros::Time & t_kf_update);
-            int getID();
+                        const ros::Time & tUpdate);
+            // int getID();
 
     };
 }
