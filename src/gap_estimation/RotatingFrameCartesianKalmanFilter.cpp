@@ -1,18 +1,6 @@
-// #include <ros/ros.h>
-// #include <tf2_ros/transform_listener.h>
-// #include <geometry_msgs/TransformStamped.h>
-// #include <geometry_msgs/Twist.h>
-// #include <geometry_msgs/Quaternion.h>
-// #include <turtlesim/Spawn.h>
-#include "std_msgs/String.h"
-// #include <nav_msgs/Odometry.h>
-// #include <sensor_msgs/Imu.h>
-// #include <tf2_ros/buffer.h>
-// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
 // #include <Eigen/Core>
-#include <unsupported/Eigen/MatrixFunctions>
-#include <limits>
+
 // #include <sstream>
 // #include <unsupported/Eigen/MatrixFunctions>
 // #include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
@@ -47,8 +35,6 @@ namespace dynamic_gap
               0.0, 0.0, 0.0, 0.0;
         STM_ = A_;
 
-        frozen_x << 0.0, 0.0, 0.0, 0.0;
-
         eyes = Eigen::MatrixXf::Identity(4,4);
     }
 
@@ -82,9 +68,9 @@ namespace dynamic_gap
         // larger P_0 helps with GT values that are non-zero
         // larger P_0 gives more weight to measurements (behaves like Q)
         this->P_kmin1_plus_ << 0.01, 0.0, 0.0, 0.0,
-                         0.0, 0.01, 0.0, 0.0,
-                         0.0, 0.0, 0.10, 0.0,
-                         0.0, 0.0, 0.0, 0.10;
+                                0.0, 0.01, 0.0, 0.0,
+                                0.0, 0.0, 0.10, 0.0,
+                                0.0, 0.0, 0.0, 0.10;
         this->P_k_minus_ = P_kmin1_plus_;
         this->P_k_plus_ = P_kmin1_plus_;
 
@@ -150,60 +136,60 @@ namespace dynamic_gap
         return;
     }
 
-    void RotatingFrameCartesianKalmanFilter::processEgoRobotVelsAndAccs(const ros::Time & t_update)
-    {
-        /*
-        // Printing original dt values from intermediate odom measurements
-        ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
+    // void RotatingFrameCartesianKalmanFilter::processEgoRobotVelsAndAccs(const ros::Time & t_update)
+    // {
+    //     /*
+    //     // Printing original dt values from intermediate odom measurements
+    //     ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
 
-        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
-        {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
-        }
+    //     for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
+    //     {
+    //         ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
+    //     }
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "   t_update" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (t_update - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
-        */
+    //     ROS_INFO_STREAM_NAMED("GapEstimation", "   t_update" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (t_update - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
+    //     */
 
-        // Tweaking ego robot velocities/acceleration to make sure that updates:
-        //      1. Are never negative (backwards in time)
-        //      2. Always start from time of last update
-        //      3. Always at end of time of incoming laser scan measurement
+    //     // Tweaking ego robot velocities/acceleration to make sure that updates:
+    //     //      1. Are never negative (backwards in time)
+    //     //      2. Always start from time of last update
+    //     //      3. Always at end of time of incoming laser scan measurement
 
-        // Erasing odometry measurements that are from *before* the last update 
-        while (!intermediateRbtVels_.empty() && tLastUpdate_ > intermediateRbtVels_[0].header.stamp)
-        {
-            intermediateRbtVels_.erase(intermediateRbtVels_.begin());
-            intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
-        }
+    //     // Erasing odometry measurements that are from *before* the last update 
+    //     while (!intermediateRbtVels_.empty() && tLastUpdate_ > intermediateRbtVels_[0].header.stamp)
+    //     {
+    //         intermediateRbtVels_.erase(intermediateRbtVels_.begin());
+    //         intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
+    //     }
 
-        // Inserting placeholder odometry to represent the time of the last update
-        intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
-        intermediateRbtVels_[0].header.stamp = tLastUpdate_;
+    //     // Inserting placeholder odometry to represent the time of the last update
+    //     intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
+    //     intermediateRbtVels_[0].header.stamp = tLastUpdate_;
 
-        intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
-        intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
+    //     intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
+    //     intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
 
-        // Erasing odometry measurements that occur *after* the incoming laser scan was received
-        while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
-        {
-            intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
-            intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
-        }
+    //     // Erasing odometry measurements that occur *after* the incoming laser scan was received
+    //     while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
+    //     {
+    //         intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
+    //         intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
+    //     }
 
-        // Inserting placeholder odometry to represent the time that the incoming laser scan was received
-        intermediateRbtVels_.push_back(intermediateRbtVels_.back());
-        intermediateRbtVels_.back().header.stamp = t_update;
+    //     // Inserting placeholder odometry to represent the time that the incoming laser scan was received
+    //     intermediateRbtVels_.push_back(intermediateRbtVels_.back());
+    //     intermediateRbtVels_.back().header.stamp = t_update;
 
-        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
-        {
-            float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
+    //     for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
+    //     {
+    //         float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
             
-            ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
+    //         ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
             
-            ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
+    //         ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
 
-        }
-    }
+    //     }
+    // }
 
     // void RotatingFrameCartesianKalmanFilter::isolateGapDynamics() 
     // {
@@ -327,11 +313,11 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapEstimation", "VxVx: " << cfg_->gap_est.Q_VxVx << ", VyVy: " << cfg_->gap_est.Q_VyVy);
         float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();
 
-        Q_1 = Q_k_;
-        Q_2 = A_ * Q_1 + Q_1 * A_.transpose();
-        Q_3 = A_ * Q_2 + Q_2 * A_.transpose();
+        Q_1_ = Q_k_;
+        Q_2_ = A_ * Q_1_ + Q_1_ * A_.transpose();
+        Q_3_ = A_ * Q_2_ + Q_2_ * A_.transpose();
 
-        dQ_ = (Q_1 * dt) + (Q_2 * dt * dt / 2.0) + (Q_3 * dt * dt * dt / 6.0);
+        dQ_ = (Q_1_ * dt) + (Q_2_ * dt * dt / 2.0) + (Q_3_ * dt * dt * dt / 6.0);
     }
 
     void RotatingFrameCartesianKalmanFilter::update(const Eigen::Vector2f & measurement, 
@@ -341,9 +327,6 @@ namespace dynamic_gap
                                                     const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                                                     const ros::Time & t_update) 
     {    
-        agentPoses_ = agentPoses;
-        agentVels_ = agentVels;
-
         // acceleration and velocity come in wrt robot frame
         intermediateRbtVels_ = intermediateRbtVels;
         intermediateRbtAccs_ = intermediateRbtAccs;

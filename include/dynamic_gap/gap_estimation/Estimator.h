@@ -26,8 +26,8 @@ namespace dynamic_gap
             Eigen::Matrix4f P_k_minus_; /**< Covariance matrix at step k before correction */
             Eigen::Matrix4f P_k_plus_; /**< Covariance matrix at step k after correction */
             
-            Eigen::Vector4f frozen_x; /**< Non-relative gap-only state */
-            Eigen::Vector4f rewind_x;/**< Rewound non-relative gap-only state */
+            Eigen::Vector4f xFrozen_; /**< Non-relative gap-only state */
+            Eigen::Vector4f xRewind_;/**< Rewound non-relative gap-only state */
 
             Eigen::Matrix<float, 4, 2> G_k_; /**< Kalman gain at step k */
             Eigen::Vector2f xTilde_; /**< Current sensor measurement */
@@ -83,6 +83,68 @@ namespace dynamic_gap
                                 const ros::Time & tUpdate) = 0;
 
             /**
+            * \brief Sequence intermediate robot velocities and accelerations so that intermediate model
+            * updates start from time of last update and end at time of incoming sensor measurement
+            *
+            * \param tUpdate time of current model update
+            * \return N/A
+            */
+            void processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
+            {
+                /*
+                // Printing original dt values from intermediate odom measurements
+                ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
+
+                for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
+                {
+                    ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
+                }
+
+                ROS_INFO_STREAM_NAMED("GapEstimation", "   tUpdate" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (tUpdate - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
+                */
+
+                // Tweaking ego robot velocities/acceleration to make sure that updates:
+                //      1. Are never negative (backwards in time)
+                //      2. Always start from time of last update
+                //      3. Always at end at time of incoming laser scan measurement
+
+                // Erasing odometry measurements that are from *before* the last update 
+                while (!intermediateRbtVels_.empty() && tLastUpdate_ > intermediateRbtVels_[0].header.stamp)
+                {
+                    intermediateRbtVels_.erase(intermediateRbtVels_.begin());
+                    intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
+                }
+
+                // Inserting placeholder odometry to represent the time of the last update
+                intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
+                intermediateRbtVels_[0].header.stamp = tLastUpdate_;
+
+                intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
+                intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
+
+                // Erasing odometry measurements that occur *after* the incoming laser scan was received
+                while (!intermediateRbtVels_.empty() && tUpdate < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
+                {
+                    intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
+                    intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
+                }
+
+                // Inserting placeholder odometry to represent the time that the incoming laser scan was received
+                intermediateRbtVels_.push_back(intermediateRbtVels_.back());
+                intermediateRbtVels_.back().header.stamp = tUpdate;
+
+                for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
+                {
+                    float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
+                    
+                    ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
+                    
+                    ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
+
+                }
+            }
+
+            /**
             * \brief Getter function for relative estimator state
             *
             * \return relative (gap-robot) estimator state
@@ -94,14 +156,14 @@ namespace dynamic_gap
             *
             * \return non-relative (gap) estimator state
             */               
-            Eigen::Vector4f getGapState() { return frozen_x; };
+            Eigen::Vector4f getGapState() { return xFrozen_; };
 
             /**
             * \brief Getter function for rewound non-relative estimator state
             *
             * \return rewound non-relative (gap) estimator state
             */  
-            Eigen::Vector4f getRewindGapState() { return rewind_x; };
+            Eigen::Vector4f getRewindGapState() { return xRewind_; };
 
             /**
             * \brief Getter function for robot velocity
@@ -131,15 +193,15 @@ namespace dynamic_gap
             */ 
             void isolateGapDynamics()
             {
-                frozen_x = getState();
+                xFrozen_ = getState();
         
                 // fixing position (otherwise can get bugs)
-                frozen_x[0] = xTilde_[0];
-                frozen_x[1] = xTilde_[1];
+                xFrozen_[0] = xTilde_[0];
+                xFrozen_[1] = xTilde_[1];
 
                 // update cartesian
-                frozen_x[2] += lastRbtVel_.twist.linear.x;
-                frozen_x[3] += lastRbtVel_.twist.linear.y;
+                xFrozen_[2] += lastRbtVel_.twist.linear.x;
+                xFrozen_[3] += lastRbtVel_.twist.linear.y;
             }
 
             /**
@@ -149,61 +211,59 @@ namespace dynamic_gap
             */ 
             void setRewindState()
             {
-                rewind_x = frozen_x;
+                xRewind_ = xFrozen_;
             }
 
             /**
             * \brief Function for propagating gap-only state forward in time
             *
-            * \param froz_dt timestep to propagate forward
+            * \param dt timestep to propagate forward
             * \return N/A
             */ 
-            void gapStatePropagate(const float & froz_dt)
+            void gapStatePropagate(const float & dt)
             {
-                Eigen::Vector4f new_frozen_x;     
-                new_frozen_x << 0.0, 0.0, 0.0, 0.0;
+                Eigen::Vector4f xFrozenProp_;     
+                xFrozenProp_ << 0.0, 0.0, 0.0, 0.0;
 
-                Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
+                Eigen::Vector2f egoLinVel(0.0, 0.0); 
+                float egoAngVel = 0.0;
+                Eigen::Vector2f egoLinAcc(0.0, 0.0); // "frozen" robot
+                Eigen::Vector2f gapLinAcc(0.0, 0.0); // constant velocity assumption
 
-                Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-                float frozen_ang_vel_ego = 0.0;
-
-                float vdot_x_body = frozen_linear_acc_ego[0];
-                float vdot_y_body = frozen_linear_acc_ego[1];
+                Eigen::Vector2f relLinAcc = gapLinAcc - egoLinAcc;
 
                 // discrete euler update of state (ignoring rbt acceleration, set as 0)
-                new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*froz_dt;
-                new_frozen_x[1] = frozen_x[1] + (frozen_x[3] - frozen_x[0]*frozen_ang_vel_ego)*froz_dt;
-                new_frozen_x[2] = frozen_x[2] + (frozen_x[3]*frozen_ang_vel_ego - vdot_x_body)*froz_dt;
-                new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*froz_dt;
-                frozen_x = new_frozen_x;                 
+                xFrozenProp_[0] = xFrozen_[0] + (xFrozen_[2] + xFrozen_[1]*egoAngVel)*dt;
+                xFrozenProp_[1] = xFrozen_[1] + (xFrozen_[3] - xFrozen_[0]*egoAngVel)*dt;
+                xFrozenProp_[2] = xFrozen_[2] + (relLinAcc[0] + xFrozen_[3]*egoAngVel)*dt;
+                xFrozenProp_[3] = xFrozen_[3] + (relLinAcc[1] - xFrozen_[2]*egoAngVel)*dt;
+                xFrozen_ = xFrozenProp_;                 
             }
 
             /**
             * \brief Function for propagating gap-only state backward in time
             *
-            * \param rew_dt timestep to propagate backward
+            * \param dt timestep to propagate backward
             * \return N/A
             */ 
-            void rewindPropagate(const float & rew_dt)
+            void rewindPropagate(const float & dt)
             {
-                Eigen::Vector4f new_rewind_x;     
-                new_rewind_x << 0.0, 0.0, 0.0, 0.0;
+                Eigen::Vector4f xRewindProp_;     
+                xRewindProp_ << 0.0, 0.0, 0.0, 0.0;
 
-                Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
+                Eigen::Vector2f egoLinVel(0.0, 0.0); 
+                float egoAngVel = 0.0;
+                Eigen::Vector2f egoLinAcc(0.0, 0.0); // "frozen" robot
+                Eigen::Vector2f gapLinAcc(0.0, 0.0); // constant velocity assumption
 
-                Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-                float frozen_ang_vel_ego = 0.0;
-
-                float vdot_x_body = frozen_linear_acc_ego[0];
-                float vdot_y_body = frozen_linear_acc_ego[1];
+                Eigen::Vector2f relLinAcc = gapLinAcc - egoLinAcc;
 
                 // discrete euler update of state (ignoring rbt acceleration, set as 0)
-                new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*rew_dt;
-                new_rewind_x[1] = rewind_x[1] + (rewind_x[3] - rewind_x[0]*frozen_ang_vel_ego)*rew_dt;
-                new_rewind_x[2] = rewind_x[2] + (rewind_x[3]*frozen_ang_vel_ego - vdot_x_body)*rew_dt;
-                new_rewind_x[3] = rewind_x[3] + (-rewind_x[2]*frozen_ang_vel_ego - vdot_y_body)*rew_dt;
-                rewind_x = new_rewind_x; 
+                xRewindProp_[0] = xRewind_[0] + (xRewind_[2] + xRewind_[1]*egoAngVel)*dt;
+                xRewindProp_[1] = xRewind_[1] + (xRewind_[3] - xRewind_[0]*egoAngVel)*dt;
+                xRewindProp_[2] = xRewind_[2] + (relLinAcc[0] + xRewind_[3]*egoAngVel)*dt;
+                xRewindProp_[3] = xRewind_[3] + (relLinAcc[1] - xRewind_[2]*egoAngVel)*dt;
+                xRewind_ = xRewindProp_; 
             }
 
     };
