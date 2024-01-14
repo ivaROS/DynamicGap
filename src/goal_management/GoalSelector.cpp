@@ -19,7 +19,7 @@ namespace dynamic_gap
     void GoalSelector::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
-        scanPtr_ = scan;
+        scan_ = scan;
     }
 
     void GoalSelector::generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt) 
@@ -64,7 +64,7 @@ namespace dynamic_gap
         for (int i = 0; i < planPoseNorms.size(); i++) 
         {
             planPoseNorms.at(i) = poseNorm(globalPlan.at(i)); // calculating distance to robot at each step of plan
-            scanDistsAtPlanIndices.at(i) = calculateScanDistsAtPlanIndices(globalPlan.at(i));
+            scanDistsAtPlanIndices.at(i) = calculateScanRangesAtPlanIndices(globalPlan.at(i));
             scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (cfg_->rbt.r_inscr / 2.0)) - planPoseNorms.at(i);
         }
 
@@ -78,7 +78,7 @@ namespace dynamic_gap
         // firstNotVisibleGlobalPlanPose is the first point within the global plan that lies beyond the current scan.
         auto firstNotVisibleGlobalPlanPose = std::find_if(scanMinusPlanPoseNormDiffs.begin() + closestPlanPoseIdx, 
                                                           scanMinusPlanPoseNormDiffs.end(),
-                                                          std::bind1st(std::mem_fun(&GoalSelector::isNotWithin), this));
+                                                          std::bind1st(std::mem_fun(&GoalSelector::isNegative), this));
 
         if (closestPlanPose == scanMinusPlanPoseNormDiffs.end()) 
         {
@@ -110,9 +110,9 @@ namespace dynamic_gap
         return sqrt(pow(pose.pose.position.x, 2) + pow(pose.pose.position.y, 2));
     }
 
-    float GoalSelector::calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose) 
+    float GoalSelector::calculateScanRangesAtPlanIndices(const geometry_msgs::PoseStamped & pose) 
     {
-        sensor_msgs::LaserScan scan = *scanPtr_.get();
+        sensor_msgs::LaserScan scan = *scan_.get();
 
         int poseIdx = poseIdxInScan(pose);
 
@@ -121,7 +121,7 @@ namespace dynamic_gap
         return scanRangeAtPoseIdx;
     }
 
-    bool GoalSelector::isNotWithin(const float dist) 
+    bool GoalSelector::isNegative(const float dist) 
     {
         return dist <= 0.0;
     }

@@ -6,12 +6,13 @@
 
 namespace dynamic_gap
 {
+
+    // WORK IN PROGRESS
+
     class StaticScanSeparator 
     {
         public: 
             StaticScanSeparator(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
-            // StaticScanSeparator& operator=(StaticScanSeparator other) {cfg_ = other.cfg_; return *this; }
-            // StaticScanSeparator(const StaticScanSeparator &t) {cfg_ = t.cfg_;}
 
             std::vector<Eigen::Vector4f> getCurrAgents() { return currAgents; }
 

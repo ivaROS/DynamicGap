@@ -4,8 +4,7 @@ namespace dynamic_gap
 {
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
     /* This code is heavily experimental. Does not really work.
-     *
-     *
+     * Not currently used.
     **/
 
 
