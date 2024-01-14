@@ -78,7 +78,8 @@ namespace dynamic_gap
 
         // Goals and stuff
         geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame_;  
-        geometry_msgs::PoseStamped globalGoalOdomFrame_, globalGoalRobotFrame_;
+        geometry_msgs::PoseStamped globalGoalOdomFrame_;
+        geometry_msgs::PoseStamped globalGoalRobotFrame_;
 
         // Gaps:
         std::vector<dynamic_gap::Gap *> currRawGaps_, currSimplifiedGaps_;

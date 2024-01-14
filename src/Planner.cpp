@@ -231,9 +231,11 @@ namespace dynamic_gap
             delete prevSimplifiedGap;
         prevSimplifiedGaps_.clear();
 
+        // update previous gaps
         prevRawGaps_ = currRawGaps_;
         prevSimplifiedGaps_ = currSimplifiedGaps_;
 
+        // update estimator update time
         tPreviousFilterUpdate_ = tCurrentFilterUpdate;
     }
 

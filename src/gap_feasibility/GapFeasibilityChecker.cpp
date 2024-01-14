@@ -28,7 +28,7 @@ namespace dynamic_gap
         Eigen::Vector2f crossingPt(0.0, 0.0);
         float gapCrossingTime = indivGapFindCrossingPoint(gap, crossingPt);
 
-        gapSplinecheck(gap, leftGapPtModel, rightGapPtModel, crossingPt, gapCrossingTime);
+        gapSplinecheck(gap, crossingPt, gapCrossingTime);
 
         bool feasible = false;
         if (gap->artificial_) 
@@ -53,10 +53,10 @@ namespace dynamic_gap
         {
             // closing
             gap->setCategory("closing"); 
-            if (crossing_time >= 0) 
+            if (gapCrossingTime >= 0) 
             {
                 feasible = true;
-                gap->gapLifespan_ = crossing_time;
+                gap->gapLifespan_ = gapCrossingTime;
             }
         }
 

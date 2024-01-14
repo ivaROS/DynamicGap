@@ -7,14 +7,13 @@ namespace dynamic_gap
         cfg_ = &cfg;
     }
 
-    void GoalSelector::updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
+    void GoalSelector::updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame) 
     {
         // Incoming plan is in map frame
         boost::mutex::scoped_lock lock(goalSelectMutex_);
         boost::mutex::scoped_lock gplock(globalPlanMutex_);
-        // globalPlanMapFrame_.clear();
-        globalPlanMapFrame_ = globalPlan;
-        // transform plan to robot frame such as base_link
+
+        globalPlanMapFrame_ = globalPlanMapFrame;
     }
 
     void GoalSelector::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
@@ -33,14 +32,12 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("running generateGlobalPathLocalWaypoint");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
-        std::vector<geometry_msgs::PoseStamped> local_gplan = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
+        std::vector<geometry_msgs::PoseStamped> globalPlanSnipperRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
         
-        if (local_gplan.size() < 1) // relevant global plan snippet
+        if (globalPlanSnipperRobotFrame.size() < 1) // relevant global plan snippet
             return;
 
-        globalPathLocalWaypointRobotFrame_ = local_gplan.back();
-
-        // Max: do we need anything below this? I don't think so.
+        globalPathLocalWaypointRobotFrame_ = globalPlanSnipperRobotFrame.back();
     }
 
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt) 

@@ -25,17 +25,37 @@ namespace dynamic_gap
     {
         public: 
             GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            // GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
-            // GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
-            // Map Frame
-            void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPath);
-            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            /**
+            * \brief parse global path to obtain local waypoint along global path
+            * that we will try to move towards with our local path
+
+            * \param map2rbt transformation between map frame and robot frame
+            * \return N/
+            */
             void generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt);
+            
             geometry_msgs::PoseStamped getGlobalPathLocalWaypointOdomFrame(const geometry_msgs::TransformStamped & rbt2odom);
             geometry_msgs::PoseStamped getGlobalPathLocalWaypointRobotFrame() { return globalPathLocalWaypointRobotFrame_; };
             std::vector<geometry_msgs::PoseStamped> getGlobalPathOdomFrame();
             std::vector<geometry_msgs::PoseStamped> getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt);
+
+            /**
+            * \brief receive new global plan in map frame and update member variable accordingly
+
+            * \param globalPlanMapFrame new global plan in map frame
+            * \return N/A
+            */
+            void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
+
+            /**
+            * \brief receive new laser scan and update member variable accordingly
+
+            * \param scan new laser scan
+            * \return N/A
+            */
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+
 
 
         private:
