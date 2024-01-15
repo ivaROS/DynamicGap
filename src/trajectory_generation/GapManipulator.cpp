@@ -2,20 +2,23 @@
 
 namespace dynamic_gap 
 {
-    void GapManipulator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> msg_) 
+    void GapManipulator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
-        boost::mutex::scoped_lock lock(egolock);
-        scan_ = msg_;
+        boost::mutex::scoped_lock lock(scanMutex_);
+        scan_ = scan;
     }
 
     /*
+    // Not currently used
     void GapManipulator::updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan) 
     {
-        boost::mutex::scoped_lock lock(egolock);
+        boost::mutex::scoped_lock lock(scanMutex_);
         staticScan_ = staticScan;
     }
     */
 
+    /*
+    // Not currently used
     void GapManipulator::updateDynamicEgoCircle(dynamic_gap::Gap * gap,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
@@ -29,17 +32,19 @@ namespace dynamic_gap
         float dynamicScanMinDist = *std::min_element(dynamicScan_.ranges.begin(), dynamicScan_.ranges.end());
         gap->setTerminalMinSafeDist(dynamicScanMinDist);
     }
+    */
     
-    void GapManipulator::setTerminalGapWaypoint(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint) 
+    void GapManipulator::setGapTerminalGoal(dynamic_gap::Gap * gap, 
+                                            const geometry_msgs::PoseStamped & globalPathLocalWaypoint) 
     {
         try
         {
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setTerminalGapWaypoint()]");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapTerminalGoal()]");
             
             if (gap->getCategory() == "expanding" || gap->getCategory() == "static") 
             { 
                 ROS_INFO_STREAM_NAMED("GapManipulator", "setting terminal goal for expanding gap");
-                setGapWaypoint(gap, globalPathLocalWaypoint, false);
+                setGapGoal(gap, globalPathLocalWaypoint, false);
             } else if (gap->getCategory() == "closing") 
             {
                 std::string closingGapType = "";
@@ -61,23 +66,25 @@ namespace dynamic_gap
                 } else 
                 {
                     closingGapType = "existent";
-                    setGapWaypoint(gap, globalPathLocalWaypoint, false);
+                    setGapGoal(gap, globalPathLocalWaypoint, false);
                 }
 
                 ROS_INFO_STREAM_NAMED("GapManipulator", "        setting terminal goal for " + closingGapType + " closing gap");
             }
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setTerminalGapWaypoint() finished]");        
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapTerminalGoal() finished]");        
         } catch (...)
         {
-            ROS_ERROR_STREAM_NAMED("GapManipulator", "[setTerminalGapWaypoint() failed]");
+            ROS_ERROR_STREAM_NAMED("GapManipulator", "[setGapTerminalGoal() failed]");
         }
     }
 
-    void GapManipulator::setGapWaypoint(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, const bool & initial) 
+    void GapManipulator::setGapGoal(dynamic_gap::Gap * gap, 
+                                    const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
+                                    const bool & initial) 
     {
         try
         {
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapWaypoint()]");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapGoal()]");
 
             int leftIdx = 0, rightIdx = 0;
             float leftDist = 0.0, rightDist = 0.0;
@@ -106,7 +113,7 @@ namespace dynamic_gap
             Eigen::Vector2f leftPt(xLeft, yLeft);
             Eigen::Vector2f rightPt(xRight, yRight);
 
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapWaypoint()]");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapGoal()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap polar points, left: (" << leftIdx << ", " << leftDist << ") , right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
@@ -160,11 +167,11 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 3: biasing gap goal towards global path local waypoint");
 
-            float leftToGoalAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypointVector, true);
-            float rightToGoalAngle = getLeftToRightAngle(rightPt, globalPathLocalWaypointVector, true);
+            float leftToWaypointAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypointVector, true);
+            float rightToWaypointAngle = getLeftToRightAngle(rightPt, globalPathLocalWaypointVector, true);
     
             float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalPathLocalWaypointTheta,
-                                                            leftToRightAngle, rightToGoalAngle, leftToGoalAngle);
+                                                            leftToRightAngle, rightToWaypointAngle, leftToWaypointAngle);
 
             float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
 
@@ -201,12 +208,12 @@ namespace dynamic_gap
 
         } catch (...)
         {
-            ROS_WARN_STREAM_NAMED("GapManipulator", "[setGapWaypoint() failed]");
+            ROS_WARN_STREAM_NAMED("GapManipulator", "[setGapGoal() failed]");
         }      
     }
 
     float GapManipulator::setBiasedGapGoalTheta(const float & leftTheta, const float & rightTheta, const float & globalPathLocalWaypointTheta,
-                                                const float & leftToRightAngle, const float & rightToGoalAngle, const float & leftToGoalAngle)
+                                                const float & leftToRightAngle, const float & rightToWaypointAngle, const float & leftToWaypointAngle)
     {
         float biasedGapGoalTheta = 0.0;
         if (leftTheta > rightTheta) // gap is not behind robot
@@ -214,24 +221,25 @@ namespace dynamic_gap
             biasedGapGoalTheta = std::min(leftTheta, std::max(rightTheta, globalPathLocalWaypointTheta));
         } else // gap is behind
         { 
-            if (0 < leftToGoalAngle && leftToGoalAngle < leftToRightAngle)
+            if (0 < leftToWaypointAngle && leftToWaypointAngle < leftToRightAngle)
                 biasedGapGoalTheta = globalPathLocalWaypointTheta;
-            else if (std::abs(leftToGoalAngle) < std::abs(rightToGoalAngle))
+            else if (std::abs(leftToWaypointAngle) < std::abs(rightToWaypointAngle))
                 biasedGapGoalTheta = leftTheta;
             else
                 biasedGapGoalTheta = rightTheta;
         }
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "            leftTheta: " << leftTheta << ", rightTheta: " << rightTheta << ", globalPathLocalWaypointTheta: " << globalPathLocalWaypointTheta);
-        ROS_INFO_STREAM_NAMED("GapManipulator", "            leftToRightAngle: " << leftToRightAngle << ", leftToGoalAngle: " << leftToGoalAngle << ", rightToGoalAngle: " << rightToGoalAngle);
+        ROS_INFO_STREAM_NAMED("GapManipulator", "            leftToRightAngle: " << leftToRightAngle << ", leftToWaypointAngle: " << leftToWaypointAngle << ", rightToWaypointAngle: " << rightToWaypointAngle);
 
         return biasedGapGoalTheta;
     }
 
-    bool GapManipulator::checkWaypointVisibility(const Eigen::Vector2f & leftPt, const Eigen::Vector2f & rightPt,
-                                                const Eigen::Vector2f & globalPathLocalWaypoint) 
+    bool GapManipulator::checkWaypointVisibility(const Eigen::Vector2f & leftPt, 
+                                                    const Eigen::Vector2f & rightPt,
+                                                    const Eigen::Vector2f & globalPathLocalWaypoint) 
     {
-        boost::mutex::scoped_lock lock(egolock);
+        boost::mutex::scoped_lock lock(scanMutex_);
         // with robot as 0,0 (globalPathLocalWaypoint in robot frame as well)
         float dist2goal = globalPathLocalWaypoint.norm(); // sqrt(pow(globalPathLocalWaypoint.pose.position.x, 2) + pow(globalPathLocalWaypoint.pose.position.y, 2));
 
@@ -251,14 +259,16 @@ namespace dynamic_gap
         // get gap's range at globalPathLocalWaypoint idx
 
         float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
-        float leftToGoalAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypoint, true);
-        float gapGoalRange = (rightPt.norm() - leftPt.norm()) * epsilonDivide(leftToGoalAngle, leftToRightAngle) + leftPt.norm();
+        float leftToWaypointAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypoint, true);
+        float gapGoalRange = (rightPt.norm() - leftPt.norm()) * epsilonDivide(leftToWaypointAngle, leftToRightAngle) + leftPt.norm();
 
         return dist2goal < gapGoalRange;
     }
 
     // In place modification
-    void GapManipulator::reduceGap(dynamic_gap::Gap * gap, const geometry_msgs::PoseStamped & globalPathLocalWaypoint, const bool & initial) 
+    void GapManipulator::reduceGap(dynamic_gap::Gap * gap, 
+                                    const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
+                                    const bool & initial) 
     {        
         try
         {
@@ -681,7 +691,7 @@ namespace dynamic_gap
                 rightDist = gap->cvxRightDist();
             } else 
             {
-                desScan = dynamicScan_;
+                desScan = *scan_.get(); // dynamicScan_;
                 leftIdx = gap->cvxTermLeftIdx();
                 rightIdx = gap->cvxTermRightIdx();
                 leftDist = gap->cvxTermLeftDist();

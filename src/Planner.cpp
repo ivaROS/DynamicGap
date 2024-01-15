@@ -210,17 +210,14 @@ namespace dynamic_gap
             readyToPlan = true;
         }
         
-        goalSelector_->updateEgoCircle(scan_);
+        // update current scan for proper classes
+        updateEgoCircle();
+
+        // update global path local waypoint according to new scan
         goalSelector_->generateGlobalPathLocalWaypoint(map2rbt_);
         geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
         goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
-
-        gapManipulator_->updateEgoCircle(scan_);
-
-        trajScorer_->updateEgoCircle(scan_);
         trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
-
-        trajController_->updateEgoCircle(scan_);
         
         // delete previous gaps
         for (dynamic_gap::Gap * prevRawGap : prevRawGaps_)
@@ -316,6 +313,13 @@ namespace dynamic_gap
         }        
     }
     
+    void Planner::updateEgoCircle()
+    {
+        goalSelector_->updateEgoCircle(scan_);
+        gapManipulator_->updateEgoCircle(scan_);
+        trajScorer_->updateEgoCircle(scan_);
+        trajController_->updateEgoCircle(scan_);
+    }
 
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                  const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
@@ -519,11 +523,12 @@ namespace dynamic_gap
                 gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
                 gapManipulator_->radialExtendGap(manipulatedGaps.at(i), true);
-                gapManipulator_->setGapWaypoint(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
+                gapManipulator_->setGapGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
                 
                 // MANIPULATE POINTS AT T=1
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
-                gapManipulator_->updateDynamicEgoCircle(manipulatedGaps.at(i), futureScans_);
+                // gapManipulator_->updateDynamicEgoCircle(manipulatedGaps.at(i), futureScans_);
+                
                 if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
                 {
                     // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
@@ -531,7 +536,7 @@ namespace dynamic_gap
                 }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
                 gapManipulator_->radialExtendGap(manipulatedGaps.at(i), false);
-                gapManipulator_->setTerminalGapWaypoint(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
+                gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             }
         } catch (...)
         {

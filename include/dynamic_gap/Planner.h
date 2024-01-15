@@ -179,6 +179,8 @@ namespace dynamic_gap
          */
         void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
+        void updateEgoCircle();
+
         void staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg);
 
         /**
