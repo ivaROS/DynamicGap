@@ -118,16 +118,16 @@ namespace dynamic_gap
             float rightVelX = epsilonDivide(xRightTerm - xRight, selectedGap->gapLifespan_);
             float rightVelY = epsilonDivide(yRightTerm - yRight, selectedGap->gapLifespan_);
 
-            state_type x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoalX, initialGoalY};
+            robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoalX, initialGoalY};
             
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
 
             if (runGoToGoal) 
             {
-                state_type x = {rbtState[0], rbtState[1], 0.0, 0.0, 0.0, 0.0, selectedGap->goal.x_, selectedGap->goal.y_};
+                robotAndGapState x = {rbtState[0], rbtState[1], 0.0, 0.0, 0.0, 0.0, selectedGap->goal.x_, selectedGap->goal.y_};
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Goal to Goal");
                 GoToGoal goToGoal(cfg_->control.vx_absmax);
-                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+                boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
                 dynamic_gap::Trajectory traj(path, pathTiming);
                 float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
@@ -187,7 +187,7 @@ namespace dynamic_gap
             /*
             PolarGapField polarGapField(xRight, xLeft, yRight, yLeft,
                                                     initialGoalX, initialGoalY,
-                                                    selectedGap->mode.RGC_, selectedGap->isRadial(),
+                                                    selectedGap->isRadial(),
                                                     x[0], x[1],
                                                     cfg_->control.vx_absmax, cfg_->control.vx_absmax);
             */
@@ -259,13 +259,13 @@ namespace dynamic_gap
             AHPF ahpf(cfg_->control.vx_absmax, allAHPFCenters, gapCurvesInwardNorms, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
 
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     ahpf, x, 0.0f, selectedGap->gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
             
             /*
             // POLAR GAP FIELD
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
+            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     polarGapField, x, 0.0f, selectedGap->gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
             for (geometry_msgs::Pose & p : posearr.poses) 

@@ -10,7 +10,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-#include <dynamic_gap/trajectory_generation/trajectory_synthesis_methods.h>
+#include <dynamic_gap/trajectory_generation/TrajectorySynthesisMethods.h>
 // #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 // #include <geometry_msgs/Twist.h>
