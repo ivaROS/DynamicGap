@@ -610,7 +610,7 @@ namespace dynamic_gap
                 }
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
-                traj.setPathOdomFrame(gapTrajGenerator_->transformLocalTrajectory(traj.getPath(), cam2odom_, cfg_.sensor_frame_id, cfg_.odom_frame_id));
+                traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPath(), cam2odom_));
                 // pathTimings.at(i) = std::get<1>(traj);
                 generatedTrajs.push_back(traj);
             }
@@ -778,8 +778,7 @@ namespace dynamic_gap
             //////////////////////////////////////////////////////////////////////////////
             // Transform into the current robot frame to score against the current scan //
             //////////////////////////////////////////////////////////////////////////////
-            geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformLocalTrajectory(incomingTraj.getPathOdomFrame(), odom2rbt_, 
-                                                                                                        cfg_.odom_frame_id, cfg_.robot_frame_id);
+            geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformPath(incomingTraj.getPathOdomFrame(), odom2rbt_);
             // incomingPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
@@ -855,8 +854,7 @@ namespace dynamic_gap
             ////////////////////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing path has been completely tracked //
             ////////////////////////////////////////////////////////////////////////////////////////////   
-            geometry_msgs::PoseArray currentPathRobotFrame = gapTrajGenerator_->transformLocalTrajectory(currentTraj.getPathOdomFrame(), odom2rbt_, 
-                                                                                                         cfg_.odom_frame_id, cfg_.robot_frame_id);
+            geometry_msgs::PoseArray currentPathRobotFrame = gapTrajGenerator_->transformPath(currentTraj.getPathOdomFrame(), odom2rbt_);
             // currentPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
             int currentPathPoseIdx = egoTrajPosition(currentPathRobotFrame);
             geometry_msgs::PoseArray reducedCurrentPathRobotFrame = currentPathRobotFrame;

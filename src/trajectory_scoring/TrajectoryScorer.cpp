@@ -214,14 +214,14 @@ namespace dynamic_gap
 
         /*
         std::vector<dynamic_gap::Estimator *> raw_models;
-        for (auto gap : rawGaps) {
+        for (dynamic_gap::Gap gap : rawGaps) {
             raw_models.push_back(gap.rightGapPtModel_);
             raw_models.push_back(gap.leftGapPtModel_);
         }
         
         
         // std::cout << "starting setting sides and freezing velocities" << std::endl;
-        for (auto & model : raw_models) {
+        for (dynamic_gap::Estimator & model : raw_models) {
             model->isolateGapDynamics();
         }
         */

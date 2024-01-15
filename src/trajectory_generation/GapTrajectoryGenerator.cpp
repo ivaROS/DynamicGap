@@ -2,7 +2,7 @@
 
 namespace dynamic_gap 
 {
-    void GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, const int & Kplus1, 
+    bool GapTrajectoryGenerator::initializeSolver(OsqpEigen::Solver & solver, const int & Kplus1, 
                                                     const Eigen::MatrixXd & A) 
     {
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "initializing solver");
@@ -43,17 +43,21 @@ namespace dynamic_gap
         solver.data()->setNumberOfVariables(Kplus1);
         solver.data()->setNumberOfConstraints(Kplus1);
 
-        if (!solver.data()->setHessianMatrix(hessian)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET HESSIAN"); }
+        bool validSolver = true;
 
-        if(!solver.data()->setGradient(gradient)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET GRADIENT"); }
+        if (!solver.data()->setHessianMatrix(hessian)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET HESSIAN"); validSolver = false; }
 
-        if(!solver.data()->setLinearConstraintsMatrix(linearMatrix)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET LINEAR MATRIX"); }
+        if(!solver.data()->setGradient(gradient)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET GRADIENT"); validSolver = false; }
 
-        if(!solver.data()->setLowerBound(lowerBound)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET LOWER BOUND"); }
+        if(!solver.data()->setLinearConstraintsMatrix(linearMatrix)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET LINEAR MATRIX"); validSolver = false; }
 
-        if(!solver.data()->setUpperBound(upperBound)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET UPPER BOUND"); }
+        if(!solver.data()->setLowerBound(lowerBound)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET LOWER BOUND"); validSolver = false; }
 
-        if(!solver.initSolver()) { ROS_FATAL_STREAM("SOLVER FAILED TO INITIALIZE SOLVER");}
+        if(!solver.data()->setUpperBound(upperBound)) { ROS_FATAL_STREAM("SOLVER FAILED TO SET UPPER BOUND"); validSolver = false; }
+
+        if(!solver.initSolver()) { ROS_FATAL_STREAM("SOLVER FAILED TO INITIALIZE SOLVER"); validSolver = false; }
+
+        return validSolver;
     }
 
     dynamic_gap::Trajectory GapTrajectoryGenerator::generateTrajectory(dynamic_gap::Gap * selectedGap, 
@@ -131,7 +135,7 @@ namespace dynamic_gap
                 return traj;
             }
 
-            Eigen::Vector2d initRbtPos(x[0], x[1]);
+            // Eigen::Vector2d initRbtPos(x[0], x[1]);
             Eigen::Vector2d leftCurveInitPt(xLeft, yLeft);
             Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
             Eigen::Vector2d rightCurveInitPt(xRight, yRight);
@@ -142,7 +146,7 @@ namespace dynamic_gap
             Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
             
             Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
-            Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
+            // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
 
             Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
                             gapSideAHPFCenters, allAHPFCenters;
@@ -156,8 +160,7 @@ namespace dynamic_gap
                                         leftGapPtVel, rightGapPtVel, maxRbtVel, 
                                         leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
                                         gapGoalTermPt, leftBezierWeight, rightBezierWeight, numCurvePts, 
-                                        numLeftRGEPoints, numRightRGEPoints,
-                                        initRbtPos);
+                                        numLeftRGEPoints, numRightRGEPoints); // initRbtPos
             float buildExtendedBezierCurveTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - buildExtendedBezierCurveStartTime).count() / 1.0e6;
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
 
@@ -207,8 +210,15 @@ namespace dynamic_gap
             solver.settings()->setTimeLimit(timeLimit);
 
             // double initializeSolver_start_time = ros::WallTime::now().toSec();
-            initializeSolver(solver, Kplus1, A);
+            bool validSolver = initializeSolver(solver, Kplus1, A);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initializeSolver time taken: " << ros::WallTime::now().toSec() - initializeSolver_start_time);
+
+            if (!validSolver)
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "SOLVER FAILED TO INITIALIZE");
+                dynamic_gap::Trajectory traj(path, pathTiming);
+                return traj;
+            }
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "A: " << A);
             
@@ -258,7 +268,7 @@ namespace dynamic_gap
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<state_type>(),
                                                     polarGapField, x, 0.0f, selectedGap->gapLifespan_, 
                                                     cfg_->traj.integrate_stept, corder);
-            for (auto & p : posearr.poses) 
+            for (geometry_msgs::Pose & p : posearr.poses) 
             {
                 p.position.x += selectedGap->extendedGapOrigin_[0];
                 p.position.y += selectedGap->extendedGapOrigin_[1];
@@ -325,7 +335,7 @@ namespace dynamic_gap
         A << ABoundaryPts, ANegativeOne;
     }
 
-    float GapTrajectoryGenerator::calculateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
+    float GapTrajectoryGenerator::approximateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
                                                                     const Eigen::Vector2d & bezierPt1, 
                                                                     const Eigen::Vector2d & bezierPt2, 
                                                                     const float & tStart, 
@@ -371,7 +381,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
 
-        float bezierArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+        float bezierArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
                                                                         0.0, 1.0, numCurvePts);
 
         float numBezierPtToPtIntegrationPoints = 5.0;
@@ -394,7 +404,7 @@ namespace dynamic_gap
         
         for (float t_k = 0.0; t_k <= 1.0; t_k += t_interval) 
         {
-            currentBezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+            currentBezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
                                                                                     t_kmin1, t_k, numBezierPtToPtIntegrationPoints);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   from " << t_kmin1 << " to " << t_k << ": " << currentBezierPtToPtArclengthDistance);
 
@@ -409,7 +419,7 @@ namespace dynamic_gap
             } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) 
             {
                 t_interp = (t_kmin1 + t_k) / 2.0;
-                bezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+                bezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
                                                                                  t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
 
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
@@ -430,7 +440,7 @@ namespace dynamic_gap
                         t_interp = (t_interp + t_lowerBound) / 2.0;
                         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "lowering t_interp to: " << t_interp);
                     }
-                    bezierPtToPtArclengthDistance = calculateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+                    bezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
                                                                                      t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
                     // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
                     interpIter++;
@@ -562,8 +572,7 @@ namespace dynamic_gap
                                                             float & rightBezierWeight, 
                                                             const float & numCurvePts, 
                                                             int & numLeftRGEPoints, 
-                                                            int & numRightRGEPoints,
-                                                            const Eigen::Vector2d & initRbtPos) 
+                                                            int & numRightRGEPoints) // const Eigen::Vector2d & initRbtPos 
     {  
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            [buildExtendedBezierCurve()]");
         // Eigen::MatrixXd leftCurveVels, rightCurveVels, leftCurveInwardNorms, rightCurveInwardNorms,
@@ -679,26 +688,23 @@ namespace dynamic_gap
     }
 
     // Transform local trajectory between two frames of choice
-    geometry_msgs::PoseArray GapTrajectoryGenerator::transformLocalTrajectory(const geometry_msgs::PoseArray & path,
-                                                                              const geometry_msgs::TransformStamped & transform,
-                                                                              const std::string & sourceFrame,
-                                                                              const std::string & destFrame)
+    geometry_msgs::PoseArray GapTrajectoryGenerator::transformPath(const geometry_msgs::PoseArray & path,
+                                                                              const geometry_msgs::TransformStamped & transform)
     {
-        geometry_msgs::PoseArray transformedPath;
-
         geometry_msgs::PoseStamped sourcePose;
-        sourcePose.header.frame_id = sourceFrame; // cfg_->robot_frame_id;
+        sourcePose.header.frame_id = transform.header.frame_id; // cfg_->robot_frame_id;
 
         geometry_msgs::PoseStamped destPose;
-        destPose.header.frame_id = destFrame; // cfg_->odom_frame_id;
+        destPose.header.frame_id = transform.child_frame_id; // cfg_->odom_frame_id;
 
-        for (const auto pose : path.poses)
+        geometry_msgs::PoseArray transformedPath;
+        for (const geometry_msgs::Pose pose : path.poses)
         {
             sourcePose.pose = pose;
             tf2::doTransform(sourcePose, destPose, transform);
             transformedPath.poses.push_back(destPose.pose);
         }
-        transformedPath.header.frame_id = destFrame; // cfg_->odom_frame_id;
+        transformedPath.header.frame_id = destPose.header.frame_id; // cfg_->odom_frame_id;
         transformedPath.header.stamp = ros::Time::now();
         // ROS_WARN_STREAM("leaving transform back with length: " << transformedPath.poses.size());
         return transformedPath;
