@@ -11,15 +11,17 @@ namespace dynamic_gap
 
     void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex_);
+        boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
     }
 
+    /*
     void TrajectoryScorer::updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex_);
+        boost::mutex::scoped_lock lock(scanMutex_);
         staticScan_ = staticScan;
     }
+    */
 
     void TrajectoryScorer::transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
                                                                       const geometry_msgs::TransformStamped & odom2rbt) 
@@ -30,18 +32,18 @@ namespace dynamic_gap
 
     struct Comparator 
     {
-        bool operator() (std::vector<float> & a, std::vector<float> & b) 
+        bool operator() (Eigen::Vector4f & a, Eigen::Vector4f & b) 
         {
-            float aNorm = pow(a.at(0), 2) + pow(a.at(1), 2);
-            float bNorm = pow(b.at(0), 2) + pow(b.at(1), 2);
+            float aNorm = pow(a[0], 2) + pow(a[1], 2);
+            float bNorm = pow(b[0], 2) + pow(b[1], 2);
             return aNorm < bNorm;
         }
     };
 
-    std::vector<std::vector<float>> TrajectoryScorer::sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses)
+    std::vector<Eigen::Vector4f> TrajectoryScorer::sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses)
     {
         // Declare vector of pairs
-        std::vector< std::vector<float> > A;
+        std::vector< Eigen::Vector4f > A;
         
         // Copy key-value pair from Map
         // to vector of pairs
@@ -52,13 +54,13 @@ namespace dynamic_gap
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "pose: " << std::to_string(it.second[0]) << ", " << std::to_string(it.second[1]));
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "ego pose: " << pt1[0] << ", " << pt1[1]);
 
-            std::vector<float> agentPose{agentPoses.at(i)[0], agentPoses.at(i)[1]};
+            // std::vector<float> agentPose{agentPoses.at(i)[0], agentPoses.at(i)[1]};
             
-            dist = sqrt(pow(agentPose[0], 2) + pow(agentPose[1], 2));
+            dist = sqrt(pow(agentPoses[i][0], 2) + pow(agentPoses[i][1], 2));
             //ROS_INFO_STREAM_NAMED("TrajectoryScorer", "dist: " << dist);
             if (dist < cfg_->scan.range_max) 
             {
-                A.push_back(agentPose);
+                A.push_back(agentPoses[i]);
             }
         }
         
@@ -78,11 +80,11 @@ namespace dynamic_gap
         return A;
     }
 
+    /*
     void TrajectoryScorer::recoverDynamicEgoCircle(const float & t_i, 
                                                    const float & t_iplus1, 
                                                    std::vector<Eigen::Vector4f> & propagatedAgents,
-                                                   sensor_msgs::LaserScan & dynamicLaserScan,
-                                                   const bool & print) 
+                                                   sensor_msgs::LaserScan & dynamicLaserScan) 
     {   
         ROS_INFO_STREAM_NAMED("TrajectoryScorer", "    [recoverDynamicEgoCircle()]");
         float interval = t_iplus1 - t_i;
@@ -195,6 +197,7 @@ namespace dynamic_gap
             }
         }
     }
+    */    
 
     void TrajectoryScorer::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan) 
     {
@@ -202,7 +205,6 @@ namespace dynamic_gap
     }
 
     std::vector<float> TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
-                                                         const std::vector<dynamic_gap::Gap *> & rawGaps,
                                                          const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [scoreTrajectory()]");
@@ -211,20 +213,6 @@ namespace dynamic_gap
 
         geometry_msgs::PoseArray path = traj.getPath();
         std::vector<float> pathTiming = traj.getPathTiming();
-
-        /*
-        std::vector<dynamic_gap::Estimator *> raw_models;
-        for (dynamic_gap::Gap gap : rawGaps) {
-            raw_models.push_back(gap.rightGapPtModel_);
-            raw_models.push_back(gap.leftGapPtModel_);
-        }
-        
-        
-        // std::cout << "starting setting sides and freezing velocities" << std::endl;
-        for (dynamic_gap::Estimator & model : raw_models) {
-            model->isolateGapDynamics();
-        }
-        */
         
         float totalTrajCost = 0.0;
         std::vector<float> posewiseCosts;
@@ -346,7 +334,7 @@ namespace dynamic_gap
                                                  const sensor_msgs::LaserScan & dynamicLaserScan, 
                                                  bool print) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex_);
+        boost::mutex::scoped_lock lock(scanMutex_);
 
         // obtain orientation and idx of pose
         // float poseTheta = std::atan2(pose.position.y + 1e-3, pose.position.x + 1e-3);
@@ -387,7 +375,7 @@ namespace dynamic_gap
 
     float TrajectoryScorer::scorePose(const geometry_msgs::Pose & pose) 
     {
-        boost::mutex::scoped_lock lock(egocircleMutex_);
+        boost::mutex::scoped_lock lock(scanMutex_);
         sensor_msgs::LaserScan scan = *scan_.get();
 
         // obtain orientation and idx of pose
@@ -397,11 +385,10 @@ namespace dynamic_gap
 
         // iterate through ranges and obtain the distance from the egocircle point and the pose
         // Meant to find where is really small
-        float currScan2RbtDist = 0.0;
+        // float currScan2RbtDist = 0.0;
         for (int i = 0; i < scan2RbtDists.size(); i++) 
         {
-            currScan2RbtDist = scan.ranges.at(i);
-            scan2RbtDists.at(i) = dist2Pose(idx2theta(i), currScan2RbtDist, pose);
+            scan2RbtDists.at(i) = dist2Pose(idx2theta(i), scan.ranges.at(i), pose);
         }
 
         auto iter = std::min_element(scan2RbtDists.begin(), scan2RbtDists.end());
@@ -416,37 +403,40 @@ namespace dynamic_gap
         return cost;
     }
 
-    float TrajectoryScorer::dynamicChapterScore(const float & d) 
+    float TrajectoryScorer::chapterScore(const float & rbtToScanDist) 
+    {
+        // if the distance at the pose is less than the inscribed radius of the robot, return negative infinity
+        // std::cout << "in chapterScore with distance: " << d << std::endl;
+        float inflRbtRad = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
+
+        if (rbtToScanDist < inflRbtRad) 
+        {   
+            return -std::numeric_limits<float>::infinity();
+        }
+
+        // if distance is essentially infinity, return 0
+        if (rbtToScanDist > cfg_->traj.max_pose_pen_dist) 
+            return 0;
+
+        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
+    }
+
+    float TrajectoryScorer::dynamicChapterScore(const float & rbtToScanDist) 
     {
         // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
         float inflRbtRad = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
 
-        if (d < inflRbtRad) 
+        if (rbtToScanDist < inflRbtRad) 
         {
             // std::cout << "distance: " << d << ", r_inscr * inf_ratio: " << r_inscr * cfg_->traj.inf_ratio << std::endl;
             return -std::numeric_limits<float>::infinity();
         }
+
         // if distance is beyond scan, return 0
-        if (d > cfg_->traj.max_pose_pen_dist) 
+        if (rbtToScanDist > cfg_->traj.max_pose_pen_dist) 
             return 0;
 
-        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (d - inflRbtRad));
+        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
     }
 
-    float TrajectoryScorer::chapterScore(const float & d) 
-    {
-        // if the ditance at the pose is less than the inscribed radius of the robot, return negative infinity
-        // std::cout << "in chapterScore with distance: " << d << std::endl;
-        float inflRbtRad = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
-
-        if (d < inflRbtRad) 
-        {   
-            return -std::numeric_limits<float>::infinity();
-        }
-        // if distance is essentially infinity, return 0
-        if (d > cfg_->traj.max_pose_pen_dist) 
-            return 0;
-
-        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (d - inflRbtRad));
-    }
 }

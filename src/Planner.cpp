@@ -576,7 +576,7 @@ namespace dynamic_gap
                     dynamic_gap::Trajectory goToGoalTraj;
                     goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, currRawGaps_, futureScans_);
+                    std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans_);
                     float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
 
@@ -584,7 +584,7 @@ namespace dynamic_gap
                     dynamic_gap::Trajectory ahpfTraj;
                     ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
                     ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, currRawGaps_, futureScans_);
+                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans_);
                     float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
 
@@ -605,7 +605,7 @@ namespace dynamic_gap
                     traj = gapTrajGenerator_->processTrajectory(traj);
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring trajectory for gap: " << i);
-                    pathPoseScores.at(i) = trajScorer_->scoreTrajectory(traj, currRawGaps_, futureScans_);  
+                    pathPoseScores.at(i) = trajScorer_->scoreTrajectory(traj, futureScans_);  
                     // ROS_INFO_STREAM("done with scoreTrajectory");
                 }
 
@@ -783,7 +783,6 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
             std::vector<float> incomingPathPoseScores = trajScorer_->scoreTrajectory(incomingTraj,
-                                                                                     currRawGaps_, 
                                                                                      futureScans_);
             // int counts = std::min(cfg_.planning.num_feasi_check, (int) std::min(incomingPathPoseScores.size(), curr_score.size()));
 
@@ -883,7 +882,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring current trajectory");            
             
             dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
-            std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentTraj, currRawGaps_, futureScans_);
+            std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentTraj, futureScans_);
             float currentPathSubscore = std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subscore of: " << currentPathSubscore);
 
@@ -1175,8 +1174,8 @@ namespace dynamic_gap
             {
                 dynamicScan.ranges = scan.ranges;
 
-                //trajScorer_->recoverDynamicEgocircleCheat(t_i, t_iplus1, agentPoses__lc, agentVels__lc, dynamicScan, print);
-                // trajScorer_->recoverDynamicEgoCircle(t_i, t_iplus1, currentAgents, dynamicScan, cfg_.debug.future_scan_propagation_debug_log);
+                //trajScorer_->recoverDynamicEgocircleCheat(t_i, t_iplus1, agentPoses__lc, agentVels__lc, dynamicScan);
+                // trajScorer_->recoverDynamicEgoCircle(t_i, t_iplus1, currentAgents, dynamicScan);
                 
                 futureScanTimeIdx = (int) (t_iplus1 / cfg_.traj.integrate_stept);
                 // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << futureScanTimeIdx);
