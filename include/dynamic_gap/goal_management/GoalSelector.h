@@ -33,15 +33,12 @@ namespace dynamic_gap
             /**
             * \brief parse global path to obtain local waypoint along global path
             * that we will try to move towards with our local path
-            *
             * \param map2rbt transformation from map frame to robot frame
-            * \return N/
             */
             void generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt);
             
             /**
             * \brief return local waypoint along global path in odometry frame
-            *
             * \param rbt2odom transformation from robot frame and odometry frame
             * \return local waypoint along global path in odometry frame
             */            
@@ -49,21 +46,18 @@ namespace dynamic_gap
 
             /**
             * \brief return local waypoint along global path in robot frame
-            *
             * \return local waypoint along global path in robot frame
             */  
             geometry_msgs::PoseStamped getGlobalPathLocalWaypointRobotFrame() { return globalPathLocalWaypointRobotFrame_; };
             
             /**
             * \brief return global path in odometry frame
-            *
             * \return global path in odometry frame
             */  
             std::vector<geometry_msgs::PoseStamped> getGlobalPathOdomFrame();
 
             /**
             * \brief extract portion of global plan (in robot frame) that lies within the current laser scan
-            *
             * \param map2rbt transformation from map frame to robot frame
             * \return visible portion of global plan in robot frame
             */  
@@ -71,24 +65,19 @@ namespace dynamic_gap
 
             /**
             * \brief receive new global plan in map frame and update member variable accordingly
-
             * \param globalPlanMapFrame new global plan in map frame
-            * \return N/A
             */
             void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
 
             /**
             * \brief receive new laser scan and update member variable accordingly
-
             * \param scan new laser scan
-            * \return N/A
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
         private:
             /**
             * \brief helper function for search that checks if distance is less than or equal to zero
-
             * \param dist queried distance
             * \return boolean for if dist <= 0 
             */
@@ -96,7 +85,6 @@ namespace dynamic_gap
 
             /**
             * \brief helper function for returning norm of 2D position vector of pose
-
             * \param pose queried pose
             * \return pose norm 
             */            
@@ -104,7 +92,6 @@ namespace dynamic_gap
 
             /**
             * \brief helper function for returning orientation of 2D position vector of pose
-
             * \param pose queried pose
             * \return pose orientation
             */     
@@ -112,7 +99,6 @@ namespace dynamic_gap
 
             /**
             * \brief get range of current scan along bearing of passed in pose
-
             * \param pose queried pose
             * \return scan range at pose bearing
             */            
@@ -120,7 +106,6 @@ namespace dynamic_gap
             
             /**
             * \brief get idx of current scan along bearing of passed in pose
-
             * \param pose queried pose
             * \return scan idx at pose bearing
             */                

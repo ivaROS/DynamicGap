@@ -105,7 +105,6 @@ namespace dynamic_gap
             *
             * \param globalGoalScanIdx scan index at which global goal lies
             * \param rawGaps raw set of gaps
-            * \return N/A
             */
             void addGapForGlobalGoal(const int & globalGoalScanIdx, 
                                      std::vector<dynamic_gap::Gap *> & rawGaps);   

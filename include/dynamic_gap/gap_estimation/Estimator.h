@@ -41,7 +41,6 @@ namespace dynamic_gap
 
             /**
             * \brief Virtual function for initializing estimator, must be overridden by desired model class
-            *
             * \param side Gap side for model (left or right)
             * \param modelID ID for model
             * \param gapPtX x-coordinate of initial sensor measurement for model
@@ -49,7 +48,6 @@ namespace dynamic_gap
             * \param tUpdate time of current model update
             * \param lastRbtVel most recent ego-robot velocity from last model update
             * \param lastRbtAcc most recent ego-robot acceleration from last model update
-            * \return N/A
             */
             virtual void initialize(const std::string & side, const int & modelID, 
                                     const float & gapPtX, const float & gapPtY,
@@ -58,22 +56,18 @@ namespace dynamic_gap
             
             /**
             * \brief Virtual function for transferring incoming model to this model
-            *
             * \param incomingModel incoming model from which we must transfer information to this model
-            * \return N/A
             */            
             virtual void transfer(const Estimator & incomingModel) = 0;
 
             /**
             * \brief Virtual function for updating estimator based on new sensor measurements
-            *
             * \param measurement new sensor measurement
 		    * \param intermediateRbtVels sequence of ego-robot velocities received since last model update
 		    * \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update            
             * \param agentPoses poses of all agents in environment (ground truth information used for certain estimator classes)
             * \param agentVels velocities of all agents in environment (ground truth information used for certain estimator classes)
             * \param tUpdate time of current model update
-            * \return N/A
             */
             virtual void update(const Eigen::Vector2f & measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
@@ -85,9 +79,7 @@ namespace dynamic_gap
             /**
             * \brief Sequence intermediate robot velocities and accelerations so that intermediate model
             * updates start from time of last update and end at time of incoming sensor measurement
-            *
             * \param tUpdate time of current model update
-            * \return N/A
             */
             void processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
             {
@@ -146,50 +138,42 @@ namespace dynamic_gap
 
             /**
             * \brief Getter function for relative estimator state
-            *
             * \return relative (gap-robot) estimator state
             */                 
             Eigen::Vector4f getState() { return x_hat_k_plus_; };
 
             /**
             * \brief Getter function for non-relative estimator state
-            *
             * \return non-relative (gap) estimator state
             */               
             Eigen::Vector4f getGapState() { return xFrozen_; };
 
             /**
             * \brief Getter function for rewound non-relative estimator state
-            *
             * \return rewound non-relative (gap) estimator state
             */  
             Eigen::Vector4f getRewindGapState() { return xRewind_; };
 
             /**
             * \brief Getter function for robot velocity
-            *
             * \return robot velocity
             */ 
             geometry_msgs::TwistStamped getRobotVel() { return lastRbtVel_; };
 
             /**
             * \brief Getter function for model ID
-            *
             * \return robot velocity
             */ 
             int getID() { return modelID_; };
 
             /**
             * \brief Getter function for sensor measurement
-            *
             * \return sensor measurement
             */ 
             Eigen::Vector2f getXTilde() { return xTilde_; };
 
             /**
             * \brief Function for subtracting off ego-robot velocity to obtain gap-only dynamical state
-            *
-            * \return N/A
             */ 
             void isolateGapDynamics()
             {
@@ -206,8 +190,6 @@ namespace dynamic_gap
 
             /**
             * \brief Function for initializing rewound gap-only state
-            *
-            * \return N/A
             */ 
             void setRewindState()
             {
@@ -216,9 +198,7 @@ namespace dynamic_gap
 
             /**
             * \brief Function for propagating gap-only state forward in time
-            *
             * \param dt timestep to propagate forward
-            * \return N/A
             */ 
             void gapStatePropagate(const float & dt)
             {
@@ -242,9 +222,7 @@ namespace dynamic_gap
 
             /**
             * \brief Function for propagating gap-only state backward in time
-            *
             * \param dt timestep to propagate backward
-            * \return N/A
             */ 
             void rewindPropagate(const float & dt)
             {

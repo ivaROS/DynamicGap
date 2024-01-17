@@ -27,7 +27,6 @@ namespace dynamic_gap
             /**
             * \brief Forward propagate a gap through its dynamics model and evaluate
             * whether it is feasible for ego-robot to pass through the gap within prediction horizon
-            *
             * \param gap incoming gap whose feasibility we want to evaluate
             * \return boolean for if gap is feasible
             */
@@ -37,11 +36,9 @@ namespace dynamic_gap
             /**
             * \brief Build approximate robot trajectory through gap using cubic spline
             * and evaluate spline's velocity/acceleration to see if trajectory through gap is feasible
-
             * \param gap incoming gap whose feasibility we want to evaluate
             * \param crossingPt position where gap crosses and shuts (if this occurs)
             * \param gapCrossingTime time when gap crosses and shuts (if this occurs)
-            * \return N/A
             */
             void gapSplinecheck(dynamic_gap::Gap * gap, 
                                  const Eigen::Vector2f & crossingPt,
@@ -50,7 +47,6 @@ namespace dynamic_gap
             /**
             * \brief Rewind crossed gap to find last point in time in which
             * robot can fit through gap 
-
             * \param t crossing time of gap
             * \param gap incoming gap whose feasibility we want to evaluate
             * \return last point in time in which robot can fit through gap
@@ -61,11 +57,9 @@ namespace dynamic_gap
             /**
             * \brief Set terminal range and bearing values for gap based on 
             * where gap crossed
-
             * \param gap incoming gap whose feasibility we want to evaluate
             * \param leftCrossPt last feasible point for left gap point
             * \param rightCrossPt last feasible point for right gap point
-            * \return N/A
             */                        
             void generateTerminalPoints(dynamic_gap::Gap * gap, 
                                         const Eigen::Vector4f & leftCrossPt,
@@ -74,10 +68,8 @@ namespace dynamic_gap
             /**
             * \brief Set terminal range and bearing values for gap based on 
             * where gap crossed
-
             * \param gap incoming gap whose feasibility we want to evaluate
             * \param gapCrossingPt 2D position in space at which gap shuts (left and right points meet)
-            * \return N/A
             */                 
             float indivGapFindCrossingPoint(dynamic_gap::Gap * gap, 
                                             Eigen::Vector2f& gapCrossingPt);

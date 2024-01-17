@@ -81,24 +81,19 @@ namespace dynamic_gap
 
             /**
             * \brief Helper function for integrating estimator state forward in time
-            *
             * \return Propagated estimator state
             */     
             Eigen::Vector4f integrate();
 
             /**
             * \brief Helper function for linearizing nonlinear estimator dynamics
-            *
             * \param idx index of intermediate update to linearize for 
-            * \return N/A
             */                 
             void linearize(const int & idx);
 
             /**
             * \brief Helper function for discretizing continuous form of covariance noise matrix
-            *
             * \param idx index of intermediate update to discretize for 
-            * \return N/A
             */                 
             void discretizeQ(const int & idx);                        
      };

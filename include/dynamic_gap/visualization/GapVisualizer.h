@@ -113,7 +113,6 @@ namespace dynamic_gap
             ros::Publisher simpGapsPublisher; /**< Publisher for simplified gaps */
             ros::Publisher manipGapsPublisher; /**< Publisher for manipulated gaps */
             ros::Publisher reachableGapsPublisher; /**< Publisher for reachable gaps */
-            // ros::Publisher gapModelPosPublisher;
             ros::Publisher gapModelsPublisher; /**< Publisher for gap models */
             ros::Publisher ahpfCentersPublisher; /**< Publisher for AHPF harmonic term center positions */
             ros::Publisher gapSplinesPublisher; /**< Publisher for approximate spline trajectories through gaps */

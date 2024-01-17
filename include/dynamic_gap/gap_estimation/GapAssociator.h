@@ -52,7 +52,6 @@ namespace dynamic_gap
 		
 		/**
 		* \brief Obtain minimum distance association between current gap points and previous gap points 
-		* 
 		* \param distMatrix populated distance matrix
 		* \return minimum distance association
 		*/				
@@ -60,7 +59,6 @@ namespace dynamic_gap
         
 		/**
 		* \brief Function for handling the transfer of gap estimator models from previous gaps to current gaps
-		* 
 		* \param association minimum distance association
 		* \param distMatrix populated distance matrix
 		* \param currentGaps current set of gaps
@@ -69,7 +67,6 @@ namespace dynamic_gap
 		* \param scanTime ROS timestamp at which scan is read in to assign to models
 		* \param intermediateRbtVels sequence of ego-robot velocities received since last model update
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
-		* \return N/A 
 		*/				
 		void assignModels(const std::vector<int> & association, 
 						  const std::vector< std::vector<float> > & distMatrix, 
@@ -84,7 +81,6 @@ namespace dynamic_gap
 
 		/**
 		* \brief Populate vector of gap points for a set of gaps
-		* 
 		* \param gaps incoming set of gaps
 		* \return vector of gap points
 		*/			
@@ -92,11 +88,9 @@ namespace dynamic_gap
 
 		/**
 		* \brief Helper function for handing off a model from a previous gap point to a current gap point
-		* 
 		* \param pair pair of indices for associated previous and current gap points
 		* \param currentGaps current set of gaps
 		* \param previousGaps previous set of gaps	
-		* \return N/A
 		*/		
 		void handOffModel(const std::vector<int> & pair,
 						  const std::vector<dynamic_gap::Gap *> & currentGaps, 
@@ -104,7 +98,6 @@ namespace dynamic_gap
 		
 		/**
 		* \brief Helper function for instantiating a new model for a current gap point
-		* 
 		* \param i index for current gap point that needs new model
 		* \param currentGaps current set of gaps
 		* \param currentModelIdx counter for model ID
@@ -112,7 +105,6 @@ namespace dynamic_gap
 		* \param scanTime ROS timestamp at which scan is read in to assign to models
 		* \param intermediateRbtVels sequence of ego-robot velocities received since last model update
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
-		* \return N/A 
 		*/							  
 		void instantiateNewModel(const int & i,
 								const std::vector<dynamic_gap::Gap *> & currentGaps, 
@@ -123,7 +115,6 @@ namespace dynamic_gap
 
 		/**
 		* \brief A single function wrapper for solving rectangular assignment problem
-		*
 		* \param DistMatrix populated distance matrix
 		* \param Assignment minimum distance association
 		* \return total "cost" of minimum distance association
@@ -132,13 +123,11 @@ namespace dynamic_gap
 
 		/**
 		* \brief Solve optimal solution for assignment problem using Munkres algorithm, also known as Hungarian Algorithm.
-		*
 		* \param assignment minimum distance association
 		* \param cost total "cost" of minimum distance association
 		* \param distMatrix populated distance matrix
 		* \param nOfRows number of rows in distMatrix
 		* \param nOfColumns number of columns in distMatrix
-		* \return N/A
 		*/
 		void assignmentoptimal(int *assignment, float *cost, float *distMatrix, int nOfRows, int nOfColumns);
 		
