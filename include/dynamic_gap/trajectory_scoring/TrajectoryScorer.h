@@ -88,9 +88,9 @@ namespace dynamic_gap
             * \param pose pose in candidate trajectory to calculate distance with
             * \return distance from trajectory pose to (range, theta) pair in laser scan
             */
-            float dist2Pose(const float & theta, 
-                            const float & range, 
-                            const geometry_msgs::Pose & pose);
+            // float dist2Pose(const float & theta, 
+            //                 const float & range, 
+            //                 const geometry_msgs::Pose & pose);
 
             /**
             * \brief function for evaluating intermediate cost of pose for candidate trajectory (in static environment)

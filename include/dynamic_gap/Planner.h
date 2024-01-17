@@ -139,8 +139,6 @@ namespace dynamic_gap
         
         geometry_msgs::TwistStamped currentPeakSplineVel_;
 
-        // float curr_peakVelX_, curr_peakVelY_;
-
         int currentAgentCount_;
 
         std::vector<geometry_msgs::Pose> currentTrueAgentPoses_;

@@ -516,7 +516,7 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
-                manipulatedGaps.at(i)->initManipIndices();
+                // manipulatedGaps.at(i)->initManipIndices();
 
                 // MANIPULATE POINTS AT T=0            
                 // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
@@ -714,7 +714,7 @@ namespace dynamic_gap
             // setCurrentPathTiming(incomingPathTiming);
             setCurrentLeftModel(incomingGap->leftGapPtModel_);
             setCurrentRightModel(incomingGap->rightGapPtModel_);
-            setCurrentGapPeakVelocities(incomingGap->peakVelX_, incomingGap->peakVelY_);
+            setCurrentGapPeakVelocities(incomingGap->peakSplineVelX_, incomingGap->peakSplineVelY_);
             currentTrajectoryPublisher_.publish(incomingTraj.getPath());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
 
@@ -764,7 +764,7 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel_->getID() << ", feasible right gap index: " << g.rightGapPtModel_->getID());
                 if (gap->leftGapPtModel_->getID() == getCurrentLeftGapPtModelID() && gap->rightGapPtModel_->getID() == getCurrentRightGapPtModelID()) 
                 {
-                    setCurrentGapPeakVelocities(gap->peakVelX_, gap->peakVelY_);
+                    setCurrentGapPeakVelocities(gap->peakSplineVelX_, gap->peakSplineVelY_);
                     break;
                 }
             }
@@ -1103,7 +1103,7 @@ namespace dynamic_gap
                 {
                     currGaps.at(i)->addTerminalRightInformation();
                     feasibleGaps.push_back(new dynamic_gap::Gap(*currGaps.at(i)));
-                    // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakVelX_ << ", " << gaps.at(i)->peakVelY_);
+                    // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
                 }
 
                 if (currGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && currGaps.at(i)->rightGapPtModel_->getID() == currentRightGapPtModelID) 

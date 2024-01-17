@@ -165,8 +165,8 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "after buildExtendedBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
-            selectedGap->leftWeight_ = leftBezierWeight;
-            selectedGap->rightWeight_ = rightBezierWeight;
+            selectedGap->leftBezierWeight_ = leftBezierWeight;
+            selectedGap->rightBezierWeight_ = rightBezierWeight;
             selectedGap->leftRightCenters_ = gapSideAHPFCenters;
             selectedGap->allCurvePts_ = gapCurvesPosns;
             selectedGap->numLeftRGEPoints_ = numLeftRGEPoints;

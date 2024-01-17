@@ -109,8 +109,8 @@ namespace dynamic_gap
                                  gap->splineYCoefs_[1];
 
         // ROS_INFO_STREAM_NAMED("GapFeasibility", "peak velocity: " << peakSplineVelX << ", " << peakSplineVelY);
-        gap->peakVelX_ = peakSplineVelX;
-        gap->peakVelY_ = peakSplineVelY;
+        gap->peakSplineVelX_ = peakSplineVelX;
+        gap->peakSplineVelY_ = peakSplineVelY;
         
         if (std::max(std::abs(peakSplineVelX), std::abs(peakSplineVelY)) >= cfg_->control.vx_absmax)
             gapCrossingTime = -1.0; // communicating infeasibility
