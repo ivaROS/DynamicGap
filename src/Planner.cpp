@@ -445,7 +445,9 @@ namespace dynamic_gap
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {
-        if (globalPlanMapFrame.size() == 0) return true;
+        if (globalPlanMapFrame.size() == 0) 
+            return true;
+        
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
         tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_); // to update odom frame parameter
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_); // to update robot frame parameter
@@ -459,14 +461,12 @@ namespace dynamic_gap
         // return local goal (odom) frame
         geometry_msgs::PoseStamped newglobalPathLocalWaypointOdomFrame = goalSelector_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
 
-        {
-            // Plan New
-            float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
-            float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
-            
-            if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
-                globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
-        }
+        // Plan New
+        float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
+        float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
+        
+        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
+            globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
         // Set new local goal to trajectory arbiter
         trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame_, odom2rbt_);

@@ -1,10 +1,4 @@
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
-// #include <Eigen/Core>
-
-// #include <sstream>
-// #include <unsupported/Eigen/MatrixFunctions>
-// #include "/home/masselmeier/Desktop/Research/vcpkg/installed/x64-linux/include/matplotlibcpp.h"
-// namespace plt = matplotlibcpp;
 
 namespace dynamic_gap 
 {
@@ -37,16 +31,6 @@ namespace dynamic_gap
 
         eyes = Eigen::MatrixXf::Identity(4,4);
     }
-
-    /*
-    RotatingFrameCartesianKalmanFilter::RotatingFrameCartesianKalmanFilter(float gapPtX, float gapPtY, 
-                                                                            const ros::Time & t_update, 
-                                                                            const geometry_msgs::TwistStamped & lastRbtVel,
-                                                                            const geometry_msgs::TwistStamped & lastRbtAcc) 
-    {
-        initialize(side, modelID, gapPtX, gapPtY, t_update, lastRbtVel, lastRbtAcc);
-    }
-    */
 
     RotatingFrameCartesianKalmanFilter::~RotatingFrameCartesianKalmanFilter()
     {
@@ -135,124 +119,6 @@ namespace dynamic_gap
 
         return;
     }
-
-    // void RotatingFrameCartesianKalmanFilter::processEgoRobotVelsAndAccs(const ros::Time & t_update)
-    // {
-    //     /*
-    //     // Printing original dt values from intermediate odom measurements
-    //     ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
-
-    //     for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
-    //     {
-    //         ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec() << " sec");
-    //     }
-
-    //     ROS_INFO_STREAM_NAMED("GapEstimation", "   t_update" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (t_update - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
-    //     */
-
-    //     // Tweaking ego robot velocities/acceleration to make sure that updates:
-    //     //      1. Are never negative (backwards in time)
-    //     //      2. Always start from time of last update
-    //     //      3. Always at end of time of incoming laser scan measurement
-
-    //     // Erasing odometry measurements that are from *before* the last update 
-    //     while (!intermediateRbtVels_.empty() && tLastUpdate_ > intermediateRbtVels_[0].header.stamp)
-    //     {
-    //         intermediateRbtVels_.erase(intermediateRbtVels_.begin());
-    //         intermediateRbtAccs_.erase(intermediateRbtAccs_.begin());
-    //     }
-
-    //     // Inserting placeholder odometry to represent the time of the last update
-    //     intermediateRbtVels_.insert(intermediateRbtVels_.begin(), lastRbtVel_);
-    //     intermediateRbtVels_[0].header.stamp = tLastUpdate_;
-
-    //     intermediateRbtAccs_.insert(intermediateRbtAccs_.begin(), lastRbtAcc_);
-    //     intermediateRbtAccs_[0].header.stamp = tLastUpdate_;
-
-    //     // Erasing odometry measurements that occur *after* the incoming laser scan was received
-    //     while (!intermediateRbtVels_.empty() && t_update < intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp)
-    //     {
-    //         intermediateRbtVels_.erase(intermediateRbtVels_.end() - 1);
-    //         intermediateRbtAccs_.erase(intermediateRbtAccs_.end() - 1);
-    //     }
-
-    //     // Inserting placeholder odometry to represent the time that the incoming laser scan was received
-    //     intermediateRbtVels_.push_back(intermediateRbtVels_.back());
-    //     intermediateRbtVels_.back().header.stamp = t_update;
-
-    //     for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
-    //     {
-    //         float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
-            
-    //         ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
-            
-    //         ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
-
-    //     }
-    // }
-
-    // void RotatingFrameCartesianKalmanFilter::isolateGapDynamics() 
-    // {
-    //     Eigen::Vector4f cartesian_state = getState();
-        
-    //     // fixing position (otherwise can get bugs)
-    //     cartesian_state[0] = xTilde_[0];
-    //     cartesian_state[1] = xTilde_[1];
-
-    //     // update cartesian
-    //     cartesian_state[2] += lastRbtVel_.twist.linear.x;
-    //     cartesian_state[3] += lastRbtVel_.twist.linear.y;
-    //     frozen_x = cartesian_state;
-
-    //     //std::cout << "modified cartesian state: " << frozen_x[0] << ", " << frozen_x[1] << ", " << frozen_x[2] << ", " << frozen_x[3] << std::endl;
-    // }
-
-    // void RotatingFrameCartesianKalmanFilter::setRewindState() 
-    // {
-    //     rewind_x = frozen_x;
-    // }
-
-    // void RotatingFrameCartesianKalmanFilter::rewindPropagate(const float & rew_dt) 
-    // {
-    //     Eigen::Vector4f new_rewind_x;     
-    //     new_rewind_x << 0.0, 0.0, 0.0, 0.0;
-
-    //     Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
-
-    //     Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-    //     float frozen_ang_vel_ego = 0.0;
-
-    //     float vdot_x_body = frozen_linear_acc_ego[0];
-    //     float vdot_y_body = frozen_linear_acc_ego[1];
-
-    //     // discrete euler update of state (ignoring rbt acceleration, set as 0)
-    //     new_rewind_x[0] = rewind_x[0] + (rewind_x[2] + rewind_x[1]*frozen_ang_vel_ego)*rew_dt;
-    //     new_rewind_x[1] = rewind_x[1] + (rewind_x[3] - rewind_x[0]*frozen_ang_vel_ego)*rew_dt;
-    //     new_rewind_x[2] = rewind_x[2] + (rewind_x[3]*frozen_ang_vel_ego - vdot_x_body)*rew_dt;
-    //     new_rewind_x[3] = rewind_x[3] + (-rewind_x[2]*frozen_ang_vel_ego - vdot_y_body)*rew_dt;
-    //     rewind_x = new_rewind_x; 
-    // }
-
-    // void RotatingFrameCartesianKalmanFilter::gapStatePropagate(const float & froz_dt) 
-    // {
-    //     Eigen::Vector4f new_frozen_x;     
-    //     new_frozen_x << 0.0, 0.0, 0.0, 0.0;
-
-    //     Eigen::Vector2f frozen_linear_acc_ego(0.0, 0.0);
-
-    //     Eigen::Vector2f frozen_linear_vel_ego(0.0, 0.0); 
-    //     float frozen_ang_vel_ego = 0.0;
-
-    //     float vdot_x_body = frozen_linear_acc_ego[0];
-    //     float vdot_y_body = frozen_linear_acc_ego[1];
-
-    //     // discrete euler update of state (ignoring rbt acceleration, set as 0)
-    //     new_frozen_x[0] = frozen_x[0] + (frozen_x[2] + frozen_x[1]*frozen_ang_vel_ego)*froz_dt;
-    //     new_frozen_x[1] = frozen_x[1] + (frozen_x[3] - frozen_x[0]*frozen_ang_vel_ego)*froz_dt;
-    //     new_frozen_x[2] = frozen_x[2] + (frozen_x[3]*frozen_ang_vel_ego - vdot_x_body)*froz_dt;
-    //     new_frozen_x[3] = frozen_x[3] + (-frozen_x[2]*frozen_ang_vel_ego - vdot_y_body)*froz_dt;
-    //     frozen_x = new_frozen_x; 
-    // }
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::integrate() 
     {
@@ -480,41 +346,4 @@ namespace dynamic_gap
 
         return;
     }    
-
-    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState() 
-    // {
-    //     // x state:
-    //     // [r_x, r_y, v_x, v_y]
-
-    //     return x_hat_k_plus_;
-    // }
-
-    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getGapState() 
-    // {
-    //     // x state:
-    //     // [r_x, r_y, v_x, v_y]
-    //     return frozen_x;
-    // }
-
-    // Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getRewindGapState() 
-    // {
-    //     // x state:
-    //     // [r_x, r_y, v_x, v_y]
-    //     return rewind_x;
-    // }
-
-    // geometry_msgs::TwistStamped RotatingFrameCartesianKalmanFilter::getRobotVel() 
-    // {
-    //     return lastRbtVel_;
-    // }
-
-    // int RotatingFrameCartesianKalmanFilter::getID() 
-    // {
-    //     return modelID_;
-    // }
-
-    // Eigen::Vector2f RotatingFrameCartesianKalmanFilter::getXTilde() 
-    // {
-    //     return xTilde_;
-    // }
 }

@@ -21,7 +21,8 @@
 
 namespace dynamic_gap
 {
-    class Visualizer {
+    class Visualizer 
+    {
         public: 
             Visualizer() {};
             ~Visualizer() {};
@@ -31,6 +32,6 @@ namespace dynamic_gap
             // Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
 
         protected:
-            const DynamicGapConfig* cfg_;
+            const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
     };
 }
