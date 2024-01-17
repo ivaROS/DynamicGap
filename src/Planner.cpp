@@ -1016,7 +1016,7 @@ namespace dynamic_gap
             } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
-                rawCmdVel = trajController_->obstacleAvoidanceControlLaw(*scan_.get());
+                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 return rawCmdVel;
             } else // FEEDBACK CONTROL 
             {
@@ -1038,7 +1038,7 @@ namespace dynamic_gap
                 // dynamic_gap::TrajPlan orig_ref = trajController_->trajGen(traj);
                 
                 // get point along trajectory to target/move towards
-                targetTrajectoryPoseIdx_ = trajController_->targetPoseIdx(currPoseWorldFrame, localTrajectory);
+                targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseWorldFrame, localTrajectory);
                 // nav_msgs::Odometry ctrl_target_pose;
                 // geometry_msgs::Pose targetTrajectoryPose;
                 // ctrl_target_pose.header = traj.header;
@@ -1050,13 +1050,13 @@ namespace dynamic_gap
                 // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
                 
                 rawCmdVel = trajController_->controlLaw(currPoseWorldFrame, targetTrajectoryPose, 
-                                                        staticScan_, currentPeakSplineVel_);
+                                                        currentPeakSplineVel_);
             }
             // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
 
             cmdVel = trajController_->processCmdVel(rawCmdVel,
-                                                    staticScan_, rbtPoseInSensorFrame_, 
-                                                    currRightGapPtModel_, currLeftGapPtModel_,
+                                                    rbtPoseInSensorFrame_, 
+                                                    currLeftGapPtModel_, currRightGapPtModel_,
                                                     currentRbtVel_, currentRbtAcc_); 
         } catch (...)
         {

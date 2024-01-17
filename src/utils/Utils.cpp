@@ -157,4 +157,16 @@ namespace dynamic_gap
         return timeTakenInSeconds;
     }
 
+    // if we wanted to incorporate how egocircle can change, 
+    float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
+    {
+        // ego circle point in local frame, pose in local frame
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
+        float x = range * std::cos(theta);
+        float y = range * std::sin(theta);
+        float dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   dist: " << dist);
+        return dist;
+    }
 }

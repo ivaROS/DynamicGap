@@ -32,70 +32,122 @@ namespace dynamic_gap
         public:
 
             TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            geometry_msgs::Twist obstacleAvoidanceControlLaw(const sensor_msgs::LaserScan &);
+
+            /**
+            * \brief receive new laser scan and update member variable accordingly
+            * \param scan new laser scan
+            */
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            
+            /**
+            * \brief Control law for pure obstacle avoidance
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist obstacleAvoidanceControlLaw(); // const sensor_msgs::LaserScan & scan
+            
+            /**
+            * \brief Control law for manual robot operation
+            * \return command velocity for robot
+            */
             geometry_msgs::Twist manualControlLaw();
+
+            /**
+            * \brief Control law for trajectory tracking
+            * \param current current robot pose
+            * \param desired desired robot pose
+            * \param currentPeakSplineVel peak spline velocity for current trajectory we are trying to track
+            * \return command velocity for robot
+            */
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
                                             const geometry_msgs::Pose & desired,
-                                            const sensor_msgs::LaserScan & inflated_egocircle, 
-                                            const geometry_msgs::TwistStamped & currentPeakSplineVel_);
+                                            const geometry_msgs::TwistStamped & currentPeakSplineVel); // const sensor_msgs::LaserScan & scan, 
+
+            /**
+            * \brief Apply post-processing steps to command velocity including robot kinematic limits
+            * along with last-resort safety modules such as projection operator or CBF
+            * \param rawCmdVel raw command velocity
+            * \param rbtPoseInSensorFrame robot pose in sensor frame
+            * \param currGapLeftPtModel current gap's estimator for left gap point
+            * \param currGapRightPtModel current gap's estimator for right gap point
+            * \param currRbtVel current robot velocity
+            * \param currRbtAcc current robot acceleration
+            * \return processed command velocity
+            */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
-                                                const sensor_msgs::LaserScan & scan, 
                                                 const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                const dynamic_gap::Estimator * currGapRightPtModel, 
                                                 const dynamic_gap::Estimator * currGapLeftPtModel,
+                                                const dynamic_gap::Estimator * currGapRightPtModel, 
                                                 const geometry_msgs::TwistStamped & currRbtVel, 
-                                                const geometry_msgs::TwistStamped & currRbtAcc);
-            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
-            int targetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & localTrajectory);
-            // dynamic_gap::TrajPlan trajGen(geometry_msgs::PoseArray);
+                                                const geometry_msgs::TwistStamped & currRbtAcc); // const sensor_msgs::LaserScan & scan, 
+            
+            /**
+            * \brief Extract pose within target trajectory that we should track
+            * \param currPose current robot pose
+            * \param localTrajectory selected local trajectory to track
+            * \return index along local trajectory for which pose the robot should drive towards
+            */
+            int extractTargetPoseIdx(const geometry_msgs::Pose & currPose, 
+                                     const geometry_msgs::PoseArray & localTrajectory);
             
         private:
-            Eigen::Matrix2cf getComplexMatrix(const float & x, const float & y, const float & theta);
-            float dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose);
+            /**
+            * \brief build complex matrix to represent current robot 2D pose
+            * \param x current robot x-position
+            * \param y current robot y-position
+            * \param theta current robot orientation
+            * \return complex matrix for current robot 2D pose
+            */
+            Eigen::Matrix2cf getComplexMatrix(const float & x, 
+                                              const float & y, 
+                                              const float & theta);
+            // float dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose);
 
-            float polDist(const float & l1, const float & t1, const float & l2, const float & t2);
+            /**
+            * \brief Helper function for clipping velocities to maximum allowed velocities
+            * \param velLinXFeedback feedback linear command velocity in x direction
+            * \param velLinYFeedback feedback linear command velocity in y direction
+            * \param velAngFeedback feedback angular command velocity
+            */
+            void clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback);
 
-            void runProjectionOperator(const sensor_msgs::LaserScan & scan, 
-                                        const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
+
+            void runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                         Eigen::Vector2f & cmdVelFeedback,
                                         float & Psi, Eigen::Vector2f & dPsiDx,
                                         float & velLinXSafe, float & velLinYSafe,
                                         float & minDistTheta, float & minDist);
+
+            Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
+
+            void visualizeProjectionOperator(const float & weightedVelLinXSafe, const float & weightedVelLinYSafe);
+
             void runBearingRateCBF(const Eigen::Vector4f & state, 
                                     const Eigen::Vector4f & rightGapPtState,
                                     const Eigen::Vector4f & leftGapPtState,
                                     const Eigen::Vector2f & currRbtAcc,
                                     float & velLinXSafe, float & velLinYSafe, float & PsiCBF);
-            void clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback);
-            void visualizeProjectionOperator(const float & weightedVelLinXSafe, const float & weightedVelLinYSafe);
-
 
             float rightGapSideCBF(const Eigen::Vector4f & state);
             Eigen::Vector4f rightGapSideCBFDerivative(const Eigen::Vector4f & state);
             float leftGapSideCBF(const Eigen::Vector4f & state);
             Eigen::Vector4f leftGapSideCBFDerivative(const Eigen::Vector4f & state);
 
-            Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
 
-            const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
-            boost::mutex egocircleLock_;
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
+            const DynamicGapConfig * cfg_ = NULL; /**< Planner hyperparameter config list */
+
+            boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
             ros::Publisher projOpPublisher_;
 
-            // bool holonomic;
-            // bool full_fov;
-            // bool projection_operator;
-            // float kFeedbackX_;
-            // float k_fb_y_;
             float k_fb_theta_;
-            // float k_po_x_;
-            // float k_po_theta_;            
-            // float k_CBF_;
-            // int cmd_counter_;
 
             float distanceThresh_;
 
-            float manualVelX_, manualVelY_, manualVelAng_;
-            float manualVelLinIncrement_, manualVelAngIncrement_;
+            float manualVelX_;
+            float manualVelY_;
+            float manualVelAng_;
+
+            float manualVelLinIncrement_;
+            float manualVelAngIncrement_;
     };
 }

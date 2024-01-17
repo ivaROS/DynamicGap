@@ -19,13 +19,8 @@ namespace dynamic_gap
 
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
-        boost::mutex::scoped_lock lock(egocircleLock_);
+        boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
-    }
-
-    float TrajectoryController::polDist(const float & range1, const float & theta1, const float & range2, const float & theta2) 
-    {
-        return sqrt(pow(range1, 2) + pow(range2, 2) - 2 * range1 * range2 * std::cos(theta1 - theta2));
     }
 
     // For non-blocking keyboard inputs
@@ -92,24 +87,24 @@ namespace dynamic_gap
     /*
     Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
     */
-    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw(const sensor_msgs::LaserScan & scan) 
+    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLaw() 
     {
         ROS_INFO_STREAM_NAMED("Controller", "obstacle avoidance control");
         float safeDirX = 0;
         float safeDirY = 0;                                   
         
         float scanRange = 0.0, scanTheta = 0.0;
-        for (int i = 0; i < scan.ranges.size(); i++) 
+        for (int i = 0; i < scan_->ranges.size(); i++) 
         {
-            scanRange = scan.ranges.at(i);
+            scanRange = scan_->ranges.at(i);
             scanTheta =  idx2theta(i);
 
             safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
             safeDirY += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
         }
 
-        safeDirX /= scan.ranges.size();
-        safeDirY /= scan.ranges.size();
+        safeDirX /= scan_->ranges.size();
+        safeDirY /= scan_->ranges.size();
 
         float cmdVelX = cfg_->projection.k_CBF * safeDirX;
         float cmdVelY = cfg_->projection.k_CBF * safeDirY;
@@ -136,12 +131,11 @@ namespace dynamic_gap
 
     geometry_msgs::Twist TrajectoryController::controlLaw(const geometry_msgs::Pose & current, 
                                                           const geometry_msgs::Pose & desired,
-                                                          const sensor_msgs::LaserScan & scan, 
-                                                          const geometry_msgs::TwistStamped & currentPeakSplineVel_) 
+                                                          const geometry_msgs::TwistStamped & currentPeakSplineVel) 
     {    
         ROS_INFO_STREAM_NAMED("Controller", "    [controlLaw()]");
         // Setup Vars
-        boost::mutex::scoped_lock lock(egocircleLock_);
+        boost::mutex::scoped_lock lock(scanMutex_);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
 
@@ -178,7 +172,7 @@ namespace dynamic_gap
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
         float velAngFeedback = errorTheta * k_fb_theta_;
 
-        float peakSplineSpeed = sqrt(pow(currentPeakSplineVel_.twist.linear.x, 2) + pow(currentPeakSplineVel_.twist.linear.y, 2));
+        float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
@@ -186,7 +180,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
-        ROS_INFO_STREAM_NAMED("Controller", "        gap peak velocity: " << currentPeakSplineVel_.twist.linear.x << ", " << currentPeakSplineVel_.twist.linear.y);           
+        ROS_INFO_STREAM_NAMED("Controller", "        gap peak velocity: " << currentPeakSplineVel.twist.linear.x << ", " << currentPeakSplineVel.twist.linear.y);           
         
         if (peakSplineSpeed > cmdSpeed) 
         {
@@ -202,10 +196,9 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & rawCmdVel,
-                                                             const sensor_msgs::LaserScan & scan, 
                                                              const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                             const dynamic_gap::Estimator * currGapRightPtModel, 
                                                              const dynamic_gap::Estimator * currGapLeftPtModel,
+                                                             const dynamic_gap::Estimator * currGapRightPtModel, 
                                                              const geometry_msgs::TwistStamped & currRbtVel, 
                                                              const geometry_msgs::TwistStamped & currRbtAcc) 
     {
@@ -235,7 +228,7 @@ namespace dynamic_gap
             Eigen::Vector2f dPsiDx(0.0, 0.0);
             Eigen::Vector2f cmdVelFeedback(rawCmdVel.linear.x, rawCmdVel.linear.y);
 
-            runProjectionOperator(scan, rbtPoseInSensorFrame,
+            runProjectionOperator(rbtPoseInSensorFrame,
                                     cmdVelFeedback, Psi, dPsiDx, velLinXSafe, velLinYSafe,
                                     minDistTheta, minDist);
             
@@ -487,8 +480,7 @@ namespace dynamic_gap
     }
 
 
-    void TrajectoryController::runProjectionOperator(const sensor_msgs::LaserScan & scan, 
-                                                     const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
+    void TrajectoryController::runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                                      Eigen::Vector2f & cmdVelFeedback,
                                                      float & Psi, Eigen::Vector2f & dPsiDx,
                                                      float & velLinXSafe, float & velLinYSafe,
@@ -496,12 +488,12 @@ namespace dynamic_gap
 {
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM_NAMED("Controller", "rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
-        std::vector<float> minScanDists(scan.ranges.size());
+        std::vector<float> minScanDists(scan_->ranges.size());
         float theta = 0.0, dist = 0.0;
         for (int i = 0; i < minScanDists.size(); i++) 
         {
             theta = idx2theta(i);
-            dist = scan.ranges.at(i);
+            dist = scan_->ranges.at(i);
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
         int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
@@ -598,11 +590,11 @@ namespace dynamic_gap
         return g;
     }
 
-    int TrajectoryController::targetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & localTrajectory) 
+    int TrajectoryController::extractTargetPoseIdx(const geometry_msgs::Pose & currPose, const geometry_msgs::PoseArray & localTrajectory) 
     {
         // Find pose right ahead
         std::vector<float> localTrajectoryDeviations(localTrajectory.poses.size());
-        ROS_INFO_STREAM_NAMED("Controller", "[targetPoseIdx()]");
+        ROS_INFO_STREAM_NAMED("Controller", "[extractTargetPoseIdx()]");
 
         // obtain distance from entire ref traj and current pose
         for (int i = 0; i < localTrajectoryDeviations.size(); i++) // i will always be positive, so this is fine
@@ -631,12 +623,4 @@ namespace dynamic_gap
         // make sure pose does note exceed trajectory size
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
-
-    float TrajectoryController::dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose) 
-    {
-        float x = dist * std::cos(theta);
-        float y = dist * std::sin(theta);
-        return sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2));
-    }
-
 }

@@ -43,6 +43,8 @@ namespace dynamic_gap
 
     float timeTaken(const std::chrono::steady_clock::time_point & startTime);
 
+    float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose);
+
     static float eps = 1.0e-6;
 
     static int half_num_scan = 256;
