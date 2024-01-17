@@ -6,9 +6,8 @@ namespace dynamic_gap
     {
         projOpPublisher_ = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
-        distanceThresh_ = 0.1;
 
-        k_fb_theta_ = (cfg_->planning.holonomic && cfg_->planning.full_fov) ? 0.8 : cfg_->control.k_fb_theta;
+        KFeedbackTheta_ = (cfg_->planning.holonomic && cfg_->planning.full_fov) ? 0.8 : cfg_->control.k_fb_theta;
 
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
@@ -170,7 +169,7 @@ namespace dynamic_gap
         // obtain feedback velocities
         float velLinXFeedback = errorX * cfg_->control.k_fb_x;
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
-        float velAngFeedback = errorTheta * k_fb_theta_;
+        float velAngFeedback = errorTheta * KFeedbackTheta_;
 
         float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
@@ -237,7 +236,7 @@ namespace dynamic_gap
             // Eigen::Vector4f leftGapPtState = currGapLeftPtModel_->getState(); // flipping
             // Eigen::Vector4f rightGapPtState = currGapRightPtModel_->getState(); // flipping
             // Eigen::Vector2f current_currRbtAcc(currRbtAcc.linear.x, currRbtAcc.linear.y);
-            // runBearingRateCBF(state, rightGapPtState, leftGapPtState, current_currRbtAcc, velLinXSafe, velLinYSafe, PsiCBF);
+            // runBearingRateCBF(state, leftGapPtState, rightGapPtState, current_currRbtAcc, velLinXSafe, velLinYSafe, PsiCBF);
         } else 
         {
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
@@ -341,11 +340,14 @@ namespace dynamic_gap
         return;
     }
 
+    /*
     void TrajectoryController::runBearingRateCBF(const Eigen::Vector4f & state, 
-                                                 const Eigen::Vector4f & rightGapPtState,
                                                  const Eigen::Vector4f & leftGapPtState,
+                                                 const Eigen::Vector4f & rightGapPtState,
                                                  const Eigen::Vector2f & currRbtAcc,
-                                                 float & velLinXSafe, float & velLinYSafe, float & PsiCBF) 
+                                                 float & velLinXSafe, 
+                                                 float & velLinYSafe, 
+                                                 float & PsiCBF) 
     {
         float hSafe = 0.0;
         Eigen::Vector4f dHSafeDx(0.0, 0.0, 0.0, 0.0);
@@ -478,7 +480,7 @@ namespace dynamic_gap
         dHRightDX(3) = epsilonDivide(-rightGapPtState(0), rSq);
         return dHRightDX;
     }
-
+    */
 
     void TrajectoryController::runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                                      Eigen::Vector2f & cmdVelFeedback,

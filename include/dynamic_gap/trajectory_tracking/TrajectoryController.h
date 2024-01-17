@@ -27,6 +27,10 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * Class responsible for (a) tracking selected trajectory and 
+    * (b) enacting last resort safety modules
+    */
     class TrajectoryController 
     {
         public:
@@ -108,46 +112,104 @@ namespace dynamic_gap
             * \param velLinYFeedback feedback linear command velocity in y direction
             * \param velAngFeedback feedback angular command velocity
             */
-            void clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback);
+            void clipRobotVelocity(float & velLinXFeedback, 
+                                   float & velLinYFeedback, 
+                                   float & velAngFeedback);
 
-
+            /**
+            * \brief Function for running projection operator module on command velocity
+            * \param rbtPoseInSensorFrame robot pose in sensor frame
+            * \param cmdVelFeedback feedback command velocity
+            * \param Psi projection operator function value
+            * \param dPsiDx projection operator gradient values
+            * \param velLinXSafe safe command velocity in x direction
+            * \param velLinYSafe safe command velocity in y direction
+            * \param minDistTheta orientation of minimum distance scan point
+            * \param minDist range of minimum distance scan point
+            */
             void runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                         Eigen::Vector2f & cmdVelFeedback,
-                                        float & Psi, Eigen::Vector2f & dPsiDx,
-                                        float & velLinXSafe, float & velLinYSafe,
-                                        float & minDistTheta, float & minDist);
+                                        float & Psi, 
+                                        Eigen::Vector2f & dPsiDx,
+                                        float & velLinXSafe, 
+                                        float & velLinYSafe,
+                                        float & minDistTheta, 
+                                        float & minDist);
 
+            /**
+            * \brief Function for calculating projection operator
+            * \param closestScanPtToRobot minimum distance scan point
+            * \return projection operator function and gradient values (Psi and dPsiDx)
+            */
             Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
 
-            void visualizeProjectionOperator(const float & weightedVelLinXSafe, const float & weightedVelLinYSafe);
+            /**
+            * \brief Function for visualizing projection operator output in RViz
+            * \param weightedVelLinXSafe weighted safe command velocity in x direction
+            * \param weightedVelLinYSafe weighted safe command velocity in y direction
+            */
+            void visualizeProjectionOperator(const float & weightedVelLinXSafe, 
+                                             const float & weightedVelLinYSafe);
 
+            /**
+            * \brief Function for running bearing rate CBF on command velocity
+            * \param state current robot state (position and velocity)
+            * \param leftGapPtState current left gap point state
+            * \param rightGapPtState current right gap point state
+            * \param currRbtAcc current robot acceleration
+            * \param velLinXSafe safe command velocity in x direction
+            * \param velLinYSafe safe command velocity in y direction
+            * \param PsiCBF CBF value            
+            */
             void runBearingRateCBF(const Eigen::Vector4f & state, 
-                                    const Eigen::Vector4f & rightGapPtState,
                                     const Eigen::Vector4f & leftGapPtState,
+                                    const Eigen::Vector4f & rightGapPtState,
                                     const Eigen::Vector2f & currRbtAcc,
-                                    float & velLinXSafe, float & velLinYSafe, float & PsiCBF);
+                                    float & velLinXSafe, 
+                                    float & velLinYSafe, 
+                                    float & PsiCBF);
 
-            float rightGapSideCBF(const Eigen::Vector4f & state);
-            Eigen::Vector4f rightGapSideCBFDerivative(const Eigen::Vector4f & state);
+            /**
+            * \brief Function for running left gap side bearing CBF
+            * \param state current robot state (position and velocity)
+            * \return left gap side bearing CBF value
+            */
             float leftGapSideCBF(const Eigen::Vector4f & state);
+
+            /**
+            * \brief Function for running left gap side bearing CBF gradient
+            * \param state current robot state (position and velocity)
+            * \return left gap side bearing CBF gradient
+            */            
             Eigen::Vector4f leftGapSideCBFDerivative(const Eigen::Vector4f & state);
 
+            /**
+            * \brief Function for running right gap side bearing CBF
+            * \param state current robot state (position and velocity)
+            * \return right gap side bearing CBF value
+            */            
+            float rightGapSideCBF(const Eigen::Vector4f & state);
+
+            /**
+            * \brief Function for running right gap side bearing CBF gradient
+            * \param state current robot state (position and velocity)
+            * \return right gap side bearing CBF gradient
+            */  
+            Eigen::Vector4f rightGapSideCBFDerivative(const Eigen::Vector4f & state);
 
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
             const DynamicGapConfig * cfg_ = NULL; /**< Planner hyperparameter config list */
 
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
-            ros::Publisher projOpPublisher_;
+            ros::Publisher projOpPublisher_; /**< Projection operator publisher */
 
-            float k_fb_theta_;
+            float KFeedbackTheta_; /**< Proportional feedback gain for robot theta */
 
-            float distanceThresh_;
+            float manualVelX_; /**< Linear command velocity in x-direction for manual control */
+            float manualVelY_; /**< Linear command velocity in y-direction for manual control */
+            float manualVelAng_; /**< Angular command velocity in yaw direction for manual control */
 
-            float manualVelX_;
-            float manualVelY_;
-            float manualVelAng_;
-
-            float manualVelLinIncrement_;
-            float manualVelAngIncrement_;
+            float manualVelLinIncrement_; /**< Linear command velocity increment for manual control */
+            float manualVelAngIncrement_; /**< Angular command velocity increment for manual control */
     };
 }
