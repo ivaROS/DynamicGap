@@ -94,7 +94,7 @@ namespace dynamic_gap
             Eigen::Vector2f pLeft(xLeft_, yLeft_);
             Eigen::Vector2f pRight(xRight_, yRight_);
 
-            if (getLeftToRightAngle(pLeft, pRight) < M_PI)
+            if (getSweptLeftToRightAngle(pLeft, pRight) < M_PI)
             {
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "don't need to switch");
             } else

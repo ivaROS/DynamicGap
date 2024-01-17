@@ -6,9 +6,9 @@ namespace dynamic_gap
 
     // Utils::~Utils() {}
 
-    int theta2idx(const float & theta)
+    Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
     {
-        return int((theta + M_PI) / angle_increment);
+        return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);
     }
 
     float idx2theta(const int & idx)
@@ -16,14 +16,33 @@ namespace dynamic_gap
         return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
 
-    Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
+    int theta2idx(const float & theta)
     {
-        return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);
+        return int((theta + M_PI) / angle_increment);
+    }
+
+    float quaternionToYaw(const tf::Quaternion & quat)
+    {
+        return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
+                            1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
+    }
+
+    // if we wanted to incorporate how egocircle can change, 
+    float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
+    {
+        // ego circle point in local frame, pose in local frame
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
+        float x = range * std::cos(theta);
+        float y = range * std::sin(theta);
+        float dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   dist: " << dist);
+        return dist;
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
-    float getLeftToRightAngle(const Eigen::Vector2f & leftVect, 
+    float getSignedLeftToRightAngle(const Eigen::Vector2f & leftVect, 
                               const Eigen::Vector2f & rightVect) 
     {
         float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
@@ -31,17 +50,16 @@ namespace dynamic_gap
 
         float leftToRightAngle = std::atan2(determinant, dotProduct);
         
-        if (leftToRightAngle < 0)
-            leftToRightAngle += 2*M_PI; 
+        // if (leftToRightAngle < 0)
+        //     leftToRightAngle += 2*M_PI; 
 
         return leftToRightAngle;
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
-    float getLeftToRightAngle(const Eigen::Vector2f & leftVect,
-                              const Eigen::Vector2f & rightVect, 
-                              const bool & wrap) 
+    float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect,
+                                   const Eigen::Vector2f & rightVect) 
     {
         float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
         float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
@@ -49,7 +67,7 @@ namespace dynamic_gap
         float leftToRightAngle = std::atan2(determinant, dotProduct);
 
         // wrapping to 0 < angle < 2pi
-        if (wrap && leftToRightAngle < 0) 
+        if (leftToRightAngle < 0) 
         {
             // ROS_INFO_STREAM("wrapping " << leftToRightAngle);
             leftToRightAngle += 2*M_PI; 
@@ -58,7 +76,7 @@ namespace dynamic_gap
         return leftToRightAngle;
     }
 
-    float getGapDist(const Eigen::Vector4f & gapState)
+    float getGapRange(const Eigen::Vector4f & gapState)
     {
         return sqrt(pow(gapState[0], 2) + pow(gapState[1], 2));
     }
@@ -77,9 +95,11 @@ namespace dynamic_gap
 
     // TODO: pretty print for function vector to string
 
+    /*
     float atanThetaWrap(const float & theta) 
     {
         float wrappedTheta = theta;
+
         while (wrappedTheta <= -M_PI) 
         {
             wrappedTheta += 2*M_PI;
@@ -94,16 +114,11 @@ namespace dynamic_gap
 
         return wrappedTheta;
     }
+    */
 
-    float quaternionToYaw(const tf::Quaternion & quat)
+    int wrapScanIndex(const int & scanIdx) 
     {
-        return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
-                            1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
-    }
-
-    int subtractAndWrapScanIndices(const int & a, const int & b) 
-    {
-        return (a < 0) ? a+b : a;
+        return scanIdx + (scanIdx < 0) * (2 * half_num_scan);
     }
 
     bool isGlobalPathLocalWaypointWithinGapAngle(const int & goalIdx, const int & lowerIdx, const int & upperIdx) 
@@ -155,18 +170,5 @@ namespace dynamic_gap
         float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
         float timeTakenInSeconds = timeTakenInMilliseconds / 1.0e6;
         return timeTakenInSeconds;
-    }
-
-    // if we wanted to incorporate how egocircle can change, 
-    float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
-    {
-        // ego circle point in local frame, pose in local frame
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
-        float x = range * std::cos(theta);
-        float y = range * std::sin(theta);
-        float dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   dist: " << dist);
-        return dist;
     }
 }

@@ -129,7 +129,7 @@ namespace dynamic_gap
         Eigen::Vector2f leftBearingVect(cos(thetaLeft), sin(thetaLeft)); 
         Eigen::Vector2f rightBearingVect(cos(thetaRight), sin(thetaRight));
 
-        float leftToRightAngle = getLeftToRightAngle(leftBearingVect, rightBearingVect);
+        float leftToRightAngle = getSweptLeftToRightAngle(leftBearingVect, rightBearingVect);
         
         Eigen::Vector2f prevLeftBearingVect = leftBearingVect;        
         Eigen::Vector2f prevRightBearingVect = rightBearingVect;
@@ -165,14 +165,14 @@ namespace dynamic_gap
         for (float t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
         {
             // checking to see if left point is reachable
-            if (!(leftSideOpening && (getGapDist(leftGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->control.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating left");
                 gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
             }
 
             // checking to see if right point is reachable
-            if (!(rightSideOpening && (getGapDist(rightGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->control.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating right");
                 gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
@@ -182,8 +182,8 @@ namespace dynamic_gap
             leftGapState = gap->leftGapPtModel_->getGapState();
             rightGapState = gap->rightGapPtModel_->getGapState();
 
-            leftGapPtCollision = getGapDist(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            rightGapPtCollision = getGapDist(rightGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            leftGapPtCollision = getGapRange(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            rightGapPtCollision = getGapRange(rightGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
             collision = (leftGapPtCollision || rightGapPtCollision);
 
             if (collision) 
@@ -203,9 +203,9 @@ namespace dynamic_gap
             thetaLeft = getGapBearing(leftGapState);
             thetaRight = getGapBearing(rightGapState);
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "thetaLeft: " << thetaLeft << ", thetaRight: " << thetaRight);
-            leftBearingVect = leftGapState.head(2) / getGapDist(leftGapState); // << std::cos(thetaLeft), std::sin(thetaLeft);
-            rightBearingVect = rightGapState.head(2) / getGapDist(rightGapState); // << std::cos(thetaRight), std::sin(thetaRight);
-            leftToRightAngle = getLeftToRightAngle(leftBearingVect, rightBearingVect);
+            leftBearingVect = leftGapState.head(2) / getGapRange(leftGapState); // << std::cos(thetaLeft), std::sin(thetaLeft);
+            rightBearingVect = rightGapState.head(2) / getGapRange(rightGapState); // << std::cos(thetaRight), std::sin(thetaRight);
+            leftToRightAngle = getSweptLeftToRightAngle(leftBearingVect, rightBearingVect);
             thetaCenter = (thetaLeft - 0.5 * leftToRightAngle);
 
             centralBearingVect << std::cos(thetaCenter), std::sin(thetaCenter);
@@ -259,9 +259,9 @@ namespace dynamic_gap
                 }
             }
             
-            prevLeftBearingVect = prevLeftGapState.head(2) / getGapDist(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
-            prevRightBearingVect = prevRightGapState.head(2) / getGapDist(prevRightGapState); // << std::cos(prev_thetaRight), std::sin(prev_thetaRight);
-            prevLeftToRightAngle = getLeftToRightAngle(prevLeftBearingVect, prevRightBearingVect);            
+            prevLeftBearingVect = prevLeftGapState.head(2) / getGapRange(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
+            prevRightBearingVect = prevRightGapState.head(2) / getGapRange(prevRightGapState); // << std::cos(prev_thetaRight), std::sin(prev_thetaRight);
+            prevLeftToRightAngle = getSweptLeftToRightAngle(prevLeftBearingVect, prevRightBearingVect);            
 
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "prevLeftToRightAngle: " << prevLeftToRightAngle << ", leftToRightAngle: " << leftToRightAngle);            
             
@@ -342,11 +342,11 @@ namespace dynamic_gap
     {        
         float thetaLeft = getGapBearing(leftCrossPt);
         int idxLeft = theta2idx(thetaLeft);
-        float rangeLeft = getGapDist(leftCrossPt);
+        float rangeLeft = getGapRange(leftCrossPt);
 
         float thetaRight = getGapBearing(rightCrossPt);
         int idxRight = theta2idx(thetaRight);
-        float rangeRight = getGapDist(rightCrossPt);
+        float rangeRight = getGapRange(rightCrossPt);
 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting terminal points to, left: (" << 
                                                 leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << 

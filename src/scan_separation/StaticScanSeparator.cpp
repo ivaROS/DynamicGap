@@ -67,7 +67,7 @@ namespace dynamic_gap
         float prevFreeScanRange, currFreeScanRange;
         // for (int j = 1; j < 2; j++) 
         // {
-        prevFreeScanIdx = subtractAndWrapScanIndices(prevModelScanIdx - 1, cfg_->scan.full_scan); // (prevModelScanIdx - j); // 
+        prevFreeScanIdx = wrapScanIndex(prevModelScanIdx - 1); // (prevModelScanIdx - j); // 
             // if (prevFreeScanIdx < 0) {
             //     prevFreeScanIdx += 2*half_num_scan;
             // }
@@ -83,7 +83,7 @@ namespace dynamic_gap
         // }
 
         // need distance from curr to prev
-        float prevToCurrIdxSpan = subtractAndWrapScanIndices(currFreeScanIdx - prevFreeScanIdx, cfg_->scan.full_scan); // (currFreeScanIdx - prevFreeScanIdx); // 
+        float prevToCurrIdxSpan = wrapScanIndex(currFreeScanIdx - prevFreeScanIdx); // (currFreeScanIdx - prevFreeScanIdx); // 
         // if (prevToCurrIdxSpan < 0) {
         //     prevToCurrIdxSpan += 2*half_num_scan;
         // }

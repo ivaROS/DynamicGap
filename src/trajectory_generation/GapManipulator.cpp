@@ -117,7 +117,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap polar points, left: (" << leftIdx << ", " << leftDist << ") , right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
-            float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
+            float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
             // Second condition: if angle smaller than M_PI / 3
             // Check if arc length < 3 robot width
@@ -128,7 +128,7 @@ namespace dynamic_gap
             if (smallGap) 
             {
 
-                float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
+                float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
                 
                 float thetaLeft = std::atan2(leftPt[1], leftPt[0]);
 
@@ -167,8 +167,8 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 3: biasing gap goal towards global path local waypoint");
 
-            float leftToWaypointAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypointVector, true);
-            float rightToWaypointAngle = getLeftToRightAngle(rightPt, globalPathLocalWaypointVector, true);
+            float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalPathLocalWaypointVector);
+            float rightToWaypointAngle = getSweptLeftToRightAngle(rightPt, globalPathLocalWaypointVector);
     
             float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalPathLocalWaypointTheta,
                                                             leftToRightAngle, rightToWaypointAngle, leftToWaypointAngle);
@@ -178,7 +178,7 @@ namespace dynamic_gap
             Eigen::Vector2f biasedGapGoalUnitNorm(std::cos(biasedGapGoalTheta), std::sin(biasedGapGoalTheta));
 
             // needs to be distance between L/confined. Always positive.
-            float leftToGapGoalAngle = getLeftToRightAngle(leftPt, biasedGapGoalUnitNorm, false); 
+            float leftToGapGoalAngle = getSignedLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "            biasedGapGoalTheta: " << biasedGapGoalTheta);
             ROS_INFO_STREAM_NAMED("GapManipulator", "            biasedGapGoalIdx: " << biasedGapGoalIdx);
@@ -258,8 +258,8 @@ namespace dynamic_gap
 
         // get gap's range at globalPathLocalWaypoint idx
 
-        float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
-        float leftToWaypointAngle = getLeftToRightAngle(leftPt, globalPathLocalWaypoint, true);
+        float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
+        float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalPathLocalWaypoint);
         float gapGoalRange = (rightPt.norm() - leftPt.norm()) * epsilonDivide(leftToWaypointAngle, leftToRightAngle) + leftPt.norm();
 
         return dist2goal < gapGoalRange;
@@ -309,7 +309,7 @@ namespace dynamic_gap
             // target is pi
             int targetGapIdxSpan = cfg_->gap_manip.reduction_target / cfg_->scan.angle_increment;
  
-            int leftIdxBiasedRight = subtractAndWrapScanIndices(leftIdx - targetGapIdxSpan, cfg_->scan.full_scan);
+            int leftIdxBiasedRight = wrapScanIndex(leftIdx - targetGapIdxSpan);
             int rightIdxBiasedLeft = (rightIdx + targetGapIdxSpan) % cfg_->scan.full_scan; // num_of_scan is int version of 2*half_scan
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "rightIdxBiasedLeft: " << rightIdxBiasedLeft << ", leftIdxBiasedRight: " << leftIdxBiasedRight);
@@ -322,10 +322,10 @@ namespace dynamic_gap
 
             //ROS_INFO_STREAM_NAMED("GapManipulator",  "goal orientation: " << globalPathLocalWaypointTheta << ", goal idx: " << goal_idx << ", acceptable distance: " << halfTargetGapIdxSpan << std::endl;
 
-            leftIdxBiasedRight = subtractAndWrapScanIndices(leftIdx - halfTargetGapIdxSpan, cfg_->scan.full_scan);
+            leftIdxBiasedRight = wrapScanIndex(leftIdx - halfTargetGapIdxSpan);
             int leftIdxBiasedLeft = (leftIdx + halfTargetGapIdxSpan) % cfg_->scan.full_scan;
 
-            int rightIdxBiasedRight = subtractAndWrapScanIndices(rightIdx - halfTargetGapIdxSpan, cfg_->scan.full_scan);
+            int rightIdxBiasedRight = wrapScanIndex(rightIdx - halfTargetGapIdxSpan);
             rightIdxBiasedLeft = (rightIdx + halfTargetGapIdxSpan) % cfg_->scan.full_scan;
 
             bool isLocalWaypointLeftBiased = isGlobalPathLocalWaypointWithinGapAngle(globalPathLocalWaypointIdx, leftIdxBiasedRight, leftIdxBiasedLeft); 
@@ -345,13 +345,13 @@ namespace dynamic_gap
             { 
                 //ROS_INFO_STREAM_NAMED("GapManipulator",  "central gap" << std::endl;
                 newLeftIdx = (globalPathLocalWaypointIdx + halfTargetGapIdxSpan) % cfg_->scan.full_scan;
-                newRightIdx = subtractAndWrapScanIndices(globalPathLocalWaypointIdx - halfTargetGapIdxSpan, cfg_->scan.full_scan);
+                newRightIdx = wrapScanIndex(globalPathLocalWaypointIdx - halfTargetGapIdxSpan);
                 ROS_INFO_STREAM_NAMED("GapManipulator", "        creating goal-centered gap: " << newLeftIdx << ", " << newRightIdx);
             }
 
             // removed some float casting here
-            float leftToNewLeftIdxSpan = subtractAndWrapScanIndices(leftIdx - newLeftIdx, cfg_->scan.full_scan);
-            float leftToNewRightIdxSpan = subtractAndWrapScanIndices(leftIdx - newRightIdx, cfg_->scan.full_scan);
+            float leftToNewLeftIdxSpan = wrapScanIndex(leftIdx - newLeftIdx);
+            float leftToNewRightIdxSpan = wrapScanIndex(leftIdx - newRightIdx);
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "orig_gap_size: " << orig_gap_size);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "leftToNewRightIdxSpan: " << leftToNewRightIdxSpan << ", leftToNewLeftIdxSpan: " << leftToNewLeftIdxSpan);
@@ -627,7 +627,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "leftPt: (" << xLeft << ", " << yLeft << "), rightPt: (" << xRight << ", " << yRight << ")");
             // ROS_INFO_STREAM_NAMED("GapManipulator", "eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
 
-            float leftToRightAngle = getLeftToRightAngle(leftPt, rightPt, true);
+            float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
             float thetaCenter = (leftTheta - 0.5*leftToRightAngle);
 
@@ -714,7 +714,7 @@ namespace dynamic_gap
 
             Eigen::Vector2f leftUnitNorm = unitNorm(leftPt);
             Eigen::Vector2f rightUnitNorm = unitNorm(rightPt);
-            float leftToRightAngle = getLeftToRightAngle(leftUnitNorm, rightUnitNorm, true);
+            float leftToRightAngle = getSweptLeftToRightAngle(leftUnitNorm, rightUnitNorm);
 
             // inflate inwards by radius * infl
             // rotate by pi/2, norm
@@ -734,7 +734,7 @@ namespace dynamic_gap
 
             Eigen::Vector2f inflatedLeftUnitNorm(std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta));
             Eigen::Vector2f inflatedRightUnitNorm(std::cos(inflatedRightTheta), std::sin(inflatedRightTheta));
-            float newLeftToRightAngle = getLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm, false);
+            float newLeftToRightAngle = getSignedLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "newLeftToRightAngle: " << newLeftToRightAngle);
 
             int inflatedLeftIdx = 0, inflatedRightIdx = 0;
@@ -752,8 +752,8 @@ namespace dynamic_gap
                 inflatedRightIdx = theta2idx(inflatedRightTheta);
                 inflatedLeftIdx = theta2idx(inflatedLeftTheta);
                 
-                float leftToInflatedLeftAngle = getLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm, false);
-                float leftToInflatedRightAngle = getLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm, false);
+                float leftToInflatedLeftAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
+                float leftToInflatedRightAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
                 inflatedLeftRange = leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
                 inflatedRightRange =  leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
                 // if (cfg_->debug.manipulation_debug_log) 
