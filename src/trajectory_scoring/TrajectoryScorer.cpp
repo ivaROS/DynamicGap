@@ -211,7 +211,7 @@ namespace dynamic_gap
         // Requires LOCAL FRAME
         // Should be no racing condition
 
-        geometry_msgs::PoseArray path = traj.getPath();
+        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         std::vector<float> pathTiming = traj.getPathTiming();
         
         float totalTrajCost = 0.0;

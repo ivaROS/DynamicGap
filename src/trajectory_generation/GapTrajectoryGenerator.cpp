@@ -712,7 +712,7 @@ namespace dynamic_gap
 
     dynamic_gap::Trajectory GapTrajectoryGenerator::processTrajectory(const dynamic_gap::Trajectory & traj)
     {
-        geometry_msgs::PoseArray rawPath = traj.getPath();
+        geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
         std::vector<float> rawPathTiming = traj.getPathTiming();
         
         geometry_msgs::Pose originPose;

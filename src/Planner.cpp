@@ -610,7 +610,7 @@ namespace dynamic_gap
                 }
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
-                traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPath(), cam2odom_));
+                traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), cam2odom_));
                 // pathTimings.at(i) = std::get<1>(traj);
                 generatedTrajs.push_back(traj);
             }
@@ -660,9 +660,9 @@ namespace dynamic_gap
                 // counts = std::min(cfg_.planning.num_feasi_check, int(pathPoseScores.at(i).size()));
 
                 pathScores.at(i) = std::accumulate(pathPoseScores.at(i).begin(), pathPoseScores.at(i).end(), float(0));
-                pathScores.at(i) = trajs.at(i).getPath().poses.size() == 0 ? -std::numeric_limits<float>::infinity() : pathScores.at(i);
+                pathScores.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? -std::numeric_limits<float>::infinity() : pathScores.at(i);
                 
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    for gap " << i << " (length: " << trajs.at(i).getPath().poses.size() << "), returning score of " << pathScores.at(i));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    for gap " << i << " (length: " << trajs.at(i).getPathRbtFrame().poses.size() << "), returning score of " << pathScores.at(i));
                 
                 // if (pathScores.at(i) == -std::numeric_limits<float>::infinity()) {
                 //     for (size_t j = 0; j < counts; j++) {
@@ -715,7 +715,7 @@ namespace dynamic_gap
             setCurrentLeftModel(incomingGap->leftGapPtModel_);
             setCurrentRightModel(incomingGap->rightGapPtModel_);
             setCurrentGapPeakVelocities(incomingGap->peakSplineVelX_, incomingGap->peakSplineVelY_);
-            currentTrajectoryPublisher_.publish(incomingTraj.getPath());          
+            currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
 
             return incomingTraj;  
@@ -723,7 +723,7 @@ namespace dynamic_gap
         {
             dynamic_gap::Trajectory emptyTraj;
             geometry_msgs::PoseArray emptyPath = geometry_msgs::PoseArray();
-            emptyPath.header = incomingTraj.getPath().header;
+            emptyPath.header = incomingTraj.getPathRbtFrame().header;
             std::vector<float> emptyPathTiming;
             setCurrentGap(NULL);
             setCurrentTraj(emptyTraj);
@@ -732,7 +732,7 @@ namespace dynamic_gap
             setCurrentLeftModel(NULL);
             setCurrentRightModel(NULL);
             setCurrentGapPeakVelocities(0.0, 0.0);
-            currentTrajectoryPublisher_.publish(emptyTraj.getPath());
+            currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             return emptyTraj;
         }                       
@@ -747,7 +747,7 @@ namespace dynamic_gap
         boost::mutex::scoped_lock gapset(gapsetMutex);
         
         dynamic_gap::Trajectory currentTraj = getCurrentTraj();
-        // geometry_msgs::PoseArray currentPath = currentTraj.getPath(); // getCurrentPath();
+        // geometry_msgs::PoseArray currentPath = currentTraj.getPathRbtFrame(); // getCurrentPath();
         // std::vector<float> currentPathTiming = currentTraj.getPathTiming(); // getCurrentPathTiming();
 
         // std::vector<dynamic_gap::Gap *> curr_raw_gaps = currRawGaps_;
@@ -797,7 +797,7 @@ namespace dynamic_gap
             std::string incomingPathStatus = "incoming path is safe to switch onto"; // (incomingPathOdomFrame.poses.size() > 0) ? "incoming traj length 0" : "incoming score infinite";
 
             bool ableToSwitchToIncomingPath = true;
-            if (incomingTraj.getPath().poses.size() == 0)
+            if (incomingTraj.getPathRbtFrame().poses.size() == 0)
             {
                 incomingPathStatus = "incoming path is of length zero.";
                 ableToSwitchToIncomingPath = false;
@@ -815,7 +815,7 @@ namespace dynamic_gap
             ///////////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing path is empty (size: 0) //
             ///////////////////////////////////////////////////////////////////////////////////
-            bool isCurrentPathEmpty = currentTraj.getPath().poses.size() == 0;
+            bool isCurrentPathEmpty = currentTraj.getPathRbtFrame().poses.size() == 0;
             // bool curr_gap_not_feasible = ;
             if (isCurrentPathEmpty) // || !isIncomingGapValid 
             {
@@ -874,7 +874,7 @@ namespace dynamic_gap
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Compare the scores of the incoming trajectory with the score of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            int poseCheckCount = std::min(incomingTraj.getPath().poses.size(), reducedCurrentPathRobotFrame.poses.size()); // cfg_.planning.num_feasi_check, 
+            int poseCheckCount = std::min(incomingTraj.getPathRbtFrame().poses.size(), reducedCurrentPathRobotFrame.poses.size()); // cfg_.planning.num_feasi_check, 
 
             incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.begin() + poseCheckCount, float(0));
 
@@ -921,7 +921,7 @@ namespace dynamic_gap
             
           
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
-            currentTrajectoryPublisher_.publish(currentTraj.getPath());
+            currentTrajectoryPublisher_.publish(currentTraj.getPathRbtFrame());
         } catch (...) 
         {
             ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "compareToCurrentTraj");

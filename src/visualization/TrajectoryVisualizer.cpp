@@ -15,7 +15,7 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const dynamic_gap::Trajectory & chosenTraj) 
     {
-        geometry_msgs::PoseArray path = chosenTraj.getPath();
+        geometry_msgs::PoseArray path = chosenTraj.getPathRbtFrame();
         geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
 
         visualization_msgs::Marker trajSwitchIdxMarker;
@@ -74,7 +74,7 @@ namespace dynamic_gap
         dynamic_gap::Trajectory traj = trajs.at(0);
 
         // The above makes this safe
-        gapTrajMarker.header.frame_id = traj.getPath().header.frame_id;
+        gapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
         gapTrajMarker.header.stamp = ros::Time::now();
         gapTrajMarker.ns = "allTraj";
         gapTrajMarker.type = visualization_msgs::Marker::ARROW;
@@ -89,7 +89,7 @@ namespace dynamic_gap
 
         for (const dynamic_gap::Trajectory & traj : trajs) 
         {
-            geometry_msgs::PoseArray path = traj.getPath();
+            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
             for (const geometry_msgs::Pose & pose : path.poses) 
             {
                 gapTrajMarker.id = int (gapTrajMarkerArray.markers.size());
@@ -137,7 +137,7 @@ namespace dynamic_gap
 
         for (int i = 0; i < trajs.size(); i++) 
         {
-            geometry_msgs::PoseArray path = trajs.at(i).getPath();
+            geometry_msgs::PoseArray path = trajs.at(i).getPathRbtFrame();
             geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
                         
             trajPoseScoresMarker.header = path.header;
@@ -157,10 +157,10 @@ namespace dynamic_gap
             //     << trajs.at(i).poses.size() << ", trajPoseScores: " << trajPoseScores.at(i).size());
             
             /*
-            for (int j = 0; j < trajs.at(i).getPath().poses.size(); j++) 
+            for (int j = 0; j < trajs.at(i).getPathRbtFrame().poses.size(); j++) 
             {
                 trajPoseScoresMarker.id = int (trajPoseScoresMarkerArray.markers.size());
-                trajPoseScoresMarker.pose = trajs.at(i).getPath().poses.at(j);
+                trajPoseScoresMarker.pose = trajs.at(i).getPathRbtFrame().poses.at(j);
 
                 std::stringstream stream;
                 stream << std::fixed << std::setprecision(2) << trajPoseScores.at(i).at(j);
