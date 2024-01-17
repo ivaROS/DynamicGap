@@ -18,8 +18,8 @@ namespace dynamic_gap
         // reachable_gap_no_RGE_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_no_RGE", 10);
         gapSplinesPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_splines", 10);
 
-        gapModelPosPublisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
-        gapModelVelPublisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel", 10);
+        // gapModelPosPublisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos", 10);
+        gapModelsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_models", 10);
         // gapmodel_vel_error_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel_error", 10);
         // gapmodel_pos_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos_GT", 10);
         // gapmodel_vel_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel_GT", 10);
@@ -549,8 +549,8 @@ namespace dynamic_gap
         clearMarker.ns = "gap_models";
         clearMarker.action = visualization_msgs::Marker::DELETEALL;
         clearMarkerArray.markers.push_back(clearMarker);
-        gapModelPosPublisher.publish(clearMarkerArray);
-        gapModelVelPublisher.publish(clearMarkerArray);
+        // gapModelPosPublisher.publish(clearMarkerArray);
+        gapModelsPublisher.publish(clearMarkerArray);
         // gapmodel_pos_GT_publisher.publish(clearMarkerArray);
         // gapmodel_vel_GT_publisher.publish(clearMarkerArray);
         // gapmodel_vel_error_publisher.publish(clearMarkerArray);
@@ -562,7 +562,7 @@ namespace dynamic_gap
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
         // gapModelPosPublisher.publish(gap_pos_arr);
-        gapModelVelPublisher.publish(gapModelMarkerArray);
+        gapModelsPublisher.publish(gapModelMarkerArray);
         // gapmodel_vel_error_publisher.publish(gap_vel_error_arr);
         // gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
         // gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
@@ -799,6 +799,7 @@ namespace dynamic_gap
     }
     */
 
+    /*
     void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
@@ -827,7 +828,9 @@ namespace dynamic_gap
         reachableGapsPublisher.publish(reachableGapMarkerArray);
         // reachable_gap_no_RGE_publisher.publish(markerArray1);
     }
-
+    */
+    
+    /*
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & reachableGapMarkerArray, dynamic_gap::Gap * gap) 
     {
         // ROS_INFO_STREAM("in drawReachableGap");
@@ -974,7 +977,7 @@ namespace dynamic_gap
         }
     }
 
-    /*
+
     void GapVisualizer::drawReachableGapsCenters(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;

@@ -9,7 +9,8 @@ Panels:
         - /Egorobot Data1
         - /Dynamic Gap1
         - /Dynamic Gap1/Gaps1
-        - /Dynamic Gap1/Gaps1/MarkerArray4
+        - /Dynamic Gap1/Models1
+        - /Dynamic Gap1/Models1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/Marker1
@@ -188,36 +189,12 @@ Visualization Manager:
           Displays:
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /dg_model_pos
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: true
-            - Class: rviz/MarkerArray
-              Enabled: true
-              Marker Topic: /dg_model_vel
+              Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
                 gap_models: true
               Queue Size: 100
               Value: true
-            - Class: rviz/MarkerArray
-              Enabled: false
-              Marker Topic: /dg_model_pos_GT
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: false
-            - Class: rviz/MarkerArray
-              Enabled: false
-              Marker Topic: /dg_model_vel_GT
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: false
           Enabled: true
           Name: Models
         - Class: rviz/Group
@@ -594,7 +571,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.623872756958008
+      Distance: 20.613601684570312
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -602,9 +579,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -4.923227787017822
-        Y: -1.4853092432022095
-        Z: -4.268881797790527
+        X: -4.841785430908203
+        Y: -3.367658853530884
+        Z: -4.2687907218933105
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
