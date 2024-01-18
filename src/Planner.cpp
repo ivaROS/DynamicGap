@@ -5,7 +5,7 @@ namespace dynamic_gap
     Planner::Planner()
     {
         // Do something? maybe set names
-        ros::NodeHandle nh("planner_node");
+        ros::NodeHandle nh_("planner_node");
     }
 
     Planner::~Planner()
@@ -42,7 +42,7 @@ namespace dynamic_gap
         delete trajVisualizer_;
     }
 
-    bool Planner::initialize(const ros::NodeHandle& unh)
+    bool Planner::initialize(const ros::NodeHandle& nh)
     {
         // ROS_INFO_STREAM("starting initialize");
         if (initialized_)
@@ -52,33 +52,33 @@ namespace dynamic_gap
         }
 
         // Config Setup
-        cfg_.loadRosParamFromNodeHandle(unh);
+        cfg_.loadRosParamFromNodeHandle(nh);
 
         // Visualization Setup
-        currentTrajectoryPublisher_ = nh.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
-        staticScanPublisher_ = nh.advertise<sensor_msgs::LaserScan>("static_scan", 1);
+        currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
+        staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
         initialized_ = true;
 
         gapDetector_ = new dynamic_gap::GapDetector(cfg_);
-        gapAssociator_ = new dynamic_gap::GapAssociator(nh, cfg_);
+        gapAssociator_ = new dynamic_gap::GapAssociator(nh_, cfg_);
         // staticScanSeparator_ = new dynamic_gap::StaticScanSeparator(cfg_);
-        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh, cfg_);
+        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
 
-        goalSelector_ = new dynamic_gap::GoalSelector(nh, cfg_);
-        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh, cfg_);
+        goalSelector_ = new dynamic_gap::GoalSelector(nh_, cfg_);
+        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
 
-        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh, cfg_);
+        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh_, cfg_);
 
-        gapManipulator_ = new dynamic_gap::GapManipulator(nh, cfg_);
+        gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
 
-        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(nh, cfg_);
+        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(nh_, cfg_);
 
-        trajScorer_ = new dynamic_gap::TrajectoryScorer(nh, cfg_);
-        trajController_ = new dynamic_gap::TrajectoryController(nh, cfg_);
-        trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh, cfg_);
+        trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
+        trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
+        trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
 
 
         // MAP FRAME ID SHOULD BE: known_map
@@ -148,10 +148,10 @@ namespace dynamic_gap
         return false;
     }
 
-    void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> msg)
+    void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
         boost::mutex::scoped_lock gapset(gapsetMutex);
-        scan_ = msg;
+        scan_ = scan;
 
         ros::Time curr_time = scan_->header.stamp;
 
@@ -261,10 +261,11 @@ namespace dynamic_gap
         return;
     }
 
-    void Planner::updateModel(const int & idx, std::vector<dynamic_gap::Gap *> & gaps, 
-                               const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                               const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                               const ros::Time & tCurrentFilterUpdate) 
+    void Planner::updateModel(const int & idx, 
+                                std::vector<dynamic_gap::Gap *> & gaps, 
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                                const ros::Time & tCurrentFilterUpdate) 
     {
 		try
         {
@@ -313,14 +314,6 @@ namespace dynamic_gap
         }        
     }
     
-    void Planner::updateEgoCircle()
-    {
-        goalSelector_->updateEgoCircle(scan_);
-        gapManipulator_->updateEgoCircle(scan_);
-        trajScorer_->updateEgoCircle(scan_);
-        trajController_->updateEgoCircle(scan_);
-    }
-
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                  const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
@@ -500,6 +493,14 @@ namespace dynamic_gap
             ros::Duration(0.1).sleep();
             return;
         }
+    }
+
+    void Planner::updateEgoCircle()
+    {
+        goalSelector_->updateEgoCircle(scan_);
+        gapManipulator_->updateEgoCircle(scan_);
+        trajScorer_->updateEgoCircle(scan_);
+        trajController_->updateEgoCircle(scan_);
     }
 
     std::vector<dynamic_gap::Gap *> Planner::gapManipulate(const std::vector<dynamic_gap::Gap *> & feasibleGaps) 
@@ -741,7 +742,7 @@ namespace dynamic_gap
     dynamic_gap::Trajectory Planner::compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
                                                             const dynamic_gap::Trajectory & incomingTraj,                                                        
                                                             const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
-                                                            const bool & isIncomingGapFeasibleInput) // bool isIncomingGapAssociated,
+                                                            const bool & isIncomingGapFeasible) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapsetMutex);
@@ -758,7 +759,6 @@ namespace dynamic_gap
 
             // First, checking if the current gap we are within is still valid (associated and feasible)
             // TODO: remove associated because feasible assumes associated
-            bool isIncomingGapFeasible = true; // (isIncomingGapFeasibleInput);
             for (dynamic_gap::Gap * gap : feasibleGaps) 
             {
                 // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel_->getID() << ", feasible right gap index: " << g.rightGapPtModel_->getID());
@@ -805,7 +805,7 @@ namespace dynamic_gap
             {
                 incomingPathStatus = "incoming path is of score -infinity.";
                 ableToSwitchToIncomingPath = false;
-            } else if (!isIncomingGapFeasible)
+            } else if (!true) // isIncomingGapFeasible
             {
                 incomingPathStatus = "incoming path is not feasible.";
                 ableToSwitchToIncomingPath = false;
