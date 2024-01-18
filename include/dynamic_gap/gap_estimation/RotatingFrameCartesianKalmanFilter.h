@@ -26,6 +26,9 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Extended Kalman filter model that uses a constant velocity rotating Cartesian frame dynamics model
+    */
     class RotatingFrameCartesianKalmanFilter : public Estimator 
     {
         private:

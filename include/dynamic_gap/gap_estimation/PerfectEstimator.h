@@ -28,6 +28,10 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Perfector model estimator that represents gaps attached to the static environment with a velocity of zero
+    * and gaps attached to the dynamic environment with a velocity of its corresponding agent 
+    */
     class PerfectEstimator : public Estimator 
     {
         private:            

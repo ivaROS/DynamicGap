@@ -26,7 +26,7 @@
 namespace dynamic_gap
 {
     /**
-    * Class responsible for scoring candidate trajectory according to
+    * \brief Class responsible for scoring candidate trajectory according to
     * trajectory's proximity to local environment and global path's local waypoint
     */
     class TrajectoryScorer
@@ -36,6 +36,19 @@ namespace dynamic_gap
             // TrajectoryScorer& operator=(TrajectoryScorer other) {cfg_ = other.cfg_; return *this;};
             // TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
             
+            /**
+            * \brief Gap state comparator that uses the 2D position norm
+            */
+            struct Comparator 
+            {
+                bool operator() (Eigen::Vector4f & a, Eigen::Vector4f & b) 
+                {
+                    float aNorm = pow(a[0], 2) + pow(a[1], 2);
+                    float bNorm = pow(b[0], 2) + pow(b[1], 2);
+                    return aNorm < bNorm;
+                }
+            };
+
             /**
             * \brief receive new laser scan and update member variable accordingly
             * \param scan new laser scan
@@ -80,17 +93,6 @@ namespace dynamic_gap
             * \return terminal waypoint cost for candidate trajectory
             */
             float terminalGoalCost(const geometry_msgs::Pose & pose);
-            
-            /**
-            * \brief function for calculating distance between trajectory pose and (range, theta) pair in laser scan
-            * \param theta theta value of queried laser scan point
-            * \param range range value of queried laser scan point
-            * \param pose pose in candidate trajectory to calculate distance with
-            * \return distance from trajectory pose to (range, theta) pair in laser scan
-            */
-            // float dist2Pose(const float & theta, 
-            //                 const float & range, 
-            //                 const geometry_msgs::Pose & pose);
 
             /**
             * \brief function for evaluating intermediate cost of pose for candidate trajectory (in static environment)

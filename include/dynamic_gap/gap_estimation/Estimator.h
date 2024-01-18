@@ -12,6 +12,9 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Base class for gap point estimator
+    */
     class Estimator 
     {
         public:

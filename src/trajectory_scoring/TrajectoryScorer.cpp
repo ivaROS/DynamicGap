@@ -30,16 +30,6 @@ namespace dynamic_gap
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
-    struct Comparator 
-    {
-        bool operator() (Eigen::Vector4f & a, Eigen::Vector4f & b) 
-        {
-            float aNorm = pow(a[0], 2) + pow(a[1], 2);
-            float bNorm = pow(b[0], 2) + pow(b[1], 2);
-            return aNorm < bNorm;
-        }
-    };
-
     std::vector<Eigen::Vector4f> TrajectoryScorer::sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses)
     {
         // Declare vector of pairs
@@ -221,7 +211,6 @@ namespace dynamic_gap
 
         float t_i = 0.0;
         float t_iplus1 = 0.0;
-        // int counts = std::min(cfg_->planning.num_feasi_check, int(path.poses.size()));        
 
         /*
         int min_dist_idx, future_scan_idx;
@@ -289,7 +278,7 @@ namespace dynamic_gap
         if (posewiseCosts.size() > 0) 
         {
             // obtain terminalGoalCost, scale by w1
-            float w1 = 1.0;
+            float w1 = 1.0; // cfg_->traj.terminal_weight
             float terminalCost = w1 * terminalGoalCost(*std::prev(path.poses.end()));
             // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
             if (terminalCost < 0.25 && totalTrajCost >= 0) 

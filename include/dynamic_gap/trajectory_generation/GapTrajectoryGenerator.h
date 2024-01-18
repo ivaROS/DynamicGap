@@ -28,11 +28,11 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief class responsible for generating local collision-free trajectories through gap
+    */    
     class GapTrajectoryGenerator
     {
-        /**
-        * \brief class responsible for generating local collision-free trajectories through gap
-        */
         public:
             GapTrajectoryGenerator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
             

@@ -36,21 +36,6 @@ find_package(OsqpEigen REQUIRED)
 #  cfg/dg.cfg
 #)
 
-##############
-## messages ##
-##############
-
-add_message_files(DIRECTORY msg
-  FILES
-  TrajPlan.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-)
-
 ###################################
 ## catkin specific configuration ##
 ###################################

@@ -7,8 +7,10 @@
 namespace dynamic_gap
 {
 
-    // WORK IN PROGRESS
-
+    
+    /**
+    * \brief WORK IN PROGRESS
+    */
     class StaticScanSeparator 
     {
         public: 

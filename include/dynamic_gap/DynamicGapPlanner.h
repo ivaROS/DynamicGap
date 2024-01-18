@@ -14,11 +14,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-// #include <boost/numeric/odeint.hpp>
-
 #include <dynamic_gap/Planner.h>
-// #include <dynamic_gap/utils/Gap.h>
-
 
 namespace dynamic_gap 
 {

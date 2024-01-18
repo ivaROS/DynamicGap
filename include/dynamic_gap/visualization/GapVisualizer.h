@@ -5,7 +5,7 @@
 namespace dynamic_gap
 {
     /**
-    * Class for visualizing gap-related objects
+    * \brief Class for visualizing gap-related objects
     */
     class GapVisualizer : public Visualizer
     {

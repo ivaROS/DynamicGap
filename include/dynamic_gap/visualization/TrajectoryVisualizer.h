@@ -5,7 +5,7 @@
 namespace dynamic_gap 
 {
     /**
-    * Class for visualizing candidate trajectories through gaps
+    * \brief Class for visualizing candidate trajectories through gaps
     */
     class TrajectoryVisualizer : public Visualizer
     {

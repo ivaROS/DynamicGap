@@ -1,19 +1,6 @@
-// #include <ros/ros.h>
 #include <dynamic_gap/DynamicGapPlanner.h>
-// #include <dynamic_gap/utils/Gap.h>
 #include <pluginlib/class_list_macros.h>
 
-// #include <visualization_msgs/Marker.h>
-// #include <visualization_msgs/MarkerArray.h>
-
-// #include <boost/numeric/odeint.hpp>
-// #include <Eigen/Core>
-// #include <Eigen/Geometry>
-// #include <cmath>
-// #include <math.h>
-
-// using namespace boost::numeric::odeint;
-// namespace pl = std::placeholders;
 
 PLUGINLIB_EXPORT_CLASS(dynamic_gap::DynamicGapPlanner, nav_core::BaseLocalPlanner)
 

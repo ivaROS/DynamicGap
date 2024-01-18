@@ -6,7 +6,7 @@
 namespace dynamic_gap 
 {
     /**
-    * Class for visualizing goal-related objects
+    * \brief Class for visualizing goal-related objects
     */
     class GoalVisualizer : public Visualizer
     {
@@ -33,7 +33,6 @@ namespace dynamic_gap
             * \param gapGoalsMarkerArray marker array to add gap goal marker to
             * \param gap gap whose goal we want to visualize
             * \param initial boolean for if we want to visualize the gap's initial goal or terminal goal
-            * \param gaps set of gaps whose goals we want to visualize
             */        
             void drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
                              dynamic_gap::Gap * gap, 

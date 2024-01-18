@@ -11,7 +11,7 @@
 namespace dynamic_gap
 {
     /** 
-    * Class responsible for detecting raw set of gaps from incoming laser scan
+    * \brief Class responsible for detecting raw set of gaps from incoming laser scan
     * and simplifying raw set of gaps into simplified set of gaps.
     */
 	class GapDetector

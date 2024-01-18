@@ -15,12 +15,12 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Class responsible for manipulating feasible gaps to ensure that the gaps meet whatever assumptions
+    * are necessary for our safety guarantee
+    */    
     class GapManipulator 
     {
-        /**
-        * Class responsible for manipulating feasible gaps to ensure that the gaps meet whatever assumptions
-        * are necessary for our safety guarantee
-        */
         public: 
             GapManipulator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
 
@@ -104,7 +104,7 @@ namespace dynamic_gap
             * \param globalPathLocalWaypointTheta orientation of global path local waypoint
             * \param leftToRightAngle angle swept out from left gap point to right gap point
             * \param rightToGoalAngle angle swept out from right goal point to global path local waypoint
-            * \param leftToWaypointAngleangle swept out from left goal point to global path local waypoint
+            * \param leftToWaypointAngle angle swept out from left goal point to global path local waypoint
             * \return biased bearing for gap goal placement
             */
             float setBiasedGapGoalTheta(const float & leftTheta, 

@@ -22,7 +22,7 @@
 namespace dynamic_gap
 {
     /**
-    * Class responsible for parsing incoming global plans to select local waypoints along the global plan
+    * \brief Class responsible for parsing incoming global plans to select local waypoints along the global plan
     * that we aim to reach through our local planning
     */
     class GoalSelector

@@ -10,6 +10,9 @@
 
 namespace dynamic_gap
 {
+    /**
+    * \brief Class for a single gap
+    */
     class Gap
     {
         public:
@@ -523,7 +526,7 @@ namespace dynamic_gap
             *                \        /      B - near side angle
             *                 \      /       C - gap angle
             *                  \    /
-            *                   \C /
+            *                   \ C/
             *                    \/
             *                 gap origin
             */
@@ -611,7 +614,7 @@ namespace dynamic_gap
 
             /**
             * \brief Setter for dynamic gap category
-            * \param dynamic gap category
+            * \param category gap category
             */
             void setCategory(const std::string & category) { category_ = category; }
 
@@ -715,12 +718,18 @@ namespace dynamic_gap
                 bool termRGC_ = false; /**< Status of if terminal gap is radially converted */
             } mode;
 
+            /**
+            * \brief Gap's initial goal
+            */
             struct Goal 
             {
                 float x_ = 0.0; /**< Gap initial goal x-value */
                 float y_ = 0.0; /**< Gap initial goal y-value */
             } goal;
 
+            /**
+            * \brief Gap's terminal goal
+            */
             struct TerminalGoal 
             {
                 float x_ = 0.0; /**< Gap terminal goal x-value */
@@ -770,6 +779,9 @@ namespace dynamic_gap
             int termRightIdx_ = 0; /**< Terminal right gap point index */
             float termRightDist_ = 5; /**< Terminal right gap point distance */
             
+            /**
+            * \brief Parameters of convexified form of gap
+            */
             struct Convex 
             {
                 int leftIdx_ = 511; /**< Initial convexified left gap point index */

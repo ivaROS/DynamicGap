@@ -274,21 +274,20 @@ namespace dynamic_gap
         * \brief Helper function for clipping velocities to maximum allowed velocities
         * \param rbtVel current robot velocity
         */
-        void clipVelocities(Eigen::Vector2f & rbtVel, const float & maxSpeed) 
+        void clipVelocities(Eigen::Vector2f & rbtVel) 
         {
             // std::cout << "in clipVelocities with " << vX << ", " << vY << std::endl;
             // Eigen::Vector2f origVel(vX, vY);
             float speedX = std::abs(rbtVel[0]);
             float speedY = std::abs(rbtVel[1]);
-            if (speedX <= maxSpeed && speedY <= maxSpeed) 
+            if (speedX <= vRbtLinMax_ && speedY <= vRbtLinMax_) 
             {
                 // std::cout << "not clipping" << std::endl;
                 return;
-            } else 
-            {
+            } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << origVel.norm() << std::endl;
-                // Eigen::Vector2f clipVel = maxSpeed * origVel / std::max(speedX, speedY);
-                rbtVel = epsilonDivide(maxSpeed * rbtVel,  std::max(speedX, speedY));
+                // Eigen::Vector2f clipVel = vRbtLinMax_ * origVel / std::max(speedX, speedY);
+                rbtVel = epsilonDivide(vRbtLinMax_ * rbtVel,  std::max(speedX, speedY));
                 // return clipVel;
             }
         }
@@ -424,25 +423,24 @@ namespace dynamic_gap
 
         GoToGoal(const float & vRbtLinMax) : vRbtLinMax_(vRbtLinMax) {}
 
-        /**
+/**
         * \brief Helper function for clipping velocities to maximum allowed velocities
         * \param rbtVel current robot velocity
         */
-        void clipVelocities(Eigen::Vector2f & rbtVel, const float & maxSpeed) 
+        void clipVelocities(Eigen::Vector2f & rbtVel) 
         {
             // std::cout << "in clipVelocities with " << vX << ", " << vY << std::endl;
             // Eigen::Vector2f origVel(vX, vY);
             float speedX = std::abs(rbtVel[0]);
             float speedY = std::abs(rbtVel[1]);
-            if (speedX <= maxSpeed && speedY <= maxSpeed) 
+            if (speedX <= vRbtLinMax_ && speedY <= vRbtLinMax_) 
             {
                 // std::cout << "not clipping" << std::endl;
                 return;
-            } else 
-            {
+            } else {
                 // std::cout << "max: " << vx_absmax << ", norm: " << origVel.norm() << std::endl;
-                // Eigen::Vector2f clipVel = maxSpeed * origVel / std::max(speedX, speedY);
-                rbtVel = epsilonDivide(maxSpeed * rbtVel,  std::max(speedX, speedY));
+                // Eigen::Vector2f clipVel = vRbtLinMax_ * origVel / std::max(speedX, speedY);
+                rbtVel = epsilonDivide(vRbtLinMax_ * rbtVel,  std::max(speedX, speedY));
                 // return clipVel;
             }
         }
@@ -479,7 +477,7 @@ namespace dynamic_gap
             rbtVelDes_[0] = (x[6] - x[0]);
             rbtVelDes_[1] = (x[7] - x[1]);
             
-            clipVelocities(rbtVelDes_, vRbtLinMax_);
+            clipVelocities(rbtVelDes_);
 
             dxdt[0] = rbtVelDes_[0];
             dxdt[1] = rbtVelDes_[1];

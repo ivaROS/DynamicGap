@@ -6,7 +6,7 @@
 namespace dynamic_gap
 {
     /**
-    * Wrapper class for candidate local trajectories that planner produces
+    * \brief Wrapper class for candidate local trajectories that planner produces
     */
     class Trajectory
     {

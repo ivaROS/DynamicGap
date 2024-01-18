@@ -15,7 +15,7 @@
 namespace dynamic_gap 
 {
     /**
-    * Class responsible for evaluating a gap's feasibility by forward-simulating the gap
+    * \brief Class responsible for evaluating a gap's feasibility by forward-simulating the gap
     * according to its dynamics model and determining if it is feasible for the robot
     * to pass through the gap before it closes
     */

@@ -14,7 +14,6 @@
 #include <tf/tf.h>
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Utils.h>
-#include "dynamic_gap/TrajPlan.h"
 #include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 #include <visualization_msgs/Marker.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -28,7 +27,7 @@
 namespace dynamic_gap 
 {
     /**
-    * Class responsible for (a) tracking selected trajectory and 
+    * \brief Class responsible for (a) tracking selected trajectory and 
     * (b) enacting last resort safety modules
     */
     class TrajectoryController 

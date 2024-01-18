@@ -307,7 +307,7 @@ namespace dynamic_gap
 
             // the desired size for the reduced gap?
             // target is pi
-            int targetGapIdxSpan = cfg_->gap_manip.reduction_target / cfg_->scan.angle_increment;
+            int targetGapIdxSpan = cfg_->gap_manip.reduction_threshold / cfg_->scan.angle_increment;
  
             int leftIdxBiasedRight = wrapScanIndex(leftIdx - targetGapIdxSpan);
             int rightIdxBiasedLeft = (rightIdx + targetGapIdxSpan) % cfg_->scan.full_scan; // num_of_scan is int version of 2*half_scan

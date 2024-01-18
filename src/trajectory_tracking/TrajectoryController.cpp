@@ -7,7 +7,7 @@ namespace dynamic_gap
         projOpPublisher_ = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
 
-        KFeedbackTheta_ = (cfg_->planning.holonomic && cfg_->planning.full_fov) ? 0.8 : cfg_->control.k_fb_theta;
+        KFeedbackTheta_ = (cfg_->planning.holonomic) ? 0.8 : cfg_->control.k_fb_theta;
 
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
@@ -139,7 +139,7 @@ namespace dynamic_gap
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
 
         ROS_INFO_STREAM_NAMED("Controller", "        feedback control");
-        // ROS_INFO_STREAM_NAMED("Controller", "r_min: " << r_min);
+        // ROS_INFO_STREAM_NAMED("Controller", "r_unity: " << r_unity);
 
         // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
         geometry_msgs::Quaternion currOrient = current.orientation;
@@ -501,7 +501,6 @@ namespace dynamic_gap
         int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
         minDistTheta = idx2theta(minDistScanIdx);
 
-        float maxRange = cfg_->projection.r_norm + cfg_->projection.r_norm_offset;
         minDist = minScanDists.at(minDistScanIdx);
 
         ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
@@ -556,13 +555,13 @@ namespace dynamic_gap
 
     Eigen::Vector3f TrajectoryController::calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot) 
     {
-        float rMin = cfg_->projection.r_min;
-        float rNorm = cfg_->projection.r_norm;
+        float rUnity = cfg_->projection.r_unity;
+        float rZero = cfg_->projection.r_zero;
 
         float minDist = closestScanPtToRobot.norm(); // sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
-        float Psi = (rMin / minDist - rMin / rNorm) / (1.0 - rMin / rNorm);
-        float derivativeDenominator = pow(minDist, 3) * (rMin - rNorm);
-        float derivatorNominatorTerm = rMin * rNorm;
+        float Psi = (rUnity / minDist - rUnity / rZero) / (1.0 - rUnity / rZero);
+        float derivativeDenominator = pow(minDist, 3) * (rUnity - rZero);
+        float derivatorNominatorTerm = rUnity * rZero;
         float PsiDerivativeXTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[0], derivativeDenominator);
         float PsiDerivativeYTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[1], derivativeDenominator);
 

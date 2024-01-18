@@ -31,7 +31,7 @@
 namespace dynamic_gap
 {
     /** 
-    * Class responsible for assocating gaps at consecutive time steps
+    * \brief Class responsible for assocating gaps at consecutive time steps
 	* to obtain a minimum distance pairing between gaps and subsequently
 	* pass off gap estimator models.
     */	
@@ -101,7 +101,6 @@ namespace dynamic_gap
 		* \param i index for current gap point that needs new model
 		* \param currentGaps current set of gaps
 		* \param currentModelIdx counter for model ID
-		* \param previousGaps previous set of gaps	
 		* \param scanTime ROS timestamp at which scan is read in to assign to models
 		* \param intermediateRbtVels sequence of ego-robot velocities received since last model update
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
