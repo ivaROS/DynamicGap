@@ -89,7 +89,7 @@ namespace dynamic_gap
             * \param numPoints number of points along curve to approximate distance with
             * \return distance along Bezier curve
             */
-            float approximateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
+            float approximateBezierArclength(const Eigen::Vector2d & bezierPt0, 
                                                     const Eigen::Vector2d & bezierPt1, 
                                                     const Eigen::Vector2d & bezierPt2, 
                                                     const float & tStart, 

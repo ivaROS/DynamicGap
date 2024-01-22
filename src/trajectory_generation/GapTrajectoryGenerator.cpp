@@ -335,7 +335,7 @@ namespace dynamic_gap
         A << ABoundaryPts, ANegativeOne;
     }
 
-    float GapTrajectoryGenerator::approximateBezierArclengthDistance(const Eigen::Vector2d & bezierPt0, 
+    float GapTrajectoryGenerator::approximateBezierArclength(const Eigen::Vector2d & bezierPt0, 
                                                                     const Eigen::Vector2d & bezierPt1, 
                                                                     const Eigen::Vector2d & bezierPt2, 
                                                                     const float & tStart, 
@@ -381,7 +381,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
 
-        float bezierArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+        float bezierArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
                                                                         0.0, 1.0, numCurvePts);
 
         float numBezierPtToPtIntegrationPoints = 5.0;
@@ -404,7 +404,7 @@ namespace dynamic_gap
         
         for (float t_k = 0.0; t_k <= 1.0; t_k += t_interval) 
         {
-            currentBezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+            currentBezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
                                                                                     t_kmin1, t_k, numBezierPtToPtIntegrationPoints);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   from " << t_kmin1 << " to " << t_k << ": " << currentBezierPtToPtArclengthDistance);
 
@@ -419,7 +419,7 @@ namespace dynamic_gap
             } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) 
             {
                 t_interp = (t_kmin1 + t_k) / 2.0;
-                bezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+                bezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
                                                                                  t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
 
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
@@ -440,7 +440,7 @@ namespace dynamic_gap
                         t_interp = (t_interp + t_lowerBound) / 2.0;
                         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "lowering t_interp to: " << t_interp);
                     }
-                    bezierPtToPtArclengthDistance = approximateBezierArclengthDistance(bezierPt0, bezierPt1, bezierPt2, 
+                    bezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
                                                                                      t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
                     // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
                     interpIter++;
