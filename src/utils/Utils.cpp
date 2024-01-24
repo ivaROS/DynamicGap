@@ -6,93 +6,169 @@ namespace dynamic_gap
 
     // Utils::~Utils() {}
 
-    int theta2idx(const float theta)
+    Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
+    {
+        return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);
+    }
+
+    float idx2theta(const int & idx)
+    {
+        return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
+    }
+
+    int theta2idx(const float & theta)
     {
         return int((theta + M_PI) / angle_increment);
     }
 
-    float idx2theta(const int idx)
+    float quaternionToYaw(const tf::Quaternion & quat)
     {
-        return ((float) idx - half_num_scan) * M_PI / half_num_scan;
+        return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
+                            1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
     }
 
-    Eigen::Vector2f pol2car(Eigen::Vector2f polar_vector) 
+    // if we wanted to incorporate how egocircle can change, 
+    float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
     {
-        return Eigen::Vector2f(std::cos(polar_vector[1]) * polar_vector[0], std::sin(polar_vector[1]) * polar_vector[0]);
+        // ego circle point in local frame, pose in local frame
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
+        float x = range * std::cos(theta);
+        float y = range * std::sin(theta);
+        float dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
+        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   dist: " << dist);
+        return dist;
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_FEASIBILITY_CHECKER
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect) 
+    float getSignedLeftToRightAngle(const Eigen::Vector2f & leftVect, 
+                              const Eigen::Vector2f & rightVect) 
     {
-        float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
+        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
-        float left_to_right_angle = std::atan2(determinant, dot_product);
+        float leftToRightAngle = std::atan2(determinant, dotProduct);
         
-        if (left_to_right_angle < 0)
-            left_to_right_angle += 2*M_PI; 
+        // if (leftToRightAngle < 0)
+        //     leftToRightAngle += 2*M_PI; 
 
-        return left_to_right_angle;
+        return leftToRightAngle;
     }
 
     // THIS IS CALCULATE WITH LEFT AND RIGHT VECTORS FROM THE ROBOT'S POV
     // FROM GAP_MANIPULATOR
-    float getLeftToRightAngle(Eigen::Vector2f left_norm_vect, 
-                              Eigen::Vector2f right_norm_vect, 
-                              bool wrap) 
+    float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect,
+                                   const Eigen::Vector2f & rightVect) 
     {
-        float determinant = left_norm_vect[1]*right_norm_vect[0] - left_norm_vect[0]*right_norm_vect[1];
-        float dot_product = left_norm_vect[0]*right_norm_vect[0] + left_norm_vect[1]*right_norm_vect[1];
+        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
+        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
-        float left_to_right_angle = std::atan2(determinant, dot_product);
+        float leftToRightAngle = std::atan2(determinant, dotProduct);
 
         // wrapping to 0 < angle < 2pi
-        if (wrap && left_to_right_angle < 0) 
+        if (leftToRightAngle < 0) 
         {
-            ROS_INFO_STREAM("wrapping " << left_to_right_angle);
-            left_to_right_angle += 2*M_PI; 
+            // ROS_INFO_STREAM("wrapping " << leftToRightAngle);
+            leftToRightAngle += 2*M_PI; 
         }
 
-        return left_to_right_angle;
+        return leftToRightAngle;
     }
 
-    float atanThetaWrap(float theta) 
+    float getGapRange(const Eigen::Vector4f & gapState)
     {
-        float new_theta = theta;
-        while (new_theta <= -M_PI) 
-        {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        } 
-        
-        while (new_theta >= M_PI) 
-        {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
-        }
-
-        return new_theta;
+        return sqrt(pow(gapState[0], 2) + pow(gapState[1], 2));
     }
+
+    float getGapBearing(const Eigen::Vector4f & gapState)
+    {
+        return std::atan2(gapState[1], gapState[0]);
+    }    
+   
+    float getGapBearingRateOfChange(const Eigen::Vector4f & gapState)
+    {
+        return (gapState[0]*gapState[3] - gapState[1]*gapState[2]) / (pow(gapState[0], 2) + pow(gapState[1], 2));
+    }
+
+    // TODO: pretty print function for matrix to string
+
+    // TODO: pretty print for function vector to string
 
     /*
-    float atanThetaWrap(float theta) 
+    float atanThetaWrap(const float & theta) 
     {
-        float new_theta = theta;
-        while (new_theta <= -M_PI) 
+        float wrappedTheta = theta;
+
+        while (wrappedTheta <= -M_PI) 
         {
-            new_theta += 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+            wrappedTheta += 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to wrappedTheta: " << wrappedTheta);
         } 
         
-        while (new_theta >= M_PI) 
+        while (wrappedTheta >= M_PI) 
         {
-            new_theta -= 2*M_PI;
-            // ROS_INFO_STREAM("wrapping theta: " << theta << " to new_theta: " << new_theta);
+            wrappedTheta -= 2*M_PI;
+            // ROS_INFO_STREAM("wrapping theta: " << theta << " to wrappedTheta: " << wrappedTheta);
         }
 
-        return new_theta;
-    }   
+        return wrappedTheta;
+    }
     */
+
+    int wrapScanIndex(const int & scanIdx) 
+    {
+        return scanIdx + (scanIdx < 0) * (2 * half_num_scan);
+    }
+
+    bool isGlobalPathLocalWaypointWithinGapAngle(const int & goalIdx, const int & lowerIdx, const int & upperIdx) 
+    {
+        if (lowerIdx < upperIdx) 
+        {
+            // ROS_INFO_STREAM("no wrapping, is goal idx between " << lowerIdx << " and " << upperIdx);
+            return (goalIdx > lowerIdx && goalIdx < upperIdx); //if no wrapping occurs
+        } else 
+        {
+            // ROS_INFO_STREAM("wrapping, is goal idx between " << lowerIdx << " and " << full_scan << ", or between " << 0 << " and " << upperIdx);
+            return (goalIdx > lowerIdx && goalIdx < (2*half_num_scan)) || (goalIdx > 0 && goalIdx < upperIdx); // if wrapping occurs
+        }
+    }
+
+    int signum(const float & value) 
+    {
+        return (value < 0 ? -1 : 1);
+    }
+
+    // to avoid dividing by zero
+    float epsilonDivide(const float & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2f epsilonDivide(const Eigen::Vector2f & numerator, const float & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }
+
+    Eigen::Vector2d epsilonDivide(const Eigen::Vector2d & numerator, const double & denominator)
+    {
+        return numerator / (denominator + eps); 
+    }    
+
+    Eigen::Vector2f unitNorm(const Eigen::Vector2f & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    Eigen::Vector2d unitNorm(const Eigen::Vector2d & vector)
+    {
+        return vector / (vector.norm() + eps);
+    }
+
+    float timeTaken(const std::chrono::steady_clock::time_point & startTime)
+    {
+        float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
+        float timeTakenInSeconds = timeTakenInMilliseconds / 1.0e6;
+        return timeTakenInSeconds;
+    }
 }

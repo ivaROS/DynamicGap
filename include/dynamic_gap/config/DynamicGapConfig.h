@@ -1,236 +1,178 @@
 #pragma once
 
-// #include <ros/console.h>
 #include <ros/ros.h>
-// #include <dynamic_gap/dgConfig.h>
-// #include <Eigen/Core>
-#include <boost/thread/mutex.hpp>
+#include <sensor_msgs/LaserScan.h>
+#include <boost/shared_ptr.hpp>
 
-namespace dynamic_gap {
-    class DynamicGapConfig {
+namespace dynamic_gap 
+{
+    /**
+    * Hyperparameter list for dynamic_gap planner
+    */
+    class DynamicGapConfig 
+    {
+        // DEFAULT VALUES, CAN BE OVERRIDEN THROUGH ROS PARAMETERS
         public:
-            std::string map_frame_id;
-            std::string odom_frame_id;
-            std::string robot_frame_id;
-            std::string sensor_frame_id;
+            std::string map_frame_id = "map"; /**< Map frame ID */
+            std::string odom_frame_id = "odom"; /**< Odometry frame ID */
+            std::string robot_frame_id = "robot0"; /**< Robot frame ID */
+            std::string sensor_frame_id = "camera_link"; /**< Sensor frame ID */
 
+            /**
+            * \brief Hyperparameters for gap visualization
+            */
             struct GapVisualization 
             {
-                int min_resoln;
-                bool fig_gen;
-                float viz_jitter;
-                bool debug_viz;
+                int min_resoln = 2; /**< Frequency of scan indices to visualize (plot one every min_resoln scan point) */
             } gap_viz;
-
+            
+            /**
+            * \brief Hyperparameters for ego-robot
+            */
             struct Robot 
             {
-                float r_inscr;
-                int num_obsts;
-                float max_range;
-                int half_num_scan;
+                float r_inscr = 0.2; /**< Inscribed radius of robot */
             } rbt;
 
+            /**
+            * \brief Hyperparameters for planning environment
+            */
+            struct Environment
+            {
+                int num_agents = 0; /**< Total number of agents in environment */
+            } env;
+
+            /**
+            * \brief Hyperparameters for laser scan
+            */
+            struct Scan
+            {
+                float angle_min = -M_PI; /**< minimum angle value in scan */
+                float angle_max = M_PI; /**< maximum angle value in scan */
+                int half_scan = 256; /**< Half of total rays in scan (integer) */
+                float half_scan_f = 256.; /**< Half of total rays in scan (float) */
+                int full_scan = 512; /**< Total ray count in scan (integer) */
+                float full_scan_f = 512.; /**< Total ray count in scan (float) */
+                float angle_increment = (2 * M_PI) / (full_scan_f - 1); /**< Angular increment between consecutive scan indices */
+                float range_min = 0.0; /**< Minimum detectable range in scan */
+                float range_max = 4.99; /**< Maximum detectable range in scan */
+            } scan;
+
+            /**
+            * \brief Hyperparameters for planning mode
+            */
             struct PlanningMode 
             {
-                bool projection_inflated;
-                bool planning_inflated;
-                bool holonomic;
-                bool full_fov;
-                bool projection_operator;
-                bool far_feasible;
-                int num_feasi_check;
-                int halt_size;
-                bool egocircle_prop_cheat;
+                bool holonomic = true; /**< Boolean for if robot is holonomic or not */
+                bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
+                int halt_size = 5; /**< Size of command velocity buffer */
+                bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
+                bool future_scan_propagation = false; /**< Flag for enacting future scan propagation */
+                bool egocircle_prop_cheat = true; /**< Flag for enacting future scan propagation through cheating */
             } planning;            
 
+            /**
+            * \brief Hyperparameters for manual teleoperation control
+            */
             struct ManualControl 
             {
-                bool man_ctrl;
-                float man_x;
-                float man_y;
-                float man_theta;
+                bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
             } man;
 
+            /**
+            * \brief Hyperparameters for navigation goal
+            */
             struct Goal 
             {
-                float goal_tolerance;
-                float waypoint_tolerance;
+                float goal_tolerance = 0.2; /**< Distance threshold for global goal */
+                float waypoint_tolerance = 0.1; /**< Distance threshold for global path local waypoint */
             } goal;
 
-            struct Debug 
+            /**
+            * \brief Hyperparameters for gap detection
+            */
+            struct GapDetection
             {
-                bool raw_gaps_debug_log;
-                bool static_scan_separation_debug_log;
-                bool simplified_gaps_debug_log;
-                bool feasibility_debug_log;
-                bool manipulation_debug_log;
-                bool traj_debug_log;
-                bool control_debug_log;
-            } debug;
+                int max_idx_diff = 256; /**< Maximum size in scan indices of a merged gap during gap simplification */
+            } gap_det;
 
+            /**
+            * \brief Hyperparameters for gap association
+            */
             struct GapAssociation 
             {
-                float assoc_thresh;
+                float assoc_thresh = 0.15; /**< Distance threshold for gap association */
             } gap_assoc;           
 
-            struct GapEstimation 
-            {
-                float R_scalar;
-                float Q_scalar;
-            } gap_est;
-
+            /**
+            * \brief Hyperparameters for gap manipulation
+            */
             struct GapManipulation 
             {
-                float epsilon1;
-                float epsilon2;
-                float rot_ratio;
-                float reduction_threshold;
-                float reduction_target;
-                int max_idx_diff;
-                bool radial_extend;
-                bool radial_convert;
+                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
+                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */
+                float reduction_threshold = M_PI; /**< Maximum allowable size of gap */
+                bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
+                bool radial_convert = true; /**< Flag for if gap manipulator should apply radial gap conversion */
             } gap_manip;
 
+            /**
+            * \brief Hyperparameters for trajectory generation
+            */
             struct Trajectory 
             {
-                bool synthesized_frame;
-                float scale;
-                float integrate_maxt;
-                float integrate_stept;
-                float max_pose_pen_dist;
-                float cobs;
-                float pose_exp_weight;
-                float inf_ratio;
-                float terminal_weight;
-                float waypoint_ratio;
-                int num_curve_points;
-                int num_qB_points;
+                bool synthesized_frame = true; /**< Flag for if trajectory should be represented in sensor frame */
+                float integrate_maxt = 5.0; /**< Trajectory generation time horizon (in seconds) */
+                float integrate_stept = 0.5; /**< Trajectory generation time step (in seconds) */
+                float max_pose_pen_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
+                float cobs = -1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
+                float pose_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
+                float inf_ratio = 1.21; /**< Inflation ratio for planner */
+                float terminal_weight = 10.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
+                int num_curve_points = 20; /**< Number of points to use to discretize gap boundary */
+                int num_extended_gap_origin_points = 6; /**< Number of points to use to discretize radial gap extension */
             } traj;            
 
+            /**
+            * \brief Hyperparameters for trajectory tracking
+            */
             struct ControlParams 
             {
-                float k_fb_x;
-                float k_fb_y;
-                float k_fb_theta;
-                int ctrl_ahead_pose;
-                float vx_absmax;
-                float vy_absmax;
-                float vang_absmax;
-                float ax_absmax;
-                float ay_absmax;
-                float aang_absmax;
+                float k_fb_x = 0.5; /**< Proportional feedback gain in x-direction */
+                float k_fb_y = 0.5; /**< Proportional feedback gain in y-direction */
+                float k_fb_theta = 0.5; /**< Proportional feedback for robot yaw */
+                int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
+                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 1.5; /**< Maximum angular speed for robot */
+                float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
+                float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
+                float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */
             } control;
             
+            /**
+            * \brief Hyperparameters for projection operator
+            */
             struct ProjectionParam 
             {
-                float k_po_x;
-                float k_po_theta;
+                float k_po_x = 1.0; /**< Proportional gain in x-direction for projection operator */
+                float k_po_theta = 1.0; /**< Proportional gain for yaw for projection operator */
 
-                float r_min;
-                float r_norm;
-                float r_norm_offset;
-                float cbf_param;                
-                float k_CBF;
+                float r_unity = 0.35; /**< Robot to environment distance at which projection operator takes on a value of 1 */
+                float r_zero = 1.0; /**< Robot to environment distance at which projection operator takes on a value of 0 */
 
-                bool line;
+                float cbf_param = 0.1; /**< Scaling hyperparamter for CBF */            
+                float k_CBF = 1.0; /**< Proportional gain for CBF */
             } projection;
 
-        DynamicGapConfig() {
-            map_frame_id = "map";
-            odom_frame_id = "odom";
-            robot_frame_id = "base_link";
-            sensor_frame_id = "camera_link";
-
-            gap_viz.min_resoln = 2;
-            gap_viz.fig_gen = true;
-            gap_viz.viz_jitter = 0.05;
-            gap_viz.debug_viz = true;
-
-            rbt.r_inscr = 0.2;
-            rbt.num_obsts = 0;
-            rbt.max_range = 4.99;
-
-            planning.projection_inflated = false;
-            planning.planning_inflated = false;
-            planning.holonomic = true;
-            planning.full_fov = true;
-            planning.projection_operator = false;
-            planning.num_feasi_check = 20;
-            planning.far_feasible = true;
-            planning.halt_size = 5;
-            planning.egocircle_prop_cheat = false;
-
-            man.man_ctrl = false;
-            man.man_x = 0;
-            man.man_y = 0;
-            man.man_theta = 0;
-
-            goal.goal_tolerance = 0.2;
-            goal.waypoint_tolerance = 0.1;
-
-            debug.raw_gaps_debug_log = false;
-            debug.static_scan_separation_debug_log = false;
-            debug.simplified_gaps_debug_log = false;
-            debug.feasibility_debug_log = true;
-            debug.manipulation_debug_log = false;
-            debug.traj_debug_log = true;
-            debug.control_debug_log = true;             
-
-            gap_assoc.assoc_thresh = 0.15;
-
-            gap_est.R_scalar = 0.1;
-            gap_est.Q_scalar = 0.5;
-
-            gap_manip.epsilon1 = 0.18;
-            gap_manip.epsilon2 = 0.18;
-            gap_manip.rot_ratio = 1.5;
-            gap_manip.reduction_threshold = M_PI;
-            gap_manip.reduction_target = M_PI;
-            gap_manip.max_idx_diff = 256;
-            gap_manip.radial_extend = true;
-            gap_manip.radial_convert = true;
-
-            traj.synthesized_frame = true;
-            traj.scale = 1;
-            traj.integrate_maxt = 5;
-            traj.integrate_stept = 0.50;
-            traj.max_pose_pen_dist = 0.5;
-            traj.cobs = -1.0;
-            traj.pose_exp_weight = 5;
-            traj.inf_ratio = 1.21;
-            traj.terminal_weight = 10;
-            traj.waypoint_ratio = 1.5;
-            traj.num_curve_points = 20;
-            traj.num_qB_points = 6;     
-            
-            control.k_fb_x = 0.5;
-            control.k_fb_y = 0.5;
-            control.k_fb_theta = 0.5;
-            control.ctrl_ahead_pose = 2;
-            control.vx_absmax = 0.5;
-            control.vy_absmax = 0.5;
-            control.vang_absmax = 1.5;
-            control.ax_absmax = 3.0;
-            control.ay_absmax = 3.0;
-            control.aang_absmax = 3.0;
-
-            projection.k_po_x = 1.0;
-            projection.k_po_theta = 1.0;
-            projection.r_min = 0.35;
-            projection.r_norm = 1.0;
-            projection.r_norm_offset = 0.5;
-            projection.cbf_param = 0.1;
-            projection.k_CBF = 1.0;
-            projection.line = false;
-        }
-
+        /**
+        * \brief Load in planner hyperparameters from node handle (specified in launch file and yamls)
+        */
         void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
 
-        // void reconfigure(dgConfig& cfg);
-
-        boost::mutex & configMutex() {return config_mutex;}
-
-        private: 
-            boost::mutex config_mutex; 
+        /**
+        * \brief Load in hyperparameters from current laser scan
+        */
+        void updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
     };
 }

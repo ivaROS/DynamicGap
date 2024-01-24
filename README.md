@@ -34,6 +34,15 @@ To run experiments, you can run
 
 And you can further modify experiments within `stdr_master.py`, including what planners to use, how many experiments, what maps, what obstacles, etc.
 
+### Documentation
+To generate Doxygen documentation for viewing:
+
+``` mkdir doc ```
+
+``` rosdoc_lite . ```
+
+``` firefox doc/html/annotated.html ```
+
 ### TODOs for Max
 - Make sure all nodes die correctly
 - add flag for static/dynamic to toggle propagation

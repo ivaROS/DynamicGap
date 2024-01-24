@@ -3,426 +3,798 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Utils.h>
-// #include <geometry_msgs/Point.h>
-// #include <visualization_msgs/MarkerArray.h>
-// #include <visualization_msgs/Marker.h>
-// #include <std_msgs/ColorRGBA.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
-#include <dynamic_gap/gap_estimation/StaticEstimator.h>
+#include <dynamic_gap/gap_estimation/PerfectEstimator.h>
 
 namespace dynamic_gap
 {
+    /**
+    * \brief Class for a single gap
+    */
     class Gap
     {
         public:
-            Gap() {};
+            // Gap() {};
 
             // colon used here is an initialization list. helpful for const variables.
-            Gap(std::string frame, int right_idx, float rdist, bool radial, float half_scan, float min_safe_dist) : 
-                _frame(frame), _right_idx(right_idx), _rdist(rdist), _radial(radial), half_scan(half_scan), min_safe_dist(min_safe_dist)
+            Gap(const std::string & frame, const int & rightIdx, const float & rangeRight, const bool & radial, const float & minSafeDist_) : 
+                frame_(frame), rightIdx_(rightIdx), rightDist_(rangeRight), radial_(radial), minSafeDist_(minSafeDist_)
             {
-                qB << 0.0, 0.0;
-                terminal_qB << 0.0, 0.0;
-                right_bezer_origin << 0.0, 0.0;
-                left_bezier_origin << 0.0, 0.0;
+                extendedGapOrigin_ << 0.0, 0.0;
+                termExtendedGapOrigin_ << 0.0, 0.0;
+                
+                leftBezierOrigin_ << 0.0, 0.0;
+                rightBezierOrigin_ << 0.0, 0.0;
+
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
             };
 
-            ~Gap() {};
-            
-            // Setters and Getters for LR Distance and Index (initial and terminal gaps)
-            int LIdx() const { return _left_idx; }
-            void setLIdx(int lidx) { _left_idx = lidx; }
-
-            int RIdx() const { return _right_idx; }
-            void setRIdx(int ridx) { _right_idx = ridx; }
-
-            float LDist() const { return _ldist; }
-            void setLDist(float ldist) { _ldist = ldist; }
-
-            float RDist() const { return _rdist; }
-            void setRDist(float rdist) { _rdist = rdist; }
-
-            int term_RIdx() const { return terminal_ridx; }
-            void setTermRIdx(int terminal_ridx) { terminal_ridx = terminal_ridx; }
-
-            int term_LIdx() const { return terminal_lidx; }
-            void setTermLIdx(int terminal_lidx) { terminal_lidx = terminal_lidx; }
-
-            float term_RDist() const { return terminal_rdist; }
-            void setTermRDist(float term_rdist) { terminal_rdist = term_rdist; }
-
-            float term_LDist() const { return terminal_ldist; }
-            void setTermLDist(float term_ldist) { terminal_ldist = term_ldist; }
-
-            int cvx_RIdx() const { return convex.convex_ridx; }
-            void setCvxRIdx(int cvx_ridx) { convex.convex_ridx = cvx_ridx; }
-
-            int cvx_LIdx() const { return convex.convex_lidx; }
-            void setCvxLIdx(int cvx_lidx) { convex.convex_lidx = cvx_lidx; }
-
-            float cvx_RDist() const { return convex.convex_rdist; }
-            void setCvxRDist(float cvx_rdist) { convex.convex_rdist = cvx_rdist; }
-
-            float cvx_LDist() const { return convex.convex_ldist; }
-            void setCvxLDist(float cvx_ldist) { convex.convex_ldist = cvx_ldist; }
-
-            int cvx_term_RIdx() const { return convex.terminal_ridx; }
-            void setCvxTermRIdx(int cvx_term_ridx) { convex.terminal_ridx = cvx_term_ridx; }
-
-            int cvx_term_LIdx() const { return convex.terminal_lidx; }
-            void setCvxTermLIdx(int cvx_term_lidx) { convex.terminal_lidx = cvx_term_lidx; }
-
-            float cvx_term_RDist() const { return convex.terminal_rdist; }
-            void setCvxTermRDist(float cvx_term_rdist) { convex.terminal_rdist = cvx_term_rdist; }
-
-            float cvx_term_LDist() const { return convex.terminal_ldist; }
-            void setCvxTermLDist(float cvx_term_ldist) { convex.terminal_ldist = cvx_term_ldist; }
-
-            // Concluding the Gap after constructing with left information
-            void addLeftInformation(int left_idx, float ldist) 
+            Gap(const dynamic_gap::Gap & otherGap)
             {
-                _left_idx = left_idx;
-                _ldist = ldist;
-                right_type = _rdist < _ldist;
+                ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                // shallow copy
+                frame_ = otherGap.frame_;
 
-                if (!_radial)
-                {
-                    _radial = isRadial();
-                }
+                // copy all the variables
+                leftIdx_ = otherGap.leftIdx_;
+                leftDist_ = otherGap.leftDist_;
+                rightIdx_ = otherGap.rightIdx_;
+                rightDist_ = otherGap.rightDist_;
 
-                convex.convex_ridx = _right_idx;
-                convex.convex_lidx = _left_idx;
-                convex.convex_rdist = _rdist;
-                convex.convex_ldist = _ldist;
+                termLeftIdx_ = otherGap.termLeftIdx_;
+                termLeftDist_ = otherGap.termLeftDist_;
+                termRightIdx_ = otherGap.termRightIdx_;
+                termRightDist_ = otherGap.termRightDist_;
+
+                convex.leftIdx_ = otherGap.convex.leftIdx_;
+                convex.leftDist_ = otherGap.convex.leftDist_;
+                convex.rightIdx_ = otherGap.convex.rightIdx_;
+                convex.rightDist_ = otherGap.convex.rightDist_;
+
+                convex.termLeftIdx_ = otherGap.convex.termLeftIdx_;
+                convex.termLeftDist_ = otherGap.convex.termLeftDist_;
+                convex.termRightIdx_ = otherGap.convex.termRightIdx_;
+                convex.termRightDist_ = otherGap.convex.termRightDist_;
+
+                rightType_ = otherGap.rightType_;
+                terminalRightType_ = otherGap.terminalRightType_;
+
+                radial_ = otherGap.radial_;
+                termRadial_ = otherGap.termRadial_;
+
+                minSafeDist_ = otherGap.minSafeDist_;
+                terminalMinSafeDist_ = otherGap.terminalMinSafeDist_;
+
+                category_ = otherGap.category_;
+
+                crossingPt_ = otherGap.crossingPt_;
+                closingPt_ = otherGap.closingPt_;
+
+                goal.x_ = otherGap.goal.x_;
+                goal.y_ = otherGap.goal.y_;
+
+                terminalGoal.x_ = otherGap.terminalGoal.x_;
+                terminalGoal.y_ = otherGap.terminalGoal.y_;
+
+                gapLifespan_ = otherGap.gapLifespan_;
+
+                peakSplineVelX_ = otherGap.peakSplineVelX_;
+                peakSplineVelY_ = otherGap.peakSplineVelY_;
+
+                crossed_ = otherGap.crossed_;
+                closed_ = otherGap.closed_;
+                crossedBehind_ = otherGap.crossedBehind_;
+                artificial_ = otherGap.artificial_;
+
+                mode.reduced_ = otherGap.mode.reduced_;
+                mode.convex_ = otherGap.mode.convex_;
+                mode.RGC_ = otherGap.mode.RGC_;
+                mode.termReduced_ = otherGap.mode.termReduced_;
+                mode.termConvex_ = otherGap.mode.termConvex_;
+                mode.termRGC_ = otherGap.mode.termRGC_;
+
+                // deep copy for new models
+                // Here, you can define what type of model you want to use
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+
+                // transfer models (need to deep copy the models, not just the pointers)
+                leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
+                rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
             }
 
+            ~Gap() 
+            {
+                delete leftGapPtModel_;
+                delete rightGapPtModel_;
+            };
+            
+            /**
+            * \brief Getter for initial left gap point index
+            * \return initial left gap point index
+            */
+            int LIdx() const { return leftIdx_; }
+
+            /**
+            * \brief Setter for initial left gap point index
+            * \param lidx initial left gap point index
+            */
+            void setLIdx(const int & lidx) { leftIdx_ = lidx; }
+
+            /**
+            * \brief Getter for initial right gap point index
+            * \return initial right gap point index
+            */
+            int RIdx() const { return rightIdx_; }
+
+            /**
+            * \brief Setter for initial right gap point index
+            * \param ridx initial right gap point index
+            */            
+            void setRIdx(const int & ridx) { rightIdx_ = ridx; }
+
+            /**
+            * \brief Getter for initial left gap point distance
+            * \return initial left gap point distance
+            */
+            float LDist() const { return leftDist_; }
+
+            /**
+            * \brief Setter for initial left gap point distance
+            * \param ldist initial left gap point distance
+            */
+            void setLDist(const float & ldist) { leftDist_ = ldist; }
+
+            /**
+            * \brief Getter for initial right gap point distance
+            * \param initial right gap point distance
+            */
+            float RDist() const { return rightDist_; }
+
+            /**
+            * \brief Setter for initial right gap point distance
+            * \param rdist initial right gap point distance
+            */            
+            void setRDist(const float & rdist) { rightDist_ = rdist; }
+
+            /**
+            * \brief Getter for terminal left gap point index
+            * \return terminal left gap point index
+            */
+            int termLIdx() const { return termLeftIdx_; }
+
+            /**
+            * \brief Setter for terminal left gap point index
+            * \param termLeftIdx terminal left gap point index
+            */            
+            void setTermLIdx(const int & termLeftIdx) { termLeftIdx_ = termLeftIdx; }
+
+            /**
+            * \brief Getter for terminal right gap point index
+            * \return terminal right gap point index
+            */
+            int termRIdx() const { return termRightIdx_; }
+            
+            /**
+            * \brief Setter for terminal right gap point index
+            * \param termRightIdx terminal right gap point index
+            */            
+            void setTermRIdx(const int & termRightIdx) { termRightIdx_ = termRightIdx; }
+
+            /**
+            * \brief Getter for terminal left gap point distance
+            * \return terminal left gap point distance
+            */
+            float termLDist() const { return termLeftDist_; }
+
+            /**
+            * \brief Setter for terminal left gap point distance
+            * \param termLDist terminal left gap point distance
+            */            
+            void setTermLDist(const float & termLDist) { termLeftDist_ = termLDist; }
+
+            /**
+            * \brief Getter for terminal right gap point distance
+            * \return terminal right gap point distance
+            */
+            float termRDist() const { return termRightDist_; }
+
+            /**
+            * \brief Setter for terminal right gap point distance
+            * \param termRDist terminal right gap point distance
+            */            
+            void setTermRDist(const float & termRDist) { termRightDist_ = termRDist; }
+
+            /**
+            * \brief Getter for initial convexified left gap point index
+            * \return initial convexified left gap point index
+            */
+            int cvxLeftIdx() const { return convex.leftIdx_; }
+
+            /**
+            * \brief Setter for initial convexified left gap point index
+            * \param cvxLeftIdx convexified left gap point index
+            */            
+            void setCvxLeftIdx(const int & cvxLeftIdx) { convex.leftIdx_ = cvxLeftIdx; }
+
+            /**
+            * \brief Getter for initial convexified right gap point index
+            * \return initial convexified right gap point index
+            */
+            int cvxRightIdx() const { return convex.rightIdx_; }
+
+            /**
+            * \brief Setter for initial convexified right gap point index
+            * \param cvxRightIdx initial convexified right gap point index
+            */            
+            void setCvxRightIdx(const int & cvxRightIdx) { convex.rightIdx_ = cvxRightIdx; }
+
+            /**
+            * \brief Getter for initial convexified left gap point distance
+            * \return convexified left gap point distance
+            */
+            float cvxLeftDist() const { return convex.leftDist_; }
+
+                /**
+            * \brief Setter for initial convexified left gap point distance
+            * \param cvxLeftDist convexified left gap point distance
+            */
+            void setCvxLeftDist(const float & cvxLeftDist) { convex.leftDist_ = cvxLeftDist; }
+
+            /**
+            * \brief Getter for initial convexified right gap point distance
+            * \return convexified right gap point distance
+            */
+            float cvxRightDist() const { return convex.rightDist_; }
+
+            /**
+            * \brief Setter for initial convexified right gap point distance
+            * \param cvxRightDist convexified right gap point distance
+            */            
+            void setCvxRightDist(const float & cvxRightDist) { convex.rightDist_ = cvxRightDist; }
+
+            /**
+            * \brief Getter for terminal convexified left gap point index
+            * \return terminal convexified left gap point index
+            */
+            int cvxTermLeftIdx() const { return convex.termLeftIdx_; }
+
+            /**
+            * \brief Setter for terminal convexified left gap point index
+            * \param cvxTermLeftIdx convexified left gap point index
+            */            
+            void setcvxTermLeftIdx(const int & cvxTermLeftIdx) { convex.termLeftIdx_ = cvxTermLeftIdx; }
+
+            /**
+            * \brief Getter for terminal convexified right gap point index
+            * \return terminal convexified right gap point index
+            */
+            int cvxTermRightIdx() const { return convex.termRightIdx_; }
+
+            /**
+            * \brief Setter for terminal convexified right gap point index
+            * \param cvxTermRightIdx terminal convexified right gap point index
+            */            
+            void setcvxTermRightIdx(const int & cvxTermRightIdx) { convex.termRightIdx_ = cvxTermRightIdx; }
+
+            /**
+            * \brief Getter for terminal convexified left gap point distance
+            * \return terminal convexified left gap point distance
+            */
+            float cvxTermLeftDist() const { return convex.termLeftDist_; }
+
+            /**
+            * \brief Setter for terminal convexified left gap point distance
+            * \param cvxTermLeftDist terminal convexified left gap point distance
+            */            
+            void setcvxTermLeftDist(const float & cvxTermLeftDist) { convex.termLeftDist_ = cvxTermLeftDist; }
+
+            /**
+            * \brief Getter for terminal convexified right gap point distance
+            * \return terminal convexified right gap point distance
+            */
+            float cvxTermRightDist() const { return convex.termRightDist_; }
+
+            /**
+            * \brief Setter for terminal convexified right gap point distance
+            * \param cvxTermRightDist terminal convexified right gap point distance
+            */            
+            void setcvxTermRightDist(const float & cvxTermRightDist) { convex.termRightDist_ = cvxTermRightDist; }
+
+            /**
+            * \brief Conclude gap construction by populating gap's initial left side information 
+            * and remaining characteristics
+            * \param leftIdx initial left gap point index
+            * \param leftRange initial left gap point range
+            */
+            void addLeftInformation(const int & leftIdx, const float & leftRange) 
+            {
+                leftIdx_ = leftIdx;
+                leftDist_ = leftRange;
+                rightType_ = rightDist_ < leftDist_;
+
+                // initializing convex polar gap coordinates to raw ones
+                convex.leftIdx_ = leftIdx_;
+                convex.rightIdx_ = rightIdx_;
+                convex.leftDist_ = leftDist_;
+                convex.rightDist_ = rightDist_;
+
+                setRadial();
+            }
+
+            /**
+            * \brief Conclude gap construction by populating gap's terminal left side information 
+            * and remaining characteristics
+            */
             void addTerminalRightInformation()
             {
-                terminal_right_type = terminal_rdist < terminal_ldist;
+                terminalRightType_ = termRightDist_ < termLeftDist_;
 
-                if (!_terminal_radial)
-                {
-                    _terminal_radial = isRadial();
-                }
+                convex.termLeftIdx_ = termLeftIdx_;
+                convex.termRightIdx_ = termRightIdx_;
+                convex.termLeftDist_ = termLeftDist_;
+                convex.termRightDist_ = termRightDist_;
 
-                convex.terminal_ridx = terminal_ridx;
-                convex.terminal_lidx = terminal_lidx;
-                convex.terminal_rdist = terminal_rdist;
-                convex.terminal_ldist = terminal_ldist;
+                setRadial(false);
             }
 
-            // Get Left Cartesian Distance
-            // edited by Max: float &x, float &y
+            /**
+            * \brief Set gap's terminal points after propagation
+            * \param termLeftIdx terminal left gap point index
+            * \param termLeftDist terminal left gap point distance
+            * \param termRightIdx terminal right gap point index
+            * \param termRightDist terminal right gap point distance
+            */
+            void setTerminalPoints(const float & termLeftIdx, 
+                                   const float & termLeftDist, 
+                                   const float & termRightIdx, 
+                                   const float & termRightDist) 
+            {    
+                termLeftIdx_ = termLeftIdx;
+                termLeftDist_ = termLeftDist;
+                termRightIdx_ = termRightIdx;
+                termRightDist_ = termRightDist;
+
+                if (termLeftIdx_ == termRightIdx_) 
+                {
+                    // ROS_INFO_STREAM_NAMED("Gap", "terminal indices are the same");
+                    termLeftIdx_ = (termLeftIdx_ + 1) % 512;
+                }
+                // ROS_INFO_STREAM_NAMED("Gap", "setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftDist_ << "), right: ("  << termRightIdx_ << ", " << termRightDist_ << ")");
+            
+                terminalRightType_ = termRightDist_ < termLeftDist_;
+
+                setRadial(false);
+            }
+
+            /**
+            * \brief Getter for initial left gap point in Cartesian frame
+            * \param x x-position for left gap point
+            * \param y y-position for left gap point
+            */
             void getLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(_left_idx);
-                x = (_ldist) * cos(ltheta);
-                y = (_ldist) * sin(ltheta);
+                float thetaLeft = idx2theta(leftIdx_);
+                x = (leftDist_) * cos(thetaLeft);
+                y = (leftDist_) * sin(thetaLeft);
             }
 
-            // Get Right Cartesian Distance
+            /**
+            * \brief Getter for initial right gap point in Cartesian frame
+            * \param x x-position for right gap point
+            * \param y y-position for right gap point
+            */
             void getRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(_right_idx);
-                x = (_rdist) * cos(_right_idx);
-                y = (_rdist) * sin(_right_idx);
+                float thetaRight = idx2theta(rightIdx_);
+                x = (rightDist_) * cos(thetaRight);
+                y = (rightDist_) * sin(thetaRight);
             }
 
+            /**
+            * \brief Getter for initial convexified left gap point in Cartesian frame
+            * \param x x-position for left gap point
+            * \param y y-position for left gap point
+            */
             void getSimplifiedLCartesian(float &x, float &y) const
             {
-                float ltheta = idx2theta(convex.convex_lidx);
-                // std::cout << "convex_rdist: " << convex_rdist << ", convex_ridx: " << convex_ridx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_ldist) * cos(ltheta);
-                y = (convex.convex_ldist) * sin(ltheta);
+                float thetaLeft = idx2theta(convex.leftIdx_);
+                // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.leftDist_) * cos(thetaLeft);
+                y = (convex.leftDist_) * sin(thetaLeft);
             }
 
+            /**
+            * \brief Getter for initial convexified right gap point in Cartesian frame
+            * \param x x-position for right gap point
+            * \param y y-position for right gap point
+            */
             void getSimplifiedRCartesian(float &x, float &y) const
             {
-                float rtheta = idx2theta(convex.convex_ridx);
-                // std::cout << "convex_ldist: " << convex_ldist << ", convex_lidx: " << convex_lidx << ", half_scan: " << half_scan << std::endl;
-                x = (convex.convex_rdist) * cos(rtheta);
-                y = (convex.convex_rdist) * sin(rtheta);
+                float thetaRight = idx2theta(convex.rightIdx_);
+                // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.rightDist_) * cos(thetaRight);
+                y = (convex.rightDist_) * sin(thetaRight);
             }
 
-            void initManipIndices() 
+            /**
+            * \brief Getter for terminal convexified left gap point in Cartesian frame
+            * \param x x-position for left gap point
+            * \param y y-position for left gap point
+            */
+            void getSimplifiedTerminalLCartesian(float &x, float &y) const
             {
-                convex.convex_ridx = _right_idx;
-                convex.convex_rdist = _rdist;
-                convex.convex_lidx = _left_idx;
-                convex.convex_ldist = _ldist;
-
-                convex.terminal_ridx = terminal_ridx;
-                convex.terminal_rdist = terminal_rdist;
-                convex.terminal_lidx = terminal_lidx;
-                convex.terminal_ldist = terminal_ldist;
+                float thetaLeft = idx2theta(convex.termLeftIdx_);
+                // std::cout << "rightDist_: " << rightDist_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.termLeftDist_) * cos(thetaLeft);
+                y = (convex.termLeftDist_) * sin(thetaLeft);
             }
 
-            void setRadial(bool initial = true)
+            /**
+            * \brief Getter for terminal convexified right gap point in Cartesian frame
+            * \param x x-position for right gap point
+            * \param y y-position for right gap point
+            */
+            void getSimplifiedTerminalRCartesian(float &x, float &y) const
             {
-                // ROS_INFO_STREAM("setRadial:");
-                // does resoln here imply 360 deg FOV?
-                int check_l_idx = initial ? _left_idx : terminal_lidx;
-                int check_r_idx = initial ? _right_idx : terminal_ridx;
-
-                float check_l_dist = initial ? _ldist : terminal_ldist;
-                float check_r_dist = initial ? _rdist : terminal_rdist;
-
-                // ROS_INFO_STREAM("   check_l_idx: " << check_l_idx);
-                // ROS_INFO_STREAM("   check_l_dist: " << check_l_dist);
-                // ROS_INFO_STREAM("   check_r_idx: " << check_r_idx);
-                // ROS_INFO_STREAM("   check_r_dist: " << check_r_dist);
-
-                float resoln = M_PI / half_scan;
-                float gap_angle = (check_l_idx - check_r_idx) * resoln;
-                if (gap_angle < 0)
-                    gap_angle += 2*M_PI;
-
-                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
-                float short_side = right_type ? check_r_dist : check_l_dist;
-                // law of cosines
-                float opp_side = sqrt(pow(check_r_dist, 2) + pow(check_l_dist, 2) - 2 * check_r_dist * check_l_dist * cos(gap_angle));
-                // law of sines
-                float small_angle = asin((short_side / opp_side) * sin(gap_angle));
-                // ROS_INFO_STREAM("short_side: " << short_side);
-                // ROS_INFO_STREAM("opp_side: " << opp_side);
-                // ROS_INFO_STREAM("small angle: " << small_angle);
-
-                // ROS_INFO_STREAM("   small_angle: " << small_angle);
-                // ROS_INFO_STREAM("   gap_angle: " << gap_angle);
-                float alpha = (M_PI - small_angle - gap_angle);
-                // ROS_INFO_STREAM("   alpha: " << alpha);
-
-                if (initial)
-                    _radial = alpha > 0.75 * M_PI;
-                else
-                    _terminal_radial = alpha > 0.75 * M_PI;     
+                float thetaRight = idx2theta(convex.termRightIdx_);
+                // std::cout << "leftDist_: " << leftDist_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
+                x = (convex.termRightDist_) * cos(thetaRight);
+                y = (convex.termRightDist_) * sin(thetaRight);
             }
 
-            bool isRadial(bool initial = true) const
+            /**
+            * \brief Pretty printer for gap's left and right points in Cartesian frame
+            * \param initial boolean for printing initial points
+            * \param simplified boolean for printing convexified points
+            */
+            void printCartesianPoints(const bool & initial, 
+                                      const bool & simplified) 
             {
-                return (initial ? _radial : _terminal_radial);
-            }
-
-            // void setRadial()
-            // {
-            //     _radial = false;
-            // }
-
-            bool isRightType(bool initial = true) const
-            {
-                if (initial)
-                    return right_type;
-                else
-                    return terminal_right_type;
-            }
-
-            void resetFrame(std::string frame) 
-            {
-                _frame = frame;
-            }
-
-            float getMinSafeDist() 
-            {
-                return min_safe_dist;
-            }
-
-            void setTerminalMinSafeDist(float _dist) 
-            {
-                terminal_min_safe_dist = _dist;
-            }
-
-            float getTerminalMinSafeDist() 
-            {
-                return terminal_min_safe_dist;
-            }
-
-            std::string getFrame() 
-            {
-                return _frame;
-            }
-
-            void setCategory(std::string _category) {
-                // ROS_INFO_STREAM("setting category to: " << _category);
-                category = _category;
-            }
-
-            std::string getCategory() {
-                return category;
-            }
-
-            void setCrossingPoint(float x, float y) {
-                // ROS_INFO_STREAM("setting crossing point to: " << x << ", " << y);
-                crossing_pt << x,y;
-            }
-
-            Eigen::Vector2f getCrossingPoint() {
-                return crossing_pt;
-            }
-
-            void setClosingPoint(float x, float y) {
-                // ROS_INFO_STREAM("setting closing point to: " << x << ", " << y);
-                closing_pt << x,y;
-            }
-
-            Eigen::Vector2f getClosingPoint() {
-                return closing_pt;
-            }
-
-            // used in calculating alpha, the angle formed between the two gap lines and the robot. (angle of the gap).
-            // calculates the euclidean distance between the left and right gap points using the law of cosines
-            float get_gap_euclidean_dist() const 
-            {
-                int idx_diff = _left_idx - _right_idx;
-                if (idx_diff < 0) {
-                    idx_diff += (2*half_scan);
-                } 
-                float gap_angle = (float(idx_diff) / float(half_scan)) * M_PI;
-                return sqrt(pow(_rdist, 2) + pow(_ldist, 2) - 2 * _rdist * _ldist * cos(gap_angle));
-            }
-
-            void setTerminalPoints(float _terminal_lidx, float _terminal_ldist, float _terminal_ridx, float _terminal_rdist) {
-                
-                terminal_lidx = _terminal_lidx;
-                terminal_ldist = _terminal_ldist;
-                terminal_ridx = _terminal_ridx;
-                terminal_rdist = _terminal_rdist;
-
-                if (terminal_lidx == terminal_ridx) {
-                    // ROS_INFO_STREAM("terminal indices are the same");
-                    terminal_lidx = (terminal_lidx + 1) % 512;
-                }
-                // ROS_INFO_STREAM("setting terminal points to, left: (" << terminal_lidx << ", " << terminal_ldist << "), right: ("  << terminal_ridx << ", " << terminal_rdist << ")");
-            }
-
-            void printCartesianPoints(bool initial, bool simplified) 
-            {
-                float x_l, y_l, x_r, y_r;
-                float ltheta, rtheta, ldist, rdist;
+                float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+                float thetaLeft = 0.0, thetaRight = 0.0, leftRange = 0.0, rangeRight = 0.0;
                 if (initial) 
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(_left_idx);
-                        rtheta = idx2theta(_right_idx);
-                        ldist = _ldist;
-                        rdist = _rdist;
+                        thetaLeft = idx2theta(leftIdx_);
+                        thetaRight = idx2theta(rightIdx_);
+                        leftRange = leftDist_;
+                        rangeRight = rightDist_;
                     } else 
                     {
-                        ltheta = idx2theta(convex.convex_lidx);
-                        rtheta = idx2theta(convex.convex_ridx);    
-                        ldist = convex.convex_ldist;
-                        rdist = convex.convex_rdist;                                                         
+                        thetaLeft = idx2theta(convex.leftIdx_);
+                        thetaRight = idx2theta(convex.rightIdx_);    
+                        leftRange = convex.leftDist_;
+                        rangeRight = convex.rightDist_;                                                         
                     }
                 } else 
                 {
                     if (simplified) 
                     {
-                        ltheta = idx2theta(terminal_lidx);
-                        rtheta = idx2theta(terminal_ridx);     
-                        ldist = terminal_ldist;
-                        rdist = terminal_rdist;          
+                        thetaLeft = idx2theta(termLeftIdx_);
+                        thetaRight = idx2theta(termRightIdx_);     
+                        leftRange = termLeftDist_;
+                        rangeRight = termRightDist_;          
                     } else 
                     {
-                        ltheta = idx2theta(convex.terminal_lidx);
-                        rtheta = idx2theta(convex.terminal_ridx);    
-                        ldist = convex.terminal_ldist;
-                        rdist = convex.terminal_rdist;                       
+                        thetaLeft = idx2theta(convex.termLeftIdx_);
+                        thetaRight = idx2theta(convex.termRightIdx_);    
+                        leftRange = convex.termLeftDist_;
+                        rangeRight = convex.termRightDist_;                       
                     }
                 }
 
-                x_l = ldist * cos(ltheta);
-                y_l = ldist * sin(ltheta);
-                x_r = rdist * cos(rtheta);
-                y_r = rdist * sin(rtheta);
+                xLeft = leftRange * cos(thetaLeft);
+                yLeft = leftRange * sin(thetaLeft);
+                xRight = rangeRight * cos(thetaRight);
+                yRight = rangeRight * sin(thetaRight);
 
-                ROS_INFO_STREAM("x_l, y_l: (" << x_l << ", " << y_l << "), x_r,y_r: (" << x_r << ", " << y_r << ")");
+                ROS_INFO_STREAM_NAMED("Gap", "xLeft, yLeft: (" << xLeft << ", " << yLeft << "), xRight,yRight: (" << xRight << ", " << yRight << ")");
             }   
+
+            /*
+            void initManipIndices() 
+            {
+                convex.leftIdx_ = leftIdx_;
+                convex.leftDist_ = leftDist_;
+                convex.rightIdx_ = rightIdx_;
+                convex.rightDist_ = rightDist_;
+             
+                convex.termRightIdx_ = termRightIdx_;
+                convex.termRightDist_ = termRightDist_;
+                convex.termLeftIdx_ = termLeftIdx_;
+                convex.termLeftDist_ = termLeftDist_;
+            }
+            */
+
+            /**
+            * \brief Determine if gap is radial
+            * \param initial boolean for evaluating initial or terminal gap
+            *
+            *   far pt _____
+            *          \ A  `___          
+            *           \       `___      
+            *            \          `___  
+            *             \           B ` near pt
+            *              \            / 
+            *               \          /     A - far side angle 
+            *                \        /      B - near side angle
+            *                 \      /       C - gap angle
+            *                  \    /
+            *                   \ C/
+            *                    \/
+            *                 gap origin
+            */
+            void setRadial(const bool & initial = true)
+            {
+                // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
+                int checkLeftIdx = initial ? leftIdx_ : termLeftIdx_;
+                int checkRightIdx = initial ? rightIdx_ : termRightIdx_;
+
+                float checkLeftDist = initial ? leftDist_ : termLeftDist_;
+                float checkRightDist = initial ? rightDist_ : termRightDist_;
+
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftDist: " << checkLeftDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightDist: " << checkRightDist);
+
+                float resoln = M_PI / half_num_scan;
+                float gapAngle = (checkLeftIdx - checkRightIdx) * resoln;
+                if (gapAngle < 0)
+                    gapAngle += 2*M_PI;
+
+                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
+                float nearRange = rightType_ ? checkRightDist : checkLeftDist;
+                // law of cosines
+                float leftPtToRightPtDist = sqrt(pow(checkRightDist, 2) + pow(checkLeftDist, 2) - 2 * checkRightDist * checkLeftDist * cos(gapAngle));
+                // law of sines
+                float farSideAngle = asin(epsilonDivide(nearRange, leftPtToRightPtDist) * sin(gapAngle));
+                
+                // ROS_INFO_STREAM_NAMED("Gap", "nearRange: " << nearRange);
+                // ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "small angle: " << farSideAngle);
+
+                // ROS_INFO_STREAM_NAMED("Gap", "   farSideAngle: " << farSideAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
+                float nearSideAngle = (M_PI - farSideAngle - gapAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
+
+                if (initial)
+                    radial_ = nearSideAngle > 0.75 * M_PI;
+                else
+                    termRadial_ = nearSideAngle > 0.75 * M_PI;     
+            }
+
+            /**
+            * \brief Getter for gap radial condition
+            * \param initial boolean for evaluating initial or terminal gap
+            * \return Gap radial condition
+            */
+            bool isRadial(const bool & initial = true) const
+            {
+                return (initial ? radial_ : termRadial_);
+            }
+
+            /**
+            * \brief Getter for gap "right type" (if right point is closer than left point) condition
+            * \param initial boolean for evaluating initial or terminal gap
+            * \return Gap "right type" condition
+            */
+            bool isRightType(const bool & initial = true) const
+            {
+                if (initial)
+                    return rightType_;
+                else
+                    return terminalRightType_;
+            }
+
+            /**
+            * \brief Getter for initial minimum safe distance for gap
+            * \return initial minimum safe distance for gap
+            */
+            float getMinSafeDist() { return minSafeDist_; }
+
+            /**
+            * \brief Setter for initial minimum safe distance for gap
+            * \param dist initial minimum safe distance for gap
+            */
+            void setTerminalMinSafeDist(const float & dist) { terminalMinSafeDist_ = dist; }
+
+            /**
+            * \brief Getter for terminal minimum safe distance for gap
+            * \return terminal minimum safe distance for gap
+            */            
+            float getTerminalMinSafeDist() { return terminalMinSafeDist_; }
+
+            /**
+            * \brief Setter for dynamic gap category
+            * \param category gap category
+            */
+            void setCategory(const std::string & category) { category_ = category; }
+
+            /**
+            * \brief Getter for dynamic gap category
+            * \return dynamic gap category
+            */
+            std::string getCategory() { return category_; }
+
+            /**
+            * \brief Setter for gap crossing point
+            * \param x x-coordinate of gap crossing point
+            * \param y y-coordinate of gap crossing point
+            */
+            void setCrossingPoint(const float & x, const float & y) { crossingPt_ << x,y; }
+
+            /**
+            * \brief Getter for gap crossing point
+            * \return gap crossing point
+            */
+            Eigen::Vector2f getCrossingPoint() { return crossingPt_; }
+
+            /**
+            * \brief Setter for gap closing point
+            * \param x x-coordinate of gap closing point
+            * \param y y-coordinate of gap closing point
+            */
+            void setClosingPoint(const float & x, const float & y) { closingPt_ << x,y; }
+
+            /**
+            * \brief Getter for gap closing point
+            * \return gap closing point
+            */            
+            Eigen::Vector2f getClosingPoint() { return closingPt_; }
+
+            /** 
+            * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
+            * \return distance between left and right gap points
+            */
+            float getGapEuclideanDist() const 
+            {
+                float resoln = M_PI / half_num_scan;
+                float gapAngle = (leftIdx_ - rightIdx_) * resoln;
+                if (gapAngle < 0)
+                    gapAngle += 2*M_PI;
+
+                return sqrt(pow(rightDist_, 2) + pow(leftDist_, 2) - 2 * rightDist_ * leftDist_ * cos(gapAngle));
+            }
             
-            float gap_lifespan = 5.0   ;
+            /**
+            * \brief Setter for gap goal point
+            * \param initial boolean for setting initial gap point
+            * \param goalPt gap goal point
+            */
+            void setGoal(const bool & initial, 
+                         const Eigen::Vector2f & goalPt)
+            {
+                if (initial)
+                {
+                    goal.x_ = goalPt[0];
+                    goal.y_ = goalPt[1];
+                } else
+                {
+                    terminalGoal.x_ = goalPt[0];
+                    terminalGoal.y_ = goalPt[1];
+                }
+            }
 
-            int _right_idx = 0;
-            int _left_idx = 511;
-            float _rdist = 5;
-            float _ldist = 5;
-            int terminal_ridx = 0;
-            int terminal_lidx = 511;
-            float terminal_rdist = 5;
-            float terminal_ldist = 5;
+            float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
 
-            float min_safe_dist = -1;
-            float terminal_min_safe_dist = -1;
-            Eigen::Vector2f qB;
-            Eigen::Vector2f terminal_qB;
-            Eigen::Vector2f right_bezer_origin;
-            Eigen::Vector2f left_bezier_origin;
-            float half_scan = 256;
+            float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
+            float terminalMinSafeDist_ = 0.0; /**< minimum safe distance for terminal gap */
 
-            std::string _frame = "";
-            bool _radial = false;
-            bool _terminal_radial = false;
-            bool right_type = false;
-            bool terminal_right_type = false;
+            Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
+            Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
+            // float half_scan = 256;
 
-            float peak_velocity_x = 0.0;
-            float peak_velocity_y = 0.0;
+            std::string frame_ = ""; /**< Frame ID for gap */
+            
+            bool radial_ = false; /**< Initial gap radial characteristic identifier */
+            bool termRadial_ = false; /**< Terminal gap radial characteristic identifier */
+            
+            bool rightType_ = false; /**< Initial gap right type characteristic identifier */
+            bool terminalRightType_ = false; /**< Terminal gap right type characteristic identifier */
 
-            struct converted {
-                int convex_ridx = 0;
-                int convex_lidx = 511;
-                float convex_rdist = 5;
-                float convex_ldist = 5;
-                int terminal_ridx = 0;
-                int terminal_lidx = 511;
-                float terminal_rdist = 5;
-                float terminal_ldist = 5;
-            } convex;
+            float peakSplineVelX_ = 0.0; /**< Peak x-direction velocity along approximated spline trajectory through gap */
+            float peakSplineVelY_ = 0.0; /**< Peak y-direction velocity along approximated spline trajectory through gap */
+            Eigen::Vector4f splineXCoefs_; /**< Coefficients for x-coordinates of approximated spline trajectory */
+            Eigen::Vector4f splineYCoefs_; /**< Coefficients for y-coordinates of approximated spline trajectory */
 
-            struct GapMode {
-                bool reduced = false;
-                bool convex = false;
-                bool agc = false;
-                bool terminal_reduced = false;
-                bool terminal_convex = false;
-                bool terminal_agc = false;
+            /**
+            * \brief Structure for containing gap status of manipulation 
+            */
+            struct GapMode 
+            {
+                bool reduced_ = false; /**< Status of if initial gap is reduced */
+                bool convex_ = false; /**< Status of if initial gap is convex */
+                bool RGC_ = false; /**< Status of if initial gap is radially converted */
+                bool termReduced_ = false; /**< Status of if terminal gap is reduced */
+                bool termConvex_ = false; /**< Status of if terminal gap is convex */
+                bool termRGC_ = false; /**< Status of if terminal gap is radially converted */
             } mode;
 
-            struct Goal {
-                float x, y;
-                bool set = false;
-                bool discard = false;
-                bool goalwithin = false;
+            /**
+            * \brief Gap's initial goal
+            */
+            struct Goal 
+            {
+                float x_ = 0.0; /**< Gap initial goal x-value */
+                float y_ = 0.0; /**< Gap initial goal y-value */
             } goal;
 
-            struct TerminalGoal {
-                float x, y;
-                bool set = false;
-                bool discard = false;
-                bool goalwithin = false;
-            } terminal_goal;
+            /**
+            * \brief Gap's terminal goal
+            */
+            struct TerminalGoal 
+            {
+                float x_ = 0.0; /**< Gap terminal goal x-value */
+                float y_ = 0.0; /**< Gap terminal goal y-value */
+            } terminalGoal;
 
-            Estimator *right_model;
-            Estimator *left_model;
-            int _index;
-            std::string category;
-            Eigen::Vector2f crossing_pt;
-            Eigen::Vector2f closing_pt;
+            Estimator * leftGapPtModel_ = NULL; /**< Left gap point estimator */
+            Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
 
-            bool gap_crossed = false;
-            bool gap_closed = false;
-            bool gap_crossed_behind = false;
+            std::string category_ = ""; /**< Dynamic gap category */
+            Eigen::Vector2f crossingPt_; /**< Gap crossing point */
+            Eigen::Vector2f closingPt_; /**< Gap closing point */
 
-            bool artificial = false;
+            bool crossed_ = false; /**< Gap crossed condition */
+            bool closed_ = false; /**< Gap closed condition */
+            bool crossedBehind_ = false; /**< Gap behind and crossed condition */
 
-            float left_weight = 0.0;
-            float right_weight = 0.0;
-            Eigen::MatrixXd left_right_centers, all_curve_pts;
-            Eigen::Vector4f spline_x_coefs, spline_y_coefs;
+            bool artificial_ = false; /**< Gap artificial condition */
 
-            Eigen::Vector2d left_pt_0, left_pt_1, right_pt_0, right_pt_1;
-            int num_left_rge_points = 0;
-            int num_right_rge_points = 0;
-        // private:
+            float leftBezierWeight_ = 0.0; /**< Weighting term for left gap side Bezier control points */
+            float rightBezierWeight_ = 0.0; /**< Weighting term for right gap side Bezier control points */
+
+            Eigen::Vector2f leftBezierOrigin_; /**< Origin control point for left gap side Bezier curve */
+            Eigen::Vector2d leftPt0_; /**< Second control point for left gap side Bezier curve */
+            Eigen::Vector2d leftPt1_; /**< Third control point for left gap side Bezier curve */
+            Eigen::Vector2f rightBezierOrigin_; /**< Origin control point for right gap side Bezier curve */
+            Eigen::Vector2d rightPt0_; /**< Second control point for right gap side Bezier curve */
+            Eigen::Vector2d rightPt1_; /**< Third control point for right gap side Bezier curve */
+
+            int numLeftRGEPoints_ = 0; /**< Number of points used to discretize left gap side's radial extension */
+            int numRightRGEPoints_ = 0; /**< Number of points used to discretize right gap side's radial extension */
+
+            Eigen::MatrixXd leftRightCenters_; /**< Harmonic term center positions for left and right gap sides */
+            Eigen::MatrixXd allCurvePts_; /**< Vector of all points that comprise gap boundary */
+
+        private:
+
+            int leftIdx_ = 511; /**< Initial left gap point index */
+            float leftDist_ = 5; /**< Initial left gap point distance */
+
+            int rightIdx_ = 0; /**< Initial right gap point index */
+            float rightDist_ = 5; /**< Initial right gap point distance */
+
+            int termLeftIdx_ = 511; /**< Terminal left gap point index */
+            float termLeftDist_ = 5; /**< Terminal left gap point distance */
+
+            int termRightIdx_ = 0; /**< Terminal right gap point index */
+            float termRightDist_ = 5; /**< Terminal right gap point distance */
+            
+            /**
+            * \brief Parameters of convexified form of gap
+            */
+            struct Convex 
+            {
+                int leftIdx_ = 511; /**< Initial convexified left gap point index */
+                float leftDist_ = 5; /**< Initial convexified left gap point distance */
+
+                int rightIdx_ = 0; /**< Initial convexified right gap point index */
+                float rightDist_ = 5; /**< Initial convexified right gap point distance */
+
+                int termLeftIdx_ = 511; /**< Terminal convexified left gap point index */
+                float termLeftDist_ = 5; /**< Terminal convexified left gap point distance */
+
+                int termRightIdx_ = 0; /**< Terminal convexified right gap point index */
+                float termRightDist_ = 5; /**< Terminal convexified right gap point distance */
+            } convex;
     };
 }

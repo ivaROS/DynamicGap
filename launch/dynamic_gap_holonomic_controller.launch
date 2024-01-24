@@ -1,10 +1,10 @@
 <launch>
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/dynamic_gap_rosconsole.conf"/>
 
   <arg name="use_recovery_behaviors" default="true"/>
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius" default="0.20"/>
-  <arg name="num_obsts" default="0"/>
+  <arg name="num_agents" default="0"/>
   <arg name="simulation" default="true"/>
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
@@ -13,7 +13,10 @@
   <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="false"/>
 
-  <arg name="debug" default="false"/>
+  <arg name="debug" default="false" />
+
+  <arg name="xterm_prefix" value="xterm -e gdb -ex run --args" />
+  <arg name="valgrind_prefix" value="valgrind --leak-check=full" />
 
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
@@ -42,11 +45,6 @@
 
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
-  <arg name="planning_inflated" default="$(optenv GM_PARAM_PLANNING_INFLATED false)"/>
-  <arg name="far_feasible" default="$(optenv GM_PARAM_FAR_FEASIBLE true)"/>
-  <arg name="full_fov" default="$(optenv GM_PARAM_FULL_FOV false)"/>
-  <arg name="inf_ratio" value="1.21" unless="$(arg planning_inflated)"/>
-  <arg name="inf_ratio" value="0.0" if="$(arg planning_inflated)"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
       <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
@@ -77,13 +75,9 @@
 
       <param name="DynamicGapPlanner/holonomic" value="$(arg holonomic)"/>
       <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
-      <param name="DynamicGapPlanner/planning_inflated" value="$(arg planning_inflated)"/>
-      <param name="DynamicGapPlanner/inf_ratio" value="$(arg inf_ratio)"/>
-      <param name="DynamicGapPlanner/full_fov" value="$(arg full_fov)"/>
-      <param name="DynamicGapPlanner/far_feasible" value="$(arg far_feasible)"/>
 
       <!-- remapping for obstacles -->
-      <param name="DynamicGapPlanner/num_obsts" value="$(arg num_obsts)" />
+      <param name="DynamicGapPlanner/num_agents" value="$(arg num_agents)" />
       <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/laser_0" />
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 

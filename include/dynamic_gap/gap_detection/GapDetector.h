@@ -10,49 +10,133 @@
 
 namespace dynamic_gap
 {
+    /** 
+    * \brief Class responsible for detecting raw set of gaps from incoming laser scan
+    * and simplifying raw set of gaps into simplified set of gaps.
+    */
 	class GapDetector
     {
         public:
             GapDetector(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
-            GapDetector& operator=(GapDetector other) {cfg_ = other.cfg_; return *this; }
-
-            GapDetector(const GapDetector &t) {cfg_ = t.cfg_;}
-
-            std::vector<dynamic_gap::Gap> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> sharedPtr_laser,
-                                                        geometry_msgs::PoseStamped final_goal_rbt);
+            /**
+            * \brief Detect raw set of gaps from incoming laser scan.
+            * 
+            * \param scanPtr pointer to incoming laser scan
+            * \param globalGoalRbtFrame global goal pose in robot frame
+            * \return raw set of gaps
+            */
+            std::vector<dynamic_gap::Gap *> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
+                                                        const geometry_msgs::PoseStamped & globalGoalRbtFrame);
         
-            std::vector<dynamic_gap::Gap> gapSimplification(const std::vector<dynamic_gap::Gap> & raw_gaps);     
+            /**
+            * \brief Condense raw set of gaps into a smaller set of simplified gaps more amenable for navigation.
+            * 
+            * \param rawGaps set of raw gaps
+            * \return set of simplified gaps
+            */        
+            std::vector<dynamic_gap::Gap *> gapSimplification(const std::vector<dynamic_gap::Gap *> & rawGaps);     
 
         private:
-            bool isFinite(float scan_dist);
+            /**
+            * \brief Check if scan range registers an object (finite range value)
+            * 
+            * \param range incoming scan range value
+            * \return boolean if range is finite or not
+            */        
+            bool isFinite(const float & range);
 
-            bool sweptGapStartedOrEnded(float scan_dist_i, float scan_dist_imin1);
+            /**
+            * \brief Determining if swept gap has 
+            * either started (finite scan --> infinite scan)
+            * or ended (infinite scan --> finite scan)
+            * 
+            * \param currRange current scan range value
+            * \param prevRange previous scan range value
+            * \return boolean if a swept gap has either started or ended at current scan index
+            */      
+            bool sweptGapStartedOrEnded(const float & currRange, 
+                                        const float & prevRange);
 
-            bool sweptGapSizeCheck(const dynamic_gap::Gap & detected_gap);
-
-            bool radialGapSizeCheck(float scan_dist_i, float scan_dist_imin1, 
-                                    float gap_angle);
-
-            bool bridgeCondition(const std::vector<dynamic_gap::Gap> & raw_gaps);
-
-            bool terminalGoalGapCheck(geometry_msgs::PoseStamped final_goal_rbt, 
-                                        const sensor_msgs::LaserScan & scan,
-                                        int & final_goal_idx);
+            /**
+            * \brief Checking if gap is large enough to be classified as a swept gap
             
-            bool mergeSweptGapCondition(const dynamic_gap::Gap & raw_gap, 
-                                        const std::vector<dynamic_gap::Gap> & simplified_gaps);
+            * Checking if gap is either very large, 
+            * or if robot can fit within gap (precondition to swept gap)
+            * \param gap queried gap
+            * \return boolean if gap should be classified as swept
+            */
+            bool sweptGapSizeCheck(dynamic_gap::Gap * gap);
 
-            int checkSimplifiedGapsMergeability(const dynamic_gap::Gap & raw_gap, 
-                                                const std::vector<dynamic_gap::Gap> & simplified_gaps);
+            /**
+            * \brief Checking if gap should be classified as radial 
+            
+            * Checking if robot can fit between 
+            * consecutive scan points (precondition to radial gap)
+            * \param currRange current scan range value
+            * \param prevRange previous scan range value
+            * \param gapAngle angle between consecutive scan points
+            * \return boolean if gap should be classified as radial 
+            */
+            bool radialGapSizeCheck(const float & currRange, 
+                                    const float & prevRange, 
+                                    const float & gapAngle);
 
-            void addTerminalGoal(int, std::vector<dynamic_gap::Gap> &, const sensor_msgs::LaserScan &);   
+            /**
+            * \brief Checking if first and last raw gaps should be merged together
+            * 
+            * \param rawGaps raw set of gaps
+            * \return boolean if first and last raw gaps should be merged together
+            */
+            bool bridgeCondition(const std::vector<dynamic_gap::Gap *> & rawGaps);
 
-            sensor_msgs::LaserScan scan;
-            const DynamicGapConfig* cfg_;
-            float min_scan_dist_, max_scan_dist_;
-            float half_scan_;
-            int full_scan_; 
+            /**
+            * \brief Checking if global goal lies within current scan
+            *
+            * \param globalGoalRbtFrame global goal pose in robot frame
+            * \param globalGoalScanIdx scan index at which global goal lies
+            * \return boolean if global goal lies within current scan
+            */
+            bool isGlobalGoalWithinScan(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
+                                        int & globalGoalScanIdx);
+
+            /**
+            * \brief Helper function for adding an artificial gap that global goal lies within. 
+            *
+            * \param globalGoalScanIdx scan index at which global goal lies
+            * \param rawGaps raw set of gaps
+            */
+            void addGapForGlobalGoal(const int & globalGoalScanIdx, 
+                                     std::vector<dynamic_gap::Gap *> & rawGaps);   
+
+            /**
+            * \brief Check if a raw swept gap should be merged into a simplified swept gap
+            * or if should exist on its own.
+            * 
+            * \param rawGap queried raw swept gap
+            * \param simplifiedGaps existing set of simplified gaps
+            * \return boolean for if raw gap should be merged or not
+            */
+            bool mergeSweptGapCondition(dynamic_gap::Gap * rawGap, 
+                                        const std::vector<dynamic_gap::Gap *> & simplifiedGaps);
+
+            /**
+            * \brief Iterate backwards through simplified gaps to see if/where
+            * a raw radial gap should be merged 
+            *
+            * \param rawGap queried raw radial gap
+            * \param simplifiedGaps existing set of simplified gaps
+            * \return index within simplified gaps that should be merged
+            */
+            int checkSimplifiedGapsMergeability(dynamic_gap::Gap * rawGap, 
+                                                const std::vector<dynamic_gap::Gap *> & simplifiedGaps);
+
+            sensor_msgs::LaserScan scan_; /**< Current laser scan */
+            const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
+            float minScanDist_ = 0.0; /**< Minimum distance within current laser scan */
+            float maxScanDist_ = 0.0; /**< Maximum distance within current laser scan */
+            float halfScanRayCount_ = 0.0; /**< Half of number of rays within scan (float) */
+            int fullScanRayCount_ = 0; /**< Number of rays within scan (int) */
 
     };
 }
