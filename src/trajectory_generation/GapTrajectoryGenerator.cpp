@@ -148,29 +148,27 @@ namespace dynamic_gap
             Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
 
-            Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
-                            gapSideAHPFCenters, allAHPFCenters;
+            // Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
+            //                 gapSideAHPFCenters, allAHPFCenters;
             
-            float leftBezierWeight = 0.0, rightBezierWeight = 0.0;
-            int numLeftRGEPoints = 0, numRightRGEPoints = 0;
+            // float leftBezierWeight = 0.0, rightBezierWeight = 0.0;
+            // int numLeftRGEPoints = 0, numRightRGEPoints = 0;
             // THIS IS BUILT WITH EXTENDED POINTS. 
-		    std::chrono::steady_clock::time_point buildExtendedBezierCurveStartTime = std::chrono::steady_clock::now();
-            buildExtendedBezierCurve(selectedGap, gapCurvesPosns, 
-                                        gapCurvesInwardNorms, gapSideAHPFCenters, allAHPFCenters,
-                                        leftGapPtVel, rightGapPtVel, maxRbtVel, 
-                                        leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
-                                        gapGoalTermPt, leftBezierWeight, rightBezierWeight, numCurvePts, 
-                                        numLeftRGEPoints, numRightRGEPoints); // initRbtPos
-            float buildExtendedBezierCurveTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - buildExtendedBezierCurveStartTime).count() / 1.0e6;
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
+		    // std::chrono::steady_clock::time_point buildExtendedBezierCurveStartTime = std::chrono::steady_clock::now();
+            // buildExtendedBezierCurve(selectedGap, 
+            //                         leftGapPtVel, rightGapPtVel, maxRbtVel, 
+            //                         leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
+            //                         gapGoalTermPt, numCurvePts); // initRbtPos
+            // float buildExtendedBezierCurveTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - buildExtendedBezierCurveStartTime).count() / 1.0e6;
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "after buildExtendedBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
-            selectedGap->leftBezierWeight_ = leftBezierWeight;
-            selectedGap->rightBezierWeight_ = rightBezierWeight;
-            selectedGap->leftRightCenters_ = gapSideAHPFCenters;
-            selectedGap->allCurvePts_ = gapCurvesPosns;
-            selectedGap->numLeftRGEPoints_ = numLeftRGEPoints;
-            selectedGap->numRightRGEPoints_ = numRightRGEPoints;
+            // selectedGap->leftBezierWeight_ = leftBezierWeight;
+            // selectedGap->rightBezierWeight_ = rightBezierWeight;
+            // selectedGap->leftRightCenters_ = gapSideAHPFCenters;
+            // selectedGap->allCurvePts_ = gapCurvesPosns;
+            // selectedGap->numLeftRGEPoints_ = numLeftRGEPoints;
+            // selectedGap->numRightRGEPoints_ = numRightRGEPoints;
 
             // add radial gap extension
             initialGoalX -= selectedGap->extendedGapOrigin_[0];
@@ -196,13 +194,13 @@ namespace dynamic_gap
             SETTING UP SOLVER
             */
             
-            int N = gapCurvesPosns.rows();
-            int Kplus1 = allAHPFCenters.rows();
+            int N = selectedGap->allCurvePts_.rows();
+            int Kplus1 = selectedGap->allAHPFCenters_.rows();
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "N: " << N << ", Kplus1: " << Kplus1);
 
             Eigen::MatrixXd A(Kplus1, Kplus1);
             // double setConstraintMatrix_start_time = ros::WallTime::now().toSec();
-            setConstraintMatrix(A, N, Kplus1, gapCurvesPosns, gapCurvesInwardNorms, allAHPFCenters);
+            setConstraintMatrix(A, N, Kplus1, selectedGap->allCurvePts_, selectedGap->gapBoundaryInwardNorms_, selectedGap->allAHPFCenters_);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);
 
             OsqpEigen::Solver solver;
@@ -256,7 +254,7 @@ namespace dynamic_gap
 
 
             // AHPF
-            AHPF ahpf(cfg_->control.vx_absmax, allAHPFCenters, gapCurvesInwardNorms, weights,
+            AHPF ahpf(cfg_->control.vx_absmax, selectedGap->allAHPFCenters_, selectedGap->gapBoundaryInwardNorms_, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalVel);   
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
@@ -335,6 +333,7 @@ namespace dynamic_gap
         A << ABoundaryPts, ANegativeOne;
     }
 
+    /*
     float GapTrajectoryGenerator::approximateBezierArclength(const Eigen::Vector2d & bezierPt0, 
                                                                     const Eigen::Vector2d & bezierPt1, 
                                                                     const Eigen::Vector2d & bezierPt2, 
@@ -686,6 +685,7 @@ namespace dynamic_gap
         allAHPFCenters << goal, gapSideAHPFCenters;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "allAHPFCenters worked");
     }
+    */
 
     // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformPath(const geometry_msgs::PoseArray & path,

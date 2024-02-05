@@ -75,6 +75,7 @@ add_library(${PROJECT_NAME}
   src/scan_separation/StaticScanSeparator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
+  src/trajectory_generation/NavigableGapGenerator.cpp
   src/trajectory_scoring/TrajectoryScorer.cpp
   src/trajectory_tracking/TrajectoryController.cpp
   src/utils/Utils.cpp

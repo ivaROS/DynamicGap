@@ -74,7 +74,8 @@ namespace dynamic_gap
 
         gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
 
-        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(nh_, cfg_);
+        navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
+        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
         trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
@@ -595,6 +596,8 @@ namespace dynamic_gap
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
                 gapManipulator_->radialExtendGap(manipulatedGaps.at(i), false);
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
+            
+                navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
             }
         } catch (...)
         {

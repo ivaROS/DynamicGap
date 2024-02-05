@@ -763,6 +763,8 @@ namespace dynamic_gap
             int numRightRGEPoints_ = 0; /**< Number of points used to discretize right gap side's radial extension */
 
             Eigen::MatrixXd leftRightCenters_; /**< Harmonic term center positions for left and right gap sides */
+            Eigen::MatrixXd allAHPFCenters_; /**< Harmonic term center positions for all boundary curves plus the goal */
+            Eigen::MatrixXd gapBoundaryInwardNorms_; /**< Inward-pointing norms for all points along gap boundary */
             Eigen::MatrixXd allCurvePts_; /**< Vector of all points that comprise gap boundary */
 
         private:

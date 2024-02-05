@@ -32,6 +32,7 @@
 #include <dynamic_gap/goal_management/GoalSelector.h>
 #include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
+#include <dynamic_gap/trajectory_generation/NavigableGapGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 
@@ -393,6 +394,7 @@ namespace dynamic_gap
         dynamic_gap::TrajectoryController * trajController_ = NULL; /**< Trajectory controller */
         dynamic_gap::GapAssociator * gapAssociator_ = NULL; /**< Gap associator */
         dynamic_gap::GapFeasibilityChecker * gapFeasibilityChecker_ = NULL; /**< Gap feasibility checker */
+        dynamic_gap::NavigableGapGenerator * navigableGapGenerator_ = NULL; /**< Navigable gap generator */
 
         // Status
         bool hasGlobalGoal_ = false; /**< Indicator for if planner's global goal has been set */
