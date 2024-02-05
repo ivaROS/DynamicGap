@@ -587,28 +587,44 @@ namespace dynamic_gap
         }
     }
 
-    void GapManipulator::radialExtendGap(dynamic_gap::Gap * gap, const bool & initial) 
+    Eigen::Vector2d GapManipulator::getRadialExtension(const float & s, const Eigen::Vector2d & p1, const bool & left)
+    {
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        [getRadialExtension()]");
+
+        float theta1 = std::atan2(p1(1), p1(0));
+        float p1_norm = p1.norm();
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        theta1: " << theta1 << ", p1_norm: " << p1_norm);
+
+        float d_safe = s;
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        d_safe: " << d_safe);
+
+        if (s >= p1_norm)
+            d_safe = 0.5 * p1_norm;
+
+        float D = std::sqrt(p1_norm * p1_norm - d_safe * d_safe);
+        float beta = std::acos( (D*D - p1_norm*p1_norm - d_safe*d_safe) / (-2 * p1_norm * d_safe));
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        D: " << D << ", beta: " << beta);
+
+        float theta0 = theta1 + (left ? 1 : -1) * beta;
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        theta0: " << theta0);
+
+        Eigen::Vector2d p0(d_safe * std::cos(theta0), d_safe * std::sin(theta0));
+
+        return p0;
+    }
+
+    void GapManipulator::radialExtendGap(dynamic_gap::Gap * gap) 
     {
         try
         {
             if (!cfg_->gap_manip.radial_extend)
                 return;
 
-            int leftIdx = 0, rightIdx = 0;
-            float leftDist = 0.0, rightDist = 0.0;
-            if (initial) 
-            {
-                leftIdx = gap->cvxLeftIdx();
-                rightIdx = gap->cvxRightIdx();
-                leftDist = gap->cvxLeftDist();
-                rightDist = gap->cvxRightDist();
-            } else 
-            {
-                leftIdx = gap->cvxTermLeftIdx();
-                rightIdx = gap->cvxTermRightIdx();
-                leftDist = gap->cvxTermLeftDist();
-                rightDist = gap->cvxTermRightDist();
-            }
+            int leftIdx = gap->cvxLeftIdx();
+            int rightIdx = gap->cvxRightIdx();
+            float leftDist = gap->cvxLeftDist();
+            float rightDist = gap->cvxRightDist();
 
             float leftTheta = idx2theta(leftIdx);
             float rightTheta = idx2theta(rightIdx);
@@ -617,53 +633,47 @@ namespace dynamic_gap
             float xRight = rightDist * cos(rightTheta);
             float yRight = rightDist * sin(rightTheta);
             
-            Eigen::Vector2f leftPt(xLeft, yLeft);
-            Eigen::Vector2f rightPt(xRight, yRight);
+            Eigen::Vector2d leftPt(xLeft, yLeft);
+            Eigen::Vector2d rightPt(xRight, yRight);
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [radialExtendGap()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
             
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "leftPt: (" << xLeft << ", " << yLeft << "), rightPt: (" << xRight << ", " << yRight << ")");
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
+            float s = gap->getMinSafeDist();
+            gap->leftBezierOrigin_ = getRadialExtension(s, leftPt, true);
+            gap->rightBezierOrigin_ = getRadialExtension(s, rightPt, false);
 
-            float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "leftPt: (" << xLeft << ", " << yLeft << "), rightPt: (" << xRight << ", " << yRight << ")");
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
 
-            float thetaCenter = (leftTheta - 0.5*leftToRightAngle);
+            // float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
-            // middle of gap direction
-            Eigen::Vector2f eB(std::cos(thetaCenter), std::sin(thetaCenter));
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "eB: (" << eB[0] << ", " << eB[1] << ")");
+            // float thetaCenter = (leftTheta - 0.5*leftToRightAngle);
 
-            Eigen::Vector2f norm_eB = unitNorm(eB); 
-            // angular size of gap
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "normalized eB: " << norm_eB[0] << ", " << norm_eB[1]);
+            // // middle of gap direction
+            // Eigen::Vector2f eB(std::cos(thetaCenter), std::sin(thetaCenter));
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "eB: (" << eB[0] << ", " << eB[1] << ")");
 
-            // minSafeDist is the minimum distance within the laser scan 
-            float s = initial ? gap->getMinSafeDist() : gap->getTerminalMinSafeDist();
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "min safe dist: " << s);
+            // Eigen::Vector2f norm_eB = unitNorm(eB); 
+            // // angular size of gap
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "normalized eB: " << norm_eB[0] << ", " << norm_eB[1]);
+
+            // // minSafeDist is the minimum distance within the laser scan 
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "min safe dist: " << s);
             
-            // point opposite direction of middle of gap, magnitude of min safe dist
-            Eigen::Vector2f extendedGapOrigin =  - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * norm_eB; //
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
+            // // point opposite direction of middle of gap, magnitude of min safe dist
+            // Eigen::Vector2f extendedGapOrigin =  - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * norm_eB; //
+            // // ROS_INFO_STREAM_NAMED("GapManipulator", "extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
 
-            
-            if (initial) 
-            {
-                gap->extendedGapOrigin_ = extendedGapOrigin;
- 
-                gap->leftBezierOrigin_ =  Rnegpi2 * extendedGapOrigin;
+            // gap->extendedGapOrigin_ = extendedGapOrigin;
 
-                gap->rightBezierOrigin_ = Rpi2 * extendedGapOrigin;
-                gap->mode.convex_ = true;
-            
-            } else 
-            {
-                gap->termExtendedGapOrigin_ = extendedGapOrigin;
-                gap->mode.termConvex_ = true;
-            }
-            
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        finishing with gap extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
+            // gap->leftBezierOrigin_ =  Rnegpi2 * extendedGapOrigin;
+
+            // gap->rightBezierOrigin_ = Rpi2 * extendedGapOrigin;
+            // gap->mode.convex_ = true;
+
+            // ROS_INFO_STREAM_NAMED("GapManipulator", "        finishing with gap extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
 
             return;
         } catch (...)

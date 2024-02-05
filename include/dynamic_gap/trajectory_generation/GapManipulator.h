@@ -73,10 +73,8 @@ namespace dynamic_gap
             /**
             * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
             * \param gap queried gap
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
             */
-            void radialExtendGap(dynamic_gap::Gap * gap, 
-                                    const bool & initial); 
+            void radialExtendGap(dynamic_gap::Gap * gap); 
             
             /**
             * \brief function for inflating gap radially and angularly to account for robot size
@@ -87,6 +85,16 @@ namespace dynamic_gap
                                     const bool & initial);
 
         private:
+
+            /**
+            * \brief helper function for getting radially extended origin point for a gap side
+            * \param s minimum safe distance
+            * \param p1 second control point for gap side's Bezier curve
+            * \param left boolean for if gap side is left or right
+            * \return radially extended origin point for a gap side
+            */
+            Eigen::Vector2d getRadialExtension(const float & s, const Eigen::Vector2d & p1, const bool & left);
+
             /**
             * \brief checking if global path local waypoint lies within gap
             * \param leftPt left gap point

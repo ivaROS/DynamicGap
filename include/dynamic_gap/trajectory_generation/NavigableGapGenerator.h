@@ -16,9 +16,14 @@ namespace dynamic_gap
         public:
             NavigableGapGenerator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
 
-            void generateNavigableGap(dynamic_gap::Gap * selectedGap);
+            void generateNavigableGap(dynamic_gap::Gap * gap);
 
         private:
+
+            float arclengthParameterizeBoundary(dynamic_gap::Gap * gap,
+                                                Eigen::VectorXd & left_indices,
+                                                Eigen::VectorXd & arc_indices,
+                                                Eigen::VectorXd & right_indices);
 
             /**
             * \brief calculate distance along Bezier curve
@@ -50,11 +55,20 @@ namespace dynamic_gap
                                                         const Eigen::Vector2d & bezierPt1, 
                                                         const Eigen::Vector2d & bezierPt2, 
                                                         const float & numCurvePts,
-                                                        float & desiredBezierPtToPtDistance);        
+                                                        const float & desiredBezierPtToPtDistance,
+                                                        const float & bezierPtToPtDistanceThresh,
+                                                        float & prior_snippet_arclength,
+                                                        const bool & left);        
+
+            Eigen::VectorXd arclengthParameterizeArc(const float & leftBezierOriginTheta,
+                                                        const float & rightBezierOriginTheta,
+                                                        const float & d_safe,
+                                                        const float & desiredBezierPtToPtDistance,
+                                                        float & prior_snippet_arclength);
 
             /**
             * \brief obtain discrete arclength parameterization of Bezier curve
-            * \param selectedGap gap through which trajectory will be generated
+            * \param gap gap through which trajectory will be generated
             * \param gapCurvesPosns 2D positions along gap's arclength-parameterized left and right Bezier curves
             * \param gapCurvesInwardNorms inward point normal vectors along gap's arclength-parameterized left and right Bezier curves
             * \param gapSideAHPFCenters harmonic terms' centers along gap's arclength-parameterized left and right Bezier curves
@@ -69,7 +83,7 @@ namespace dynamic_gap
             * \param gapGoalTermPt terminal gap goal point
             * \param numCurvePts number of points to parameterize left and right curves with
             */
-            void buildExtendedBezierCurve(dynamic_gap::Gap * selectedGap, 
+            void buildExtendedBezierCurve(dynamic_gap::Gap * gap, 
                                             // Eigen::MatrixXd & gapCurvesPosns,
                                             // Eigen::MatrixXd & gapCurvesInwardNorms, 
                                             // Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,

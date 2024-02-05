@@ -752,10 +752,10 @@ namespace dynamic_gap
             float leftBezierWeight_ = 0.0; /**< Weighting term for left gap side Bezier control points */
             float rightBezierWeight_ = 0.0; /**< Weighting term for right gap side Bezier control points */
 
-            Eigen::Vector2f leftBezierOrigin_; /**< Origin control point for left gap side Bezier curve */
+            Eigen::Vector2d leftBezierOrigin_; /**< Origin control point for left gap side Bezier curve */
             Eigen::Vector2d leftPt0_; /**< Second control point for left gap side Bezier curve */
             Eigen::Vector2d leftPt1_; /**< Third control point for left gap side Bezier curve */
-            Eigen::Vector2f rightBezierOrigin_; /**< Origin control point for right gap side Bezier curve */
+            Eigen::Vector2d rightBezierOrigin_; /**< Origin control point for right gap side Bezier curve */
             Eigen::Vector2d rightPt0_; /**< Second control point for right gap side Bezier curve */
             Eigen::Vector2d rightPt1_; /**< Third control point for right gap side Bezier curve */
 

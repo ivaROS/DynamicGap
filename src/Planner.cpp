@@ -581,7 +581,7 @@ namespace dynamic_gap
                 // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
                 gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
-                gapManipulator_->radialExtendGap(manipulatedGaps.at(i), true);
+                gapManipulator_->radialExtendGap(manipulatedGaps.at(i));
                 gapManipulator_->setGapGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
                 
                 // MANIPULATE POINTS AT T=1
@@ -594,7 +594,7 @@ namespace dynamic_gap
                     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
                 }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
-                gapManipulator_->radialExtendGap(manipulatedGaps.at(i), false);
+                gapManipulator_->radialExtendGap(manipulatedGaps.at(i));
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             
                 navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));

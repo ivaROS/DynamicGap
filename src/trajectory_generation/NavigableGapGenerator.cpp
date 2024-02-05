@@ -2,42 +2,42 @@
 
 namespace dynamic_gap 
 {
-    void NavigableGapGenerator::generateNavigableGap(dynamic_gap::Gap * selectedGap)
+    void NavigableGapGenerator::generateNavigableGap(dynamic_gap::Gap * gap)
     {
         int numCurvePts = cfg_->traj.num_curve_points;
 
         // get gap points in cartesian
         float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
-        selectedGap->getLCartesian(xLeft, yLeft);
-        selectedGap->getRCartesian(xRight, yRight);
+        gap->getLCartesian(xLeft, yLeft);
+        gap->getRCartesian(xRight, yRight);
 
         float xLeftTerm = 0.0, yLeftTerm = 0.0, xRightTerm = 0.0, yRightTerm = 0.0;
-        selectedGap->getLCartesian(xLeftTerm, yLeftTerm);
-        selectedGap->getRCartesian(xRightTerm, yRightTerm);
+        gap->getLCartesian(xLeftTerm, yLeftTerm);
+        gap->getRCartesian(xRightTerm, yRightTerm);
 
-        Eigen::Vector2d initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
-        Eigen::Vector2d terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+        Eigen::Vector2d initialGoal(gap->goal.x_, gap->goal.y_);
+        Eigen::Vector2d terminalGoal(gap->terminalGoal.x_, gap->terminalGoal.y_);
 
-        float initialGoalX = initialGoal[0];
-        float initialGoalY = initialGoal[1];
+        // float initialGoalX = initialGoal[0];
+        // float initialGoalY = initialGoal[1];
         float terminalGoalX = terminalGoal[0];
         float terminalGoalY = terminalGoal[1];
 
-        float goalVelX = epsilonDivide(terminalGoalX - initialGoalX, selectedGap->gapLifespan_); // absolute velocity (not relative to robot)
-        float goalVelY = epsilonDivide(terminalGoalY - initialGoalY, selectedGap->gapLifespan_);
+        // float goalVelX = epsilonDivide(terminalGoalX - initialGoalX, gap->gapLifespan_); // absolute velocity (not relative to robot)
+        // float goalVelY = epsilonDivide(terminalGoalY - initialGoalY, gap->gapLifespan_);
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual initial left point: (" << xLeft << ", " << yLeft << "), actual initial right point: (" << xRight << ", " << yRight << ")"); 
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual terminal left point: (" << xLeftTerm << ", " << yLeftTerm << "), actual terminal right point: (" << xRightTerm << ", " << yRightTerm << ")");
-        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual initial goal: (" << initialGoalX << ", " << initialGoalY << ")"); 
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual initial goal: (" << initialGoalX << ", " << initialGoalY << ")"); 
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
         
-        float leftVelX = epsilonDivide(xLeftTerm - xLeft, selectedGap->gapLifespan_);
-        float leftVelY = epsilonDivide(yLeftTerm - yLeft, selectedGap->gapLifespan_);
+        float leftVelX = epsilonDivide(xLeftTerm - xLeft, gap->gapLifespan_);
+        float leftVelY = epsilonDivide(yLeftTerm - yLeft, gap->gapLifespan_);
 
-        float rightVelX = epsilonDivide(xRightTerm - xRight, selectedGap->gapLifespan_);
-        float rightVelY = epsilonDivide(yRightTerm - yRight, selectedGap->gapLifespan_);
+        float rightVelX = epsilonDivide(xRightTerm - xRight, gap->gapLifespan_);
+        float rightVelY = epsilonDivide(yRightTerm - yRight, gap->gapLifespan_);
         
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
 
@@ -49,7 +49,7 @@ namespace dynamic_gap
         Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
         Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
         Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
-        Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
+        // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
         
         Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
         // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
@@ -59,22 +59,278 @@ namespace dynamic_gap
         
         // THIS IS BUILT WITH EXTENDED POINTS. 
         std::chrono::steady_clock::time_point buildExtendedBezierCurveStartTime = std::chrono::steady_clock::now();
-        buildExtendedBezierCurve(selectedGap, 
-                                    leftGapPtVel, rightGapPtVel, maxRbtVel, 
+        buildExtendedBezierCurve(gap, leftGapPtVel, rightGapPtVel, maxRbtVel, 
                                     leftCurveInitPt, leftCurveTermPt, rightCurveInitPt, rightCurveTermPt, 
                                     gapGoalTermPt, numCurvePts); // initRbtPos
         float buildExtendedBezierCurveTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - buildExtendedBezierCurveStartTime).count() / 1.0e6;
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            buildExtendedBezierCurve time taken: " << buildExtendedBezierCurveTime << " seconds");
 
+
+        Eigen::VectorXd left_indices, arc_indices, right_indices;
+        float des_pt_to_pt_arclength = arclengthParameterizeBoundary(gap, left_indices, arc_indices, right_indices); 
+
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "after buildExtendedBezierCurve, left weight: " << leftBezierWeight << ", rightBezierWeight: " << rightBezierWeight);
     }
 
+    float NavigableGapGenerator::arclengthParameterizeBoundary(dynamic_gap::Gap * gap,
+                                                                Eigen::VectorXd & left_indices,
+                                                                Eigen::VectorXd & arc_indices,
+                                                                Eigen::VectorXd & right_indices)
+    {
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        [arclengthParameterizeBoundary()]: ");
+        int numCurvePts = cfg_->traj.num_curve_points;
+
+        // calculate left curve arclength
+        float leftBezierOriginTheta = std::atan2(gap->leftBezierOrigin_[1], gap->leftBezierOrigin_[0]);
+        float leftBezierArclength = approximateBezierArclength(gap->leftBezierOrigin_,
+                                                                gap->leftPt0_,
+                                                                gap->leftPt1_,
+                                                                0.0,
+                                                                1.0,
+                                                                250);
+
+        // calculate right curve arclength
+        float rightBezierOriginTheta = std::atan2(gap->rightBezierOrigin_[1], gap->rightBezierOrigin_[0]);
+        float rightBezierArclength = approximateBezierArclength(gap->rightBezierOrigin_,
+                                                                gap->rightPt0_,
+                                                                gap->rightPt1_,
+                                                                0.0,
+                                                                1.0,
+                                                                250);        
+
+        // calculate extended arc arclength
+        float d_safe = std::min(gap->leftBezierOrigin_.norm(), gap->rightBezierOrigin_.norm());
+        float arc_angle = 0.0;
+        if (rightBezierOriginTheta > leftBezierOriginTheta)
+            arc_angle = (rightBezierOriginTheta - leftBezierOriginTheta);
+        else
+            arc_angle = 2*M_PI + (rightBezierOriginTheta - leftBezierOriginTheta);
+
+        float arc_arclength = d_safe * arc_angle;
+
+        float boundaryArclength = leftBezierArclength + rightBezierArclength + arc_arclength;
+
+        float des_boundary_pt_to_pt_arclength = boundaryArclength / (numCurvePts - 1);
+        float bezierPtToPtDistanceThresh = des_boundary_pt_to_pt_arclength / 1000;
+
+        float remaining_snippet_arclength = 0.0;
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            ALP-ing left curve:");
+        left_indices = arclengthParameterizeBezier(gap->leftBezierOrigin_,
+                                                    gap->leftPt0_,
+                                                    gap->leftPt1_,
+                                                    numCurvePts,
+                                                    des_boundary_pt_to_pt_arclength,
+                                                    bezierPtToPtDistanceThresh,
+                                                    remaining_snippet_arclength, 
+                                                    true);
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            left_indices: " << left_indices);
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            ALP-ing arc curve:");
+        arc_indices = arclengthParameterizeArc(leftBezierOriginTheta,
+                                                rightBezierOriginTheta,
+                                                d_safe,
+                                                des_boundary_pt_to_pt_arclength,
+                                                remaining_snippet_arclength);
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            arc_indices: " << arc_indices);
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            ALP-ing right curve:");
+        right_indices = arclengthParameterizeBezier(gap->rightBezierOrigin_,
+                                                    gap->rightPt0_,
+                                                    gap->rightPt1_,
+                                                    numCurvePts,
+                                                    des_boundary_pt_to_pt_arclength,
+                                                    bezierPtToPtDistanceThresh,
+                                                    remaining_snippet_arclength, 
+                                                    false);        
+
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            right_indices: " << right_indices);
+
+        return des_boundary_pt_to_pt_arclength;
+    }
+
+    Eigen::VectorXd NavigableGapGenerator::arclengthParameterizeArc(const float & leftBezierOriginTheta,
+                                                                    const float & rightBezierOriginTheta,
+                                                                    const float & d_safe,
+                                                                    const float & desiredBezierPtToPtDistance,
+                                                                    float & prior_snippet_arclength)
+    {
+        // Eigen::VectorXd arclengthParameterization;
+        int parameterizationCounter = 0;
+        Eigen::VectorXd arclengthParameterization = Eigen::MatrixXd::Zero(1, 1);
+        float theta_des = desiredBezierPtToPtDistance / d_safe;
+
+        float desiredBezierPtToPtDist = desiredBezierPtToPtDistance - prior_snippet_arclength;
+
+        float theta_curr = 0.0;
+
+        float theta_total = 0.0;
+        if (rightBezierOriginTheta > leftBezierOriginTheta)
+            theta_total = (rightBezierOriginTheta - leftBezierOriginTheta);
+        else
+            theta_total = 2*M_PI + (rightBezierOriginTheta - leftBezierOriginTheta);
+
+        while (true)
+        {
+            if ((theta_curr + theta_des) <= theta_total)
+            {
+                arclengthParameterization.resize(parameterizationCounter+1);
+                arclengthParameterization(parameterizationCounter, 0) = (theta_curr + theta_des) / theta_total;
+                theta_curr += theta_des;
+
+                if (parameterizationCounter == 1)
+                {
+                    desiredBezierPtToPtDist = desiredBezierPtToPtDistance + prior_snippet_arclength;
+                    theta_des = desiredBezierPtToPtDistance / d_safe;
+                }
+
+                parameterizationCounter += 1;
+            } else
+            {
+                prior_snippet_arclength = (1.0 - arclengthParameterization(arclengthParameterization.size() - 1, 0)) * (theta_total * d_safe);
+                break;
+            }
+        }
+
+        return arclengthParameterization;
+    }
+
+    Eigen::VectorXd NavigableGapGenerator::arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
+                                                                        const Eigen::Vector2d & bezierPt1, 
+                                                                        const Eigen::Vector2d & bezierPt2, 
+                                                                        const float & numCurvePts,
+                                                                        const float & desiredBezierPtToPtDistance,
+                                                                        const float & bezierPtToPtDistanceThresh,
+                                                                        float & prior_snippet_arclength,
+                                                                        const bool & left) 
+    {
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "               [arclengthParameterizeBezier()]");
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
+
+        Eigen::VectorXd arclengthParameterization = Eigen::MatrixXd::Zero(int(numCurvePts), 1);
+        int arclengthParameterizationIdx = 0;
+        if (left)
+        {
+            arclengthParameterization(0, 0) = 1.0;
+            arclengthParameterizationIdx += 1;
+        }
+        
+        float desiredBezierPtToPtDist = desiredBezierPtToPtDistance - prior_snippet_arclength;
+
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   number of points: " << numCurvePts);
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   total distance: " << bezierArclengthDistance);
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   desired distance interval: " << desiredBezierPtToPtDistance);
+
+        int interpMaxIter = 100;
+        int interpIter = 0;
+        float numBezierPtToPtIntegrationPoints = 5.0;
+        float numBezierSamplePts = 2 * numCurvePts;
+
+        float t_interval = epsilonDivide(1.0, numBezierSamplePts);
+        float t_interp = 0.0, t_lowerBound = 0.0, t_upperBound = 0.0, 
+              currentBezierPtToPtArclengthDistance = 0.0, intermediateBezierPtToPtArclengthDistance = 0.0, t_kmin1 = 0.0;
+        
+        for (float t_k = 0.0; t_k <= 1.0; t_k += t_interval) 
+        {
+            currentBezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
+                                                                                t_kmin1, t_k, numBezierPtToPtIntegrationPoints);
+            ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   from " << t_kmin1 << " to " << t_k << ": " << currentBezierPtToPtArclengthDistance);
+
+            if (std::abs(currentBezierPtToPtArclengthDistance - desiredBezierPtToPtDist) < bezierPtToPtDistanceThresh) 
+            {
+                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "adding " << t_k);
+                if (arclengthParameterizationIdx < arclengthParameterization.rows())
+                {
+                    arclengthParameterization(arclengthParameterizationIdx, 0) = t_k;
+                    arclengthParameterizationIdx += 1;
+                }
+            } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDist) 
+            {
+                t_interp = (t_kmin1 + t_k) / 2.0;
+                intermediateBezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
+                                                                                        t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
+
+                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
+                t_lowerBound = t_kmin1;
+                t_upperBound = t_k;
+
+                interpIter = 0;                
+                while (abs(intermediateBezierPtToPtArclengthDistance - desiredBezierPtToPtDist) > bezierPtToPtDistanceThresh && interpIter < interpMaxIter) 
+                {
+                    if (intermediateBezierPtToPtArclengthDistance < desiredBezierPtToPtDist) 
+                    {
+                        t_lowerBound = t_interp;
+                        t_interp = (t_interp + t_upperBound) / 2.0;
+                        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "raising t_interp to: " << t_interp);
+                    } else 
+                    {
+                        t_upperBound = t_interp;
+                        t_interp = (t_interp + t_lowerBound) / 2.0;
+                        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "lowering t_interp to: " << t_interp);
+                    }
+                    intermediateBezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
+                                                                                            t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
+                    // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
+                    interpIter++;
+                }
+                
+                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "adding " << t_interp);
+                if (arclengthParameterizationIdx < arclengthParameterization.rows())
+                {                
+                    arclengthParameterization(arclengthParameterizationIdx, 0) = t_interp;
+                    arclengthParameterizationIdx += 1;
+                }
+            } else
+            {
+                continue;
+            }
+
+            t_kmin1 = arclengthParameterization(arclengthParameterizationIdx - 1, 0);
+            if (arclengthParameterizationIdx == 1)
+                desiredBezierPtToPtDist = desiredBezierPtToPtDistance + prior_snippet_arclength;
+
+            if (left)
+            {
+                prior_snippet_arclength = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
+                                                                     arclengthParameterization(int(numCurvePts) - 1, 0),
+                                                                     0.0,
+                                                                     1000);
+            } else
+            {
+                prior_snippet_arclength = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
+                                                                     arclengthParameterization(int(numCurvePts) - 1, 0),
+                                                                     1.0,
+                                                                     1000);
+                if (std::abs(prior_snippet_arclength - desiredBezierPtToPtDist) < 0.1 * bezierPtToPtDistanceThresh)
+                    arclengthParameterization(int(numCurvePts) - 1, 0) = 1.0;
+            }
+        }        
+        
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "uniform indices: ");
+        for (int i = 0; i < arclengthParameterization.rows(); i++)
+        {
+            // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", arclengthParameterization(i, 0));
+            if (i > 0)
+            {
+                if (arclengthParameterization(i, 0) <= arclengthParameterization(i - 1, 0))
+                    ROS_WARN_STREAM_NAMED("NavigableGapGenerator", "       BAD PARAMETERIZATION");
+            }
+        }
+         
+        return arclengthParameterization;
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "total approx dist: " << bezierArclengthDistance);
+    }
+
     float NavigableGapGenerator::approximateBezierArclength(const Eigen::Vector2d & bezierPt0, 
-                                                                const Eigen::Vector2d & bezierPt1, 
-                                                                const Eigen::Vector2d & bezierPt2, 
-                                                                const float & tStart, 
-                                                                const float & tEnd, 
-                                                                const float & numPoints) 
+                                                            const Eigen::Vector2d & bezierPt1, 
+                                                            const Eigen::Vector2d & bezierPt2, 
+                                                            const float & tStart, 
+                                                            const float & tEnd, 
+                                                            const float & numPoints) 
     {
         float arclengthDistance = 0.0;
         float steps = numPoints - 1;
@@ -102,110 +358,6 @@ namespace dynamic_gap
         }
 
         return arclengthDistance;
-    }
-
-    Eigen::VectorXd NavigableGapGenerator::arclengthParameterizeBezier(const Eigen::Vector2d & bezierPt0, 
-                                                                        const Eigen::Vector2d & bezierPt1, 
-                                                                        const Eigen::Vector2d & bezierPt2, 
-                                                                        const float & numCurvePts,
-                                                                        float & desiredBezierPtToPtDistance) 
-    {
-        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "               [arclengthParameterizeBezier()]");
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt0: " << bezierPt0[0] << ", " << bezierPt0[1]);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt1: " << bezierPt1[0] << ", " << bezierPt1[1]);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   bezierPt2: " << bezierPt2[0] << ", " << bezierPt2[1]);        
-
-        float bezierArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
-                                                                        0.0, 1.0, numCurvePts);
-
-        float numBezierPtToPtIntegrationPoints = 5.0;
-        Eigen::VectorXd arclengthParameterization = Eigen::MatrixXd::Zero(int(numCurvePts), 1);
-        int arclengthParameterizationIdx = 1;
-        float numBezierSamplePts = 2 * numCurvePts;
-        desiredBezierPtToPtDistance = epsilonDivide(bezierArclengthDistance, (numCurvePts - 1));
-        float bezierPtToPtDistanceThresh = desiredBezierPtToPtDistance / 100.0;
-
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   number of points: " << numCurvePts);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   total distance: " << bezierArclengthDistance);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   desired distance interval: " << desiredBezierPtToPtDistance);
-
-        int interpMaxIter = 100;
-        int interpIter = 0;
-
-        float t_interval = epsilonDivide(1.0, numBezierSamplePts);
-        float t_interp = 0.0, t_lowerBound = 0.0, t_upperBound = 0.0, 
-              currentBezierPtToPtArclengthDistance = 0.0, bezierPtToPtArclengthDistance = 0.0, t_kmin1 = 0.0;
-        
-        for (float t_k = 0.0; t_k <= 1.0; t_k += t_interval) 
-        {
-            currentBezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
-                                                                                    t_kmin1, t_k, numBezierPtToPtIntegrationPoints);
-            ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   from " << t_kmin1 << " to " << t_k << ": " << currentBezierPtToPtArclengthDistance);
-
-            if (std::abs(currentBezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) < bezierPtToPtDistanceThresh) 
-            {
-                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "adding " << t_k);
-                if (arclengthParameterizationIdx < arclengthParameterization.rows())
-                {
-                    arclengthParameterization(arclengthParameterizationIdx, 0) = t_k;
-                    arclengthParameterizationIdx += 1;
-                }
-            } else if (currentBezierPtToPtArclengthDistance > desiredBezierPtToPtDistance) 
-            {
-                t_interp = (t_kmin1 + t_k) / 2.0;
-                bezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
-                                                                                 t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
-
-                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
-                t_lowerBound = t_kmin1;
-                t_upperBound = t_k;
-
-                interpIter = 0;                
-                while (abs(bezierPtToPtArclengthDistance - desiredBezierPtToPtDistance) > bezierPtToPtDistanceThresh && interpIter < interpMaxIter) 
-                {
-                    if (bezierPtToPtArclengthDistance < desiredBezierPtToPtDistance) 
-                    {
-                        t_lowerBound = t_interp;
-                        t_interp = (t_interp + t_upperBound) / 2.0;
-                        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "raising t_interp to: " << t_interp);
-                    } else 
-                    {
-                        t_upperBound = t_interp;
-                        t_interp = (t_interp + t_lowerBound) / 2.0;
-                        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "lowering t_interp to: " << t_interp);
-                    }
-                    bezierPtToPtArclengthDistance = approximateBezierArclength(bezierPt0, bezierPt1, bezierPt2, 
-                                                                                     t_kmin1, t_interp, numBezierPtToPtIntegrationPoints);
-                    // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "from " << t_kmin1 << " to " << t_interp << ": " << bezierPtToPtArclengthDistance);
-                    interpIter++;
-                }
-                
-                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "adding " << t_interp);
-                if (arclengthParameterizationIdx < arclengthParameterization.rows())
-                {                
-                    arclengthParameterization(arclengthParameterizationIdx, 0) = t_interp;
-                    arclengthParameterizationIdx += 1;
-                }
-            }   
-            t_kmin1 = arclengthParameterization(arclengthParameterizationIdx - 1, 0);
-        }
-
-        arclengthParameterization(arclengthParameterization.rows() - 1, 0) = 1.0;
-        
-        
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "uniform indices: ");
-        for (int i = 0; i < arclengthParameterization.rows(); i++)
-        {
-            // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", arclengthParameterization(i, 0));
-            if (i > 0)
-            {
-                if (arclengthParameterization(i, 0) <= arclengthParameterization(i - 1, 0))
-                    ROS_WARN_STREAM_NAMED("NavigableGapGenerator", "       BAD PARAMETERIZATION");
-            }
-        }
-         
-        return arclengthParameterization;
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "total approx dist: " << bezierArclengthDistance);
     }
 
     void NavigableGapGenerator::buildExtendedGapOrigin(const int & numRGEPoints,
@@ -290,7 +442,7 @@ namespace dynamic_gap
         }
     }
 
-    void NavigableGapGenerator::buildExtendedBezierCurve(dynamic_gap::Gap * selectedGap, 
+    void NavigableGapGenerator::buildExtendedBezierCurve(dynamic_gap::Gap * gap, 
                                                             // Eigen::MatrixXd & gapCurvesPosns,
                                                             // Eigen::MatrixXd & gapCurvesInwardNorms, 
                                                             // Eigen::MatrixXd & gapSideAHPFCenters, Eigen::MatrixXd & allAHPFCenters,
@@ -309,44 +461,50 @@ namespace dynamic_gap
         //                 leftCurvePosns, rightCurvePosns;
 
         // convert from 2f to 2d
-        Eigen::Vector2d extendedGapOrigin(selectedGap->extendedGapOrigin_[0],
-                                          selectedGap->extendedGapOrigin_[1]);
-        Eigen::Vector2d leftBezierOrigin(selectedGap->leftBezierOrigin_[0],
-                                            selectedGap->leftBezierOrigin_[1]);
-        Eigen::Vector2d rightBezierOrigin(selectedGap->rightBezierOrigin_[0],
-                                            selectedGap->rightBezierOrigin_[1]);
+        Eigen::Vector2d extendedGapOrigin(gap->extendedGapOrigin_[0],
+                                          gap->extendedGapOrigin_[1]);
+        Eigen::Vector2d leftBezierOrigin(gap->leftBezierOrigin_[0],
+                                            gap->leftBezierOrigin_[1]);
+        Eigen::Vector2d rightBezierOrigin(gap->rightBezierOrigin_[0],
+                                            gap->rightBezierOrigin_[1]);
 
-        selectedGap->leftBezierWeight_ = epsilonDivide(leftGapPtVel.norm(), maxRbtVel.norm()); // capped at 1, we can scale down towards 0 until initial constraints are met?
-        selectedGap->rightBezierWeight_ = epsilonDivide(rightGapPtVel.norm(), maxRbtVel.norm());
+        gap->leftBezierWeight_ = epsilonDivide(leftGapPtVel.norm(), maxRbtVel.norm()); // capped at 1, we can scale down towards 0 until initial constraints are met?
+        gap->rightBezierWeight_ = epsilonDivide(rightGapPtVel.norm(), maxRbtVel.norm());
 
         // for a totally static gap, can get no velocity on first bezier curve point which corrupts vector field
         Eigen::Vector2d weightedLeftBezierPt0(0.0, 0.0);
         Eigen::Vector2d weightedRightBezierPt0(0.0, 0.0);
         if (leftGapPtVel.norm() > 0.0)
-            weightedLeftBezierPt0 = leftBezierOrigin + selectedGap->leftBezierWeight_ * (leftCurveInitPt - leftBezierOrigin);
+            weightedLeftBezierPt0 = leftBezierOrigin + gap->leftBezierWeight_ * (leftCurveInitPt - leftBezierOrigin);
         else
             weightedLeftBezierPt0 = (0.95 * leftBezierOrigin + 0.05 * leftCurveTermPt);
 
         if (rightGapPtVel.norm() >  0.0)
-            weightedRightBezierPt0 = rightBezierOrigin + selectedGap->rightBezierWeight_ * (rightCurveInitPt - rightBezierOrigin);
+            weightedRightBezierPt0 = rightBezierOrigin + gap->rightBezierWeight_ * (rightCurveInitPt - rightBezierOrigin);
         else
             weightedRightBezierPt0 = (0.95 * rightBezierOrigin + 0.05 * rightCurveTermPt);
         
         // set left and right bezier points
-        selectedGap->leftPt0_ = weightedLeftBezierPt0;
-        selectedGap->leftPt1_ = leftCurveTermPt;
-        selectedGap->rightPt0_ = weightedRightBezierPt0;
-        selectedGap->rightPt1_ = rightCurveTermPt;  
+        gap->leftPt0_ = weightedLeftBezierPt0;
+        gap->leftPt1_ = leftCurveTermPt;
+        gap->rightPt0_ = weightedRightBezierPt0;
+        gap->rightPt1_ = rightCurveTermPt;  
 
-        float desiredLeftBezierPtToPtDistance = 0.01; // will be set in arclengthParameterizeBezier  
-        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "               arclength parameterizing left curve");
-        Eigen::VectorXd leftArclengthParameters = arclengthParameterizeBezier(leftBezierOrigin, weightedLeftBezierPt0, leftCurveTermPt, numCurvePts, desiredLeftBezierPtToPtDistance);        
+        float placeholder = 0.0;
+        float leftBezierArclengthDistance = approximateBezierArclength(leftBezierOrigin, weightedLeftBezierPt0, leftCurveTermPt, 
+                                                                        0.0, 1.0, numCurvePts);
+        float desiredLeftBezierPtToPtDistance = epsilonDivide(leftBezierArclengthDistance, (numCurvePts - 1));
+        float leftBezierPtToPtDistanceThresh = desiredLeftBezierPtToPtDistance / 100.0;
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "               arclength parameterizing left curve");      
+        Eigen::VectorXd leftArclengthParameters = arclengthParameterizeBezier(leftBezierOrigin, weightedLeftBezierPt0, leftCurveTermPt, 
+                                                                                numCurvePts, desiredLeftBezierPtToPtDistance,
+                                                                                leftBezierPtToPtDistanceThresh, placeholder, false);        
         
-        selectedGap->numLeftRGEPoints_ = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - leftBezierOrigin).norm() / desiredLeftBezierPtToPtDistance)), 2) : 0;
+        gap->numLeftRGEPoints_ = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - leftBezierOrigin).norm() / desiredLeftBezierPtToPtDistance)), 2) : 0;
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "numLeftRGEPoints: " << numLeftRGEPoints);
 
-        int totalNumLeftCurvePts = selectedGap->numLeftRGEPoints_ + numCurvePts; 
+        int totalNumLeftCurvePts = gap->numLeftRGEPoints_ + numCurvePts; 
         Eigen::MatrixXd leftCurvePosns = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
         Eigen::MatrixXd leftCurveVels = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
         Eigen::MatrixXd leftCurveInwardNorms = Eigen::MatrixXd(totalNumLeftCurvePts, 2);
@@ -355,23 +513,28 @@ namespace dynamic_gap
         // Left radial gap extension //
         ///////////////////////////////
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "   building left extended gap origin");
-        buildExtendedGapOrigin(selectedGap->numLeftRGEPoints_, extendedGapOrigin, 
+        buildExtendedGapOrigin(gap->numLeftRGEPoints_, extendedGapOrigin, 
                                 leftBezierOrigin, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);
 
         ///////////////////////
         // Left Bezier curve //
         ///////////////////////
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "   building left bezier curve");
-        buildBezierCurve(selectedGap->numLeftRGEPoints_, totalNumLeftCurvePts, leftArclengthParameters, 
-                         leftBezierOrigin, selectedGap->leftPt0_, selectedGap->leftPt1_, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);        
+        buildBezierCurve(gap->numLeftRGEPoints_, totalNumLeftCurvePts, leftArclengthParameters, 
+                         leftBezierOrigin, gap->leftPt0_, gap->leftPt1_, leftCurvePosns, leftCurveVels, leftCurveInwardNorms, true);        
 
-        float desiredRightBezierPtToPtDistance = 0.01;
+        float rightBezierArclengthDistance = approximateBezierArclength(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, 
+                                                                        0.0, 1.0, numCurvePts);
+        float desiredRightBezierPtToPtDistance = epsilonDivide(rightBezierArclengthDistance, (numCurvePts - 1));
+        float rightBezierPtToPtDistanceThresh = desiredRightBezierPtToPtDistance / 100.0;
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "               arclength parameterizing right curve");
-        Eigen::VectorXd rightArclengthParameters = arclengthParameterizeBezier(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, numCurvePts, desiredRightBezierPtToPtDistance);
+        Eigen::VectorXd rightArclengthParameters = arclengthParameterizeBezier(rightBezierOrigin, weightedRightBezierPt0, rightCurveTermPt, 
+                                                                                numCurvePts, desiredRightBezierPtToPtDistance,
+                                                                                rightBezierPtToPtDistanceThresh, placeholder, false);
 
-        selectedGap->numRightRGEPoints_ = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - rightBezierOrigin).norm() / desiredRightBezierPtToPtDistance)), 2) : 0;
+        gap->numRightRGEPoints_ = (cfg_->gap_manip.radial_extend) ? std::max(int(std::ceil( (extendedGapOrigin - rightBezierOrigin).norm() / desiredRightBezierPtToPtDistance)), 2) : 0;
 
-        int totalNumRightCurvePts = selectedGap->numRightRGEPoints_ + numCurvePts; 
+        int totalNumRightCurvePts = gap->numRightRGEPoints_ + numCurvePts; 
         Eigen::MatrixXd rightCurvePosns = Eigen::MatrixXd(totalNumRightCurvePts, 2);            
         Eigen::MatrixXd rightCurveVels = Eigen::MatrixXd(totalNumRightCurvePts, 2);
         Eigen::MatrixXd rightCurveInwardNorms = Eigen::MatrixXd(totalNumRightCurvePts, 2);
@@ -380,29 +543,29 @@ namespace dynamic_gap
         // Right radial gap extension //
         ////////////////////////////////
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "   building right extended gap origin");
-        buildExtendedGapOrigin(selectedGap->numRightRGEPoints_, extendedGapOrigin, 
+        buildExtendedGapOrigin(gap->numRightRGEPoints_, extendedGapOrigin, 
                                 rightBezierOrigin, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);
              
         ////////////////////////
         // Right Bezier curve //
         ////////////////////////
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "   building right bezier curve");
-        buildBezierCurve(selectedGap->numRightRGEPoints_, totalNumRightCurvePts, rightArclengthParameters, 
-                            rightBezierOrigin, selectedGap->rightPt0_, selectedGap->rightPt1_, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);        
+        buildBezierCurve(gap->numRightRGEPoints_, totalNumRightCurvePts, rightArclengthParameters, 
+                            rightBezierOrigin, gap->rightPt0_, gap->rightPt1_, rightCurvePosns, rightCurveVels, rightCurveInwardNorms, false);        
 
         float offset = 0.01;
 
-        selectedGap->allCurvePts_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        selectedGap->gapBoundaryInwardNorms_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        selectedGap->leftRightCenters_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
-        selectedGap->allAHPFCenters_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
+        gap->allCurvePts_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gap->gapBoundaryInwardNorms_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gap->leftRightCenters_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts, 2);
+        gap->allAHPFCenters_ = Eigen::MatrixXd(totalNumLeftCurvePts + totalNumRightCurvePts + 1, 2);
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
-        selectedGap->allCurvePts_ << leftCurvePosns, rightCurvePosns; 
+        gap->allCurvePts_ << leftCurvePosns, rightCurvePosns; 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesPosns worked");
-        selectedGap->gapBoundaryInwardNorms_ << leftCurveInwardNorms, rightCurveInwardNorms; // centered_origin_inward_norm, 
+        gap->gapBoundaryInwardNorms_ << leftCurveInwardNorms, rightCurveInwardNorms; // centered_origin_inward_norm, 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesInwardNorms worked");
-        selectedGap->leftRightCenters_ = selectedGap->allCurvePts_ - selectedGap->gapBoundaryInwardNorms_*offset;
+        gap->leftRightCenters_ = gap->allCurvePts_ - gap->gapBoundaryInwardNorms_*offset;
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapSideAHPFCenters worked");
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "left_curve points: " << left_curve);
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "right_curve_points: " << right_curve);
@@ -415,11 +578,12 @@ namespace dynamic_gap
 
         Eigen::Matrix<double, 1, 2> goal;
         goal << gapGoalTermPt[0], gapGoalTermPt[1];
-        selectedGap->allAHPFCenters_ << goal, selectedGap->leftRightCenters_;
+        gap->allAHPFCenters_ << goal, gap->leftRightCenters_;
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "allAHPFCenters worked");   
 
-        // selectedGap->allAHPFCenters_ = allAHPFCenters;
-        // selectedGap->leftRightCenters_ = gapSideAHPFCenters;
-        // selectedGap->allCurvePts_ = gapCurvesPosns;        
+        // gap->allAHPFCenters_ = allAHPFCenters;
+        // gap->leftRightCenters_ = gapSideAHPFCenters;
+        // gap->allCurvePts_ = gapCurvesPosns;        
     }
+
 }
