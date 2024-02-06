@@ -1300,7 +1300,7 @@ namespace dynamic_gap
         // boost::mutex::scoped_lock gapset(gapMutex_);
 
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        // gapVisualizer_->drawReachableGaps(manipulatedGaps);        
+        gapVisualizer_->drawReachableGaps(manipulatedGaps);        
         // gapVisualizer_->drawReachableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);

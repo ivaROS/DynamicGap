@@ -14,7 +14,7 @@ namespace dynamic_gap
         simpGapsPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gaps", 10);
         manipGapsPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gaps", 10);
         reachableGapsPublisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gaps", 10);
-        ahpfCentersPublisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
+        // ahpfCentersPublisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_centers", 10);
         // reachable_gap_no_RGE_publisher = nh.advertise<visualization_msgs::MarkerArray>("reachable_gap_no_RGE", 10);
         gapSplinesPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_splines", 10);
 
@@ -799,7 +799,6 @@ namespace dynamic_gap
     }
     */
 
-    /*
     void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
@@ -811,26 +810,17 @@ namespace dynamic_gap
         clearMarker.action = visualization_msgs::Marker::DELETEALL;
         clearMarkerArray.markers.push_back(clearMarker);
         reachableGapsPublisher.publish(clearMarkerArray);
-        // reachable_gap_no_RGE_publisher.publish(clearMarkerArray);
 
         // First, clearing topic.
         
         visualization_msgs::MarkerArray reachableGapMarkerArray; // , markerArray1;
-        // int counter = 0;
         for (dynamic_gap::Gap * gap : gaps) 
         {
-            // if (counter == 1) {
             drawReachableGap(reachableGapMarkerArray, gap);
-                // drawReachableGapNoRGE(markerArray1, gap);
-            // }
-            // counter++;
         }
         reachableGapsPublisher.publish(reachableGapMarkerArray);
-        // reachable_gap_no_RGE_publisher.publish(markerArray1);
     }
-    */
     
-    /*
     void GapVisualizer::drawReachableGap(visualization_msgs::MarkerArray & reachableGapMarkerArray, dynamic_gap::Gap * gap) 
     {
         // ROS_INFO_STREAM("in drawReachableGap");
@@ -840,7 +830,7 @@ namespace dynamic_gap
         // float half_num_scan = gap->half_scan;
 
         // Eigen::Vector2f leftBezierOrigin(, );
-        Eigen::Vector2f rightBezierOrigin(gap->rightBezierOrigin_[0], gap->rightBezierOrigin_[1]);
+        // Eigen::Vector2f rightBezierOrigin(gap->rightBezierOrigin_[0], gap->rightBezierOrigin_[1]);
 
         // ROS_INFO_STREAM("leftBezierOrigin: (" << leftBezierOrigin[0] << ", " << leftBezierOrigin[1] << "), left_pt_0: (" << left_pt_0[0] << ", " << left_pt_0[1] << "), weighted_left_pt_0: (" << weighted_left_pt_0[0] << ", " << weighted_left_pt_0[1] << "), left_pt_1: (" << left_pt_1[0] << ", " << left_pt_1[1] << ")");
         // ROS_INFO_STREAM("rightBezierOrigin: (" << rightBezierOrigin[0] << ", " << rightBezierOrigin[1] << "), right_pt_0: (" << right_pt_0[0] << ", " << right_pt_0[1] << "), weighted_right_pt_0: (" << weighted_right_pt_0[0] << ", " << weighted_right_pt_0[1] << "), right_pt_1: (" << right_pt_1[0] << ", " << right_pt_1[1] << ")");
@@ -889,29 +879,29 @@ namespace dynamic_gap
         int id = (int) reachableGapMarkerArray.markers.size();
         marker.lifetime = ros::Duration(0);
 
-        midCurvePts.clear();  
+        // midCurvePts.clear();  
         // draw the left curve extended origin
         // Eigen::Vector2f left_pt = gap->extendedGapOrigin_;
         
-        midCurvePt.x = gap->extendedGapOrigin_[0];
-        midCurvePt.y = gap->extendedGapOrigin_[1];
-        midCurvePts.push_back(midCurvePt);
+        // midCurvePt.x = gap->extendedGapOrigin_[0];
+        // midCurvePt.y = gap->extendedGapOrigin_[1];
+        // midCurvePts.push_back(midCurvePt);
 
-        // left_pt = leftBezierOrigin;
+        // // left_pt = leftBezierOrigin;
         
-        midCurvePt.x = gap->leftBezierOrigin_[0];
-        midCurvePt.y = gap->leftBezierOrigin_[1];
-        midCurvePts.push_back(midCurvePt);
+        // midCurvePt.x = gap->leftBezierOrigin_[0];
+        // midCurvePt.y = gap->leftBezierOrigin_[1];
+        // midCurvePts.push_back(midCurvePt);
 
-        marker.points = midCurvePts;
-        marker.id = id++;
-        reachableGapMarkerArray.markers.push_back(marker);
+        // marker.points = midCurvePts;
+        // marker.id = id++;
+        // reachableGapMarkerArray.markers.push_back(marker);
         
         // int num_pts_per_side = g.allCurvePts_.rows() / 2;
         // ROS_INFO_STREAM("number of all_curve_pts: " << g.allCurvePts_.rows());
         // ROS_INFO_STREAM("drawReachableGap from " << g.numLeftRGEPoints_ << " to " << g.numLeftRGEPoints_ + num_curve_points - 1);
         Eigen::Vector2d curvePt(0.0, 0.0);        
-        for (int i = gap->numLeftRGEPoints_; i < (gap->numLeftRGEPoints_ + num_curve_points - 1); i++) 
+        for (int i = 0; i < gap->allCurvePts_.rows() - 1; i++) 
         {            
             midCurvePts.clear();  
 
@@ -933,51 +923,9 @@ namespace dynamic_gap
             marker.id = id++;
             reachableGapMarkerArray.markers.push_back(marker);
         }
-
-        // populate right curve
-        midCurvePts.clear();  
-        // ROS_INFO_STREAM("i: " << i << ", s: " << s);
-        // Eigen::Vector2f right_pt = gap->extendedGapOrigin_;
-        
-        midCurvePt.x = gap->extendedGapOrigin_[0];
-        midCurvePt.y = gap->extendedGapOrigin_[1];
-        midCurvePts.push_back(midCurvePt);
-
-        // right_pt = rightBezierOrigin;
-        
-        midCurvePt.x = gap->rightBezierOrigin_[0];
-        midCurvePt.y = gap->rightBezierOrigin_[1];
-        midCurvePts.push_back(midCurvePt);
-
-        marker.points = midCurvePts;
-        marker.id = id++;
-        reachableGapMarkerArray.markers.push_back(marker);
-
-        //populate right curve
-        // ROS_INFO_STREAM("drawReachableGap from " << g.numLeftRGEPoints_ + num_curve_points << " to " << g.allCurvePts_.rows() - 1);
-        for (int i = (gap->numLeftRGEPoints_ + num_curve_points); i < (gap->allCurvePts_.rows() - 1); i++) 
-        {
-            midCurvePts.clear();  
-
-            curvePt = gap->allCurvePts_.row(i);
-            
-            midCurvePt.x = curvePt[0];
-            midCurvePt.y = curvePt[1];
-            midCurvePts.push_back(midCurvePt);
-
-            curvePt = gap->allCurvePts_.row(i + 1);
-            
-            midCurvePt.x = curvePt[0];
-            midCurvePt.y = curvePt[1];
-            midCurvePts.push_back(midCurvePt);
-
-            marker.points = midCurvePts;
-            marker.id = id++;
-            reachableGapMarkerArray.markers.push_back(marker);  
-        }
     }
-
-
+    
+    /*
     void GapVisualizer::drawReachableGapsCenters(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;

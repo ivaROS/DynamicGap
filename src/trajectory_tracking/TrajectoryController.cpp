@@ -115,8 +115,8 @@ namespace dynamic_gap
 
         clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
 
-        if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
-            cmdVelX += 0.3;
+        // if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
+        //     cmdVelX += 0.3;
 
         ROS_INFO_STREAM_NAMED("Controller", "final safe vels: " << cmdVelX << ", " << cmdVelY);
 
