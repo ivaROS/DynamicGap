@@ -8,12 +8,12 @@ namespace dynamic_gap
 
         // get gap points in cartesian
         float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
-        gap->getLCartesian(xLeft, yLeft);
-        gap->getRCartesian(xRight, yRight);
+        gap->getSimplifiedLCartesian(xLeft, yLeft);
+        gap->getSimplifiedRCartesian(xRight, yRight);
 
         float xLeftTerm = 0.0, yLeftTerm = 0.0, xRightTerm = 0.0, yRightTerm = 0.0;
-        gap->getLCartesian(xLeftTerm, yLeftTerm);
-        gap->getRCartesian(xRightTerm, yRightTerm);
+        gap->getSimplifiedTerminalLCartesian(xLeftTerm, yLeftTerm);
+        gap->getSimplifiedTerminalRCartesian(xRightTerm, yRightTerm);
 
         Eigen::Vector2d initialGoal(gap->goal.x_, gap->goal.y_);
         Eigen::Vector2d terminalGoal(gap->terminalGoal.x_, gap->terminalGoal.y_);
@@ -46,8 +46,8 @@ namespace dynamic_gap
         Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
         Eigen::Vector2d rightCurveInitPt(xRight, yRight);
         Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
-        Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
-        Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
+        // Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
+        // Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
         Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
         // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
         
@@ -136,6 +136,9 @@ namespace dynamic_gap
         float d_safe = std::min(gap->leftBezierOrigin_.norm(), gap->rightBezierOrigin_.norm());
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        d_safe: " << d_safe);
 
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierOriginTheta: " << leftBezierOriginTheta);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierOriginTheta: " << rightBezierOriginTheta);
+
         float arc_angle = 0.0;
         if (rightBezierOriginTheta > leftBezierOriginTheta)
             arc_angle = (rightBezierOriginTheta - leftBezierOriginTheta);
@@ -143,6 +146,7 @@ namespace dynamic_gap
             arc_angle = 2*M_PI + (rightBezierOriginTheta - leftBezierOriginTheta);
 
         float arc_arclength = d_safe * arc_angle;
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        arc_arclength: " << arc_arclength);
 
         float boundaryArclength = leftBezierArclength + rightBezierArclength + arc_arclength;
         ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        boundaryArclength: " << boundaryArclength);
@@ -215,14 +219,23 @@ namespace dynamic_gap
 
         buildBezierCurve(right_indices, 
                          gap->rightBezierOrigin_, gap->rightPt0_, gap->rightPt1_, 
-                         rightCurvePosns, rightCurveInwardNorms, true);        
+                         rightCurvePosns, rightCurveInwardNorms, false);        
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
         gap->allCurvePts_ << leftCurvePosns, arcCurvePosns, rightCurvePosns; 
+
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->allCurvePts_: ");
+        for (int i = 0; i < gap->allCurvePts_.rows(); i++)
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->allCurvePts_.row(i));
+        
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesPosns worked");
         gap->gapBoundaryInwardNorms_ << leftCurveInwardNorms, arcCurveInwardNorms, rightCurveInwardNorms; // centered_origin_inward_norm, 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesInwardNorms worked");
         
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->gapBoundaryInwardNorms_: ");
+        for (int i = 0; i < gap->gapBoundaryInwardNorms_.rows(); i++)
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->gapBoundaryInwardNorms_.row(i));
+
         double offset = des_boundary_pt_to_pt_arclength;
         gap->leftRightCenters_ = gap->allCurvePts_ - gap->gapBoundaryInwardNorms_*offset;
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapSideAHPFCenters worked");
@@ -565,6 +578,7 @@ namespace dynamic_gap
                                                   Eigen::MatrixXd & curveInwardNorms,
                                                   const bool & left)
     {
+        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "[buildBezierCurve] ");
         Eigen::Vector2d currPt(0.0, 0.0);
         Eigen::Vector2d currVel(0.0, 0.0);
         Eigen::Vector2d currInwardVector(0.0, 0.0);
@@ -583,14 +597,25 @@ namespace dynamic_gap
         {
             s = arclengthParameters(i, 0);
             // counter++;
+            
+            if (s == 1)
+                s = 0.99999;
+            else if (s == 0)
+                s = 0.00001;
+
+            // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "    s: " << s);
 
             // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "s_left: " << s_left);
             currPt = (1 - s) * (1 - s) * bezierOrigin + 
                         2*(1 - s)*s * bezierInitialPt + 
                         s*s * bezierTerminalPt;
+            // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "    currPt: " << currPt.transpose());
+                        
             currVel = (2*s - 2) * bezierOrigin + 
                         (2 - 4*s) * bezierInitialPt + 
                         2*s * bezierTerminalPt;
+            // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "    currVel: " << currVel.transpose());
+
             currInwardVector = rotMat * currVel;
             currInwardNorm = unitNorm(currInwardVector);
             curvePosns.row(i) = currPt;

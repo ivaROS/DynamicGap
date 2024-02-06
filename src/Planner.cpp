@@ -594,7 +594,7 @@ namespace dynamic_gap
                     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
                 }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
-                gapManipulator_->radialExtendGap(manipulatedGaps.at(i));
+                // gapManipulator_->radialExtendGap(manipulatedGaps.at(i));
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             
                 navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
@@ -1067,9 +1067,6 @@ namespace dynamic_gap
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
-        // need to run after generateGapTrajs to see what weights for reachable gap are
-        visualizeNavigableGaps(manipulatedGaps); 
-
         //////////////////////////////
         // GAP TRAJECTORY SELECTION //
         //////////////////////////////
@@ -1077,6 +1074,10 @@ namespace dynamic_gap
         int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
+
+        // need to run after generateGapTrajs to see what weights for reachable gap are
+        visualizeNavigableGaps(manipulatedGaps, highestScoreTrajIdx); 
+
 
         dynamic_gap::Trajectory chosenTraj;
         if (highestScoreTrajIdx >= 0) 
@@ -1295,12 +1296,13 @@ namespace dynamic_gap
     }
 
 
-    void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps) 
+    void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps,
+                                            const int & highestScoreTrajIdx) 
     {
         // boost::mutex::scoped_lock gapset(gapMutex_);
 
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        gapVisualizer_->drawReachableGaps(manipulatedGaps);        
+        gapVisualizer_->drawReachableGaps(manipulatedGaps, highestScoreTrajIdx);        
         // gapVisualizer_->drawReachableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);

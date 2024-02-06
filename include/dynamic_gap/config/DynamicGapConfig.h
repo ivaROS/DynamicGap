@@ -129,7 +129,7 @@ namespace dynamic_gap
                 float pose_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.21; /**< Inflation ratio for planner */
                 float terminal_weight = 10.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
-                int num_curve_points = 20; /**< Number of points to use to discretize gap boundary */
+                int num_curve_points = 50; /**< Number of points to use to discretize gap boundary */
                 int num_extended_gap_origin_points = 6; /**< Number of points to use to discretize radial gap extension */
             } traj;            
 

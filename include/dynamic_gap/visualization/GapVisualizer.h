@@ -37,7 +37,8 @@ namespace dynamic_gap
             * \brief Visualize set of reachable gaps
             * \param gaps set of gaps whose reachable regions we want to visualize
             */            
-            void drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps);
+            void drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps,
+                                    const int & highestScoreTrajIdx);
 
             // void drawGapSplines(const std::vector<dynamic_gap::Gap *> & gaps);
 

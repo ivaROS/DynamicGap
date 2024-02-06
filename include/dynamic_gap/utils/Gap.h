@@ -35,7 +35,7 @@ namespace dynamic_gap
 
             Gap(const dynamic_gap::Gap & otherGap)
             {
-                ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
                 // shallow copy
                 frame_ = otherGap.frame_;
 

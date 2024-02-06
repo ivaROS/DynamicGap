@@ -246,7 +246,7 @@ namespace dynamic_gap
         Eigen::Vector2d rbtVelCmd_; /**< robot command velocity that is scaled and clipped */
         Eigen::Vector2d vLeft_; /**< velocity of 2D left gap point */
         Eigen::Vector2d vRight_; /**< velocity of 2D right gap point */
-        Eigen::Vector2d vGoal_; /**< velocity of 2D gap goal */
+        // Eigen::Vector2d vGoal_; /**< velocity of 2D gap goal */
 
         Eigen::MatrixXd harmonicWeights_; /**< weights of all of the harmonic terms that comprise the AHPF */
         Eigen::MatrixXd harmonicCenters_; /**< center positions of the harmonic terms that comprise the AHPF */
@@ -262,10 +262,10 @@ namespace dynamic_gap
              const Eigen::MatrixXd & harmonicWeights,
              const Eigen::Vector2d & vLeft, 
              const Eigen::Vector2d & vRight, 
-             const Eigen::Vector2d & vGoal) 
+             const Eigen::Vector2d & pGoal) 
             : vRbtLinMax_(vRbtLinMax), harmonicCenters_(harmonicCenters), 
               gapBoundaryInwardNorms_(gapBoundaryInwardNorms), harmonicWeights_(harmonicWeights),
-                vLeft_(vLeft), vRight_(vRight), vGoal_(vGoal)
+                vLeft_(vLeft), vRight_(vRight), pGoal_(pGoal)
         { 
             eps = 0.0000001;              
         }
@@ -304,7 +304,7 @@ namespace dynamic_gap
             rbtPosn_ << x[0], x[1];
             pLeft_ << x[2], x[3];
             pRight_ << x[4], x[5];
-            pGoal_ << x[6], x[7];
+            // pGoal_ << x[6], x[7];
 
             rbtToLeft_ = pLeft_ - rbtPosn_;
             rbtToRight_ = pRight_ - rbtPosn_;
@@ -324,11 +324,11 @@ namespace dynamic_gap
             
             pastGap_ = pastGapPoints_ || pastGoal_;
 
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               t: " << t);
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               rbt state: " << x[0] << ", " << x[1]);
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               left state: " << x[2] << ", " << x[3]);
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               right state: " << x[4] << ", " << x[5]);
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               goal state: " << x[6] << ", " << x[7]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               t: " << t);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   rbt state: " << x[0] << ", " << x[1]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   left state: " << x[2] << ", " << x[3]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   right state: " << x[4] << ", " << x[5]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   goal state: " << x[6] << ", " << x[7]);
 
             if (pastGap_) 
             {
@@ -357,24 +357,17 @@ namespace dynamic_gap
             harmonicCentersToRbt_ = (-harmonicCenters_).rowwise() + rbtPosn_.transpose(); // size (r: Kplus1, c: 2)
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "harmonicCentersToRbt_ size: " << harmonicCentersToRbt_.rows() << ", " << harmonicCentersToRbt_.cols());
 
-           /*
-            for (int i = 0; i < harmonicCentersToRbt_.rows(); i++) {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "row " << i << ": " << harmonicCentersToRbt_.row(i));
-            }
-            */
-
             /// CHECK TO SEE IF ROBOT HAS LEFT GAP THROUGH SIDES ///
             Eigen::Index maxIndex;
             float maxNorm = harmonicCentersToRbt_.rowwise().norm().minCoeff(&maxIndex);
             
             if (maxIndex > 0) 
             {
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm index: " << maxIndex);
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center to rbt dir: " << harmonicCentersToRbt_.row(maxIndex));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   min norm index: " << maxIndex);
                 Eigen::Vector2d closestCenterToRbt = harmonicCentersToRbt_.row(maxIndex);
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm center: " << min_norm_center);
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   min norm center to rbt dir: " << closestCenterToRbt.transpose());
                 Eigen::Vector2d closestCenterInwardNorm = gapBoundaryInwardNorms_.row(maxIndex - 1);
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "min norm inward dir: " << closestCenterInwardNorm);
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   min norm inward dir: " << closestCenterInwardNorm.transpose());
                 if (closestCenterToRbt.dot(closestCenterInwardNorm) < 0) 
                 {
                     ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "During AHPF trajectory synthesis, robot has left gap");
@@ -398,7 +391,7 @@ namespace dynamic_gap
 
             // CLIPPING DESIRED VELOCITIES
             // rbtVelCmd_ = clipVelocities(rbtVelCmd_[0], rbtVelCmd_[1], vRbtLinMax_);
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "rbtVelCmd_: " << rbtVelCmd_[0] << ", " << rbtVelCmd_[1]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   rbtVelCmd_: " << rbtVelCmd_[0] << ", " << rbtVelCmd_[1]);
 
             dxdt[0] = rbtVelCmd_[0]; // rbt_x
             dxdt[1] = rbtVelCmd_[1]; // rbt_y
@@ -409,8 +402,8 @@ namespace dynamic_gap
             dxdt[4] = vRight_[0]; // right point r_x (absolute)
             dxdt[5] = vRight_[1]; // right point r_y (absolute)
 
-            dxdt[6] = vGoal_[0]; // goal point r_x (absolute)
-            dxdt[7] = vGoal_[1]; // goal point r_y (absolute)
+            // dxdt[6] = vGoal_[0]; // goal point r_x (absolute)
+            // dxdt[7] = vGoal_[1]; // goal point r_y (absolute)
         }
     };
     

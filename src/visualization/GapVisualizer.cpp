@@ -799,7 +799,8 @@ namespace dynamic_gap
     }
     */
 
-    void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps) 
+    void GapVisualizer::drawReachableGaps(const std::vector<dynamic_gap::Gap *> & gaps,
+                                            const int & highestScoreTrajIdx) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
         
@@ -814,9 +815,10 @@ namespace dynamic_gap
         // First, clearing topic.
         
         visualization_msgs::MarkerArray reachableGapMarkerArray; // , markerArray1;
-        for (dynamic_gap::Gap * gap : gaps) 
+        for (int i = 0; i < gaps.size(); i++) 
         {
-            drawReachableGap(reachableGapMarkerArray, gap);
+            if (i == highestScoreTrajIdx)
+                drawReachableGap(reachableGapMarkerArray, gaps.at(i));
         }
         reachableGapsPublisher.publish(reachableGapMarkerArray);
     }

@@ -87,12 +87,12 @@ namespace dynamic_gap
 
             // get gap points in cartesian
             float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
-            selectedGap->getLCartesian(xLeft, yLeft);
-            selectedGap->getRCartesian(xRight, yRight);
+            selectedGap->getSimplifiedLCartesian(xLeft, yLeft);
+            selectedGap->getSimplifiedRCartesian(xRight, yRight);
 
             float xLeftTerm = 0.0, yLeftTerm = 0.0, xRightTerm = 0.0, yRightTerm = 0.0;
-            selectedGap->getLCartesian(xLeftTerm, yLeftTerm);
-            selectedGap->getRCartesian(xRightTerm, yRightTerm);
+            selectedGap->getSimplifiedTerminalLCartesian(xLeftTerm, yLeftTerm);
+            selectedGap->getSimplifiedTerminalRCartesian(xRightTerm, yRightTerm);
 
             Eigen::Vector2d initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
             Eigen::Vector2d terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
@@ -136,14 +136,14 @@ namespace dynamic_gap
             }
 
             // Eigen::Vector2d initRbtPos(x[0], x[1]);
-            Eigen::Vector2d leftCurveInitPt(xLeft, yLeft);
-            Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
-            Eigen::Vector2d rightCurveInitPt(xRight, yRight);
-            Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
+            // Eigen::Vector2d leftCurveInitPt(xLeft, yLeft);
+            // Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
+            // Eigen::Vector2d rightCurveInitPt(xRight, yRight);
+            // Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
             Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
             Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
             Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
-            Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
+            // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
             
             Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
             // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
@@ -171,16 +171,16 @@ namespace dynamic_gap
             // selectedGap->numRightRGEPoints_ = numRightRGEPoints;
 
             // add radial gap extension
-            initialGoalX -= selectedGap->extendedGapOrigin_[0];
-            initialGoalY -= selectedGap->extendedGapOrigin_[1];
-            xLeft -= selectedGap->extendedGapOrigin_[0];
-            yLeft -= selectedGap->extendedGapOrigin_[1];
-            xRight -= selectedGap->extendedGapOrigin_[0];
-            yRight -= selectedGap->extendedGapOrigin_[1];
-            rbtState[0] -= selectedGap->extendedGapOrigin_[0];
-            rbtState[1] -= selectedGap->extendedGapOrigin_[1];
+            // initialGoalX -= selectedGap->extendedGapOrigin_[0];
+            // initialGoalY -= selectedGap->extendedGapOrigin_[1];
+            // xLeft -= selectedGap->extendedGapOrigin_[0];
+            // yLeft -= selectedGap->extendedGapOrigin_[1];
+            // xRight -= selectedGap->extendedGapOrigin_[0];
+            // yRight -= selectedGap->extendedGapOrigin_[1];
+            // rbtState[0] -= selectedGap->extendedGapOrigin_[0];
+            // rbtState[1] -= selectedGap->extendedGapOrigin_[1];
 
-            x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoalX, initialGoalY};
+            x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, terminalGoalX, terminalGoalY};
 
             /*
             PolarGapField polarGapField(xRight, xLeft, yRight, yLeft,
@@ -200,7 +200,8 @@ namespace dynamic_gap
 
             Eigen::MatrixXd A(Kplus1, Kplus1);
             // double setConstraintMatrix_start_time = ros::WallTime::now().toSec();
-            setConstraintMatrix(A, N, Kplus1, selectedGap->allCurvePts_, selectedGap->gapBoundaryInwardNorms_, selectedGap->allAHPFCenters_);
+            setConstraintMatrix(A, N, Kplus1, selectedGap->allCurvePts_, 
+                                selectedGap->gapBoundaryInwardNorms_, selectedGap->allAHPFCenters_);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            setConstraintMatrix time taken: " << ros::WallTime::now().toSec() - setConstraintMatrix_start_time);
 
             OsqpEigen::Solver solver;
@@ -255,7 +256,7 @@ namespace dynamic_gap
 
             // AHPF
             AHPF ahpf(cfg_->control.vx_absmax, selectedGap->allAHPFCenters_, selectedGap->gapBoundaryInwardNorms_, weights,
-                        leftGapPtVel, rightGapPtVel, gapGoalVel);   
+                        leftGapPtVel, rightGapPtVel, gapGoalTermPt);   
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     ahpf, x, 0.0f, selectedGap->gapLifespan_, 
