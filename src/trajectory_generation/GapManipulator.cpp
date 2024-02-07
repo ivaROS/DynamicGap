@@ -734,33 +734,34 @@ namespace dynamic_gap
             Eigen::Vector2f inflatedLeftPt = leftPt + leftInflationVector;
             float inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
 
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "leftTheta: " << leftTheta << ", inflatedLeftTheta: " << inflatedLeftTheta); // << ", leftThetaeft_infl: " << leftThetaeft_infl
+            ROS_INFO_STREAM_NAMED("GapManipulator", "leftTheta: " << leftTheta << ", inflatedLeftTheta: " << inflatedLeftTheta); // << ", leftThetaeft_infl: " << leftThetaeft_infl
 
             Eigen::Vector2f rightInflationVector = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * Rpi2 * rightUnitNorm;
             Eigen::Vector2f inflatedRightPt = rightPt + rightInflationVector;
             float inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
 
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "rightTheta: " << rightTheta << ", inflatedRightTheta: " << inflatedRightTheta); // ", rightTheta_infl: " << rightTheta_infl << 
+            ROS_INFO_STREAM_NAMED("GapManipulator", "rightTheta: " << rightTheta << ", inflatedRightTheta: " << inflatedRightTheta); // ", rightTheta_infl: " << rightTheta_infl << 
 
             Eigen::Vector2f inflatedLeftUnitNorm(std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta));
             Eigen::Vector2f inflatedRightUnitNorm(std::cos(inflatedRightTheta), std::sin(inflatedRightTheta));
             float newLeftToRightAngle = getSignedLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "newLeftToRightAngle: " << newLeftToRightAngle);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "newLeftToRightAngle: " << newLeftToRightAngle);
 
             int inflatedLeftIdx = 0, inflatedRightIdx = 0;
             float inflatedLeftRange = 0.0, inflatedRightRange = 0.0;
             if (newLeftToRightAngle < 0) 
             {
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
-                inflatedRightIdx = rightIdx;
+                ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
                 inflatedLeftIdx = leftIdx;
+                inflatedRightIdx = rightIdx;
+
                 inflatedLeftRange = leftDist;
                 inflatedRightRange = rightDist;
             } else 
             {
                 // need to make sure L/R don't cross each other
-                inflatedRightIdx = theta2idx(inflatedRightTheta);
                 inflatedLeftIdx = theta2idx(inflatedLeftTheta);
+                inflatedRightIdx = theta2idx(inflatedRightTheta);
                 
                 float leftToInflatedLeftAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
                 float leftToInflatedRightAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
@@ -777,13 +778,13 @@ namespace dynamic_gap
             }
 
             // PERFORMING RADIAL INFLATION
-            inflatedLeftRange += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            if ((desScan.ranges.at(inflatedLeftIdx) - inflatedLeftRange) < (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) // reject the change
-                inflatedLeftRange = desScan.ranges.at(inflatedLeftIdx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // inflatedLeftRange += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // if ((desScan.ranges.at(inflatedLeftIdx) - inflatedLeftRange) < (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) // reject the change
+            //     inflatedLeftRange = desScan.ranges.at(inflatedLeftIdx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
-            inflatedRightRange += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            if ((desScan.ranges.at(inflatedRightIdx) - inflatedRightRange) < (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) // reject the change
-                inflatedRightRange = desScan.ranges.at(inflatedRightIdx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // inflatedRightRange += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // if ((desScan.ranges.at(inflatedRightIdx) - inflatedRightRange) < (cfg_->rbt.r_inscr * cfg_->traj.inf_ratio)) // reject the change
+            //     inflatedRightRange = desScan.ranges.at(inflatedRightIdx) - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "new_l_theta: " << new_l_theta << ", new_r_theta: " << new_r_theta);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "int values, left: " << inflatedLeftIdx << ", right: " << inflatedRightIdx);

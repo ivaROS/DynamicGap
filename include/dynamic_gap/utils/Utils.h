@@ -199,7 +199,7 @@ namespace dynamic_gap
     //        VARIABLES         //
     //////////////////////////////
 
-    static float eps = 1.0e-6; /**< Infinitesimal epsilon value */
+    static float eps = std::numeric_limits<float>::min(); /**< Infinitesimal epsilon value */
 
     static int half_num_scan = 256; /**< Half of total rays in scan */
     static float angle_increment = (2*M_PI) / (2*half_num_scan - 1); /**< Angular increment of scan */
