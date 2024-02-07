@@ -102,7 +102,7 @@ namespace dynamic_gap
         // manipInitial.push_back(std_color);
         // manipInitial.push_back(std_color);
 
-        manipTerminal.a = 0.5;
+        manipTerminal.a = 1.0;
         manipTerminal.r = 0.0; 
         manipTerminal.g = 1.0; 
         manipTerminal.b = 0.0; 
@@ -307,8 +307,8 @@ namespace dynamic_gap
         // bool circle = false;
         for (dynamic_gap::Gap * gap : gaps) 
         {
-            drawManipGap(markerArray, gap, ns, true); // initial
-            // drawManipGap(markerArray, gap, ns, false); // false
+            // drawManipGap(markerArray, gap, ns, true); // initial
+            drawManipGap(markerArray, gap, ns, false); // false
         }
         manipGapsPublisher.publish(markerArray);
     }

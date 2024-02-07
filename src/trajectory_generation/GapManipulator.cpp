@@ -425,7 +425,6 @@ namespace dynamic_gap
             
             // start with a nominal pivot angle, we will adjust this angle to find the actual theta that we pivot by
             float nomPivotAngle = std::atan2(cfg_->gap_manip.epsilon2, cfg_->gap_manip.epsilon1) + 1e-3;
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "left: " << left << ", nomPivotAngle: " << nomPivotAngle);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "theta to pivot: " << theta);
             int nearIdx = 0, farIdx = 0;
             float nearDist = 0.0, farDist = 0.0;
@@ -448,11 +447,15 @@ namespace dynamic_gap
                 signedNomPivotAngle = -nomPivotAngle;
             }
 
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        near: (" << nearIdx << ", " << nearDist << "), far: (" << farIdx << ", " << farDist << ")");
+
+            ROS_INFO_STREAM_NAMED("GapManipulator", "signedNomPivotAngle: " << signedNomPivotAngle);
+
             Eigen::Matrix3f nomPivotAngleRotationMatrix;
             // nomPivotAngleRotationMatrix: SE(3) matrix that represents desired rotation amount
             nomPivotAngleRotationMatrix << cos(signedNomPivotAngle), -sin(signedNomPivotAngle), 0,
-                                        sin(signedNomPivotAngle), cos(signedNomPivotAngle), 0,
-                                        0, 0, 1;
+                                           sin(signedNomPivotAngle), cos(signedNomPivotAngle), 0,
+                                           0, 0, 1;
             
             // obtaining near and far theta values from indices
             nearTheta = idx2theta(nearIdx);
@@ -461,11 +464,11 @@ namespace dynamic_gap
             Eigen::Matrix3f nearPtTranslationMatrix, farPtTranslationMatrix;
             // nearPtTranslationMatrix, farPtTranslationMatrix: SE(2) matrices that represent translation from rbt origin to near and far points
             nearPtTranslationMatrix << 1., 0., nearDist * cos(nearTheta),
-                                    0., 1., nearDist * sin(nearTheta),
-                                    0., 0., 1.;
+                                       0., 1., nearDist * sin(nearTheta),
+                                       0., 0., 1.;
             farPtTranslationMatrix  << 1., 0., farDist * cos(farTheta),
-                                    0., 1., farDist * sin(farTheta),
-                                    0., 0., 1.;
+                                       0., 1., farDist * sin(farTheta),
+                                       0., 0., 1.;
 
             // pivotedPtRotationMatrix: my guess, transformation matrix to desired pivot point using existing gap points
             // inverse flips direction of the translation
@@ -492,16 +495,20 @@ namespace dynamic_gap
                 scanSearchEndIdx = rightIdx;
             }
 
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "scanSearchStartIdx: " << scanSearchStartIdx << ", scanSearchEndIdx: " << scanSearchEndIdx);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "scanSearchStartIdx: " << scanSearchStartIdx << 
+                                                    ", scanSearchEndIdx: " << scanSearchEndIdx);
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "wrapped scanSearchStartIdx: " << scanSearchStartIdx << ", wrapped scanSearchEndIdx: " << scanSearchEndIdx);
             int scanSearchSize = scanSearchEndIdx - scanSearchStartIdx;
-            if (scanSearchSize < 0)
+
+            // what if search size == 0?
+
+            if (scanSearchSize <= 0)
                 scanSearchSize += cfg_->scan.full_scan; // int(2*gap->half_scan);
 
 
             int gapIdxSpan = (leftIdx - rightIdx);
-            if (gapIdxSpan < 0)
+            if (gapIdxSpan <= 0)
                 gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "gapIdxSpan: " << gapIdxSpan);
 
@@ -526,12 +533,12 @@ namespace dynamic_gap
             int minDistIdx = (scanSearchStartIdx + std::distance(nearPtToScanDists.begin(), minDistIter)) % cfg_->scan.full_scan; // int(2*gap->half_scan);
             float minDistRange = *minDistIter;
 
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDistRange << " at " << minDistIdx);         
+            ROS_INFO_STREAM_NAMED("GapManipulator", "from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDistRange << " at " << minDistIdx);         
 
             // pivoting around near point, pointing towards far point or something?
 
             float nearToFarDistance = sqrt(pow(nearToFarTranslationMatrix(0, 2), 2) + pow(nearToFarTranslationMatrix(1, 2), 2));
-            // ROS_INFO_STREAM_NAMED("GapManipulator", "nearToFarDistance: " << nearToFarDistance);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "nearToFarDistance: " << nearToFarDistance);
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "translation norm: " << nearToFarDistance);
             
@@ -640,7 +647,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
             
-            float s = gap->getMinSafeDist();
+            float s = std::min(gap->getMinSafeDist(), cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
             gap->leftBezierOrigin_ = getRadialExtension(s, leftPt, true);
             gap->rightBezierOrigin_ = getRadialExtension(s, rightPt, false);
 

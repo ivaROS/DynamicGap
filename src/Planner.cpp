@@ -587,14 +587,14 @@ namespace dynamic_gap
                 // MANIPULATE POINTS AT T=1
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
                 // gapManipulator_->updateDynamicEgoCircle(manipulatedGaps.at(i), futureScans_);
-                
-                if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
-                {
-                    // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
-                    gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
-                }
+
+                // current implementation really only supports gaps that exist right now, propagated gaps can break                
+                // if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
+                // {
+                //     // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
+                //     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
+                // }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
-                // gapManipulator_->radialExtendGap(manipulatedGaps.at(i));
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             
                 navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
