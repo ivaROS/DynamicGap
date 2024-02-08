@@ -5,9 +5,7 @@
 #include <sensor_msgs/LaserScan.h>
 
 namespace dynamic_gap
-{
-
-    
+{    
     /**
     * \brief WORK IN PROGRESS
     */
@@ -30,7 +28,6 @@ namespace dynamic_gap
             void clearAgentFromStaticScan(dynamic_gap::Estimator * currModel, 
                                           dynamic_gap::Estimator * prevModel,
                                           sensor_msgs::LaserScan & curr_scan);           
-
 
             const DynamicGapConfig* cfg_;
             std::vector<Eigen::Vector4f> currAgents;

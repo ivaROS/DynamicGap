@@ -37,19 +37,6 @@ namespace dynamic_gap
             // TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
             
             /**
-            * \brief Gap state comparator that uses the 2D position norm
-            */
-            struct Comparator 
-            {
-                bool operator() (Eigen::Vector4f & a, Eigen::Vector4f & b) 
-                {
-                    float aNorm = pow(a[0], 2) + pow(a[1], 2);
-                    float bNorm = pow(b[0], 2) + pow(b[1], 2);
-                    return aNorm < bNorm;
-                }
-            };
-
-            /**
             * \brief receive new laser scan and update member variable accordingly
             * \param scan new laser scan
             */
@@ -74,18 +61,6 @@ namespace dynamic_gap
             std::vector<float> scoreTrajectory(const dynamic_gap::Trajectory & traj,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans);
             
-            /**
-            * \brief Function for propagating agents forward in time and populating propagated laser scan
-            * \param t_i current time step
-            * \param t_iplus1 next time step
-            * \param propagatedAgents set of estimated agents to propagate forward in time
-            * \param dynamicLaserScan propagated laser scan to populate
-            */
-            void recoverDynamicEgoCircle(const float & t_i, 
-                                        const float & t_iplus1, 
-                                        std::vector<Eigen::Vector4f> & propagatedAgents,
-                                        sensor_msgs::LaserScan & dynamicLaserScan);
-
         private:
             /**
             * \brief function for evaluating terminal waypoint cost for candidate trajectory
@@ -129,13 +104,6 @@ namespace dynamic_gap
             * \param dynamicLaserScan propagated laser scan to publish in RViz
             */
             void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
-
-            /**
-            * \brief function for sorting through current set of agents and pruning those outside of current laser scan
-            * \param agentPoses set of current agents in environment
-            * \return sorted and pruned set of current agents in environment
-            */
-            std::vector<Eigen::Vector4f> sortAndPrune(const std::vector<Eigen::Vector4f> & agentPoses);
 
             boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */

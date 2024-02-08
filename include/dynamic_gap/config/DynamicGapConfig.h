@@ -67,7 +67,7 @@ namespace dynamic_gap
                 bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
                 int halt_size = 5; /**< Size of command velocity buffer */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
-                bool future_scan_propagation = false; /**< Flag for enacting future scan propagation */
+                bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
                 bool egocircle_prop_cheat = true; /**< Flag for enacting future scan propagation through cheating */
             } planning;            
 

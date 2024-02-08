@@ -1,4 +1,4 @@
-#include <dynamic_gap/scan_separation/StaticScanSeparator.h>
+#include <dynamic_gap/scan_processing/StaticScanSeparator.h>
 
 namespace dynamic_gap
 {
@@ -6,7 +6,6 @@ namespace dynamic_gap
     /* This code is heavily experimental. Does not really work.
      * Not currently used.
     **/
-
 
     bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, 
                                                    dynamic_gap::Estimator * prevModel) 

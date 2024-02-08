@@ -77,6 +77,8 @@ namespace dynamic_gap
         navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
+        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(cfg_); 
+
         trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
@@ -104,9 +106,6 @@ namespace dynamic_gap
         currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
         currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
 
-        // TODO: change this to a vector of pointers to laser scans
-        sensor_msgs::LaserScan tmpScan = sensor_msgs::LaserScan();
-        futureScans_ = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, tmpScan);
         // futureScans_.push_back(tmpScan);
         // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
         //     futureScans_.push_back(tmpScan);
@@ -495,6 +494,7 @@ namespace dynamic_gap
     {
         goalSelector_->updateEgoCircle(scan_);
         gapManipulator_->updateEgoCircle(scan_);
+        dynamicScanPropagator_->updateEgoCircle(scan_);
         trajScorer_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
     }
@@ -607,8 +607,9 @@ namespace dynamic_gap
         return manipulatedGaps;
     }
 
-    std::vector<std::vector<float>> Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *>& gaps, 
-                                                              std::vector<dynamic_gap::Trajectory> & generatedTrajs) 
+    std::vector<std::vector<float>> Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
+                                                              std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+                                                              const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
@@ -637,7 +638,7 @@ namespace dynamic_gap
                     dynamic_gap::Trajectory goToGoalTraj;
                     goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans_);
+                    std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans);
                     float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
 
@@ -645,7 +646,7 @@ namespace dynamic_gap
                     dynamic_gap::Trajectory ahpfTraj;
                     ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
                     ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans_);
+                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
                     float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
 
@@ -666,7 +667,7 @@ namespace dynamic_gap
                     traj = gapTrajGenerator_->processTrajectory(traj);
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring trajectory for gap: " << i);
-                    pathPoseScores.at(i) = trajScorer_->scoreTrajectory(traj, futureScans_);  
+                    pathPoseScores.at(i) = trajScorer_->scoreTrajectory(traj, futureScans);  
                     // ROS_INFO_STREAM("done with scoreTrajectory");
                 }
 
@@ -801,7 +802,8 @@ namespace dynamic_gap
     dynamic_gap::Trajectory Planner::compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
                                                             const dynamic_gap::Trajectory & incomingTraj,                                                        
                                                             const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
-                                                            const bool & isIncomingGapFeasible) // bool isIncomingGapAssociated,
+                                                            const bool & isIncomingGapFeasible,
+                                                            const std::vector<sensor_msgs::LaserScan> & futureScans) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
@@ -842,7 +844,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
             std::vector<float> incomingPathPoseScores = trajScorer_->scoreTrajectory(incomingTraj,
-                                                                                     futureScans_);
+                                                                                     futureScans);
 
             float incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.end(), float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a score of: " << incomingPathScore);
@@ -939,7 +941,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring current trajectory");            
             
             dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
-            std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentTraj, futureScans_);
+            std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentTraj, futureScans);
             float currentPathSubscore = std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subscore of: " << currentPathSubscore);
 
@@ -1037,15 +1039,20 @@ namespace dynamic_gap
         // FUTURE SCAN PROPAGATION //
         /////////////////////////////
         std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
-        if (cfg_.planning.future_scan_propagation)
-        {
-            getFutureScans();
-        } else 
-        {
-            sensor_msgs::LaserScan currentScan = *scan_.get();
-            for (int i = 0; i < futureScans_.size(); i++)
-                futureScans_.at(i) = currentScan;
-        }
+        // if (cfg_.planning.future_scan_propagation)
+        // {
+        
+        std::vector<sensor_msgs::LaserScan> futureScans;
+        if (cfg_.planning.egocircle_prop_cheat) 
+            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+        else
+            throw std::runtime_error("Egocircle propagation is not implemented yet!");
+        // } else 
+        // {
+        //     sensor_msgs::LaserScan currentScan = *scan_.get();
+        //     for (int i = 0; i < futureScans_.size(); i++)
+        //         futureScans_.at(i) = currentScan;
+        // }
         float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
         
@@ -1063,7 +1070,7 @@ namespace dynamic_gap
         std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Trajectory> trajs;
         std::vector<std::vector<float>> pathPoseScores; 
-        pathPoseScores = generateGapTrajs(manipulatedGaps, trajs);
+        pathPoseScores = generateGapTrajs(manipulatedGaps, trajs, futureScans);
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
@@ -1090,7 +1097,8 @@ namespace dynamic_gap
             chosenTraj = compareToCurrentTraj(manipulatedGaps.at(highestScoreTrajIdx), 
                                               trajs.at(highestScoreTrajIdx),
                                               manipulatedGaps, 
-                                              isCurrentGapFeasible);
+                                              isCurrentGapFeasible,
+                                              futureScans);
             float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
             ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
         } else 
@@ -1233,68 +1241,6 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Planner", "velocity buffer size after clear: " << cmdVelBuffer_.size() << ", is full: " << cmdVelBuffer_.capacity());
         return;
     }
-
-    void Planner::getFutureScans() 
-    {
-        try
-        {
-            ROS_INFO_STREAM_NAMED("ScanPropagation", "[getFutureScans()]");
-            sensor_msgs::LaserScan scan = *scan_.get();
-            sensor_msgs::LaserScan dynamicScan = sensor_msgs::LaserScan();
-            dynamicScan.header = scan.header;
-            dynamicScan.angle_min = scan.angle_min;
-            dynamicScan.angle_max = scan.angle_max;
-            dynamicScan.angle_increment = scan.angle_increment;
-            dynamicScan.time_increment = scan.time_increment;
-            dynamicScan.scan_time = scan.scan_time;
-            dynamicScan.range_min = scan.range_min;
-            dynamicScan.range_max = scan.range_max;
-            dynamicScan.ranges = scan.ranges;
-
-            float t_i = 0.0;
-            futureScans_.at(0) = dynamicScan; // at t = 0.0
-
-            std::vector<Eigen::Vector4f> currentAgents;
-            
-            if (cfg_.planning.egocircle_prop_cheat) 
-            {
-                Eigen::Vector4f ithAgentState;
-                currentAgents.clear();
-                for (int i = 0; i < currentAgentCount_; i++) 
-                {
-                    ithAgentState << currentTrueAgentPoses_.at(i).position.x, currentTrueAgentPoses_.at(i).position.y, 
-                                    currentTrueAgentVels_.at(i).vector.x, currentTrueAgentVels_.at(i).vector.y;
-                    currentAgents.push_back(ithAgentState);
-                }
-            } else 
-            {
-                currentAgents = currentEstimatedAgentStates_;
-            }
-
-            ROS_INFO_STREAM_NAMED("ScanPropagation", "    detected agents: ");
-            for (int i = 0; i < currentAgents.size(); i++)
-                ROS_INFO_STREAM_NAMED("ScanPropagation", "        agent" << i << " position: " << currentAgents.at(i)[0] << ", " << currentAgents.at(i)[1] << ", velocity: " << currentAgents.at(i)[2] << ", " << currentAgents.at(i)[3]);
-            
-            int futureScanTimeIdx = -1;
-            for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
-            {
-                dynamicScan.ranges = scan.ranges;
-
-                //trajScorer_->recoverDynamicEgocircleCheat(t_i, t_iplus1, agentPoses__lc, agentVels__lc, dynamicScan);
-                // trajScorer_->recoverDynamicEgoCircle(t_i, t_iplus1, currentAgents, dynamicScan);
-                
-                futureScanTimeIdx = (int) (t_iplus1 / cfg_.traj.integrate_stept);
-                // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << futureScanTimeIdx);
-                futureScans_[futureScanTimeIdx] = dynamicScan;
-
-                t_i = t_iplus1;
-            }
-        } catch (...)
-        {
-            ROS_WARN_STREAM_NAMED("ScanPropagation", "  getFutureScans failed");
-        }
-    }
-
 
     void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps,
                                             const int & highestScoreTrajIdx) 

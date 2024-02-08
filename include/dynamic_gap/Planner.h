@@ -24,13 +24,14 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/gap_estimation/GapAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
-#include <dynamic_gap/scan_separation/StaticScanSeparator.h>
+#include <dynamic_gap/scan_processing/StaticScanSeparator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
 #include <dynamic_gap/goal_management/GoalSelector.h>
 #include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_generation/NavigableGapGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
@@ -149,18 +150,14 @@ namespace dynamic_gap
             std::vector<dynamic_gap::Gap *> gapManipulate(const std::vector<dynamic_gap::Gap *> & feasibleGaps);
 
             /**
-            * \brief Function for propagating laser scans forward for collision checking in the future 
-            */
-            void getFutureScans();    
-
-            /**
             * \brief Function for generating candidate trajectories through the current set of gaps
             * \param gaps incoming set of gaps through which we want to generate trajectories
             * \param generatedTrajs set of generated trajectories
             * \return Vector of pose-wise scores for the generated trajectories
             */
             std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
-                                                             std::vector<dynamic_gap::Trajectory> & generatedTrajs);
+                                                             std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+                                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
@@ -194,7 +191,8 @@ namespace dynamic_gap
             dynamic_gap::Trajectory compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
                                                             const dynamic_gap::Trajectory & incomingTraj,                                                        
                                                             const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
-                                                            const bool & isIncomingGapFeasible);
+                                                            const bool & isIncomingGapFeasible,
+                                                            const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for getting index of closest pose in trajectory
@@ -372,7 +370,6 @@ namespace dynamic_gap
         // Scans
         // sensor_msgs::LaserScan staticScan_;
         boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
-        std::vector<sensor_msgs::LaserScan> futureScans_; /**< Vector of (predicted) future scans */
 
         // Agents
 
@@ -390,6 +387,7 @@ namespace dynamic_gap
         dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
         dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
         dynamic_gap::TrajectoryScorer * trajScorer_ = NULL; /**< Trajectory scorer */
+        dynamic_gap::DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
         dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
         dynamic_gap::GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
         dynamic_gap::TrajectoryController * trajController_ = NULL; /**< Trajectory controller */
