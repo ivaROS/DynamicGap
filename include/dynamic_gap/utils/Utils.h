@@ -126,7 +126,7 @@ namespace dynamic_gap
     * \param z input
     * \return sign of input (1 / -1)
     */
-    int signum(float z);
+    int signum(const float & value);
 
     /**
     * \brief Helper function for determining if bearing of global path local waypoint falls within gap

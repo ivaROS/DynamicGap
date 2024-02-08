@@ -756,7 +756,7 @@ namespace dynamic_gap
 
             int inflatedLeftIdx = 0, inflatedRightIdx = 0;
             float inflatedLeftRange = 0.0, inflatedRightRange = 0.0;
-            if (newLeftToRightAngle < 0) 
+            if (newLeftToRightAngle < 0) // want to allow terminal gaps where initial were RGC'd to inflate 
             {
                 ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
                 inflatedLeftIdx = leftIdx;

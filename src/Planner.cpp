@@ -77,7 +77,7 @@ namespace dynamic_gap
         navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
-        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(cfg_); 
+        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
 
         trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
@@ -231,7 +231,6 @@ namespace dynamic_gap
         tPreviousModelUpdate_ = tCurrentFilterUpdate;
     }
 
-    
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     void Planner::updateModels(std::vector<dynamic_gap::Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
@@ -383,12 +382,13 @@ namespace dynamic_gap
     
     void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg) 
     {
+        // ROS_INFO_STREAM_NAMED("Planner", "[agentOdomCB()]");        
         std::string agentNamespace = agentOdomMsg->child_frame_id;
-        // ROS_INFO_STREAM("agentNamespace: " << agentNamespace);
+        // ROS_INFO_STREAM_NAMED("Planner", "      agentNamespace: " << agentNamespace);
         agentNamespace.erase(0,5); // removing "robot" from "robotN"
         char * robotChars = strdup(agentNamespace.c_str());
         int agentID = std::atoi(robotChars);
-        // ROS_INFO_STREAM("agentID: " << agentID);
+        // ROS_INFO_STREAM_NAMED("Planner", "      agentID: " << agentID);
 
         try 
         {
@@ -398,11 +398,13 @@ namespace dynamic_gap
             geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
             agentPoseMsgFrame.header = agentOdomMsg->header;
             agentPoseMsgFrame.pose = agentOdomMsg->pose.pose;
-            // ROS_INFO_STREAM("updating inpose " << agentNamespace << " to: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
+            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
             tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
+            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
+
             // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
             currentTrueAgentPoses_.at(agentID) = agentPoseRobotFrame.pose;
         } catch (...) 

@@ -71,7 +71,8 @@ namespace dynamic_gap
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
 
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
-            // ros::Subscriber staticLaserSub_;
+
+            std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
             message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */
             message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */

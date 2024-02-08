@@ -35,7 +35,6 @@ namespace dynamic_gap
         std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
 
         laserSub_ = nh_.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner_);
-        // staticLaserSub_ = nh_.subscribe("/static_point_scan", 1, &Planner::staticLaserScanCB, &planner);
         
         // Linking the robot pose and acceleration subscribers because these messages are published 
         // essentially at the same time in STDR
@@ -43,6 +42,12 @@ namespace dynamic_gap
         rbtAccSub_.subscribe(nh_, robot_name + "/acc", 10);
         sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtPoseSub_, rbtAccSub_));
         sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner_, _1, _2));
+
+        for (int i = 0; i < planner_.getCurrentAgentCount(); i++)
+        {
+            agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, &Planner::agentOdomCB, &planner_));
+        }
+
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)

@@ -99,12 +99,6 @@ namespace dynamic_gap
             */            
             float dynamicChapterScore(const float & rbtToScanDist);
 
-            /**
-            * \brief function for publishing propagated laser scans
-            * \param dynamicLaserScan propagated laser scan to publish in RViz
-            */
-            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
-
             boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
             
@@ -113,7 +107,5 @@ namespace dynamic_gap
 
             // sensor_msgs::LaserScan staticScan_;
             geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; /**< Current local waypoint along global plan in robot frame */
-
-            ros::Publisher propagatedEgocirclePublisher_; /**< Publisher for propagated egocircle */
     };
 }

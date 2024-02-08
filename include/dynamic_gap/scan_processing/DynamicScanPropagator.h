@@ -14,7 +14,7 @@ namespace dynamic_gap
     class DynamicScanPropagator 
     {
         public: 
-            DynamicScanPropagator(const DynamicGapConfig& cfg);
+            DynamicScanPropagator(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief update current scan
@@ -29,6 +29,15 @@ namespace dynamic_gap
                                                                                 const std::vector<geometry_msgs::Vector3Stamped> & currentTrueAgentVels);
 
         private:
+
+            void staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> staticScan);
+
+            /**
+            * \brief function for publishing propagated laser scans
+            * \param dynamicLaserScan propagated laser scan to publish in RViz
+            */
+            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
+
             /**
             * \brief Function for propagating agents forward in time and populating propagated laser scan
             * \param t_i current time step
@@ -63,9 +72,16 @@ namespace dynamic_gap
 
 
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
+            boost::mutex staticScanMutex_; /**< mutex locking thread for updating current static scan */
 
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
+            boost::shared_ptr<sensor_msgs::LaserScan const> staticScan_; /**< Current static laser scan */
             std::vector<sensor_msgs::LaserScan> futureScans_; /**< Vector of (predicted) future scans */
+
+            ros::Publisher staticScanPublisher_; /**< Publisher for propagated egocircle */
+            ros::Publisher propagatedEgocirclePublisher_; /**< Publisher for propagated egocircle */
+            
+            ros::Subscriber staticLaserSub_;
 
             const DynamicGapConfig* cfg_;
     };

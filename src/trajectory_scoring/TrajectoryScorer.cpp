@@ -6,7 +6,6 @@ namespace dynamic_gap
     TrajectoryScorer::TrajectoryScorer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = & cfg;
-        propagatedEgocirclePublisher_ = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 1);
     }
 
     void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
@@ -28,11 +27,6 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock lock(globalPlanMutex_);
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
-    }
-
-    void TrajectoryScorer::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan) 
-    {
-        propagatedEgocirclePublisher_.publish(dynamicLaserScan);
     }
 
     std::vector<float> TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
