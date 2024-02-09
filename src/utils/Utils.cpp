@@ -18,7 +18,7 @@ namespace dynamic_gap
 
     int theta2idx(const float & theta)
     {
-        return int((theta + M_PI) / angle_increment);
+        return int(std::round((theta + M_PI) / angle_increment));
     }
 
     float quaternionToYaw(const tf::Quaternion & quat)

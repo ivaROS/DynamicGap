@@ -301,6 +301,9 @@ namespace dynamic_gap
             // threshold = pi right now
             if (gapAngle < cfg_->gap_manip.reduction_threshold)
                 return;
+            else
+                ROS_INFO_STREAM_NAMED("GapManipulator", "    gap is over 180");
+
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [reduceGap()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-reduce gap in polar. left: (" << leftIdx << ", " << leftDist << "), right: (" << rightIdx << ", " << rightDist << ")");
@@ -737,43 +740,61 @@ namespace dynamic_gap
             // rotate by pi/2, norm
             
             // PERFORMING ANGULAR INFLATION
-            Eigen::Vector2f leftInflationVector = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * Rnegpi2 * leftUnitNorm;
-            Eigen::Vector2f inflatedLeftPt = leftPt + leftInflationVector;
-            float inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
+            float newLeftToRightAngle = -1.0;
 
-            ROS_INFO_STREAM_NAMED("GapManipulator", "leftTheta: " << leftTheta << ", inflatedLeftTheta: " << inflatedLeftTheta); // << ", leftThetaeft_infl: " << leftThetaeft_infl
+            float infl_ratio_decr = 0.99;
 
-            Eigen::Vector2f rightInflationVector = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * Rpi2 * rightUnitNorm;
-            Eigen::Vector2f inflatedRightPt = rightPt + rightInflationVector;
-            float inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
-
-            ROS_INFO_STREAM_NAMED("GapManipulator", "rightTheta: " << rightTheta << ", inflatedRightTheta: " << inflatedRightTheta); // ", rightTheta_infl: " << rightTheta_infl << 
-
-            Eigen::Vector2f inflatedLeftUnitNorm(std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta));
-            Eigen::Vector2f inflatedRightUnitNorm(std::cos(inflatedRightTheta), std::sin(inflatedRightTheta));
-            float newLeftToRightAngle = getSignedLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
-            ROS_INFO_STREAM_NAMED("GapManipulator", "newLeftToRightAngle: " << newLeftToRightAngle);
-
-            int inflatedLeftIdx = 0, inflatedRightIdx = 0;
-            float inflatedLeftRange = 0.0, inflatedRightRange = 0.0;
-            if (newLeftToRightAngle < 0) // want to allow terminal gaps where initial were RGC'd to inflate 
+            float infl_ratio = cfg_->traj.inf_ratio / infl_ratio_decr;
+            float inflatedLeftTheta = 0.0, inflatedRightTheta = 0.0;
+            Eigen::Vector2f inflatedLeftUnitNorm, inflatedRightUnitNorm;
+            while (newLeftToRightAngle < 0 && infl_ratio >= 1.0)
             {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
-                inflatedLeftIdx = leftIdx;
-                inflatedRightIdx = rightIdx;
+                // infl_ratio can be too large that it would destroy gap, so we will decrement the ratio until we can inflate safely
+                infl_ratio = infl_ratio_decr * infl_ratio;
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "                infl_ratio: " << infl_ratio); // << ", leftThetaeft_infl: " << leftThetaeft_infl
 
-                inflatedLeftRange = leftDist;
-                inflatedRightRange = rightDist;
-            } else 
-            {
+                Eigen::Vector2f leftInflationVector = cfg_->rbt.r_inscr * infl_ratio * Rnegpi2 * leftUnitNorm;
+                Eigen::Vector2f inflatedLeftPt = leftPt + leftInflationVector;
+                inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
+
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "                leftTheta: " << leftTheta << ", inflatedLeftTheta: " << inflatedLeftTheta); // << ", leftThetaeft_infl: " << leftThetaeft_infl
+
+                Eigen::Vector2f rightInflationVector = cfg_->rbt.r_inscr * infl_ratio * Rpi2 * rightUnitNorm;
+                Eigen::Vector2f inflatedRightPt = rightPt + rightInflationVector;
+                inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
+
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "                rightTheta: " << rightTheta << ", inflatedRightTheta: " << inflatedRightTheta); // ", rightTheta_infl: " << rightTheta_infl << 
+
+                inflatedLeftUnitNorm << std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta);
+                inflatedRightUnitNorm << std::cos(inflatedRightTheta), std::sin(inflatedRightTheta);
+                newLeftToRightAngle = getSignedLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "                newLeftToRightAngle: " << newLeftToRightAngle);
+            }
+
+            if (newLeftToRightAngle < 0)
+                return;
+
+            // if (newLeftToRightAngle < 0) // want to allow terminal gaps where initial were RGC'd to inflate 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapManipulator", "angular inflation would cause gap to cross, not running:");
+            //     inflatedLeftIdx = leftIdx;
+            //     inflatedRightIdx = rightIdx;
+
+            //     inflatedLeftRange = leftDist;
+            //     inflatedRightRange = rightDist;
+            // } else 
+            // {
                 // need to make sure L/R don't cross each other
-                inflatedLeftIdx = theta2idx(inflatedLeftTheta);
-                inflatedRightIdx = theta2idx(inflatedRightTheta);
-                
-                float leftToInflatedLeftAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
-                float leftToInflatedRightAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
-                inflatedLeftRange = leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
-                inflatedRightRange =  leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
+
+                // int inflatedLeftIdx = 0, inflatedRightIdx = 0;
+                // float inflatedLeftRange = 0.0, inflatedRightRange = 0.0;
+            float inflatedLeftIdx = theta2idx(inflatedLeftTheta);
+            float inflatedRightIdx = theta2idx(inflatedRightTheta);
+            
+            float leftToInflatedLeftAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
+            float leftToInflatedRightAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
+            float inflatedLeftRange = leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
+            float inflatedRightRange =  leftDist + (rightDist - leftDist) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
                 // if (cfg_->debug.manipulation_debug_log) 
                 // {
                 //     ROS_INFO_STREAM_NAMED("GapManipulator", "        post-angular-inflation gap, left: " << inflatedLeftIdx << ", : " << inflatedLeftRange << 
@@ -782,7 +803,7 @@ namespace dynamic_gap
                 //     //     ROS_INFO_STREAM_NAMED("GapManipulator", "            range is too big");
                 //     // }
                 // }
-            }
+            // }
 
             // PERFORMING RADIAL INFLATION
             // inflatedLeftRange += 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;

@@ -16,6 +16,8 @@ namespace dynamic_gap
         this->modelID_ = modelID;
         ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
 
+        this->xTilde_ << gapPtX, gapPtY;
+
         this->lastRbtVel_ = lastRbtVel;
         this->lastRbtAcc_ = lastRbtAcc;
         this->tLastUpdate_ = tUpdate;

@@ -71,7 +71,7 @@ namespace dynamic_gap
             * \param gap incoming gap whose feasibility we want to evaluate
             * \param gapCrossingPt 2D position in space at which gap shuts (left and right points meet)
             */                 
-            float indivGapFindCrossingPoint(dynamic_gap::Gap * gap, 
+            float propagateGapPoints(dynamic_gap::Gap * gap, 
                                             Eigen::Vector2f& gapCrossingPt);
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */

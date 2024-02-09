@@ -256,9 +256,16 @@ namespace dynamic_gap
 
         if (cfg_->planning.holonomic)
         {
-
             velLinXFeedback += weightedVelLinXSafe;
             velLinYFeedback += weightedVelLinYSafe;
+
+            // if angular error is large, rotate first 
+            // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
+            if (std::abs(velAngFeedback) > 0.50)
+            {
+                velLinXFeedback = 0.0;
+                velLinYFeedback = 0.0;
+            }
 
             // do not want robot to drive backwards
             if (velLinXFeedback < 0)

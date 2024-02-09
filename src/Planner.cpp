@@ -531,7 +531,7 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
                 isGapFeasible = gapFeasibilityChecker_->indivGapFeasibilityCheck(currGaps.at(i));
-                isGapFeasible = true;
+                // isGapFeasible = true;
 
                 if (isGapFeasible) 
                 {
@@ -593,7 +593,7 @@ namespace dynamic_gap
                 // current implementation really only supports gaps that exist right now, propagated gaps can break                
                 // if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
                 // {
-                //     // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
+                gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
                 //     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
                 // }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
