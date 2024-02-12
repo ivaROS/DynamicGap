@@ -105,8 +105,8 @@ namespace dynamic_gap
         safeDirX /= scan_->ranges.size();
         safeDirY /= scan_->ranges.size();
 
-        float cmdVelX = cfg_->projection.k_CBF * safeDirX;
-        float cmdVelY = cfg_->projection.k_CBF * safeDirY;
+        float cmdVelX = safeDirX;
+        float cmdVelY = safeDirY;
         float cmdVelTheta = 0.0;
 
 
@@ -183,8 +183,8 @@ namespace dynamic_gap
         
         if (peakSplineSpeed > cmdSpeed) 
         {
-            velLinXFeedback *= 1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed);
-            velLinYFeedback *= 1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed);
+            velLinXFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
+            velLinYFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
             ROS_INFO_STREAM_NAMED("Controller", "        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
         }
     
@@ -245,8 +245,8 @@ namespace dynamic_gap
         // Make sure no ejection from gap. Max question: x does not always point into gap. 
         // velLinXSafe = std::max(velLinXSafe, float(0));
 
-        float weightedVelLinXSafe = cfg_->projection.k_CBF * velLinXSafe;
-        float weightedVelLinYSafe = cfg_->projection.k_CBF * velLinYSafe;
+        float weightedVelLinXSafe = cfg_->projection.k_po_x * velLinXSafe;
+        float weightedVelLinYSafe = cfg_->projection.k_po_x * velLinYSafe;
 
         ROS_INFO_STREAM_NAMED("Controller", "        safe command velocity, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
 
@@ -261,7 +261,7 @@ namespace dynamic_gap
 
             // if angular error is large, rotate first 
             // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-            if (std::abs(velAngFeedback) > 0.50)
+            if (std::abs(minDistTheta) > M_PI / 4)
             {
                 velLinXFeedback = 0.0;
                 velLinYFeedback = 0.0;
@@ -271,17 +271,17 @@ namespace dynamic_gap
             if (velLinXFeedback < 0)
                 velLinXFeedback = 0;            
 
-        } else {
+        } else 
+        {
             velLinXFeedback += (cfg_->projection.k_po_x * velLinXSafe);
+            velLinYFeedback = 0;
             velAngFeedback += (velLinYFeedback + cfg_->projection.k_po_theta * velLinYSafe);
 
-            if (cfg_->planning.projection_operator && std::abs(minDistTheta) < M_PI / 4 && minDist < cfg_->rbt.r_inscr)
-            {
-                velLinXFeedback = 0;
-                velAngFeedback *= 2;
-            }
-
-            velLinYFeedback = 0;
+            // if (cfg_->planning.projection_operator && std::abs(minDistTheta) < M_PI / 4 && minDist < cfg_->rbt.r_inscr)
+            // {
+            //     velLinXFeedback = 0;
+            //     velAngFeedback *= 2;
+            // }
 
             if(velLinXFeedback < 0)
                 velLinXFeedback = 0;
@@ -505,7 +505,7 @@ namespace dynamic_gap
             dist = scan_->ranges.at(i);
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
-        int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()) - minScanDists.begin();
+        int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()); // - minScanDists.begin();
         minDistTheta = idx2theta(minDistScanIdx);
 
         minDist = minScanDists.at(minDistScanIdx);
