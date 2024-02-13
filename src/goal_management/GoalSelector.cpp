@@ -7,51 +7,20 @@ namespace dynamic_gap
         cfg_ = &cfg;
     }
 
-    void GoalSelector::updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
+    void GoalSelector::updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame) 
     {
         // Incoming plan is in map frame
         boost::mutex::scoped_lock lock(goalSelectMutex_);
         boost::mutex::scoped_lock gplock(globalPlanMutex_);
-        // globalPlanMapFrame_.clear();
-        globalPlanMapFrame_ = globalPlan;
-        // transform plan to robot frame such as base_link
+
+        globalPlanMapFrame_ = globalPlanMapFrame;
     }
 
     void GoalSelector::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
-        scanPtr_ = scan;
+        scan_ = scan;
     }
-
-    // // this boolean is flipped from poseVisible. 
-    // bool GoalSelector::poseNotVisible(geometry_msgs::PoseStamped pose) 
-    // {
-    //     int poseScanIdx = poseIdxInScan(pose);
-
-    //     sensor_msgs::LaserScan scan = *scanPtr_.get();
-    //     bool check = poseNorm(pose) > (scan.ranges.at(poseScanIdx) - (cfg_->rbt.r_inscr / 2.0));
-    //     return check;
-    // }
-
-    // // We are iterating through the global trajectory snippet, checking each pose 
-    // bool GoalSelector::poseVisible(geometry_msgs::PoseStamped pose)
-    // {
-    //     return !poseNotVisible(pose);
-
-    //     /*
-    //     // Max: commenting this old method out because I don't understand why we would
-    //     // use the second boolean condition.
-
-    //     int laserScanIdx = poseIdxInScan(pose);
-    //     float epsilon2 = cfg_->gap_manip.epsilon2;
-    //     sensor_msgs::LaserScan scan = *scanPtr_.get();
-    //     // first piece of bool: is the distance from pose to rbt less than laserscan range - robot diameter (z-buffer idea)
-    //     // second piece of bool: distance from pose to rbt greater than laserscan range + some epsilon*2 (obstructed?)
-    //     bool check = poseNorm(pose) < (scan.ranges.at(laserScanIdx) - cfg_->rbt.r_inscr / 2) || 
-    //                  poseNorm(pose) > (scan.ranges.at(laserScanIdx) + epsilon2 * 2);
-    //     return check;
-    //     */
-    // }    
 
     void GoalSelector::generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt) 
     {
@@ -61,49 +30,14 @@ namespace dynamic_gap
         if (globalPlanMapFrame_.size() < 2) // No Global Path
             return;
 
-        // if ((*scan_.get()).ranges.size() < 500) {
-        //     ROS_FATAL_STREAM("Scan range incorrect goalselector");
-        // }
-
         // ROS_INFO_STREAM("running generateGlobalPathLocalWaypoint");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
-        std::vector<geometry_msgs::PoseStamped> local_gplan = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
+        std::vector<geometry_msgs::PoseStamped> globalPlanSnipperRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
         
-        if (local_gplan.size() < 1) // relevant global plan snippet
+        if (globalPlanSnipperRobotFrame.size() < 1) // relevant global plan snippet
             return;
 
-        globalPathLocalWaypointRobotFrame_ = local_gplan[local_gplan.size() - 1];
-
-        // Max: do we need anything below this? I don't think so.
-
-        // // finding first place in global plan where we are visible/obstructed 
-        // // going from END to BEGIN to find the first place that we are visible or unobstructed
-        // auto result_rev = std::find_if(local_gplan.rbegin(), 
-        //                                 local_gplan.rend(), 
-        //                                 std::bind1st(std::mem_fun(&GoalSelector::poseVisible), this));
-
-
-
-        // // finding first place where we are not visible?
-        // // going from BEGIN to END to find the first place that is NOT visible or is possibly obstructed
-        // auto result_fwd = std::find_if(local_gplan.begin(), local_gplan.end(), 
-        //     std::bind1st(std::mem_fun(&GoalSelector::poseNotVisible), this));
-
-
-        // if (cfg_->planning.far_feasible) 
-        // {
-        //     // if we have gotten all the way to the end of the snippet, set that as the local goal
-        //     // if whole snippet is not visible/ possibly obstructed?
-        //     if (result_rev == local_gplan.rend()) {
-        //         result_rev = std::prev(result_rev); 
-        //     }
-        //     globalPathLocalWaypointRobotFrame_ = *result_rev;
-        // } else {
-        //     result_fwd = (result_fwd == local_gplan.end()) ? result_fwd - 1 : result_fwd;
-        //     globalPathLocalWaypointRobotFrame_ = local_gplan.at(result_fwd - local_gplan.begin());
-        // }
-
-        // ROS_INFO_STREAM("setting local goal (in robot frame) to " << local_goal.pose.position.x << ", " << local_goal.pose.position.y); 
+        globalPathLocalWaypointRobotFrame_ = globalPlanSnipperRobotFrame.back();
     }
 
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt) 
@@ -130,7 +64,7 @@ namespace dynamic_gap
         for (int i = 0; i < planPoseNorms.size(); i++) 
         {
             planPoseNorms.at(i) = poseNorm(globalPlan.at(i)); // calculating distance to robot at each step of plan
-            scanDistsAtPlanIndices.at(i) = calculateScanDistsAtPlanIndices(globalPlan.at(i));
+            scanDistsAtPlanIndices.at(i) = calculateScanRangesAtPlanIndices(globalPlan.at(i));
             scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (cfg_->rbt.r_inscr / 2.0)) - planPoseNorms.at(i);
         }
 
@@ -144,11 +78,11 @@ namespace dynamic_gap
         // firstNotVisibleGlobalPlanPose is the first point within the global plan that lies beyond the current scan.
         auto firstNotVisibleGlobalPlanPose = std::find_if(scanMinusPlanPoseNormDiffs.begin() + closestPlanPoseIdx, 
                                                           scanMinusPlanPoseNormDiffs.end(),
-                                                          std::bind1st(std::mem_fun(&GoalSelector::isNotWithin), this));
+                                                          std::bind1st(std::mem_fun(&GoalSelector::isNegative), this));
 
         if (closestPlanPose == scanMinusPlanPoseNormDiffs.end()) 
         {
-            ROS_FATAL_STREAM("No Global Plan pose within Robot scan");
+            ROS_ERROR_STREAM("No Global Plan pose within Robot scan");
             return std::vector<geometry_msgs::PoseStamped>(0);
         }
 
@@ -176,13 +110,9 @@ namespace dynamic_gap
         return sqrt(pow(pose.pose.position.x, 2) + pow(pose.pose.position.y, 2));
     }
 
-    float GoalSelector::calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose) 
+    float GoalSelector::calculateScanRangesAtPlanIndices(const geometry_msgs::PoseStamped & pose) 
     {
-        sensor_msgs::LaserScan scan = *scanPtr_.get();
-
-        // float plan_theta = atan2(pose.pose.position.y, pose.pose.position.x);
-        // int half_num_scan = scan.ranges.size() / 2;
-        // int plan_idx = int (half_num_scan * plan_theta / M_PI) + half_num_scan;
+        sensor_msgs::LaserScan scan = *scan_.get();
 
         int poseIdx = poseIdxInScan(pose);
 
@@ -191,7 +121,7 @@ namespace dynamic_gap
         return scanRangeAtPoseIdx;
     }
 
-    bool GoalSelector::isNotWithin(const float dist) 
+    bool GoalSelector::isNegative(const float dist) 
     {
         return dist <= 0.0;
     }

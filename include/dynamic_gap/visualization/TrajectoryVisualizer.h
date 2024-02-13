@@ -4,27 +4,56 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Class for visualizing candidate trajectories through gaps
+    */
     class TrajectoryVisualizer : public Visualizer
     {
-            using Visualizer::Visualizer;
+        using Visualizer::Visualizer;
+        
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
 
-            void drawTrajectorySwitchCount(int trajSwitchIndex, const geometry_msgs::PoseArray & chosenTraj);
-            void drawGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & plan);
+            /**
+            * \brief Visualize set of candidate trajectories through gaps
+            * \param trajs set of trajectories to visualize
+            */
+            void drawGapTrajectories(const std::vector<dynamic_gap::Trajectory> & trajs);
 
-            void drawGapTrajectories(const std::vector<geometry_msgs::PoseArray> & trajs);
-            void drawGapTrajectoryPoseScores(const std::vector<geometry_msgs::PoseArray> & trajs, 
-                             const std::vector<std::vector<float>> & trajPoseScores);
-            void drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & traj);
+            /**
+            * \brief Visualize pose-wise scores along candidate trajectories
+            * \param trajs set of trajectories whose pose-wise scores we want to visualize
+            * \param trajPoseScores pose-wise scores to visualize
+            */
+            void drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs,
+                                                const std::vector<std::vector<float>> & trajPoseScores);
+
+            /**
+            * \brief Visualize occurrence of a trajectory switch for planner
+            * \param trajSwitchIndex trajectory switch count
+            * \param chosenTraj new trajectory that planner is switching to
+            */
+            void drawTrajectorySwitchCount(const int & trajSwitchIndex, 
+                                            const dynamic_gap::Trajectory & chosenTraj);
+
+            /**
+            * \brief Visualize global plan we are using within local planner
+            * \param globalPlan global plan to visualize
+            */
+            void drawGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan);
+
+            /**
+            * \brief Visualize snippet of global plan that is within current robot view
+            * \param globalPlanSnippet visible snippet of global plan
+            */
+            void drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet);
 
         private: 
-            ros::Publisher trajSwitchIdxPublisher;
-            ros::Publisher globalPlanPublisher;
-            ros::Publisher gapTrajectoriesPublisher;
-            ros::Publisher trajPoseScoresPublisher;
-            
-            ros::Publisher globalPlanSnippetPublisher;
-            // float prev_num_trajs;           
+
+            ros::Publisher gapTrajectoriesPublisher; /**< Publisher for gap trajectories */
+            ros::Publisher trajPoseScoresPublisher; /**< Publisher for gap trajectory pose-wise scores */
+            ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */
+            ros::Publisher globalPlanPublisher; /**< Publisher for global plan */
+            ros::Publisher globalPlanSnippetPublisher; /**< Publisher for visible snippet of global plan */
     };
 }

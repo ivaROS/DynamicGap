@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <numeric>
@@ -24,65 +25,87 @@
 
 namespace dynamic_gap
 {
+    /**
+    * \brief Class responsible for scoring candidate trajectory according to
+    * trajectory's proximity to local environment and global path's local waypoint
+    */
     class TrajectoryScorer
     {
         public:
-        TrajectoryScorer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-        TrajectoryScorer& operator=(TrajectoryScorer other) {cfg_ = other.cfg_; return *this;};
-        TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
-        
-        void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
-        void updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan);
-        void transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
-                                                        const geometry_msgs::TransformStamped & odom2rbt);
-
-        // std::vector<float> scoreGaps();
-        
-        // Full Scoring
-        // std::vector<float> scoreTrajectories(std::vector<geometry_msgs::PoseArray>);
-        // geometry_msgs::PoseStamped getLocalGoal() {return globalPathLocalWaypointRobotFrame_; }; // in robot frame
-        
-        std::vector<float> scoreTrajectory(const geometry_msgs::PoseArray & path, 
-                                                         const std::vector<float> & pathTiming, 
-                                                         const std::vector<dynamic_gap::Gap> & rawGaps,
-                                                         const std::vector<sensor_msgs::LaserScan> & futureScans);
-        
-        void recoverDynamicEgoCircle(float t_i, float t_iplus1, 
-                                    std::vector<Eigen::Matrix<float, 4, 1> > & propagatedAgents,
-                                    sensor_msgs::LaserScan & dynamicLaserScan,
-                                    bool print);
-        
-
-        private:
-            // int signum(float dy);
-            float terminalGoalCost(const geometry_msgs::Pose & pose);
+            TrajectoryScorer(ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg);
+            // TrajectoryScorer& operator=(TrajectoryScorer other) {cfg_ = other.cfg_; return *this;};
+            // TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
             
-            float dist2Pose(float theta, float dist, const geometry_msgs::Pose & pose);
+            /**
+            * \brief receive new laser scan and update member variable accordingly
+            * \param scan new laser scan
+            */
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            
+            // void updateStaticEgoCircle(const sensor_msgs::LaserScan & staticScan);
+            
+            /**
+            * \brief Helper function for transforming global path local waypoint into robot frame
+            * \param globalPathLocalWaypointOdomFrame Current local waypoint along global plan in robot frame
+            * \param odom2rbt transformation from odom frame to robot frame
+            */
+            void transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
+                                                            const geometry_msgs::TransformStamped & odom2rbt);
 
+            /**
+            * \brief Function for evaluating pose-wise scores along candidate trajectory
+            * \param traj candidate trajectory to score
+            * \param futureScans set of propagated laser scans that we will use to evaluate each trajectory pose
+            * \return vector of pose-wise scores along candidate trajecory
+            */
+            std::vector<float> scoreTrajectory(const dynamic_gap::Trajectory & traj,
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans);
+            
+        private:
+            /**
+            * \brief function for evaluating terminal waypoint cost for candidate trajectory
+            * \param pose final pose in candidate trajectory to check against terminal waypoint
+            * \return terminal waypoint cost for candidate trajectory
+            */
+            float terminalGoalCost(const geometry_msgs::Pose & pose);
+
+            /**
+            * \brief function for evaluating intermediate cost of pose for candidate trajectory (in static environment)
+            * \param pose pose within candidate trajectory to evaluate
+            * \return intermediate cost of pose
+            */
             float scorePose(const geometry_msgs::Pose & pose);
-            float chapterScore(float d);
+            
+            /**
+            * \brief function for calculating intermediate trajectory cost (in static environment)
+            * \param rbtToScanDist minimum distance from robot pose to current scan
+            * \return intermediate cost of pose
+            */
+            float chapterScore(const float & rbtToScanDist);
 
-            // int dynamicGetMinDistIndex(const geometry_msgs::Pose & pose, 
-            //                             const sensor_msgs::LaserScan & dynamicLaserScan, 
-            //                             bool print);
+            /**
+            * \brief function for evaluating intermediate cost of pose for candidate trajectory (in dynamic environment)
+            * \param pose pose in candidate trajectory to calculate distance with            
+            * \param theta theta value of queried laser scan point
+            * \param range range value of queried laser scan point
+            * \return intermediate cost of pose            
+            */
+            float dynamicScorePose(const geometry_msgs::Pose & pose, const float & theta, const float & range);
 
-            float dynamicScorePose(const geometry_msgs::Pose & pose, float theta, float range);
-            float dynamicChapterScore(float d);
+            /**
+            * \brief function for calculating intermediate trajectory cost (in dynamic environment)
+            * \param rbtToScanDist minimum distance from robot pose to current scan
+            * \return intermediate cost of pose
+            */            
+            float dynamicChapterScore(const float & rbtToScanDist);
 
-            void visualizePropagatedEgocircle(const sensor_msgs::LaserScan & dynamicLaserScan);
+            boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
+            boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
+            
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
+            const DynamicGapConfig * cfg_ = NULL; /**< Planner hyperparameter config list */
 
-            std::vector< std::vector<float> > sortAndPrune(const std::vector<Eigen::Matrix<float, 4, 1> > & agentPoses);            
-
-            const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> scan_;
-            sensor_msgs::LaserScan staticScan_;
-            // std::vector<dynamic_gap::Gap> gaps;
-            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_;
-            boost::mutex globalPlanMutex_, egocircleMutex_;
-
-
-            // int search_idx = -1;
-
-            ros::Publisher propagatedEgocirclePublisher_;
+            // sensor_msgs::LaserScan staticScan_;
+            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; /**< Current local waypoint along global plan in robot frame */
     };
 }

@@ -20,39 +20,25 @@ namespace dynamic_gap
         nh.param("r_inscr", rbt.r_inscr, rbt.r_inscr);
 
         // Environment
-        nh.param("num_obsts", env.num_obsts, env.num_obsts);
+        nh.param("num_agents", env.num_agents, env.num_agents);
 
         // Scan
         nh.param("max_range", scan.range_max, scan.range_max);
 
         // Planning Information
-        nh.param("projection_inflated", planning.projection_inflated, planning.projection_inflated);
         nh.param("holonomic", planning.holonomic, planning.holonomic);
-        nh.param("full_fov", planning.full_fov, planning.full_fov);
         nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
-        nh.param("num_feasi_check", planning.num_feasi_check, planning.num_feasi_check);
-        nh.param("far_feasible", planning.far_feasible, planning.far_feasible);
         nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
 
         // Manual Control
         nh.param("man_ctrl", man.man_ctrl, man.man_ctrl);
-        nh.param("man_x", man.man_x, man.man_x);
-        nh.param("man_y", man.man_y, man.man_y);
-        nh.param("man_theta", man.man_theta, man.man_theta);
 
         // Goal Param
         nh.param("goal_tolerance", goal.goal_tolerance, goal.goal_tolerance);
         nh.param("waypoint_tolerance", goal.waypoint_tolerance, goal.waypoint_tolerance);
 
-        // Debug
-        // nh.param("raw_gaps_debug_log", debug.raw_gaps_debug_log, debug.raw_gaps_debug_log);
-        // nh.param("static_scan_separation_debug_log", debug.static_scan_separation_debug_log, debug.static_scan_separation_debug_log);
-        // nh.param("simplified_gaps_debug_log", debug.simplified_gaps_debug_log, debug.simplified_gaps_debug_log);
-        // nh.param("future_scan_propagation_debug_log", debug.future_scan_propagation_debug_log, debug.future_scan_propagation_debug_log);      
-        // nh.param("feasibility_debug_log", debug.feasibility_debug_log, debug.feasibility_debug_log);
-        // nh.param("manipulation_debug_log", debug.manipulation_debug_log, debug.manipulation_debug_log);
-        // nh.param("traj_debug_log", debug.traj_debug_log, debug.traj_debug_log);
-        // nh.param("control_debug_log", debug.control_debug_log, debug.control_debug_log);             
+        // Gap Detection
+        nh.param("max_idx_diff", gap_det.max_idx_diff, gap_det.max_idx_diff);
 
         // Gap Association
         nh.param("assoc_thresh", gap_assoc.assoc_thresh, gap_assoc.assoc_thresh);
@@ -62,10 +48,17 @@ namespace dynamic_gap
         nh.param("epsilon1", gap_manip.epsilon1, gap_manip.epsilon1);
         // nh.param("rot_ratio", gap_manip.rot_ratio, gap_manip.rot_ratio);
         nh.param("reduction_threshold", gap_manip.reduction_threshold, gap_manip.reduction_threshold);
-        nh.param("reduction_target", gap_manip.reduction_target, gap_manip.reduction_target);        
-        nh.param("max_idx_diff", gap_manip.max_idx_diff, gap_manip.max_idx_diff);
         nh.param("radial_extend", gap_manip.radial_extend, gap_manip.radial_extend);
         nh.param("radial_convert", gap_manip.radial_convert, gap_manip.radial_convert);
+
+        // Trajectory
+        nh.param("synthesized_frame", traj.synthesized_frame, traj.synthesized_frame);
+        nh.param("integrate_maxt", traj.integrate_maxt, traj.integrate_maxt);
+        nh.param("integrate_stept", traj.integrate_stept, traj.integrate_stept);
+        nh.param("max_pose_pen_dist", traj.max_pose_pen_dist, traj.max_pose_pen_dist);
+        nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
+        nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
+        nh.param("num_extended_gap_origin_points", traj.num_extended_gap_origin_points, traj.num_extended_gap_origin_points);
 
         // Control Params
         nh.param("k_fb_x",control.k_fb_x, control.k_fb_x);
@@ -82,21 +75,10 @@ namespace dynamic_gap
         // Projection Params
         nh.param("k_po_x", projection.k_po_x, projection.k_po_x);
         nh.param("k_po_theta", projection.k_po_theta, projection.k_po_theta);
-        nh.param("r_min", projection.r_min, projection.r_min);
-        nh.param("r_norm", projection.r_norm, projection.r_norm);
-        nh.param("r_norm_offset", projection.r_norm_offset, projection.r_norm_offset);
+        nh.param("r_unity", projection.r_unity, projection.r_unity);
+        nh.param("r_zero", projection.r_zero, projection.r_zero);
         nh.param("k_CBF", projection.k_CBF, projection.k_CBF);
         nh.param("cbf_param", projection.cbf_param, projection.cbf_param);
-
-        // Trajectory
-        nh.param("synthesized_frame", traj.synthesized_frame, traj.synthesized_frame);
-        nh.param("integrate_maxt", traj.integrate_maxt, traj.integrate_maxt);
-        nh.param("integrate_stept", traj.integrate_stept, traj.integrate_stept);
-        nh.param("max_pose_pen_dist", traj.max_pose_pen_dist, traj.max_pose_pen_dist);
-        nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
-        nh.param("waypoint_ratio", traj.waypoint_ratio, traj.waypoint_ratio);
-        nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
-        nh.param("num_extended_gap_origin_points", traj.num_extended_gap_origin_points, traj.num_extended_gap_origin_points);
     }
 
     void DynamicGapConfig::updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr)

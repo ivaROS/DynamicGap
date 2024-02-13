@@ -9,13 +9,15 @@ Panels:
         - /Egorobot Data1
         - /Egorobot Data1/LaserScan1
         - /Egorobot Data1/Axes1
-        - /Egorobot Data1/LaserScan2
+        - /Egorobot Data1/LaserScan3
         - /Dynamic Gap1
         - /Dynamic Gap1/Gaps1
-        - /Dynamic Gap1/Gaps1/MarkerArray4
+        - /Dynamic Gap1/Models1
+        - /Dynamic Gap1/Models1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
+        - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/Marker1
-        - /Dynamic Gap1/Marker1
+        - /MarkerArray2
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -68,6 +70,34 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
+            Max Value: 0
+            Min Value: 0
+            Value: true
+          Axis: Z
+          Channel Name: intensities
+          Class: rviz/LaserScan
+          Color: 85; 170; 255
+          Color Transformer: FlatColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 85; 170; 255
+          Min Color: 85; 170; 255
+          Name: LaserScan
+          Position Transformer: XYZ
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.029999999329447746
+          Style: Flat Squares
+          Topic: /robot10/laser_0
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
             Max Value: 10
             Min Value: -10
             Value: true
@@ -88,7 +118,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot0/mod_laser_0
+          Topic: /robot10/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -99,7 +129,11 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
+<<<<<<< HEAD
           Reference Frame: robot5
+=======
+          Reference Frame: robot10
+>>>>>>> dev/wip
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -114,7 +148,7 @@ Visualization Manager:
           Color: 85; 170; 255
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: false
+          Enabled: true
           Invert Rainbow: false
           Max Color: 85; 170; 255
           Min Color: 85; 170; 255
@@ -125,11 +159,11 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /static_scan
+          Topic: /propagated_egocircle
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: false
+          Value: true
       Enabled: true
       Name: Egorobot Data
     - Class: rviz/Group
@@ -141,7 +175,7 @@ Visualization Manager:
               Marker Topic: /reachable_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip_initial: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -157,7 +191,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -173,7 +207,7 @@ Visualization Manager:
               Marker Topic: /goals
               Name: Marker
               Namespaces:
-                {}
+                local_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -181,7 +215,7 @@ Visualization Manager:
               Marker Topic: /manip_gaps
               Name: MarkerArray
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -190,36 +224,12 @@ Visualization Manager:
           Displays:
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /dg_model_pos
+              Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
-            - Class: rviz/MarkerArray
-              Enabled: true
-              Marker Topic: /dg_model_vel
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: true
-            - Class: rviz/MarkerArray
-              Enabled: false
-              Marker Topic: /dg_model_pos_GT
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: false
-            - Class: rviz/MarkerArray
-              Enabled: false
-              Marker Topic: /dg_model_vel_GT
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: false
           Enabled: true
           Name: Models
         - Class: rviz/Group
@@ -229,7 +239,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -271,17 +281,17 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /gap_splines
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Marker
@@ -395,7 +405,7 @@ Visualization Manager:
           Marker Topic: /robot6/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -403,7 +413,7 @@ Visualization Manager:
           Marker Topic: /robot7/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -411,7 +421,7 @@ Visualization Manager:
           Marker Topic: /robot8/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -419,7 +429,7 @@ Visualization Manager:
           Marker Topic: /robot9/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -427,7 +437,7 @@ Visualization Manager:
           Marker Topic: /robot10/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot_position_markers: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -560,6 +570,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /traj_score
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -588,7 +606,11 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
+<<<<<<< HEAD
       Distance: 44.80790328979492
+=======
+      Distance: 13.517746925354004
+>>>>>>> dev/wip
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -596,9 +618,15 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
+<<<<<<< HEAD
         X: -1.1229801177978516
         Y: -0.16114011406898499
         Z: -4.256312847137451
+=======
+        X: -8.205202102661133
+        Y: -0.4293438494205475
+        Z: -4.272165775299072
+>>>>>>> dev/wip
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

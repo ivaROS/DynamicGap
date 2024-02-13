@@ -21,44 +21,105 @@
 
 namespace dynamic_gap
 {
+    /**
+    * \brief Class responsible for parsing incoming global plans to select local waypoints along the global plan
+    * that we aim to reach through our local planning
+    */
     class GoalSelector
     {
         public: 
             GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            GoalSelector& operator=(GoalSelector other) {cfg_ = other.cfg_; return *this; };
-            GoalSelector(const GoalSelector &t) {cfg_ = t.cfg_;};
 
-            // Map Frame
-            void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPath);
-            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            /**
+            * \brief parse global path to obtain local waypoint along global path
+            * that we will try to move towards with our local path
+            * \param map2rbt transformation from map frame to robot frame
+            */
             void generateGlobalPathLocalWaypoint(const geometry_msgs::TransformStamped & map2rbt);
+            
+            /**
+            * \brief return local waypoint along global path in odometry frame
+            * \param rbt2odom transformation from robot frame and odometry frame
+            * \return local waypoint along global path in odometry frame
+            */            
             geometry_msgs::PoseStamped getGlobalPathLocalWaypointOdomFrame(const geometry_msgs::TransformStamped & rbt2odom);
+
+            /**
+            * \brief return local waypoint along global path in robot frame
+            * \return local waypoint along global path in robot frame
+            */  
             geometry_msgs::PoseStamped getGlobalPathLocalWaypointRobotFrame() { return globalPathLocalWaypointRobotFrame_; };
+            
+            /**
+            * \brief return global path in odometry frame
+            * \return global path in odometry frame
+            */  
             std::vector<geometry_msgs::PoseStamped> getGlobalPathOdomFrame();
+
+            /**
+            * \brief extract portion of global plan (in robot frame) that lies within the current laser scan
+            * \param map2rbt transformation from map frame to robot frame
+            * \return visible portion of global plan in robot frame
+            */  
             std::vector<geometry_msgs::PoseStamped> getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt);
 
+            /**
+            * \brief receive new global plan in map frame and update member variable accordingly
+            * \param globalPlanMapFrame new global plan in map frame
+            */
+            void updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
+
+            /**
+            * \brief receive new laser scan and update member variable accordingly
+            * \param scan new laser scan
+            */
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
         private:
-            const DynamicGapConfig* cfg_;
-            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr_;
-            std::vector<geometry_msgs::PoseStamped> globalPlanMapFrame_;
-            // std::vector<geometry_msgs::PoseStamped> mod_plan;
-            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; // Robot Frame
-            boost::mutex goalSelectMutex_;
-            boost::mutex scanMutex_;
-            boost::mutex globalPlanMutex_;
+            /**
+            * \brief helper function for search that checks if distance is less than or equal to zero
+            * \param dist queried distance
+            * \return boolean for if dist <= 0 
+            */
+            bool isNegative(const float dist); // can not pass in const reference for some reason
 
-            // float threshold = 3;
-
-            // If distance to robot is within
-            bool isNotWithin(const float dist);
-            // Pose to robot, when all in rbt frames
+            /**
+            * \brief helper function for returning norm of 2D position vector of pose
+            * \param pose queried pose
+            * \return pose norm 
+            */            
             float poseNorm(const geometry_msgs::PoseStamped & pose);
-            float calculateScanDistsAtPlanIndices(const geometry_msgs::PoseStamped & pose);
-            int poseIdxInScan(const geometry_msgs::PoseStamped & pose);
-            float getPoseOrientation(const geometry_msgs::PoseStamped & pose);
-            // bool poseVisible(geometry_msgs::PoseStamped pose);
-            // bool poseNotVisible(geometry_msgs::PoseStamped pose);
 
+            /**
+            * \brief helper function for returning orientation of 2D position vector of pose
+            * \param pose queried pose
+            * \return pose orientation
+            */     
+            float getPoseOrientation(const geometry_msgs::PoseStamped & pose);
+
+            /**
+            * \brief get range of current scan along bearing of passed in pose
+            * \param pose queried pose
+            * \return scan range at pose bearing
+            */            
+            float calculateScanRangesAtPlanIndices(const geometry_msgs::PoseStamped & pose);
+            
+            /**
+            * \brief get idx of current scan along bearing of passed in pose
+            * \param pose queried pose
+            * \return scan idx at pose bearing
+            */                
+            int poseIdxInScan(const geometry_msgs::PoseStamped & pose);
+
+            const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
+
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
+
+            boost::mutex goalSelectMutex_; /**< mutex locking thread for goal selection updates */
+            boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
+            boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
+
+            std::vector<geometry_msgs::PoseStamped> globalPlanMapFrame_; /**< Current global plan in map frame */
+            geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; /**< Current local waypoint along global plan in robot frame */
     };
 }

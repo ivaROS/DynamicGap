@@ -2,9 +2,11 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
+#include <numeric>
 #include <map>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
@@ -19,16 +21,17 @@
 
 namespace dynamic_gap
 {
-    class Visualizer {
+    class Visualizer 
+    {
         public: 
             Visualizer() {};
             ~Visualizer() {};
 
             Visualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
-            Visualizer& operator=(Visualizer other) {cfg_ = other.cfg_; return *this; };
-            Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
+            // Visualizer& operator=(Visualizer other) {cfg_ = other.cfg_; return *this; };
+            // Visualizer(const Visualizer &t) {cfg_ = t.cfg_;};
 
         protected:
-            const DynamicGapConfig* cfg_;
+            const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
     };
 }

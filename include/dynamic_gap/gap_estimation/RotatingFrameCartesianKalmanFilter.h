@@ -1,10 +1,10 @@
 #pragma once
 
 #include <ros/ros.h>
+#include "std_msgs/String.h"
 #include <dynamic_gap/config/DynamicGapConfig.h>
 // #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 // #include <sensor_msgs/Imu.h>
@@ -14,6 +14,8 @@
 // #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
+#include <limits>
 
 #include <dynamic_gap/gap_estimation/Estimator.h>
 
@@ -24,89 +26,78 @@
 
 namespace dynamic_gap 
 {
+    /**
+    * \brief Extended Kalman filter model that uses a constant velocity rotating Cartesian frame dynamics model
+    */
     class RotatingFrameCartesianKalmanFilter : public Estimator 
     {
         private:
-            void processEgoRobotVelsAndAccs(const ros::Time & t_update);
-            
-            Eigen::Matrix4f Q_1, Q_2, Q_3; // covariance noise matrix
-            float R_scalar, Q_scalar;
+            Eigen::Matrix<float, 2, 4> H_; /**< Observation matrix */
+            Eigen::Matrix<float, 4, 2> H_transpose_; /**< Transposed observation matrix */
 
-            Eigen::Matrix2f tmp_mat; //  place holder for inverse
+            Eigen::Matrix2f R_k_; /**<  Measurement noise matrix */
+            Eigen::Matrix4f Q_k_; /**< Covariance noise matrix */
+            Eigen::Matrix4f dQ_; /**< Discretized covariance noise matrix */
 
-            Eigen::Vector4f x_ground_truth, x_ground_truth_gap_only, frozen_x, rewind_x;
-            Eigen::Matrix4f P_intermediate, new_P; // covariance matrix
+            Eigen::Matrix4f Q_1_; /**< 1st order approximation of discretized covariance noise matrix */
+            Eigen::Matrix4f Q_2_; /**< 2nd order approximation of discretized covariance noise matrix */ 
+            Eigen::Matrix4f Q_3_; /**< 3rd order approximation of discretized covariance noise matrix */
 
-            float life_time, start_time;
+            float R_scalar = 0.0; /**< Scalar value used to populate R matrix*/
+            float Q_scalar = 0.0; /**< Scalar value used to populate Q matrix*/
 
-            std::vector< std::vector<float>> previous_states, previous_measurements, previous_measurements_gap_only,
-                                              previous_ego_accels, previous_ego_vels, previous_times,
-                                              previous_gap_only_states, vel_euler_derivatives;
-            float life_time_threshold;
-            Eigen::Matrix4f eyes;
-            std::string plot_dir;
+            Eigen::Matrix4f A_; /**< Continuous form of autonomous dynamics term */
+            Eigen::Matrix4f STM_; /**< Discrete form of autonomous dynamics term */
 
-            std::vector<geometry_msgs::Pose> agentPoses_;
-            std::vector<geometry_msgs::Vector3Stamped> agentVels_;
+            Eigen::Matrix4f eyes; /**< 4x4 identity matrix */
 
-            bool perfect;
-            bool print;
-            bool plot;
-            bool plotted;
+            Eigen::Vector2f innovation_; /**< innovation term from Kalman filter update loop */
+            Eigen::Vector2f residual_; /**< residual term from Kalman filter update loop */
 
-            ros::Time t_last_update;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_;        
-            geometry_msgs::TwistStamped lastRbtVel_;
-            geometry_msgs::TwistStamped lastRbtAcc_;
+            Eigen::Matrix2f tmp_mat; /**< place holder for inverse calculations */
+
+            // Eigen::Vector4f frozen_x, rewind_x;
+            Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
+            Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
+
+            // std::vector<geometry_msgs::Pose> agentPoses_;
+            // std::vector<geometry_msgs::Vector3Stamped> agentVels_;
 
         public:
 
-            RotatingFrameCartesianKalmanFilter(std::string, int, float, float,const ros::Time & t_update,
-                        const geometry_msgs::TwistStamped & lastRbtVel,
-                        const geometry_msgs::TwistStamped & lastRbtAcc);
+            RotatingFrameCartesianKalmanFilter();
 
-            void initialize(float, float, const ros::Time & t_update,
-                            const geometry_msgs::TwistStamped & lastRbtVel,
+            ~RotatingFrameCartesianKalmanFilter();
+
+            void initialize(const std::string & side, const int & modelID, 
+                            const float & gapPtX, const float & gapPtY,
+                            const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
                             const geometry_msgs::TwistStamped & lastRbtAcc);
-
-            Eigen::Vector4f update_ground_truth_cartesian_state();
-            Eigen::Vector4f getState();
-            Eigen::Vector4f getTrueState();
-            
-            Eigen::Vector4f getGapState();
-            Eigen::Vector4f getRewindGapState();
-            // Eigen::Vector4f get_modified_polar_state();
-            // Eigen::Vector4f get_frozen_modified_polar_state();
-            // Eigen::Vector4f get_rewind_modified_polar_state();
-
-            Eigen::Vector2f get_x_tilde();
-
-            geometry_msgs::TwistStamped getRobotVel();
-            Eigen::Matrix<float, 4, 1> integrate();
-            void linearize(int idx);
-            void discretizeQ(int idx);
-
-            void gapStatePropagate(float dt);
-            void rewindPropagate(float dt);
-            void isolateGapDynamics();
-            void setRewindState();
+            void transfer(const Estimator & placeholder);
 
             void update(const Eigen::Vector2f & measurement,
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                        bool print,
                         const std::vector<geometry_msgs::Pose> & agentPoses,
                         const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
                         const ros::Time & t_kf_update);
 
-            int getID();
-            void inflate_model(float x, float y);
+            /**
+            * \brief Helper function for integrating estimator state forward in time
+            * \return Propagated estimator state
+            */     
+            Eigen::Vector4f integrate();
 
-            void set_initialized(bool _initialized);
-            bool get_initialized();
-            void plot_states();
-            void get_intermediate_vels_accs();
-            void plot_models();
-    };
+            /**
+            * \brief Helper function for linearizing nonlinear estimator dynamics
+            * \param idx index of intermediate update to linearize for 
+            */                 
+            void linearize(const int & idx);
+
+            /**
+            * \brief Helper function for discretizing continuous form of covariance noise matrix
+            * \param idx index of intermediate update to discretize for 
+            */                 
+            void discretizeQ(const int & idx);                        
+     };
 }

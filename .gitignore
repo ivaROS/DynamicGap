@@ -4,4 +4,6 @@
 .fls
 .log
 .synctex.gz
+.idea/
 estimator_plots/
+doc/

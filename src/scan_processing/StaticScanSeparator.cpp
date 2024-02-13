@@ -1,21 +1,25 @@
-#include <dynamic_gap/scan_separation/StaticScanSeparator.h>
+#include <dynamic_gap/scan_processing/StaticScanSeparator.h>
 
 namespace dynamic_gap
 {
     ////////////////// STATIC SCAN SEPARATION ///////////////////////
+    /* This code is heavily experimental. Does not really work.
+     * Not currently used.
+    **/
 
-    bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, dynamic_gap::Estimator * prevModel) 
+    bool StaticScanSeparator::checkModelSimilarity(dynamic_gap::Estimator * currModel, 
+                                                   dynamic_gap::Estimator * prevModel) 
     {
         float eps = 0.00001;
         
-        Eigen::Matrix<float, 4, 1> currState = currModel->getGapState();
-        Eigen::Matrix<float, 4, 1> prevState = prevModel->getGapState();
+        Eigen::Vector4f currState = currModel->getGapState();
+        Eigen::Vector4f prevState = prevModel->getGapState();
         
         Eigen::Vector2f currGapPtVel(currState[2], currState[3]);
         Eigen::Vector2f prevGapPtVel(prevState[2], prevState[3]);
 
-        Eigen::Vector2f currGapPtVelUnitNorm = currGapPtVel / (currGapPtVel.norm() + eps);
-        Eigen::Vector2f prevGapPtVelUnitNorm = prevGapPtVel / (prevGapPtVel.norm() + eps);
+        Eigen::Vector2f currGapPtVelUnitNorm = unitNorm(currGapPtVel);
+        Eigen::Vector2f prevGapPtVelUnitNorm = unitNorm(prevGapPtVel);
         // ROS_INFO_STREAM("currGapPtVelocity: " << currState[2] << ", " << currState[3] << ", prevGapPtVelocity: " << prevState[2] << ", " << prevState[3]);
         // ROS_INFO_STREAM("currGapPtVelUnitNorm: " << currGapPtVelUnitNorm[0] << ", " << currGapPtVelUnitNorm[1]);
         // ROS_INFO_STREAM("prevGapPtVelUnitNorm: " << prevGapPtVelUnitNorm[0] << ", " << prevGapPtVelUnitNorm[1]);
@@ -32,14 +36,13 @@ namespace dynamic_gap
 
     void StaticScanSeparator::createAgentFromModels(dynamic_gap::Estimator * currModel,    
                                                     dynamic_gap::Estimator * prevModel,
-                                                    std::vector<Eigen::Matrix<float, 4, 1> > & agents,
-                                                    bool print) 
+                                                    std::vector<Eigen::Vector4f> & agents) 
     {
-        Eigen::Matrix<float, 4, 1> currState = currModel->getGapState();
-        Eigen::Matrix<float, 4, 1> prevState = prevModel->getGapState();
+        Eigen::Vector4f currState = currModel->getGapState();
+        Eigen::Vector4f prevState = prevModel->getGapState();
         
-        Eigen::Matrix<float, 4, 1> newAgentState = (currState + prevState) / 2;
-        // if (print) ROS_INFO_STREAM("instantiating agent: " << newAgentState[0] << ", " << newAgentState[1] << ", " << newAgentState[2] << ", " << newAgentState[3]);
+        Eigen::Vector4f newAgentState = (currState + prevState) / 2;
+        // ROS_INFO_STREAM("instantiating agent: " << newAgentState[0] << ", " << newAgentState[1] << ", " << newAgentState[2] << ", " << newAgentState[3]);
         agents.push_back(newAgentState);                                  
     }
 
@@ -49,8 +52,8 @@ namespace dynamic_gap
     {
         // int half_num_scan = scan.ranges.size() / 2;
 
-        Eigen::Vector2f currModelMeasurement = currModel->get_x_tilde();
-        Eigen::Vector2f prevModelMeasurement = prevModel->get_x_tilde();
+        Eigen::Vector2f currModelMeasurement = currModel->getXTilde();
+        Eigen::Vector2f prevModelMeasurement = prevModel->getXTilde();
 
         float currModelTheta = std::atan2(currModelMeasurement[1], currModelMeasurement[0]);
         float prevModelTheta = std::atan2(prevModelMeasurement[1], prevModelMeasurement[0]);
@@ -63,7 +66,7 @@ namespace dynamic_gap
         float prevFreeScanRange, currFreeScanRange;
         // for (int j = 1; j < 2; j++) 
         // {
-        prevFreeScanIdx = subtractAndWrapScanIndices(prevModelScanIdx - 1, cfg_->scan.full_scan); // (prevModelScanIdx - j); // 
+        prevFreeScanIdx = wrapScanIndex(prevModelScanIdx - 1); // (prevModelScanIdx - j); // 
             // if (prevFreeScanIdx < 0) {
             //     prevFreeScanIdx += 2*half_num_scan;
             // }
@@ -79,7 +82,7 @@ namespace dynamic_gap
         // }
 
         // need distance from curr to prev
-        float prevToCurrIdxSpan = subtractAndWrapScanIndices(currFreeScanIdx - prevFreeScanIdx, cfg_->scan.full_scan); // (currFreeScanIdx - prevFreeScanIdx); // 
+        float prevToCurrIdxSpan = wrapScanIndex(currFreeScanIdx - prevFreeScanIdx); // (currFreeScanIdx - prevFreeScanIdx); // 
         // if (prevToCurrIdxSpan < 0) {
         //     prevToCurrIdxSpan += 2*half_num_scan;
         // }
@@ -96,15 +99,14 @@ namespace dynamic_gap
 
     bool compareModelBearingValues(dynamic_gap::Estimator* model1, dynamic_gap::Estimator* model2) 
     {
-        Eigen::Matrix<float, 4, 1> state1 = model1->getGapState();
-        Eigen::Matrix<float, 4, 1> state2 = model2->getGapState();
+        Eigen::Vector4f state1 = model1->getGapState();
+        Eigen::Vector4f state2 = model2->getGapState();
         
         return atan2(state1[1], state1[0]) < atan2(state2[1], state2[0]);
     }
 
-    sensor_msgs::LaserScan StaticScanSeparator::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap> & rawGaps, 
-                                                                            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr,
-                                                                            bool print) 
+    sensor_msgs::LaserScan StaticScanSeparator::staticDynamicScanSeparation(const std::vector<dynamic_gap::Gap *> & rawGaps, 
+                                                                            boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr) 
     {
         sensor_msgs::LaserScan scan = *scanPtr.get(); 
         try
@@ -113,13 +115,13 @@ namespace dynamic_gap
                 return scan;
 
             std::vector<dynamic_gap::Estimator *> gapModels;
-            for (const dynamic_gap::Gap & gap : rawGaps) 
+            for (dynamic_gap::Gap * gap : rawGaps) 
             {
-                gapModels.push_back(gap.leftGapPtModel_);
-                gapModels.push_back(gap.rightGapPtModel_);
+                gapModels.push_back(gap->leftGapPtModel_);
+                gapModels.push_back(gap->rightGapPtModel_);
             }
 
-            for (dynamic_gap::Estimator * & model : gapModels) 
+            for (dynamic_gap::Estimator * model : gapModels) 
                 model->isolateGapDynamics();
             
             sort(gapModels.begin(), gapModels.end(), compareModelBearingValues);
@@ -128,7 +130,7 @@ namespace dynamic_gap
             dynamic_gap::Estimator * prevModel = gapModels[0];
             dynamic_gap::Estimator * currModel = gapModels[1];
 
-            std::vector<Eigen::Matrix<float, 4, 1> > agents;
+            std::vector<Eigen::Vector4f> agents;
 
             // ROS_INFO_STREAM("looping through models");
             for (int i = 1; i < gapModels.size(); i++) 
@@ -138,20 +140,20 @@ namespace dynamic_gap
                 if (checkModelSimilarity(currModel, prevModel)) 
                 {
                     clearAgentFromStaticScan(currModel, prevModel, scan);
-                    createAgentFromModels(currModel, prevModel, agents, print);
+                    createAgentFromModels(currModel, prevModel, agents);
                 }
 
                 prevModel = currModel;
             }
 
             // bridging models
-            prevModel = gapModels[gapModels.size() - 1];
+            prevModel = gapModels.back();
             currModel = gapModels[0];
 
             if (checkModelSimilarity(currModel, prevModel)) 
             {
                 clearAgentFromStaticScan(currModel, prevModel, scan);
-                createAgentFromModels(currModel, prevModel, agents, print);
+                createAgentFromModels(currModel, prevModel, agents);
             }
 
             currAgents = agents;
@@ -163,7 +165,7 @@ namespace dynamic_gap
             // 
         } catch (...)
         {
-            ROS_FATAL_STREAM("[staticDynamicScanSeparation() failed");
+            ROS_ERROR_STREAM("[staticDynamicScanSeparation() failed");
         }
 
         return scan;
