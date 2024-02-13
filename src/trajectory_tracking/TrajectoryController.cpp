@@ -261,7 +261,7 @@ namespace dynamic_gap
 
             // if angular error is large, rotate first 
             // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-            if (std::abs(minDistTheta) > M_PI / 4)
+            if (std::abs(velAngFeedback) > 0.50)
             {
                 velLinXFeedback = 0.0;
                 velLinYFeedback = 0.0;
@@ -277,7 +277,7 @@ namespace dynamic_gap
             velLinYFeedback = 0;
             velAngFeedback += (velLinYFeedback + cfg_->projection.k_po_theta * velLinYSafe);
 
-            // if (cfg_->planning.projection_operator && std::abs(minDistTheta) < M_PI / 4 && minDist < cfg_->rbt.r_inscr)
+            // if (cfg_->planning.projection_operator && std::abs(velAngFeedback) > 0.50 && minDist < cfg_->rbt.r_inscr)
             // {
             //     velLinXFeedback = 0;
             //     velAngFeedback *= 2;
@@ -505,7 +505,8 @@ namespace dynamic_gap
             dist = scan_->ranges.at(i);
             minScanDists.at(i) = dist2Pose(theta, dist, rbtPoseInSensorFrame.pose);
         }
-        int minDistScanIdx = std::min_element(minScanDists.begin(), minScanDists.end()); // - minScanDists.begin();
+        auto minDistScanIter = std::min_element(minScanDists.begin(), minScanDists.end());
+        int minDistScanIdx = std::distance(minScanDists.begin(), minDistScanIter);
         minDistTheta = idx2theta(minDistScanIdx);
 
         minDist = minScanDists.at(minDistScanIdx);
