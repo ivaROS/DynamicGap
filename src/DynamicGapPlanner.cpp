@@ -29,24 +29,23 @@ namespace dynamic_gap
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap)
     {
         // ROS_INFO_STREAM_NAMED("Planner", "DynamicGap: initialize");
-        plannerName_ = name;
-        nh_ = ros::NodeHandle("~/" + plannerName_); // pnh: planner node handle?
+        nh_ = ros::NodeHandle("~/" + name); // pnh: planner node handle?
         planner_.initialize(nh_);
-        std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
+        // std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
 
-        laserSub_ = nh_.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner_);
+        // laserSub_ = nh_.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner_);
         
-        // Linking the robot pose and acceleration subscribers because these messages are published 
-        // essentially at the same time in STDR
-        rbtPoseSub_.subscribe(nh_, robot_name + "/odom", 10);
-        rbtAccSub_.subscribe(nh_, robot_name + "/acc", 10);
-        sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtPoseSub_, rbtAccSub_));
-        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner_, _1, _2));
+        // // Linking the robot pose and acceleration subscribers because these messages are published 
+        // // essentially at the same time in STDR
+        // rbtPoseSub_.subscribe(nh_, robot_name + "/odom", 10);
+        // rbtAccSub_.subscribe(nh_, robot_name + "/acc", 10);
+        // sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtPoseSub_, rbtAccSub_));
+        // sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner_, _1, _2));
 
-        for (int i = 0; i < planner_.getCurrentAgentCount(); i++)
-        {
-            agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, &Planner::agentOdomCB, &planner_));
-        }
+        // for (int i = 0; i < planner_.getCurrentAgentCount(); i++)
+        // {
+        //     agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, &Planner::agentOdomCB, &planner_));
+        // }
 
     }
 
@@ -54,7 +53,6 @@ namespace dynamic_gap
     {
         if (!planner_.initialized())
         {
-            // ros::NodeHandle pnh("~/" + plannerName_);
             planner_.initialize(nh_);
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }

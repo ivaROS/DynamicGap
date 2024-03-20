@@ -14,9 +14,12 @@ namespace dynamic_gap
         // DEFAULT VALUES, CAN BE OVERRIDEN THROUGH ROS PARAMETERS
         public:
             std::string map_frame_id = "map"; /**< Map frame ID */
-            std::string odom_frame_id = "odom"; /**< Odometry frame ID */
-            std::string robot_frame_id = "robot0"; /**< Robot frame ID */
-            std::string sensor_frame_id = "camera_link"; /**< Sensor frame ID */
+            std::string odom_frame_id = "TBD"; /**< Odometry frame ID */
+            std::string robot_frame_id = "TBD"; /**< Robot frame ID */
+            std::string sensor_frame_id = "TBD"; /**< Sensor frame ID */
+            std::string odom_topic = "TBD";
+            std::string acc_topic = "TBD";
+            std::string scan_topic = "TBD";
 
             /**
             * \brief Hyperparameters for gap visualization
@@ -166,14 +169,14 @@ namespace dynamic_gap
                 float k_CBF = 1.0; /**< Proportional gain for CBF */
             } projection;
 
-        /**
-        * \brief Load in planner hyperparameters from node handle (specified in launch file and yamls)
-        */
-        void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
+            /**
+            * \brief Load in planner hyperparameters from node handle (specified in launch file and yamls)
+            */
+            void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
 
-        /**
-        * \brief Load in hyperparameters from current laser scan
-        */
-        void updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
+            /**
+            * \brief Load in hyperparameters from current laser scan
+            */
+            void updateParamFromScan(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
     };
 }

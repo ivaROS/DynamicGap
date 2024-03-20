@@ -42,6 +42,10 @@
 // #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 #include <boost/thread/mutex.hpp>
 #include <boost/circular_buffer.hpp>
 
@@ -318,6 +322,17 @@ namespace dynamic_gap
         ros::NodeHandle nh_; /**< ROS node handle for local path planner */
         ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
         // ros::Publisher staticScanPublisher_;
+        ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
+
+        std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
+
+        message_filters::Subscriber<nav_msgs::Odometry> rbtOdomSub_; /**< Subscriber to incoming robot pose */
+        message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+
+        typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
+        typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
+        boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
+    
 
         geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
         geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */

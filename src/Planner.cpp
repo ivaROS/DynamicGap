@@ -58,6 +58,21 @@ namespace dynamic_gap
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
         // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
 
+        std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
+        
+        laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
+        
+        // Linking the robot pose and acceleration subscribers because these messages are published 
+        // essentially at the same time in STDR
+        rbtOdomSub_.subscribe(nh_, cfg_.odom_topic, 10);
+        rbtAccSub_.subscribe(nh_, cfg_.acc_topic, 10);
+        sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
+        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
+
+        for (int i = 0; i < planner_.getCurrentAgentCount(); i++)
+            agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, 
+                                                            &Planner::agentOdomCB, this));
+
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
         initialized_ = true;
