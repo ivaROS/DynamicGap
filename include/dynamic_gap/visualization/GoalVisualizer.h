@@ -28,15 +28,19 @@ namespace dynamic_gap
             void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
         
         private: 
-            /**
-            * \brief Visualize a single gap goal 
-            * \param gapGoalsMarkerArray marker array to add gap goal marker to
-            * \param gap gap whose goal we want to visualize
-            * \param initial boolean for if we want to visualize the gap's initial goal or terminal goal
-            */        
-            void drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-                             dynamic_gap::Gap * gap, 
-                             const bool & initial);
+            // /**
+            // * \brief Visualize a single gap goal 
+            // * \param gapGoalsMarkerArray marker array to add gap goal marker to
+            // * \param gap gap whose goal we want to visualize
+            // * \param initial boolean for if we want to visualize the gap's initial goal or terminal goal
+            // */        
+            // void drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
+            //                  dynamic_gap::Gap * gap, 
+            //                  const bool & initial);
+
+            void drawGapGoal(visualization_msgs::Marker & marker, 
+                                const std::vector<dynamic_gap::Gap *> & gaps, 
+                                const bool & initial);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */
             std_msgs::ColorRGBA terminalGapGoalsColor; /**< Color to visualize terminal gap goals with */

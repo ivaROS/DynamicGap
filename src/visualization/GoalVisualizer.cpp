@@ -6,7 +6,8 @@ namespace dynamic_gap
     {
         cfg_ = &cfg;
         globalPathLocalWaypointPublisher = nh.advertise<visualization_msgs::Marker>("goals", 10);
-        gapGoalsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goals", 10);
+        // gapGoalsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goals", 10);
+        gapGoalsPublisher = nh.advertise<visualization_msgs::Marker>("gap_goals", 10);
 
         gapGoalsColor.r = 1.0;
         gapGoalsColor.g = 0.666;
@@ -51,24 +52,74 @@ namespace dynamic_gap
         // if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
-        visualization_msgs::MarkerArray clearMarkerArray;
+        // visualization_msgs::MarkerArray clearMarkerArray;
         visualization_msgs::Marker clearMarker;
         clearMarker.id = 0;
         clearMarker.ns = "gap_goal";
         clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        clearMarkerArray.markers.push_back(clearMarker);
-        gapGoalsPublisher.publish(clearMarkerArray);
+        // clearMarkerArray.markers.push_back(clearMarker);
+        gapGoalsPublisher.publish(clearMarker);
 
-        visualization_msgs::MarkerArray gapGoalsMarkerArray;
-        for (dynamic_gap::Gap * gap : gaps) 
-        {
-            //drawGapGoal(gapGoalsMarkerArray, gap, true);
-            drawGapGoal(gapGoalsMarkerArray, gap, false);
-        }
-        gapGoalsPublisher.publish(gapGoalsMarkerArray);
+        // visualization_msgs::MarkerArray gapGoalsMarkerArray;
+        visualization_msgs::Marker gapGoalsMarker;
+        drawGapGoal(gapGoalsMarker, gaps, false);
+
+        // for (dynamic_gap::Gap * gap : gaps) 
+        // {
+        //     //drawGapGoal(gapGoalsMarkerArray, gap, true);
+        //     drawGapGoal(gapGoalsMarkerArray, gap, false);
+        // }
+        // gapGoalsPublisher.publish(gapGoalsMarkerArray);
+        gapGoalsPublisher.publish(gapGoalsMarker);
+
         return;
     }
 
+    void GoalVisualizer::drawGapGoal(visualization_msgs::Marker & marker, 
+                                        const std::vector<dynamic_gap::Gap *> & gaps, 
+                                        const bool & initial) 
+    {
+        // std::cout << "g frame in draw gap goal: " << gap->frame_ << std::endl;
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "gap_goal";
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::SPHERE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;     
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.0001;
+        marker.pose.orientation.w = 1;
+
+        marker.color = gapGoalsColor;
+
+        marker.scale.x = 0.1;
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+        marker.lifetime = ros::Duration(0);
+
+        for (dynamic_gap::Gap * gap : gaps) 
+        {
+            marker.header.frame_id = gap->frame_;
+
+            geometry_msgs::Point p;
+            if (initial) 
+            {
+                p.x = gap->goal.x_;
+                p.y = gap->goal.y_;
+                //ROS_INFO_STREAM("visualizing initial goal: " << gap->goal.x << ", " << gap->goal.y);
+            } else 
+            {
+                p.x = gap->terminalGoal.x_;
+                p.y = gap->terminalGoal.y_; 
+                // ROS_INFO_STREAM("visualizing terminal goal: " << gap->terminalGoal.x << ", " << gap->terminalGoal.y);
+            }
+
+            marker.points.push_back(p);
+        }
+    }
+
+    /*
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
                                      dynamic_gap::Gap * gap, const bool & initial) 
     {
@@ -103,4 +154,5 @@ namespace dynamic_gap
         gapGoalMarker.lifetime = ros::Duration(0);
         gapGoalsMarkerArray.markers.push_back(gapGoalMarker);
     }
+    */
 }
