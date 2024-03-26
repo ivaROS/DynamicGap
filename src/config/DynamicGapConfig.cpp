@@ -20,7 +20,7 @@ namespace dynamic_gap
             robot_frame_id = model + "/base_footprint";
             sensor_frame_id = model + "/base_scan";
             odom_topic = model + "/odom";
-            acc_topic = model + "/acc";
+            acc_topic = model + "/imu";
             scan_topic = model + "/scan";
 
             // nh.param("map_frame_id", map_frame_id, map_frame_id);
