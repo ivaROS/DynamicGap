@@ -80,7 +80,7 @@ namespace dynamic_gap
 
             path.header.stamp = ros::Time::now();
             TrajectoryLogger corder(path, cfg_->robot_frame_id, pathTiming);
-            path.header.frame_id = cfg_->traj.synthesized_frame ? cfg_->sensor_frame_id : cfg_->robot_frame_id;
+            path.header.frame_id = cfg_->sensor_frame_id;
 
             Eigen::Vector4f rbtState(currPose.pose.position.x + 1e-5, currPose.pose.position.y + 1e-6,
                                   0.0, 0.0); // currVel.linear.x, currVel.linear.y
@@ -126,7 +126,7 @@ namespace dynamic_gap
             {
                 robotAndGapState x = {rbtState[0], rbtState[1], 0.0, 0.0, 0.0, 0.0, selectedGap->goal.x_, selectedGap->goal.y_};
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Goal to Goal");
-                GoToGoal goToGoal(cfg_->control.vx_absmax);
+                GoToGoal goToGoal(cfg_->rbt.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, corder);
                 dynamic_gap::Trajectory traj(path, pathTiming);
@@ -145,8 +145,8 @@ namespace dynamic_gap
             Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
             // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
             
-            Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
-            // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
+            Eigen::Vector2d maxRbtVel(cfg_->rbt.vx_absmax, cfg_->rbt.vy_absmax);
+            // Eigen::Vector2d maxRbtAcc(cfg_->rbt.ax_absmax, cfg_->rbt.ay_absmax);
 
             // Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
             //                 gapSideAHPFCenters, allAHPFCenters;
@@ -187,7 +187,7 @@ namespace dynamic_gap
                                                     initialGoalX, initialGoalY,
                                                     selectedGap->isRadial(),
                                                     x[0], x[1],
-                                                    cfg_->control.vx_absmax, cfg_->control.vx_absmax);
+                                                    cfg_->rbt.vx_absmax, cfg_->rbt.vx_absmax);
             */
 
             /*
@@ -255,7 +255,7 @@ namespace dynamic_gap
 
 
             // AHPF
-            AHPF ahpf(cfg_->control.vx_absmax, selectedGap->allAHPFCenters_, selectedGap->gapBoundaryInwardNorms_, weights,
+            AHPF ahpf(cfg_->rbt.vx_absmax, selectedGap->allAHPFCenters_, selectedGap->gapBoundaryInwardNorms_, weights,
                         leftGapPtVel, rightGapPtVel, gapGoalTermPt);   
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),

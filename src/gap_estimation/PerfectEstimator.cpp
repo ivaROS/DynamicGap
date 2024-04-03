@@ -57,12 +57,12 @@ namespace dynamic_gap
     }
 
     void PerfectEstimator::update(const Eigen::Vector2f & measurement, 
-                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                 const std::vector<geometry_msgs::Pose> & agentPoses,
-                                 const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                 const ros::Time & tUpdate) 
-    {
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
+                                    const std::map<std::string, geometry_msgs::Pose> & agentPoses,
+                                    const std::map<std::string, geometry_msgs::Vector3Stamped> & agentVels,
+                                    const ros::Time & tUpdate)
+        {
         
         agentPoses_ = agentPoses;
         agentVels_ = agentVels;
@@ -136,20 +136,23 @@ namespace dynamic_gap
         
         float robot_i_odom_dist = 0.0;
         float min_dist = std::numeric_limits<float>::infinity();
-        int min_idx = -1;
-        for (int i = 0; i < agentPoses_.size(); i++) 
+        std::string min_key = "N/A";
+        std::map<std::string, geometry_msgs::Pose>::iterator itr;
+        for (itr = agentPoses_.begin(); itr != agentPoses_.end(); ++itr) 
         {
-            robot_i_odom_dist = sqrt(pow(agentPoses_[i].position.x - x_hat_kmin1_plus_[0], 2) + 
-                                     pow(agentPoses_[i].position.y - x_hat_kmin1_plus_[1], 2));
+            geometry_msgs::Pose agentPose = itr->second;
+            robot_i_odom_dist = sqrt(pow(agentPose.position.x - x_hat_kmin1_plus_[0], 2) + 
+                                     pow(agentPose.position.y - x_hat_kmin1_plus_[1], 2));
             
             if (robot_i_odom_dist < min_dist) 
             {
                 min_dist = robot_i_odom_dist;
-                min_idx = i;
+                min_key = itr->first;
             }
         }
         
-        ROS_INFO_STREAM_COND_NAMED(agentPoses_.size() > 0, "GapEstimation", "closest odom: " << agentPoses_[min_idx].position.x << ", " << agentPoses_[min_idx].position.y);
+        ROS_INFO_STREAM_COND_NAMED(agentPoses_.size() > 0, "GapEstimation", "closest odom: " << agentPoses_[min_key].position.x << ", " 
+                                                                                             << agentPoses_[min_key].position.y);
         
         float min_dist_thresh = 0.4;
         if (min_dist < min_dist_thresh) 
@@ -161,8 +164,8 @@ namespace dynamic_gap
             // xTilde_[1] = agentPoses_[min_idx].position.y;
             // return_x[0] = xTilde_[0];
             // return_x[1] = xTilde_[1];
-            return_x[2] = agentVels_[min_idx].vector.x - lastRbtVel_.twist.linear.x;
-            return_x[3] = agentVels_[min_idx].vector.y - lastRbtVel_.twist.linear.y;
+            return_x[2] = agentVels_[min_key].vector.x - lastRbtVel_.twist.linear.x;
+            return_x[3] = agentVels_[min_key].vector.y - lastRbtVel_.twist.linear.y;
         } else 
         {    
             ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to nothing");

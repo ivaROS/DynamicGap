@@ -15,7 +15,8 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   nav_configs
   roscpp
   rospy
-  modify_stdr_scan
+  # modify_stdr_scan
+  pedsim_msgs
   # std_msgs
   # benchmarking_tools
   # pips_trajectory_msgs

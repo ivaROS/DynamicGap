@@ -57,21 +57,24 @@ namespace dynamic_gap
         // Visualization Setup
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
         // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
-
-        std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
         
+        // Robot laser scan message subscriber
         laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
         
-        // Linking the robot pose and acceleration subscribers because these messages are published 
-        // essentially at the same time in STDR
-        rbtOdomSub_.subscribe(nh_, cfg_.odom_topic, 10);
-        rbtAccSub_.subscribe(nh_, cfg_.acc_topic, 10);
-        sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
-        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
+        // Robot odometry message subscriber
+        rbtOdomSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
 
-        for (int i = 0; i < planner_.getCurrentAgentCount(); i++)
-            agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, 
-                                                            &Planner::agentOdomCB, this));
+        // Robot acceleration message subscriber        
+        rbtImuSub_ = nh_.subscribe(cfg_.imu_topic, 10, &Planner::egoRobotImuCB, this);
+
+        // sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
+        // sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
+
+        pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
+
+        // for (int i = 0; i < ; i++)
+        //     agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, 
+        //                                                     &Planner::agentOdomCB, this));
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
@@ -116,10 +119,10 @@ namespace dynamic_gap
         rbtPoseInOdomFrame_ = geometry_msgs::PoseStamped();
         globalGoalRobotFrame_ = geometry_msgs::PoseStamped();
 
-        currentAgentCount_ = cfg_.env.num_agents;
+        // currentAgentCount_ = cfg_.env.num_agents;
 
-        currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
-        currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
+        // currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
+        // currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
 
         // futureScans_.push_back(tmpScan);
         // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
@@ -323,31 +326,10 @@ namespace dynamic_gap
         }        
     }
     
-    void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+    void Planner::egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg)
     {
         try
         {
-            // ROS_INFO_STREAM("joint pose acc cb");
-
-            // ROS_INFO_STREAM("accel time stamp: " << rbtAccelMsg->header.stamp.toSec());
-            currentRbtAcc_ = *rbtAccelMsg;
-            intermediateRbtAccs_.push_back(currentRbtAcc_);
-
-            // deleting old sensor measurements already used in an update
-            for (int i = 0; i < intermediateRbtAccs_.size(); i++)
-            {
-                if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
-                {
-                    intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
-                    i--;
-                }
-            }    
-
-            // ROS_INFO_STREAM("odom time stamp: " << rbtOdomMsg->header.stamp.toSec());
-
-            // ROS_INFO_STREAM("acc - odom time difference: " << (rbtAccelMsg->header.stamp - rbtOdomMsg->header.stamp).toSec());
-
             updateTF();
 
             // Transform the msg to odom frame
@@ -373,8 +355,8 @@ namespace dynamic_gap
             //--------------- VELOCITY -------------------//
             // velocity always comes in wrt robot frame in STDR
             geometry_msgs::TwistStamped incomingRbtVel;
-            incomingRbtVel.header = rbtOdomMsg->header;
-            incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
+            incomingRbtVel.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
+            // incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
             incomingRbtVel.twist = rbtOdomMsg->twist.twist;
 
             currentRbtVel_ = incomingRbtVel;
@@ -391,61 +373,98 @@ namespace dynamic_gap
             }
         } catch (...)
         {
-            ROS_WARN_STREAM_NAMED("Planner", "jointPoseAccCB failed");
+            ROS_WARN_STREAM_NAMED("Planner", "egoRobotOdomCB failed");
+        }
+    }
+
+    void Planner::egoRobotImuCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+    {
+        try
+        {
+            // ROS_INFO_STREAM("joint pose acc cb");
+
+            // ROS_INFO_STREAM("accel time stamp: " << rbtAccelMsg->header.stamp.toSec());
+            currentRbtAcc_ = *rbtAccelMsg;
+            intermediateRbtAccs_.push_back(currentRbtAcc_);
+
+            // deleting old sensor measurements already used in an update
+            for (int i = 0; i < intermediateRbtAccs_.size(); i++)
+            {
+                if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
+                {
+                    intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
+                    i--;
+                }
+            }    
+
+            // ROS_INFO_STREAM("odom time stamp: " << rbtOdomMsg->header.stamp.toSec());
+
+            // ROS_INFO_STREAM("acc - odom time difference: " << (rbtAccelMsg->header.stamp - rbtOdomMsg->header.stamp).toSec());
+
+
+        } catch (...)
+        {
+            ROS_WARN_STREAM_NAMED("Planner", "egoRobotImuCB failed");
         }
     }
     
-    void Planner::agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg) 
+    void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
     {
         // ROS_INFO_STREAM_NAMED("Planner", "[agentOdomCB()]");        
-        std::string agentNamespace = agentOdomMsg->child_frame_id;
-        // ROS_INFO_STREAM_NAMED("Planner", "      agentNamespace: " << agentNamespace);
-        agentNamespace.erase(0,5); // removing "robot" from "robotN"
-        char * robotChars = strdup(agentNamespace.c_str());
-        int agentID = std::atoi(robotChars);
+        // std::string agentNamespace = agentOdomMsg->child_frame_id;
+        // // ROS_INFO_STREAM_NAMED("Planner", "      agentNamespace: " << agentNamespace);
+        // agentNamespace.erase(0,5); // removing "robot" from "robotN"
+        // char * robotChars = strdup(agentNamespace.c_str());
+        // int agentID = std::atoi(robotChars);
         // ROS_INFO_STREAM_NAMED("Planner", "      agentID: " << agentID);
 
-        try 
+        for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
         {
+            pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
+            std::string source_frame = agentIState.header.frame_id; 
+
             // transforming Odometry message from map_static to robotN
-            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, agentOdomMsg->header.frame_id, ros::Time(0));
-
+            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, 
+                                                                                            source_frame, 
+                                                                                            ros::Time(0));
             geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
-            agentPoseMsgFrame.header = agentOdomMsg->header;
-            agentPoseMsgFrame.pose = agentOdomMsg->pose.pose;
-            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
-
-            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-            tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
-            
-            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
-
-            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_.at(agentID) = agentPoseRobotFrame.pose;
-        } catch (...) 
-        {
-            ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB odometry failed for " << agentNamespace);
-        }
-        
-        try 
-        {
-            std::string source_frame = agentOdomMsg->child_frame_id; 
-            // std::cout << "in agentOdomCB" << std::endl;
-            // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
-            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, source_frame, ros::Time(0));
             geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
-            agentVelMsgFrame.header = agentOdomMsg->header;
-            agentVelMsgFrame.header.frame_id = source_frame;
-            agentVelMsgFrame.vector = agentOdomMsg->twist.twist.linear;
-            // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
-            tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
-            // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
-            currentTrueAgentVels_.at(agentID) = agentVelRobotFrame;
-        } catch (...) 
-        {
-            ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB velocity failed for " << agentNamespace);
-        }            
+            try 
+            {
+                agentPoseMsgFrame.header = agentIState.header;
+                agentPoseMsgFrame.pose = agentIState.pose;
+                // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
+
+                //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+                tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
+                
+                // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
+
+                // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
+                currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
+            } catch (...) 
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB odometry failed for " << agentIState.id);
+            }
+            
+            try 
+            {
+                // std::cout << "in agentOdomCB" << std::endl;
+                // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
+                agentVelMsgFrame.header = agentIState.header;
+                // agentVelMsgFrame.header.frame_id = source_frame; // TODO: determine if frame for position is same as frame for velocity
+                agentVelMsgFrame.vector = agentIState.twist.linear;
+                // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
+                tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
+                // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
+
+                currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
+            } catch (...) 
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB velocity failed for " << agentIState.id);
+            }            
+        }
     }
 
     bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)

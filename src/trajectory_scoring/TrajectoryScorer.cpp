@@ -229,7 +229,7 @@ namespace dynamic_gap
         if (rbtToScanDist > cfg_->traj.max_pose_pen_dist) 
             return 0;
 
-        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
+        return cfg_->traj.c_obs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
     }
 
     float TrajectoryScorer::dynamicChapterScore(const float & rbtToScanDist) 
@@ -247,7 +247,7 @@ namespace dynamic_gap
         if (rbtToScanDist > cfg_->traj.max_pose_pen_dist) 
             return 0;
 
-        return cfg_->traj.cobs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
+        return cfg_->traj.c_obs * std::exp(-cfg_->traj.pose_exp_weight * (rbtToScanDist - inflRbtRad));
     }
 
 }

@@ -10,6 +10,7 @@
 #include <numeric>
 #include <iostream>
 #include <chrono>
+#include <map>
 
 #include <math.h>
 
@@ -48,6 +49,9 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/circular_buffer.hpp>
+
+#include <pedsim_msgs/AgentStates.h>
+#include <pedsim_msgs/AgentState.h>
 
 namespace dynamic_gap
 {
@@ -109,18 +113,22 @@ namespace dynamic_gap
                                 const ros::Time & tCurrentFilterUpdate);
 
             /**
-            * \brief Joint call back function for robot pose (position + velocity) and robot acceleration messages
+            * \brief Call back function for robot pose (position + velocity) messages
             * \param rbtOdomMsg incoming robot odometry message
+            */
+            void egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg);
+
+            /**
+            * \brief Call back function for robot IMU messages
             * \param rbtAccelMsg incoming robot acceleration message
             */
-            void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
+            void egoRobotImuCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
 
             /**
             * \brief Call back function for other agent odometry messages
             * \param agentOdomMsg incoming agent odometry message
             */
-            void agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg);
+            void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
             /**
             * \brief Interface function for receiving incoming global plan and updating
@@ -326,14 +334,14 @@ namespace dynamic_gap
 
         std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
-        message_filters::Subscriber<nav_msgs::Odometry> rbtOdomSub_; /**< Subscriber to incoming robot pose */
-        message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+        ros::Subscriber rbtOdomSub_; /**< Subscriber to incoming robot pose */
+        ros::Subscriber rbtImuSub_; /**< Subscriber to incoming robot acceleration */
+        ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
 
-        typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
-        typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
-        boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
+        // typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
+        // typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
+        // boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
     
-
         geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
         geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
         geometry_msgs::TransformStamped rbt2odom_; /**< Transformation from robot frame to odometry frame */
@@ -390,8 +398,8 @@ namespace dynamic_gap
 
         int currentAgentCount_; /**< Number of agents in environment */
 
-        std::vector<geometry_msgs::Pose> currentTrueAgentPoses_; /**< Ground truth poses of agents currently in local environment */
-        std::vector<geometry_msgs::Vector3Stamped> currentTrueAgentVels_; /**< Ground truth velocities of agents currently in local environment */
+        std::map<std::string, geometry_msgs::Pose> currentTrueAgentPoses_; /**< Ground truth poses of agents currently in local environment */
+        std::map<std::string, geometry_msgs::Vector3Stamped> currentTrueAgentVels_; /**< Ground truth velocities of agents currently in local environment */
 
         std::vector<Eigen::Vector4f> currentEstimatedAgentStates_; /**< Estimated states of agents currently in local environment */
 

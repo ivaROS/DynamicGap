@@ -2,6 +2,8 @@
 
 #include <ros/ros.h>
 
+#include <map>
+
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -75,8 +77,8 @@ namespace dynamic_gap
             virtual void update(const Eigen::Vector2f & measurement, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                const std::vector<geometry_msgs::Pose> & agentPoses,
-                                const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
+                                const std::map<std::string, geometry_msgs::Pose> & agentPoses,
+                                const std::map<std::string, geometry_msgs::Vector3Stamped> & agentVels,
                                 const ros::Time & tUpdate) = 0;
 
             /**

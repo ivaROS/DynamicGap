@@ -51,8 +51,8 @@ namespace dynamic_gap
         Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
         // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
         
-        Eigen::Vector2d maxRbtVel(cfg_->control.vx_absmax, cfg_->control.vy_absmax);
-        // Eigen::Vector2d maxRbtAcc(cfg_->control.ax_absmax, cfg_->control.ay_absmax);
+        Eigen::Vector2d maxRbtVel(cfg_->rbt.vx_absmax, cfg_->rbt.vy_absmax);
+        // Eigen::Vector2d maxRbtAcc(cfg_->rbt.ax_absmax, cfg_->rbt.ay_absmax);
 
         // Eigen::MatrixXd gapCurvesPosns, gapCurvesInwardNorms, 
         //                 gapSideAHPFCenters, allAHPFCenters;

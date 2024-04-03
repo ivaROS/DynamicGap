@@ -31,8 +31,8 @@ namespace dynamic_gap
         propagatedEgocirclePublisher_.publish(propagatedScan);
     }
 
-    std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScanCheat(const std::vector<geometry_msgs::Pose> & currentTrueAgentPoses,
-                                                                                                const std::vector<geometry_msgs::Vector3Stamped> & currentTrueAgentVels)
+    std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScanCheat(const std::map<std::string, geometry_msgs::Pose> & currentTrueAgentPoses,
+                                                                                                const std::map<std::string, geometry_msgs::Vector3Stamped> & currentTrueAgentVels)
     {
         // boost::mutex::scoped_lock staticScanLock(staticScanMutex_);
         // boost::mutex::scoped_lock scanLock(scanMutex_);
@@ -64,10 +64,17 @@ namespace dynamic_gap
             std::vector<Eigen::Vector4f> currentAgents;
             
             Eigen::Vector4f ithAgentState;
-            for (int i = 0; i < currentTrueAgentPoses.size(); i++) 
+            for ( const auto &pair : currentTrueAgentPoses ) 
             {
-                ithAgentState << currentTrueAgentPoses.at(i).position.x, currentTrueAgentPoses.at(i).position.y, 
-                                currentTrueAgentVels.at(i).vector.x, currentTrueAgentVels.at(i).vector.y;
+            // for (itr = currentTrueAgentPoses.begin(); itr != currentTrueAgentPoses.end(); ++itr)     
+            // {        
+            // for (int i = 0; i < currentTrueAgentPoses.size(); i++) 
+            // {
+                std::string key = pair.first;
+                geometry_msgs::Pose agentPose = pair.second;
+                geometry_msgs::Vector3Stamped agentVel = currentTrueAgentVels.find(key)->second;
+                ithAgentState << agentPose.position.x, agentPose.position.y, 
+                                    agentVel.vector.x, agentVel.vector.y;
                 currentAgents.push_back(ithAgentState);
             }
 

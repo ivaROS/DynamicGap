@@ -1,6 +1,8 @@
 #pragma once
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <map>
+
 #include <dynamic_gap/utils/Gap.h>
 #include <sensor_msgs/LaserScan.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
@@ -25,8 +27,8 @@ namespace dynamic_gap
             /**
             * \brief Function for propagating laser scans forward for collision checking in the future 
             */
-            std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScanCheat(const std::vector<geometry_msgs::Pose> & currentTrueAgentPoses,
-                                                                                const std::vector<geometry_msgs::Vector3Stamped> & currentTrueAgentVels);
+            std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScanCheat(const std::map<std::string, geometry_msgs::Pose> & currentTrueAgentPoses,
+                                                                                const std::map<std::string, geometry_msgs::Vector3Stamped> & currentTrueAgentVels);
 
         private:
 

@@ -75,12 +75,12 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
             void transfer(const Estimator & placeholder);
 
-            void update(const Eigen::Vector2f & measurement,
+            void update(const Eigen::Vector2f & measurement, 
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                        const std::vector<geometry_msgs::Pose> & agentPoses,
-                        const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                        const ros::Time & t_kf_update);
+                        const std::map<std::string, geometry_msgs::Pose> & agentPoses,
+                        const std::map<std::string, geometry_msgs::Vector3Stamped> & agentVels,
+                        const ros::Time & tUpdate);
 
             /**
             * \brief Helper function for integrating estimator state forward in time

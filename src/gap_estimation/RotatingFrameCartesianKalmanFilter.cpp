@@ -189,9 +189,9 @@ namespace dynamic_gap
     void RotatingFrameCartesianKalmanFilter::update(const Eigen::Vector2f & measurement, 
                                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                                    const std::vector<geometry_msgs::Pose> & agentPoses,
-                                                    const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                                    const ros::Time & t_update) 
+                                                    const std::map<std::string, geometry_msgs::Pose> & agentPoses,
+                                                    const std::map<std::string, geometry_msgs::Vector3Stamped> & agentVels,
+                                                    const ros::Time & t_update)
     {    
         // acceleration and velocity come in wrt robot frame
         intermediateRbtVels_ = intermediateRbtVels;

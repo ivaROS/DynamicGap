@@ -23,7 +23,6 @@ DynamicGapPlanner:
     r_unity: 0.35
     r_zero: 1.0
 
-    synthesized_frame: True
     scale: 1.0
     integrate_maxt: 5
     integrate_stept: 0.50
