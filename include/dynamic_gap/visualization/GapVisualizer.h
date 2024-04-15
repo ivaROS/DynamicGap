@@ -51,29 +51,35 @@ namespace dynamic_gap
             void initialize(ros::NodeHandle& nh, 
                             const dynamic_gap::DynamicGapConfig& cfg);
 
-            /**
-            * \brief Helper function for visualizing single gap
-            * \param markerArray marker array to add gap marker to
-            * \param gap gap to visualize
-            * \param ns namespace of gap to visualize
-            * \param initial boolean for if we are visualizing initial gap or terminal gap
-            */
-            void drawGap(visualization_msgs::MarkerArray & markerArray, 
-                         dynamic_gap::Gap * gap, 
-                         const std::string & ns, 
-                         const bool & initial);
+            // /**
+            // * \brief Helper function for visualizing single gap
+            // * \param markerArray marker array to add gap marker to
+            // * \param gap gap to visualize
+            // * \param ns namespace of gap to visualize
+            // * \param initial boolean for if we are visualizing initial gap or terminal gap
+            // */
+            // void drawGap(visualization_msgs::MarkerArray & markerArray, 
+            //              dynamic_gap::Gap * gap, 
+            //              const std::string & ns, 
+            //              const bool & initial);
 
-            /**
-            * \brief Helper function for visualizing single manipulated gap
-            * \param markerArray marker array to add gap marker to
-            * \param gap manipulated gap to visualize
-            * \param ns namespace of manipulated gap to visualize
-            * \param initial boolean for if we are visualizing initial gap or terminal gap
-            */
-            void drawManipGap(visualization_msgs::MarkerArray & markerArray, 
-                              dynamic_gap::Gap * gap, 
-                              const std::string & ns, 
-                              const bool & initial);
+            void drawGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
+                            const std::string & ns, const bool & initial);
+
+            // /**
+            // * \brief Helper function for visualizing single manipulated gap
+            // * \param markerArray marker array to add gap marker to
+            // * \param gap manipulated gap to visualize
+            // * \param ns namespace of manipulated gap to visualize
+            // * \param initial boolean for if we are visualizing initial gap or terminal gap
+            // */
+            // void drawManipGap(visualization_msgs::MarkerArray & markerArray, 
+            //                   dynamic_gap::Gap * gap, 
+            //                   const std::string & ns, 
+            //                   const bool & initial);
+
+            void drawManipGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
+                                        const std::string & ns, const bool & initial);
 
             /**
             * \brief Helper function for visualizing a single gap's left and right point models
@@ -103,7 +109,10 @@ namespace dynamic_gap
 
             // void drawReachableGapCenters(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
 
-            void drawReachableGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
+            void drawReachableGap(visualization_msgs::Marker & marker, 
+                                    const std::vector<dynamic_gap::Gap *> & gaps,
+                                    const int & highestScoreTrajIdx);
+            // void drawReachableGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
             // void drawReachableGapNoRGE(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
             
             // void drawGapSpline(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap);
