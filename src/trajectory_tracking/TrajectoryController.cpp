@@ -169,7 +169,7 @@ namespace dynamic_gap
         // obtain feedback velocities
         float velLinXFeedback = errorX * cfg_->control.k_fb_x;
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
-        float velAngFeedback = errorTheta * KFeedbackTheta_;
+        float velAngFeedback = cfg_->planning.heading * errorTheta * KFeedbackTheta_;
 
         float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
@@ -259,17 +259,20 @@ namespace dynamic_gap
             velLinXFeedback += weightedVelLinXSafe;
             velLinYFeedback += weightedVelLinYSafe;
 
-            // if angular error is large, rotate first 
-            // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-            if (std::abs(velAngFeedback) > 0.50)
+            if (cfg_->planning.heading)
             {
-                velLinXFeedback = 0.0;
-                velLinYFeedback = 0.0;
-            }
+                // if angular error is large, rotate first 
+                // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
+                if (std::abs(velAngFeedback) > 0.50)
+                {
+                    velLinXFeedback = 0.0;
+                    velLinYFeedback = 0.0;
+                }                
 
-            // do not want robot to drive backwards
-            if (velLinXFeedback < 0)
-                velLinXFeedback = 0;            
+                // do not want robot to drive backwards
+                if (velLinXFeedback < 0)
+                    velLinXFeedback = 0;   
+            }         
 
         } else 
         {
@@ -283,7 +286,7 @@ namespace dynamic_gap
             //     velAngFeedback *= 2;
             // }
 
-            if(velLinXFeedback < 0)
+            if (velLinXFeedback < 0)
                 velLinXFeedback = 0;
         }
 

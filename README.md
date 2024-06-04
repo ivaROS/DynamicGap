@@ -1,4 +1,15 @@
 ### Dependencies and Installation
+
+Dependency | Version |
+--- | --- | 
+ROS | Noetic |
+CMake | 3.16 |
+OSQP | v0.6.2 |
+OsqpEigen | v0.8.0 |
+`stdr_simulator` | Current |
+`modify_stdr_scan` | Current |
+`navigation_test` | Current |
+
 This planner is designed to run on ROS Noetic / Ubuntu 20.04.
 
 First, install [ROS Noetic](http://wiki.ros.org/noetic/Installation).
@@ -15,7 +26,7 @@ We also need a custom package to allow for detection of other agents in the simu
 
 ``` git clone https://github.com/max-assel/modify_stdr_scan.git```
 
-Within the planner, we use the OsqpEigen library to generate trajectories. You can follow the installation instructions [here](https://github.com/robotology/osqp-eigen).
+Within the planner, we use the OsqpEigen library to generate trajectories. You can follow the installation instructions [here](https://github.com/robotology/osqp-eigen). 
 
 Lastly, we use the `navigation_test` repository to set up and queue experiments:
 

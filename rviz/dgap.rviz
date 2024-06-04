@@ -8,16 +8,23 @@ Panels:
         - /Map1
         - /Egorobot Data1
         - /Egorobot Data1/LaserScan1
+        - /Egorobot Data1/LaserScan2
         - /Egorobot Data1/Axes1
         - /Egorobot Data1/LaserScan3
         - /Dynamic Gap1
         - /Dynamic Gap1/Gaps1
+        - /Dynamic Gap1/Gaps1/Marker1
+        - /Dynamic Gap1/Gaps1/Marker2
+        - /Dynamic Gap1/Gaps1/Marker3
+        - /Dynamic Gap1/Gaps1/Marker4
+        - /Dynamic Gap1/Gaps1/Marker5
+        - /Dynamic Gap1/Gaps1/Marker6
         - /Dynamic Gap1/Models1
         - /Dynamic Gap1/Models1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/Marker1
-        - /MarkerArray2
+        - /Dynamic Gap1/Trajectories1/MarkerArray2
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -79,7 +86,7 @@ Visualization Manager:
           Color: 85; 170; 255
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 85; 170; 255
           Min Color: 85; 170; 255
@@ -90,11 +97,11 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot10/laser_0
+          Topic: /robot2/laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -118,7 +125,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot10/mod_laser_0
+          Topic: /robot2/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -129,11 +136,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-<<<<<<< HEAD
-          Reference Frame: robot5
-=======
-          Reference Frame: robot10
->>>>>>> dev/wip
+          Reference Frame: robot2
           Show Trail: false
           Value: true
         - Alpha: 1
@@ -170,36 +173,12 @@ Visualization Manager:
       Displays:
         - Class: rviz/Group
           Displays:
-            - Class: rviz/MarkerArray
-              Enabled: true
-              Marker Topic: /reachable_gaps
-              Name: MarkerArray
-              Namespaces:
-                manip_initial: true
-              Queue Size: 100
-              Value: true
-            - Class: rviz/MarkerArray
+            - Class: rviz/Marker
               Enabled: true
               Marker Topic: /gap_goals
-              Name: MarkerArray
+              Name: Marker
               Namespaces:
-                {}
-              Queue Size: 100
-              Value: true
-            - Class: rviz/MarkerArray
-              Enabled: true
-              Marker Topic: /simp_gaps
-              Name: MarkerArray
-              Namespaces:
-                simp: true
-              Queue Size: 100
-              Value: true
-            - Class: rviz/MarkerArray
-              Enabled: true
-              Marker Topic: /raw_gaps
-              Name: MarkerArray
-              Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -210,12 +189,36 @@ Visualization Manager:
                 local_goal: true
               Queue Size: 100
               Value: true
-            - Class: rviz/MarkerArray
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /raw_gaps
+              Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /simp_gaps
+              Name: Marker
+              Namespaces:
+                simp: true
+              Queue Size: 100
+              Value: true
+            - Class: rviz/Marker
               Enabled: true
               Marker Topic: /manip_gaps
-              Name: MarkerArray
+              Name: Marker
               Namespaces:
                 manip: true
+              Queue Size: 100
+              Value: true
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /reachable_gaps
+              Name: Marker
+              Namespaces:
+                reachableGaps: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -285,13 +288,21 @@ Visualization Manager:
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /gap_splines
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /traj_score
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
           Enabled: true
           Name: Trajectories
         - Class: rviz/Marker
@@ -381,7 +392,7 @@ Visualization Manager:
           Marker Topic: /robot3/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -389,7 +400,7 @@ Visualization Manager:
           Marker Topic: /robot4/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -397,7 +408,7 @@ Visualization Manager:
           Marker Topic: /robot5/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -405,7 +416,7 @@ Visualization Manager:
           Marker Topic: /robot6/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -413,7 +424,7 @@ Visualization Manager:
           Marker Topic: /robot7/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -421,7 +432,7 @@ Visualization Manager:
           Marker Topic: /robot8/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -429,7 +440,7 @@ Visualization Manager:
           Marker Topic: /robot9/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -437,7 +448,7 @@ Visualization Manager:
           Marker Topic: /robot10/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -562,22 +573,6 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Agents
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /dg_model_vel_error
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /traj_score
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -606,11 +601,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-<<<<<<< HEAD
-      Distance: 44.80790328979492
-=======
-      Distance: 13.517746925354004
->>>>>>> dev/wip
+      Distance: 15.50129508972168
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -618,23 +609,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-<<<<<<< HEAD
-        X: -1.1229801177978516
-        Y: -0.16114011406898499
-        Z: -4.256312847137451
-=======
-        X: -8.205202102661133
-        Y: -0.4293438494205475
-        Z: -4.272165775299072
->>>>>>> dev/wip
+        X: -7.105310440063477
+        Y: -1.5776065587997437
+        Z: -4.271064758300781
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5647963285446167
-      Target Frame: robot24
-      Yaw: 3.1404008865356445
+      Pitch: 1.5697963237762451
+      Target Frame: <Fixed Frame>
+      Yaw: 3.1354007720947266
     Saved: ~
 Window Geometry:
   Displays:
