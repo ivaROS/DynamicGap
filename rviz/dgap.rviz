@@ -8,6 +8,7 @@ Panels:
         - /Map1
         - /Egorobot Data1
         - /Egorobot Data1/LaserScan1
+        - /Egorobot Data1/LaserScan2
         - /Egorobot Data1/Axes1
         - /Egorobot Data1/LaserScan3
         - /Dynamic Gap1
@@ -85,7 +86,7 @@ Visualization Manager:
           Color: 85; 170; 255
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 85; 170; 255
           Min Color: 85; 170; 255
@@ -100,7 +101,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -124,7 +125,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot10/mod_laser_0
+          Topic: /robot2/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -177,7 +178,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -600,7 +601,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.190711975097656
+      Distance: 15.50129508972168
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -608,9 +609,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -6.020109176635742
-        Y: -1.1269950866699219
-        Z: -4.269985675811768
+        X: -7.105310440063477
+        Y: -1.5776065587997437
+        Z: -4.271064758300781
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
