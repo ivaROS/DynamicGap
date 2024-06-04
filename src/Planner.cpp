@@ -1288,7 +1288,7 @@ namespace dynamic_gap
         // gapVisualizer_->drawReachableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);
-        // goalVisualizer_->drawGapGoals(manipulatedGaps);
+        goalVisualizer_->drawGapGoals(manipulatedGaps);
     }
 
     void Planner::printGapModels(const std::vector<dynamic_gap::Gap *> & gaps) 
