@@ -76,6 +76,8 @@ namespace dynamic_gap
 
         this->x_hat_k_minus_ = x_hat_kmin1_plus_; 
         this->x_hat_k_plus_ = x_hat_kmin1_plus_;
+
+        this->tStart_ = ros::Time::now();
     }
 
     // For transferring an existing model state to a new model
@@ -116,6 +118,8 @@ namespace dynamic_gap
         // this->STM_ = model.STM_;
 
         // this->eyes = model.eyes;
+
+        this->tStart_ = model.tStart_;
 
         return;
     }
@@ -345,5 +349,19 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapEstimation", "    -----------");
 
         return;
+    }    
+
+    Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState()
+    { 
+        Eigen::Vector4f state = x_hat_k_plus_;
+
+        // if model is still fairly fresh and not converged, just assume it is attached to a static part of the environment
+        if ((tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_)
+        {
+            state[2] = 0.0 - lastRbtVel_.twist.linear.x;
+            state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
+        } 
+
+        return state;  
     }    
 }
