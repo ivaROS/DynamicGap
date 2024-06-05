@@ -42,6 +42,7 @@ namespace dynamic_gap
             geometry_msgs::TwistStamped lastRbtVel_; /**< most recent ego-robot velocity from last model update */
             geometry_msgs::TwistStamped lastRbtAcc_; /**< most recent ego-robot acceleration from last model update */   
 
+            ros::Time tStart_; /**< time of model initialization */
             ros::Time tLastUpdate_; /**< time of last model update */
 
             /**
@@ -142,10 +143,10 @@ namespace dynamic_gap
             }
 
             /**
-            * \brief Getter function for relative estimator state
+            * \brief Virtual getter function for relative estimator state
             * \return relative (gap-robot) estimator state
             */                 
-            Eigen::Vector4f getState() { return x_hat_k_plus_; };
+            virtual Eigen::Vector4f getState() = 0;
 
             /**
             * \brief Getter function for non-relative estimator state

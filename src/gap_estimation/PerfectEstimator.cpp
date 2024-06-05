@@ -176,4 +176,9 @@ namespace dynamic_gap
 
         return return_x;
     }
+
+    Eigen::Vector4f PerfectEstimator::getState()
+    { 
+        return x_hat_k_plus_; 
+    }
 }
