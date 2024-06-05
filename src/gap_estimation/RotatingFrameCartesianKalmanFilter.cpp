@@ -355,6 +355,7 @@ namespace dynamic_gap
     { 
         Eigen::Vector4f state = x_hat_k_plus_;
 
+        // if model is still fairly fresh and not converged, just assume it is attached to a static part of the environment
         if ((tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_)
         {
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
