@@ -57,6 +57,12 @@ namespace dynamic_gap
                         const ros::Time & tUpdate);
  
             /**
+            * \brief Getter function for relative estimator state
+            * \return relative (gap-robot) estimator state
+            */     
+            Eigen::Vector4f getState();
+
+            /**
             * \brief use ground truth information on agent poses and velocities to perfectly update model state
 
             * \return updated model state

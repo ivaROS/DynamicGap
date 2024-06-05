@@ -60,8 +60,7 @@ namespace dynamic_gap
             Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
             Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
 
-            // std::vector<geometry_msgs::Pose> agentPoses_;
-            // std::vector<geometry_msgs::Vector3Stamped> agentVels_;
+            double lifetimeThreshold_ = 1.5; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
         public:
 
@@ -98,6 +97,12 @@ namespace dynamic_gap
             * \brief Helper function for discretizing continuous form of covariance noise matrix
             * \param idx index of intermediate update to discretize for 
             */                 
-            void discretizeQ(const int & idx);                        
+            void discretizeQ(const int & idx); 
+
+            /**
+            * \brief Getter function for relative estimator state
+            * \return relative (gap-robot) estimator state
+            */     
+            Eigen::Vector4f getState();
      };
 }
