@@ -51,93 +51,101 @@ namespace dynamic_gap
             return true;
         }
 
-        // Config Setup
-        cfg_.loadRosParamFromNodeHandle(nh);
-
-        // Visualization Setup
-        currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
-        // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
-        
-        // Robot laser scan message subscriber
-        laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
-        
-        // Robot odometry message subscriber
-        rbtOdomSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
-
-        // Robot acceleration message subscriber        
-        rbtImuSub_ = nh_.subscribe(cfg_.imu_topic, 10, &Planner::egoRobotImuCB, this);
-
-        // sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
-        // sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
-
-        pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
-
-        // for (int i = 0; i < ; i++)
-        //     agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, 
-        //                                                     &Planner::agentOdomCB, this));
-
-        // TF Lookup setup
-        tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
         initialized_ = true;
 
-        gapDetector_ = new dynamic_gap::GapDetector(cfg_);
-        gapAssociator_ = new dynamic_gap::GapAssociator(nh_, cfg_);
-        // staticScanSeparator_ = new dynamic_gap::StaticScanSeparator(cfg_);
-        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
-
-        goalSelector_ = new dynamic_gap::GoalSelector(nh_, cfg_);
-        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
-
-        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh_, cfg_);
-
-        gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
-
-        navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
-        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
-
-        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
-
-        trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
-        trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
-        trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
-
-
-        // MAP FRAME ID SHOULD BE: known_map
-        // ODOM FRAME ID SHOULD BE: map_static
-
-        map2rbt_.transform.rotation.w = 1;
-        odom2rbt_.transform.rotation.w = 1;
-        rbt2odom_.transform.rotation.w = 1;
-        rbtPoseInRbtFrame_.pose.orientation.w = 1;
-        rbtPoseInRbtFrame_.header.frame_id = cfg_.robot_frame_id;
-
-        cmdVelBuffer_.set_capacity(cfg_.planning.halt_size);
-
-        currentRbtVel_ = geometry_msgs::TwistStamped();
-        currentRbtAcc_ = geometry_msgs::TwistStamped();
-        
-        rbtPoseInOdomFrame_ = geometry_msgs::PoseStamped();
-        globalGoalRobotFrame_ = geometry_msgs::PoseStamped();
-
-        // currentAgentCount_ = cfg_.env.num_agents;
-
-        // currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
-        // currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
-
-        // futureScans_.push_back(tmpScan);
-        // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
-        //     futureScans_.push_back(tmpScan);
-
-        // staticScan_ = sensor_msgs::LaserScan();
-        // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
-        // ROS_INFO_STREAM("done initializing");
-
-        intermediateRbtVels_.clear();
-        intermediateRbtAccs_.clear();
-
-        tPreviousModelUpdate_ = ros::Time::now();
+        ROS_INFO_STREAM("cfg_.scan_topic: " << cfg_.scan_topic);
+        ROS_INFO_STREAM("cfg_.odom_topic: " << cfg_.odom_topic);
+        ROS_INFO_STREAM("cfg_.imu_topic: " << cfg_.imu_topic);
+        ROS_INFO_STREAM("cfg_.ped_topic: " << cfg_.ped_topic);
 
         return true;
+
+        // // Config Setup
+        // cfg_.loadRosParamFromNodeHandle(nh);
+
+        // // Visualization Setup
+        // currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
+        // // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
+        
+        // // Robot laser scan message subscriber
+        // laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
+        
+        // // Robot odometry message subscriber
+        // rbtOdomSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
+
+        // // Robot acceleration message subscriber        
+        // rbtImuSub_ = nh_.subscribe(cfg_.imu_topic, 10, &Planner::egoRobotImuCB, this);
+
+        // // sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
+        // // sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
+
+        // pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
+
+        // // for (int i = 0; i < ; i++)
+        // //     agentPoseSubs_.push_back(nh_.subscribe("/robot" + std::to_string(i) + "/odom", 5, 
+        // //                                                     &Planner::agentOdomCB, this));
+
+        // // TF Lookup setup
+        // tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
+
+        // gapDetector_ = new dynamic_gap::GapDetector(cfg_);
+        // gapAssociator_ = new dynamic_gap::GapAssociator(nh_, cfg_);
+        // // staticScanSeparator_ = new dynamic_gap::StaticScanSeparator(cfg_);
+        // gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
+
+        // goalSelector_ = new dynamic_gap::GoalSelector(nh_, cfg_);
+        // goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
+
+        // gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh_, cfg_);
+
+        // gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
+
+        // navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
+        // gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
+
+        // dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
+
+        // trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
+        // trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
+        // trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
+
+
+        // // MAP FRAME ID SHOULD BE: known_map
+        // // ODOM FRAME ID SHOULD BE: map_static
+
+        // map2rbt_.transform.rotation.w = 1;
+        // odom2rbt_.transform.rotation.w = 1;
+        // rbt2odom_.transform.rotation.w = 1;
+        // rbtPoseInRbtFrame_.pose.orientation.w = 1;
+        // rbtPoseInRbtFrame_.header.frame_id = cfg_.robot_frame_id;
+
+        // cmdVelBuffer_.set_capacity(cfg_.planning.halt_size);
+
+        // currentRbtVel_ = geometry_msgs::TwistStamped();
+        // currentRbtAcc_ = geometry_msgs::TwistStamped();
+        
+        // rbtPoseInOdomFrame_ = geometry_msgs::PoseStamped();
+        // globalGoalRobotFrame_ = geometry_msgs::PoseStamped();
+
+        // // currentAgentCount_ = cfg_.env.num_agents;
+
+        // // currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
+        // // currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
+
+        // // futureScans_.push_back(tmpScan);
+        // // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
+        // //     futureScans_.push_back(tmpScan);
+
+        // // staticScan_ = sensor_msgs::LaserScan();
+        // // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
+        // // ROS_INFO_STREAM("done initializing");
+
+        // intermediateRbtVels_.clear();
+        // intermediateRbtAccs_.clear();
+
+        // tPreviousModelUpdate_ = ros::Time::now();
+
+        // return true;
     }
 
     bool Planner::isGoalReached()
@@ -1043,122 +1051,124 @@ namespace dynamic_gap
 
     dynamic_gap::Trajectory Planner::runPlanningLoop() 
     {
-        if (!readyToPlan)
-            return dynamic_gap::Trajectory();
+        return dynamic_gap::Trajectory();
 
-        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]");
+        // if (!readyToPlan)
+            // return dynamic_gap::Trajectory();
 
-        bool isCurrentGapFeasible = false; // isCurrentGapAssociated, 
+        // ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]");
 
-        std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
+        // bool isCurrentGapFeasible = false; // isCurrentGapAssociated, 
 
-        ///////////////////////////
-        // GAP FEASIBILITY CHECK //
-        ///////////////////////////
-        std::vector<dynamic_gap::Gap *> feasibleGaps;
-        std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
-        if (cfg_.planning.gap_feasibility_check)
-        {
-            feasibleGaps = gapSetFeasibilityCheck(isCurrentGapFeasible);
-        } else
-        {
-            for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
-                feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
-            // feasibleGaps = currSimplifiedGaps_;
-            // need to set feasible to true for all gaps as well
-        }
-        int gapCount = feasibleGaps.size();
-        float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck() for " << gapCount << " gaps: " << feasibilityTimeTaken << " seconds]");
+        // std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
-        /////////////////////////////
-        // FUTURE SCAN PROPAGATION //
-        /////////////////////////////
-        std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
-        // if (cfg_.planning.future_scan_propagation)
+        // ///////////////////////////
+        // // GAP FEASIBILITY CHECK //
+        // ///////////////////////////
+        // std::vector<dynamic_gap::Gap *> feasibleGaps;
+        // std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
+        // if (cfg_.planning.gap_feasibility_check)
         // {
+        //     feasibleGaps = gapSetFeasibilityCheck(isCurrentGapFeasible);
+        // } else
+        // {
+        //     for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
+        //         feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
+        //     // feasibleGaps = currSimplifiedGaps_;
+        //     // need to set feasible to true for all gaps as well
+        // }
+        // int gapCount = feasibleGaps.size();
+        // float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck() for " << gapCount << " gaps: " << feasibilityTimeTaken << " seconds]");
+
+        // /////////////////////////////
+        // // FUTURE SCAN PROPAGATION //
+        // /////////////////////////////
+        // std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
+        // // if (cfg_.planning.future_scan_propagation)
+        // // {
         
-        std::vector<sensor_msgs::LaserScan> futureScans;
-        if (cfg_.planning.egocircle_prop_cheat) 
-            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
-        else
-            throw std::runtime_error("Egocircle propagation is not implemented yet!");
+        // std::vector<sensor_msgs::LaserScan> futureScans;
+        // if (cfg_.planning.egocircle_prop_cheat) 
+        //     futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+        // else
+        //     throw std::runtime_error("Egocircle propagation is not implemented yet!");
+        // // } else 
+        // // {
+        // //     sensor_msgs::LaserScan currentScan = *scan_.get();
+        // //     for (int i = 0; i < futureScans_.size(); i++)
+        // //         futureScans_.at(i) = currentScan;
+        // // }
+        // float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
+        
+        // //////////////////////
+        // // GAP MANIPULATION //
+        // //////////////////////
+        // std::chrono::steady_clock::time_point gapManipulateStartTime = std::chrono::steady_clock::now();
+        // std::vector<dynamic_gap::Gap *> manipulatedGaps = gapManipulate(feasibleGaps);
+        // float gapManipulationTimeTaken = timeTaken(gapManipulateStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[gapManipulate() for " << gapCount << " gaps: " << gapManipulationTimeTaken << " seconds]");
+
+        // ///////////////////////////////////////////
+        // // GAP TRAJECTORY GENERATION AND SCORING //
+        // ///////////////////////////////////////////
+        // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
+        // std::vector<dynamic_gap::Trajectory> trajs;
+        // std::vector<std::vector<float>> pathPoseScores; 
+        // pathPoseScores = generateGapTrajs(manipulatedGaps, trajs, futureScans);
+        // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
+
+        // //////////////////////////////
+        // // GAP TRAJECTORY SELECTION //
+        // //////////////////////////////
+        // std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
+        // int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores);
+        // float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
+
+        // // need to run after generateGapTrajs to see what weights for reachable gap are
+        // visualizeNavigableGaps(manipulatedGaps, highestScoreTrajIdx); 
+
+
+        // dynamic_gap::Trajectory chosenTraj;
+        // if (highestScoreTrajIdx >= 0) 
+        // {
+        //     ///////////////////////////////
+        //     // GAP TRAJECTORY COMPARISON //
+        //     ///////////////////////////////
+        //     std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
+
+        //     chosenTraj = compareToCurrentTraj(manipulatedGaps.at(highestScoreTrajIdx), 
+        //                                       trajs.at(highestScoreTrajIdx),
+        //                                       manipulatedGaps, 
+        //                                       isCurrentGapFeasible,
+        //                                       futureScans);
+        //     float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
+        //     ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
         // } else 
         // {
-        //     sensor_msgs::LaserScan currentScan = *scan_.get();
-        //     for (int i = 0; i < futureScans_.size(); i++)
-        //         futureScans_.at(i) = currentScan;
+        //     // highestScorePath = geometry_msgs::PoseArray();
+        //     // highestScoreGap = dynamic_gap::Gap();
         // }
-        float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
-        
-        //////////////////////
-        // GAP MANIPULATION //
-        //////////////////////
-        std::chrono::steady_clock::time_point gapManipulateStartTime = std::chrono::steady_clock::now();
-        std::vector<dynamic_gap::Gap *> manipulatedGaps = gapManipulate(feasibleGaps);
-        float gapManipulationTimeTaken = timeTaken(gapManipulateStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[gapManipulate() for " << gapCount << " gaps: " << gapManipulationTimeTaken << " seconds]");
 
-        ///////////////////////////////////////////
-        // GAP TRAJECTORY GENERATION AND SCORING //
-        ///////////////////////////////////////////
-        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        std::vector<dynamic_gap::Trajectory> trajs;
-        std::vector<std::vector<float>> pathPoseScores; 
-        pathPoseScores = generateGapTrajs(manipulatedGaps, trajs, futureScans);
-        float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
+        // float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
+        // ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
 
-        //////////////////////////////
-        // GAP TRAJECTORY SELECTION //
-        //////////////////////////////
-        std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores);
-        float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
+        // // delete feasible/manipulated set of gaps
+        // for (dynamic_gap::Gap * manipulatedGap : manipulatedGaps)
+        // {
+        //     // KEEP CURRENT GAP
+        //     if (manipulatedGap == currentGap_)
+        //         continue;
+        //     else
+        //         delete manipulatedGap;
+        // }
+        // // feasibleGaps.clear();
+        // // manipulatedGaps.clear();
 
-        // need to run after generateGapTrajs to see what weights for reachable gap are
-        visualizeNavigableGaps(manipulatedGaps, highestScoreTrajIdx); 
-
-
-        dynamic_gap::Trajectory chosenTraj;
-        if (highestScoreTrajIdx >= 0) 
-        {
-            ///////////////////////////////
-            // GAP TRAJECTORY COMPARISON //
-            ///////////////////////////////
-            std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
-
-            chosenTraj = compareToCurrentTraj(manipulatedGaps.at(highestScoreTrajIdx), 
-                                              trajs.at(highestScoreTrajIdx),
-                                              manipulatedGaps, 
-                                              isCurrentGapFeasible,
-                                              futureScans);
-            float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
-            ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
-        } else 
-        {
-            // highestScorePath = geometry_msgs::PoseArray();
-            // highestScoreGap = dynamic_gap::Gap();
-        }
-
-        float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
-
-        // delete feasible/manipulated set of gaps
-        for (dynamic_gap::Gap * manipulatedGap : manipulatedGaps)
-        {
-            // KEEP CURRENT GAP
-            if (manipulatedGap == currentGap_)
-                continue;
-            else
-                delete manipulatedGap;
-        }
-        // feasibleGaps.clear();
-        // manipulatedGaps.clear();
-
-        return chosenTraj;
+        // return chosenTraj;
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory) 
@@ -1167,60 +1177,60 @@ namespace dynamic_gap
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
-        try
-        {
+        // try
+        // {
 
-            if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
-            {
-                ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
-                rawCmdVel = trajController_->manualControlLaw();
-            } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
-            { 
-                ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
-                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
-                return rawCmdVel;
-            } else // FEEDBACK CONTROL 
-            {
-                ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
+        //     if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
+        //     {
+        //         ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
+        //         rawCmdVel = trajController_->manualControlLaw();
+        //     } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+        //     { 
+        //         ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
+        //         rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+        //         return rawCmdVel;
+        //     } else // FEEDBACK CONTROL 
+        //     {
+        //         ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
 
-                // Know Current Pose
-                geometry_msgs::PoseStamped currPoseStRobotFrame;
-                currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
-                currPoseStRobotFrame.pose.orientation.w = 1;
-                geometry_msgs::PoseStamped currPoseStampedOdomFrame;
-                currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
-                tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
-                geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
+        //         // Know Current Pose
+        //         geometry_msgs::PoseStamped currPoseStRobotFrame;
+        //         currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
+        //         currPoseStRobotFrame.pose.orientation.w = 1;
+        //         geometry_msgs::PoseStamped currPoseStampedOdomFrame;
+        //         currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
+        //         tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
+        //         geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
 
-                // obtain current robot pose in odom frame
+        //         // obtain current robot pose in odom frame
 
-                // traj in odom frame here
+        //         // traj in odom frame here
 
-                // get point along trajectory to target/move towards
-                targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
-                // nav_msgs::Odometry ctrl_target_pose;
-                // geometry_msgs::Pose targetTrajectoryPose;
-                // ctrl_target_pose.header = traj.header;
-                // ctrl_target_pose.pose.pose = traj.poses.at(targetTrajectoryPoseIdx_);
-                geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
-                // ctrl_target_pose.twist.twist = geometry_msgs::Twist(); // orig_ref.twist.at(targetTrajectoryPoseIdx_);
+        //         // get point along trajectory to target/move towards
+        //         targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
+        //         // nav_msgs::Odometry ctrl_target_pose;
+        //         // geometry_msgs::Pose targetTrajectoryPose;
+        //         // ctrl_target_pose.header = traj.header;
+        //         // ctrl_target_pose.pose.pose = traj.poses.at(targetTrajectoryPoseIdx_);
+        //         geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
+        //         // ctrl_target_pose.twist.twist = geometry_msgs::Twist(); // orig_ref.twist.at(targetTrajectoryPoseIdx_);
                 
-                // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
-                // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
+        //         // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
+        //         // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
                 
-                rawCmdVel = trajController_->controlLaw(currPoseOdomFrame, targetTrajectoryPose, 
-                                                        currentPeakSplineVel_);
-            }
-            // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
+        //         rawCmdVel = trajController_->controlLaw(currPoseOdomFrame, targetTrajectoryPose, 
+        //                                                 currentPeakSplineVel_);
+        //     }
+        //     // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
 
-            cmdVel = trajController_->processCmdVel(rawCmdVel,
-                                                    rbtPoseInSensorFrame_, 
-                                                    currLeftGapPtModel_, currRightGapPtModel_,
-                                                    currentRbtVel_, currentRbtAcc_); 
-        } catch (...)
-        {
-            ROS_WARN_STREAM_NAMED("Controller", "ctrlGeneration failed");
-        }
+        //     cmdVel = trajController_->processCmdVel(rawCmdVel,
+        //                                             rbtPoseInSensorFrame_, 
+        //                                             currLeftGapPtModel_, currRightGapPtModel_,
+        //                                             currentRbtVel_, currentRbtAcc_); 
+        // } catch (...)
+        // {
+        //     ROS_WARN_STREAM_NAMED("Controller", "ctrlGeneration failed");
+        // }
 
         return cmdVel;
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <ros/console.h>
 
 // #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>

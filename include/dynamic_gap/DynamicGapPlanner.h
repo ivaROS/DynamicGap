@@ -1,6 +1,10 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <ros/console.h>
+
+// move_base_flex
+#include <mbf_costmap_core/costmap_controller.h>
 #include <nav_core/base_local_planner.h>
 
 // #include <navfn/navfn_ros.h>
@@ -22,7 +26,7 @@ namespace dynamic_gap
     * \brief Class that we will write as our local path planner 
     * plugin for the move_base package
     */
-    class DynamicGapPlanner : public nav_core::BaseLocalPlanner 
+    class DynamicGapPlanner : public nav_core::BaseLocalPlanner, public mbf_costmap_core::CostmapController
     {
         public: 
 
@@ -31,6 +35,54 @@ namespace dynamic_gap
             ~DynamicGapPlanner();
 
             /**
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
+            * @brief Initializes the teb plugin
+            * @param name The name of the instance
+            * @param tf Pointer to a tf buffer
+            * @param costmap_ros Cost map representing occupied and free space
+            */
+            void initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros);
+
+            /**
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
+            * @brief Given the current position, orientation, and velocity of the robot, compute velocity commands
+            * to send to the base.
+            * @param pose the current pose of the robot.
+            * @param velocity the current velocity of the robot.
+            * @param cmd_vel Will be filled with the velocity command to be passed to the robot base.
+            * @param message Optional more detailed outcome as a string
+            * @return Result code as described on ExePath action result:
+            *         SUCCESS           = 0
+            *         1..9 are reserved as plugin specific non-error results
+            *         FAILURE           = 100  # Unspecified failure, only used for old, non-mfb_core based plugins
+            *         CANCELED          = 101
+            *         NO_VALID_CMD      = 102
+            *         PAT_EXCEEDED      = 103
+            *         COLLISION         = 104
+            *         OSCILLATION       = 105
+            *         ROBOT_STUCK       = 106
+            *         MISSED_GOAL       = 107
+            *         MISSED_PATH       = 108
+            *         BLOCKED_GOAL      = 109
+            *         BLOCKED_PATH      = 110
+            *         INVALID_PATH      = 111
+            *         TF_ERROR          = 112
+            *         NOT_INITIALIZED   = 113
+            *         INVALID_PLUGIN    = 114
+            *         INTERNAL_ERROR    = 115
+            *         OUT_OF_MAP        = 116  # The start and / or the goal are outside the map
+            *         MAP_ERROR         = 117  # The map is not running properly
+            *         STOPPED           = 118  # The controller execution has been stopped rigorously
+            *         121..149 are reserved as plugin specific errors
+            */
+            uint32_t computeVelocityCommands(const geometry_msgs::PoseStamped& pose,
+                                                const geometry_msgs::TwistStamped& velocity,
+                                                geometry_msgs::TwistStamped &cmd_vel,
+                                                std::string &message);
+
+
+            /**
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
             * \brief Use local path planner to compute next command velocity
             * \param cmdVel command velocity to update
             * \return boolean for if command velocity was successfully computed
@@ -38,32 +90,34 @@ namespace dynamic_gap
             bool computeVelocityCommands(geometry_msgs::Twist & cmdVel);
 
             /**
-            * \brief Check if global goal has been reached by robot
-            * \return boolean for if global goal has been reached or not
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
+            * @brief  Check if the goal pose has been achieved
+            * The actual check is performed in computeVelocityCommands().
+            * Only the status flag is checked here.
+            * @return True if achieved, false otherwise
             */
             bool isGoalReached();
 
             /**
-            * \brief update current global plan in map frame
-            * \param globalPlanMapFrame incoming global plan in map frame to update with
-            * \return boolean for if global plan update succeeded
+            * @brief Dummy version to satisfy MBF API
+            */
+            bool isGoalReached(double xy_tolerance, double yaw_tolerance) { return isGoalReached(); };
+
+            /**
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
+            * @brief  Set the plan that the local planner is following
+            * @param globalPlanMapFrame The plan to pass to the local planner
+            * @return True if the plan was updated successfully, false otherwise
             */
             bool setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
 
             /**
-            * \brief initialize local path planner plugin
-            * \param name name of the local path planner
-            * \param tf ROS transform buffer
-            * \param costmap incoming local 2D costmap
+            * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
+            * @brief Requests the planner to cancel, e.g. if it takes too much time
+            * @remark New on MBF API
+            * @return True if a cancel has been successfully requested, false if not implemented.
             */
-            void initialize(std::string name, 
-                            tf2_ros::Buffer * tf, 
-                            costmap_2d::Costmap2DROS * costmap);
-
-            /**
-            * Function for resetting planner in case of planning failure
-            */
-            void reset();
+            bool cancel() { return false; };
 
         private:
             dynamic_gap::Planner planner_; /**< Local path planner object */

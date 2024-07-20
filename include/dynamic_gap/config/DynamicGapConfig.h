@@ -138,7 +138,7 @@ namespace dynamic_gap
                 float max_pose_pen_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
                 float c_obs = -1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
                 float pose_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
-                float inf_ratio = 1.21; /**< Inflation ratio for planner */
+                float inf_ratio = 1.20; /**< Inflation ratio for planner */
                 float terminal_weight = 10.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 int num_curve_points = 50; /**< Number of points to use to discretize gap boundary */
             } traj;            

@@ -11,14 +11,16 @@ namespace dynamic_gap
         //      set config parameters in this class using model
 
         std::string model;
-        nh.param("model", model, model);
+        nh.param("/model", model, model);
 
         if (model == "rto")
         {
             // format: key, value, default value
             odom_frame_id = model + "/odom";
-            robot_frame_id = model + "/base_footprint";
-            sensor_frame_id = model + "/base_scan";
+            robot_frame_id = model + "/base_link";
+            sensor_frame_id = model + "/hokuyo_link";
+
+            
             odom_topic = model + "/odom";
             imu_topic = model + "/imu";
             scan_topic = model + "/scan";
