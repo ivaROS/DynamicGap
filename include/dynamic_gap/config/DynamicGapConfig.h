@@ -64,8 +64,8 @@ namespace dynamic_gap
                 int full_scan = 512; /**< Total ray count in scan (integer) */
                 float full_scan_f = 512.; /**< Total ray count in scan (float) */
                 float angle_increment = (2 * M_PI) / (full_scan_f - 1); /**< Angular increment between consecutive scan indices */
-                float range_min = 0.0; /**< Minimum detectable range in scan */
-                float range_max = 4.99; /**< Maximum detectable range in scan */
+                float range_min = 0.03; /**< Minimum detectable range in scan */
+                float range_max = 5.6; /**< Maximum detectable range in scan */
             } scan;
 
             /**

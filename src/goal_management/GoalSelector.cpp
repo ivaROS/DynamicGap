@@ -32,12 +32,12 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("running generateGlobalPathLocalWaypoint");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
-        std::vector<geometry_msgs::PoseStamped> globalPlanSnipperRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
+        std::vector<geometry_msgs::PoseStamped> globalPlanSnippetRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
         
-        if (globalPlanSnipperRobotFrame.size() < 1) // relevant global plan snippet
+        if (globalPlanSnippetRobotFrame.size() < 1) // relevant global plan snippet
             return;
 
-        globalPathLocalWaypointRobotFrame_ = globalPlanSnipperRobotFrame.back();
+        globalPathLocalWaypointRobotFrame_ = globalPlanSnippetRobotFrame.back();
     }
 
     std::vector<geometry_msgs::PoseStamped> GoalSelector::getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt) 

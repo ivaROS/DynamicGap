@@ -21,9 +21,9 @@ namespace dynamic_gap
             sensor_frame_id = model + "/hokuyo_link";
 
             
-            odom_topic = model + "/odom";
+            odom_topic = "odom"; // model + "/odom";
             imu_topic = model + "/imu";
-            scan_topic = model + "/scan";
+            scan_topic = "scan"; // model + "/scan";
 
             // nh.param("map_frame_id", map_frame_id, map_frame_id);
             // nh.param("odom_frame_id", odom_frame_id, odom_frame_id);
@@ -120,8 +120,12 @@ namespace dynamic_gap
         scan.half_scan = scan.full_scan / 2;
         scan.half_scan_f = float(scan.half_scan);        
         scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
-        // scan.range_max = 4.99; // this is the maximum possible range, not the max range within a particular scan
-        // scan.range_min = 0.0;
+
+        scan.range_max = incomingScan.range_max; // this is the maximum possible range, not the max range within a particular scan
+        scan.range_min = incomingScan.range_min;
+
+        ROS_INFO_STREAM("scan.angle_increment: " << scan.angle_increment);
+
     }
 
 }

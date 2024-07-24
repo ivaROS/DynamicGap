@@ -124,8 +124,6 @@ namespace dynamic_gap
             // std::string plannerName_; /**< Local path planner name */
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
 
-            // ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
-
             // std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
             // message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */

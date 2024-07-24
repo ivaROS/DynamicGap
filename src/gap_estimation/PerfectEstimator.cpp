@@ -154,7 +154,6 @@ namespace dynamic_gap
         ROS_INFO_STREAM_COND_NAMED(agentPoses_.size() > 0, "GapEstimation", "closest odom: " << agentPoses_[min_key].position.x << ", " 
                                                                                              << agentPoses_[min_key].position.y);
         
-        float min_dist_thresh = 0.4;
         if (min_dist < min_dist_thresh) 
         {    
             ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to odom");

@@ -73,7 +73,7 @@ namespace dynamic_gap
             * \param nh ROS node handle 
             * \return initialization success / failure
             */
-            bool initialize(const ros::NodeHandle& nh);
+            bool initialize(); // const ros::NodeHandle& nh
 
             /**
             * \brief Check if global goal has been reached by robot
@@ -85,7 +85,7 @@ namespace dynamic_gap
             * \brief Call back function to robot laser scan
             * \param scan incoming laser scan msg
             */
-            void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+            void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan);
 
             /**
             * \brief Function for updating the gap models
@@ -327,6 +327,9 @@ namespace dynamic_gap
     private:
         boost::mutex gapMutex_; /**< Current set of gaps mutex */
         dynamic_gap::DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
+
+        ros::Publisher testPublisher_; /**< ROS publisher for currently tracked trajectory */
+
 
         ros::NodeHandle nh_; /**< ROS node handle for local path planner */
         ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
