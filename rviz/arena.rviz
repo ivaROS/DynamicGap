@@ -316,7 +316,7 @@ Visualization Manager:
           Marker Topic: /rto/reachable_gaps
           Name: Marker
           Namespaces:
-            {}
+            reachableGaps: true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -371,6 +371,23 @@ Visualization Manager:
           Value: false
       Enabled: true
       Name: Dynamic Gap
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /rto/curr_exec_dg_traj
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -408,10 +425,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 33.24817657470703
+      Scale: 56.09962463378906
       Target Frame: <Fixed Frame>
-      X: 10.637176513671875
-      Y: 9.125873565673828
+      X: 24.609689712524414
+      Y: 5.42965841293335
     Saved: ~
 Window Geometry:
   Displays:

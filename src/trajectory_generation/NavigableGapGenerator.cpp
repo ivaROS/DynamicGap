@@ -4,6 +4,7 @@ namespace dynamic_gap
 {
     void NavigableGapGenerator::generateNavigableGap(dynamic_gap::Gap * gap)
     {
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            [generateNavigableGap()]"); 
         int numCurvePts = cfg_->traj.num_curve_points;
 
         // get gap points in cartesian
@@ -100,7 +101,7 @@ namespace dynamic_gap
                                                                 Eigen::VectorXd & right_indices,
                                                                 const Eigen::Vector2d & gapGoalTermPt)
     {
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        [arclengthParameterizeBoundary()]: ");
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        [arclengthParameterizeBoundary()]: ");
         int numCurvePts = cfg_->traj.num_curve_points;
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierOrigin_: " << gap->leftBezierOrigin_.transpose());
@@ -115,7 +116,7 @@ namespace dynamic_gap
                                                                 0.0,
                                                                 1.0,
                                                                 250);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierArclength: " << leftBezierArclength);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierArclength: " << leftBezierArclength);
 
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierOrigin_: " << gap->rightBezierOrigin_.transpose());
@@ -130,14 +131,14 @@ namespace dynamic_gap
                                                                 0.0,
                                                                 1.0,
                                                                 250);        
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierArclength: " << rightBezierArclength);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierArclength: " << rightBezierArclength);
 
         // calculate extended arc arclength
         float d_safe = std::min(gap->leftBezierOrigin_.norm(), gap->rightBezierOrigin_.norm());
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        d_safe: " << d_safe);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        d_safe: " << d_safe);
 
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierOriginTheta: " << leftBezierOriginTheta);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierOriginTheta: " << rightBezierOriginTheta);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        leftBezierOriginTheta: " << leftBezierOriginTheta);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        rightBezierOriginTheta: " << rightBezierOriginTheta);
 
         float arc_angle = 0.0;
         if (rightBezierOriginTheta > leftBezierOriginTheta)
@@ -146,10 +147,10 @@ namespace dynamic_gap
             arc_angle = 2*M_PI + (rightBezierOriginTheta - leftBezierOriginTheta);
 
         float arc_arclength = d_safe * arc_angle;
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        arc_arclength: " << arc_arclength);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        arc_arclength: " << arc_arclength);
 
         float boundaryArclength = leftBezierArclength + rightBezierArclength + arc_arclength;
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        boundaryArclength: " << boundaryArclength);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "        boundaryArclength: " << boundaryArclength);
 
         float des_boundary_pt_to_pt_arclength = boundaryArclength / (numCurvePts - 1);
         float bezierPtToPtDistanceThresh = des_boundary_pt_to_pt_arclength / 1000;
@@ -166,7 +167,7 @@ namespace dynamic_gap
                                                     remaining_snippet_arclength, 
                                                     true);
 
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            left_indices: " << left_indices);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            left_indices: " << left_indices);
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            ALP-ing arc curve:");
         arc_indices = arclengthParameterizeArc(leftBezierOriginTheta,
@@ -175,7 +176,7 @@ namespace dynamic_gap
                                                 des_boundary_pt_to_pt_arclength,
                                                 remaining_snippet_arclength);
 
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            arc_indices: " << arc_indices);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            arc_indices: " << arc_indices);
 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            ALP-ing right curve:");
         right_indices = arclengthParameterizeBezier(gap->rightBezierOrigin_,
@@ -187,7 +188,7 @@ namespace dynamic_gap
                                                     remaining_snippet_arclength, 
                                                     false);        
 
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            right_indices: " << right_indices);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "            right_indices: " << right_indices);
 
         gap->allCurvePts_ = Eigen::MatrixXd(numCurvePts, 2);
         gap->gapBoundaryInwardNorms_ = Eigen::MatrixXd(numCurvePts, 2);
@@ -224,17 +225,17 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "centered origin inward norm: " << centered_origin_inward_norm[0] << ", " << centered_origin_inward_norm[1]);
         gap->allCurvePts_ << leftCurvePosns, arcCurvePosns, rightCurvePosns; 
 
-        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->allCurvePts_: ");
-        // for (int i = 0; i < gap->allCurvePts_.rows(); i++)
-        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->allCurvePts_.row(i));
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->allCurvePts_: ");
+        for (int i = 0; i < gap->allCurvePts_.rows(); i++)
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->allCurvePts_.row(i));
         
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesPosns worked");
         gap->gapBoundaryInwardNorms_ << leftCurveInwardNorms, arcCurveInwardNorms, rightCurveInwardNorms; // centered_origin_inward_norm, 
         // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "gapCurvesInwardNorms worked");
         
-        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->gapBoundaryInwardNorms_: ");
-        // for (int i = 0; i < gap->gapBoundaryInwardNorms_.rows(); i++)
-        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->gapBoundaryInwardNorms_.row(i));
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                   gap->gapBoundaryInwardNorms_: ");
+        for (int i = 0; i < gap->gapBoundaryInwardNorms_.rows(); i++)
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "                       row " << i << ": " << gap->gapBoundaryInwardNorms_.row(i));
 
         double offset = des_boundary_pt_to_pt_arclength;
         gap->leftRightCenters_ = gap->allCurvePts_ - gap->gapBoundaryInwardNorms_*offset;
@@ -266,11 +267,13 @@ namespace dynamic_gap
         // int parameterizationCounter = 0;
         std::vector<double> arclengthParameterization;
 
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   prior_snippet_arclength: " << prior_snippet_arclength);
+
         float desiredBezierPtToPtDist = desiredBezierPtToPtDistance - prior_snippet_arclength;
 
         float theta_des = desiredBezierPtToPtDist / d_safe;
 
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   desiredBezierPtToPtDist: " << desiredBezierPtToPtDist);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   desiredBezierPtToPtDist: " << desiredBezierPtToPtDist);
 
         float theta_curr = 0.0;
 
@@ -279,14 +282,17 @@ namespace dynamic_gap
             theta_total = (rightBezierOriginTheta - leftBezierOriginTheta);
         else
             theta_total = 2*M_PI + (rightBezierOriginTheta - leftBezierOriginTheta);
-        // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   theta_total: " << theta_total);
+        
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   theta_total: " << theta_total);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   theta_des: " << theta_des);
+        ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   theta_curr: " << theta_curr);
 
         while (true)
         {
             if ((theta_curr + theta_des) <= theta_total)
             {
                 arclengthParameterization.push_back( (theta_curr + theta_des) / theta_total);
-                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   adding " << (theta_curr + theta_des) / theta_total);
+                ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   adding " << (theta_curr + theta_des) / theta_total);
 
                 theta_curr += theta_des;
 
@@ -297,8 +303,14 @@ namespace dynamic_gap
                 }
             } else
             {
-                prior_snippet_arclength = (1.0 - arclengthParameterization.at(arclengthParameterization.size() - 1)) * (theta_total * d_safe);
-                // ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   prior_snippet_arclength: " << prior_snippet_arclength);
+                if (arclengthParameterization.size() > 0)
+                {
+                    prior_snippet_arclength = (1.0 - arclengthParameterization.at(arclengthParameterization.size() - 1)) * (theta_total * d_safe);
+                } else
+                {
+                    prior_snippet_arclength += (theta_total * d_safe);
+                }
+                ROS_INFO_STREAM_NAMED("NavigableGapGenerator", "                   prior_snippet_arclength: " << prior_snippet_arclength);
                 break;
             }
         }

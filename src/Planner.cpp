@@ -155,12 +155,16 @@ namespace dynamic_gap
     {
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
         float globalGoalYDiff = globalGoalOdomFrame_.pose.position.y - rbtPoseInOdomFrame_.pose.position.y;
-        bool reachedGlobalGoal = sqrt(pow(globalGoalXDiff, 2) + pow(globalGoalYDiff, 2)) < cfg_.goal.goal_tolerance;
+        float globalGoalDist = sqrt(pow(globalGoalXDiff, 2) + pow(globalGoalYDiff, 2));
+        bool reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance;
         
         if (reachedGlobalGoal)
         {
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
             return true;
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist);
         }
 
         float globalPathLocalWaypointDiffX = globalPathLocalWaypointOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
@@ -666,16 +670,17 @@ namespace dynamic_gap
                 // current implementation really only supports gaps that exist right now, propagated gaps can break                
                 // if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
                 // {
-                gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
+                // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
                 //     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
                 // }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             
-                // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
+                navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
             }
         } catch (...)
         {
+            ROS_INFO_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
             ROS_WARN_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
         }
 
@@ -717,26 +722,23 @@ namespace dynamic_gap
                     float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
 
-                    traj = goToGoalTraj;
-                    pathPoseScores.at(i) = goToGoalPoseScores;
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
+                    dynamic_gap::Trajectory ahpfTraj;
+                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
+                    ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
+                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
+                    float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
 
-                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
-                    // dynamic_gap::Trajectory ahpfTraj;
-                    // ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
-                    // ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    // std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
-                    // float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
-                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
-
-                    // if (goToGoalScore > ahpfScore)
-                    // {
-                    //     traj = goToGoalTraj;
-                    //     pathPoseScores.at(i) = goToGoalPoseScores;
-                    // } else
-                    // {
-                    //     traj = ahpfTraj;
-                    //     pathPoseScores.at(i) = ahpfPoseScores;
-                    // }
+                    if (goToGoalScore > ahpfScore)
+                    {
+                        traj = goToGoalTraj;
+                        pathPoseScores.at(i) = goToGoalPoseScores;
+                    } else
+                    {
+                        traj = ahpfTraj;
+                        pathPoseScores.at(i) = ahpfPoseScores;
+                    }
 
                     // traj =  ? goToGoalTraj : ahpfTraj;
                     // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;
