@@ -36,9 +36,9 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 1.5; /**< Maximum angular speed for robot */
+                float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 1.0; /**< Maximum angular speed for robot */
                 float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
                 float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
                 float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */                
@@ -74,7 +74,7 @@ namespace dynamic_gap
             struct PlanningMode 
             {
                 bool holonomic = true; /**< Boolean for if robot is holonomic or not */
-                bool heading = false; /**< Boolean for if robot tracks path headings or not */
+                bool heading = true; /**< Boolean for if robot tracks path headings or not */
                 bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
                 bool egocircle_prop_cheat = true; /**< Flag for enacting future scan propagation through cheating */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */

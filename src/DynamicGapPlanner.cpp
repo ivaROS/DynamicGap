@@ -51,8 +51,6 @@ namespace dynamic_gap
     {
         // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(long)]");
 
-        // return 0;
-
         if (!planner_.initialized())
         {
             planner_.initialize(); // nh_
@@ -66,6 +64,8 @@ namespace dynamic_gap
         cmd_vel.twist = cmdVelNoStamp;
 
         return planner_.recordAndCheckVel(cmdVelNoStamp);
+
+        // return 0;
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
@@ -80,8 +80,10 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
+        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+
         // TODO: just hardcoding this now, need to revise
-        bool success = 0;
+        bool success = 1;
 
         return success;
     }

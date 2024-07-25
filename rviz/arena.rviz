@@ -324,7 +324,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            {}
+            gap_goal: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -332,7 +332,7 @@ Visualization Manager:
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            {}
+            allTraj: true
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -358,7 +358,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -368,7 +368,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/relevant_global_plan_snippet
           Unreliable: false
-          Value: true
+          Value: false
       Enabled: true
       Name: Dynamic Gap
   Enabled: true
@@ -408,10 +408,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 33.82544708251953
+      Scale: 33.24817657470703
       Target Frame: <Fixed Frame>
-      X: 17.765647888183594
-      Y: 12.322778701782227
+      X: 10.637176513671875
+      Y: 9.125873565673828
     Saved: ~
 Window Geometry:
   Displays:

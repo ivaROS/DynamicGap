@@ -43,60 +43,64 @@ namespace dynamic_gap
 
             // set first scan to current scan
             sensor_msgs::LaserScan scan = *scan_.get();
-            futureScans_.at(0) = scan; // at t = 0.0
 
-            sensor_msgs::LaserScan staticScan = *staticScan_.get();
+            for (int i = 0; i < futureScans_.size(); i++)
+                futureScans_.at(i) = scan;
 
-            sensor_msgs::LaserScan propagatedScan = staticScan; // sensor_msgs::LaserScan();
-            propagatedScan.header.stamp = ros::Time::now();
-            propagatedScan.header.frame_id = cfg_->robot_frame_id;
-            propagatedScan.header.seq = 0;
-            // propagatedScan.angle_min = scan.angle_min;
-            // propagatedScan.angle_max = scan.angle_max;
-            // propagatedScan.angle_increment = scan.angle_increment;
-            // propagatedScan.time_increment = scan.time_increment;
-            // propagatedScan.scan_time = scan.scan_time;
-            // propagatedScan.range_min = scan.range_min;
-            // propagatedScan.range_max = scan.range_max;
-            // propagatedScan.ranges = scan.ranges;
+            // futureScans_.at(0) = scan; // at t = 0.0
+
+            // sensor_msgs::LaserScan staticScan = *staticScan_.get();
+
+            // sensor_msgs::LaserScan propagatedScan = staticScan; // sensor_msgs::LaserScan();
+            // propagatedScan.header.stamp = ros::Time::now();
+            // propagatedScan.header.frame_id = cfg_->robot_frame_id;
+            // propagatedScan.header.seq = 0;
+            // // propagatedScan.angle_min = scan.angle_min;
+            // // propagatedScan.angle_max = scan.angle_max;
+            // // propagatedScan.angle_increment = scan.angle_increment;
+            // // propagatedScan.time_increment = scan.time_increment;
+            // // propagatedScan.scan_time = scan.scan_time;
+            // // propagatedScan.range_min = scan.range_min;
+            // // propagatedScan.range_max = scan.range_max;
+            // // propagatedScan.ranges = scan.ranges;
 
 
-            std::vector<Eigen::Vector4f> currentAgents;
+            // std::vector<Eigen::Vector4f> currentAgents;
             
-            Eigen::Vector4f ithAgentState;
-            for ( const auto &pair : currentTrueAgentPoses ) 
-            {
-            // for (itr = currentTrueAgentPoses.begin(); itr != currentTrueAgentPoses.end(); ++itr)     
-            // {        
-            // for (int i = 0; i < currentTrueAgentPoses.size(); i++) 
+            // Eigen::Vector4f ithAgentState;
+            // for ( const auto &pair : currentTrueAgentPoses ) 
             // {
-                std::string key = pair.first;
-                geometry_msgs::Pose agentPose = pair.second;
-                geometry_msgs::Vector3Stamped agentVel = currentTrueAgentVels.find(key)->second;
-                ithAgentState << agentPose.position.x, agentPose.position.y, 
-                                    agentVel.vector.x, agentVel.vector.y;
-                currentAgents.push_back(ithAgentState);
-            }
+            // // for (itr = currentTrueAgentPoses.begin(); itr != currentTrueAgentPoses.end(); ++itr)     
+            // // {        
+            // // for (int i = 0; i < currentTrueAgentPoses.size(); i++) 
+            // // {
+            //     std::string key = pair.first;
+            //     geometry_msgs::Pose agentPose = pair.second;
+            //     geometry_msgs::Vector3Stamped agentVel = currentTrueAgentVels.find(key)->second;
+            //     ithAgentState << agentPose.position.x, agentPose.position.y, 
+            //                         agentVel.vector.x, agentVel.vector.y;
+            //     currentAgents.push_back(ithAgentState);
+            // }
 
-            // ROS_INFO_STREAM_NAMED("propagatedScanPropagator", "    detected agents: ");
-            // for (int i = 0; i < currentAgents.size(); i++)
-            //     ROS_INFO_STREAM_NAMED("propagatedScanPropagator", "        agent" << i << " position: " << currentAgents.at(i)[0] << ", " << currentAgents.at(i)[1] << ", velocity: " << currentAgents.at(i)[2] << ", " << currentAgents.at(i)[3]);
+            // // ROS_INFO_STREAM_NAMED("propagatedScanPropagator", "    detected agents: ");
+            // // for (int i = 0; i < currentAgents.size(); i++)
+            // //     ROS_INFO_STREAM_NAMED("propagatedScanPropagator", "        agent" << i << " position: " << currentAgents.at(i)[0] << ", " << currentAgents.at(i)[1] << ", velocity: " << currentAgents.at(i)[2] << ", " << currentAgents.at(i)[3]);
             
-            float t_i = 0.0, t_iplus1 = 0.0;
-            for (int futureScanTimeIdx = 1; futureScanTimeIdx < futureScans_.size(); futureScanTimeIdx++) 
-            {
-                t_iplus1 = t_i + cfg_->traj.integrate_stept;
+            // float t_i = 0.0, t_iplus1 = 0.0;
+            // for (int futureScanTimeIdx = 1; futureScanTimeIdx < futureScans_.size(); futureScanTimeIdx++) 
+            // {
+            //     t_iplus1 = t_i + cfg_->traj.integrate_stept;
                 
-                propagatedScan.ranges = staticScan.ranges; // reset scan ranges
+            //     propagatedScan.ranges = staticScan.ranges; // reset scan ranges
 
-                recoverDynamicEgocircle(t_i, t_iplus1, currentAgents, propagatedScan);
+            //     recoverDynamicEgocircle(t_i, t_iplus1, currentAgents, propagatedScan);
                 
-                // futureScanTimeIdx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
-                // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << futureScanTimeIdx);
-                futureScans_.at(futureScanTimeIdx) = propagatedScan;
+            //     // futureScanTimeIdx = (int) (t_iplus1 / cfg_->traj.integrate_stept);
+            //     // ROS_INFO_STREAM("adding scan from " << t_i << " to " << t_iplus1 << " at idx: " << futureScanTimeIdx);
+            //     futureScans_.at(futureScanTimeIdx) = propagatedScan;
 
-                t_i = t_iplus1;
-            }
+            //     t_i = t_iplus1;
+            // }
             // visualizePropagatedEgocircle(futureScans_.at(futureScans_.size() - 1));        
         } catch (...)
         {

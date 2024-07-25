@@ -14,7 +14,7 @@ namespace dynamic_gap
     {
         this->side_ = side;
         this->modelID_ = modelID;
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
 
         this->xTilde_ << gapPtX, gapPtY;
 
@@ -29,7 +29,7 @@ namespace dynamic_gap
         this->side_ = incomingModel.side_;
         this->modelID_ = incomingModel.modelID_;
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -87,20 +87,20 @@ namespace dynamic_gap
 
         if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
         {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
             return;
         }
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
         processEgoRobotVelsAndAccs(tUpdate);
 
         xTilde_ = measurement;
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);
 
         x_hat_k_plus_ = updateStateFromEnv();
 
@@ -114,8 +114,8 @@ namespace dynamic_gap
         if (intermediateRbtAccs_.size() > 0)
             lastRbtAcc_ = intermediateRbtAccs_.back();
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
-        ROS_INFO_STREAM_NAMED("GapEstimation", "-----------");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "-----------");
 
         return;
     }    
@@ -127,8 +127,8 @@ namespace dynamic_gap
         Eigen::Vector4f return_x = x_hat_k_plus_;
 
         
-        ROS_INFO_STREAM_NAMED("GapEstimation", "updating ground truth cartesian state");
-        // ROS_INFO_STREAM_NAMED("GapEstimation", "xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "updating ground truth cartesian state");
+        // // ROS_INFO_STREAM_NAMED("GapEstimation", "xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
 
         return_x[0] = xTilde_[0];
@@ -156,7 +156,7 @@ namespace dynamic_gap
         
         if (min_dist < min_dist_thresh) 
         {    
-            ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to odom");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to odom");
             
             
             // xTilde_[0] = agentPoses_[min_idx].position.x;
@@ -167,7 +167,7 @@ namespace dynamic_gap
             return_x[3] = agentVels_[min_key].vector.y - lastRbtVel_.twist.linear.y;
         } else 
         {    
-            ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to nothing");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to nothing");
             
             return_x[2] = 0.0 - lastRbtVel_.twist.linear.x;
             return_x[3] = 0.0 - lastRbtVel_.twist.linear.y;         

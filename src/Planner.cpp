@@ -189,8 +189,7 @@ namespace dynamic_gap
 
         cfg_.updateParamFromScan(scan_);
 
-        ROS_INFO_STREAM("scan: " << *scan_);
-
+        // ROS_INFO_STREAM("scan: " << *scan_);
 
         ros::Time tCurrentFilterUpdate = scan_->header.stamp;
         if (hasGlobalGoal_)
@@ -673,7 +672,7 @@ namespace dynamic_gap
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
                 gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame());
             
-                navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
+                // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
             }
         } catch (...)
         {
@@ -718,23 +717,27 @@ namespace dynamic_gap
                     float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
 
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
-                    dynamic_gap::Trajectory ahpfTraj;
-                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
-                    ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
-                    float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+                    traj = goToGoalTraj;
+                    pathPoseScores.at(i) = goToGoalPoseScores;
 
-                    if (goToGoalScore > ahpfScore)
-                    {
-                        traj = goToGoalTraj;
-                        pathPoseScores.at(i) = goToGoalPoseScores;
-                    } else
-                    {
-                        traj = ahpfTraj;
-                        pathPoseScores.at(i) = ahpfPoseScores;
-                    }
+                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
+                    // dynamic_gap::Trajectory ahpfTraj;
+                    // ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
+                    // ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
+                    // std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
+                    // float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
+                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+
+                    // if (goToGoalScore > ahpfScore)
+                    // {
+                    //     traj = goToGoalTraj;
+                    //     pathPoseScores.at(i) = goToGoalPoseScores;
+                    // } else
+                    // {
+                    //     traj = ahpfTraj;
+                    //     pathPoseScores.at(i) = ahpfPoseScores;
+                    // }
+
                     // traj =  ? goToGoalTraj : ahpfTraj;
                     // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;
                 } else 
@@ -1123,12 +1126,7 @@ namespace dynamic_gap
             futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
         else
             throw std::runtime_error("Egocircle propagation is not implemented yet!");
-        // } else 
-        // {
-        //     sensor_msgs::LaserScan currentScan = *scan_.get();
-        //     for (int i = 0; i < futureScans_.size(); i++)
-        //         futureScans_.at(i) = currentScan;
-        // }
+
         float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
         
