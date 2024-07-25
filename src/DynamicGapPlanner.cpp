@@ -51,34 +51,34 @@ namespace dynamic_gap
     {
         // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(long)]");
 
-        return 0;
+        // return 0;
 
-        // if (!planner_.initialized())
-        // {
-        //     planner_.initialize(); // nh_
-        //     ROS_WARN_STREAM("computeVelocity called before initializing planner");
-        // }
+        if (!planner_.initialized())
+        {
+            planner_.initialize(); // nh_
+            ROS_WARN_STREAM("computeVelocity called before initializing planner");
+        }
 
-        // dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
+        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
-        // geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
+        geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
-        // cmd_vel.twist = cmdVelNoStamp;
+        cmd_vel.twist = cmdVelNoStamp;
 
-        // return planner_.recordAndCheckVel(cmdVelNoStamp);
+        return planner_.recordAndCheckVel(cmdVelNoStamp);
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
     {
         ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(short)]");
 
-        // std::string dummy_message;
-        // geometry_msgs::PoseStamped dummy_pose;
-        // geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
+        std::string dummy_message;
+        geometry_msgs::PoseStamped dummy_pose;
+        geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
 
-        // bool outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
+        bool outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
 
-        // cmdVel = cmd_vel_stamped.twist;
+        cmdVel = cmd_vel_stamped.twist;
 
         // TODO: just hardcoding this now, need to revise
         bool success = 0;

@@ -71,7 +71,7 @@ namespace dynamic_gap
             // Eigen::Vector4f getState();
             // Eigen::Vector4f getTrueState();
 
-            float min_dist_thresh = 1.0;
+            float min_dist_thresh = 1.5;
 
             // Eigen::Vector4f getGapState();
             // Eigen::Vector4f getRewindGapState();

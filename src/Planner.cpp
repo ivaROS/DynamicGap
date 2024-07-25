@@ -1204,9 +1204,13 @@ namespace dynamic_gap
     geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory) 
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
+
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
+        if (!haveTFs)
+            return cmdVel;
+        
         try
         {
 
