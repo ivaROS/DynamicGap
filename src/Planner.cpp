@@ -93,6 +93,8 @@ namespace dynamic_gap
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);        
         
+        tfSub_ = nh_.subscribe("/tf", 10, &Planner::tfCB, this);
+
         // Robot odometry message subscriber
         // ROS_INFO_STREAM("before rbtOdomSub_");
         rbtOdomSub_ = nh_.subscribe("odom", 10, &Planner::egoRobotOdomCB, this);
@@ -103,12 +105,12 @@ namespace dynamic_gap
         laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
         // ROS_INFO_STREAM("after laserSub_");
 
+        pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
+
         // Visualization Setup
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
         // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
         
-        pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
-
         // MAP FRAME ID SHOULD BE: known_map
         // ODOM FRAME ID SHOULD BE: map_static
 
@@ -147,6 +149,8 @@ namespace dynamic_gap
         return true;
     }
 
+
+
     bool Planner::isGoalReached()
     {
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
@@ -171,6 +175,8 @@ namespace dynamic_gap
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
+
+        ROS_INFO_STREAM("laserScanCB");
 
         // process scan
         float eps = 0.0000001f;
@@ -344,11 +350,13 @@ namespace dynamic_gap
     
     void Planner::egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg)
     {
-        ROS_INFO_STREAM("rbtOdomMsg: " << rbtOdomMsg);
+        ROS_INFO_STREAM("egoRobotOdomCB");
+
+        if (!haveTFs)
+            return;
 
         try
         {
-            updateTF();
 
             // Transform the msg to odom frame
             if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
@@ -435,13 +443,10 @@ namespace dynamic_gap
     
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
     {
-        // ROS_INFO_STREAM_NAMED("Planner", "[agentOdomCB()]");        
-        // std::string agentNamespace = agentOdomMsg->child_frame_id;
-        // // ROS_INFO_STREAM_NAMED("Planner", "      agentNamespace: " << agentNamespace);
-        // agentNamespace.erase(0,5); // removing "robot" from "robotN"
-        // char * robotChars = strdup(agentNamespace.c_str());
-        // int agentID = std::atoi(robotChars);
-        // ROS_INFO_STREAM_NAMED("Planner", "      agentID: " << agentID);
+        ROS_INFO_STREAM("pedOdomCB()");        
+        
+        if (!haveTFs)
+            return;
 
         for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
         {
@@ -497,6 +502,9 @@ namespace dynamic_gap
         if (globalPlanMapFrame.size() == 0) 
             return true;
         
+        if (!haveTFs)
+            return false;
+
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
         tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_); // to update odom frame parameter
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_); // to update robot frame parameter
@@ -530,8 +538,11 @@ namespace dynamic_gap
         return true;
     }
 
-    void Planner::updateTF()
+    void Planner::tfCB(const tf2_msgs::TFMessage& msg)
     {
+        // ignoring message entirely, just making separate thread for tfs to not
+        // tether to other callbacks
+
         try 
         {
             // for lookupTransform, parameters are (destination frame, source frame)
@@ -542,12 +553,14 @@ namespace dynamic_gap
             cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
             rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
+            haveTFs = true;
+
             tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
-            ROS_INFO_STREAM_NAMED("Planner", "updateTF succeeded");
+            ROS_INFO_STREAM("tfCB succeeded");
         } catch (...) 
         {
-            ROS_WARN_STREAM_NAMED("Planner", "updateTF failed");
+            ROS_WARN_STREAM("tfCB failed");
             ros::Duration(0.1).sleep();
             return;
         }

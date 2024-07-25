@@ -141,8 +141,9 @@ namespace dynamic_gap
 
             /**
             * \brief Function for updating all tf transform at the beginning of every planning cycle
+            * \param msg incoming agent odometry message
             */
-            void updateTF();
+            void tfCB(const tf2_msgs::TFMessage& msg);
 
             /**
             * \brief Function for all member objects updating their current egocircles
@@ -334,6 +335,8 @@ namespace dynamic_gap
         ros::NodeHandle nh_; /**< ROS node handle for local path planner */
         ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
         // ros::Publisher staticScanPublisher_;
+
+        ros::Subscriber tfSub_; /**< Subscriber to TF tree */
         ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
 
         std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
@@ -399,6 +402,8 @@ namespace dynamic_gap
         boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
 
         // Agents
+
+        bool haveTFs = false;
 
         int currentAgentCount_; /**< Number of agents in environment */
 

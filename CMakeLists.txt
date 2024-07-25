@@ -12,7 +12,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   # egocircle
   # geometry_msgs
   # nav_msgs
-  nav_configs
+  # nav_configs
   roscpp
   rospy
   # modify_stdr_scan
