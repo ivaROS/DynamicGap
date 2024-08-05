@@ -2,7 +2,7 @@
 
 namespace dynamic_gap 
 {
-    void DynamicGapConfig::loadRosParamFromNodeHandle(const ros::NodeHandle& nh)
+    void DynamicGapConfig::loadRosParamFromNodeHandle(const std::string & name)
     {
         // Would need to do a bit of processing
         //      Read in params:
@@ -10,8 +10,12 @@ namespace dynamic_gap
         //          
         //      set config parameters in this class using model
 
+        ros::NodeHandle nh("~/" + name);
+
+        ROS_INFO_STREAM("Setting nh to: " << "~/" << name);
+
         std::string model;
-        nh.param("/model", model, model);
+        nh.param("/model", model, model); // Must write as "/model" with leading slash
 
         if (model == "rto")
         {

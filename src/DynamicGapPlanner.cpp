@@ -39,7 +39,9 @@ namespace dynamic_gap
         ROS_INFO_STREAM("[DynamicGapPlanner::initialize()]");
         // do NOT set nodehandle to any string
         // nh_ = ros::NodeHandle(); // "~/" + name pnh: planner node handle?
-        planner_.initialize();
+
+        name_ = name;
+        planner_.initialize(name_);
 
         return;
     }
@@ -53,7 +55,7 @@ namespace dynamic_gap
 
         if (!planner_.initialized())
         {
-            planner_.initialize(); // nh_
+            planner_.initialize(name_); // nh_
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
@@ -63,9 +65,33 @@ namespace dynamic_gap
 
         cmd_vel.twist = cmdVelNoStamp;
 
-        return planner_.recordAndCheckVel(cmdVelNoStamp);
+        bool old_flag = planner_.recordAndCheckVel(cmdVelNoStamp);
 
-        // return 0;
+        /*
+        *         SUCCESS           = 0
+        *         1..9 are reserved as plugin specific non-error results
+        *         FAILURE           = 100  # Unspecified failure, only used for old, non-mfb_core based plugins
+        *         CANCELED          = 101
+        *         NO_VALID_CMD      = 102
+        *         PAT_EXCEEDED      = 103
+        *         COLLISION         = 104
+        *         OSCILLATION       = 105
+        *         ROBOT_STUCK       = 106
+        *         MISSED_GOAL       = 107
+        *         MISSED_PATH       = 108
+        *         BLOCKED_GOAL      = 109
+        *         BLOCKED_PATH      = 110
+        *         INVALID_PATH      = 111
+        *         TF_ERROR          = 112
+        *         NOT_INITIALIZED   = 113
+        *         INVALID_PLUGIN    = 114
+        *         INTERNAL_ERROR    = 115
+        *         OUT_OF_MAP        = 116  # The start and / or the goal are outside the map
+        *         MAP_ERROR         = 117  # The map is not running properly
+        *         STOPPED           = 118  # The controller execution has been stopped rigorously
+        */
+
+        return 0;
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)

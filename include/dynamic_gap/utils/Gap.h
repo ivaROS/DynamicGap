@@ -90,7 +90,7 @@ namespace dynamic_gap
                 crossed_ = otherGap.crossed_;
                 closed_ = otherGap.closed_;
                 crossedBehind_ = otherGap.crossedBehind_;
-                artificial_ = otherGap.artificial_;
+                // artificial_ = otherGap.artificial_;
 
                 mode.reduced_ = otherGap.mode.reduced_;
                 mode.convex_ = otherGap.mode.convex_;
@@ -751,7 +751,7 @@ namespace dynamic_gap
             bool closed_ = false; /**< Gap closed condition */
             bool crossedBehind_ = false; /**< Gap behind and crossed condition */
 
-            bool artificial_ = false; /**< Gap artificial condition */
+            // bool artificial_ = false; /**< Gap artificial condition */
 
             float leftBezierWeight_ = 0.0; /**< Weighting term for left gap side Bezier control points */
             float rightBezierWeight_ = 0.0; /**< Weighting term for right gap side Bezier control points */

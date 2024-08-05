@@ -90,24 +90,24 @@ namespace dynamic_gap
             */
             bool bridgeCondition(const std::vector<dynamic_gap::Gap *> & rawGaps);
 
-            /**
-            * \brief Checking if global goal lies within current scan
-            *
-            * \param globalGoalRbtFrame global goal pose in robot frame
-            * \param globalGoalScanIdx scan index at which global goal lies
-            * \return boolean if global goal lies within current scan
-            */
-            bool isGlobalGoalWithinScan(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
-                                        int & globalGoalScanIdx);
+            // /**
+            // * \brief Checking if global goal lies within current scan
+            // *
+            // * \param globalGoalRbtFrame global goal pose in robot frame
+            // * \param globalGoalScanIdx scan index at which global goal lies
+            // * \return boolean if global goal lies within current scan
+            // */
+            // bool isGlobalGoalWithinScan(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
+            //                             int & globalGoalScanIdx);
 
-            /**
-            * \brief Helper function for adding an artificial gap that global goal lies within. 
-            *
-            * \param globalGoalScanIdx scan index at which global goal lies
-            * \param rawGaps raw set of gaps
-            */
-            void addGapForGlobalGoal(const int & globalGoalScanIdx, 
-                                     std::vector<dynamic_gap::Gap *> & rawGaps);   
+            // /**
+            // * \brief Helper function for adding an artificial gap that global goal lies within. 
+            // *
+            // * \param globalGoalScanIdx scan index at which global goal lies
+            // * \param rawGaps raw set of gaps
+            // */
+            // void addGapForGlobalGoal(const int & globalGoalScanIdx, 
+            //                          std::vector<dynamic_gap::Gap *> & rawGaps);   
 
             /**
             * \brief Check if a raw swept gap should be merged into a simplified swept gap

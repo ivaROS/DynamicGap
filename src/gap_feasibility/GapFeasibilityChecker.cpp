@@ -31,13 +31,14 @@ namespace dynamic_gap
         gapSplinecheck(gap, crossingPt, gapCrossingTime);
 
         bool feasible = false;
-        if (gap->artificial_) 
-        {
-            feasible = true;
-            gap->gapLifespan_ = cfg_->traj.integrate_maxt;
-            gap->setTerminalPoints(gap->LIdx(), gap->LDist(), gap->RIdx(), gap->RDist());
-            gap->setCategory("static");
-        } else if (subLeftGapBearingRate > 0) 
+        // if (gap->artificial_) 
+        // {
+        //     feasible = true;
+        //     gap->gapLifespan_ = cfg_->traj.integrate_maxt;
+        //     gap->setTerminalPoints(gap->LIdx(), gap->LDist(), gap->RIdx(), gap->RDist());
+        //     gap->setCategory("static");
+        // } else 
+        if (subLeftGapBearingRate > 0) 
         {
             // expanding
             feasible = true;

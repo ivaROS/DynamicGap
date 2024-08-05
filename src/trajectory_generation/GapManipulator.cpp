@@ -153,12 +153,15 @@ namespace dynamic_gap
                                         ", local goal x/y: (" << globalPathLocalWaypointVector[0] << 
                                                          ", " << globalPathLocalWaypointVector[1] << ")");
             
-            if (gap->artificial_ || (isGlobalPathLocalWaypointWithinGapAngle(globalPathLocalWaypointIdx, rightIdx, leftIdx) && 
-                                    checkWaypointVisibility(leftPt, rightPt, globalPathLocalWaypointVector)))
+            // gap->artificial_ || 
+            if ((isGlobalPathLocalWaypointWithinGapAngle(globalPathLocalWaypointIdx, rightIdx, leftIdx) && 
+                        checkWaypointVisibility(leftPt, rightPt, globalPathLocalWaypointVector)))
             {
                 gap->setGoal(initial, globalPathLocalWaypointVector);
 
-                std::string goalStatus = gap->artificial_ ? "Option 0: artificial gap: " : "Option 2: global path local waypoint: ";
+                // std::string goalStatus = gap->artificial_ ? "Option 0: artificial gap: " : "Option 2: global path local waypoint: ";
+                std::string goalStatus = "Option 2: global path local waypoint: ";
+
                 ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
                 ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalPathLocalWaypointVector[0] << ", " << globalPathLocalWaypointVector[1]);
                    

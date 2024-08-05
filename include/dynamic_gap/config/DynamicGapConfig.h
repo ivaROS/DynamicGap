@@ -65,7 +65,7 @@ namespace dynamic_gap
                 float full_scan_f = 512.; /**< Total ray count in scan (float) */
                 float angle_increment = (2 * M_PI) / (full_scan_f - 1); /**< Angular increment between consecutive scan indices */
                 float range_min = 0.03; /**< Minimum detectable range in scan */
-                float range_max = 5.6; /**< Maximum detectable range in scan */
+                float range_max = -1e10; /**< Maximum detectable range in scan */
             } scan;
 
             /**
@@ -172,7 +172,7 @@ namespace dynamic_gap
             /**
             * \brief Load in planner hyperparameters from node handle (specified in launch file and yamls)
             */
-            void loadRosParamFromNodeHandle(const ros::NodeHandle& nh);
+            void loadRosParamFromNodeHandle(const std::string & name);
 
             /**
             * \brief Load in hyperparameters from current laser scan

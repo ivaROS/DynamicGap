@@ -121,7 +121,7 @@ namespace dynamic_gap
 
         private:
             dynamic_gap::Planner planner_; /**< Local path planner object */
-            // std::string plannerName_; /**< Local path planner name */
+            std::string name_; /**< Local path planner name */
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
 
             // std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */

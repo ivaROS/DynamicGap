@@ -5,7 +5,11 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Dynamic Gap1
+        - /Dynamic Gap1/Marker1
+        - /Dynamic Gap1/Marker3
+        - /Dynamic Gap1/Marker4
         - /Dynamic Gap1/PoseArray2
+        - /Axes1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -106,7 +110,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -245,7 +249,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -300,31 +303,31 @@ Visualization Manager:
           Marker Topic: /rto/simp_gaps
           Name: Marker
           Namespaces:
-            simp: true
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /rto/gap_models
-          Name: MarkerArray
-          Namespaces:
-            gap_models: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
+          Marker Topic: /rto/manip_gaps
+          Name: Marker
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: false
+        - Class: rviz/Marker
+          Enabled: false
           Marker Topic: /rto/reachable_gaps
           Name: Marker
           Namespaces:
-            reachableGaps: true
+            {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/Marker
           Enabled: true
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            gap_goal: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -332,7 +335,15 @@ Visualization Manager:
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            allTraj: true
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/gap_models
+          Name: MarkerArray
+          Namespaces:
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -388,6 +399,15 @@ Visualization Manager:
       Topic: /rto/curr_exec_dg_traj
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: rto/base_link
+      Show Trail: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -425,10 +445,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 56.09962463378906
+      Scale: 31.50691032409668
       Target Frame: <Fixed Frame>
-      X: 24.609689712524414
-      Y: 5.42965841293335
+      X: 15.585813522338867
+      Y: 13.1297025680542
     Saved: ~
 Window Geometry:
   Displays:

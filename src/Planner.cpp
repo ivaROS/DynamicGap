@@ -42,7 +42,7 @@ namespace dynamic_gap
         delete trajVisualizer_;
     }
 
-    bool Planner::initialize() // const ros::NodeHandle& nh
+    bool Planner::initialize(const std::string & name) // const ros::NodeHandle& nh
     {
         // ROS_INFO_STREAM("starting initialize");
         if (initialized_)
@@ -56,7 +56,7 @@ namespace dynamic_gap
         // ros::NodeHandle nh_test;
 
         // Config Setup
-        cfg_.loadRosParamFromNodeHandle(nh_);
+        cfg_.loadRosParamFromNodeHandle(name); // nh_
 
         ROS_INFO_STREAM("cfg_.scan_topic: " << cfg_.scan_topic);
         ROS_INFO_STREAM("cfg_.odom_topic: " << cfg_.odom_topic);
@@ -164,7 +164,7 @@ namespace dynamic_gap
             return true;
         } else
         {
-            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist);
+            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << ", Goal tolerance: " << cfg_.goal.goal_tolerance);
         }
 
         float globalPathLocalWaypointDiffX = globalPathLocalWaypointOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
@@ -240,7 +240,7 @@ namespace dynamic_gap
             updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
-            // gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
+            gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
             // gapVisualizer_->drawGapsModels(currRawGaps_);
             gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
@@ -446,7 +446,7 @@ namespace dynamic_gap
     
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
     {
-        ROS_INFO_STREAM("pedOdomCB()");        
+        // ROS_INFO_STREAM("pedOdomCB()");        
         
         if (!haveTFs)
             return;
@@ -658,7 +658,7 @@ namespace dynamic_gap
 
                 // MANIPULATE POINTS AT T=0            
                 // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
-                gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
+                // gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
                 gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
                 gapManipulator_->setGapGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
@@ -722,23 +722,26 @@ namespace dynamic_gap
                     float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
 
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
-                    dynamic_gap::Trajectory ahpfTraj;
-                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
-                    ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
-                    float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+                    traj = goToGoalTraj;
+                    pathPoseScores.at(i) = goToGoalPoseScores;
 
-                    if (goToGoalScore > ahpfScore)
-                    {
-                        traj = goToGoalTraj;
-                        pathPoseScores.at(i) = goToGoalPoseScores;
-                    } else
-                    {
-                        traj = ahpfTraj;
-                        pathPoseScores.at(i) = ahpfPoseScores;
-                    }
+                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
+                    // dynamic_gap::Trajectory ahpfTraj;
+                    // ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
+                    // ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
+                    // std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
+                    // float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
+                    // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+
+                    // if (goToGoalScore > ahpfScore)
+                    // {
+                    //     traj = goToGoalTraj;
+                    //     pathPoseScores.at(i) = goToGoalPoseScores;
+                    // } else
+                    // {
+                    //     traj = ahpfTraj;
+                    //     pathPoseScores.at(i) = ahpfPoseScores;
+                    // }
 
                     // traj =  ? goToGoalTraj : ahpfTraj;
                     // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;

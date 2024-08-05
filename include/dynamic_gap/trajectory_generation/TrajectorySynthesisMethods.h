@@ -377,27 +377,27 @@ namespace dynamic_gap
                 }
             }
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 1);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 1);
 
             harmonicCenterstoRbtSqNorm = harmonicCentersToRbt_.rowwise().squaredNorm();
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "harmonicCenterstoRbtSqNorm size: " << harmonicCenterstoRbtSqNorm.rows() << ", " << harmonicCenterstoRbtSqNorm.cols());
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 2);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 2);
 
             harmonicGradients = harmonicCentersToRbt_.array().colwise() / (harmonicCenterstoRbtSqNorm.array() + eps);          
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "harmonicGradients size: " << harmonicGradients.rows() << ", " << harmonicGradients.cols());
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 3);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 3);
 
             // output of AHPF
             rbtVelRaw_ = KAttraction_ * harmonicGradients.transpose() * harmonicWeights_;
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 4);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 4);
 
             // Normalizing raw output and scaling by velocity limit
             rbtVelCmd_ = vRbtLinMax_ * unitNorm(rbtVelRaw_);
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 5);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "               " << 5);
 
             // CLIPPING DESIRED VELOCITIES
             // rbtVelCmd_ = clipVelocities(rbtVelCmd_[0], rbtVelCmd_[1], vRbtLinMax_);

@@ -73,7 +73,7 @@ namespace dynamic_gap
             * \param nh ROS node handle 
             * \return initialization success / failure
             */
-            bool initialize(); // const ros::NodeHandle& nh
+            bool initialize(const std::string & name); // const ros::NodeHandle& nh
 
             /**
             * \brief Check if global goal has been reached by robot
