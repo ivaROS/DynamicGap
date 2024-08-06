@@ -34,49 +34,60 @@ namespace dynamic_gap
         // gapmodel_pos_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_pos_GT", 10);
         // gapmodel_vel_GT_publisher = nh.advertise<visualization_msgs::MarkerArray>("dg_model_vel_GT", 10);
 
-        std_msgs::ColorRGBA rawInitial, rawTerminal, simpInitial, simpTerminal,
-                            manipInitial, manipTerminal, gap_model, reachableGapCenters, gapSplines;
+        std_msgs::ColorRGBA rawInitial, rawTerminal, 
+                            simpInitial, simpTerminal,
+                            manipInitial, manipTerminal, 
+                            reachable, 
+                            gap_model, 
+                            gapSplines;
 
+        // Raw gaps
+        std::vector<double> rawGapColorTriplet = {1.0, 0.0, 0.0};
         rawInitial.a = 1.0;
-        rawInitial.r = 0.3; //std_color.r = 0.6;
-        rawInitial.g = 0.3; //std_color.g = 0.2;
-        rawInitial.b = 0.3; //std_color.b = 0.1;
+        rawInitial.r = rawGapColorTriplet[0];
+        rawInitial.g = rawGapColorTriplet[1];
+        rawInitial.b = rawGapColorTriplet[2];
         
         rawTerminal.a = 0.5;
-        rawTerminal.r = 0.3; //std_color.r = 0.6;
-        rawTerminal.g = 0.3; //std_color.g = 0.2;
-        rawTerminal.b = 0.3; //std_color.b = 0.1;
+        rawTerminal.r = rawGapColorTriplet[0];
+        rawTerminal.g = rawGapColorTriplet[1];
+        rawTerminal.b = rawGapColorTriplet[2];
 
+        // Simplified gaps
+        std::vector<double> simpGapColorTriplet = {1.0, 1.0, 0.0};
         simpInitial.a = 1.0;
-        simpInitial.r = 0.0;
-        simpInitial.g = 0.0;
-        simpInitial.b = 0.0; 
+        simpInitial.r = simpGapColorTriplet[0];
+        simpInitial.g = simpGapColorTriplet[1];
+        simpInitial.b = simpGapColorTriplet[2]; 
 
-        simpTerminal.a = 0.50;
-        simpTerminal.r = 0.0;
-        simpTerminal.g = 0.0; 
-        simpTerminal.b = 0.0; 
+        simpTerminal.a = 0.5;
+        simpTerminal.r = simpGapColorTriplet[0];
+        simpTerminal.g = simpGapColorTriplet[1]; 
+        simpTerminal.b = simpGapColorTriplet[2]; 
 
+        // Manipulated gaps
+        std::vector<double> manipGapColorTriplet = {0.0, 1.0, 0.0};
         manipInitial.a = 1.0;
-        manipInitial.r = 0.0; 
-        manipInitial.g = 1.0;
-        manipInitial.b = 0.0;
+        manipInitial.r = manipGapColorTriplet[0]; 
+        manipInitial.g = manipGapColorTriplet[1];
+        manipInitial.b = manipGapColorTriplet[2];
 
-        manipTerminal.a = 1.0;
-        manipTerminal.r = 0.0; 
-        manipTerminal.g = 1.0; 
-        manipTerminal.b = 0.0; 
+        manipTerminal.a = 0.5;
+        manipTerminal.r = manipGapColorTriplet[0]; 
+        manipTerminal.g = manipGapColorTriplet[1]; 
+        manipTerminal.b = manipGapColorTriplet[2]; 
+
+        // Reachable gaps
+        reachable.a = 1.0;
+        reachable.r = 1.0;
+        reachable.g = 0.65;
+        reachable.b = 0.0;
 
         // MODELS: PURPLE
         gap_model.a = 1.0;
         gap_model.r = 1;
         gap_model.g = 0;
         gap_model.b = 1;
-
-        reachableGapCenters.a = 1.0;
-        reachableGapCenters.r = 1;
-        reachableGapCenters.g = 0.65;
-        reachableGapCenters.b = 0;
 
         gapSplines.a = 1.0;
         gapSplines.r = 0.8;
@@ -90,7 +101,7 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("simp_terminal", simpTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_initial", manipInitial));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_terminal", manipTerminal));
-        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable_gap_centers", reachableGapCenters));
+        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable", reachable));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
     }
 
@@ -123,18 +134,6 @@ namespace dynamic_gap
             simpGapsPublisher.publish(clearMarker);
             simpGapsPublisher.publish(marker);
         }
-
-
-        // if (ns == "raw") 
-        // {
-        //     rawGapsPublisher.publish(clearMarkerArray);
-        //     rawGapsPublisher.publish(markerArray);
-        // } else if (ns == "simp") 
-        // {
-        //     simpGapsPublisher.publish(clearMarkerArray);
-        //     simpGapsPublisher.publish(markerArray);
-        // }
-
     }
 
     void GapVisualizer::drawGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
@@ -992,7 +991,7 @@ namespace dynamic_gap
 
         // std::cout << "gap category: " << g.getCategory() << std::endl;
         //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
-        auto colorIter = colorMap.find("manip_initial");
+        auto colorIter = colorMap.find("reachable");
         if (colorIter == colorMap.end()) 
         {
             ROS_FATAL_STREAM("Visualization Color not found, return without drawing");

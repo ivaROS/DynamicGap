@@ -63,7 +63,13 @@ namespace dynamic_gap
 
         cmdVel = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
-        return planner_.recordAndCheckVel(cmdVel);
+        bool cmdVelCheck = planner_.recordAndCheckVel(cmdVel);
+
+        cmdVel.linear.x = 0.0;
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = 0.0;
+
+        return cmdVelCheck;
     }
 
     void DynamicGapPlanner::reset()

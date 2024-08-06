@@ -197,8 +197,8 @@ namespace dynamic_gap
             updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
-            // gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
-            // gapVisualizer_->drawGapsModels(currRawGaps_);
+            gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
+            gapVisualizer_->drawGapsModels(currRawGaps_);
             gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
 
@@ -581,7 +581,7 @@ namespace dynamic_gap
 
                 // MANIPULATE POINTS AT T=0            
                 // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
-                gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
+                // gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
                 gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
                 gapManipulator_->setGapGoal(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), true);
@@ -593,7 +593,7 @@ namespace dynamic_gap
                 // current implementation really only supports gaps that exist right now, propagated gaps can break                
                 // if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
                 // {
-                gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
+                // gapManipulator_->reduceGap(manipulatedGaps.at(i), goalSelector_->getGlobalPathLocalWaypointRobotFrame(), false);
                 //     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
                 // }
                 gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
