@@ -74,7 +74,7 @@ namespace dynamic_gap
             struct PlanningMode 
             {
                 bool holonomic = true; /**< Boolean for if robot is holonomic or not */
-                bool heading = true; /**< Boolean for if robot tracks path headings or not */
+                bool heading = false; /**< Boolean for if robot tracks path headings or not */
                 bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
                 bool egocircle_prop_cheat = true; /**< Flag for enacting future scan propagation through cheating */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */

@@ -97,7 +97,7 @@ namespace dynamic_gap
 
         // Robot odometry message subscriber
         // ROS_INFO_STREAM("before rbtOdomSub_");
-        rbtOdomSub_ = nh_.subscribe("odom", 10, &Planner::egoRobotOdomCB, this);
+        rbtOdomSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
         // ROS_INFO_STREAM("after rbtOdomSub_");
 
         // Robot laser scan message subscriber
