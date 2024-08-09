@@ -29,10 +29,10 @@ namespace dynamic_gap
                 rightBezierOrigin_ << 0.0, 0.0;
 
                 // Here, you can define what type of model you want to use
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                leftGapPtModel_ = new PerfectEstimator();
-                rightGapPtModel_ = new PerfectEstimator();
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                // leftGapPtModel_ = new PerfectEstimator();
+                // rightGapPtModel_ = new PerfectEstimator();
             };
 
             Gap(const dynamic_gap::Gap & otherGap)
