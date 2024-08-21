@@ -19,19 +19,17 @@ namespace dynamic_gap
             std::string sensor_frame_id = "camera_link"; /**< Sensor frame ID */
 
             /**
-            * \brief Hyperparameters for gap visualization
-            */
-            struct GapVisualization 
-            {
-                int min_resoln = 2; /**< Frequency of scan indices to visualize (plot one every min_resoln scan point) */
-            } gap_viz;
-            
-            /**
             * \brief Hyperparameters for ego-robot
             */
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
+                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 1.5; /**< Maximum angular speed for robot */
+                float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
+                float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
+                float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */                
             } rbt;
 
             /**
@@ -47,6 +45,7 @@ namespace dynamic_gap
             */
             struct Scan
             {
+                // will get overriden in updateParamFromScan
                 float angle_min = -M_PI; /**< minimum angle value in scan */
                 float angle_max = M_PI; /**< maximum angle value in scan */
                 int half_scan = 256; /**< Half of total rays in scan (integer) */
@@ -63,10 +62,8 @@ namespace dynamic_gap
             */
             struct PlanningMode 
             {
-                bool holonomic = true; /**< Boolean for if robot is holonomic or not */
                 bool heading = false; /**< Boolean for if robot tracks path headings or not */
                 bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
-                int halt_size = 5; /**< Size of command velocity buffer */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = true; /**< Flag for using perfect gap models */
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
@@ -91,14 +88,6 @@ namespace dynamic_gap
             } goal;
 
             /**
-            * \brief Hyperparameters for gap detection
-            */
-            struct GapDetection
-            {
-                int max_idx_diff = 256; /**< Maximum size in scan indices of a merged gap during gap simplification */
-            } gap_det;
-
-            /**
             * \brief Hyperparameters for gap association
             */
             struct GapAssociation 
@@ -111,11 +100,7 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
-                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
-                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */
-                float reduction_threshold = M_PI; /**< Maximum allowable size of gap */
                 bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
-                bool radial_convert = true; /**< Flag for if gap manipulator should apply radial gap conversion */
             } gap_manip;
 
             /**
@@ -123,16 +108,13 @@ namespace dynamic_gap
             */
             struct Trajectory 
             {
-                bool synthesized_frame = true; /**< Flag for if trajectory should be represented in sensor frame */
                 float integrate_maxt = 5.0; /**< Trajectory generation time horizon (in seconds) */
                 float integrate_stept = 0.5; /**< Trajectory generation time step (in seconds) */
-                float max_pose_pen_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
-                float cobs = -1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
-                float pose_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
+                float max_pose_to_scan_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
+                float Q = 1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
+                float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.21; /**< Inflation ratio for planner */
-                float terminal_weight = 10.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
-                int num_curve_points = 50; /**< Number of points to use to discretize gap boundary */
-                int num_extended_gap_origin_points = 6; /**< Number of points to use to discretize radial gap extension */
+                float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
             } traj;            
 
             /**
@@ -142,14 +124,8 @@ namespace dynamic_gap
             {
                 float k_fb_x = 0.5; /**< Proportional feedback gain in x-direction */
                 float k_fb_y = 0.5; /**< Proportional feedback gain in y-direction */
-                float k_fb_theta = 0.5; /**< Proportional feedback for robot yaw */
+                float k_fb_theta = 0.8; /**< Proportional feedback for robot yaw */
                 int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
-                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 1.5; /**< Maximum angular speed for robot */
-                float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
-                float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
-                float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */
             } control;
             
             /**
@@ -162,9 +138,6 @@ namespace dynamic_gap
 
                 float r_unity = 0.35; /**< Robot to environment distance at which projection operator takes on a value of 1 */
                 float r_zero = 1.0; /**< Robot to environment distance at which projection operator takes on a value of 0 */
-
-                float cbf_param = 0.1; /**< Scaling hyperparamter for CBF */            
-                float k_CBF = 1.0; /**< Proportional gain for CBF */
             } projection;
 
         /**

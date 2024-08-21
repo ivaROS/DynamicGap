@@ -10,7 +10,6 @@
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
   <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
-  <arg name="holonomic" default="$(optenv GM_PARAM_HOLONOMIC true)"/>
   <arg name="projection_operator" default="false"/>
 
   <arg name="debug" default="false" />
@@ -73,7 +72,6 @@
       <param name="DynamicGapPlanner/robot_frame_id" value="$(arg robot_namespace)"/>
       <param name="DynamicGapPlanner/sensor_frame_id" value="$(arg robot_namespace)_laser_0"/>
 
-      <param name="DynamicGapPlanner/holonomic" value="$(arg holonomic)"/>
       <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
 
       <!-- remapping for obstacles -->

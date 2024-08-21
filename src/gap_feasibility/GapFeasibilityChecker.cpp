@@ -112,7 +112,7 @@ namespace dynamic_gap
         gap->peakSplineVelX_ = peakSplineVelX;
         gap->peakSplineVelY_ = peakSplineVelY;
         
-        if (std::max(std::abs(peakSplineVelX), std::abs(peakSplineVelY)) >= cfg_->control.vx_absmax)
+        if (std::max(std::abs(peakSplineVelX), std::abs(peakSplineVelY)) >= cfg_->rbt.vx_absmax)
             gapCrossingTime = -1.0; // communicating infeasibility
 
         return; 
@@ -168,14 +168,14 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t: " << t);
 
             // checking to see if left point is reachable
-            if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->rbt.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating left");
                 gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
             }
 
             // checking to see if right point is reachable
-            if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->rbt.vx_absmax * t))) 
             {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating right");
                 gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
@@ -344,10 +344,10 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       tRewind: " << tRewind);
 
-            if (!(leftSideOpening && (getGapRange(rewindLeftGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(leftSideOpening && (getGapRange(rewindLeftGapState) < cfg_->rbt.vx_absmax * t))) 
                 gap->leftGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
             
-            if (!(rightSideOpening && (getGapRange(rewindRightGapState) < cfg_->control.vx_absmax * t))) 
+            if (!(rightSideOpening && (getGapRange(rewindRightGapState) < cfg_->rbt.vx_absmax * t))) 
                 gap->rightGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept);
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "t_rew: " << t_rew);
 

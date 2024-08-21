@@ -52,25 +52,6 @@ namespace dynamic_gap
                                     const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
             
             /**
-            * \brief function for reducing gap's angle to ensure that gap is convex (angle < 180 degrees)
-            * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
-            */
-            void reduceGap(dynamic_gap::Gap * gap, 
-                            const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
-                            const bool & initial);
-
-            /**
-            * \brief function for converting a radial gap into a swept goal to allow for
-            * higher gap visibility
-            * \param gap queried gap
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
-            */
-            void convertRadialGap(dynamic_gap::Gap * gap, 
-                                    const bool & initial);
-
-            /**
             * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
             * \param gap queried gap
             */

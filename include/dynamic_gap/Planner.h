@@ -24,14 +24,12 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/gap_estimation/GapAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
-#include <dynamic_gap/scan_processing/StaticScanSeparator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
-#include <dynamic_gap/goal_management/GoalSelector.h>
+#include <dynamic_gap/global_plan_management/GlobalPlanManager.h>
 #include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
-#include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_generation/NavigableGapGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
@@ -39,7 +37,6 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-// #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <boost/thread/mutex.hpp>
@@ -381,13 +378,11 @@ namespace dynamic_gap
         std::vector<Eigen::Vector4f> currentEstimatedAgentStates_; /**< Estimated states of agents currently in local environment */
 
         dynamic_gap::GapDetector * gapDetector_ = NULL; /**< Gap detector */
-        dynamic_gap::StaticScanSeparator * staticScanSeparator_ = NULL; /**< Static scan separator */
         dynamic_gap::GapVisualizer * gapVisualizer_ = NULL; /**< Gap visualizer */
-        dynamic_gap::GoalSelector * goalSelector_ = NULL; /**< Goal selector */
+        dynamic_gap::GlobalPlanManager * globalPlanManager_ = NULL; /**< Goal selector */
         dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
         dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
         dynamic_gap::TrajectoryScorer * trajScorer_ = NULL; /**< Trajectory scorer */
-        dynamic_gap::DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
         dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
         dynamic_gap::GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
         dynamic_gap::TrajectoryController * trajController_ = NULL; /**< Trajectory controller */

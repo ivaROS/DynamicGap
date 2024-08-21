@@ -246,11 +246,8 @@ namespace dynamic_gap
             // 2. Checking if current simplified gap is either right dist < left dist or swept 
             bool rightTypeOrSweptGap = simplifiedGaps.at(j)->isRightType() || !simplifiedGaps.at(j)->isRadial();
 
-            // 3. Making sure that this merged gap is not too large
-            bool mergedGapSizeCheck = (rawGap->LIdx() - simplifiedGaps.at(j)->RIdx()) < cfg_->gap_det.max_idx_diff;
-
             // ROS_INFO_STREAM_NAMED("GapDetector", "simp_left_raw_right_dist_test: " << simp_left_raw_right_dist_test << ", rightTypeOrSweptGap: " << rightTypeOrSweptGap << ", mergedGapSizeCheck: " << mergedGapSizeCheck);
-            if (intergapDistTest && rightTypeOrSweptGap && mergedGapSizeCheck)
+            if (intergapDistTest && rightTypeOrSweptGap)
                 lastMergeable = j;
         }
 

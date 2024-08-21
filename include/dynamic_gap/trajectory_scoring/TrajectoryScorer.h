@@ -83,22 +83,6 @@ namespace dynamic_gap
             */
             float chapterScore(const float & rbtToScanDist);
 
-            /**
-            * \brief function for evaluating intermediate cost of pose for candidate trajectory (in dynamic environment)
-            * \param pose pose in candidate trajectory to calculate distance with            
-            * \param theta theta value of queried laser scan point
-            * \param range range value of queried laser scan point
-            * \return intermediate cost of pose            
-            */
-            float dynamicScorePose(const geometry_msgs::Pose & pose, const float & theta, const float & range);
-
-            /**
-            * \brief function for calculating intermediate trajectory cost (in dynamic environment)
-            * \param rbtToScanDist minimum distance from robot pose to current scan
-            * \return intermediate cost of pose
-            */            
-            float dynamicChapterScore(const float & rbtToScanDist);
-
             boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
             

@@ -7,8 +7,6 @@ namespace dynamic_gap
         projOpPublisher_ = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
 
-        KFeedbackTheta_ = (cfg_->planning.holonomic) ? 0.8 : cfg_->control.k_fb_theta;
-
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
         manualVelAng_ = 0.0f;
@@ -169,7 +167,7 @@ namespace dynamic_gap
         // obtain feedback velocities
         float velLinXFeedback = errorX * cfg_->control.k_fb_x;
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
-        float velAngFeedback = cfg_->planning.heading * errorTheta * KFeedbackTheta_;
+        float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
         float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
@@ -254,41 +252,23 @@ namespace dynamic_gap
         if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
             visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe);
 
-        if (cfg_->planning.holonomic)
-        {
-            velLinXFeedback += weightedVelLinXSafe;
-            velLinYFeedback += weightedVelLinYSafe;
+        velLinXFeedback += weightedVelLinXSafe;
+        velLinYFeedback += weightedVelLinYSafe;
 
-            if (cfg_->planning.heading)
+        if (cfg_->planning.heading)
+        {
+            // if angular error is large, rotate first 
+            // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
+            if (std::abs(velAngFeedback) > 0.50)
             {
-                // if angular error is large, rotate first 
-                // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-                if (std::abs(velAngFeedback) > 0.50)
-                {
-                    velLinXFeedback = 0.0;
-                    velLinYFeedback = 0.0;
-                }                
+                velLinXFeedback = 0.0;
+                velLinYFeedback = 0.0;
+            }                
 
-                // do not want robot to drive backwards
-                if (velLinXFeedback < 0)
-                    velLinXFeedback = 0;   
-            }         
-
-        } else 
-        {
-            velLinXFeedback += (cfg_->projection.k_po_x * velLinXSafe);
-            velLinYFeedback = 0;
-            velAngFeedback += (velLinYFeedback + cfg_->projection.k_po_theta * velLinYSafe);
-
-            // if (cfg_->planning.projection_operator && std::abs(velAngFeedback) > 0.50 && minDist < cfg_->rbt.r_inscr)
-            // {
-            //     velLinXFeedback = 0;
-            //     velAngFeedback *= 2;
-            // }
-
+            // do not want robot to drive backwards
             if (velLinXFeedback < 0)
-                velLinXFeedback = 0;
-        }
+                velLinXFeedback = 0;   
+        }         
 
         ROS_INFO_STREAM_NAMED("Controller", "        summed command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
@@ -337,16 +317,16 @@ namespace dynamic_gap
         float speedLinXFeedback = std::abs(velLinXFeedback);
         float speedLinYFeedback = std::abs(velLinYFeedback);
         
-        if (speedLinXFeedback <= cfg_->control.vx_absmax && speedLinYFeedback <= cfg_->control.vy_absmax) 
+        if (speedLinXFeedback <= cfg_->rbt.vx_absmax && speedLinYFeedback <= cfg_->rbt.vy_absmax) 
         {
             // std::cout << "not clipping" << std::endl;
         } else 
         {
-            velLinXFeedback *= epsilonDivide(cfg_->control.vx_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
-            velLinYFeedback *= epsilonDivide(cfg_->control.vy_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
+            velLinXFeedback *= epsilonDivide(cfg_->rbt.vx_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
+            velLinYFeedback *= epsilonDivide(cfg_->rbt.vy_absmax, std::max(speedLinXFeedback, speedLinYFeedback));
         }
 
-        // std::max(-cfg_->control.vang_absmax, std::min(cfg_->control.vang_absmax, velAngFeedback));
+        // std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, velAngFeedback));
         return;
     }
 
