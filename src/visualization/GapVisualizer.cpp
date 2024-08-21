@@ -317,10 +317,6 @@ namespace dynamic_gap
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
-        // if ((initial && !gap->mode.reduced_ && !gap->mode.convex_ && !gap->mode.RGC_) ||
-        //     (!initial && !gap->mode.termReduced_ && !gap->mode.termConvex_ && !gap->mode.termRGC_))
-        //     return;
-
         // float viz_jitter = cfg_->gap_viz.viz_jitter;
         // int viz_offset = 0;
         
@@ -577,6 +573,7 @@ namespace dynamic_gap
     {
         // ROS_INFO_STREAM("[drawNavigableGap] start");
 
+        /*
         // visualization_msgs::Marker marker;
         marker.header.stamp = ros::Time();
         marker.id = 0;
@@ -634,6 +631,7 @@ namespace dynamic_gap
             }
         }
         // ROS_INFO_STREAM("[drawNavigableGap] end");
+        */
     }
 
 }

@@ -358,8 +358,6 @@ namespace dynamic_gap
         // Trajectories
         dynamic_gap::Trajectory currentTraj_; /**< Trajectory that robot is currently tracking */
 
-        geometry_msgs::TwistStamped currentPeakSplineVel_; /**< Peak velocity along approximated spline trajectory through current gap */
-
         int targetTrajectoryPoseIdx_ = 0; /**< Index of closest pose along the robot's current trajectory */
 
         int trajectoryChangeCount_ = 0; /**< Counter for times that planner has switched local trajectories */

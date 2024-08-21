@@ -39,38 +39,8 @@ namespace dynamic_gap
     {
         try
         {
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapTerminalGoal()]");
-            
-            if (gap->getCategory() == "expanding" || gap->getCategory() == "static") 
-            { 
-                ROS_INFO_STREAM_NAMED("GapManipulator", "setting terminal goal for expanding gap");
-                setGapGoal(gap, globalPathLocalWaypoint, false);
-            } else if (gap->getCategory() == "closing") 
-            {
-                std::string closingGapType = "";
-                if (gap->crossed_) 
-                {
-                    closingGapType = "crossed";
-                    Eigen::Vector2f crossingPt = gap->getCrossingPoint();
+            setGapGoal(gap, globalPathLocalWaypoint, false);
 
-                    gap->terminalGoal.x_ = crossingPt[0];
-                    gap->terminalGoal.y_ = crossingPt[1];
-                } else if (gap->closed_) 
-                {
-                    closingGapType = "closed";
-                    ROS_INFO_STREAM_NAMED("GapManipulator", "        setting terminal goal for closed closing gap");
-                    Eigen::Vector2f closing_pt = gap->getClosingPoint();
-                
-                    gap->terminalGoal.x_ = closing_pt[0];
-                    gap->terminalGoal.y_ = closing_pt[1];
-                } else 
-                {
-                    closingGapType = "existent";
-                    setGapGoal(gap, globalPathLocalWaypoint, false);
-                }
-
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        setting terminal goal for " + closingGapType + " closing gap");
-            }
             ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapTerminalGoal() finished]");        
         } catch (...)
         {
@@ -153,12 +123,12 @@ namespace dynamic_gap
                                         ", local goal x/y: (" << globalPathLocalWaypointVector[0] << 
                                                          ", " << globalPathLocalWaypointVector[1] << ")");
             
-            if (gap->artificial_ || (isGlobalPathLocalWaypointWithinGapAngle(globalPathLocalWaypointIdx, rightIdx, leftIdx) && 
-                                    checkWaypointVisibility(leftPt, rightPt, globalPathLocalWaypointVector)))
+            if (isGlobalPathLocalWaypointWithinGapAngle(globalPathLocalWaypointIdx, rightIdx, leftIdx) && 
+                checkWaypointVisibility(leftPt, rightPt, globalPathLocalWaypointVector))
             {
                 gap->setGoal(initial, globalPathLocalWaypointVector);
 
-                std::string goalStatus = gap->artificial_ ? "Option 0: artificial gap: " : "Option 2: global path local waypoint: ";
+                std::string goalStatus = "Option 2: global path local waypoint: ";
                 ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
                 ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalPathLocalWaypointVector[0] << ", " << globalPathLocalWaypointVector[1]);
                    
@@ -319,8 +289,6 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
             
             float s = std::min(gap->getMinSafeDist(), cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
-            gap->leftBezierOrigin_ = getRadialExtension(s, leftPt, true);
-            gap->rightBezierOrigin_ = getRadialExtension(s, rightPt, false);
 
             // // ROS_INFO_STREAM_NAMED("GapManipulator", "leftPt: (" << xLeft << ", " << yLeft << "), rightPt: (" << xRight << ", " << yRight << ")");
             // // ROS_INFO_STREAM_NAMED("GapManipulator", "eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
@@ -343,13 +311,6 @@ namespace dynamic_gap
             // // point opposite direction of middle of gap, magnitude of min safe dist
             // Eigen::Vector2f extendedGapOrigin =  - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * norm_eB; //
             // // ROS_INFO_STREAM_NAMED("GapManipulator", "extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
-
-            // gap->extendedGapOrigin_ = extendedGapOrigin;
-
-            // gap->leftBezierOrigin_ =  Rnegpi2 * extendedGapOrigin;
-
-            // gap->rightBezierOrigin_ = Rpi2 * extendedGapOrigin;
-            // gap->mode.convex_ = true;
 
             // ROS_INFO_STREAM_NAMED("GapManipulator", "        finishing with gap extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
 

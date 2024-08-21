@@ -58,12 +58,10 @@ namespace dynamic_gap
             * \brief Control law for trajectory tracking
             * \param current current robot pose
             * \param desired desired robot pose
-            * \param currentPeakSplineVel peak spline velocity for current trajectory we are trying to track
             * \return command velocity for robot
             */
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
-                                            const geometry_msgs::Pose & desired,
-                                            const geometry_msgs::TwistStamped & currentPeakSplineVel); // const sensor_msgs::LaserScan & scan, 
+                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
 
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits

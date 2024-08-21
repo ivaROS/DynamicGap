@@ -173,53 +173,6 @@ namespace dynamic_gap
         return rawGaps;
     }
 
-    bool GapDetector::isGlobalGoalWithinScan(const geometry_msgs::PoseStamped & globalGoalRbtFrame,
-                                            int & globalGoalScanIdx)
-    {
-        float finalGoalDist = sqrt(pow(globalGoalRbtFrame.pose.position.x, 2) + pow(globalGoalRbtFrame.pose.position.y, 2));
-        float globalGoalOrientationRbtFrame = std::atan2(globalGoalRbtFrame.pose.position.y, globalGoalRbtFrame.pose.position.x);
-
-        globalGoalScanIdx = int(std::floor((globalGoalOrientationRbtFrame + M_PI) / scan_.angle_increment));
-
-        float globalGoalScanIdxDist = scan_.ranges.at(globalGoalScanIdx);
-
-        return (finalGoalDist < globalGoalScanIdxDist);
-    }   
-
-    void GapDetector::addGapForGlobalGoal(const int & globalGoalScanIdx, std::vector<dynamic_gap::Gap *> & rawGaps)
-    {
-        ROS_INFO_STREAM_NAMED("GapDetector", "running addGapForGlobalGoal");
-        ROS_INFO_STREAM_NAMED("GapDetector", "globalGoalScanIdx: " << globalGoalScanIdx);
-        int gapIdx = 0;
-        // int half_num_scan = scan_.ranges.size() / 2;
-        // auto min_dist = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
-
-        for (dynamic_gap::Gap * rawGap : rawGaps) 
-        {
-            // if final_goal idx is within gap, return
-            // ROS_INFO_STREAM_NAMED("GapDetector", "checking against: " << g.RIdx() << " to " << g.LIdx());
-            if (globalGoalScanIdx >= rawGap->RIdx() && globalGoalScanIdx <= rawGap->LIdx()) 
-            {
-                ROS_INFO_STREAM_NAMED("GapDetector", "final goal is in gap: " << rawGap->RIdx() << ", " << rawGap->LIdx());
-                return;
-            }
-            gapIdx += 1;
-        }
-
-        std::string frame = scan_.header.frame_id;
-        int artificialGapIdxSpan = cfg_->scan.half_scan_f / 12;
-        int rightIdx = std::max(globalGoalScanIdx - artificialGapIdxSpan, 0);
-        int leftIdx = std::min(globalGoalScanIdx + artificialGapIdxSpan, cfg_->scan.full_scan - 1);
-        ROS_INFO_STREAM_NAMED("GapDetector", "creating gap " << rightIdx << ", to " << leftIdx);
-
-        dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, rightIdx, scan_.ranges.at(rightIdx), true, minScanDist_);
-        gap->addLeftInformation(leftIdx, scan_.ranges.at(leftIdx));
-        
-        gap->artificial_ = true;
-        rawGaps.insert(rawGaps.begin() + gapIdx, gap);        
-        return;
-    }    
-
     ////////////////// GAP SIMPLIFICATION ///////////////////////
 
     int GapDetector::checkSimplifiedGapsMergeability(dynamic_gap::Gap * rawGap, 

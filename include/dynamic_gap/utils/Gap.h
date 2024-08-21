@@ -24,9 +24,6 @@ namespace dynamic_gap
             {
                 extendedGapOrigin_ << 0.0, 0.0;
                 termExtendedGapOrigin_ << 0.0, 0.0;
-                
-                leftBezierOrigin_ << 0.0, 0.0;
-                rightBezierOrigin_ << 0.0, 0.0;
 
                 // Here, you can define what type of model you want to use
                 leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
@@ -71,11 +68,6 @@ namespace dynamic_gap
                 minSafeDist_ = otherGap.minSafeDist_;
                 terminalMinSafeDist_ = otherGap.terminalMinSafeDist_;
 
-                category_ = otherGap.category_;
-
-                crossingPt_ = otherGap.crossingPt_;
-                closingPt_ = otherGap.closingPt_;
-
                 goal.x_ = otherGap.goal.x_;
                 goal.y_ = otherGap.goal.y_;
 
@@ -83,21 +75,6 @@ namespace dynamic_gap
                 terminalGoal.y_ = otherGap.terminalGoal.y_;
 
                 gapLifespan_ = otherGap.gapLifespan_;
-
-                peakSplineVelX_ = otherGap.peakSplineVelX_;
-                peakSplineVelY_ = otherGap.peakSplineVelY_;
-
-                crossed_ = otherGap.crossed_;
-                closed_ = otherGap.closed_;
-                crossedBehind_ = otherGap.crossedBehind_;
-                artificial_ = otherGap.artificial_;
-
-                mode.reduced_ = otherGap.mode.reduced_;
-                mode.convex_ = otherGap.mode.convex_;
-                mode.RGC_ = otherGap.mode.RGC_;
-                mode.termReduced_ = otherGap.mode.termReduced_;
-                mode.termConvex_ = otherGap.mode.termConvex_;
-                mode.termRGC_ = otherGap.mode.termRGC_;
 
                 // deep copy for new models
                 // Here, you can define what type of model you want to use
@@ -375,6 +352,11 @@ namespace dynamic_gap
                 setRadial(false);
             }
 
+            void setGapLifespan(const float & gapLifespan)
+            {
+                gapLifespan_ = gapLifespan;
+            }
+
             /**
             * \brief Getter for initial left gap point in Cartesian frame
             * \param x x-position for left gap point
@@ -616,44 +598,6 @@ namespace dynamic_gap
             */            
             float getTerminalMinSafeDist() { return terminalMinSafeDist_; }
 
-            /**
-            * \brief Setter for dynamic gap category
-            * \param category gap category
-            */
-            void setCategory(const std::string & category) { category_ = category; }
-
-            /**
-            * \brief Getter for dynamic gap category
-            * \return dynamic gap category
-            */
-            std::string getCategory() { return category_; }
-
-            /**
-            * \brief Setter for gap crossing point
-            * \param x x-coordinate of gap crossing point
-            * \param y y-coordinate of gap crossing point
-            */
-            void setCrossingPoint(const float & x, const float & y) { crossingPt_ << x,y; }
-
-            /**
-            * \brief Getter for gap crossing point
-            * \return gap crossing point
-            */
-            Eigen::Vector2f getCrossingPoint() { return crossingPt_; }
-
-            /**
-            * \brief Setter for gap closing point
-            * \param x x-coordinate of gap closing point
-            * \param y y-coordinate of gap closing point
-            */
-            void setClosingPoint(const float & x, const float & y) { closingPt_ << x,y; }
-
-            /**
-            * \brief Getter for gap closing point
-            * \return gap closing point
-            */            
-            Eigen::Vector2f getClosingPoint() { return closingPt_; }
-
             /** 
             * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
             * \return distance between left and right gap points
@@ -704,24 +648,6 @@ namespace dynamic_gap
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */
             bool terminalRightType_ = false; /**< Terminal gap right type characteristic identifier */
 
-            float peakSplineVelX_ = 0.0; /**< Peak x-direction velocity along approximated spline trajectory through gap */
-            float peakSplineVelY_ = 0.0; /**< Peak y-direction velocity along approximated spline trajectory through gap */
-            Eigen::Vector4f splineXCoefs_; /**< Coefficients for x-coordinates of approximated spline trajectory */
-            Eigen::Vector4f splineYCoefs_; /**< Coefficients for y-coordinates of approximated spline trajectory */
-
-            /**
-            * \brief Structure for containing gap status of manipulation 
-            */
-            struct GapMode 
-            {
-                bool reduced_ = false; /**< Status of if initial gap is reduced */
-                bool convex_ = false; /**< Status of if initial gap is convex */
-                bool RGC_ = false; /**< Status of if initial gap is radially converted */
-                bool termReduced_ = false; /**< Status of if terminal gap is reduced */
-                bool termConvex_ = false; /**< Status of if terminal gap is convex */
-                bool termRGC_ = false; /**< Status of if terminal gap is radially converted */
-            } mode;
-
             /**
             * \brief Gap's initial goal
             */
@@ -742,34 +668,6 @@ namespace dynamic_gap
 
             Estimator * leftGapPtModel_ = NULL; /**< Left gap point estimator */
             Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
-
-            std::string category_ = ""; /**< Dynamic gap category */
-            Eigen::Vector2f crossingPt_; /**< Gap crossing point */
-            Eigen::Vector2f closingPt_; /**< Gap closing point */
-
-            bool crossed_ = false; /**< Gap crossed condition */
-            bool closed_ = false; /**< Gap closed condition */
-            bool crossedBehind_ = false; /**< Gap behind and crossed condition */
-
-            bool artificial_ = false; /**< Gap artificial condition */
-
-            float leftBezierWeight_ = 0.0; /**< Weighting term for left gap side Bezier control points */
-            float rightBezierWeight_ = 0.0; /**< Weighting term for right gap side Bezier control points */
-
-            Eigen::Vector2d leftBezierOrigin_; /**< Origin control point for left gap side Bezier curve */
-            Eigen::Vector2d leftPt0_; /**< Second control point for left gap side Bezier curve */
-            Eigen::Vector2d leftPt1_; /**< Third control point for left gap side Bezier curve */
-            Eigen::Vector2d rightBezierOrigin_; /**< Origin control point for right gap side Bezier curve */
-            Eigen::Vector2d rightPt0_; /**< Second control point for right gap side Bezier curve */
-            Eigen::Vector2d rightPt1_; /**< Third control point for right gap side Bezier curve */
-
-            int numLeftRGEPoints_ = 0; /**< Number of points used to discretize left gap side's radial extension */
-            int numRightRGEPoints_ = 0; /**< Number of points used to discretize right gap side's radial extension */
-
-            Eigen::MatrixXd leftRightCenters_; /**< Harmonic term center positions for left and right gap sides */
-            Eigen::MatrixXd allAHPFCenters_; /**< Harmonic term center positions for all boundary curves plus the goal */
-            Eigen::MatrixXd gapBoundaryInwardNorms_; /**< Inward-pointing norms for all points along gap boundary */
-            Eigen::MatrixXd allCurvePts_; /**< Vector of all points that comprise gap boundary */
 
         private:
 

@@ -127,8 +127,7 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist TrajectoryController::controlLaw(const geometry_msgs::Pose & current, 
-                                                          const geometry_msgs::Pose & desired,
-                                                          const geometry_msgs::TwistStamped & currentPeakSplineVel) 
+                                                          const geometry_msgs::Pose & desired) 
     {    
         ROS_INFO_STREAM_NAMED("Controller", "    [controlLaw()]");
         // Setup Vars
@@ -169,7 +168,6 @@ namespace dynamic_gap
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
         float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
-        float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
@@ -177,15 +175,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
-        ROS_INFO_STREAM_NAMED("Controller", "        gap peak velocity: " << currentPeakSplineVel.twist.linear.x << ", " << currentPeakSplineVel.twist.linear.y);           
         
-        if (peakSplineSpeed > cmdSpeed) 
-        {
-            velLinXFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
-            velLinYFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
-            ROS_INFO_STREAM_NAMED("Controller", "        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
-        }
-    
         cmdVel.linear.x = velLinXFeedback;
         cmdVel.linear.y = velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;

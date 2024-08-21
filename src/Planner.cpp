@@ -513,8 +513,9 @@ namespace dynamic_gap
                 // obtain crossing point
 
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
-                isGapFeasible = gapFeasibilityChecker_->indivGapFeasibilityCheck(currGaps.at(i));
-                // isGapFeasible = true;
+                gapFeasibilityChecker_->propagateGapPoints(currGaps.at(i));
+
+                isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysis(currGaps.at(i));
 
                 if (isGapFeasible) 
                 {
@@ -529,13 +530,6 @@ namespace dynamic_gap
                     isCurrentGapFeasible = true;
                 }
             }
-
-            
-            // if (gap_associated) {
-            //     ROS_INFO_STREAM("currently executing gap associated");
-            // } else {
-            //     ROS_INFO_STREAM("currently executing gap NOT associated");
-            // }
             
         } catch(...)
         {
@@ -602,15 +596,12 @@ namespace dynamic_gap
         std::vector<geometry_msgs::PoseArray> paths(gaps.size());
         std::vector<std::vector<float>> pathTimings(gaps.size());
         std::vector<std::vector<float>> pathPoseScores(gaps.size());
-        // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame; // lc as local copy
 
-        // std::vector<dynamic_gap::Gap *> rawGaps = currRawGaps_;
         try 
         {
             for (size_t i = 0; i < gaps.size(); i++) 
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    generating traj for gap: " << i);
-                // std::cout << "starting generate trajectory with rbtPoseInSensorFrame_lc: " << rbtPoseInSensorFrame_lc.pose.position.x << ", " << rbtPoseInSensorFrame_lc.pose.position.y << std::endl;
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 dynamic_gap::Trajectory traj;
                 
@@ -757,7 +748,7 @@ namespace dynamic_gap
             // setCurrentPathTiming(incomingPathTiming);
             setCurrentLeftModel(incomingGap->leftGapPtModel_);
             setCurrentRightModel(incomingGap->rightGapPtModel_);
-            setCurrentGapPeakVelocities(incomingGap->peakSplineVelX_, incomingGap->peakSplineVelY_);
+            // setCurrentGapPeakVelocities(incomingGap->peakSplineVelX_, incomingGap->peakSplineVelY_);
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
 
@@ -774,7 +765,7 @@ namespace dynamic_gap
             // setCurrentPathTiming(emptyPathTiming);
             setCurrentLeftModel(NULL);
             setCurrentRightModel(NULL);
-            setCurrentGapPeakVelocities(0.0, 0.0);
+            // setCurrentGapPeakVelocities(0.0, 0.0);
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             return emptyTraj;
@@ -802,15 +793,15 @@ namespace dynamic_gap
 
             // First, checking if the current gap we are within is still valid (associated and feasible)
             // TODO: remove associated because feasible assumes associated
-            for (dynamic_gap::Gap * gap : feasibleGaps) 
-            {
-                // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel_->getID() << ", feasible right gap index: " << g.rightGapPtModel_->getID());
-                if (gap->leftGapPtModel_->getID() == getCurrentLeftGapPtModelID() && gap->rightGapPtModel_->getID() == getCurrentRightGapPtModelID()) 
-                {
-                    setCurrentGapPeakVelocities(gap->peakSplineVelX_, gap->peakSplineVelY_);
-                    break;
-                }
-            }
+            // for (dynamic_gap::Gap * gap : feasibleGaps) 
+            // {
+            //     // ROS_INFO_STREAM("feasible left gap index: " << g.leftGapPtModel_->getID() << ", feasible right gap index: " << g.rightGapPtModel_->getID());
+            //     if (gap->leftGapPtModel_->getID() == getCurrentLeftGapPtModelID() && gap->rightGapPtModel_->getID() == getCurrentRightGapPtModelID()) 
+            //     {
+            //         setCurrentGapPeakVelocities(gap->peakSplineVelX_, gap->peakSplineVelY_);
+            //         break;
+            //     }
+            // }
 
             // std::cout << "current traj length: " << currentPath.poses.size() << std::endl;
             // ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapPtModelID() << ", " << getCurrentRightGapPtModelID());
@@ -1095,20 +1086,11 @@ namespace dynamic_gap
 
                 // get point along trajectory to target/move towards
                 targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
-                // nav_msgs::Odometry ctrl_target_pose;
-                // geometry_msgs::Pose targetTrajectoryPose;
-                // ctrl_target_pose.header = traj.header;
-                // ctrl_target_pose.pose.pose = traj.poses.at(targetTrajectoryPoseIdx_);
+
                 geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
-                // ctrl_target_pose.twist.twist = geometry_msgs::Twist(); // orig_ref.twist.at(targetTrajectoryPoseIdx_);
-                
-                // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
-                // sensor_msgs::LaserScan static_scan = *static_scan_ptr.get();
-                
-                rawCmdVel = trajController_->controlLaw(currPoseOdomFrame, targetTrajectoryPose, 
-                                                        currentPeakSplineVel_);
+
+                rawCmdVel = trajController_->controlLaw(currPoseOdomFrame, targetTrajectoryPose);
             }
-            // geometry_msgs::PoseStamped rbtPoseInSensorFrame_lc = rbtPoseInSensorFrame;
 
             cmdVel = trajController_->processCmdVel(rawCmdVel,
                                                     rbtPoseInSensorFrame_, 
@@ -1132,11 +1114,11 @@ namespace dynamic_gap
         currRightGapPtModel_ = rightModel; 
     }
 
-    void Planner::setCurrentGapPeakVelocities(const float & peakVelX, const float & peakVelY)
-    {
-        currentPeakSplineVel_.twist.linear.x = peakVelX;
-        currentPeakSplineVel_.twist.linear.y = peakVelY;
-    }
+    // void Planner::setCurrentGapPeakVelocities(const float & peakVelX, const float & peakVelY)
+    // {
+    //     currentPeakSplineVel_.twist.linear.x = peakVelX;
+    //     currentPeakSplineVel_.twist.linear.y = peakVelY;
+    // }
 
     int Planner::getCurrentLeftGapPtModelID() 
     {

@@ -25,25 +25,20 @@ namespace dynamic_gap
             GapFeasibilityChecker(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
 
             /**
-            * \brief Forward propagate a gap through its dynamics model and evaluate
-            * whether it is feasible for ego-robot to pass through the gap within prediction horizon
-            * \param gap incoming gap whose feasibility we want to evaluate
-            * \return boolean for if gap is feasible
-            */
-            bool indivGapFeasibilityCheck(dynamic_gap::Gap * gap);
-            
-        private:
-            /**
-            * \brief Build approximate robot trajectory through gap using cubic spline
-            * and evaluate spline's velocity/acceleration to see if trajectory through gap is feasible
-            * \param gap incoming gap whose feasibility we want to evaluate
-            * \param crossingPt position where gap crosses and shuts (if this occurs)
-            * \param gapCrossingTime time when gap crosses and shuts (if this occurs)
-            */
-            void gapSplinecheck(dynamic_gap::Gap * gap, 
-                                 const Eigen::Vector2f & crossingPt,
-                                 float & gapCrossingTime);
+            * \brief Set terminal range and bearing values for gap based on 
+            * where gap crossed
+            * \param gap incoming gap whose points we want to propagate
+            */                 
+            void propagateGapPoints(dynamic_gap::Gap * gap);
 
+            /**
+            * \brief Check gap lifespan against pursuit guidance kinematics to
+            * determine the gap's feasibility
+            * \param gap incoming gap whose feasibility we want to evaluate
+            */   
+            bool pursuitGuidanceAnalysis(dynamic_gap::Gap * gap);
+
+        private:
             /**
             * \brief Rewind crossed gap to find last point in time in which
             * robot can fit through gap 
@@ -64,15 +59,6 @@ namespace dynamic_gap
             void generateTerminalPoints(dynamic_gap::Gap * gap, 
                                         const Eigen::Vector4f & leftCrossPt,
                                         const Eigen::Vector4f & rightCrossPt);
-
-            /**
-            * \brief Set terminal range and bearing values for gap based on 
-            * where gap crossed
-            * \param gap incoming gap whose feasibility we want to evaluate
-            * \param gapCrossingPt 2D position in space at which gap shuts (left and right points meet)
-            */                 
-            float propagateGapPoints(dynamic_gap::Gap * gap, 
-                                            Eigen::Vector2f& gapCrossingPt);
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
     };
