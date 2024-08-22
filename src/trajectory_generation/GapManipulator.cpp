@@ -400,8 +400,8 @@ namespace dynamic_gap
             gap->setManipRightIdx(inflatedRightIdx);      
             gap->setManipLeftRange(inflatedLeftRange);
             gap->setManipRightRange(inflatedRightRange);
-            gap->getSimplifiedLCartesian(xLeft, yLeft);
-            gap->getSimplifiedRCartesian(xRight, yRight);
+            gap->getManipulatedLCartesian(xLeft, yLeft);
+            gap->getManipulatedRCartesian(xRight, yRight);
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "        post-inflate gap in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        post-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");

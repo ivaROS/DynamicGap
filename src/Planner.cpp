@@ -616,49 +616,50 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    generating traj for gap: " << i);
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
-                dynamic_gap::Trajectory traj;
                 
-                // TRAJECTORY GENERATED IN RBT FRAME
+                // Run go to goal behavior
                 bool runGoToGoal = gaps.at(i)->globalGoalWithin; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+
+                dynamic_gap::Trajectory traj, goToGoalTraj, ahpfTraj;
+                std::vector<float> goToGoalPoseScores, ahpfPoseScores;
+                float goToGoalScore, ahpfScore;
+
                 if (runGoToGoal) 
                 {
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running goToGoal");
 
-                    dynamic_gap::Trajectory goToGoalTraj;
-                    goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
+                    goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
+                                                                        currentRbtVel_, 
+                                                                        globalGoalRobotFrame_,
+                                                                        runGoToGoal);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    std::vector<float> goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans);
-                    float goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
+                    goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans);
+                    goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
+                }
 
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running ahpf");
-                    dynamic_gap::Trajectory ahpfTraj;
-                    ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, !runGoToGoal);
-                    ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                    std::vector<float> ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
-                    float ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+                // Run pursuit guidance behavior
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running pursuit guidance");
+                ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
+                                                                    currentRbtVel_, 
+                                                                    globalGoalRobotFrame_,
+                                                                    !runGoToGoal);
+                ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
+                ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
+                ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
 
-                    if (goToGoalScore > ahpfScore)
-                    {
-                        traj = goToGoalTraj;
-                        pathPoseScores.at(i) = goToGoalPoseScores;
-                    } else
-                    {
-                        traj = ahpfTraj;
-                        pathPoseScores.at(i) = ahpfPoseScores;
-                    }
+                if (runGoToGoal && goToGoalScore > ahpfScore)
+                {
+                    traj = goToGoalTraj;
+                    pathPoseScores.at(i) = goToGoalPoseScores;
+                } else
+                {
+                    traj = ahpfTraj;
+                    pathPoseScores.at(i) = ahpfPoseScores;
+                }
                     // traj =  ? goToGoalTraj : ahpfTraj;
                     // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;
-                } else 
-                {
-                    traj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, currentRbtVel_, runGoToGoal);
-                    traj = gapTrajGenerator_->processTrajectory(traj);
-
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring trajectory for gap: " << i);
-                    pathPoseScores.at(i) = trajScorer_->scoreTrajectory(traj, futureScans);  
-                    // ROS_INFO_STREAM("done with scoreTrajectory");
-                }
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), cam2odom_));
@@ -672,8 +673,7 @@ namespace dynamic_gap
 
         trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseScores);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
-        // generatedPaths = paths;
-        // generatedPathTimings = pathTimings;
+
         return pathPoseScores;
     }
 

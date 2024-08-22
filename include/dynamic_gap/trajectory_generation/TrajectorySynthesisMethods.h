@@ -418,6 +418,47 @@ namespace dynamic_gap
     };
     
     /**
+    * \brief Structure for generating trajectories with parallel navigation technique
+    */    
+    struct ParallelNavigation 
+    {
+        float speedRobot_; /**< speed of robot */
+        float gammaIntercept_; /**< intercept angle of robot */
+
+        ParallelNavigation(const float & gamma_intercept,
+                            const float & speed_robot) : gammaIntercept_(gamma_intercept), speedRobot_(speed_robot) {}
+
+        /**
+        * \brief () operator for AHPF that updates trajectory state
+        * \param x trajectory state
+        * \param dxdt trajectory state rate of change
+        * \param t current timestep
+        */
+        void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
+        {
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", rbtToGoalDistance: " << rbtToGoalDistance);
+
+            Eigen::Vector2f n_gamma_intercept(std::cos(gammaIntercept_), std::sin(gammaIntercept_));
+
+            Eigen::Vector2f robotVelocity = speedRobot_ * n_gamma_intercept;
+
+            // include some check for when robot has passed gap
+            // if (rbtToGoalDistance < 0.1) 
+            // {
+            //     // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
+
+            //     dxdt[0] = 0.0;
+            //     dxdt[1] = 0.0;
+            //     return;
+            // }
+
+            dxdt[0] = robotVelocity[0];
+            dxdt[1] = robotVelocity[1];
+            return;
+        }
+    };
+
+    /**
     * \brief Structure for generating trajectories that head straight to goal
     */    
     struct GoToGoal 
@@ -426,7 +467,7 @@ namespace dynamic_gap
 
         GoToGoal(const float & vRbtLinMax) : vRbtLinMax_(vRbtLinMax) {}
 
-/**
+        /**
         * \brief Helper function for clipping velocities to maximum allowed velocities
         * \param rbtVel current robot velocity
         */
@@ -484,8 +525,8 @@ namespace dynamic_gap
 
             dxdt[0] = rbtVelDes_[0];
             dxdt[1] = rbtVelDes_[1];
-            dxdt[6] = 0.0; // goal_vel_x;
-            dxdt[7] = 0.0; // goal_vel_y;
+            dxdt[6] = 0.0;
+            dxdt[7] = 0.0;
             return;
         }
     };

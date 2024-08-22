@@ -48,6 +48,7 @@ namespace dynamic_gap
             dynamic_gap::Trajectory generateTrajectory(dynamic_gap::Gap * selectedGap, 
                                                         const geometry_msgs::PoseStamped & currPose, 
                                                         const geometry_msgs::TwistStamped & currVel,
+                                                        const geometry_msgs::PoseStamped & globalGoalRobotFrame,
                                                         const bool & runGoToGoal);
 
             /**

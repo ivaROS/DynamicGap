@@ -386,7 +386,7 @@ namespace dynamic_gap
             * \param x x-position for left gap point
             * \param y y-position for left gap point
             */
-            void getSimplifiedLCartesian(float &x, float &y) const
+            void getManipulatedLCartesian(float &x, float &y) const
             {
                 float thetaLeft = idx2theta(manip.leftIdx_);
                 // std::cout << "rightRange_: " << rightRange_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
@@ -399,7 +399,7 @@ namespace dynamic_gap
             * \param x x-position for right gap point
             * \param y y-position for right gap point
             */
-            void getSimplifiedRCartesian(float &x, float &y) const
+            void getManipulatedRCartesian(float &x, float &y) const
             {
                 float thetaRight = idx2theta(manip.rightIdx_);
                 // std::cout << "leftRange_: " << leftRange_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
@@ -412,7 +412,7 @@ namespace dynamic_gap
             * \param x x-position for left gap point
             * \param y y-position for left gap point
             */
-            void getSimplifiedTerminalLCartesian(float &x, float &y) const
+            void getManipulatedTerminalLCartesian(float &x, float &y) const
             {
                 float thetaLeft = idx2theta(manip.termLeftIdx_);
                 // std::cout << "rightRange_: " << rightRange_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
@@ -425,7 +425,7 @@ namespace dynamic_gap
             * \param x x-position for right gap point
             * \param y y-position for right gap point
             */
-            void getSimplifiedTerminalRCartesian(float &x, float &y) const
+            void getManipulatedTerminalRCartesian(float &x, float &y) const
             {
                 float thetaRight = idx2theta(manip.termRightIdx_);
                 // std::cout << "leftRange_: " << leftRange_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
