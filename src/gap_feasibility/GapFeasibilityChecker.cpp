@@ -121,30 +121,13 @@ namespace dynamic_gap
             if (leftToRightAngle > M_PI && bearingsCrossed) 
             {
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "                    bearing cross at " << t);
-                // CLOSING GAP CHECK
-                leftCrossPt = prevLeftGapState.head(2);
-                rightCrossPt << prevRightGapState.head(2);
 
-                crossedGapPtsDistCheck = (leftCrossPt - rightCrossPt).norm()  < 2*cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
-                // IF POINTS ARE SUFFICIENTLY CLOSE TOGETHER, GAP HAS CLOSED
-                if (crossedGapPtsDistCheck) 
-                {    
-                    gapLifespan = generateCrossedGapTerminalPoints(t, gap);
-                    gap->setGapLifespan(gapLifespan);
+                gapLifespan = generateCrossedGapTerminalPoints(t, gap);
+                gap->setGapLifespan(gapLifespan);
 
-                    ROS_INFO_STREAM_NAMED("GapFeasibility", "                    considering gap shut at " << gapLifespan); 
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    considering gap shut at " << gapLifespan); 
 
-                    return;
-                } else
-                {
-                    gapLifespan = generateCrossedGapTerminalPoints(t, gap);
-                    gap->setGapLifespan(gapLifespan);
-
-                    ROS_INFO_STREAM_NAMED("GapFeasibility", "                    considering gap crossed at " << gapLifespan); 
-
-                    return;
-
-                }
+                return;
             }
             
             //////////////////////////////////////

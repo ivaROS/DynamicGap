@@ -617,18 +617,10 @@ namespace dynamic_gap
             * \param initial boolean for setting initial gap point
             * \param goalPt gap goal point
             */
-            void setGoal(const bool & initial, 
-                         const Eigen::Vector2f & goalPt)
+            void setGoal(const Eigen::Vector2f & goalPt)
             {
-                if (initial)
-                {
-                    goal.x_ = goalPt[0];
-                    goal.y_ = goalPt[1];
-                } else
-                {
-                    terminalGoal.x_ = goalPt[0];
-                    terminalGoal.y_ = goalPt[1];
-                }
+                goal.x_ = goalPt[0];
+                goal.y_ = goalPt[1];
             }
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
@@ -668,6 +660,8 @@ namespace dynamic_gap
 
             Estimator * leftGapPtModel_ = NULL; /**< Left gap point estimator */
             Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
+
+            bool globalGoalWithin = false;
 
         private:
 

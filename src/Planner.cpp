@@ -546,37 +546,30 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapManipulator", "[gapManipulate()]");
 
         boost::mutex::scoped_lock gapset(gapMutex_);
-        std::vector<dynamic_gap::Gap *> manipulatedGaps = feasibleGaps; // shallow copy
+        std::vector<dynamic_gap::Gap *> manipulatedGaps;
 
         try
         {
-            for (size_t i = 0; i < manipulatedGaps.size(); i++)
+            for (size_t i = 0; i < feasibleGaps.size(); i++)
             {
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
-                // manipulatedGaps.at(i)->initManipIndices();
-
                 // MANIPULATE POINTS AT T=0            
-                // gapManipulator_->reduceGap(manipulatedGaps.at(i), globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(), true);
-                // gapManipulator_->convertRadialGap(manipulatedGaps.at(i), true);
-                gapManipulator_->inflateGapSides(manipulatedGaps.at(i), true);
-                // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
-                gapManipulator_->setGapGoal(manipulatedGaps.at(i), globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(), true);
+                bool success = gapManipulator_->inflateGapSides(feasibleGaps.at(i));
                 
-                // MANIPULATE POINTS AT T=1
-                ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
-                // gapManipulator_->updateDynamicEgoCircle(manipulatedGaps.at(i), futureScans_);
+                if (success)
+                {
+                    // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
+                    gapManipulator_->setGapGoal(feasibleGaps.at(i), 
+                                                globalGoalRobotFrame_);
+                    
+                    // MANIPULATE POINTS AT T=1
+                    ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
+                
+                    navigableGapGenerator_->generateNavigableGap(feasibleGaps.at(i));
 
-                // current implementation really only supports gaps that exist right now, propagated gaps can break                
-                // if ((!manipulatedGaps.at(i)->crossed_ && !manipulatedGaps.at(i)->closed_) || (manipulatedGaps.at(i)->crossedBehind_)) 
-                // {
-                // gapManipulator_->reduceGap(manipulatedGaps.at(i), globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(), false);
-                //     gapManipulator_->convertRadialGap(manipulatedGaps.at(i), false);
-                // }
-                gapManipulator_->inflateGapSides(manipulatedGaps.at(i), false);
-                gapManipulator_->setGapTerminalGoal(manipulatedGaps.at(i), globalPlanManager_->getGlobalPathLocalWaypointRobotFrame());
-            
-                navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
+                    manipulatedGaps.push_back(feasibleGaps.at(i));
+                }
             }
         } catch (...)
         {
@@ -606,7 +599,7 @@ namespace dynamic_gap
                 dynamic_gap::Trajectory traj;
                 
                 // TRAJECTORY GENERATED IN RBT FRAME
-                bool runGoToGoal = true; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+                bool runGoToGoal = gaps.at(i)->globalGoalWithin; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
                 if (runGoToGoal) 
                 {
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running goToGoal");

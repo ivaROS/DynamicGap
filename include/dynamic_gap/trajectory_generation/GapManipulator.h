@@ -29,27 +29,15 @@ namespace dynamic_gap
             * \param scan incoming scan
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
-            // void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
-            // void updateDynamicEgoCircle(dynamic_gap::Gap * gap,
-            //                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief algorithm for setting gap goal 
             * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
+            * \param globalGoalRobotFrame global goal in robot frame
             * \param initial boolean for if we are setting initial gap goal or terminal gap goal
             */
             void setGapGoal(dynamic_gap::Gap * gap, 
-                            const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
-                            const bool & initial); 
-            
-            /**
-            * \brief set desired position at end of prediction horizon for robot within queried gap
-            * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
-            */                            
-            void setGapTerminalGoal(dynamic_gap::Gap * gap, 
-                                    const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
+                            const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
             
             /**
             * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
@@ -62,19 +50,9 @@ namespace dynamic_gap
             * \param gap queried gap
             * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
             */            
-            void inflateGapSides(dynamic_gap::Gap * gap, 
-                                    const bool & initial);
+            bool inflateGapSides(dynamic_gap::Gap * gap);
 
         private:
-
-            /**
-            * \brief helper function for getting radially extended origin point for a gap side
-            * \param s minimum safe distance
-            * \param p1 second control point for gap side's Bezier curve
-            * \param left boolean for if gap side is left or right
-            * \return radially extended origin point for a gap side
-            */
-            Eigen::Vector2d getRadialExtension(const float & s, const Eigen::Vector2d & p1, const bool & left);
 
             /**
             * \brief checking if global path local waypoint lies within gap
