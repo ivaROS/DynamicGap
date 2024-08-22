@@ -165,18 +165,18 @@ namespace dynamic_gap
 
             int leftIdx = initial ? gap->LIdx() : gap->termLIdx(); // initial ? gap->RIdx() : gap->termRIdx(); //
             int rightIdx = initial ? gap->RIdx() : gap->termRIdx(); // initial ? gap->LIdx() : gap->termLIdx(); //
-            float leftDist = initial ? gap->LDist() : gap->termLDist(); // initial ? gap->RDist() : gap->termRDist();
-            float rightDist = initial ? gap->RDist() : gap->termRDist(); // initial ? gap->LDist() : gap->termLDist();
+            float leftRange = initial ? gap->LRange() : gap->termLRange(); // initial ? gap->RDist() : gap->termRRange();
+            float rightRange = initial ? gap->RDist() : gap->termRRange(); // initial ? gap->LRange() : gap->termLRange();
 
-            //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightDist: " << rightDist);
+            //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightRange: " << rightRange);
             int gapIdxSpan = (leftIdx - rightIdx);
             if (gapIdxSpan < 0)
                 gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
 
             int num_segments = gapIdxSpan / min_resoln + 1;
-            float distIncrement = (leftDist - rightDist) / num_segments;
+            float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
-            float midGapDist = rightDist;
+            float midGapDist = rightRange;
 
             float midGapTheta = 0.0;
             for (int i = 0; i < num_segments; i++)
@@ -274,20 +274,20 @@ namespace dynamic_gap
         {
             marker.header.frame_id = gap->frame_;
 
-            int leftIdx = initial ? gap->cvxLeftIdx() : gap->cvxTermLeftIdx();
-            int rightIdx = initial ? gap->cvxRightIdx() : gap->cvxTermRightIdx();
-            float leftDist = initial ? gap->cvxLeftDist() : gap->cvxTermLeftDist();
-            float rightDist = initial ? gap->cvxRightDist() : gap->cvxTermRightDist();
+            int leftIdx = initial ? gap->manipLeftIdx() : gap->manipTermLeftIdx();
+            int rightIdx = initial ? gap->manipRightIdx() : gap->manipTermRightIdx();
+            float leftRange = initial ? gap->manipLeftRange() : gap->manipTermLeftRange();
+            float rightRange = initial ? gap->manipRightRange() : gap->manipTermRightRange();
 
-            //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightDist: " << rightDist);
+            //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightRange: " << rightRange);
             int gapIdxSpan = (leftIdx - rightIdx);
             if (gapIdxSpan < 0)
                 gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
 
             int num_segments = gapIdxSpan / min_resoln + 1;
-            float distIncrement = (leftDist - rightDist) / num_segments;
+            float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
-            float midGapDist = rightDist;
+            float midGapDist = rightRange;
 
             float midGapTheta = 0.0;
             for (int i = 0; i < num_segments; i++)
@@ -325,10 +325,10 @@ namespace dynamic_gap
         //     viz_offset = gap->isRightType(initial) ? -2 : 2;
         // }
 
-        int leftIdx = initial ? gap->cvxLeftIdx() : gap->cvxTermLeftIdx();
-        int rightIdx = initial ? gap->cvxRightIdx() : gap->cvxTermRightIdx();
-        float leftDist = initial ? gap->cvxLeftDist() : gap->cvxTermLeftDist();
-        float rightDist = initial ? gap->cvxRightDist() : gap->cvxTermRightDist();
+        int leftIdx = initial ? gap->manipLeftIdx() : gap->manipTermLeftIdx();
+        int rightIdx = initial ? gap->manipRightIdx() : gap->manipTermRightIdx();
+        float leftRange = initial ? gap->manipLeftRange() : gap->manipTermLeftRange();
+        float rightRange = initial ? gap->manipRightRange() : gap->manipTermRightRange();
 
         std::string fullNamespace = ns;
         if (initial)
@@ -341,9 +341,9 @@ namespace dynamic_gap
             gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
 
         int num_segments = gapIdxSpan / min_resoln + 1;
-        float distIncrement = (leftDist - rightDist) / num_segments;
+        float distIncrement = (leftRange - rightRange) / num_segments;
         int midGapIdx = rightIdx; //  + viz_offset;
-        float midGapDist = rightDist;
+        float midGapDist = rightRange;
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = gap->frame_;
@@ -420,8 +420,8 @@ namespace dynamic_gap
         // midGapPts.push_back(midGapPt);
 
         // float rtheta = idx2theta(rightIdx);
-        // midGapPt.x = rightDist * cos(rtheta);
-        // midGapPt.y = rightDist * sin(rtheta);
+        // midGapPt.x = rightRange * cos(rtheta);
+        // midGapPt.y = rightRange * sin(rtheta);
         // midGapPts.push_back(midGapPt);
 
         marker.scale.x = thickness;

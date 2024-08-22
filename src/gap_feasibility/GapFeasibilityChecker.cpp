@@ -257,4 +257,28 @@ namespace dynamic_gap
                                                 rightCrossPt[0] << ", " << rightCrossPt[1] << ")");
     }
 
+    bool GapFeasibilityChecker::pursuitGuidanceAnalysis(dynamic_gap::Gap * gap)
+    {
+        // check what method we are using
+        if (cfg_->planning.pursuit_guidance_method == 0)
+        {
+            // pure pursuit
+            return purePursuitFeasibilityCheck(gap);
+        } else
+        {
+            // parallel navigation
+            return parallelNavigationFeasibilityCheck(gap);
+        }
+    }
+
+    bool GapFeasibilityChecker::parallelNavigationFeasibilityCheck(dynamic_gap::Gap * gap)
+    {
+        return true;
+    }
+
+    bool GapFeasibilityChecker::purePursuitFeasibilityCheck(dynamic_gap::Gap * gap)
+    {
+        throw std::runtime_error("Pure pursuit is not implemented yet!");
+    }
+
 }

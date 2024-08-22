@@ -60,6 +60,10 @@ namespace dynamic_gap
                                         const Eigen::Vector4f & leftCrossPt,
                                         const Eigen::Vector4f & rightCrossPt);
 
+            bool parallelNavigationFeasibilityCheck(dynamic_gap::Gap * gap);
+
+            bool purePursuitFeasibilityCheck(dynamic_gap::Gap * gap);
+
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
     };
 }

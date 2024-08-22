@@ -138,7 +138,14 @@ namespace dynamic_gap
             * \param isCurrentGapFeasible boolean for if the gap the robot is currently traveling through is feasible
             * \return set of feasible gaps
             */
-            std::vector<dynamic_gap::Gap *> gapSetFeasibilityCheck(bool & isCurrentGapFeasible);
+            std::vector<dynamic_gap::Gap *> gapSetFeasibilityCheck(const std::vector<dynamic_gap::Gap *> & manipulatedGaps, 
+                                                                    bool & isCurrentGapFeasible);
+
+            /**
+            * \brief Function for propagating current gap points/models forward in time
+            * \return set of propagated gaps we will use to plan
+            */
+            std::vector<dynamic_gap::Gap *> propagateGapPoints();                                             
 
             /**
             * \brief Function for performing gap manipulation steps
