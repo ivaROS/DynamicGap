@@ -162,9 +162,10 @@ namespace dynamic_gap
             }
             
             // if terminal_goal within laserscan and not within a gap, create a gap
-            int globalGoalScanIdx;
-            if (isGlobalGoalWithinScan(globalGoalRbtFrame, globalGoalScanIdx))
-                addGapForGlobalGoal(globalGoalScanIdx, rawGaps);
+            // int globalGoalScanIdx;
+            // if (isGlobalGoalWithinScan(globalGoalRbtFrame, globalGoalScanIdx))
+            //     addGapForGlobalGoal(globalGoalScanIdx, rawGaps);
+
         } catch (...)
         {
             ROS_ERROR_STREAM_NAMED("GapDetector", "[gapDetection() failed]");

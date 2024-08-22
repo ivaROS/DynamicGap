@@ -459,6 +459,11 @@ namespace dynamic_gap
     {
         try 
         {
+            // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);        
+            // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);        
+            // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);        
+            // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);        
+
             // for lookupTransform, parameters are (destination frame, source frame)
             map2rbt_  = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.map_frame_id, ros::Time(0));
             odom2rbt_ = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.odom_frame_id, ros::Time(0));
@@ -539,9 +544,9 @@ namespace dynamic_gap
 
                 if (isGapFeasible) 
                 {
-                    manipulatedGaps.at(i)->addTerminalRightInformation();
+                    // manipulatedGaps.at(i)->addTerminalRightInformation();
 
-                    navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
+                    // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
                     
                     feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
                     // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
@@ -581,12 +586,14 @@ namespace dynamic_gap
                 
                 if (success)
                 {
+                    ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
+
                     // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
                     gapManipulator_->setGapGoal(planningGaps.at(i), 
                                                 globalGoalRobotFrame_);
                     
                     // MANIPULATE POINTS AT T=1
-                    ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
+                    // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
                 
                     manipulatedGaps.push_back(planningGaps.at(i));
                 }

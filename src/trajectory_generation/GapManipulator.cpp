@@ -268,6 +268,7 @@ namespace dynamic_gap
             Eigen::Vector2f leftAngularInflDir, rightAngularInflDir;
             if (leftToRightAngle <= M_PI) // convex gap
             {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        convex gap");
                 float centerTheta = leftTheta - (leftToRightAngle / 2.);
 
                 float midRayTheta = (M_PI / 2) - (leftToRightAngle / 2.);
@@ -285,6 +286,8 @@ namespace dynamic_gap
                 rightAngularInflDir = rightAngularInflVec / rightAngularInflVec.norm(); 
             } else // non-convex gap
             {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        non-convex gap");
+
                 leftAngularInflDir = Rnegpi2 * unitNorm(leftPt);
                 rightAngularInflDir = Rpi2 * unitNorm(rightPt);
             }
@@ -298,11 +301,16 @@ namespace dynamic_gap
 
             Eigen::Vector2f inflatedLeftUnitNorm(std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta));
             Eigen::Vector2f inflatedRightUnitNorm(std::cos(inflatedRightTheta), std::sin(inflatedRightTheta));
-            float newLeftToRightAngle = getSignedLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
+            float newLeftToRightAngle = getSweptLeftToRightAngle(inflatedLeftUnitNorm, inflatedRightUnitNorm);
+
 
             // if gap is too small, mark it to be discarded
-            if (newLeftToRightAngle < 0)
+            if (newLeftToRightAngle > leftToRightAngle)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed");
+
                 return false;
+            }
 
             float inflatedLeftIdx = theta2idx(inflatedLeftTheta);
             float inflatedRightIdx = theta2idx(inflatedRightTheta);

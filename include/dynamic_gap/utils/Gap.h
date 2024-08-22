@@ -641,6 +641,8 @@ namespace dynamic_gap
             float gamma_intercept_left = 0.0;
             float gamma_intercept_right = 0.0;
 
+            int end_condition = -1; // 0 - collision, 1 - shut, 2 - overlapped, 3 - timed out
+
         private:
 
             int leftIdx_ = 511; /**< Initial left gap point index */

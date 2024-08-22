@@ -78,7 +78,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       rightGapState: " << rightGapState.transpose());
 
             ////////////////////////////////
-            // END CONDITION 1: COLLISION //
+            // END CONDITION 0: COLLISION //
             ////////////////////////////////
             
             leftGapPtCollision = getGapRange(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
@@ -87,20 +87,21 @@ namespace dynamic_gap
 
             if (collision) 
             {
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    collision at " << t);
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 0 (collision) at " << t);
                 if (!gapHasCrossed)
                 {
                     gapLifespan = generateCrossedGapTerminalPoints(t, gap);
                     gap->setGapLifespan(gapLifespan);
+                    gap->end_condition = 0;
 
-                    ROS_INFO_STREAM_NAMED("GapFeasibility", "                    considering gap crossed at " << gapLifespan); 
+                    ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
                 }
 
                 return;
             }
 
             ///////////////////////////////////
-            // END CONDITION 2: GAP CROSSING //
+            // END CONDITION 1: GAP CROSSING //
             ///////////////////////////////////
             
             thetaLeft = getGapBearing(leftGapState);
@@ -120,18 +121,19 @@ namespace dynamic_gap
             // checking for bearing crossing conditions for closing and crossing gaps
             if (leftToRightAngle > M_PI && bearingsCrossed) 
             {
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    bearing cross at " << t);
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 1 (crossing) at " << t);
 
                 gapLifespan = generateCrossedGapTerminalPoints(t, gap);
                 gap->setGapLifespan(gapLifespan);
+                gap->end_condition = 1;
 
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    considering gap shut at " << gapLifespan); 
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
 
                 return;
             }
             
             //////////////////////////////////////
-            // END CONDITION 3: GAP OVERLAPPING //
+            // END CONDITION 2: GAP OVERLAPPING //
             //////////////////////////////////////
 
             prevLeftBearingVect = prevLeftGapState.head(2) / getGapRange(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
@@ -143,11 +145,13 @@ namespace dynamic_gap
             if (prevLeftToRightAngle > (3*M_PI / 4) && leftToRightAngle < (M_PI / 4)) 
             {
                 // checking for case of gap crossing behind the robot
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    crossing from behind, terminal points at: (" << 
-                                prevLeftGapState[0] << ", " << prevLeftGapState[1] << "), (" << 
-                                prevRightGapState[0] << ", " << prevRightGapState[1] << ")");
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 2 (overlapping) at " << t);
+
                 generateTerminalPoints(gap, prevLeftGapState, prevRightGapState); // prev_left_frozen_mp_state[1], prev_left_frozen_mp_state[0], prev_right_frozen_mp_state[1], prev_right_frozen_mp_state[0]);
                 gap->setGapLifespan(t);
+                gap->end_condition = 2;
+
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
 
                 return;
             }
@@ -157,13 +161,18 @@ namespace dynamic_gap
             prevCentralBearingVect = centralBearingVect;
         }
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                    no close, terminal points at: (" << 
-                                                leftGapState[0] << ", " << leftGapState[1] << "), (" << 
-                                                rightGapState[0] << ", " << rightGapState[1] << ")");
+        ////////////////////////////////
+        // END CONDITION 3: TIMED OUT //
+        ////////////////////////////////
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 3 (time out) at " << cfg_->traj.integrate_maxt);
+
 
         generateTerminalPoints(gap, leftGapState, rightGapState);
         gap->setGapLifespan(cfg_->traj.integrate_maxt);
-        
+        gap->end_condition = 3;
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
+
         return;
     }
 
@@ -315,7 +324,8 @@ namespace dynamic_gap
                                     t_intercept_goal, 
                                     gamma_intercept_goal);
 
-        if (t_intercept_goal > gap->gapLifespan_)
+        if ((gap->end_condition == 0 || gap->end_condition == 1)
+            && t_intercept_goal > gap->gapLifespan_)
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
             return false;
