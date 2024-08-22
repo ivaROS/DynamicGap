@@ -49,9 +49,6 @@ namespace dynamic_gap
         float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
         float leftToRightAngle = std::atan2(determinant, dotProduct);
-        
-        // if (leftToRightAngle < 0)
-        //     leftToRightAngle += 2*M_PI; 
 
         return leftToRightAngle;
     }
@@ -61,10 +58,7 @@ namespace dynamic_gap
     float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect,
                                    const Eigen::Vector2f & rightVect) 
     {
-        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
-        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
-
-        float leftToRightAngle = std::atan2(determinant, dotProduct);
+        float leftToRightAngle = getSignedLeftToRightAngle(leftVect, rightVect);
 
         // wrapping to 0 < angle < 2pi
         if (leftToRightAngle < 0) 

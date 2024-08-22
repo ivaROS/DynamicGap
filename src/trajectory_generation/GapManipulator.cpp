@@ -53,15 +53,18 @@ namespace dynamic_gap
             if (isGlobalPathLocalWaypointWithinGapAngle(globalGoalIdx, rightIdx, leftIdx) && 
                 checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
             {
-                gap->setGoal(globalGoalRobotFrameVector);
+                // gap->setGoal(globalGoalRobotFrameVector);
+                
+                // all we will do is mark it for later so we can run g2g policy on global goal.
+                // Still set mid point for pursuit guidance policy and feasibility check
                 gap->globalGoalWithin = true;
 
-                std::string goalStatus = "Option 1: global goal: ";
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
-                ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalGoalRobotFrameVector[0] << 
-                                                                        ", " << globalGoalRobotFrameVector[1]);
+                // std::string goalStatus = "Option 1: global goal: ";
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
+                // ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalGoalRobotFrameVector[0] << 
+                //                                                         ", " << globalGoalRobotFrameVector[1]);
                    
-                return;
+                // return;
             }
 
             ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 2: gap mid point");

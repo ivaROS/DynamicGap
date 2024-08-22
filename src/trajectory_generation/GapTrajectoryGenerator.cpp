@@ -33,22 +33,22 @@ namespace dynamic_gap
             selectedGap->getSimplifiedTerminalRCartesian(xRightTerm, yRightTerm);
 
             Eigen::Vector2d initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
-            Eigen::Vector2d terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+            // Eigen::Vector2d terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
 
             float initialGoalX = initialGoal[0];
             float initialGoalY = initialGoal[1];
-            float terminalGoalX = terminalGoal[0];
-            float terminalGoalY = terminalGoal[1];
+            // float terminalGoalX = terminalGoal[0];
+            // float terminalGoalY = terminalGoal[1];
 
-            float goalVelX = epsilonDivide(terminalGoalX - initialGoalX, selectedGap->gapLifespan_); // absolute velocity (not relative to robot)
-            float goalVelY = epsilonDivide(terminalGoalY - initialGoalY, selectedGap->gapLifespan_);
+            // float goalVelX = epsilonDivide(terminalGoalX - initialGoalX, selectedGap->gapLifespan_); // absolute velocity (not relative to robot)
+            // float goalVelY = epsilonDivide(terminalGoalY - initialGoalY, selectedGap->gapLifespan_);
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual initial left point: (" << xLeft << ", " << yLeft << "), actual initial right point: (" << xRight << ", " << yRight << ")"); 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal left point: (" << xLeftTerm << ", " << yLeftTerm << "), actual terminal right point: (" << xRightTerm << ", " << yRightTerm << ")");
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual initial goal: (" << initialGoalX << ", " << initialGoalY << ")"); 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
             
             float leftVelX = epsilonDivide(xLeftTerm - xLeft, selectedGap->gapLifespan_);
             float leftVelY = epsilonDivide(yLeftTerm - yLeft, selectedGap->gapLifespan_);
@@ -80,13 +80,13 @@ namespace dynamic_gap
             // Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
             Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
             Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
-            Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
+            // Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
             // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
             
             Eigen::Vector2d maxRbtVel(cfg_->rbt.vx_absmax, cfg_->rbt.vy_absmax);
             // Eigen::Vector2d maxRbtAcc(cfg_->rbt.ax_absmax, cfg_->rbt.ay_absmax);
 
-            x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, terminalGoalX, terminalGoalY};
+            // x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, terminalGoalX, terminalGoalY};
 
             /*
             PolarGapField polarGapField(xRight, xLeft, yRight, yLeft,

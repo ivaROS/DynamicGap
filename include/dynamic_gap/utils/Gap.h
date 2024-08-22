@@ -70,8 +70,8 @@ namespace dynamic_gap
                 goal.x_ = otherGap.goal.x_;
                 goal.y_ = otherGap.goal.y_;
 
-                terminalGoal.x_ = otherGap.terminalGoal.x_;
-                terminalGoal.y_ = otherGap.terminalGoal.y_;
+                // terminalGoal.x_ = otherGap.terminalGoal.x_;
+                // terminalGoal.y_ = otherGap.terminalGoal.y_;
 
                 gapLifespan_ = otherGap.gapLifespan_;
 
@@ -619,6 +619,7 @@ namespace dynamic_gap
             {
                 float x_ = 0.0; /**< Gap initial goal x-value */
                 float y_ = 0.0; /**< Gap initial goal y-value */
+
             } goal;
 
             /**
@@ -634,6 +635,11 @@ namespace dynamic_gap
             Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
 
             bool globalGoalWithin = false;
+
+            float t_intercept = 0.0;
+            float gamma_intercept = 0.0;
+            float gamma_intercept_left = 0.0;
+            float gamma_intercept_right = 0.0;
 
         private:
 

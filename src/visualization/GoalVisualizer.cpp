@@ -110,8 +110,8 @@ namespace dynamic_gap
                 //ROS_INFO_STREAM("visualizing initial goal: " << gap->goal.x << ", " << gap->goal.y);
             } else 
             {
-                p.x = gap->terminalGoal.x_;
-                p.y = gap->terminalGoal.y_; 
+                // p.x = gap->terminalGoal.x_;
+                // p.y = gap->terminalGoal.y_; 
                 // ROS_INFO_STREAM("visualizing terminal goal: " << gap->terminalGoal.x << ", " << gap->terminalGoal.y);
             }
 

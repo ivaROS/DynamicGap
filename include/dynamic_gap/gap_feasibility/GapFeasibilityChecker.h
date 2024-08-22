@@ -64,6 +64,12 @@ namespace dynamic_gap
 
             bool purePursuitFeasibilityCheck(dynamic_gap::Gap * gap);
 
+            void parallelNavigationHelper(const Eigen::Vector2f & p_target, 
+                                            const Eigen::Vector2f & v_target, 
+                                            const float speed_robot,
+                                            float & t_intercept, 
+                                            float & gamma_intercept);
+
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
     };
 }
