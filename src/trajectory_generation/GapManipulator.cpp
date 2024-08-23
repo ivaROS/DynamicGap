@@ -46,8 +46,8 @@ namespace dynamic_gap
             float globalGoalTheta = std::atan2(globalGoalRobotFrameVector[1], globalGoalRobotFrameVector[0]);
             float globalGoalIdx = theta2idx(globalGoalTheta); // std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
             
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        local goal idx: " << globalGoalIdx << 
-                                        ", local goal x/y: (" << globalGoalRobotFrameVector[0] << 
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        global goal idx: " << globalGoalIdx << 
+                                        ", global goal: (" << globalGoalRobotFrameVector[0] << 
                                                          ", " << globalGoalRobotFrameVector[1] << ")");
             
             if (isGlobalPathLocalWaypointWithinGapAngle(globalGoalIdx, rightIdx, leftIdx) && 
@@ -59,10 +59,10 @@ namespace dynamic_gap
                 // Still set mid point for pursuit guidance policy and feasibility check
                 gap->globalGoalWithin = true;
 
-                // std::string goalStatus = "Option 1: global goal: ";
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
-                // ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalGoalRobotFrameVector[0] << 
-                //                                                         ", " << globalGoalRobotFrameVector[1]);
+                std::string goalStatus = "Option 1: global goal: ";
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
+                ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalGoalRobotFrameVector[0] << 
+                                                                        ", " << globalGoalRobotFrameVector[1]);
                    
                 // return;
             }

@@ -86,6 +86,16 @@ namespace dynamic_gap
                 // transfer models (need to deep copy the models, not just the pointers)
                 leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
                 rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
+
+                globalGoalWithin = otherGap.globalGoalWithin;
+
+                t_intercept = otherGap.t_intercept;
+                gamma_intercept = otherGap.gamma_intercept;
+                gamma_intercept_left = otherGap.gamma_intercept_left;
+                gamma_intercept_right = otherGap.gamma_intercept_right;
+
+                end_condition = otherGap.end_condition;
+
             }
 
             ~Gap() 
@@ -608,7 +618,7 @@ namespace dynamic_gap
                 terminalGoal.x_ = goalPt[0];
                 terminalGoal.y_ = goalPt[1];
 
-                ROS_INFO_STREAM("   terminalGoal, x: " << terminalGoal.x_ << ", :" << terminalGoal.y_);
+                ROS_INFO_STREAM("   terminalGoal, x: " << terminalGoal.x_ << ", " << terminalGoal.y_);
             }
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */

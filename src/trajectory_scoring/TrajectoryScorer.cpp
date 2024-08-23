@@ -44,6 +44,8 @@ namespace dynamic_gap
         {
             // std::cout << "regular range at " << i << ": ";
             staticPosewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / staticPosewiseCosts.size()
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << staticPosewiseCosts.at(i));
+
         }
         totalTrajCost = std::accumulate(staticPosewiseCosts.begin(), staticPosewiseCosts.end(), float(0));
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "             static pose-wise cost: " << totalTrajCost);

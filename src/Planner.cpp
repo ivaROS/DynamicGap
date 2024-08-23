@@ -627,9 +627,9 @@ namespace dynamic_gap
                 // Run go to goal behavior
                 bool runGoToGoal = gaps.at(i)->globalGoalWithin; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
 
-                dynamic_gap::Trajectory traj, goToGoalTraj, ahpfTraj;
-                std::vector<float> goToGoalPoseScores, ahpfPoseScores;
-                float goToGoalScore, ahpfScore;
+                dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
+                std::vector<float> goToGoalPoseScores, pursuitGuidancePoseScores;
+                float goToGoalScore, pursuitGuidancePoseScore;
 
                 if (runGoToGoal) 
                 {
@@ -638,7 +638,7 @@ namespace dynamic_gap
                     goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
                                                                         currentRbtVel_, 
                                                                         globalGoalRobotFrame_,
-                                                                        runGoToGoal);
+                                                                        true);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
                     goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans);
                     goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
@@ -647,26 +647,27 @@ namespace dynamic_gap
 
                 // Run pursuit guidance behavior
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running pursuit guidance");
-                ahpfTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
+                pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
                                                                     currentRbtVel_, 
                                                                     globalGoalRobotFrame_,
-                                                                    !runGoToGoal);
-                ahpfTraj = gapTrajGenerator_->processTrajectory(ahpfTraj);
-                ahpfPoseScores = trajScorer_->scoreTrajectory(ahpfTraj, futureScans);
-                ahpfScore = std::accumulate(ahpfPoseScores.begin(), ahpfPoseScores.end(), float(0));
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        ahpfScore: " << ahpfScore);
+                                                                    false);
 
-                if (runGoToGoal && goToGoalScore > ahpfScore)
+                pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+                pursuitGuidancePoseScores = trajScorer_->scoreTrajectory(pursuitGuidanceTraj, futureScans);
+                pursuitGuidancePoseScore = std::accumulate(pursuitGuidancePoseScores.begin(), pursuitGuidancePoseScores.end(), float(0));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseScore: " << pursuitGuidancePoseScore);
+
+                if (runGoToGoal && goToGoalScore > pursuitGuidancePoseScore)
                 {
                     traj = goToGoalTraj;
                     pathPoseScores.at(i) = goToGoalPoseScores;
                 } else
                 {
-                    traj = ahpfTraj;
-                    pathPoseScores.at(i) = ahpfPoseScores;
+                    traj = pursuitGuidanceTraj;
+                    pathPoseScores.at(i) = pursuitGuidancePoseScores;
                 }
-                    // traj =  ? goToGoalTraj : ahpfTraj;
-                    // pathPoseScores.at(i) = (goToGoalScore > ahpfScore) ? goToGoalPoseScores : ahpfPoseScores;
+                    // traj =  ? goToGoalTraj : pursuitGuidanceTraj;
+                    // pathPoseScores.at(i) = (goToGoalScore > pursuitGuidancePoseScore) ? goToGoalPoseScores : pursuitGuidancePoseScores;
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), cam2odom_));
