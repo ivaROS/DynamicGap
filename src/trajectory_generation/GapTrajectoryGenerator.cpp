@@ -96,8 +96,8 @@ namespace dynamic_gap
             // Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
             // Eigen::Vector2d rightCurveInitPt(xRight, yRight);
             // Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
-            // Eigen::Vector2d leftGapPtVel(leftVelX, leftVelY);
-            // Eigen::Vector2d rightGapPtVel(rightVelX, rightVelY);
+            Eigen::Vector2f leftGapPtVel(leftVelX, leftVelY);
+            Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
             // Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
             // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
             
@@ -128,7 +128,11 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->t_intercept); 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->gamma_intercept); 
 
-            ParallelNavigation parallelNavigation(selectedGap->gamma_intercept, cfg_->rbt.vx_absmax);
+            ParallelNavigation parallelNavigation(selectedGap->gamma_intercept, 
+                                                    cfg_->rbt.vx_absmax,
+                                                    cfg_->rbt.r_inscr,
+                                                    leftGapPtVel,
+                                                    rightGapPtVel);
 
             float t_max = selectedGap->t_intercept;
 

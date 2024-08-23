@@ -21,55 +21,48 @@ namespace dynamic_gap
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
-    std::vector<float> TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
-                                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    void TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
+                                            std::vector<float> & posewiseCosts,
+                                            float & terminalPoseCost) 
     {    
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [scoreTrajectory()]");
         // Requires LOCAL FRAME
-        // Should be no racing condition
 
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         std::vector<float> pathTiming = traj.getPathTiming();
         
-        float totalTrajCost = 0.0;
-        std::vector<float> posewiseCosts;
-
-        sensor_msgs::LaserScan dynamicLaserScan = sensor_msgs::LaserScan();
+        posewiseCosts = std::vector<float>(path.poses.size());
 
         float t_i = 0.0;
         float t_iplus1 = 0.0;
-
-        std::vector<float> staticPosewiseCosts(path.poses.size());
-        for (int i = 0; i < staticPosewiseCosts.size(); i++) 
+        for (int i = 0; i < posewiseCosts.size(); i++) 
         {
             // std::cout << "regular range at " << i << ": ";
-            staticPosewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / staticPosewiseCosts.size()
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << staticPosewiseCosts.at(i));
-
+            posewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / posewiseCosts.size()
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << posewiseCosts.at(i));
         }
-        totalTrajCost = std::accumulate(staticPosewiseCosts.begin(), staticPosewiseCosts.end(), float(0));
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "             static pose-wise cost: " << totalTrajCost);
-        // }
+        float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "             pose-wise cost: " << totalTrajCost);
 
-
-        posewiseCosts = staticPosewiseCosts;
         if (posewiseCosts.size() > 0) 
         {
-            // obtain terminalGoalCost, scale by w1
-            float terminalCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
-            // if the ending cost is less than 1 and the total cost is > -10, return trajectory of 100s
-            if (terminalCost < 0.25 && totalTrajCost >= 0) 
+            // obtain terminalGoalCost, scale by Q
+            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
+            
+            // if the ending cost is less than 1 and the total cost is 0, return trajectory of 100s
+            if (terminalPoseCost < 0.25 && totalTrajCost == 0) 
             {
                 // std::cout << "returning really good trajectory" << std::endl;
-                return std::vector<float>(path.poses.size(), 100);
+                posewiseCosts = std::vector<float>(path.poses.size(), 100);
+                return;            
             }
+
             // Should be safe, subtract terminal pose cost from first pose cost
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalCost);
-            posewiseCosts.at(0) += terminalCost;
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalPoseCost);
         }
         
         // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "scoreTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
-        return posewiseCosts;
+        return;
     }
 
     float TrajectoryScorer::terminalGoalCost(const geometry_msgs::Pose & pose) 

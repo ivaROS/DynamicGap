@@ -629,6 +629,7 @@ namespace dynamic_gap
 
                 dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
                 std::vector<float> goToGoalPoseScores, pursuitGuidancePoseScores;
+                float goToGoalTerminalPoseScore, pursuitGuidanceTerminalPoseScore;
                 float goToGoalScore, pursuitGuidancePoseScore;
 
                 if (runGoToGoal) 
@@ -640,8 +641,8 @@ namespace dynamic_gap
                                                                         globalGoalRobotFrame_,
                                                                         true);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    goToGoalPoseScores = trajScorer_->scoreTrajectory(goToGoalTraj, futureScans);
-                    goToGoalScore = std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
+                    trajScorer_->scoreTrajectory(goToGoalTraj, goToGoalPoseScores, goToGoalTerminalPoseScore);
+                    goToGoalScore = goToGoalTerminalPoseScore + std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
                 }
 
@@ -653,8 +654,8 @@ namespace dynamic_gap
                                                                     false);
 
                 pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-                pursuitGuidancePoseScores = trajScorer_->scoreTrajectory(pursuitGuidanceTraj, futureScans);
-                pursuitGuidancePoseScore = std::accumulate(pursuitGuidancePoseScores.begin(), pursuitGuidancePoseScores.end(), float(0));
+                trajScorer_->scoreTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseScores, pursuitGuidanceTerminalPoseScore);
+                pursuitGuidancePoseScore = pursuitGuidanceTerminalPoseScore + std::accumulate(pursuitGuidancePoseScores.begin(), pursuitGuidancePoseScores.end(), float(0));
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseScore: " << pursuitGuidancePoseScore);
 
                 if (runGoToGoal && goToGoalScore > pursuitGuidancePoseScore)
@@ -837,10 +838,11 @@ namespace dynamic_gap
             // incomingPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
-            std::vector<float> incomingPathPoseScores = trajScorer_->scoreTrajectory(incomingTraj,
-                                                                                     futureScans);
+            std::vector<float> incomingPathPoseScores;
+            float incomingPathTerminalPoseScore;
+            trajScorer_->scoreTrajectory(incomingTraj, incomingPathPoseScores, incomingPathTerminalPoseScore);
 
-            float incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.end(), float(0));
+            float incomingPathScore = incomingPathTerminalPoseScore + std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.end(), float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a score of: " << incomingPathScore);
           
 
@@ -905,8 +907,10 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring current trajectory");            
             
             dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
-            std::vector<float> currentPathPoseScores = trajScorer_->scoreTrajectory(reducedCurrentTraj, futureScans);
-            float currentPathSubscore = std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
+            std::vector<float> currentPathPoseScores;
+            float currentPathTerminalPoseScore;
+            trajScorer_->scoreTrajectory(reducedCurrentTraj, currentPathPoseScores, currentPathTerminalPoseScore);
+            float currentPathSubscore = currentPathTerminalPoseScore + std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subscore of: " << currentPathSubscore);
 
             std::vector<std::vector<float>> pathPoseScores(2);

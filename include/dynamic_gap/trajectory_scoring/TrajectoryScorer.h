@@ -55,11 +55,10 @@ namespace dynamic_gap
             /**
             * \brief Function for evaluating pose-wise scores along candidate trajectory
             * \param traj candidate trajectory to score
-            * \param futureScans set of propagated laser scans that we will use to evaluate each trajectory pose
-            * \return vector of pose-wise scores along candidate trajecory
             */
-            std::vector<float> scoreTrajectory(const dynamic_gap::Trajectory & traj,
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans);
+            void scoreTrajectory(const dynamic_gap::Trajectory & traj,
+                                    std::vector<float> & posewiseCosts,
+                                    float & terminalPoseCost);
             
         private:
             /**

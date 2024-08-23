@@ -204,10 +204,10 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
 
         // applies PO
-        float velLinXSafe = 0;
-        float velLinYSafe = 0;
+        float velLinXSafe = 0.;
+        float velLinYSafe = 0.;
         
-        if (cfg_->planning.projection_operator && (currGapRightPtModel != nullptr && currGapLeftPtModel != nullptr))
+        if (cfg_->planning.projection_operator) //  && (currGapRightPtModel != nullptr && currGapLeftPtModel != nullptr
         {
             ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
             
@@ -230,9 +230,6 @@ namespace dynamic_gap
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
         
-        // Make sure no ejection from gap. Max question: x does not always point into gap. 
-        // velLinXSafe = std::max(velLinXSafe, float(0));
-
         float weightedVelLinXSafe = cfg_->projection.k_po_x * velLinXSafe;
         float weightedVelLinYSafe = cfg_->projection.k_po_x * velLinYSafe;
 
@@ -505,33 +502,6 @@ namespace dynamic_gap
             velLinYSafe = - Psi * projOpDotProd * PsiDerAndPsi(1);
             ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
         }
-
-        /*
-        // Min Direction
-        res.header.frame_id = cfg_->sensor_frame_id;
-        res.scale.x = 1;
-        projOpQuat.setRPY(0, 0, minDistTheta);
-        res.pose.orientation = tf2::toMsg(projOpQuat);
-        res.id = 1;
-        res.color.a = 0.5;
-        res.pose.position.z = 0.9;
-        projOpPublisher_.publish(res);
-        */
-        /*
-        res.header.frame_id = cfg_->robot_frame_id;
-        res.type = visualization_msgs::Marker::SPHERE;
-        res.action = visualization_msgs::Marker::ADD;
-        res.pose.position.x = -min_diff_x;
-        res.pose.position.y = -min_diff_y;
-        res.pose.position.z = 1;
-        res.scale.x = 0.1;
-        res.scale.y = 0.1;
-        res.scale.z = 0.1;
-        res.id = 2;
-        // res.color.a = 0.5;
-        // res.pose.position.z = 0.9;
-        projOpPublisher_.publish(res);
-        */
     }
 
     Eigen::Vector3f TrajectoryController::calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot) 

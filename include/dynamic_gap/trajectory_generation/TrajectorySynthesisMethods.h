@@ -424,9 +424,18 @@ namespace dynamic_gap
     {
         float speedRobot_; /**< speed of robot */
         float gammaIntercept_; /**< intercept angle of robot */
+        float rInscr_; /**< inscribed radius of robot */
+        Eigen::Vector2f leftGapPtVel_, rightGapPtVel_; /**< left and right gap point velocities */
 
         ParallelNavigation(const float & gamma_intercept,
-                            const float & speed_robot) : gammaIntercept_(gamma_intercept), speedRobot_(speed_robot) {}
+                            const float & speed_robot,
+                            const float & r_inscr,
+                            const Eigen::Vector2f & leftGapPtVel,
+                            const Eigen::Vector2f & rightGapPtVel) : gammaIntercept_(gamma_intercept), 
+                                                                        speedRobot_(speed_robot), 
+                                                                        rInscr_(r_inscr),
+                                                                        leftGapPtVel_(leftGapPtVel),
+                                                                        rightGapPtVel_(rightGapPtVel) {}
 
         /**
         * \brief () operator for AHPF that updates trajectory state
@@ -442,7 +451,24 @@ namespace dynamic_gap
 
             Eigen::Vector2f robotVelocity = speedRobot_ * n_gamma_intercept;
 
+            Eigen::Vector2f rbtPos(x[0], x[1]);
+            Eigen::Vector2f leftGapPos(x[2], x[3]);
+            Eigen::Vector2f rightGapPos(x[4], x[5]);
+
+
             // include some check for when robot has passed gap
+            //      v1: rbt vector is further than left pt vector and right pt vector [DONE]
+            //      v2: rbt vector is beyond range of gap arc at rbt's particular bearing (tricky because robot will leave gap slice)
+
+            if (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm())
+            {
+                // stop trajectory prematurely
+                dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
+                dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
+
+                return;
+            }
+
             // if (rbtToGoalDistance < 0.1) 
             // {
             //     // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
@@ -454,6 +480,11 @@ namespace dynamic_gap
 
             dxdt[0] = robotVelocity[0];
             dxdt[1] = robotVelocity[1];
+            dxdt[2] = leftGapPtVel_[0];
+            dxdt[3] = leftGapPtVel_[1];
+            dxdt[4] = rightGapPtVel_[0];
+            dxdt[5] = rightGapPtVel_[1];
+
             return;
         }
     };
