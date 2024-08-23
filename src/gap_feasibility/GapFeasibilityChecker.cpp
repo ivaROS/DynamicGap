@@ -282,6 +282,11 @@ namespace dynamic_gap
             return parallelNavigationFeasibilityCheck(gap);
         }
     }
+    
+    bool GapFeasibilityChecker::purePursuitFeasibilityCheck(dynamic_gap::Gap * gap)
+    {
+        throw std::runtime_error("Pure pursuit is not implemented yet!");
+    }
 
     bool GapFeasibilityChecker::parallelNavigationFeasibilityCheck(dynamic_gap::Gap * gap)
     {
@@ -368,6 +373,8 @@ namespace dynamic_gap
                                                             float & t_intercept, 
                                                             float & gamma_intercept)
     {
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       [parallelNavigationHelper()]"); 
+
         float eps = 0.00001;
 
         float lambda = std::atan2(p_target[1], p_target[0]);
@@ -375,11 +382,24 @@ namespace dynamic_gap
 
         if (v_target.norm() < eps) // static gap point
         {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           static gap point"); 
+
             t_intercept = p_target.norm() / speed_robot;
             gamma_intercept = lambda;
 
-        } else
+            if (isnan(t_intercept))
+            {
+                ROS_WARN_STREAM_NAMED("GapFeasibility", "                           t_interecept is nan!"); 
+            }
+
+            if (isnan(gamma_intercept))
+            {
+                ROS_WARN_STREAM_NAMED("GapFeasibility", "                           gamma_intercept is nan!"); 
+            }
+
+        } else // moving gap point
         {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           dynamic gap point");
 
             float K = speed_robot / v_target.norm(); // just set to one dimensional norm
 
@@ -397,12 +417,6 @@ namespace dynamic_gap
         }
 
         return;
-    }
-    
-    
-    bool GapFeasibilityChecker::purePursuitFeasibilityCheck(dynamic_gap::Gap * gap)
-    {
-        throw std::runtime_error("Pure pursuit is not implemented yet!");
     }
 
 }

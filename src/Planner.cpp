@@ -517,6 +517,45 @@ namespace dynamic_gap
 
     }
 
+    std::vector<dynamic_gap::Gap *> Planner::gapManipulate(const std::vector<dynamic_gap::Gap *> & planningGaps) 
+    {
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "[gapManipulate()]");
+
+        boost::mutex::scoped_lock gapset(gapMutex_);
+        std::vector<dynamic_gap::Gap *> manipulatedGaps;
+
+        try
+        {
+            for (size_t i = 0; i < planningGaps.size(); i++)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
+
+                // MANIPULATE POINTS AT T=0            
+                bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));
+                
+                if (success)
+                {
+                    ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
+
+                    // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
+                    gapManipulator_->setGapGoal(planningGaps.at(i), 
+                                                globalGoalRobotFrame_);
+                    
+                    // MANIPULATE POINTS AT T=1
+                    // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
+                
+                    manipulatedGaps.push_back(planningGaps.at(i));
+                }
+            }
+        } catch (...)
+        {
+            ROS_WARN_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
+        }
+
+        return manipulatedGaps;
+    }
+
     std::vector<dynamic_gap::Gap *> Planner::gapSetFeasibilityCheck(const std::vector<dynamic_gap::Gap *> & manipulatedGaps, 
                                                                     bool & isCurrentGapFeasible)                                             
     {
@@ -564,46 +603,6 @@ namespace dynamic_gap
         }
 
         return feasibleGaps;
-    }
-
-
-    std::vector<dynamic_gap::Gap *> Planner::gapManipulate(const std::vector<dynamic_gap::Gap *> & planningGaps) 
-    {
-
-        ROS_INFO_STREAM_NAMED("GapManipulator", "[gapManipulate()]");
-
-        boost::mutex::scoped_lock gapset(gapMutex_);
-        std::vector<dynamic_gap::Gap *> manipulatedGaps;
-
-        try
-        {
-            for (size_t i = 0; i < planningGaps.size(); i++)
-            {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
-
-                // MANIPULATE POINTS AT T=0            
-                bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));
-                
-                if (success)
-                {
-                    ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
-
-                    // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
-                    gapManipulator_->setGapGoal(planningGaps.at(i), 
-                                                globalGoalRobotFrame_);
-                    
-                    // MANIPULATE POINTS AT T=1
-                    // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
-                
-                    manipulatedGaps.push_back(planningGaps.at(i));
-                }
-            }
-        } catch (...)
-        {
-            ROS_WARN_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
-        }
-
-        return manipulatedGaps;
     }
 
     std::vector<std::vector<float>> Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 

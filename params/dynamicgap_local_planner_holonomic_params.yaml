@@ -18,7 +18,7 @@ DynamicGapPlanner:
     r_zero: 1.0
 
     scale: 1.0
-    integrate_maxt: 5
+    integrate_maxt: 10
     integrate_stept: 0.50
 
     projection_operator: False

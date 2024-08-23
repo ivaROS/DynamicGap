@@ -109,7 +109,7 @@ namespace dynamic_gap
             */
             struct Trajectory 
             {
-                float integrate_maxt = 5.0; /**< Trajectory generation time horizon (in seconds) */
+                float integrate_maxt = 10.0; /**< Trajectory generation time horizon (in seconds) */
                 float integrate_stept = 0.5; /**< Trajectory generation time step (in seconds) */
                 float max_pose_to_scan_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
                 float Q = 1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
