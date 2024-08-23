@@ -605,16 +605,18 @@ namespace dynamic_gap
         return feasibleGaps;
     }
 
-    std::vector<std::vector<float>> Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
-                                                              std::vector<dynamic_gap::Trajectory> & generatedTrajs,
-                                                              const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    void Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
+                                    std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseScores,
+                                    std::vector<float> & pathTerminalPoseScores,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateGapTrajs()]");
-        std::vector<geometry_msgs::PoseArray> paths(gaps.size());
-        std::vector<std::vector<float>> pathTimings(gaps.size());
-        std::vector<std::vector<float>> pathPoseScores(gaps.size());
+        
+        pathPoseScores = std::vector<std::vector<float>>(gaps.size());
+        pathTerminalPoseScores = std::vector<float>(gaps.size());
 
         try 
         {
@@ -661,13 +663,13 @@ namespace dynamic_gap
                 {
                     traj = goToGoalTraj;
                     pathPoseScores.at(i) = goToGoalPoseScores;
+                    pathTerminalPoseScores.at(i) = goToGoalTerminalPoseScore;
                 } else
                 {
                     traj = pursuitGuidanceTraj;
                     pathPoseScores.at(i) = pursuitGuidancePoseScores;
+                    pathTerminalPoseScores.at(i) = pursuitGuidanceTerminalPoseScore;
                 }
-                    // traj =  ? goToGoalTraj : pursuitGuidanceTraj;
-                    // pathPoseScores.at(i) = (goToGoalScore > pursuitGuidancePoseScore) ? goToGoalPoseScores : pursuitGuidancePoseScores;
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), cam2odom_));
@@ -682,11 +684,12 @@ namespace dynamic_gap
         trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseScores);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
 
-        return pathPoseScores;
+        return;
     }
 
     int Planner::pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
-                          const std::vector<std::vector<float>> & pathPoseScores) 
+                          const std::vector<std::vector<float>> & pathPoseScores, 
+                          const std::vector<float> & pathTerminalPoseScores) 
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[pickTraj()]");
         
@@ -714,26 +717,16 @@ namespace dynamic_gap
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
-                pathScores.at(i) = std::accumulate(pathPoseScores.at(i).begin(), pathPoseScores.at(i).end(), float(0));
-                pathScores.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? -std::numeric_limits<float>::infinity() : pathScores.at(i);
+                pathScores.at(i) = pathTerminalPoseScores.at(i) + std::accumulate(pathPoseScores.at(i).begin(), 
+                                                                                  pathPoseScores.at(i).end(), float(0));
+                
+                pathScores.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathScores.at(i);
                 
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    for gap " << i << " (length: " << trajs.at(i).getPathRbtFrame().poses.size() << "), returning score of " << pathScores.at(i));
                 
-                // if (pathScores.at(i) == -std::numeric_limits<float>::infinity()) {
-                //     for (size_t j = 0; j < counts; j++) {
-                //         if (score.at(i).at(j) == -std::numeric_limits<float>::infinity()) {
-                //             std::cout << "-inf score at idx " << j << " of " << counts << std::endl;
-                //         }
-                //     }
-                // }
-                
             }
-            // } catch (...) 
-            // {
-            //     ROS_FATAL_STREAM("pickTraj");
-            // }
 
-            auto highestPathScoreIter = std::max_element(pathScores.begin(), pathScores.end());
+            auto highestPathScoreIter = std::min_element(pathScores.begin(), pathScores.end());
             highestPathScoreIdx = std::distance(pathScores.begin(), highestPathScoreIter);
 
             if (pathScores.at(highestPathScoreIdx) == std::numeric_limits<float>::infinity()) 
@@ -1025,7 +1018,9 @@ namespace dynamic_gap
         std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Trajectory> trajs;
         std::vector<std::vector<float>> pathPoseScores; 
-        pathPoseScores = generateGapTrajs(feasibleGaps, trajs, futureScans);
+        std::vector<float> pathTerminalPoseScores; 
+
+        generateGapTrajs(feasibleGaps, trajs, pathPoseScores, pathTerminalPoseScores, futureScans);
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
@@ -1033,7 +1028,7 @@ namespace dynamic_gap
         // GAP TRAJECTORY SELECTION //
         //////////////////////////////
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores);
+        int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores, pathTerminalPoseScores);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
 

@@ -101,6 +101,7 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
+                int max_idx_diff = 500; /**< Max size for a single gap */
                 bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
             } gap_manip;
 

@@ -157,11 +157,15 @@ namespace dynamic_gap
             * \brief Function for generating candidate trajectories through the current set of gaps
             * \param gaps incoming set of gaps through which we want to generate trajectories
             * \param generatedTrajs set of generated trajectories
+            * \param pathPoseScores set of posewise scores for all paths
+            * \param pathTerminalPoseScores set of terminal pose scores for all paths
             * \return Vector of pose-wise scores for the generated trajectories
             */
-            std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
-                                                             std::vector<dynamic_gap::Trajectory> & generatedTrajs,
-                                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
+            void generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
+                                    std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseScores,
+                                    std::vector<float> & pathTerminalPoseScores,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
@@ -170,7 +174,8 @@ namespace dynamic_gap
             * \return index of the highest score trajectory
             */
             int pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
-                        const std::vector<std::vector<float>> & pathPoseScores);
+                            const std::vector<std::vector<float>> & pathPoseScores, 
+                            const std::vector<float> & pathTerminalPoseScores);
 
             /**
             * \brief Helper function for switching to a new trajectory
