@@ -78,10 +78,10 @@ namespace dynamic_gap
                 // deep copy for new models
                 // Here, you can define what type of model you want to use
 
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                leftGapPtModel_ = new PerfectEstimator();
-                rightGapPtModel_ = new PerfectEstimator();
+                leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
+                // leftGapPtModel_ = new PerfectEstimator();
+                // rightGapPtModel_ = new PerfectEstimator();
 
                 // transfer models (need to deep copy the models, not just the pointers)
                 leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);

@@ -37,6 +37,7 @@ namespace dynamic_gap
             * \param initial boolean for if we are setting initial gap goal or terminal gap goal
             */
             void setGapGoal(dynamic_gap::Gap * gap, 
+                            const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
                             const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
             
             /**
@@ -70,16 +71,16 @@ namespace dynamic_gap
             * \param rightTheta orientation of right gap point
             * \param globalPathLocalWaypointTheta orientation of global path local waypoint
             * \param leftToRightAngle angle swept out from left gap point to right gap point
-            * \param rightToGoalAngle angle swept out from right goal point to global path local waypoint
-            * \param leftToWaypointAngle angle swept out from left goal point to global path local waypoint
+            * \param leftToWaypointAngle angle swept out from left gap point to global path local waypoint
+            * \param rightToWaypointAngle angle swept out from right gap point to global path local waypoint
             * \return biased bearing for gap goal placement
             */
             float setBiasedGapGoalTheta(const float & leftTheta, 
                                         const float & rightTheta, 
                                         const float & globalPathLocalWaypointTheta,
                                         const float & leftToRightAngle, 
-                                        const float & rightToGoalAngle, 
-                                        const float & leftToWaypointAngle);
+                                        const float & leftToWaypointAngle, 
+                                        const float & rightToWaypointAngle);
 
             const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
 

@@ -76,6 +76,8 @@ namespace dynamic_gap
         navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
+        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
+
         trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
@@ -485,6 +487,7 @@ namespace dynamic_gap
     {
         globalPlanManager_->updateEgoCircle(scan_);
         gapManipulator_->updateEgoCircle(scan_);
+        dynamicScanPropagator_->updateEgoCircle(scan_);
         trajScorer_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
     }
@@ -540,6 +543,7 @@ namespace dynamic_gap
 
                     // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
                     gapManipulator_->setGapGoal(planningGaps.at(i), 
+                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
                                                 globalGoalRobotFrame_);
                     
                     // MANIPULATE POINTS AT T=1
@@ -642,7 +646,7 @@ namespace dynamic_gap
                                                                         globalGoalRobotFrame_,
                                                                         true);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    trajScorer_->scoreTrajectory(goToGoalTraj, goToGoalPoseScores, goToGoalTerminalPoseScore);
+                    trajScorer_->scoreTrajectory(goToGoalTraj, goToGoalPoseScores, goToGoalTerminalPoseScore, futureScans);
                     goToGoalScore = goToGoalTerminalPoseScore + std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
                 }
@@ -655,7 +659,7 @@ namespace dynamic_gap
                                                                     false);
 
                 pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-                trajScorer_->scoreTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseScores, pursuitGuidanceTerminalPoseScore);
+                trajScorer_->scoreTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseScores, pursuitGuidanceTerminalPoseScore, futureScans);
                 pursuitGuidancePoseScore = pursuitGuidanceTerminalPoseScore + std::accumulate(pursuitGuidancePoseScores.begin(), pursuitGuidancePoseScores.end(), float(0));
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseScore: " << pursuitGuidancePoseScore);
 
@@ -752,8 +756,6 @@ namespace dynamic_gap
                                                              const dynamic_gap::Trajectory & incomingTraj, 
                                                              const bool & switchToIncoming) 
     {
-        trajectoryChangeCount_++;
-
         if (switchToIncoming) 
         {
             setCurrentGap(incomingGap);
@@ -765,6 +767,7 @@ namespace dynamic_gap
             // setCurrentGapPeakVelocities(incomingGap->peakSplineVelX_, incomingGap->peakSplineVelY_);
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
+            trajectoryChangeCount_++;
 
             return incomingTraj;  
         } else 
@@ -782,8 +785,11 @@ namespace dynamic_gap
             // setCurrentGapPeakVelocities(0.0, 0.0);
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
+            trajectoryChangeCount_++;            
+
             return emptyTraj;
-        }                       
+        }        
+
     }
 
     dynamic_gap::Trajectory Planner::compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
@@ -832,7 +838,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
             std::vector<float> incomingPathPoseScores;
             float incomingPathTerminalPoseScore;
-            trajScorer_->scoreTrajectory(incomingTraj, incomingPathPoseScores, incomingPathTerminalPoseScore);
+            trajScorer_->scoreTrajectory(incomingTraj, incomingPathPoseScores, incomingPathTerminalPoseScore, futureScans);
 
             float incomingPathScore = incomingPathTerminalPoseScore + std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.end(), float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a score of: " << incomingPathScore);
@@ -901,7 +907,7 @@ namespace dynamic_gap
             dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
             std::vector<float> currentPathPoseScores;
             float currentPathTerminalPoseScore;
-            trajScorer_->scoreTrajectory(reducedCurrentTraj, currentPathPoseScores, currentPathTerminalPoseScore);
+            trajScorer_->scoreTrajectory(reducedCurrentTraj, currentPathPoseScores, currentPathTerminalPoseScore, futureScans);
             float currentPathSubscore = currentPathTerminalPoseScore + std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subscore of: " << currentPathSubscore);
 
@@ -1003,7 +1009,8 @@ namespace dynamic_gap
 
         if (cfg_.planning.future_scan_propagation)
         {
-            throw std::runtime_error("Egocircle propagation is not implemented yet!");
+            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+            // throw std::runtime_error("Egocircle propagation is not implemented yet!");
         } else 
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();
@@ -1109,7 +1116,7 @@ namespace dynamic_gap
 
                 geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
 
-                rawCmdVel = trajController_->controlLaw(currPoseOdomFrame, targetTrajectoryPose);
+                rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose);
             }
 
             cmdVel = trajController_->processCmdVel(rawCmdVel,

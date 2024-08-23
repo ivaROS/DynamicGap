@@ -126,6 +126,61 @@ namespace dynamic_gap
         return cmdVel;
     }
 
+    geometry_msgs::Twist TrajectoryController::constantVelocityControlLaw(const geometry_msgs::Pose & current, 
+                                                                            const geometry_msgs::Pose & desired) 
+    { 
+        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLaw()]");
+        // Setup Vars
+        boost::mutex::scoped_lock lock(scanMutex_);
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
+        geometry_msgs::Quaternion currOrient = current.orientation;
+        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+        float currYaw = quaternionToYaw(currQuat); 
+
+        // get current x,y,theta
+        geometry_msgs::Point currPosn = current.position;
+        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
+
+        // obtaining RPY of desired orientation
+        geometry_msgs::Point desPosn = desired.position;
+        geometry_msgs::Quaternion desOrient = desired.orientation;
+        tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
+
+        float desYaw = quaternionToYaw(desQuat);
+
+        // get desired x,y,theta
+        Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
+
+        // get x,y,theta error
+        Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
+        float errorX = errorMat.real()(0, 1);
+        float errorY = errorMat.imag()(0, 1);
+        float errorTheta = std::arg(errorMat(0, 0));
+
+        Eigen::Vector2f error(errorX, errorY);
+
+        Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * error / error.norm();
+
+        float velLinXFeedback = constantVelocityCommand[0];
+        float velLinYFeedback = constantVelocityCommand[1];
+        float velAngFeedback = 0.0;
+
+        ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
+        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y);
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+        ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
+        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
+        
+        cmdVel.linear.x = velLinXFeedback;
+        cmdVel.linear.y = velLinYFeedback;
+        cmdVel.angular.z = velAngFeedback;
+
+        return cmdVel; 
+
+    }
     geometry_msgs::Twist TrajectoryController::controlLaw(const geometry_msgs::Pose & current, 
                                                           const geometry_msgs::Pose & desired) 
     {    

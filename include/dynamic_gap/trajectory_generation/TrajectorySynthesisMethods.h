@@ -494,31 +494,31 @@ namespace dynamic_gap
     */    
     struct GoToGoal 
     {
-        float vRbtLinMax_; /**< maximum linear velocity of robot */
+        float speedRobot_; /**< maximum linear velocity of robot */
 
-        GoToGoal(const float & vRbtLinMax) : vRbtLinMax_(vRbtLinMax) {}
+        GoToGoal(const float & vRbtLinMax) : speedRobot_(vRbtLinMax) {}
 
-        /**
-        * \brief Helper function for clipping velocities to maximum allowed velocities
-        * \param rbtVel current robot velocity
-        */
-        void clipVelocities(Eigen::Vector2f & rbtVel) 
-        {
-            // std::cout << "in clipVelocities with " << vX << ", " << vY << std::endl;
-            // Eigen::Vector2f origVel(vX, vY);
-            float speedX = std::abs(rbtVel[0]);
-            float speedY = std::abs(rbtVel[1]);
-            if (speedX <= vRbtLinMax_ && speedY <= vRbtLinMax_) 
-            {
-                // std::cout << "not clipping" << std::endl;
-                return;
-            } else {
-                // std::cout << "max: " << vx_absmax << ", norm: " << origVel.norm() << std::endl;
-                // Eigen::Vector2f clipVel = vRbtLinMax_ * origVel / std::max(speedX, speedY);
-                rbtVel = epsilonDivide(vRbtLinMax_ * rbtVel,  std::max(speedX, speedY));
-                // return clipVel;
-            }
-        }
+        // /**
+        // * \brief Helper function for clipping velocities to maximum allowed velocities
+        // * \param rbtVel current robot velocity
+        // */
+        // void clipVelocities(Eigen::Vector2f & rbtVel) 
+        // {
+        //     // std::cout << "in clipVelocities with " << vX << ", " << vY << std::endl;
+        //     // Eigen::Vector2f origVel(vX, vY);
+        //     float speedX = std::abs(rbtVel[0]);
+        //     float speedY = std::abs(rbtVel[1]);
+        //     if (speedX <= vRbtLinMax_ && speedY <= vRbtLinMax_) 
+        //     {
+        //         // std::cout << "not clipping" << std::endl;
+        //         return;
+        //     } else {
+        //         // std::cout << "max: " << vx_absmax << ", norm: " << origVel.norm() << std::endl;
+        //         // Eigen::Vector2f clipVel = vRbtLinMax_ * origVel / std::max(speedX, speedY);
+        //         rbtVel = epsilonDivide(vRbtLinMax_ * rbtVel,  std::max(speedX, speedY));
+        //         // return clipVel;
+        //     }
+        // }
 
         /**
         * \brief () operator for AHPF that updates trajectory state
@@ -529,7 +529,8 @@ namespace dynamic_gap
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
             // std::cout << "x: " << std::endl;
-            float rbtToGoalDistance = sqrt(pow(x[6] - x[0], 2) + pow(x[7] - x[1], 2));
+            Eigen::Vector2f rbtToGoal(x[6] - x[0], x[7] - x[1]);
+            float rbtToGoalDistance = rbtToGoal.norm();
             Eigen::Vector2f rbtVelDes_(0.0, 0.0);
 
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", rbtToGoalDistance: " << rbtToGoalDistance);
@@ -548,11 +549,12 @@ namespace dynamic_gap
                 return;
             }
 
+            rbtVelDes_ = speedRobot_ * rbtToGoal / rbtToGoal.norm();
 
-            rbtVelDes_[0] = (x[6] - x[0]);
-            rbtVelDes_[1] = (x[7] - x[1]);
+            // rbtVelDes_[0] = (x[6] - x[0]);
+            // rbtVelDes_[1] = (x[7] - x[1]);
             
-            clipVelocities(rbtVelDes_);
+            // clipVelocities(rbtVelDes_);
 
             dxdt[0] = rbtVelDes_[0];
             dxdt[1] = rbtVelDes_[1];

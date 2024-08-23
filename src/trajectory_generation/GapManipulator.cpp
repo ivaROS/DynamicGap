@@ -9,6 +9,7 @@ namespace dynamic_gap
     }
 
     void GapManipulator::setGapGoal(dynamic_gap::Gap * gap, 
+                                    const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
                                     const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
     {
         try
@@ -65,24 +66,44 @@ namespace dynamic_gap
                                                                         ", " << globalGoalRobotFrameVector[1]);
                    
                 // return;
+            } else if (leftToRightAngle < M_PI / 4)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 2: gap mid point");
+
+                float centerTheta = leftTheta - (leftToRightAngle / 2.0);
+                float centerRange = (leftRange + rightRange) / 2.;
+                Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
+                                        centerRange * std::sin(centerTheta));
+            
+                gap->setGoal(centerPt);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "            finished with goal: " << centerPt[0] << ", " << centerPt[1]); 
+            } else
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 3: global path local waypoint biased");
+
+                Eigen::Vector2f globalPathLocalWaypointRobotFrameVector(globalPathLocalWaypointRobotFrame.pose.position.x, 
+                                                                        globalPathLocalWaypointRobotFrame.pose.position.y);
+                float globalPathLocalWaypointTheta = std::atan2(globalPathLocalWaypointRobotFrameVector[1], globalPathLocalWaypointRobotFrameVector[0]);
+
+                float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalPathLocalWaypointRobotFrameVector);
+                float rightToWaypointAngle = getSweptLeftToRightAngle(rightPt, globalPathLocalWaypointRobotFrameVector);
+        
+                float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalPathLocalWaypointTheta,
+                                                                leftToRightAngle, leftToWaypointAngle, rightToWaypointAngle);
+                Eigen::Vector2f biasedGapGoalUnitNorm(std::cos(biasedGapGoalTheta), std::sin(biasedGapGoalTheta));
+
+                float leftToGapGoalAngle = getSweptLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
+
+                // float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
+
+                float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
+                Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
+
+                gap->setGoal(biasedGapGoal);
+
             }
 
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 2: gap mid point");
-
-            float centerTheta = leftTheta - (leftToRightAngle / 2.0);
-            float centerRange = (leftRange + rightRange) / 2.;
-            Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
-                                     centerRange * std::sin(centerTheta));
-
-            // float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalGoalRobotFrameVector);
-            // float rightToWaypointAngle = getSweptLeftToRightAngle(rightPt, globalGoalRobotFrameVector);
-    
-            // float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalGoalTheta,
-            //                                                 leftToRightAngle, rightToWaypointAngle, leftToWaypointAngle);
-
-            // float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
-
-            // Eigen::Vector2f biasedGapGoalUnitNorm(std::cos(biasedGapGoalTheta), std::sin(biasedGapGoalTheta));
 
             // // needs to be distance between L/confined. Always positive.
             // float leftToGapGoalAngle = getSignedLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
@@ -91,8 +112,6 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapManipulator", "            biasedGapGoalIdx: " << biasedGapGoalIdx);
             // ROS_INFO_STREAM_NAMED("GapManipulator", "            leftToGapGoalAngle: " << leftToGapGoalAngle << ", leftToRightAngle: " << leftToRightAngle);
 
-            // float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
-            // Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
 
             // Eigen::Vector2f gapGoalAngularOffset(0.0, 0.0); 
             // if ( (leftToGapGoalAngle / leftToRightAngle) < 0.1) // biased gap goal on left side
@@ -109,9 +128,6 @@ namespace dynamic_gap
             
             // Eigen::Vector2f offsetBiasedGapGoal = gapGoalOffset + biasedGapGoal;
             // ROS_INFO_STREAM_NAMED("GapManipulator", "anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), offsetBiasedGapGoal: (" << offsetBiasedGapGoal[0] << ", " << offsetBiasedGapGoal[1] << ")");
-            gap->setGoal(centerPt);
-
-            ROS_INFO_STREAM_NAMED("GapManipulator", "            finished with goal: " << centerPt[0] << ", " << centerPt[1]); 
 
         } catch (...)
         {
@@ -120,7 +136,7 @@ namespace dynamic_gap
     }
 
     float GapManipulator::setBiasedGapGoalTheta(const float & leftTheta, const float & rightTheta, const float & globalGoalTheta,
-                                                const float & leftToRightAngle, const float & rightToWaypointAngle, const float & leftToWaypointAngle)
+                                                const float & leftToRightAngle, const float & leftToWaypointAngle,  const float & rightToWaypointAngle)
     {
         float biasedGapGoalTheta = 0.0;
         if (leftTheta > rightTheta) // gap is not behind robot
@@ -271,14 +287,22 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapManipulator", "        convex gap");
                 float centerTheta = leftTheta - (leftToRightAngle / 2.);
 
-                float midRayTheta = (M_PI / 2) - (leftToRightAngle / 2.);
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        centerTheta: " << centerTheta);
+
+                float midRayTheta = (M_PI / 2) - (leftToRightAngle / 2.);                
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        midRayTheta: " << midRayTheta);
+
                 float r_mid_left = std::sin(midRayTheta) / (sin(M_PI / 2) / leftPt.norm());
                 float r_mid_right = std::sin(midRayTheta) / (sin(M_PI / 2) / rightPt.norm());
 
-                Eigen::Vector2f leftMidVec(r_mid_left * std::cos(midRayTheta), 
-                                            r_mid_left * std::sin(midRayTheta));
-                Eigen::Vector2f rightMidVec(r_mid_right * std::cos(midRayTheta), 
-                                            r_mid_right * std::sin(midRayTheta));  
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        r_mid_left: " << r_mid_left);
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        r_mid_right: " << r_mid_right);
+
+                Eigen::Vector2f leftMidVec(r_mid_left * std::cos(centerTheta), 
+                                            r_mid_left * std::sin(centerTheta));
+                Eigen::Vector2f rightMidVec(r_mid_right * std::cos(centerTheta), 
+                                            r_mid_right * std::sin(centerTheta));  
 
                 Eigen::Vector2f leftAngularInflVec = leftMidVec - leftPt;
                 Eigen::Vector2f rightAngularInflVec = rightMidVec - rightPt;

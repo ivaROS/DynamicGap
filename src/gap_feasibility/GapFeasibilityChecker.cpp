@@ -57,18 +57,18 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t: " << t);
 
             // checking to see if left point is reachable
-            if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->rbt.vx_absmax * t))) 
-            {
+            // if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->rbt.vx_absmax * t))) 
+            // {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating left");
-                gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
-            }
+            gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
+            // }
 
             // checking to see if right point is reachable
-            if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->rbt.vx_absmax * t))) 
-            {
+            // if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->rbt.vx_absmax * t))) 
+            // {
                 // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating right");
-                gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
-            }
+            gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
+            // }
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "t: " << t);
 
             leftGapState = gap->leftGapPtModel_->getGapState();
@@ -90,8 +90,8 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 0 (collision) at " << t);
                 if (!gapHasCrossed)
                 {
-                    gapLifespan = generateCrossedGapTerminalPoints(t, gap);
-                    gap->setGapLifespan(gapLifespan);
+                    generateTerminalPoints(gap, leftGapState, rightGapState);
+                    gap->setGapLifespan(t);
                     gap->end_condition = 0;
 
                     ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
@@ -199,11 +199,11 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       tRewind: " << tRewind);
 
-            if (!(leftSideOpening && (getGapRange(rewindLeftGapState) < cfg_->rbt.vx_absmax * t))) 
-                gap->leftGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
+            // if (!(leftSideOpening && (getGapRange(rewindLeftGapState) < cfg_->rbt.vx_absmax * t))) 
+            gap->leftGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
             
-            if (!(rightSideOpening && (getGapRange(rewindRightGapState) < cfg_->rbt.vx_absmax * t))) 
-                gap->rightGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept);
+            // if (!(rightSideOpening && (getGapRange(rewindRightGapState) < cfg_->rbt.vx_absmax * t))) 
+            gap->rightGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept);
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "t_rew: " << t_rew);
 
             rewindLeftGapState = gap->leftGapPtModel_->getRewindGapState();

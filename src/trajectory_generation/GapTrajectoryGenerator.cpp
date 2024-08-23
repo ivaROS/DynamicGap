@@ -134,7 +134,7 @@ namespace dynamic_gap
                                                     leftGapPtVel,
                                                     rightGapPtVel);
 
-            float t_max = selectedGap->t_intercept;
+            float t_max = std::min(selectedGap->t_intercept, cfg_->traj.integrate_maxt);
 
             // POLAR GAP FIELD
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),

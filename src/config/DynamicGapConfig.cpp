@@ -27,7 +27,6 @@ namespace dynamic_gap
 
         // Planning Information
         nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
-        nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
 
         // Manual Control
         nh.param("man_ctrl", man.man_ctrl, man.man_ctrl);

@@ -60,6 +60,15 @@ namespace dynamic_gap
             * \param desired desired robot pose
             * \return command velocity for robot
             */
+            geometry_msgs::Twist constantVelocityControlLaw(const geometry_msgs::Pose & current, 
+                                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
+
+            /**
+            * \brief Control law for trajectory tracking
+            * \param current current robot pose
+            * \param desired desired robot pose
+            * \return command velocity for robot
+            */
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
                                             const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
 

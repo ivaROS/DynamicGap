@@ -58,7 +58,8 @@ namespace dynamic_gap
             */
             void scoreTrajectory(const dynamic_gap::Trajectory & traj,
                                     std::vector<float> & posewiseCosts,
-                                    float & terminalPoseCost);
+                                    float & terminalPoseCost,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
             
         private:
             /**
@@ -73,7 +74,8 @@ namespace dynamic_gap
             * \param pose pose within candidate trajectory to evaluate
             * \return intermediate cost of pose
             */
-            float scorePose(const geometry_msgs::Pose & pose);
+            float scorePose(const geometry_msgs::Pose & pose,
+                            const sensor_msgs::LaserScan scan_k) ;
             
             /**
             * \brief function for calculating intermediate trajectory cost (in static environment)

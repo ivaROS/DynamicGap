@@ -23,7 +23,8 @@ namespace dynamic_gap
 
     void TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
                                             std::vector<float> & posewiseCosts,
-                                            float & terminalPoseCost) 
+                                            float & terminalPoseCost,
+                                            const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [scoreTrajectory()]");
         // Requires LOCAL FRAME
@@ -33,12 +34,10 @@ namespace dynamic_gap
         
         posewiseCosts = std::vector<float>(path.poses.size());
 
-        float t_i = 0.0;
-        float t_iplus1 = 0.0;
         for (int i = 0; i < posewiseCosts.size(); i++) 
         {
             // std::cout << "regular range at " << i << ": ";
-            posewiseCosts.at(i) = scorePose(path.poses.at(i)); //  / posewiseCosts.size()
+            posewiseCosts.at(i) = scorePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << posewiseCosts.at(i));
         }
         float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
@@ -75,28 +74,29 @@ namespace dynamic_gap
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
-    float TrajectoryScorer::scorePose(const geometry_msgs::Pose & pose) 
+    float TrajectoryScorer::scorePose(const geometry_msgs::Pose & pose,
+                                      const sensor_msgs::LaserScan scan_k) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
-        sensor_msgs::LaserScan scan = *scan_.get();
+        // sensor_msgs::LaserScan scan = *scan_.get();
 
         // obtain orientation and idx of pose
 
         // dist is size of scan
-        std::vector<float> scan2RbtDists(scan.ranges.size());
+        std::vector<float> scan2RbtDists(scan_k.ranges.size());
 
         // iterate through ranges and obtain the distance from the egocircle point and the pose
         // Meant to find where is really small
         // float currScan2RbtDist = 0.0;
         for (int i = 0; i < scan2RbtDists.size(); i++) 
         {
-            scan2RbtDists.at(i) = dist2Pose(idx2theta(i), scan.ranges.at(i), pose);
+            scan2RbtDists.at(i) = dist2Pose(idx2theta(i), scan_k.ranges.at(i), pose);
         }
 
         auto iter = std::min_element(scan2RbtDists.begin(), scan2RbtDists.end());
         // std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
         int minDistIdx = std::distance(scan2RbtDists.begin(), iter);
-        float range = scan.ranges.at(minDistIdx);
+        float range = scan_k.ranges.at(minDistIdx);
         float theta = idx2theta(minDistIdx);
         float cost = chapterScore(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
