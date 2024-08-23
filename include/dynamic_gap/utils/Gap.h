@@ -70,8 +70,8 @@ namespace dynamic_gap
                 goal.x_ = otherGap.goal.x_;
                 goal.y_ = otherGap.goal.y_;
 
-                // terminalGoal.x_ = otherGap.terminalGoal.x_;
-                // terminalGoal.y_ = otherGap.terminalGoal.y_;
+                terminalGoal.x_ = otherGap.terminalGoal.x_;
+                terminalGoal.y_ = otherGap.terminalGoal.y_;
 
                 gapLifespan_ = otherGap.gapLifespan_;
 
@@ -594,6 +594,21 @@ namespace dynamic_gap
             {
                 goal.x_ = goalPt[0];
                 goal.y_ = goalPt[1];
+            }
+
+            /**
+            * \brief Setter for gap goal point
+            * \param initial boolean for setting terminal gap point
+            * \param goalPt gap goal point
+            */
+            void setTerminalGoal(const Eigen::Vector2f & goalPt)
+            {
+                ROS_INFO_STREAM("[setTerminalGoal()]");
+                
+                terminalGoal.x_ = goalPt[0];
+                terminalGoal.y_ = goalPt[1];
+
+                ROS_INFO_STREAM("   terminalGoal, x: " << terminalGoal.x_ << ", :" << terminalGoal.y_);
             }
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */

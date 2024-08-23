@@ -65,7 +65,8 @@ namespace dynamic_gap
 
         bool cmdVelCheck = planner_.recordAndCheckVel(cmdVel);
 
-        // cmdVel.linear.x = 0.0;
+        // bool cmdVelCheck = true;
+        // cmdVel.linear.x = 0.1;
         // cmdVel.linear.y = 0.0;
         // cmdVel.angular.z = 0.0;
 

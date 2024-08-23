@@ -292,6 +292,9 @@ namespace dynamic_gap
                 rightAngularInflDir = Rpi2 * unitNorm(rightPt);
             }
 
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    leftAngularInflDir: " << leftAngularInflDir.transpose());
+            ROS_INFO_STREAM_NAMED("GapManipulator", "    rightAngularInflDir: " << rightAngularInflDir.transpose());
+
             // perform inflation
             Eigen::Vector2f inflatedLeftPt = leftPt + leftAngularInflDir * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
             Eigen::Vector2f inflatedRightPt = rightPt + rightAngularInflDir * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;

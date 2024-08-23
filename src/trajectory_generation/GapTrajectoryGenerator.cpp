@@ -83,7 +83,7 @@ namespace dynamic_gap
 
             float gapGoalVelX = (leftVelX + rightVelX) / 2.;
             float gapGoalVelY = (leftVelY + rightVelY) / 2.;
-
+            
             // robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoalX, initialGoalY};
             
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);

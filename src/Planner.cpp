@@ -996,6 +996,8 @@ namespace dynamic_gap
         float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck() for " << gapCount << " gaps: " << feasibilityTimeTaken << " seconds]");
 
+        visualizeNavigableGaps(feasibleGaps); 
+
         /////////////////////////////
         // FUTURE SCAN PROPAGATION //
         /////////////////////////////
@@ -1030,10 +1032,6 @@ namespace dynamic_gap
         int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
-
-        // need to run after generateGapTrajs to see what weights for reachable gap are
-        visualizeNavigableGaps(feasibleGaps, highestScoreTrajIdx); 
-
 
         dynamic_gap::Trajectory chosenTraj;
         if (highestScoreTrajIdx >= 0) 
@@ -1180,13 +1178,12 @@ namespace dynamic_gap
         return;
     }
 
-    void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps,
-                                            const int & highestScoreTrajIdx) 
+    void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps) 
     {
         // boost::mutex::scoped_lock gapset(gapMutex_);
 
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        gapVisualizer_->drawNavigableGaps(manipulatedGaps, highestScoreTrajIdx);        
+        // gapVisualizer_->drawNavigableGaps(manipulatedGaps, highestScoreTrajIdx);        
         // gapVisualizer_->drawNavigableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);
@@ -1221,7 +1218,6 @@ namespace dynamic_gap
         
         if (!keepPlanning && !cfg_.man.man_ctrl) 
         {
-            ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             reset();
         }

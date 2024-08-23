@@ -312,8 +312,7 @@ namespace dynamic_gap
             * \brief Helper function for visualizing navigable regions of current set of gaps
             * \param manipulatedGaps current set of manipulated gaps
             */
-            void visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps,
-                                        const int & highestScoreTrajIdx);    
+            void visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps);    
 
     private:
         boost::mutex gapMutex_; /**< Current set of gaps mutex */

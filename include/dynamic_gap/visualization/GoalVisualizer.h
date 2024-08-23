@@ -38,7 +38,7 @@ namespace dynamic_gap
             //                  dynamic_gap::Gap * gap, 
             //                  const bool & initial);
 
-            void drawGapGoal(visualization_msgs::Marker & marker, 
+            void drawGapGoals(visualization_msgs::Marker & marker, 
                                 const std::vector<dynamic_gap::Gap *> & gaps, 
                                 const bool & initial);
 

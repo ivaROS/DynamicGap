@@ -62,7 +62,7 @@ namespace dynamic_gap
                 return std::vector<float>(path.poses.size(), 100);
             }
             // Should be safe, subtract terminal pose cost from first pose cost
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << -terminalCost);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalCost);
             posewiseCosts.at(0) += terminalCost;
         }
         

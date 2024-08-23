@@ -294,6 +294,9 @@ namespace dynamic_gap
         Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
         Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       leftGapState: " << leftGapState.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       rightGapState: " << rightGapState.transpose()); 
+
         float t_intercept_left = 0.0;
         float gamma_intercept_left = 0.0;
         parallelNavigationHelper(leftGapState.head(2), 
@@ -302,6 +305,9 @@ namespace dynamic_gap
                                     t_intercept_left, 
                                     gamma_intercept_left);
 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_left: " << gamma_intercept_left); 
+
         float t_intercept_right = 0.0;
         float gamma_intercept_right = 0.0;
         parallelNavigationHelper(rightGapState.head(2), 
@@ -309,6 +315,9 @@ namespace dynamic_gap
                                     cfg_->rbt.vx_absmax,
                                     t_intercept_right, 
                                     gamma_intercept_right);
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_right: " << gamma_intercept_right); 
 
         // set target position to gap goal
         Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
@@ -323,6 +332,9 @@ namespace dynamic_gap
                                     cfg_->rbt.vx_absmax,
                                     t_intercept_goal, 
                                     gamma_intercept_goal);
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_goal: " << gamma_intercept_goal); 
 
         if ((gap->end_condition == 0 || gap->end_condition == 1)
             && t_intercept_goal > gap->gapLifespan_)
@@ -343,6 +355,9 @@ namespace dynamic_gap
             // set gamma right
             gap->gamma_intercept_right = gamma_intercept_right;
 
+            Eigen::Vector2f terminalGoal = p_target + v_target * gap->t_intercept;
+            gap->setTerminalGoal(terminalGoal);
+
             return true;            
         }
     }
@@ -353,21 +368,33 @@ namespace dynamic_gap
                                                             float & t_intercept, 
                                                             float & gamma_intercept)
     {
-        float K = speed_robot / v_target.norm(); // just set to one dimensional norm
+        float eps = 0.00001;
 
         float lambda = std::atan2(p_target[1], p_target[0]);
         float gamma = std::atan2(v_target[1], v_target[0]);
 
-        Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
-        Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
+        if (v_target.norm() < eps) // static gap point
+        {
+            t_intercept = p_target.norm() / speed_robot;
+            gamma_intercept = lambda;
 
-        float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
+        } else
+        {
 
-        float delta = std::asin( std::sin(theta) / K);
+            float K = speed_robot / v_target.norm(); // just set to one dimensional norm
 
-        t_intercept = ( p_target.norm() / v_target.norm()) * (1 / (K * std::cos(delta) - std::cos(theta)));
+            Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
+            Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
 
-        gamma_intercept = lambda + delta;
+            float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
+
+            float delta = std::asin( std::sin(theta) / K);
+
+            t_intercept = ( p_target.norm() / v_target.norm()) * (1 / (K * std::cos(delta) - std::cos(theta)));
+
+            gamma_intercept = lambda + delta;
+        
+        }
 
         return;
     }
