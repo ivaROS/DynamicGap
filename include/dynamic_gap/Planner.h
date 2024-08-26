@@ -239,18 +239,6 @@ namespace dynamic_gap
             void reset();
 
             /**
-            * \brief Setter for current gap
-            * \param currentGap incoming gap that robot will be attempting to pass through
-            */
-            void setCurrentGap(dynamic_gap::Gap * currentGap) { delete currentGap_; currentGap_ = currentGap; return; }
-
-            /**
-            * \brief Getter for current gap
-            * \return gap that robot is currently attempting to pass through            
-            */
-            dynamic_gap::Gap * getCurrentGap() { return currentGap_; }
-
-            /**
             * \brief Setter for current trajectory
             * \param currentTraj incoming trajectory that robot is going to start tracking
             */
@@ -278,13 +266,13 @@ namespace dynamic_gap
             * \brief Setter for estimator of current gap's left point
             * \param leftModel estimator of current gap's left point
             */
-            void setCurrentLeftModel(dynamic_gap::Estimator * leftModel);
+            void setCurrentLeftGapPtModelID(dynamic_gap::Estimator * leftModel);
 
             /**
             * \brief Setter for estimator of current gap's left point
             * \param rightModel estimator of current gap's right point
             */            
-            void setCurrentRightModel(dynamic_gap::Estimator * rightModel);
+            void setCurrentRightGapPtModelID(dynamic_gap::Estimator * rightModel);
 
             /**
             * \brief Getter for ID of model for current gap's left point
@@ -297,15 +285,6 @@ namespace dynamic_gap
             * \return ID of model for current gap's right point
             */            
             int getCurrentRightGapPtModelID();
-
-            /**
-            * \brief Setter for peak velocity of approximated 
-            * spline trajectory through current gap
-            * \param peakVelX peak x-velocity of approximated spline trajectory through current gap
-            * \param peakVelY peak y-velocity of approximated spline trajectory through current gap            
-            */
-            void setCurrentGapPeakVelocities(const float & peakVelX, 
-                                             const float & peakVelY);
 
             /**
             * \brief Helper function for pretty printing estimator states 
@@ -358,10 +337,8 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap *> prevRawGaps_; /**< Previous set of raw gaps */
         std::vector<dynamic_gap::Gap *> prevSimplifiedGaps_; /**< Previous set of simplified gaps */
 
-        dynamic_gap::Gap * currentGap_ = NULL; /**< Gap that robot is currently attempting to pass through */
-
-        dynamic_gap::Estimator * currLeftGapPtModel_ = NULL; /**< Estimator of current gap's left point */
-        dynamic_gap::Estimator * currRightGapPtModel_ = NULL; /**< Estimator of current gap's right point */
+        int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
+        int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 
         int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 

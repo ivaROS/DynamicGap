@@ -85,8 +85,6 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                 const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                const dynamic_gap::Estimator * currGapLeftPtModel,
-                                                const dynamic_gap::Estimator * currGapRightPtModel, 
                                                 const geometry_msgs::TwistStamped & currRbtVel, 
                                                 const geometry_msgs::TwistStamped & currRbtAcc); // const sensor_msgs::LaserScan & scan, 
             

@@ -61,14 +61,14 @@ namespace dynamic_gap
 
         dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
-        cmdVel = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
+        // cmdVel = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
-        bool cmdVelCheck = planner_.recordAndCheckVel(cmdVel);
+        // bool cmdVelCheck = planner_.recordAndCheckVel(cmdVel);
 
-        // bool cmdVelCheck = true;
-        // cmdVel.linear.x = 0.5;
-        // cmdVel.linear.y = 0.0;
-        // cmdVel.angular.z = 0.0;
+        bool cmdVelCheck = true;
+        cmdVel.linear.x = 0.5;
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = 0.0;
 
         return cmdVelCheck;
     }

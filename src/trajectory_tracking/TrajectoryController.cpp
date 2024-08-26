@@ -240,8 +240,6 @@ namespace dynamic_gap
 
     geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                              const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                             const dynamic_gap::Estimator * currGapLeftPtModel,
-                                                             const dynamic_gap::Estimator * currGapRightPtModel, 
                                                              const geometry_msgs::TwistStamped & currRbtVel, 
                                                              const geometry_msgs::TwistStamped & currRbtAcc) 
     {
@@ -263,7 +261,7 @@ namespace dynamic_gap
         float velLinXSafe = 0.;
         float velLinYSafe = 0.;
         
-        if (cfg_->planning.projection_operator) //  && (currGapRightPtModel != nullptr && currGapLeftPtModel != nullptr
+        if (cfg_->planning.projection_operator)
         {
             ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
             
