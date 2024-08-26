@@ -35,6 +35,8 @@ namespace dynamic_gap
 
         delete gapTrajGenerator_;
 
+        delete dynamicScanPropagator_;
+
         delete trajScorer_;
         delete trajController_;
         delete trajVisualizer_;
@@ -71,7 +73,6 @@ namespace dynamic_gap
 
         gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
 
-        navigableGapGenerator_ = new dynamic_gap::NavigableGapGenerator(cfg_);
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
         dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
@@ -104,11 +105,6 @@ namespace dynamic_gap
         currentTrueAgentPoses_ = std::vector<geometry_msgs::Pose>(currentAgentCount_);
         currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
 
-        // futureScans_.push_back(tmpScan);
-        // for (float t_iplus1 = cfg_.traj.integrate_stept; t_iplus1 <= cfg_.traj.integrate_maxt; t_iplus1 += cfg_.traj.integrate_stept) 
-        //     futureScans_.push_back(tmpScan);
-
-        // staticScan_ = sensor_msgs::LaserScan();
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
         // ROS_INFO_STREAM("done initializing");
 
@@ -490,23 +486,23 @@ namespace dynamic_gap
         trajController_->updateEgoCircle(scan_);
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::propagateGapPoints()                                             
+    void Planner::propagateGapPoints(const std::vector<dynamic_gap::Gap *> & planningGaps)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPoints()]");
 
         // grabbing the current set of gaps
-        std::vector<dynamic_gap::Gap *> propagatedGaps = currSimplifiedGaps_;
+        // std::vector<dynamic_gap::Gap *> propagatedGaps = currSimplifiedGaps_;
 
         try
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "    current simplified gaps:");
-            printGapModels(propagatedGaps);
+            printGapModels(planningGaps);
             
-            for (size_t i = 0; i < propagatedGaps.size(); i++) 
+            for (size_t i = 0; i < planningGaps.size(); i++) 
             {
                 // propagate gap forward in time to determine lifespan
-                gapFeasibilityChecker_->propagateGapPoints(propagatedGaps.at(i));
+                gapFeasibilityChecker_->propagateGapPoints(planningGaps.at(i));
             }
 
         } catch(...)
@@ -514,7 +510,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("GapFeasibility", "   propagateGapPoints failed");
         }
 
-        return propagatedGaps;
+        return;
 
     }
 
@@ -547,7 +543,7 @@ namespace dynamic_gap
                     // MANIPULATE POINTS AT T=1
                     // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
                 
-                    manipulatedGaps.push_back(planningGaps.at(i));
+                    manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
                 }
             }
         } catch (...)
@@ -586,10 +582,10 @@ namespace dynamic_gap
                 if (isGapFeasible) 
                 {
                     // manipulatedGaps.at(i)->addTerminalRightInformation();
-
-                    // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
                     
-                    feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
+                    feasibleGaps.push_back(manipulatedGaps.at(i)); // shallow copy
+
+                    // feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
                     // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
                 
                     if (manipulatedGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && 
@@ -694,6 +690,8 @@ namespace dynamic_gap
                           const std::vector<std::vector<float>> & pathPoseScores, 
                           const std::vector<float> & pathTerminalPoseScores) 
     {
+        boost::mutex::scoped_lock gapset(gapMutex_);
+
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[pickTraj()]");
         
         int highestPathScoreIdx = -1;        
@@ -946,6 +944,18 @@ namespace dynamic_gap
         return std::min(minPoseNormIdx, int(currTrajRbtFrame.poses.size() - 1));
     }
 
+    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentGaps()
+    {
+        boost::mutex::scoped_lock gapset(gapMutex_);
+
+        std::vector<dynamic_gap::Gap *> planningGaps;
+
+        for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
+            planningGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
+
+        return planningGaps;
+    }
+
     dynamic_gap::Trajectory Planner::runPlanningLoop() 
     {
         if (!readyToPlan)
@@ -953,20 +963,22 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]");
 
-        bool isCurrentGapFeasible = false; // isCurrentGapAssociated, 
+        std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentGaps();
+
+        bool isCurrentGapFeasible = false;
 
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
         ///////////////////////////
         // GAP POINT PROPAGATION //
         ///////////////////////////
-        std::vector<dynamic_gap::Gap *> propagatedGaps = propagateGapPoints();
+        propagateGapPoints(planningGaps);
 
         //////////////////////
         // GAP MANIPULATION //
         //////////////////////
         std::chrono::steady_clock::time_point gapManipulateStartTime = std::chrono::steady_clock::now();
-        std::vector<dynamic_gap::Gap *> manipulatedGaps = gapManipulate(propagatedGaps);
+        std::vector<dynamic_gap::Gap *> manipulatedGaps = gapManipulate(planningGaps);
         float gapManipulationTimeTaken = timeTaken(gapManipulateStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[gapManipulate(): " << gapManipulationTimeTaken << " seconds]");
 
@@ -981,7 +993,8 @@ namespace dynamic_gap
         } else
         {
             for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
-                feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
+                feasibleGaps.push_back(currSimplifiedGap);
+                // feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
             // TODO: need to set feasible to true for all gaps as well
         }
         int gapCount = feasibleGaps.size();
@@ -1043,20 +1056,14 @@ namespace dynamic_gap
                                               futureScans);
             float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
             ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
-        } else 
-        {
-            // highestScorePath = geometry_msgs::PoseArray();
-            // highestScoreGap = dynamic_gap::Gap();
-        }
+        } 
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
 
-        // delete feasible/manipulated set of gaps
-        for (dynamic_gap::Gap * feasibleGap : feasibleGaps)
-        {
-            delete feasibleGap;
-        }
+        // delete set of planning gaps
+        for (dynamic_gap::Gap * planningGap : planningGaps)
+            delete planningGap;
 
         return chosenTraj;
     }
@@ -1119,11 +1126,11 @@ namespace dynamic_gap
     { 
         if (leftModel) 
         {
-            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
+            ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
         } else
         {
-            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
+            ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
             currentLeftGapPtModelID = -1;
         }
     }
@@ -1132,11 +1139,11 @@ namespace dynamic_gap
     { 
         if (rightModel) 
         {        
-            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
+            ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
             currentRightGapPtModelID = rightModel->getID();
         } else
         {
-            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
+            ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
             currentRightGapPtModelID = -1;
         } 
     }

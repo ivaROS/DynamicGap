@@ -26,10 +26,6 @@ namespace dynamic_gap
     {
         public: 
 
-            DynamicGapPlanner();
-
-            ~DynamicGapPlanner();
-
             /**
             * \brief Use local path planner to compute next command velocity
             * \param cmdVel command velocity to update

@@ -2,10 +2,6 @@
 
 namespace dynamic_gap 
 {
-    // Utils::Utils() {}
-
-    // Utils::~Utils() {}
-
     Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
     {
         return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);

@@ -35,45 +35,26 @@ namespace dynamic_gap
             Gap(const dynamic_gap::Gap & otherGap)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
-                // shallow copy
+                gapLifespan_ = otherGap.gapLifespan_;
+                minSafeDist_ = otherGap.minSafeDist_;
+                extendedGapOrigin_ = otherGap.extendedGapOrigin_;
+                termExtendedGapOrigin_ = otherGap.termExtendedGapOrigin_;
+
                 frame_ = otherGap.frame_;
-
-                // copy all the variables
-                leftIdx_ = otherGap.leftIdx_;
-                leftRange_ = otherGap.leftRange_;
-                rightIdx_ = otherGap.rightIdx_;
-                rightRange_ = otherGap.rightRange_;
-
-                termLeftIdx_ = otherGap.termLeftIdx_;
-                termLeftRange_ = otherGap.termLeftRange_;
-                termRightIdx_ = otherGap.termRightIdx_;
-                termRightRange_ = otherGap.termRightRange_;
-
-                manip.leftIdx_ = otherGap.manip.leftIdx_;
-                manip.leftRange_ = otherGap.manip.leftRange_;
-                manip.rightIdx_ = otherGap.manip.rightIdx_;
-                manip.rightRange_ = otherGap.manip.rightRange_;
-
-                manip.termLeftIdx_ = otherGap.manip.termLeftIdx_;
-                manip.termLeftRange_ = otherGap.manip.termLeftRange_;
-                manip.termRightIdx_ = otherGap.manip.termRightIdx_;
-                manip.termRightRange_ = otherGap.manip.termRightRange_;
-
-                rightType_ = otherGap.rightType_;
-                terminalRightType_ = otherGap.terminalRightType_;
 
                 radial_ = otherGap.radial_;
                 termRadial_ = otherGap.termRadial_;
 
-                minSafeDist_ = otherGap.minSafeDist_;
+                rightType_ = otherGap.rightType_;
+                terminalRightType_ = otherGap.terminalRightType_;
 
-                goal.x_ = otherGap.goal.x_;
-                goal.y_ = otherGap.goal.y_;
+                goal = otherGap.goal;
+                // goal.x_ = otherGap.goal.x_;
+                // goal.y_ = otherGap.goal.y_;
 
-                terminalGoal.x_ = otherGap.terminalGoal.x_;
-                terminalGoal.y_ = otherGap.terminalGoal.y_;
-
-                gapLifespan_ = otherGap.gapLifespan_;
+                terminalGoal = otherGap.terminalGoal;
+                // terminalGoal.x_ = otherGap.terminalGoal.x_;
+                // terminalGoal.y_ = otherGap.terminalGoal.y_;
 
                 // deep copy for new models
                 // Here, you can define what type of model you want to use
@@ -96,6 +77,27 @@ namespace dynamic_gap
 
                 end_condition = otherGap.end_condition;
 
+                // copy all the variables
+                leftIdx_ = otherGap.leftIdx_;
+                leftRange_ = otherGap.leftRange_;
+                rightIdx_ = otherGap.rightIdx_;
+                rightRange_ = otherGap.rightRange_;
+
+                termLeftIdx_ = otherGap.termLeftIdx_;
+                termLeftRange_ = otherGap.termLeftRange_;
+                termRightIdx_ = otherGap.termRightIdx_;
+                termRightRange_ = otherGap.termRightRange_;
+
+                manip = otherGap.manip;
+                // manip.leftIdx_ = otherGap.manip.leftIdx_;
+                // manip.leftRange_ = otherGap.manip.leftRange_;
+                // manip.rightIdx_ = otherGap.manip.rightIdx_;
+                // manip.rightRange_ = otherGap.manip.rightRange_;
+
+                // manip.termLeftIdx_ = otherGap.manip.termLeftIdx_;
+                // manip.termLeftRange_ = otherGap.manip.termLeftRange_;
+                // manip.termRightIdx_ = otherGap.manip.termRightIdx_;
+                // manip.termRightRange_ = otherGap.manip.termRightRange_;
             }
 
             ~Gap() 
@@ -633,7 +635,6 @@ namespace dynamic_gap
 
             Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
             Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
-            // float half_scan = 256;
 
             std::string frame_ = ""; /**< Frame ID for gap */
             

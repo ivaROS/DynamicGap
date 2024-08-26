@@ -6,13 +6,6 @@ PLUGINLIB_EXPORT_CLASS(dynamic_gap::DynamicGapPlanner, nav_core::BaseLocalPlanne
 
 namespace dynamic_gap 
 {
-    DynamicGapPlanner::DynamicGapPlanner(){}
-
-    DynamicGapPlanner::~DynamicGapPlanner()
-    {
-        ROS_INFO_STREAM_NAMED("Planner", "Planner terminated");
-    }
-
     bool DynamicGapPlanner::isGoalReached()
     {
         return planner_.isGoalReached();

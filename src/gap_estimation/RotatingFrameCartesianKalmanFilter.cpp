@@ -32,11 +32,6 @@ namespace dynamic_gap
         eyes = Eigen::MatrixXf::Identity(4,4);
     }
 
-    RotatingFrameCartesianKalmanFilter::~RotatingFrameCartesianKalmanFilter()
-    {
-        return;
-    }
-
     // For initializing a new model
     void RotatingFrameCartesianKalmanFilter::initialize(const std::string & side, const int & modelID,
                                                         const float & gapPtX, const float & gapPtY,
@@ -83,19 +78,14 @@ namespace dynamic_gap
     // For transferring an existing model state to a new model
     void RotatingFrameCartesianKalmanFilter::transfer(const Estimator & model)
     {
-        this->side_ = model.side_;
-        this->modelID_ = model.modelID_;
-
         ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
+        // From Estimator.h
+        this->modelID_ = model.modelID_;
+        this->side_ = model.side_;
 
-        // OBSERVATION MATRIX
-        // this->H_ = model.H_;
-        // this->H_transpose_ = model.H_transpose_;
-
-        // this->Q_scalar = model.Q_scalar;
-        // this->R_scalar = model.R_scalar;
-        // this->Q_k_ = model.Q_k_;
-        // this->R_k_ = model.R_k_;
+        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
+        this->x_hat_k_minus_ = model.x_hat_k_minus_;
+        this->x_hat_k_plus_ = model.x_hat_k_plus_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -103,24 +93,49 @@ namespace dynamic_gap
         this->P_k_minus_ = model.P_k_minus_;
         this->P_k_plus_ = model.P_k_plus_;
 
-        this->lastRbtVel_ = model.lastRbtVel_;
-        this->lastRbtAcc_ = model.lastRbtAcc_;
-        this->tLastUpdate_ = model.tLastUpdate_;
-
-        // this->xTilde_ = model.xTilde_;
-        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
-        this->x_hat_k_minus_ = model.x_hat_k_minus_;
-        this->x_hat_k_plus_ = model.x_hat_k_plus_;
+        this->xFrozen_ = model.xFrozen_;
+        this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
+        this->xTilde_ = model.xTilde_;
+
+        this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
+        this->lastRbtVel_ = model.lastRbtVel_;
+        this->lastRbtAcc_ = model.lastRbtAcc_;
+
+        this->tStart_ = model.tStart_;
+        this->tLastUpdate_ = model.tLastUpdate_;
+
+        // From RotatingFrameCartesianKalmanFilter.h
+        // this->H_ = model.H_;
+        // this->H_transpose_ = model.H_transpose_;
+
+        // this->R_k_ = model.R_k_;
+        // this->Q_k_ = model.Q_k_;
+        // this->dQ_ = model.dQ_;
+
+        // this->Q_1_ = model.Q_1_;
+        // this->Q_2_ = model.Q_2_;
+        // this->Q_3_ = model.Q_3_;
+
+        // this->R_scalar = model.R_scalar;
+        // this->Q_scalar = model.Q_scalar;
 
         // this->A_ = model.A_;
         // this->STM_ = model.STM_;
 
         // this->eyes = model.eyes;
+        // this->innovation_ = model.innovation_;
+        // this->residual_ = model.residual_;
 
-        this->tStart_ = model.tStart_;
+        // this->tmp_mat = model.tmp_mat;
 
+        // this->P_intermediate = model.P_intermediate;
+        // this->new_P = model.new_P;
+        
+        // this->lifetimeThreshold_ = model.lifetimeThreshold_;
+        
         return;
     }
 

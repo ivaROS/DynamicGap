@@ -35,8 +35,8 @@ namespace dynamic_gap
         Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
 
         // ROS_INFO_STREAM_NAMED("GapFeasibility", "gap category: " << gap->getCategory());
-        // ROS_INFO_STREAM_NAMED("GapFeasibility", "starting frozen cartesian left: " << leftGapState[0] << ", " << leftGapState[1] << ", " << leftGapState[2] << ", " << leftGapState[3]); 
-        // ROS_INFO_STREAM_NAMED("GapFeasibility", "starting frozen cartesian right: " << rightGapState[0] << ", " << rightGapState[1] << ", " << rightGapState[2] << ", " << rightGapState[3]);
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "starting frozen cartesian left: " << leftGapState[0] << ", " << leftGapState[1] << ", " << leftGapState[2] << ", " << leftGapState[3]); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "starting frozen cartesian right: " << rightGapState[0] << ", " << rightGapState[1] << ", " << rightGapState[2] << ", " << rightGapState[3]);
        
         float leftBearingDotCentBearing = 0.0, rightBearingDotCentBearing = 0.0;
         bool gapHasCrossed = false;

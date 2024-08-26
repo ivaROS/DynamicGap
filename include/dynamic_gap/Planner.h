@@ -146,7 +146,7 @@ namespace dynamic_gap
             * \brief Function for propagating current gap points/models forward in time
             * \return set of propagated gaps we will use to plan
             */
-            std::vector<dynamic_gap::Gap *> propagateGapPoints();                                             
+            void propagateGapPoints(const std::vector<dynamic_gap::Gap *> & planningGaps);                                             
 
             /**
             * \brief Function for performing gap manipulation steps
@@ -210,6 +210,8 @@ namespace dynamic_gap
             * \return index of closest pose in trajectory
             */
             int getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray & currTrajRbtFrame);
+
+            std::vector<dynamic_gap::Gap *> deepCopyCurrentGaps();
 
             /**
             * \brief Function for core planning loop of dynamic gap
