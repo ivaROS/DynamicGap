@@ -91,39 +91,10 @@ namespace dynamic_gap
             
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
 
-            // Eigen::Vector2d initRbtPos(x[0], x[1]);
-            // Eigen::Vector2d leftCurveInitPt(xLeft, yLeft);
-            // Eigen::Vector2d leftCurveTermPt(xLeftTerm, yLeftTerm);
-            // Eigen::Vector2d rightCurveInitPt(xRight, yRight);
-            // Eigen::Vector2d rightCurveTermPt(xRightTerm, yRightTerm);
             Eigen::Vector2f leftGapPtVel(leftVelX, leftVelY);
             Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
-            // Eigen::Vector2d gapGoalTermPt(terminalGoalX, terminalGoalY);
-            // Eigen::Vector2d gapGoalVel(goalVelX, goalVelY);
-            
-            // Eigen::Vector2d maxRbtVel(cfg_->rbt.vx_absmax, cfg_->rbt.vy_absmax);
-            // Eigen::Vector2d maxRbtAcc(cfg_->rbt.ax_absmax, cfg_->rbt.ay_absmax);
 
             robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoal[0], initialGoal[1]};
-
-            /*
-            PolarGapField polarGapField(xRight, xLeft, yRight, yLeft,
-                                                    initialGoalX, initialGoalY,
-                                                    selectedGap->isRadial(),
-                                                    x[0], x[1],
-                                                    cfg_->rbt.vx_absmax, cfg_->rbt.vx_absmax);
-
-            // POLAR GAP FIELD
-            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
-                                                    polarGapField, x, 0.0f, selectedGap->gapLifespan_, 
-                                                    cfg_->traj.integrate_stept, logger);
-            for (geometry_msgs::Pose & p : posearr.poses) 
-            {
-                p.position.x += selectedGap->extendedGapOrigin_[0];
-                p.position.y += selectedGap->extendedGapOrigin_[1];
-            }
-            
-            */
             
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->t_intercept); 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->gamma_intercept); 
@@ -141,13 +112,9 @@ namespace dynamic_gap
                                                     parallelNavigation, x, 0.0f, t_max, 
                                                     cfg_->traj.integrate_stept, logger);
 
-            // boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
-            //                                         ahpf, x, 0.0f, selectedGap->gapLifespan_, 
-            //                                         cfg_->traj.integrate_stept, logger);
-
             dynamic_gap::Trajectory traj(path, pathTiming);
             float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (ahpf) time taken: " << generateTrajectoryTime << " seconds");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
             return traj;
             
         } catch (...) 

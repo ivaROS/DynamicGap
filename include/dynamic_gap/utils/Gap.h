@@ -391,6 +391,22 @@ namespace dynamic_gap
                 y = (rightRange_) * sin(thetaRight);
             }
 
+            Eigen::Vector2f getLPosition() const
+            {
+                float x = 0.0, y = 0.0;
+                getLCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
+            }
+
+            Eigen::Vector2f getRPosition() const
+            {
+                float x = 0.0, y = 0.0;
+                getRCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
+            }
+
             /**
             * \brief Getter for initial manipulated left gap point in Cartesian frame
             * \param x x-position for left gap point
@@ -417,30 +433,20 @@ namespace dynamic_gap
                 y = (manip.rightRange_) * sin(thetaRight);
             }
 
-            /**
-            * \brief Getter for terminal manipulated left gap point in Cartesian frame
-            * \param x x-position for left gap point
-            * \param y y-position for left gap point
-            */
-            void getManipulatedTerminalLCartesian(float &x, float &y) const
+            Eigen::Vector2f getManipulatedLPosition() const
             {
-                float thetaLeft = idx2theta(manip.termLeftIdx_);
-                // std::cout << "rightRange_: " << rightRange_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (manip.termLeftRange_) * cos(thetaLeft);
-                y = (manip.termLeftRange_) * sin(thetaLeft);
+                float x = 0.0, y = 0.0;
+                getManipulatedLCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
             }
 
-            /**
-            * \brief Getter for terminal manipulated right gap point in Cartesian frame
-            * \param x x-position for right gap point
-            * \param y y-position for right gap point
-            */
-            void getManipulatedTerminalRCartesian(float &x, float &y) const
+            Eigen::Vector2f getManipulatedRCartesian() const
             {
-                float thetaRight = idx2theta(manip.termRightIdx_);
-                // std::cout << "leftRange_: " << leftRange_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (manip.termRightRange_) * cos(thetaRight);
-                y = (manip.termRightRange_) * sin(thetaRight);
+                float x = 0.0, y = 0.0;
+                getRCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
             }
 
             /**

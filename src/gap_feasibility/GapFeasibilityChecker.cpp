@@ -56,20 +56,11 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t: " << t);
 
-            // checking to see if left point is reachable
-            // if (!(leftSideOpening && (getGapRange(leftGapState) < cfg_->rbt.vx_absmax * t))) 
-            // {
-                // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating left");
+            // propagate left point
             gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
-            // }
 
-            // checking to see if right point is reachable
-            // if (!(rightSideOpening && (getGapRange(rightGapState) < cfg_->rbt.vx_absmax * t))) 
-            // {
-                // ROS_INFO_STREAM_NAMED("GapFeasibility", "propagating right");
+            // propagate right point
             gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
-            // }
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "t: " << t);
 
             leftGapState = gap->leftGapPtModel_->getGapState();
             rightGapState = gap->rightGapPtModel_->getGapState();
@@ -199,12 +190,11 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       tRewind: " << tRewind);
 
-            // if (!(leftSideOpening && (getGapRange(rewindLeftGapState) < cfg_->rbt.vx_absmax * t))) 
+            // Rewind left gap point
             gap->leftGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
             
-            // if (!(rightSideOpening && (getGapRange(rewindRightGapState) < cfg_->rbt.vx_absmax * t))) 
+            // Rewind right gap point
             gap->rightGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept);
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "t_rew: " << t_rew);
 
             rewindLeftGapState = gap->leftGapPtModel_->getRewindGapState();
             rewindRightGapState = gap->rightGapPtModel_->getRewindGapState();  

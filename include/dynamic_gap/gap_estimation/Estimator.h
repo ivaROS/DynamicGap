@@ -147,10 +147,22 @@ namespace dynamic_gap
             virtual Eigen::Vector4f getState() = 0;
 
             /**
-            * \brief Getter function for non-relative estimator state
+            * \brief Getter function for non-relative estimator state. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator state
             */               
             Eigen::Vector4f getGapState() { return xFrozen_; };
+
+            /**
+            * \brief Getter function for non-relative estimator position. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator position
+            */               
+            Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); };
+
+            /**
+            * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator velocity
+            */               
+            Eigen::Vector2f getGapVelocity() { return xFrozen_.tail(2); };
 
             /**
             * \brief Getter function for rewound non-relative estimator state

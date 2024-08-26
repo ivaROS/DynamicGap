@@ -161,8 +161,9 @@ namespace dynamic_gap
         float errorTheta = std::arg(errorMat(0, 0));
 
         Eigen::Vector2f error(errorX, errorY);
+        Eigen::Vector2f errorDir = error / error.norm();
 
-        Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * error / error.norm();
+        Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * errorDir;
 
         float velLinXFeedback = constantVelocityCommand[0];
         float velLinYFeedback = constantVelocityCommand[1];
