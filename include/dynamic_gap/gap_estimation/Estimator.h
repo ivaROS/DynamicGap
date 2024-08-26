@@ -133,7 +133,7 @@ namespace dynamic_gap
                 {
                     float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
                     
-                    ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
+                    // ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
                     
                     ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
 
@@ -157,6 +157,14 @@ namespace dynamic_gap
             * \return non-relative (gap) estimator position
             */               
             Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); };
+
+            /**
+            * \brief Getter function for non-relative estimator bearing. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator bearing
+            */               
+            float getGapBearing() { Eigen::Vector2f gapPosition = xFrozen_.head(2); 
+                                    float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
+                                    return gapTheta; };
 
             /**
             * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().

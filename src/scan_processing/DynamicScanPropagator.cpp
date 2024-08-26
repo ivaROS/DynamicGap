@@ -31,6 +31,204 @@ namespace dynamic_gap
         propagatedEgocirclePublisher_.publish(propagatedScan);
     }
 
+    std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScan(const std::vector<dynamic_gap::Gap *> & rawGaps)
+    {
+        // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", " [propagateCurrentLaserScan]: ");
+
+        // set first scan to current scan
+        sensor_msgs::LaserScan scan = *scan_.get();
+        futureScans_.at(0) = scan; // at t = 0.0
+
+        // order models by index
+        std::map<int, dynamic_gap::Estimator *> rawModels;
+        for (const dynamic_gap::Gap * rawGap : rawGaps)
+        {
+            // left
+            rawGap->leftGapPtModel_->isolateGapDynamics();
+            float leftGapPtTheta = rawGap->leftGapPtModel_->getGapBearing();
+            int leftGapPtIdx = theta2idx(leftGapPtTheta);
+
+            if (leftGapPtIdx >= 0 && leftGapPtIdx < scan.ranges.size())
+                rawModels.insert(std::pair<int, dynamic_gap::Estimator *>(leftGapPtIdx, rawGap->leftGapPtModel_));
+            else
+                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        left gap pt idx out of bounds");
+
+            // right
+            rawGap->rightGapPtModel_->isolateGapDynamics();
+            float rightGapPtTheta = rawGap->rightGapPtModel_->getGapBearing();
+            int rightGapPtIdx = theta2idx(rightGapPtTheta);
+
+            if (rightGapPtIdx >= 0 && rightGapPtIdx < scan.ranges.size())
+                rawModels.insert(std::pair<int, dynamic_gap::Estimator *>(rightGapPtIdx, rawGap->rightGapPtModel_));
+            else
+                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        right gap pt idx out of bounds");
+
+        }
+
+        // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "    rawModels: ");
+        // for (std::map<int, dynamic_gap::Estimator *>::iterator iter = rawModels.begin();
+        //             iter != rawModels.end();
+        //             ++iter)
+        // {
+        //     ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        idx: " << iter->first << ", ID: " << iter->second->getID());
+        //     ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            model state: " << iter->second->getGapState().transpose());
+        // }
+
+        sensor_msgs::LaserScan defaultScan = scan;
+        sensor_msgs::LaserScan wipedScan = scan;
+
+        // indices for each point
+        std::vector<int> pointwiseModelIndices(defaultScan.ranges.size());
+
+        // for each point in scan
+        for (int i = 0; i < defaultScan.ranges.size(); i++)
+        {
+            // get right hand side model (model idx should be less than scan idx)
+            int rightHandSideModelIdx = -1;
+            std::map<int, dynamic_gap::Estimator *>::iterator right_iter;
+            for (right_iter = rawModels.begin();
+                    right_iter != rawModels.end();
+                    ++right_iter)
+            {
+                if (right_iter->first <= i)
+                {
+                    rightHandSideModelIdx = right_iter->first;
+                    // no break, keep going
+                }
+            }
+            
+            if (rightHandSideModelIdx == -1) // no attachment
+                rightHandSideModelIdx = prev(rawModels.end())->first;
+
+            // get left hand side model
+            int leftHandSideModelIdx = -1;
+            std::map<int, dynamic_gap::Estimator *>::iterator left_iter;
+            for (left_iter = rawModels.begin();
+                    left_iter != rawModels.end();
+                    ++left_iter)
+            {
+                if (left_iter->first > i)
+                {
+                    leftHandSideModelIdx = left_iter->first;
+                    break;
+                }
+            }
+            
+            if (leftHandSideModelIdx == -1) // no attachment
+                leftHandSideModelIdx = rawModels.begin()->first;
+
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        at scan idx: " << i << ", LHS model idx: " << leftHandSideModelIdx << ", RHS model idx: " << rightHandSideModelIdx);
+
+            // run distance check on LHS and RHS model positions
+            float range = defaultScan.ranges.at(i);
+            float theta = idx2theta(i);
+
+            Eigen::Vector2f scanPt(range*cos(theta), range*sin(theta));
+
+            Eigen::Vector2f lhsPt = rawModels.at(leftHandSideModelIdx)->getGapPosition();
+            Eigen::Vector2f rhsPt = rawModels.at(rightHandSideModelIdx)->getGapPosition();
+
+            float scanToLHSDist = (scanPt - lhsPt).norm();
+            float scanToRHSDist = (scanPt - rhsPt).norm();
+
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        LHS model dist: " << scanToLHSDist << 
+            //                                                      ", RHS model dist: " << scanToRHSDist);
+
+            bool distCheck = (scanToLHSDist < 2 * cfg_->rbt.r_inscr && 
+                              scanToRHSDist < 2 * cfg_->rbt.r_inscr);
+
+            // run angle check on LHS and RHS model velocities
+            Eigen::Vector2f lhsVel = rawModels.at(leftHandSideModelIdx)->getGapVelocity();
+            Eigen::Vector2f rhsVel = rawModels.at(rightHandSideModelIdx)->getGapVelocity();
+
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        lhsVel: " << lhsVel.transpose());
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        rhsVel: " << rhsVel.transpose());
+
+            float cosineDist = 1.0 - lhsVel.dot(rhsVel) / (lhsVel.norm() * rhsVel.norm() + eps);
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        cosineDist: " << cosineDist);
+            bool angleCheck = (cosineDist < 0.1);
+
+
+            // if attached
+            if (distCheck && angleCheck)
+            {
+                // set default scan range to max
+                wipedScan.ranges.at(i) = cfg_->scan.range_max; // set to max range
+
+                // set pointwise model index
+                pointwiseModelIndices.at(i) = leftHandSideModelIdx; // attach model
+                // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        attaching scan idx: " << i << " to model position :" << lhsPt.transpose() << " and velocity: " << lhsVel.transpose());
+
+            } else
+            {
+                // set pointwise model index
+                pointwiseModelIndices.at(i) = -1; // attach no model
+            }
+    
+        }
+
+        // for each timestep
+        float t_i = 0.0, t_iplus1 = 0.0;
+        for (int futureScanTimeIdx = 1; futureScanTimeIdx < futureScans_.size(); futureScanTimeIdx++) 
+        {        
+            t_iplus1 = t_i + cfg_->traj.integrate_stept;
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        propagating scan at t: " << t_iplus1);
+
+            sensor_msgs::LaserScan propagatedScan = wipedScan;
+
+            // for each point in scan
+            for (int i = 0; i < defaultScan.ranges.size(); i++)
+            {            
+                if (pointwiseModelIndices.at(i) > 0)
+                {
+                    // polar to cartesian
+                    float range = defaultScan.ranges.at(i);
+                    float theta = idx2theta(i);
+
+                    Eigen::Vector2f scanPt(range*cos(theta), range*sin(theta));
+                    Eigen::Vector2f attachedPos = rawModels[pointwiseModelIndices.at(i)]->getGapPosition();
+                    Eigen::Vector2f attachedVel = rawModels[pointwiseModelIndices.at(i)]->getGapVelocity();
+                    // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            pointwiseModelIndices.at(i): " << pointwiseModelIndices.at(i));
+                    // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            attachedPos: " << attachedPos.transpose());
+                    // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            attachedVel: " << attachedVel.transpose());
+
+                    // propagate in cartesian
+                    Eigen::Vector2f propagatedPt = scanPt + t_iplus1 * attachedVel;
+                    // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            propagating scan point: " << scanPt.transpose() << " to " << propagatedPt.transpose());
+
+                    // cartesian to polar
+                    float propagatedTheta = std::atan2(propagatedPt[1], propagatedPt[0]);
+                    int propagatedIdx = theta2idx(propagatedTheta);
+                    float propagatedNorm = propagatedPt.norm();
+
+                    if (propagatedIdx >= 0 && propagatedIdx < propagatedScan.ranges.size())
+                    {
+                        // if (propagated range at theta is shorter than existing range at theta)
+                        if (propagatedScan.ranges.at(propagatedIdx) > propagatedNorm)
+                        {
+                            // update
+                            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            at idx: " << i << ", replacing range " << propagatedScan.ranges.at(propagatedIdx) << " with " << propagatedNorm);
+                            propagatedScan.ranges.at(propagatedIdx) = propagatedNorm;
+                        }
+                    } else
+                    {
+                        // ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "            propagated index out of bounds");
+                        // ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "                propagated point" << propagatedPt.transpose());
+                        // ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "                propagated theta" << propagatedTheta);
+                        // ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "                propagated idx" << propagatedIdx);
+                    
+                    }
+                }
+            }
+
+            futureScans_.at(futureScanTimeIdx) = propagatedScan;
+
+            t_i = t_iplus1;
+        }
+
+        return futureScans_;
+    }
+
     std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScanCheat(const std::vector<geometry_msgs::Pose> & currentTrueAgentPoses,
                                                                                                 const std::vector<geometry_msgs::Vector3Stamped> & currentTrueAgentVels)
     {

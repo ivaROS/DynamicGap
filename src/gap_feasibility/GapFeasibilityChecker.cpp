@@ -331,7 +331,11 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_goal: " << gamma_intercept_goal); 
 
-        if ((gap->end_condition == 0 || gap->end_condition == 1)
+        if (isnan(t_intercept_goal) || isnan(gamma_intercept_goal)) // can happen if K < 1
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
+            return false;
+        } else if ((gap->end_condition == 0 || gap->end_condition == 1)
             && t_intercept_goal > gap->gapLifespan_)
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
@@ -365,7 +369,7 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       [parallelNavigationHelper()]"); 
 
-        float eps = 0.00001;
+        // float eps = 0.00001;
 
         float lambda = std::atan2(p_target[1], p_target[0]);
         float gamma = std::atan2(v_target[1], v_target[0]);
@@ -391,16 +395,27 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                           dynamic gap point");
 
-            float K = speed_robot / v_target.norm(); // just set to one dimensional norm
+            float K = epsilonDivide(speed_robot, v_target.norm()); // just set to one dimensional norm
+
+            assert(K > 0);
+
+            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           K: " << K);
 
             Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
             Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
 
+            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_lambda: " << n_lambda.transpose());
+            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_gamma: " << n_gamma.transpose());
+
             float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
 
-            float delta = std::asin( std::sin(theta) / K);
+            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           theta: " << theta);
 
-            t_intercept = ( p_target.norm() / v_target.norm()) * (1 / (K * std::cos(delta) - std::cos(theta)));
+            float delta = std::asin( epsilonDivide(std::sin(theta), K));
+
+            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           delta: " << delta);
+
+            t_intercept = ( p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
 
             gamma_intercept = lambda + delta;
         

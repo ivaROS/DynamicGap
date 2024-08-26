@@ -152,13 +152,14 @@ namespace dynamic_gap
             // float gap_detection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_detection_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
 
-            ROS_INFO_STREAM_NAMED("GapAssociator", "RAW GAP ASSOCIATING");    
+            ROS_INFO_STREAM_NAMED("GapAssociator", "Raw gap association");    
             rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
             rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         currRawGaps_, prevRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
                                         intermediateRbtVels, intermediateRbtAccs);
+            ROS_INFO_STREAM_NAMED("GapEstimator", "Raw gap model updates");    
             updateModels(currRawGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
             
@@ -168,13 +169,14 @@ namespace dynamic_gap
             // float gap_simplification_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_simplification_start_time).count() / 1.0e6;
             // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
             
-            ROS_INFO_STREAM_NAMED("GapAssociator", "SIMPLIFIED GAP ASSOCIATING");    
+            ROS_INFO_STREAM_NAMED("GapAssociator", "simplified gap associating");    
             simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
             simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
             gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                         currSimplifiedGaps_, prevSimplifiedGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
                                         intermediateRbtVels, intermediateRbtAccs);
+            ROS_INFO_STREAM_NAMED("GapEstimator", "Simplified gap model updates");    
             updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
 
@@ -218,15 +220,15 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate) 
     {
-        ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
         
         try
         {
             for (int i = 0; i < 2*gaps.size(); i++) 
             {
-                ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
+                // ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
                 updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
-                ROS_INFO_STREAM_NAMED("GapEstimation", "");
+                // ROS_INFO_STREAM_NAMED("GapEstimation", "");
             }
         } catch (...)
         {
@@ -496,6 +498,9 @@ namespace dynamic_gap
 
         try
         {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "    current raw gaps:");
+            printGapModels(currRawGaps_);
+
             ROS_INFO_STREAM_NAMED("GapFeasibility", "    current simplified gaps:");
             printGapModels(planningGaps);
             
@@ -944,7 +949,19 @@ namespace dynamic_gap
         return std::min(minPoseNormIdx, int(currTrajRbtFrame.poses.size() - 1));
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentGaps()
+    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentRawGaps()
+    {
+        boost::mutex::scoped_lock gapset(gapMutex_);
+
+        std::vector<dynamic_gap::Gap *> copiedRawGaps;
+
+        for (dynamic_gap::Gap * currRawGap : currRawGaps_)
+            copiedRawGaps.push_back(new dynamic_gap::Gap(*currRawGap));
+
+        return copiedRawGaps;
+    }
+
+    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentSimplifiedGaps()
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
@@ -963,7 +980,8 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]");
 
-        std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentGaps();
+        std::vector<dynamic_gap::Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
+        std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
         bool isCurrentGapFeasible = false;
 
@@ -1011,8 +1029,10 @@ namespace dynamic_gap
 
         if (cfg_.planning.future_scan_propagation)
         {
-            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+            // futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
             // throw std::runtime_error("Egocircle propagation is not implemented yet!");
+            futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);
+        
         } else 
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();
@@ -1064,6 +1084,10 @@ namespace dynamic_gap
         // delete set of planning gaps
         for (dynamic_gap::Gap * planningGap : planningGaps)
             delete planningGap;
+
+        // delete set of planning gaps
+        for (dynamic_gap::Gap * copiedRawGap : copiedRawGaps)
+            delete copiedRawGap;
 
         return chosenTraj;
     }

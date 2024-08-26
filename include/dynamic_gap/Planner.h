@@ -211,7 +211,9 @@ namespace dynamic_gap
             */
             int getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray & currTrajRbtFrame);
 
-            std::vector<dynamic_gap::Gap *> deepCopyCurrentGaps();
+            std::vector<dynamic_gap::Gap *> deepCopyCurrentSimplifiedGaps();
+
+            std::vector<dynamic_gap::Gap *> deepCopyCurrentRawGaps();
 
             /**
             * \brief Function for core planning loop of dynamic gap

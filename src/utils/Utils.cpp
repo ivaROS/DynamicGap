@@ -9,11 +9,17 @@ namespace dynamic_gap
 
     float idx2theta(const int & idx)
     {
+        assert(idx >= 0);
+        assert(idx < 2*half_num_scan);
+        
         return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
 
     int theta2idx(const float & theta)
     {
+        assert(theta >= -M_PI);
+        assert(theta <= M_PI);
+
         return int(std::round((theta + M_PI) / angle_increment));
     }
 

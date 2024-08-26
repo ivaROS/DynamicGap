@@ -28,6 +28,9 @@ namespace dynamic_gap
             std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScanCheat(const std::vector<geometry_msgs::Pose> & currentTrueAgentPoses,
                                                                                 const std::vector<geometry_msgs::Vector3Stamped> & currentTrueAgentVels);
 
+            std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScan(const std::vector<dynamic_gap::Gap *> & rawGaps);
+
+
         private:
 
             void staticLaserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> staticScan);
