@@ -573,32 +573,32 @@ namespace dynamic_gap
             int currentRightGapPtModelID = getCurrentRightGapPtModelID();
             ROS_INFO_STREAM_NAMED("GapFeasibility", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
-            // isCurrentGapFeasible = false;
+            isCurrentGapFeasible = false;
 
-            // bool isGapFeasible = false;
-            // for (size_t i = 0; i < manipulatedGaps.size(); i++) 
-            // {
-            //     ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
+            bool isGapFeasible = false;
+            for (size_t i = 0; i < manipulatedGaps.size(); i++) 
+            {
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
 
-            //     // run pursuit guidance analysis on gap to determine feasibility
-            //     isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysis(manipulatedGaps.at(i));
+                // run pursuit guidance analysis on gap to determine feasibility
+                isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysis(manipulatedGaps.at(i));
 
-            //     if (isGapFeasible) 
-            //     {
-            //         // manipulatedGaps.at(i)->addTerminalRightInformation();
+                if (isGapFeasible) 
+                {
+                    // manipulatedGaps.at(i)->addTerminalRightInformation();
 
-            //         // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
+                    // navigableGapGenerator_->generateNavigableGap(manipulatedGaps.at(i));
                     
-            //         feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
-            //         // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
+                    feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
+                    // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
                 
-            //         if (manipulatedGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && 
-            //             manipulatedGaps.at(i)->rightGapPtModel_->getID() == currentRightGapPtModelID) 
-            //         {
-            //             isCurrentGapFeasible = true;
-            //         }
-            //     }
-            // }
+                    if (manipulatedGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && 
+                        manipulatedGaps.at(i)->rightGapPtModel_->getID() == currentRightGapPtModelID) 
+                    {
+                        isCurrentGapFeasible = true;
+                    }
+                }
+            }
             
         } catch(...)
         {
@@ -776,8 +776,8 @@ namespace dynamic_gap
             setCurrentTraj(emptyTraj);
             // setCurrentPath(emptyPath);
             // setCurrentPathTiming(emptyPathTiming);
-            setCurrentLeftGapPtModelID(NULL);
-            setCurrentRightGapPtModelID(NULL);
+            setCurrentLeftGapPtModelID(nullptr);
+            setCurrentRightGapPtModelID(nullptr);
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
@@ -990,69 +990,67 @@ namespace dynamic_gap
 
         visualizeNavigableGaps(feasibleGaps); 
 
-        dynamic_gap::Trajectory chosenTraj;
+        /////////////////////////////
+        // FUTURE SCAN PROPAGATION //
+        /////////////////////////////
+        std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
+        std::vector<sensor_msgs::LaserScan> futureScans;
 
-        // /////////////////////////////
-        // // FUTURE SCAN PROPAGATION //
-        // /////////////////////////////
-        // std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
-        // std::vector<sensor_msgs::LaserScan> futureScans;
-
-        // if (cfg_.planning.future_scan_propagation)
-        // {
-        //     futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
-        //     // throw std::runtime_error("Egocircle propagation is not implemented yet!");
-        // } else 
-        // {
-        //     sensor_msgs::LaserScan currentScan = *scan_.get();
-        //     futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
-        // }
-        // float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
-        // ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
+        if (cfg_.planning.future_scan_propagation)
+        {
+            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+            // throw std::runtime_error("Egocircle propagation is not implemented yet!");
+        } else 
+        {
+            sensor_msgs::LaserScan currentScan = *scan_.get();
+            futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
+        }
+        float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
+        ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
     
-        // ///////////////////////////////////////////
-        // // GAP TRAJECTORY GENERATION AND SCORING //
-        // ///////////////////////////////////////////
-        // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        // std::vector<dynamic_gap::Trajectory> trajs;
-        // std::vector<std::vector<float>> pathPoseScores; 
-        // std::vector<float> pathTerminalPoseScores; 
+        ///////////////////////////////////////////
+        // GAP TRAJECTORY GENERATION AND SCORING //
+        ///////////////////////////////////////////
+        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
+        std::vector<dynamic_gap::Trajectory> trajs;
+        std::vector<std::vector<float>> pathPoseScores; 
+        std::vector<float> pathTerminalPoseScores; 
 
-        // generateGapTrajs(feasibleGaps, trajs, pathPoseScores, pathTerminalPoseScores, futureScans);
-        // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        // ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
+        generateGapTrajs(feasibleGaps, trajs, pathPoseScores, pathTerminalPoseScores, futureScans);
+        float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
+        ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
-        // //////////////////////////////
-        // // GAP TRAJECTORY SELECTION //
-        // //////////////////////////////
-        // std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        // int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores, pathTerminalPoseScores);
-        // float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
-        // ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
+        //////////////////////////////
+        // GAP TRAJECTORY SELECTION //
+        //////////////////////////////
+        std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
+        int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores, pathTerminalPoseScores);
+        float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
+        ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
 
-        // dynamic_gap::Trajectory chosenTraj;
-        // if (highestScoreTrajIdx >= 0) 
-        // {
-        //     ///////////////////////////////
-        //     // GAP TRAJECTORY COMPARISON //
-        //     ///////////////////////////////
-        //     std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
+        dynamic_gap::Trajectory chosenTraj;
+        if (highestScoreTrajIdx >= 0) 
+        {
+            ///////////////////////////////
+            // GAP TRAJECTORY COMPARISON //
+            ///////////////////////////////
+            std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
-        //     chosenTraj = compareToCurrentTraj(feasibleGaps.at(highestScoreTrajIdx), 
-        //                                       trajs.at(highestScoreTrajIdx),
-        //                                       feasibleGaps, 
-        //                                       isCurrentGapFeasible,
-        //                                       futureScans);
-        //     float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
-        //     ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
-        // } else 
-        // {
-        //     // highestScorePath = geometry_msgs::PoseArray();
-        //     // highestScoreGap = dynamic_gap::Gap();
-        // }
+            chosenTraj = compareToCurrentTraj(feasibleGaps.at(highestScoreTrajIdx), 
+                                              trajs.at(highestScoreTrajIdx),
+                                              feasibleGaps, 
+                                              isCurrentGapFeasible,
+                                              futureScans);
+            float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
+            ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
+        } else 
+        {
+            // highestScorePath = geometry_msgs::PoseArray();
+            // highestScoreGap = dynamic_gap::Gap();
+        }
 
-        // float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
-        // ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
+        float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
+        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
 
         // delete feasible/manipulated set of gaps
         for (dynamic_gap::Gap * feasibleGap : feasibleGaps)
@@ -1121,9 +1119,11 @@ namespace dynamic_gap
     { 
         if (leftModel) 
         {
+            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
         } else
         {
+            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
             currentLeftGapPtModelID = -1;
         }
     }
@@ -1132,9 +1132,11 @@ namespace dynamic_gap
     { 
         if (rightModel) 
         {        
+            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
             currentRightGapPtModelID = rightModel->getID();
         } else
         {
+            // ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
             currentRightGapPtModelID = -1;
         } 
     }
@@ -1151,7 +1153,6 @@ namespace dynamic_gap
 
     void Planner::reset()
     {
-        // currSimplifiedGaps_.clear();
         setCurrentTraj(dynamic_gap::Trajectory());
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
