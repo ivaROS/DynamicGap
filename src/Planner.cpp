@@ -1025,8 +1025,10 @@ namespace dynamic_gap
 
         if (cfg_.planning.future_scan_propagation)
         {
-            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
-            // futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);        
+            if (cfg_.planning.egocircle_prop_cheat)
+                futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+            else
+                futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);        
         } else 
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();

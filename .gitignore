@@ -5,5 +5,5 @@
 .log
 .synctex.gz
 .idea/
-estimator_plots/
 doc/
+simulation_data/
