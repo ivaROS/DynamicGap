@@ -30,7 +30,7 @@
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
 #include <dynamic_gap/global_plan_management/GlobalPlanManager.h>
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
-#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_generation/NavigableGapGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
@@ -373,7 +373,7 @@ namespace dynamic_gap
         dynamic_gap::GlobalPlanManager * globalPlanManager_ = NULL; /**< Goal selector */
         dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
         dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
-        dynamic_gap::TrajectoryScorer * trajScorer_ = NULL; /**< Trajectory scorer */
+        dynamic_gap::TrajectoryEvaluator * trajEvaluator_ = NULL; /**< Trajectory scorer */
         dynamic_gap::DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
         dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
         dynamic_gap::GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */

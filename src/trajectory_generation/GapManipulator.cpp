@@ -32,14 +32,10 @@ namespace dynamic_gap
             Eigen::Vector2f leftPt(xLeft, yLeft);
             Eigen::Vector2f rightPt(xRight, yRight);
 
-            ROS_INFO_STREAM_NAMED("GapManipulator", "    [setGapGoal()]");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
             ROS_INFO_STREAM_NAMED("GapManipulator", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
             float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
-
-            // Second condition: if angle smaller than M_PI / 3
-            // Check if arc length < 3 robot width
 
             Eigen::Vector2f globalGoalRobotFrameVector(globalGoalRobotFrame.pose.position.x, 
                                                         globalGoalRobotFrame.pose.position.y);
@@ -51,24 +47,31 @@ namespace dynamic_gap
                                         ", global goal: (" << globalGoalRobotFrameVector[0] << 
                                                          ", " << globalGoalRobotFrameVector[1] << ")");
             
-            if (isGlobalPathLocalWaypointWithinGapAngle(globalGoalIdx, rightIdx, leftIdx) && 
-                checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
-            {
-                // gap->setGoal(globalGoalRobotFrameVector);
+            
+            // Check if global goal is within current scan
+            //      - previously, we also checked if global goal was within *gap*,
+            //        but in a corridor or corner, the global goal will not always be contained
+            //        within one of our gaps. Therefore, we will perform a lazy check
+            //        to enable the planner to run g2g if the global goal is within the scan,
+            //        and then we can evaluate whether or not the path is fine later
+            
+            // isGlobalPathLocalWaypointWithinGapAngle(globalGoalIdx, rightIdx, leftIdx) && 
                 
+            if (checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
+            {                
                 // all we will do is mark it for later so we can run g2g policy on global goal.
                 // Still set mid point for pursuit guidance policy and feasibility check
                 gap->globalGoalWithin = true;
 
-                std::string goalStatus = "Option 1: global goal: ";
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        " << goalStatus);
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        global goal within gap");
                 ROS_INFO_STREAM_NAMED("GapManipulator", "            goal: " << globalGoalRobotFrameVector[0] << 
                                                                         ", " << globalGoalRobotFrameVector[1]);
                    
-                // return;
-            } else if (leftToRightAngle < M_PI / 4)
+            }
+            
+            if (leftToRightAngle < M_PI / 4)
             {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 2: gap mid point");
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 1: gap mid point");
 
                 float centerTheta = leftTheta - (leftToRightAngle / 2.0);
                 float centerRange = (leftRange + rightRange) / 2.;
@@ -80,7 +83,7 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapManipulator", "            finished with goal: " << centerPt[0] << ", " << centerPt[1]); 
             } else
             {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 3: global path local waypoint biased");
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        Option 2: global path local waypoint biased");
 
                 Eigen::Vector2f globalPathLocalWaypointRobotFrameVector(globalPathLocalWaypointRobotFrame.pose.position.x, 
                                                                         globalPathLocalWaypointRobotFrame.pose.position.y);

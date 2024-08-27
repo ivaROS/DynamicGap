@@ -29,13 +29,11 @@ namespace dynamic_gap
     * \brief Class responsible for scoring candidate trajectory according to
     * trajectory's proximity to local environment and global path's local waypoint
     */
-    class TrajectoryScorer
+    class TrajectoryEvaluator
     {
         public:
-            TrajectoryScorer(ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg);
-            // TrajectoryScorer& operator=(TrajectoryScorer other) {cfg_ = other.cfg_; return *this;};
-            // TrajectoryScorer(const TrajectoryScorer &t) {cfg_ = t.cfg_;};
-            
+            TrajectoryEvaluator(ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg);
+
             /**
             * \brief receive new laser scan and update member variable accordingly
             * \param scan new laser scan
@@ -56,7 +54,7 @@ namespace dynamic_gap
             * \brief Function for evaluating pose-wise scores along candidate trajectory
             * \param traj candidate trajectory to score
             */
-            void scoreTrajectory(const dynamic_gap::Trajectory & traj,
+            void evaluateTrajectory(const dynamic_gap::Trajectory & traj,
                                     std::vector<float> & posewiseCosts,
                                     float & terminalPoseCost,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans);
@@ -74,15 +72,15 @@ namespace dynamic_gap
             * \param pose pose within candidate trajectory to evaluate
             * \return intermediate cost of pose
             */
-            float scorePose(const geometry_msgs::Pose & pose,
-                            const sensor_msgs::LaserScan scan_k) ;
+            float evaluatePose(const geometry_msgs::Pose & pose,
+                                const sensor_msgs::LaserScan scan_k) ;
             
             /**
             * \brief function for calculating intermediate trajectory cost (in static environment)
             * \param rbtToScanDist minimum distance from robot pose to current scan
             * \return intermediate cost of pose
             */
-            float chapterScore(const float & rbtToScanDist);
+            float chapterCost(const float & rbtToScanDist);
 
             boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */

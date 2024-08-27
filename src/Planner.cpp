@@ -37,7 +37,7 @@ namespace dynamic_gap
 
         delete dynamicScanPropagator_;
 
-        delete trajScorer_;
+        delete trajEvaluator_;
         delete trajController_;
         delete trajVisualizer_;
     }
@@ -77,7 +77,7 @@ namespace dynamic_gap
 
         dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
 
-        trajScorer_ = new dynamic_gap::TrajectoryScorer(nh_, cfg_);
+        trajEvaluator_ = new dynamic_gap::TrajectoryEvaluator(nh_, cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
 
@@ -195,7 +195,8 @@ namespace dynamic_gap
         globalPlanManager_->generateGlobalPathLocalWaypoint(map2rbt_);
         geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
         goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
-        trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
+        goalVisualizer_->drawGlobalGoal(globalGoalOdomFrame_);
+        trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
         
         // delete previous gaps
         for (dynamic_gap::Gap * prevRawGap : prevRawGaps_)
@@ -442,7 +443,7 @@ namespace dynamic_gap
             globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
         // Set new local goal to trajectory arbiter
-        trajScorer_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame_, odom2rbt_);
+        trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame_, odom2rbt_);
 
         // Visualization only
         std::vector<geometry_msgs::PoseStamped> visibleGlobalPlanSnippetRobotFrame = globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
@@ -484,7 +485,7 @@ namespace dynamic_gap
         globalPlanManager_->updateEgoCircle(scan_);
         gapManipulator_->updateEgoCircle(scan_);
         dynamicScanPropagator_->updateEgoCircle(scan_);
-        trajScorer_->updateEgoCircle(scan_);
+        trajEvaluator_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
     }
 
@@ -611,16 +612,16 @@ namespace dynamic_gap
 
     void Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
                                     std::vector<dynamic_gap::Trajectory> & generatedTrajs,
-                                    std::vector<std::vector<float>> & pathPoseScores,
-                                    std::vector<float> & pathTerminalPoseScores,
+                                    std::vector<std::vector<float>> & pathPoseCosts,
+                                    std::vector<float> & pathTerminalPoseCosts,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateGapTrajs()]");
         
-        pathPoseScores = std::vector<std::vector<float>>(gaps.size());
-        pathTerminalPoseScores = std::vector<float>(gaps.size());
+        pathPoseCosts = std::vector<std::vector<float>>(gaps.size());
+        pathTerminalPoseCosts = std::vector<float>(gaps.size());
 
         try 
         {
@@ -633,9 +634,9 @@ namespace dynamic_gap
                 bool runGoToGoal = gaps.at(i)->globalGoalWithin; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
 
                 dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
-                std::vector<float> goToGoalPoseScores, pursuitGuidancePoseScores;
-                float goToGoalTerminalPoseScore, pursuitGuidanceTerminalPoseScore;
-                float goToGoalScore, pursuitGuidancePoseScore;
+                std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
+                float goToGoalTerminalPoseCost, pursuitGuidanceTerminalPoseCost;
+                float goToGoalCost, pursuitGuidancePoseCost;
 
                 if (runGoToGoal) 
                 {
@@ -646,9 +647,9 @@ namespace dynamic_gap
                                                                         globalGoalRobotFrame_,
                                                                         true);
                     goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
-                    trajScorer_->scoreTrajectory(goToGoalTraj, goToGoalPoseScores, goToGoalTerminalPoseScore, futureScans);
-                    goToGoalScore = goToGoalTerminalPoseScore + std::accumulate(goToGoalPoseScores.begin(), goToGoalPoseScores.end(), float(0));
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalScore: " << goToGoalScore);
+                    trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans);
+                    goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0));
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        goToGoalCost: " << goToGoalCost);
                 }
 
                 // Run pursuit guidance behavior
@@ -659,20 +660,20 @@ namespace dynamic_gap
                                                                     false);
 
                 pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-                trajScorer_->scoreTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseScores, pursuitGuidanceTerminalPoseScore, futureScans);
-                pursuitGuidancePoseScore = pursuitGuidanceTerminalPoseScore + std::accumulate(pursuitGuidancePoseScores.begin(), pursuitGuidancePoseScores.end(), float(0));
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseScore: " << pursuitGuidancePoseScore);
+                trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans);
+                pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
-                if (runGoToGoal && goToGoalScore > pursuitGuidancePoseScore)
+                if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost)
                 {
                     traj = goToGoalTraj;
-                    pathPoseScores.at(i) = goToGoalPoseScores;
-                    pathTerminalPoseScores.at(i) = goToGoalTerminalPoseScore;
+                    pathPoseCosts.at(i) = goToGoalPoseCosts;
+                    pathTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
                 } else
                 {
                     traj = pursuitGuidanceTraj;
-                    pathPoseScores.at(i) = pursuitGuidancePoseScores;
-                    pathTerminalPoseScores.at(i) = pursuitGuidanceTerminalPoseScore;
+                    pathPoseCosts.at(i) = pursuitGuidancePoseCosts;
+                    pathTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
                 }
 
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
@@ -685,21 +686,21 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "generateGapTrajs failed");
         }
 
-        trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseScores);
+        trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
 
         return;
     }
 
     int Planner::pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
-                          const std::vector<std::vector<float>> & pathPoseScores, 
-                          const std::vector<float> & pathTerminalPoseScores) 
+                          const std::vector<std::vector<float>> & pathPoseCosts, 
+                          const std::vector<float> & pathTerminalPoseCosts) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[pickTraj()]");
         
-        int highestPathScoreIdx = -1;        
+        int lowestCostPathIdx = -1;        
         
         try
         {
@@ -710,48 +711,48 @@ namespace dynamic_gap
                 return -1;
             }
 
-            if (trajs.size() != pathPoseScores.size()) 
+            if (trajs.size() != pathPoseCosts.size()) 
             {
-                ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "pickTraj size mismatch: paths = " << trajs.size() << " != pathPoseScores =" << pathPoseScores.size());
+                ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "pickTraj size mismatch: paths = " << trajs.size() << " != pathPoseCosts =" << pathPoseCosts.size());
                 return -1;
             }
 
             // poses here are in odom frame 
-            std::vector<float> pathScores(trajs.size());
+            std::vector<float> pathCosts(trajs.size());
 
-            for (size_t i = 0; i < pathScores.size(); i++) 
+            for (size_t i = 0; i < pathCosts.size(); i++) 
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
-                pathScores.at(i) = pathTerminalPoseScores.at(i) + std::accumulate(pathPoseScores.at(i).begin(), 
-                                                                                  pathPoseScores.at(i).end(), float(0));
+                pathCosts.at(i) = pathTerminalPoseCosts.at(i) + std::accumulate(pathPoseCosts.at(i).begin(), 
+                                                                                  pathPoseCosts.at(i).end(), float(0));
                 
-                pathScores.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathScores.at(i);
+                pathCosts.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathCosts.at(i);
                 
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    for gap " << i << " (length: " << trajs.at(i).getPathRbtFrame().poses.size() << "), returning score of " << pathScores.at(i));
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    for gap " << i << " (length: " << trajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(i));
                 
             }
 
-            auto highestPathScoreIter = std::min_element(pathScores.begin(), pathScores.end());
-            highestPathScoreIdx = std::distance(pathScores.begin(), highestPathScoreIter);
+            auto lowestCostPathIter = std::min_element(pathCosts.begin(), pathCosts.end());
+            lowestCostPathIdx = std::distance(pathCosts.begin(), lowestCostPathIter);
 
-            if (pathScores.at(highestPathScoreIdx) == std::numeric_limits<float>::infinity()) 
+            if (pathCosts.at(lowestCostPathIdx) == std::numeric_limits<float>::infinity()) 
             {    
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    all infinity");
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "No executable trajectory, values: ");
-                for (float pathScore : pathScores) 
+                for (float pathCost : pathCosts) 
                 {
-                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Score: " << pathScore);
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Cost: " << pathCost);
                 }
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "------------------");
             }
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    picking gap: " << highestPathScoreIdx);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    picking gap: " << lowestCostPathIdx);
         } catch (...)
         {
             ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "   pickTraj failed");
         }
-        return highestPathScoreIdx;
+        return lowestCostPathIdx;
     }
 
     dynamic_gap::Trajectory Planner::changeTrajectoryHelper(dynamic_gap::Gap * incomingGap, 
@@ -761,8 +762,6 @@ namespace dynamic_gap
         if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
-            // setCurrentPath(incomingPath);
-            // setCurrentPathTiming(incomingPathTiming);
             setCurrentLeftGapPtModelID(incomingGap->leftGapPtModel_);
             setCurrentRightGapPtModelID(incomingGap->rightGapPtModel_);
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
@@ -777,8 +776,6 @@ namespace dynamic_gap
             emptyPath.header = incomingTraj.getPathRbtFrame().header;
             std::vector<float> emptyPathTiming;
             setCurrentTraj(emptyTraj);
-            // setCurrentPath(emptyPath);
-            // setCurrentPathTiming(emptyPathTiming);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
@@ -787,7 +784,6 @@ namespace dynamic_gap
 
             return emptyTraj;
         }        
-
     }
 
     dynamic_gap::Trajectory Planner::compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
@@ -817,28 +813,28 @@ namespace dynamic_gap
             geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformPath(incomingTraj.getPathOdomFrame(), odom2rbt_);
             // incomingPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring incoming trajectory");
-            std::vector<float> incomingPathPoseScores;
-            float incomingPathTerminalPoseScore;
-            trajScorer_->scoreTrajectory(incomingTraj, incomingPathPoseScores, incomingPathTerminalPoseScore, futureScans);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating incoming trajectory");
+            std::vector<float> incomingPathPoseCosts;
+            float incomingPathTerminalPoseCost;
+            trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans);
 
-            float incomingPathScore = incomingPathTerminalPoseScore + std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.end(), float(0));
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a score of: " << incomingPathScore);
+            float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0));
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a cost of: " << incomingPathCost);
           
 
             ///////////////////////////////////////////////////////////////////////
             //  Evaluate the incoming path to determine if we can switch onto it //
             ///////////////////////////////////////////////////////////////////////
-            std::string incomingPathStatus = "incoming path is safe to switch onto"; // (incomingPathOdomFrame.poses.size() > 0) ? "incoming traj length 0" : "incoming score infinite";
+            std::string incomingPathStatus = "incoming path is safe to switch onto"; // (incomingPathOdomFrame.poses.size() > 0) ? "incoming traj length 0" : "incoming cost infinite";
 
             bool ableToSwitchToIncomingPath = true;
             if (incomingTraj.getPathRbtFrame().poses.size() == 0)
             {
                 incomingPathStatus = "incoming path is of length zero.";
                 ableToSwitchToIncomingPath = false;
-            } else if (incomingPathScore == std::numeric_limits<float>::infinity())
+            } else if (incomingPathCost == std::numeric_limits<float>::infinity())
             {
-                incomingPathStatus = "incoming path is of score infinity.";
+                incomingPathStatus = "incoming path is of cost infinity.";
                 ableToSwitchToIncomingPath = false;
             }
                 
@@ -888,37 +884,37 @@ namespace dynamic_gap
 
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //  Compare the scores of the incoming trajectory with the score of the current trajectory to see if we need to switch //
+            //  Compare the costs of the incoming trajectory with the cost of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             int poseCheckCount = std::min(incomingTraj.getPathRbtFrame().poses.size(), reducedCurrentPathRobotFrame.poses.size());
 
-            incomingPathScore = std::accumulate(incomingPathPoseScores.begin(), incomingPathPoseScores.begin() + poseCheckCount, float(0));
+            incomingPathCost = std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.begin() + poseCheckCount, float(0));
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    re-scored incoming trajectory received a subscore of: " << incomingPathScore);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    scoring current trajectory");            
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    re-evaluating incoming trajectory received a subcost of: " << incomingPathCost);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating current trajectory");            
             
             dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
-            std::vector<float> currentPathPoseScores;
-            float currentPathTerminalPoseScore;
-            trajScorer_->scoreTrajectory(reducedCurrentTraj, currentPathPoseScores, currentPathTerminalPoseScore, futureScans);
-            float currentPathSubscore = currentPathTerminalPoseScore + std::accumulate(currentPathPoseScores.begin(), currentPathPoseScores.begin() + poseCheckCount, float(0));
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subscore of: " << currentPathSubscore);
+            std::vector<float> currentPathPoseCosts;
+            float currentPathTerminalPoseCost;
+            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, currentPathPoseCosts, currentPathTerminalPoseCost, futureScans);
+            float currentPathSubCost = currentPathTerminalPoseCost + std::accumulate(currentPathPoseCosts.begin(), currentPathPoseCosts.begin() + poseCheckCount, float(0));
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    current trajectory received a subcost of: " << currentPathSubCost);
 
-            std::vector<std::vector<float>> pathPoseScores(2);
-            pathPoseScores.at(0) = incomingPathPoseScores;
-            pathPoseScores.at(1) = currentPathPoseScores;
+            std::vector<std::vector<float>> pathPoseCosts(2);
+            pathPoseCosts.at(0) = incomingPathPoseCosts;
+            pathPoseCosts.at(1) = currentPathPoseCosts;
 
             
-            if (currentPathSubscore == std::numeric_limits<float>::infinity()) 
+            if (currentPathSubCost == std::numeric_limits<float>::infinity()) 
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
-                                                            ": current trajectory is of score infinity," << incomingPathStatus);
+                                                            ": current trajectory is of cost infinity," << incomingPathStatus);
                 return changeTrajectoryHelper(incomingGap, incomingTraj, ableToSwitchToIncomingPath);
             }
 
             
-            // if (incomingPathScore > currentPathSubscore) {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "TRAJECTORY CHANGE TO INCOMING: higher score");
+            // if (incomingPathCost < currentPathSubCost) {
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "TRAJECTORY CHANGE TO INCOMING: lower cost");
             //     changeTrajectoryHelper(incomingGap, incoming, time_arr, false);
             // }
             
@@ -1046,10 +1042,10 @@ namespace dynamic_gap
         ///////////////////////////////////////////
         std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Trajectory> trajs;
-        std::vector<std::vector<float>> pathPoseScores; 
-        std::vector<float> pathTerminalPoseScores; 
+        std::vector<std::vector<float>> pathPoseCosts; 
+        std::vector<float> pathTerminalPoseCosts; 
 
-        generateGapTrajs(feasibleGaps, trajs, pathPoseScores, pathTerminalPoseScores, futureScans);
+        generateGapTrajs(feasibleGaps, trajs, pathPoseCosts, pathTerminalPoseCosts, futureScans);
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
 
@@ -1057,20 +1053,20 @@ namespace dynamic_gap
         // GAP TRAJECTORY SELECTION //
         //////////////////////////////
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        int highestScoreTrajIdx = pickTraj(trajs, pathPoseScores, pathTerminalPoseScores);
+        int lowestCostTrajIdx = pickTraj(trajs, pathPoseCosts, pathTerminalPoseCosts);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
 
         dynamic_gap::Trajectory chosenTraj;
-        if (highestScoreTrajIdx >= 0) 
+        if (lowestCostTrajIdx >= 0) 
         {
             ///////////////////////////////
             // GAP TRAJECTORY COMPARISON //
             ///////////////////////////////
             std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
-            chosenTraj = compareToCurrentTraj(feasibleGaps.at(highestScoreTrajIdx), 
-                                              trajs.at(highestScoreTrajIdx),
+            chosenTraj = compareToCurrentTraj(feasibleGaps.at(lowestCostTrajIdx), 
+                                              trajs.at(lowestCostTrajIdx),
                                               feasibleGaps, 
                                               isCurrentGapFeasible,
                                               futureScans);
@@ -1198,7 +1194,7 @@ namespace dynamic_gap
         // boost::mutex::scoped_lock gapset(gapMutex_);
 
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        // gapVisualizer_->drawNavigableGaps(manipulatedGaps, highestScoreTrajIdx);        
+        // gapVisualizer_->drawNavigableGaps(manipulatedGaps, lowestCostTrajIdx);        
         // gapVisualizer_->drawNavigableGapsCenters(manipulatedGaps); 
 
         // gapVisualizer_->drawGapSplines(manipulatedGaps);

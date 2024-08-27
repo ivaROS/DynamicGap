@@ -5,6 +5,7 @@ namespace dynamic_gap
     GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
+        globalGoalPublisher = nh.advertise<visualization_msgs::Marker>("global_goal", 10);
         globalPathLocalWaypointPublisher = nh.advertise<visualization_msgs::Marker>("goals", 10);
         gapGoalsPublisher = nh.advertise<visualization_msgs::Marker>("gap_goals", 10);
 
@@ -22,12 +23,35 @@ namespace dynamic_gap
         globalPathLocalWaypointColor.g = 1;
         globalPathLocalWaypointColor.b = 0;
         globalPathLocalWaypointColor.a = 1;
+
+        globalGoalColor.r = 1.;
+        globalGoalColor.g = 1.;
+        globalGoalColor.b = 0.;
+        globalGoalColor.a = 1;        
+    }
+
+    void GoalVisualizer::drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame)
+    {
+        visualization_msgs::Marker globalGoalMarker;
+        globalGoalMarker.header.frame_id = globalGoalOdomFrame.header.frame_id;
+        globalGoalMarker.header.stamp = ros::Time::now();
+        globalGoalMarker.ns = "global_goal";
+        globalGoalMarker.id = 0;
+        globalGoalMarker.type = visualization_msgs::Marker::SPHERE;
+        globalGoalMarker.action = visualization_msgs::Marker::ADD;
+        globalGoalMarker.pose.position.x = globalGoalOdomFrame.pose.position.x;
+        globalGoalMarker.pose.position.y = globalGoalOdomFrame.pose.position.y;
+        globalGoalMarker.pose.position.z = 0.0005;
+        globalGoalMarker.pose.orientation.w = 1;
+        globalGoalMarker.scale.x = 0.1;
+        globalGoalMarker.scale.y = 0.1;
+        globalGoalMarker.scale.z = 0.1;
+        globalGoalMarker.color = globalGoalColor;
+        globalGoalPublisher.publish(globalGoalMarker);        
     }
 
     void GoalVisualizer::drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint)
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         visualization_msgs::Marker globalPathLocalWaypointMarker;
         globalPathLocalWaypointMarker.header.frame_id = globalPathLocalWaypoint.header.frame_id;
         globalPathLocalWaypointMarker.header.stamp = ros::Time::now();
@@ -48,8 +72,6 @@ namespace dynamic_gap
 
     void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         // First, clearing topic.
         // visualization_msgs::MarkerArray clearMarkerArray;
         visualization_msgs::Marker clearMarker;
@@ -129,8 +151,6 @@ namespace dynamic_gap
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
                                      dynamic_gap::Gap * gap, const bool & initial) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         visualization_msgs::Marker gapGoalMarker;
         gapGoalMarker.header.frame_id = gap->frame_;
         // std::cout << "g frame in draw gap goal: " << gap->frame_ << std::endl;

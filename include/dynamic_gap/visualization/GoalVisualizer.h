@@ -27,6 +27,8 @@ namespace dynamic_gap
             */
             void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
         
+            void drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame);
+
         private: 
             // /**
             // * \brief Visualize a single gap goal 
@@ -45,8 +47,10 @@ namespace dynamic_gap
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */
             std_msgs::ColorRGBA terminalGapGoalsColor; /**< Color to visualize terminal gap goals with */
             std_msgs::ColorRGBA globalPathLocalWaypointColor; /**< Color to visualize global path local waypoint with */
+            std_msgs::ColorRGBA globalGoalColor; /**< Color to visualize global goal with */
 
             ros::Publisher globalPathLocalWaypointPublisher; /**< Publisher for global path local waypoint */
             ros::Publisher gapGoalsPublisher; /**< Publisher for gap goals */
+            ros::Publisher globalGoalPublisher; /**< Publisher for global goal */
     };
 }

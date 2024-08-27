@@ -5,7 +5,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>

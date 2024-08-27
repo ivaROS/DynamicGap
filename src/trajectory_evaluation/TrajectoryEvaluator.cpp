@@ -1,32 +1,32 @@
-#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 
 
 namespace dynamic_gap 
 {
-    TrajectoryScorer::TrajectoryScorer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    TrajectoryEvaluator::TrajectoryEvaluator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = & cfg;
     }
 
-    void TrajectoryScorer::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
+    void TrajectoryEvaluator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
     }
 
-    void TrajectoryScorer::transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
-                                                                      const geometry_msgs::TransformStamped & odom2rbt) 
+    void TrajectoryEvaluator::transformGlobalPathLocalWaypointToRbtFrame(const geometry_msgs::PoseStamped & globalPathLocalWaypointOdomFrame, 
+                                                                            const geometry_msgs::TransformStamped & odom2rbt) 
     {
         boost::mutex::scoped_lock lock(globalPlanMutex_);
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
-    void TrajectoryScorer::scoreTrajectory(const dynamic_gap::Trajectory & traj,
-                                            std::vector<float> & posewiseCosts,
-                                            float & terminalPoseCost,
-                                            const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    void TrajectoryEvaluator::evaluateTrajectory(const dynamic_gap::Trajectory & traj,
+                                                std::vector<float> & posewiseCosts,
+                                                float & terminalPoseCost,
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [scoreTrajectory()]");
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [evaluateTrajectory()]");
         // Requires LOCAL FRAME
 
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
@@ -37,7 +37,7 @@ namespace dynamic_gap
         for (int i = 0; i < posewiseCosts.size(); i++) 
         {
             // std::cout << "regular range at " << i << ": ";
-            posewiseCosts.at(i) = scorePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
+            posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << posewiseCosts.at(i));
         }
         float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
@@ -48,33 +48,33 @@ namespace dynamic_gap
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
             
-            // if the ending cost is less than 1 and the total cost is 0, return trajectory of 100s
-            if (terminalPoseCost < 0.25 && totalTrajCost == 0) 
-            {
-                // std::cout << "returning really good trajectory" << std::endl;
-                posewiseCosts = std::vector<float>(path.poses.size(), 100);
-                return;            
-            }
+            // // if the ending cost is less than 1 and the total cost is 0, return trajectory of 100s
+            // if (terminalPoseCost < 0.25 && totalTrajCost == 0) 
+            // {
+            //     // std::cout << "returning really good trajectory" << std::endl;
+            //     posewiseCosts = std::vector<float>(path.poses.size(), -100);
+            //     return;            
+            // }
 
             // Should be safe, subtract terminal pose cost from first pose cost
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalPoseCost);
         }
         
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "scoreTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
+        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         return;
     }
 
-    float TrajectoryScorer::terminalGoalCost(const geometry_msgs::Pose & pose) 
+    float TrajectoryEvaluator::terminalGoalCost(const geometry_msgs::Pose & pose) 
     {
         boost::mutex::scoped_lock planlock(globalPlanMutex_);
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", pose);
+        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", pose);
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
         float dx = pose.position.x - globalPathLocalWaypointRobotFrame_.pose.position.x;
         float dy = pose.position.y - globalPathLocalWaypointRobotFrame_.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
-    float TrajectoryScorer::scorePose(const geometry_msgs::Pose & pose,
+    float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose,
                                       const sensor_msgs::LaserScan scan_k) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
@@ -98,17 +98,17 @@ namespace dynamic_gap
         int minDistIdx = std::distance(scan2RbtDists.begin(), iter);
         float range = scan_k.ranges.at(minDistIdx);
         float theta = idx2theta(minDistIdx);
-        float cost = chapterScore(*iter);
+        float cost = chapterCost(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
-        ROS_INFO_STREAM_NAMED("TrajectoryScorer", "            robot pose: " << pose.position.x << ", " << pose.position.y << 
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            robot pose: " << pose.position.x << ", " << pose.position.y << 
                     ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", static cost: " << cost);
         return cost;
     }
 
-    float TrajectoryScorer::chapterScore(const float & rbtToScanDist) 
+    float TrajectoryEvaluator::chapterCost(const float & rbtToScanDist) 
     {
         // if the distance at the pose is less than the inscribed radius of the robot, return negative infinity
-        // std::cout << "in chapterScore with distance: " << d << std::endl;
+        // std::cout << "in chapterCost with distance: " << d << std::endl;
         float inflRbtRad = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
 
         float inflRbtToScanDist = rbtToScanDist - inflRbtRad;

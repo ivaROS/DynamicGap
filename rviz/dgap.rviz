@@ -10,16 +10,13 @@ Panels:
         - /Egorobot Data1/LaserScan1
         - /Egorobot Data1/Axes1
         - /Dynamic Gap1
-        - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
         - /Dynamic Gap1/Gaps1/Marker2
         - /Dynamic Gap1/Gaps1/Marker3
         - /Dynamic Gap1/Gaps1/Marker4
         - /Dynamic Gap1/Gaps1/Marker5
         - /Dynamic Gap1/Gaps1/Marker6
-        - /Dynamic Gap1/Models1
         - /Dynamic Gap1/Models1/MarkerArray1
-        - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/Marker1
         - /Agents1
@@ -508,6 +505,14 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Agents
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /global_goal
+      Name: Marker
+      Namespaces:
+        global_goal: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -536,7 +541,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.437368392944336
+      Distance: 32.44445037841797
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -544,9 +549,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.0011330642737448215
-        Y: -4.9456024169921875
-        Z: -4.211559772491455
+        X: 2.6749582290649414
+        Y: 1.7082412242889404
+        Z: -4.171524524688721
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
