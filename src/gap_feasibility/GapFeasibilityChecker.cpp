@@ -262,9 +262,6 @@ namespace dynamic_gap
         if (cfg_->planning.pursuit_guidance_method == 0)
         {
             // pure pursuit
-
-            // if K < 1, reject
-
             return purePursuitFeasibilityCheck(gap);
         } else
         {
@@ -275,7 +272,105 @@ namespace dynamic_gap
     
     bool GapFeasibilityChecker::purePursuitFeasibilityCheck(dynamic_gap::Gap * gap)
     {
-        throw std::runtime_error("Pure pursuit is not implemented yet!");
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [purePursuitFeasibilityCheck()]"); 
+        // calculate intercept angle and intercept time using center point (gap goal)
+
+        gap->leftGapPtModel_->isolateGapDynamics();
+        gap->rightGapPtModel_->isolateGapDynamics();
+
+        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       leftGapState: " << leftGapState.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       rightGapState: " << rightGapState.transpose()); 
+    
+        float t_intercept_left = 0.0;
+        purePursuitHelper(leftGapState.head(2), 
+                            leftGapState.tail(2), 
+                            cfg_->rbt.vx_absmax,
+                            t_intercept_left);
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
+
+        float t_intercept_right = 0.0;
+        purePursuitHelper(rightGapState.head(2), 
+                            rightGapState.tail(2), 
+                            cfg_->rbt.vx_absmax,
+                            t_intercept_right);
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
+
+        // set target position to gap goal
+        Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
+
+        // set target velocity to mean of left and right gap points
+        Eigen::Vector2f v_target = (leftGapState.tail(2) + rightGapState.tail(2)) / 2.;
+
+        float speed_robot = cfg_->rbt.vx_absmax;
+        float K = epsilonDivide(speed_robot, v_target.norm()); // just set to one dimensional norm
+
+        // if K <= 1, reject
+        if (K <= 1)
+            return false;
+
+        float t_intercept_goal = 0.0;
+        float gamma_intercept_goal = 0.0;
+        purePursuitHelper(p_target, 
+                            v_target, 
+                            cfg_->rbt.vx_absmax,
+                            t_intercept_goal);
+
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal); 
+
+
+        if ((gap->end_condition == 0 || gap->end_condition == 1)
+            && t_intercept_goal > gap->gapLifespan_)
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
+            return false;
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
+            // set t_intercept
+            gap->t_intercept = t_intercept_goal;
+
+            Eigen::Vector2f terminalGoal = p_target + v_target * gap->t_intercept;
+            gap->setTerminalGoal(terminalGoal);
+
+            return true;            
+        }
+    }
+
+    void GapFeasibilityChecker::purePursuitHelper(const Eigen::Vector2f & p_target, 
+                                                    const Eigen::Vector2f & v_target, 
+                                                    const float speed_robot,
+                                                    float & t_intercept)
+    {
+        float lambda = std::atan2(p_target[1], p_target[0]);
+        float gamma = std::atan2(v_target[1], v_target[0]);
+
+        if (v_target.norm() < eps) // static gap point
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           static gap point"); 
+
+            t_intercept = p_target.norm() / speed_robot;
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           dynamic gap point"); 
+
+            float K = epsilonDivide(speed_robot, v_target.norm()); // just set to one dimensional norm
+
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                               K: " << K); 
+
+            assert(K > 1);
+
+            Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
+            Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
+
+            float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
+
+            t_intercept = (p_target.norm() / v_target.norm()) * (epsilonDivide(K + std::cos(theta), (K * K - 1)));
+        }
     }
 
     bool GapFeasibilityChecker::parallelNavigationFeasibilityCheck(dynamic_gap::Gap * gap)
@@ -380,17 +475,6 @@ namespace dynamic_gap
 
             t_intercept = p_target.norm() / speed_robot;
             gamma_intercept = lambda;
-
-            if (isnan(t_intercept))
-            {
-                ROS_WARN_STREAM_NAMED("GapFeasibility", "                           t_interecept is nan!"); 
-            }
-
-            if (isnan(gamma_intercept))
-            {
-                ROS_WARN_STREAM_NAMED("GapFeasibility", "                           gamma_intercept is nan!"); 
-            }
-
         } else // moving gap point
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                           dynamic gap point");
@@ -415,10 +499,20 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           delta: " << delta);
 
-            t_intercept = ( p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
+            t_intercept = (p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
 
             gamma_intercept = lambda + delta;
         
+        }
+
+        if (isnan(t_intercept))
+        {
+            ROS_WARN_STREAM_NAMED("GapFeasibility", "                           t_interecept is nan!"); 
+        }
+
+        if (isnan(gamma_intercept))
+        {
+            ROS_WARN_STREAM_NAMED("GapFeasibility", "                           gamma_intercept is nan!"); 
         }
 
         return;

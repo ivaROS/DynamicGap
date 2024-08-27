@@ -1025,10 +1025,8 @@ namespace dynamic_gap
 
         if (cfg_.planning.future_scan_propagation)
         {
-            // futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
-            // throw std::runtime_error("Egocircle propagation is not implemented yet!");
-            futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);
-        
+            futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
+            // futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);        
         } else 
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();

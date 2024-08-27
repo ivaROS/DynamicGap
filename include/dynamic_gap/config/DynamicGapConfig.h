@@ -62,7 +62,7 @@ namespace dynamic_gap
             */
             struct PlanningMode 
             {
-                int pursuit_guidance_method = 1; /**< 0 - pure pursuit, 1 - parallel navigation */
+                int pursuit_guidance_method = 0; /**< 0 - pure pursuit, 1 - parallel navigation */
                 bool heading = false; /**< Boolean for if robot tracks path headings or not */
                 bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
