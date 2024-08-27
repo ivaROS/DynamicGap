@@ -76,7 +76,7 @@
 
       <!-- remapping for obstacles -->
       <param name="DynamicGapPlanner/num_agents" value="$(arg num_agents)" />
-      <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/laser_0" />
+      <param name="global_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
       <param name="global_costmap/robot_base_frame" value="$(arg robot_namespace)" />
 
       <param name="local_costmap/obstacle_layer/scan/topic" value="$(arg robot_namespace)/mod_laser_0" />
