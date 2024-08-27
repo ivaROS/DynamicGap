@@ -7,7 +7,7 @@
   <arg name="num_agents" default="0"/>
   <arg name="simulation" default="true"/>
 
-  <arg name="rviz" default="true"/>
+  <arg name="rviz" default="false"/>
 
   <!--<include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>-->
 
