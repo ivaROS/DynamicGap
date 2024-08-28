@@ -1,12 +1,19 @@
 <launch>
- <node pkg="nav_scripts" type="follow_global_path.py" name="follow_global_path" output="log">
-	<param name="num_agents" value= "$(arg num_agents)" />
-	<param name="world" value = "$(arg world)" />
- 	<param name="seed" value = "$(arg seed)" />
-	<param name="start_xs" value = "$(arg start_xs)" />
-	<param name="start_ys" value = "$(arg start_ys)" />
-	<param name="goal_xs" value = "$(arg goal_xs)" />
-	<param name="goal_ys" value = "$(arg goal_ys)" />
-	<!-- param name="speed" value = "$(arg speed)" / -->
- </node>
+	<!-- necessary for /move_base/make_plan service to work -->
+	<node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">
+		<remap from="/map" to="/known_map"/>
+		<remap from="/map_metadata" to="/known_map_metadata"/>
+		<param name="frame_id" value="known_map"/>
+	</node>
+
+	<node pkg="nav_scripts" type="follow_global_path.py" name="follow_global_path" output="screen">
+		<param name="num_agents" value= "$(arg num_agents)" />
+		<param name="world" value = "$(arg world)" />
+		<param name="seed" value = "$(arg seed)" />
+		<param name="start_xs" value = "$(arg start_xs)" />
+		<param name="start_ys" value = "$(arg start_ys)" />
+		<param name="goal_xs" value = "$(arg goal_xs)" />
+		<param name="goal_ys" value = "$(arg goal_ys)" />
+		<!-- param name="speed" value = "$(arg speed)" / -->
+	</node>
 </launch>

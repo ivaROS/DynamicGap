@@ -134,6 +134,9 @@ namespace dynamic_gap
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
+        std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
+        ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
+        
         scan_ = scan;
 
         ros::Time curr_time = scan_->header.stamp;
@@ -147,38 +150,77 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels = intermediateRbtVels_;
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs = intermediateRbtAccs_;
 
-            // std::chrono::steady_clock::time_point gap_detection_start_time = std::chrono::steady_clock::now();
+            ///////////////////////////////
+            //////// GAP DETECTION ////////
+            ///////////////////////////////
+            std::chrono::steady_clock::time_point gapDetectionStartTime = std::chrono::steady_clock::now();
             currRawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
-            // float gap_detection_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_detection_start_time).count() / 1.0e6;
-            // ROS_INFO_STREAM("gapDetection: " << gap_detection_time << " seconds");
+            float gapDetectionTimeTaken = timeTaken(gapDetectionStartTime);
+            float avgGapDetectionTimeTaken = computeAverageTimeTaken(gapDetectionTimeTaken, GAP_DET);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection for " << currRawGaps_.size() << " gaps took " << gapDetectionTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection average time: " << avgGapDetectionTimeTaken << " seconds (" << (1.0 / avgGapDetectionTimeTaken) << " Hz) ]");
 
-            ROS_INFO_STREAM_NAMED("GapAssociator", "Raw gap association");    
+            /////////////////////////////////////
+            //////// RAW GAP ASSOCIATION ////////
+            /////////////////////////////////////
+            std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
             rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
             rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
             gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                         currRawGaps_, prevRawGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
                                         intermediateRbtVels, intermediateRbtAccs);
-            ROS_INFO_STREAM_NAMED("GapEstimator", "Raw gap model updates");    
+            float rawGapAssociationTimeTaken = timeTaken(rawGapAssociationStartTime);
+            float avgRawGapAssociationTimeTaken = computeAverageTimeTaken(rawGapAssociationTimeTaken, GAP_ASSOC);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association for " << currRawGaps_.size() << " gaps took " << rawGapAssociationTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association average time: " << avgRawGapAssociationTimeTaken << " seconds (" << (1.0 / avgRawGapAssociationTimeTaken) << " Hz) ]");
+
+            ////////////////////////////////////
+            //////// RAW GAP ESTIMATION ////////
+            ////////////////////////////////////
+            std::chrono::steady_clock::time_point rawGapEstimationStartTime = std::chrono::steady_clock::now();
             updateModels(currRawGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
-            
-            // std::chrono::steady_clock::time_point gap_simplification_start_time = std::chrono::steady_clock::now();
-            
+            float rawGapEstimationTimeTaken = timeTaken(rawGapEstimationStartTime);
+            float avgRawGapEstimationTimeTaken = computeAverageTimeTaken(rawGapEstimationTimeTaken, GAP_EST);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation for " << currRawGaps_.size() << " gaps took " << rawGapEstimationTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation average time: " << avgRawGapEstimationTimeTaken << " seconds (" << (1.0 / avgRawGapEstimationTimeTaken) << " Hz) ]");
+
+            ////////////////////////////////////
+            //////// GAP SIMPLIFICATION ////////
+            ////////////////////////////////////       
+            std::chrono::steady_clock::time_point gapSimplificationStartTime = std::chrono::steady_clock::now();
             currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
-            // float gap_simplification_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - gap_simplification_start_time).count() / 1.0e6;
-            // ROS_INFO_STREAM("gapSimplification: " << gap_simplification_time << " seconds");
-            
-            ROS_INFO_STREAM_NAMED("GapAssociator", "simplified gap associating");    
+            float gapSimplificationTimeTaken = timeTaken(gapSimplificationStartTime);
+            float avgGapSimplificationTimeTaken = computeAverageTimeTaken(gapSimplificationTimeTaken, GAP_SIMP);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification for " << currSimplifiedGaps_.size() << " gaps took " << gapSimplificationTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification average time: " << avgGapSimplificationTimeTaken << " seconds (" << (1.0 / avgGapSimplificationTimeTaken) << " Hz) ]");
+
+            ////////////////////////////////////////////
+            //////// SIMPLIFIED GAP ASSOCIATION ////////
+            ////////////////////////////////////////////
+            std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
             simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
             simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
             gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                         currSimplifiedGaps_, prevSimplifiedGaps_, 
                                         currentModelIdx_, tCurrentFilterUpdate,
                                         intermediateRbtVels, intermediateRbtAccs);
-            ROS_INFO_STREAM_NAMED("GapEstimator", "Simplified gap model updates");    
+            float simpGapAssociationTimeTaken = timeTaken(simpGapAssociationStartTime);
+            float avgSimpGapAssociationTimeTaken = computeAverageTimeTaken(simpGapAssociationTimeTaken, GAP_ASSOC);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association for " << currSimplifiedGaps_.size() << " gaps took " << simpGapAssociationTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association average time: " << avgSimpGapAssociationTimeTaken << " seconds (" << (1.0 / avgSimpGapAssociationTimeTaken) << " Hz) ]");
+
+            ///////////////////////////////////////////
+            //////// SIMPLIFIED GAP ESTIMATION ////////
+            ///////////////////////////////////////////     
+            std::chrono::steady_clock::time_point simpGapEstimationStartTime = std::chrono::steady_clock::now();
             updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                          intermediateRbtAccs, tCurrentFilterUpdate);
+            float simpGapEstimationTimeTaken = timeTaken(simpGapEstimationStartTime);
+            float avgSimpGapEstimationTimeTaken = computeAverageTimeTaken(simpGapEstimationTimeTaken, GAP_EST);
+            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation for " << currRawGaps_.size() << " gaps took " << simpGapEstimationTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation average time: " << avgSimpGapEstimationTimeTaken << " seconds (" << (1.0 / avgSimpGapEstimationTimeTaken) << " Hz) ]");
 
             gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
             gapVisualizer_->drawGapsModels(currRawGaps_);
@@ -213,6 +255,11 @@ namespace dynamic_gap
 
         // update estimator update time
         tPreviousModelUpdate_ = tCurrentFilterUpdate;
+
+        float scanTimeTaken = timeTaken(scanStartTime);
+        float avgScanTimeTaken = computeAverageTimeTaken(scanTimeTaken, SCAN);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Scan Processing took " << scanTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Scan Processing average time: " << avgScanTimeTaken << " seconds (" << (1.0 / avgScanTimeTaken) << " Hz) ]");
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
@@ -520,10 +567,10 @@ namespace dynamic_gap
 
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::gapManipulate(const std::vector<dynamic_gap::Gap *> & planningGaps) 
+    std::vector<dynamic_gap::Gap *> Planner::manipulateGaps(const std::vector<dynamic_gap::Gap *> & planningGaps) 
     {
 
-        ROS_INFO_STREAM_NAMED("GapManipulator", "[gapManipulate()]");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "[manipulateGaps()]");
 
         boost::mutex::scoped_lock gapset(gapMutex_);
         std::vector<dynamic_gap::Gap *> manipulatedGaps;
@@ -979,26 +1026,34 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
-        bool isCurrentGapFeasible = false;
-
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
         ///////////////////////////
         // GAP POINT PROPAGATION //
         ///////////////////////////
+        int gapCount = planningGaps.size();
+
+        std::chrono::steady_clock::time_point gapPropagateStartTime = std::chrono::steady_clock::now();
         propagateGapPoints(planningGaps);
+        float gapPropagateTimeTaken = timeTaken(gapPropagateStartTime);
+        float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation for " << gapCount << " gaps took " << gapPropagateTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
         //////////////////////
         // GAP MANIPULATION //
         //////////////////////
-        std::chrono::steady_clock::time_point gapManipulateStartTime = std::chrono::steady_clock::now();
-        std::vector<dynamic_gap::Gap *> manipulatedGaps = gapManipulate(planningGaps);
-        float gapManipulationTimeTaken = timeTaken(gapManipulateStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[gapManipulate(): " << gapManipulationTimeTaken << " seconds]");
+        std::chrono::steady_clock::time_point manipulateGapsStartTime = std::chrono::steady_clock::now();
+        std::vector<dynamic_gap::Gap *> manipulatedGaps = manipulateGaps(planningGaps);
+        float gapManipulationTimeTaken = timeTaken(manipulateGapsStartTime);
+        float avgGapManipulationTimeTaken = computeAverageTimeTaken(gapManipulationTimeTaken, GAP_MANIP);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation for " << gapCount << " gaps took " << gapManipulationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation average time: " << avgGapManipulationTimeTaken << " seconds (" << (1.0 / avgGapManipulationTimeTaken) << " Hz) ]");
 
         ///////////////////////////
         // GAP FEASIBILITY CHECK //
         ///////////////////////////
+        bool isCurrentGapFeasible = false;
         std::vector<dynamic_gap::Gap *> feasibleGaps;
         std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
         if (cfg_.planning.gap_feasibility_check)
@@ -1011,18 +1066,20 @@ namespace dynamic_gap
                 // feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
             // TODO: need to set feasible to true for all gaps as well
         }
-        int gapCount = feasibleGaps.size();
         float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck() for " << gapCount << " gaps: " << feasibilityTimeTaken << " seconds]");
+        float avgFeasibilityTimeTaken = computeAverageTimeTaken(feasibilityTimeTaken, GAP_FEAS);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Feasibility Analysis for " << gapCount << " gaps took " << feasibilityTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Feasibility Analysis average time: " << avgFeasibilityTimeTaken << " seconds (" << (1.0 / avgFeasibilityTimeTaken) << " Hz) ]");
 
+        gapCount = feasibleGaps.size();
         visualizeNavigableGaps(feasibleGaps); 
 
         /////////////////////////////
         // FUTURE SCAN PROPAGATION //
         /////////////////////////////
-        std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
         std::vector<sensor_msgs::LaserScan> futureScans;
 
+        std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
         if (cfg_.planning.future_scan_propagation)
         {
             if (cfg_.planning.egocircle_prop_cheat)
@@ -1035,28 +1092,33 @@ namespace dynamic_gap
             futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
         }
         float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[getFutureScans() for " << gapCount << " gaps: " << scanPropagationTimeTaken << " seconds]");
+        float avgScanPropagationTimeTaken = computeAverageTimeTaken(scanPropagationTimeTaken, SCAN_PROP);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation for " << gapCount << " gaps took " << scanPropagationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation average time: " << avgScanPropagationTimeTaken << " seconds (" << (1.0 / avgScanPropagationTimeTaken) << " Hz) ]");
     
         ///////////////////////////////////////////
         // GAP TRAJECTORY GENERATION AND SCORING //
         ///////////////////////////////////////////
-        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         std::vector<dynamic_gap::Trajectory> trajs;
         std::vector<std::vector<float>> pathPoseCosts; 
         std::vector<float> pathTerminalPoseCosts; 
-
+        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         generateGapTrajs(feasibleGaps, trajs, pathPoseCosts, pathTerminalPoseCosts, futureScans);
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[generateGapTrajs() for " << gapCount << " gaps: " << generateGapTrajsTimeTaken << " seconds]");
-
+        float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
+    
         //////////////////////////////
         // GAP TRAJECTORY SELECTION //
         //////////////////////////////
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
         int lowestCostTrajIdx = pickTraj(trajs, pathPoseCosts, pathTerminalPoseCosts);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[pickTraj() for " << gapCount << " gaps: " << pickTrajTimeTaken << " seconds]");
-
+        float avgPickTrajTimeTaken = computeAverageTimeTaken(pickTrajTimeTaken, TRAJ_PICK);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection for " << gapCount << " gaps took " << pickTrajTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection average time: " << avgPickTrajTimeTaken << " seconds (" << (1.0 / avgPickTrajTimeTaken) << " Hz) ]");
+    
         dynamic_gap::Trajectory chosenTraj;
         if (lowestCostTrajIdx >= 0) 
         {
@@ -1071,12 +1133,18 @@ namespace dynamic_gap
                                               isCurrentGapFeasible,
                                               futureScans);
             float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
-            ROS_INFO_STREAM_NAMED("Planner", "[compareToCurrentTraj() for " << gapCount << " gaps: "  << compareToCurrentTrajTimeTaken << " seconds]");
+            float avgCompareToCurrentTrajTimeTaken = computeAverageTimeTaken(compareToCurrentTrajTimeTaken, TRAJ_COMP);        
+
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison for " << gapCount << " gaps took " << compareToCurrentTrajTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison average time: " << avgCompareToCurrentTrajTimeTaken << " seconds (" << (1.0 / avgCompareToCurrentTrajTimeTaken) << " Hz) ]");
         } 
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
-        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop() for " << gapCount << " gaps: "  << planningLoopTimeTaken << " seconds]");
+        float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        
 
+        ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop for " << gapCount << " gaps took " << planningLoopTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average time: " << avgPlanningLoopTimeTaken << " seconds (" << (1.0 / avgPlanningLoopTimeTaken) << " Hz) ]");
+        
         // delete set of planning gaps
         for (dynamic_gap::Gap * planningGap : planningGaps)
             delete planningGap;
@@ -1091,6 +1159,8 @@ namespace dynamic_gap
     geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory) 
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
+        std::chrono::steady_clock::time_point controlStartTime = std::chrono::steady_clock::now();
+        
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
@@ -1128,16 +1198,32 @@ namespace dynamic_gap
 
                 geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
 
+                std::chrono::steady_clock::time_point feedbackControlStartTime = std::chrono::steady_clock::now();
                 rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose);
+                float feedbackControlTimeTaken = timeTaken(feedbackControlStartTime);
+                float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
+                ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");
+                ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
             }
 
+            std::chrono::steady_clock::time_point projOpStartTime = std::chrono::steady_clock::now();
             cmdVel = trajController_->processCmdVel(rawCmdVel,
                                                     rbtPoseInSensorFrame_, 
                                                     currentRbtVel_, currentRbtAcc_); 
+            float projOpTimeTaken = timeTaken(projOpStartTime);
+            float avgProjOpTimeTaken = computeAverageTimeTaken(projOpTimeTaken, PO);        
+            ROS_INFO_STREAM_NAMED("Timing", "       [Projection Operator took " << projOpTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Projection Operator average time: " << avgProjOpTimeTaken << " seconds (" << (1.0 / avgProjOpTimeTaken) << " Hz) ]");        
+
         } catch (...)
         {
             ROS_WARN_STREAM_NAMED("Controller", "ctrlGeneration failed");
         }
+
+        float controlTimeTaken = timeTaken(controlStartTime);
+        float avgControlTimeTaken = computeAverageTimeTaken(controlTimeTaken, CONTROL);        
+        ROS_INFO_STREAM_NAMED("Timing", "       [Control Loop took " << controlTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Control Loop average time: " << avgControlTimeTaken << " seconds (" << (1.0 / avgControlTimeTaken) << " Hz) ]");        
 
         return cmdVel;
     }
@@ -1235,4 +1321,108 @@ namespace dynamic_gap
         return keepPlanning || cfg_.man.man_ctrl;
     }
 
+    // 0: gap detection
+    // 1: gap simplification
+    // 2: gap association
+    // 3: gap estimation
+
+    // 4: gap propagation
+    // 5: gap manipulation
+    // 6: gap feasibility
+    // 7: scan propagation
+    // 8: gap traj generation
+    // 9: gap comparison
+    // 10: total planning loop
+
+    // 11: feedback control
+    // 12: projection operator
+    float Planner::computeAverageTimeTaken(const float & timeTaken, const int & planningStepIdx)
+    {
+        float averageTimeTaken = 0.0f;
+        switch(planningStepIdx)
+        {
+            case GAP_DET:
+                totalGapDetectionTimeTaken += timeTaken;
+                gapDetectionCalls++;
+                averageTimeTaken = (totalGapDetectionTimeTaken / gapDetectionCalls);
+                break;
+            case GAP_SIMP:
+                totalGapSimplificationTimeTaken += timeTaken;
+                gapSimplificationCalls++;
+                averageTimeTaken = (totalGapSimplificationTimeTaken / gapSimplificationCalls);
+                break;
+            case GAP_ASSOC:
+                totalGapAssociationCheckTimeTaken += timeTaken;
+                gapAssociationCheckCalls++;
+                averageTimeTaken = (totalGapAssociationCheckTimeTaken / gapAssociationCheckCalls);
+                break;                
+            case GAP_EST:
+                totalGapEstimationTimeTaken += timeTaken;
+                gapEstimationCalls++;
+                averageTimeTaken = (totalGapEstimationTimeTaken / gapEstimationCalls);
+                break;      
+            case SCAN:
+                totalScanningTimeTaken += timeTaken;
+                scanningLoopCalls++;
+                averageTimeTaken = (totalScanningTimeTaken / scanningLoopCalls);
+                break;   
+            case GAP_PROP:
+                totalGapPropagationTimeTaken += timeTaken;
+                gapPropagationCalls++;
+                averageTimeTaken = (totalGapPropagationTimeTaken / gapPropagationCalls);
+                break;                   
+            case GAP_MANIP:
+                totalGapManipulationTimeTaken += timeTaken;
+                gapManipulationCalls++;
+                averageTimeTaken = (totalGapManipulationTimeTaken / gapManipulationCalls);
+                break;                                                 
+            case GAP_FEAS:
+                totalGapFeasibilityCheckTimeTaken += timeTaken;
+                gapFeasibilityCheckCalls++;
+                averageTimeTaken = (totalGapFeasibilityCheckTimeTaken / gapFeasibilityCheckCalls);
+                break;   
+            case SCAN_PROP:
+                totalScanPropagationTimeTaken += timeTaken;
+                scanPropagationCalls++;
+                averageTimeTaken = (totalScanPropagationTimeTaken / scanPropagationCalls);
+                break;    
+            case TRAJ_GEN:
+                totalGenerateGapTrajTimeTaken += timeTaken;
+                generateGapTrajCalls++;
+                averageTimeTaken = (totalGenerateGapTrajTimeTaken / generateGapTrajCalls);
+                break;
+            case TRAJ_PICK:
+                totalSelectGapTrajTimeTaken += timeTaken;
+                selectGapTrajCalls++;
+                averageTimeTaken = (totalSelectGapTrajTimeTaken / selectGapTrajCalls);
+                break;                                                        
+            case TRAJ_COMP:
+                totalCompareToCurrentTrajTimeTaken += timeTaken;
+                compareToCurrentTrajCalls++;
+                averageTimeTaken = (totalCompareToCurrentTrajTimeTaken / compareToCurrentTrajCalls);
+                break;       
+            case PLAN:
+                totalPlanningTimeTaken += timeTaken;
+                planningLoopCalls++;
+                averageTimeTaken = (totalPlanningTimeTaken / planningLoopCalls);
+                break; 
+            case FEEBDACK:
+                totalFeedbackControlTimeTaken += timeTaken;
+                feedbackControlCalls++;
+                averageTimeTaken = (totalFeedbackControlTimeTaken / feedbackControlCalls);
+                break;      
+            case PO:
+                totalProjectionOperatorTimeTaken += timeTaken;
+                projectionOperatorCalls++;
+                averageTimeTaken = (totalProjectionOperatorTimeTaken / projectionOperatorCalls);
+                break;       
+            case CONTROL:
+                totalControlTimeTaken += timeTaken;
+                controlCalls++;
+                averageTimeTaken = (totalControlTimeTaken / controlCalls);
+                break;                                                                   
+        }
+
+        return averageTimeTaken;
+    }
 }
