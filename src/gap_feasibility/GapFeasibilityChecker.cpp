@@ -3,6 +3,12 @@
 
 namespace dynamic_gap 
 {
+    void GapFeasibilityChecker::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
+    {
+        boost::mutex::scoped_lock lock(scanMutex_);
+        scan_ = scan;
+    }
+
     void GapFeasibilityChecker::propagateGapPoints(dynamic_gap::Gap * gap) 
     {
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                [propagateGapPoints()]");
@@ -450,6 +456,20 @@ namespace dynamic_gap
             gap->gamma_intercept_right = gamma_intercept_right;
 
             Eigen::Vector2f terminalGoal = p_target + v_target * gap->t_intercept;
+
+            // clip at scan
+            float terminalGoalTheta = std::atan2(terminalGoal[1], terminalGoal[0]);
+            int terminalGoalScanIdx = theta2idx(terminalGoalTheta);
+
+            // if terminal goal lives beyond scan
+            if (scan_->ranges.at(terminalGoalScanIdx) < (terminalGoal.norm() + cfg_->traj.max_pose_to_scan_dist))
+            {
+                float newTerminalGoalRange = scan_->ranges.at(terminalGoalScanIdx) - cfg_->traj.max_pose_to_scan_dist;
+                terminalGoal << newTerminalGoalRange * std::cos(terminalGoalTheta),
+                                newTerminalGoalRange * std::sin(terminalGoalTheta);
+            }
+
+
             gap->setTerminalGoal(terminalGoal);
 
             return true;            
@@ -505,15 +525,15 @@ namespace dynamic_gap
         
         }
 
-        if (isnan(t_intercept))
-        {
-            ROS_WARN_STREAM_NAMED("GapFeasibility", "                           t_interecept is nan!"); 
-        }
+        // if (isnan(t_intercept))
+        // {
+        //     ROS_WARN_STREAM_NAMED("GapFeasibility", "                           t_interecept is nan!"); 
+        // }
 
-        if (isnan(gamma_intercept))
-        {
-            ROS_WARN_STREAM_NAMED("GapFeasibility", "                           gamma_intercept is nan!"); 
-        }
+        // if (isnan(gamma_intercept))
+        // {
+        //     ROS_WARN_STREAM_NAMED("GapFeasibility", "                           gamma_intercept is nan!"); 
+        // }
 
         return;
     }

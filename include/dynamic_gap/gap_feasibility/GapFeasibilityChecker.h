@@ -24,6 +24,8 @@ namespace dynamic_gap
         public: 
             GapFeasibilityChecker(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
 
+            void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
+
             /**
             * \brief Set terminal range and bearing values for gap based on 
             * where gap crossed
@@ -76,5 +78,9 @@ namespace dynamic_gap
                                     float & t_intercept);
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
+
+            boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
+
+            boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */            
     };
 }

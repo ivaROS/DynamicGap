@@ -235,7 +235,7 @@ namespace dynamic_gap
     void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
                                         const std::string & ns, const bool & initial)     
     {
-        // ROS_INFO_STREAM("[drawManipGap] start");
+        ROS_INFO_STREAM("[drawManipGap] start");
         // visualization_msgs::Marker marker;
         marker.header.stamp = ros::Time();
         marker.ns = ns;
@@ -279,15 +279,24 @@ namespace dynamic_gap
             float leftRange = initial ? gap->manipLeftRange() : gap->manipTermLeftRange();
             float rightRange = initial ? gap->manipRightRange() : gap->manipTermRightRange();
 
-            //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightRange: " << rightRange);
+            ROS_INFO_STREAM("leftIdx: " << leftIdx << ", leftRange: " << leftRange);
+            ROS_INFO_STREAM("rightIdx: " << rightIdx << ", rightRange: " << rightRange);
+
             int gapIdxSpan = (leftIdx - rightIdx);
             if (gapIdxSpan < 0)
                 gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
+
+            ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
 
             int num_segments = gapIdxSpan / min_resoln + 1;
             float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
             float midGapDist = rightRange;
+
+            ROS_INFO_STREAM("num_segments: " << num_segments);
+            ROS_INFO_STREAM("distIncrement: " << distIncrement);
+            ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+            ROS_INFO_STREAM("midGapDist: " << midGapDist);
 
             float midGapTheta = 0.0;
             for (int i = 0; i < num_segments; i++)
@@ -300,6 +309,9 @@ namespace dynamic_gap
                 
                 midGapIdx = (midGapIdx + min_resoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
                 midGapDist += distIncrement;
+
+                ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+                ROS_INFO_STREAM("midGapDist: " << midGapDist);
 
                 geometry_msgs::Point p2;
                 midGapTheta = idx2theta(midGapIdx);

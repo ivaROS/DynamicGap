@@ -98,16 +98,19 @@ namespace dynamic_gap
         float gammaIntercept_; /**< intercept angle of robot */
         float rInscr_; /**< inscribed radius of robot */
         Eigen::Vector2f leftGapPtVel_, rightGapPtVel_; /**< left and right gap point velocities */
+        Eigen::Vector2f goalPtVel_; /**< gap goal point velocity */
 
         ParallelNavigation(const float & gamma_intercept,
                             const float & speed_robot,
                             const float & r_inscr,
                             const Eigen::Vector2f & leftGapPtVel,
-                            const Eigen::Vector2f & rightGapPtVel) : gammaIntercept_(gamma_intercept), 
+                            const Eigen::Vector2f & rightGapPtVel,
+                            const Eigen::Vector2f & goalPtVel) : gammaIntercept_(gamma_intercept), 
                                                                         speedRobot_(speed_robot), 
                                                                         rInscr_(r_inscr),
                                                                         leftGapPtVel_(leftGapPtVel),
-                                                                        rightGapPtVel_(rightGapPtVel) {}
+                                                                        rightGapPtVel_(rightGapPtVel),
+                                                                        goalPtVel_(goalPtVel) {}
 
         /**
         * \brief () operator for parallel navigation scheme that updates trajectory state
@@ -126,12 +129,15 @@ namespace dynamic_gap
             Eigen::Vector2f rbtPos(x[0], x[1]);
             Eigen::Vector2f leftGapPos(x[2], x[3]);
             Eigen::Vector2f rightGapPos(x[4], x[5]);
+            Eigen::Vector2f goalPos(x[6], x[7]);
 
+            Eigen::Vector2f rbtToGoal = goalPos - rbtPos;
 
             // include some check for when robot has passed gap
             //      v1: rbt vector is further than left pt vector and right pt vector [DONE]
             //      v2: rbt vector is beyond range of gap arc at rbt's particular bearing (tricky because robot will leave gap slice)
 
+            // if (rbtToGoal.norm() < 0.1)
             if (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm())
             {
                 // stop trajectory prematurely
@@ -156,6 +162,8 @@ namespace dynamic_gap
             dxdt[3] = leftGapPtVel_[1];
             dxdt[4] = rightGapPtVel_[0];
             dxdt[5] = rightGapPtVel_[1];
+            dxdt[6] = goalPtVel_[0];
+            dxdt[7] = goalPtVel_[1];
 
             return;
         }

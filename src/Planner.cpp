@@ -135,7 +135,7 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
         std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
-        ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
+        // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         
         scan_ = scan;
 
@@ -531,6 +531,7 @@ namespace dynamic_gap
     {
         globalPlanManager_->updateEgoCircle(scan_);
         gapManipulator_->updateEgoCircle(scan_);
+        gapFeasibilityChecker_->updateEgoCircle(scan_);
         dynamicScanPropagator_->updateEgoCircle(scan_);
         trajEvaluator_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
@@ -1021,7 +1022,8 @@ namespace dynamic_gap
         if (!readyToPlan)
             return dynamic_gap::Trajectory();
 
-        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
+        trajVisualizer_->drawPlanningLoopIdx(planningLoopCalls);
 
         std::vector<dynamic_gap::Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();

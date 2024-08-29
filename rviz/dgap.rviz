@@ -118,7 +118,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -150,7 +150,7 @@ Visualization Manager:
               Marker Topic: /manip_gaps
               Name: Marker
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -170,7 +170,7 @@ Visualization Manager:
               Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -182,7 +182,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -224,7 +224,7 @@ Visualization Manager:
               Marker Topic: /trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -510,7 +510,15 @@ Visualization Manager:
       Marker Topic: /global_goal
       Name: Marker
       Namespaces:
-        {}
+        global_goal: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /planning_loop_idx
+      Name: Marker
+      Namespaces:
+        planning_loop_idx: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -541,7 +549,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 38.754817962646484
+      Distance: 15.83814811706543
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -549,9 +557,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -2.300273895263672
-        Y: 0.12191183120012283
-        Z: -4.181249141693115
+        X: 5.969232082366943
+        Y: -6.125063419342041
+        Z: -4.218375205993652
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

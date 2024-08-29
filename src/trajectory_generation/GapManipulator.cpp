@@ -77,8 +77,11 @@ namespace dynamic_gap
                 float centerRange = (leftRange + rightRange) / 2.;
                 Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
                                         centerRange * std::sin(centerTheta));
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
             
-                gap->setGoal(centerPt);
+                Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
+
+                gap->setGoal(inflatedCenterPt);
 
                 ROS_INFO_STREAM_NAMED("GapManipulator", "            finished with goal: " << centerPt[0] << ", " << centerPt[1]); 
             } else
@@ -103,8 +106,11 @@ namespace dynamic_gap
                 float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
                 Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
 
-                gap->setGoal(biasedGapGoal);
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
 
+                Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
+
+                gap->setGoal(inflatedBiasedGapGoal);
             }
 
 
@@ -345,8 +351,8 @@ namespace dynamic_gap
             float inflatedLeftIdx = theta2idx(inflatedLeftTheta);
             float inflatedRightIdx = theta2idx(inflatedRightTheta);
             
-            float leftToInflatedLeftAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
-            float leftToInflatedRightAngle = getSignedLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
+            float leftToInflatedLeftAngle = getSweptLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
+            float leftToInflatedRightAngle = getSweptLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
             float inflatedLeftRange = leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
             float inflatedRightRange =  leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
 
