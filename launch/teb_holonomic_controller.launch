@@ -30,6 +30,12 @@
 
   <!-- xterm -e gdb -ex run - -args -->
   
+	<!-- necessary for /move_base/make_plan service to work -->
+	<node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">
+		<remap from="/map" to="/known_map"/>
+		<remap from="/map_metadata" to="/known_map_metadata"/>
+		<param name="frame_id" value="known_map"/>
+	</node>
   
   <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/custom_teb_rosconsole.conf"/>
 

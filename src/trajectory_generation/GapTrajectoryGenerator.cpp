@@ -54,7 +54,7 @@ namespace dynamic_gap
 
             Eigen::Vector4f leftGapState = selectedGap->leftGapPtModel_->getGapState();
             Eigen::Vector4f rightGapState = selectedGap->rightGapPtModel_->getGapState();
-            Eigen::Vector2d initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
+            Eigen::Vector2f initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
 
             float leftVelX = leftGapState[2];
             float leftVelY = leftGapState[3];
@@ -79,8 +79,6 @@ namespace dynamic_gap
             if (cfg_->planning.pursuit_guidance_method == 0) // pure pursuit
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running pure pursuit");                
-
-                Eigen::Vector2d initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
 
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
                 
@@ -116,14 +114,11 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
 
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
-                
 
-                // robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoalX, initialGoalY};
+                // For PN, we will drive at terminal Goal, so pass it on to know when to stop                
+                Eigen::Vector2f terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
                 
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
-
-                Eigen::Vector2f leftGapPtVel(leftVelX, leftVelY);
-                Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
 
                 robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoal[0], initialGoal[1]};
                 
@@ -135,7 +130,8 @@ namespace dynamic_gap
                                                         cfg_->rbt.r_inscr,
                                                         leftGapPtVel,
                                                         rightGapPtVel,
-                                                        goalPtVel);
+                                                        goalPtVel,
+                                                        terminalGoal);
 
                 float t_max = std::min(selectedGap->t_intercept, cfg_->traj.integrate_maxt);
 

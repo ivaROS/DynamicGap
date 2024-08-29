@@ -1073,8 +1073,11 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Feasibility Analysis for " << gapCount << " gaps took " << feasibilityTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Feasibility Analysis average time: " << avgFeasibilityTimeTaken << " seconds (" << (1.0 / avgFeasibilityTimeTaken) << " Hz) ]");
 
+        // Have to run here because terminal gap goals are set during feasibility check
+        gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
+        goalVisualizer_->drawGapGoals(manipulatedGaps);
+
         gapCount = feasibleGaps.size();
-        visualizeNavigableGaps(feasibleGaps); 
 
         /////////////////////////////
         // FUTURE SCAN PROPAGATION //

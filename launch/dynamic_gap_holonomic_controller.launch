@@ -22,6 +22,13 @@
   <arg name="debug_prefix" value="" unless="$(arg debug)"/>
   <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
 
+	<!-- necessary for /move_base/make_plan service to work -->
+	<node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">
+		<remap from="/map" to="/known_map"/>
+		<remap from="/map_metadata" to="/known_map_metadata"/>
+		<param name="frame_id" value="known_map"/>
+	</node>
+
   <!-- 
   <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">
       <param name="base_frame_id" value="$(arg robot_namespace)"/>
