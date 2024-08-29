@@ -6,7 +6,7 @@
 		<param name="frame_id" value="known_map"/>
 	</node>
 
-	<node pkg="nav_scripts" type="follow_global_path.py" name="follow_global_path" output="screen">
+	<node pkg="nav_scripts" type="follow_global_path.py" name="follow_global_path" output="log">
 		<param name="num_agents" value= "$(arg num_agents)" />
 		<param name="world" value = "$(arg world)" />
 		<param name="seed" value = "$(arg seed)" />
