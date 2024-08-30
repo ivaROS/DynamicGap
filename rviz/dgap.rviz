@@ -94,7 +94,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot0/mod_laser_0
+          Topic: /robot1/laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -105,7 +105,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot0_laser_0
+          Reference Frame: robot1_laser_0
           Show Trail: false
           Value: true
       Enabled: true
@@ -301,7 +301,7 @@ Visualization Manager:
           Marker Topic: /robot0/marker
           Name: MarkerArray
           Namespaces:
-            robot_position_markers: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -550,7 +550,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.260225296020508
+      Distance: 35.9461784362793
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -558,9 +558,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -12.722025871276855
-        Y: -1.4045493602752686
-        Z: -4.237093448638916
+        X: -4.94642448425293
+        Y: -0.4079611301422119
+        Z: -4.229318141937256
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

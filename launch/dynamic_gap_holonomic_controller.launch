@@ -29,27 +29,10 @@
 		<param name="frame_id" value="known_map"/>
 	</node>
 
-  <!-- 
-  <node name="static_egocircle_node" pkg="egocircle" type="ego_circle">
-      <param name="base_frame_id" value="$(arg robot_namespace)"/>
-      <param name="odom_frame_id" value="map_static"/> 
-      <param name="output_scan_topic" value = "static_point_scan" />
-      <remap from="/scan" to="$(arg robot_namespace)/laser_0"/>
-  </node>
-  -->
-  
   <group if="$(arg simulation)">
     <node pkg="modify_stdr_scan" type="modify_stdr_scan" name="modify_stdr_scan" output="log" 
             args="$(arg robot_namespace) $(arg robot_radius)"/>
   </group>
-  
-  <!-- <node name="egocircle_node" pkg="egocircle" type="ego_circle">
-      <param name="base_frame_id" value="$(arg robot_namespace)"/>
-      <param name="odom_frame_id" value="map_static"/> 
-      <param name="output_scan_topic" value = "point_scan" />
-      <remap from="/scan" to="$(arg robot_namespace)/mod_laser_0"/>
-  </node> -->
-
 
   <arg name="global_planning_freq" default="$(optenv GM_PARAM_GLOBAL_PLANNING_FREQ 1)"/>
   <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
