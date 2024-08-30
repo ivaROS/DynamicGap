@@ -11,6 +11,7 @@
   <node pkg="tf" type="static_transform_publisher" name="world2kmap" args="0 0 0 0 0 0  map known_map 20" />
 
   <arg name="vel_topic" default="$(arg robot_namespace)/cmd_vel"/>
+  <arg name="projection_operator" default="false"/>
 
   <arg name="debug" default="false" />
 
