@@ -107,6 +107,8 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
+        this->manip_ = false; // will set to true if we do need to manip
+
         // From RotatingFrameCartesianKalmanFilter.h
         // this->H_ = model.H_;
         // this->H_transpose_ = model.H_transpose_;
@@ -370,12 +372,24 @@ namespace dynamic_gap
     { 
         Eigen::Vector4f state = x_hat_k_plus_;
 
+
+        // if gap has been pivoted: add additional flag to model to set velocity to zero.
+
         // if model is still fairly fresh and not converged, just assume it is attached to a static part of the environment
-        if ((tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_)
+        bool newModel = (tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_; 
+        if (newModel)
         {
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
         } 
+
+        if (manip_)
+        {
+            state[0] = manipPosition[0];
+            state[1] = manipPosition[1];
+            state[2] = 0.0 - lastRbtVel_.twist.linear.x;
+            state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
+        }        
 
         return state;  
     }    

@@ -329,8 +329,9 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal); 
 
 
-        if ((gap->end_condition == 0 || gap->end_condition == 1)
-            && t_intercept_goal > gap->gapLifespan_)
+        if (!gap->rgc_ && 
+            (gap->end_condition == 0 || gap->end_condition == 1) && 
+            t_intercept_goal > gap->gapLifespan_)
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
             return false;
@@ -421,6 +422,9 @@ namespace dynamic_gap
         // set target velocity to mean of left and right gap points
         Eigen::Vector2f v_target = (leftGapState.tail(2) + rightGapState.tail(2)) / 2.;
 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       p_target: " << p_target.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       v_target: " << v_target.transpose()); 
+
         float t_intercept_goal = 0.0;
         float gamma_intercept_goal = 0.0;
         parallelNavigationHelper(p_target, 
@@ -436,14 +440,18 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
             return false;
-        } else if ((gap->end_condition == 0 || gap->end_condition == 1)
-            && t_intercept_goal > gap->gapLifespan_)
+        } else if (!gap->rgc_ && 
+                    (gap->end_condition == 0 || gap->end_condition == 1) && 
+                    t_intercept_goal > gap->gapLifespan_)
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
             return false;
         } else
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->gapLifespan_); 
+            
+            // How to handle situation where t_intercept is negative?
+
             // set t_intercept
             gap->t_intercept = t_intercept_goal;
             // set gamma_rbt
@@ -503,21 +511,21 @@ namespace dynamic_gap
 
             assert(K > 0);
 
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           K: " << K);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           K: " << K);
 
             Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
             Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
 
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_lambda: " << n_lambda.transpose());
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_gamma: " << n_gamma.transpose());
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_lambda: " << n_lambda.transpose());
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           n_gamma: " << n_gamma.transpose());
 
             float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
 
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           theta: " << theta);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           theta: " << theta);
 
             float delta = std::asin( epsilonDivide(std::sin(theta), K));
 
-            // ROS_INFO_STREAM_NAMED("GapFeasibility", "                           delta: " << delta);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "                           delta: " << delta);
 
             t_intercept = (p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
 

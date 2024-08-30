@@ -21,7 +21,7 @@ DynamicGapPlanner:
     integrate_maxt: 10
     integrate_stept: 0.50
 
-    projection_operator: False
+    projection_operator: True
 
     debug_viz: True
     max_pose_to_scan_dist: 0.5

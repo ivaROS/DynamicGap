@@ -43,10 +43,8 @@ namespace dynamic_gap
                 frame_ = otherGap.frame_;
 
                 radial_ = otherGap.radial_;
-                termRadial_ = otherGap.termRadial_;
 
                 rightType_ = otherGap.rightType_;
-                terminalRightType_ = otherGap.terminalRightType_;
 
                 goal = otherGap.goal;
                 // goal.x_ = otherGap.goal.x_;
@@ -89,6 +87,9 @@ namespace dynamic_gap
                 termRightRange_ = otherGap.termRightRange_;
 
                 manip = otherGap.manip;
+
+                rgc_ = otherGap.rgc_;
+
                 // manip.leftIdx_ = otherGap.manip.leftIdx_;
                 // manip.leftRange_ = otherGap.manip.leftRange_;
                 // manip.rightIdx_ = otherGap.manip.rightIdx_;
@@ -320,22 +321,6 @@ namespace dynamic_gap
             }
 
             /**
-            * \brief Conclude gap construction by populating gap's terminal left side information 
-            * and remaining characteristics
-            */
-            void addTerminalRightInformation()
-            {
-                terminalRightType_ = termRightRange_ < termLeftRange_;
-
-                manip.termLeftIdx_ = termLeftIdx_;
-                manip.termRightIdx_ = termRightIdx_;
-                manip.termLeftRange_ = termLeftRange_;
-                manip.termRightRange_ = termRightRange_;
-
-                setRadial(false);
-            }
-
-            /**
             * \brief Set gap's terminal points after propagation
             * \param termLeftIdx terminal left gap point index
             * \param termLeftRange terminal left gap point distance
@@ -358,10 +343,6 @@ namespace dynamic_gap
                     termLeftIdx_ = (termLeftIdx_ + 1) % 512;
                 }
                 // ROS_INFO_STREAM_NAMED("Gap", "setting terminal points to, left: (" << termLeftIdx_ << ", " << termLeftRange_ << "), right: ("  << termRightIdx_ << ", " << termRightRange_ << ")");
-            
-                terminalRightType_ = termRightRange_ < termLeftRange_;
-
-                setRadial(false);
             }
 
             void setGapLifespan(const float & gapLifespan)
@@ -519,14 +500,14 @@ namespace dynamic_gap
             *                    \/
             *                 gap origin
             */
-            void setRadial(const bool & initial = true)
+            void setRadial()
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
-                int checkLeftIdx = initial ? leftIdx_ : termLeftIdx_;
-                int checkRightIdx = initial ? rightIdx_ : termRightIdx_;
+                int checkLeftIdx = leftIdx_;
+                int checkRightIdx = rightIdx_;
 
-                float checkLeftRange = initial ? leftRange_ : termLeftRange_;
-                float checkRightRange = initial ? rightRange_ : termRightRange_;
+                float checkLeftRange = leftRange_;
+                float checkRightRange = rightRange_;
 
                 // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
                 // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftRange: " << checkLeftRange);
@@ -554,10 +535,8 @@ namespace dynamic_gap
                 float nearSideAngle = (M_PI - farSideAngle - gapAngle);
                 // ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
 
-                if (initial)
-                    radial_ = nearSideAngle > 0.75 * M_PI;
-                else
-                    termRadial_ = nearSideAngle > 0.75 * M_PI;     
+                radial_ = nearSideAngle > 0.75 * M_PI;
+ 
             }
 
             /**
@@ -565,9 +544,9 @@ namespace dynamic_gap
             * \param initial boolean for evaluating initial or terminal gap
             * \return Gap radial condition
             */
-            bool isRadial(const bool & initial = true) const
+            bool isRadial() const
             {
-                return (initial ? radial_ : termRadial_);
+                return radial_;
             }
 
             /**
@@ -575,12 +554,10 @@ namespace dynamic_gap
             * \param initial boolean for evaluating initial or terminal gap
             * \return Gap "right type" condition
             */
-            bool isRightType(const bool & initial = true) const
+            bool isRightType() const
             {
-                if (initial)
-                    return rightType_;
-                else
-                    return terminalRightType_;
+                return rightType_;
+
             }
 
             /**
@@ -639,11 +616,10 @@ namespace dynamic_gap
             std::string frame_ = ""; /**< Frame ID for gap */
             
             bool radial_ = false; /**< Initial gap radial characteristic identifier */
-            bool termRadial_ = false; /**< Terminal gap radial characteristic identifier */
             
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */
-            bool terminalRightType_ = false; /**< Terminal gap right type characteristic identifier */
 
+            bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
             /**
             * \brief Gap's initial goal
             */

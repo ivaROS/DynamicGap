@@ -43,6 +43,9 @@ namespace dynamic_gap
             ros::Time tStart_; /**< time of model initialization */
             ros::Time tLastUpdate_; /**< time of last model update */
 
+            bool manip_ = false;
+            Eigen::Vector2f manipPosition;
+
             /**
             * \brief Virtual function for initializing estimator, must be overridden by desired model class
             * \param side Gap side for model (left or right)
@@ -266,6 +269,13 @@ namespace dynamic_gap
                 xRewindProp_[2] = xRewind_[2] + (relLinAcc[0] + xRewind_[3]*egoAngVel)*dt;
                 xRewindProp_[3] = xRewind_[3] + (relLinAcc[1] - xRewind_[2]*egoAngVel)*dt;
                 xRewind_ = xRewindProp_; 
+            }
+
+            void setManip() { manip_ = true; }
+            void setNewPosition(const float & newTheta, const float & newRange) 
+            { 
+                manipPosition << newRange * std::cos(newTheta), 
+                                 newRange * std::sin(newTheta); 
             }
 
     };

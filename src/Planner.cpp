@@ -583,6 +583,7 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
                 // MANIPULATE POINTS AT T=0            
+                gapManipulator_->convertRadialGap(planningGaps.at(i));
                 bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));
                 
                 if (success)
@@ -634,9 +635,7 @@ namespace dynamic_gap
                 isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysis(manipulatedGaps.at(i));
 
                 if (isGapFeasible) 
-                {
-                    // manipulatedGaps.at(i)->addTerminalRightInformation();
-                    
+                {                    
                     feasibleGaps.push_back(manipulatedGaps.at(i)); // shallow copy
 
                     // feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));

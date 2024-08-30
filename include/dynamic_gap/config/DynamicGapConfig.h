@@ -64,7 +64,7 @@ namespace dynamic_gap
             {
                 int pursuit_guidance_method = 1; /**< 0 - pure pursuit, 1 - parallel navigation */
                 bool heading = false; /**< Boolean for if robot tracks path headings or not */
-                bool projection_operator = false; /**< Boolean for if planner should apply projection operator */
+                bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
@@ -93,7 +93,7 @@ namespace dynamic_gap
             */
             struct GapAssociation 
             {
-                float assoc_thresh = 0.50; /**< Distance threshold for gap association */
+                float assoc_thresh = 0.26; /**< Distance threshold for gap association */
             } gap_assoc;           
 
             /**
@@ -101,7 +101,8 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
-                int max_idx_diff = 500; /**< Max size for a single gap */
+                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
+                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */                
                 bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
             } gap_manip;
 

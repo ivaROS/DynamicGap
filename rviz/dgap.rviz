@@ -94,7 +94,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.029999999329447746
           Style: Flat Squares
-          Topic: /robot25/laser_0
+          Topic: /robot25/mod_laser_0
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
@@ -550,7 +550,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 35.9461784362793
+      Distance: 21.753536224365234
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -558,9 +558,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -4.94642448425293
-        Y: -0.4079611301422119
-        Z: -4.229318141937256
+        X: -8.73483657836914
+        Y: -1.0415536165237427
+        Z: -4.221652507781982
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -568,7 +568,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.140406370162964
+      Yaw: 3.1354169845581055
     Saved: ~
 Window Geometry:
   Displays:
