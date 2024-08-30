@@ -78,8 +78,4 @@
     <remap from="/odom" to="$(arg robot_namespace)/odom"/>
   </node>
 
-  <group if="$(arg rviz)">
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
-  </group>
-
 </launch>

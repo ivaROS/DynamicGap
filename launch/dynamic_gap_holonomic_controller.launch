@@ -76,10 +76,6 @@
       
   </node>
 
-  <group if="$(arg rviz)">
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
-  </group>
-
   <!-- RUN KEYBOARD COMMAND VELOCITY GENERATOR -->
   <!-- <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard" output="log">
         <param name="robot_namespace" value="$(arg robot_namespace)"/>
