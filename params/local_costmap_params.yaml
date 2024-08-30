@@ -1,9 +1,8 @@
 local_costmap:
    global_frame: known_map
-   robot_base_frame: robot0
    update_frequency: 10.0
    publish_frequency: 10.001
-   # static_map: false (deprecated now)
+   static_map: false (deprecated now)
    rolling_window: true
    width: 5.0 # needs to be smaller than sensing range
    height: 5.0 # needs to be smaller than sensing range

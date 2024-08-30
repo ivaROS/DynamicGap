@@ -1,5 +1,6 @@
 global_costmap:
    global_frame: known_map
+   static_map: true
    robot_base_frame: robot0
    update_frequency: 0.1   # how frequently sensor information is incorporated to update map
    publish_frequency: 0.2   # how frequently the map is published
