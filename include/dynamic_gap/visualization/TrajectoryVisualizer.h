@@ -28,6 +28,8 @@ namespace dynamic_gap
             void drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs,
                                                 const std::vector<std::vector<float>> & trajPoseScores);
 
+            void drawPlanningLoopIdx(const int & trajSwitchIndex);
+
             /**
             * \brief Visualize occurrence of a trajectory switch for planner
             * \param trajSwitchIndex trajectory switch count
@@ -55,5 +57,6 @@ namespace dynamic_gap
             ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */
             ros::Publisher globalPlanPublisher; /**< Publisher for global plan */
             ros::Publisher globalPlanSnippetPublisher; /**< Publisher for visible snippet of global plan */
+            ros::Publisher planLoopIdxPublisher; /**< Publisher for planning loop idx */
     };
 }

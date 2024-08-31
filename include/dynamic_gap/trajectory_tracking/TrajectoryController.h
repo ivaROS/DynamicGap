@@ -58,12 +58,19 @@ namespace dynamic_gap
             * \brief Control law for trajectory tracking
             * \param current current robot pose
             * \param desired desired robot pose
-            * \param currentPeakSplineVel peak spline velocity for current trajectory we are trying to track
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist constantVelocityControlLaw(const geometry_msgs::Pose & current, 
+                                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
+
+            /**
+            * \brief Control law for trajectory tracking
+            * \param current current robot pose
+            * \param desired desired robot pose
             * \return command velocity for robot
             */
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
-                                            const geometry_msgs::Pose & desired,
-                                            const geometry_msgs::TwistStamped & currentPeakSplineVel); // const sensor_msgs::LaserScan & scan, 
+                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
 
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
@@ -78,8 +85,6 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                 const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                const dynamic_gap::Estimator * currGapLeftPtModel,
-                                                const dynamic_gap::Estimator * currGapRightPtModel, 
                                                 const geometry_msgs::TwistStamped & currRbtVel, 
                                                 const geometry_msgs::TwistStamped & currRbtAcc); // const sensor_msgs::LaserScan & scan, 
             

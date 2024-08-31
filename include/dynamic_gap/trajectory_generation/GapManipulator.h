@@ -5,7 +5,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
@@ -29,47 +29,17 @@ namespace dynamic_gap
             * \param scan incoming scan
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
-            // void updateStaticEgoCircle(const sensor_msgs::LaserScan &);
-            // void updateDynamicEgoCircle(dynamic_gap::Gap * gap,
-            //                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief algorithm for setting gap goal 
             * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
+            * \param globalGoalRobotFrame global goal in robot frame
             * \param initial boolean for if we are setting initial gap goal or terminal gap goal
             */
             void setGapGoal(dynamic_gap::Gap * gap, 
-                            const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
-                            const bool & initial); 
+                            const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
+                            const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
             
-            /**
-            * \brief set desired position at end of prediction horizon for robot within queried gap
-            * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
-            */                            
-            void setGapTerminalGoal(dynamic_gap::Gap * gap, 
-                                    const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
-            
-            /**
-            * \brief function for reducing gap's angle to ensure that gap is convex (angle < 180 degrees)
-            * \param gap queried gap
-            * \param globalPathLocalWaypoint local waypoint along global path in robot frame
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
-            */
-            void reduceGap(dynamic_gap::Gap * gap, 
-                            const geometry_msgs::PoseStamped & globalPathLocalWaypoint, 
-                            const bool & initial);
-
-            /**
-            * \brief function for converting a radial gap into a swept goal to allow for
-            * higher gap visibility
-            * \param gap queried gap
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
-            */
-            void convertRadialGap(dynamic_gap::Gap * gap, 
-                                    const bool & initial);
-
             /**
             * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
             * \param gap queried gap
@@ -81,19 +51,11 @@ namespace dynamic_gap
             * \param gap queried gap
             * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
             */            
-            void inflateGapSides(dynamic_gap::Gap * gap, 
-                                    const bool & initial);
+            bool inflateGapSides(dynamic_gap::Gap * gap);
+
+            void convertRadialGap(dynamic_gap::Gap * gap);
 
         private:
-
-            /**
-            * \brief helper function for getting radially extended origin point for a gap side
-            * \param s minimum safe distance
-            * \param p1 second control point for gap side's Bezier curve
-            * \param left boolean for if gap side is left or right
-            * \return radially extended origin point for a gap side
-            */
-            Eigen::Vector2d getRadialExtension(const float & s, const Eigen::Vector2d & p1, const bool & left);
 
             /**
             * \brief checking if global path local waypoint lies within gap
@@ -111,16 +73,16 @@ namespace dynamic_gap
             * \param rightTheta orientation of right gap point
             * \param globalPathLocalWaypointTheta orientation of global path local waypoint
             * \param leftToRightAngle angle swept out from left gap point to right gap point
-            * \param rightToGoalAngle angle swept out from right goal point to global path local waypoint
-            * \param leftToWaypointAngle angle swept out from left goal point to global path local waypoint
+            * \param leftToWaypointAngle angle swept out from left gap point to global path local waypoint
+            * \param rightToWaypointAngle angle swept out from right gap point to global path local waypoint
             * \return biased bearing for gap goal placement
             */
             float setBiasedGapGoalTheta(const float & leftTheta, 
                                         const float & rightTheta, 
                                         const float & globalPathLocalWaypointTheta,
                                         const float & leftToRightAngle, 
-                                        const float & rightToGoalAngle, 
-                                        const float & leftToWaypointAngle);
+                                        const float & leftToWaypointAngle, 
+                                        const float & rightToWaypointAngle);
 
             const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
 

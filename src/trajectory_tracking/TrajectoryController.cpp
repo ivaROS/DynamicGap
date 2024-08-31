@@ -7,8 +7,6 @@ namespace dynamic_gap
         projOpPublisher_ = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;
 
-        KFeedbackTheta_ = (cfg_->planning.holonomic) ? 0.8 : cfg_->control.k_fb_theta;
-
         manualVelX_ = 0.0f;
         manualVelY_ = 0.0f;
         manualVelAng_ = 0.0f;
@@ -115,9 +113,6 @@ namespace dynamic_gap
 
         clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
 
-        // if (sqrt(pow(cmdVelX, 2) + pow(cmdVelY, 2)) < 0.1) 
-        //     cmdVelX += 0.3;
-
         ROS_INFO_STREAM_NAMED("Controller", "final safe vels: " << cmdVelX << ", " << cmdVelY);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
@@ -128,9 +123,64 @@ namespace dynamic_gap
         return cmdVel;
     }
 
+    geometry_msgs::Twist TrajectoryController::constantVelocityControlLaw(const geometry_msgs::Pose & current, 
+                                                                            const geometry_msgs::Pose & desired) 
+    { 
+        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLaw()]");
+        // Setup Vars
+        boost::mutex::scoped_lock lock(scanMutex_);
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
+        geometry_msgs::Quaternion currOrient = current.orientation;
+        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+        float currYaw = quaternionToYaw(currQuat); 
+
+        // get current x,y,theta
+        geometry_msgs::Point currPosn = current.position;
+        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
+
+        // obtaining RPY of desired orientation
+        geometry_msgs::Point desPosn = desired.position;
+        geometry_msgs::Quaternion desOrient = desired.orientation;
+        tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
+
+        float desYaw = quaternionToYaw(desQuat);
+
+        // get desired x,y,theta
+        Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
+
+        // get x,y,theta error
+        Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
+        float errorX = errorMat.real()(0, 1);
+        float errorY = errorMat.imag()(0, 1);
+        float errorTheta = std::arg(errorMat(0, 0));
+
+        Eigen::Vector2f error(errorX, errorY);
+        Eigen::Vector2f errorDir = error / error.norm();
+
+        Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * errorDir;
+
+        float velLinXFeedback = constantVelocityCommand[0];
+        float velLinYFeedback = constantVelocityCommand[1];
+        float velAngFeedback = 0.0;
+
+        ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
+        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y);
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+        ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
+        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
+        
+        cmdVel.linear.x = velLinXFeedback;
+        cmdVel.linear.y = velLinYFeedback;
+        cmdVel.angular.z = velAngFeedback;
+
+        return cmdVel; 
+
+    }
     geometry_msgs::Twist TrajectoryController::controlLaw(const geometry_msgs::Pose & current, 
-                                                          const geometry_msgs::Pose & desired,
-                                                          const geometry_msgs::TwistStamped & currentPeakSplineVel) 
+                                                          const geometry_msgs::Pose & desired) 
     {    
         ROS_INFO_STREAM_NAMED("Controller", "    [controlLaw()]");
         // Setup Vars
@@ -169,9 +219,8 @@ namespace dynamic_gap
         // obtain feedback velocities
         float velLinXFeedback = errorX * cfg_->control.k_fb_x;
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
-        float velAngFeedback = cfg_->planning.heading * errorTheta * KFeedbackTheta_;
+        float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
-        float peakSplineSpeed = sqrt(pow(currentPeakSplineVel.twist.linear.x, 2) + pow(currentPeakSplineVel.twist.linear.y, 2));
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
@@ -179,15 +228,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
-        ROS_INFO_STREAM_NAMED("Controller", "        gap peak velocity: " << currentPeakSplineVel.twist.linear.x << ", " << currentPeakSplineVel.twist.linear.y);           
         
-        if (peakSplineSpeed > cmdSpeed) 
-        {
-            velLinXFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
-            velLinYFeedback *= (1.25 * epsilonDivide(peakSplineSpeed, cmdSpeed));
-            ROS_INFO_STREAM_NAMED("Controller", "        revised feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback << ", " << velAngFeedback);
-        }
-    
         cmdVel.linear.x = velLinXFeedback;
         cmdVel.linear.y = velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
@@ -196,8 +237,6 @@ namespace dynamic_gap
 
     geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                              const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                             const dynamic_gap::Estimator * currGapLeftPtModel,
-                                                             const dynamic_gap::Estimator * currGapRightPtModel, 
                                                              const geometry_msgs::TwistStamped & currRbtVel, 
                                                              const geometry_msgs::TwistStamped & currRbtAcc) 
     {
@@ -216,10 +255,10 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
 
         // applies PO
-        float velLinXSafe = 0;
-        float velLinYSafe = 0;
+        float velLinXSafe = 0.;
+        float velLinYSafe = 0.;
         
-        if (cfg_->planning.projection_operator && (currGapRightPtModel != nullptr && currGapLeftPtModel != nullptr))
+        if (cfg_->planning.projection_operator)
         {
             ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
             
@@ -242,9 +281,6 @@ namespace dynamic_gap
             ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
         }
         
-        // Make sure no ejection from gap. Max question: x does not always point into gap. 
-        // velLinXSafe = std::max(velLinXSafe, float(0));
-
         float weightedVelLinXSafe = cfg_->projection.k_po_x * velLinXSafe;
         float weightedVelLinYSafe = cfg_->projection.k_po_x * velLinYSafe;
 
@@ -254,41 +290,23 @@ namespace dynamic_gap
         if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
             visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe);
 
-        if (cfg_->planning.holonomic)
-        {
-            velLinXFeedback += weightedVelLinXSafe;
-            velLinYFeedback += weightedVelLinYSafe;
+        velLinXFeedback += weightedVelLinXSafe;
+        velLinYFeedback += weightedVelLinYSafe;
 
-            if (cfg_->planning.heading)
+        if (cfg_->planning.heading)
+        {
+            // if angular error is large, rotate first 
+            // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
+            if (std::abs(velAngFeedback) > 0.50)
             {
-                // if angular error is large, rotate first 
-                // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-                if (std::abs(velAngFeedback) > 0.50)
-                {
-                    velLinXFeedback = 0.0;
-                    velLinYFeedback = 0.0;
-                }                
+                velLinXFeedback = 0.0;
+                velLinYFeedback = 0.0;
+            }                
 
-                // do not want robot to drive backwards
-                if (velLinXFeedback < 0)
-                    velLinXFeedback = 0;   
-            }         
-
-        } else 
-        {
-            velLinXFeedback += (cfg_->projection.k_po_x * velLinXSafe);
-            velLinYFeedback = 0;
-            velAngFeedback += (velLinYFeedback + cfg_->projection.k_po_theta * velLinYSafe);
-
-            // if (cfg_->planning.projection_operator && std::abs(velAngFeedback) > 0.50 && minDist < cfg_->rbt.r_inscr)
-            // {
-            //     velLinXFeedback = 0;
-            //     velAngFeedback *= 2;
-            // }
-
+            // do not want robot to drive backwards
             if (velLinXFeedback < 0)
-                velLinXFeedback = 0;
-        }
+                velLinXFeedback = 0;   
+        }         
 
         ROS_INFO_STREAM_NAMED("Controller", "        summed command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
@@ -535,33 +553,6 @@ namespace dynamic_gap
             velLinYSafe = - Psi * projOpDotProd * PsiDerAndPsi(1);
             ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
         }
-
-        /*
-        // Min Direction
-        res.header.frame_id = cfg_->sensor_frame_id;
-        res.scale.x = 1;
-        projOpQuat.setRPY(0, 0, minDistTheta);
-        res.pose.orientation = tf2::toMsg(projOpQuat);
-        res.id = 1;
-        res.color.a = 0.5;
-        res.pose.position.z = 0.9;
-        projOpPublisher_.publish(res);
-        */
-        /*
-        res.header.frame_id = cfg_->robot_frame_id;
-        res.type = visualization_msgs::Marker::SPHERE;
-        res.action = visualization_msgs::Marker::ADD;
-        res.pose.position.x = -min_diff_x;
-        res.pose.position.y = -min_diff_y;
-        res.pose.position.z = 1;
-        res.scale.x = 0.1;
-        res.scale.y = 0.1;
-        res.scale.z = 0.1;
-        res.id = 2;
-        // res.color.a = 0.5;
-        // res.pose.position.z = 0.9;
-        projOpPublisher_.publish(res);
-        */
     }
 
     Eigen::Vector3f TrajectoryController::calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot) 

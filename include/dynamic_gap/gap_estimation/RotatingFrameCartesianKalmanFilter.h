@@ -60,13 +60,11 @@ namespace dynamic_gap
             Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
             Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
 
-            double lifetimeThreshold_ = 2.5; /**< Threshold in seconds that gap model must exist for before we trust and use state */
+            double lifetimeThreshold_ = 0.5; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
         public:
 
             RotatingFrameCartesianKalmanFilter();
-
-            ~RotatingFrameCartesianKalmanFilter();
 
             void initialize(const std::string & side, const int & modelID, 
                             const float & gapPtX, const float & gapPtY,

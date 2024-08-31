@@ -25,10 +25,10 @@ namespace dynamic_gap
     * \brief Class responsible for parsing incoming global plans to select local waypoints along the global plan
     * that we aim to reach through our local planning
     */
-    class GoalSelector
+    class GlobalPlanManager
     {
         public: 
-            GoalSelector(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GlobalPlanManager(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
 
             /**
             * \brief parse global path to obtain local waypoint along global path

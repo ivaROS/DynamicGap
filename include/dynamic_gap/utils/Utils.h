@@ -13,6 +13,25 @@
 
 namespace dynamic_gap 
 {
+    enum planningStepIdxs {GAP_DET = 0, 
+                            GAP_SIMP = 1, 
+                            GAP_ASSOC = 2, 
+                            GAP_EST = 3,
+                            SCAN = 4,
+                            GAP_PROP = 5,
+                            GAP_MANIP = 6,
+                            GAP_FEAS = 7,
+                            SCAN_PROP = 8,
+                            TRAJ_GEN = 9,
+                            TRAJ_PICK = 10,
+                            TRAJ_COMP = 11,
+                            PLAN = 12,
+                            FEEBDACK = 13,
+                            PO = 14,
+                            CONTROL = 15
+                            };
+
+
     //////////////////////////////
     //       CONVERSIONS        // 
     //////////////////////////////

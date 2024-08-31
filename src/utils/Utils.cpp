@@ -2,10 +2,6 @@
 
 namespace dynamic_gap 
 {
-    // Utils::Utils() {}
-
-    // Utils::~Utils() {}
-
     Eigen::Vector2f pol2car(const Eigen::Vector2f & polarVector) 
     {
         return Eigen::Vector2f(std::cos(polarVector[1]) * polarVector[0], std::sin(polarVector[1]) * polarVector[0]);
@@ -13,11 +9,17 @@ namespace dynamic_gap
 
     float idx2theta(const int & idx)
     {
+        assert(idx >= 0);
+        assert(idx < 2*half_num_scan);
+        
         return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
 
     int theta2idx(const float & theta)
     {
+        assert(theta >= -M_PI);
+        assert(theta <= M_PI);
+
         return int(std::round((theta + M_PI) / angle_increment));
     }
 
@@ -31,12 +33,12 @@ namespace dynamic_gap
     float dist2Pose(const float & theta, const float & range, const geometry_msgs::Pose & pose) 
     {
         // ego circle point in local frame, pose in local frame
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   theta: " << theta << ", range: " << range);
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
+        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "   theta: " << theta << ", range: " << range);
+        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "   rbt_x: " << pose.position.x << ", rbt_y: " << pose.position.y);
         float x = range * std::cos(theta);
         float y = range * std::sin(theta);
         float dist = sqrt(pow(pose.position.x - x, 2) + pow(pose.position.y - y, 2)); 
-        // ROS_INFO_STREAM_NAMED("TrajectoryScorer", "   dist: " << dist);
+        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "   dist: " << dist);
         return dist;
     }
 
@@ -49,9 +51,6 @@ namespace dynamic_gap
         float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
 
         float leftToRightAngle = std::atan2(determinant, dotProduct);
-        
-        // if (leftToRightAngle < 0)
-        //     leftToRightAngle += 2*M_PI; 
 
         return leftToRightAngle;
     }
@@ -61,10 +60,7 @@ namespace dynamic_gap
     float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect,
                                    const Eigen::Vector2f & rightVect) 
     {
-        float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
-        float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];
-
-        float leftToRightAngle = std::atan2(determinant, dotProduct);
+        float leftToRightAngle = getSignedLeftToRightAngle(leftVect, rightVect);
 
         // wrapping to 0 < angle < 2pi
         if (leftToRightAngle < 0) 

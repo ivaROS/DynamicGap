@@ -29,17 +29,6 @@ namespace dynamic_gap
             imu_topic = model + "/imu";
             scan_topic = "scan"; // model + "/scan";
 
-            // nh.param("map_frame_id", map_frame_id, map_frame_id);
-            // nh.param("odom_frame_id", odom_frame_id, odom_frame_id);
-            // nh.param("robot_frame_id", robot_frame_id, robot_frame_id);
-            // nh.param("sensor_frame_id", sensor_frame_id, sensor_frame_id);
-
-            // Gap Visualization
-            // nh.param("min_resoln", gap_viz.min_resoln, gap_viz.min_resoln);
-            // nh.param("fig_gen", gap_viz.fig_gen, gap_viz.fig_gen);
-            // nh.param("viz_jitter", gap_viz.viz_jitter, gap_viz.viz_jitter);
-            // nh.param("debug_viz", gap_viz.debug_viz, gap_viz.debug_viz);
-
             // Robot
             nh.param("robot_radius", rbt.r_inscr, rbt.r_inscr);
             nh.param("max_vel_x",rbt.vx_absmax, rbt.vx_absmax);
@@ -56,7 +45,6 @@ namespace dynamic_gap
             nh.param("max_range", scan.range_max, scan.range_max);
 
             // Planning Information
-            nh.param("holonomic", planning.holonomic, planning.holonomic);
             nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
             nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
             nh.param("gap_feasibility_check", planning.gap_feasibility_check, planning.gap_feasibility_check);
@@ -70,30 +58,21 @@ namespace dynamic_gap
             nh.param("xy_goal_tolerance", goal.goal_tolerance, goal.goal_tolerance);
             nh.param("xy_waypoint_tolerance", goal.waypoint_tolerance, goal.waypoint_tolerance);
 
-            // Gap Detection
-            nh.param("max_idx_diff", gap_det.max_idx_diff, gap_det.max_idx_diff);
-
             // Gap Association
             nh.param("assoc_thresh", gap_assoc.assoc_thresh, gap_assoc.assoc_thresh);
 
             // Gap Manipulation
             nh.param("epsilon1", gap_manip.epsilon1, gap_manip.epsilon1);
             nh.param("epsilon2", gap_manip.epsilon2, gap_manip.epsilon2);
-            // nh.param("rot_ratio", gap_manip.rot_ratio, gap_manip.rot_ratio);
-            nh.param("reduction_threshold", gap_manip.reduction_threshold, gap_manip.reduction_threshold);
             nh.param("radial_extend", gap_manip.radial_extend, gap_manip.radial_extend);
-            nh.param("radial_convert", gap_manip.radial_convert, gap_manip.radial_convert);
 
             // Trajectory
-            // nh.param("synthesized_frame", traj.synthesized_frame, traj.synthesized_frame);
             nh.param("integrate_maxt", traj.integrate_maxt, traj.integrate_maxt);
             nh.param("integrate_stept", traj.integrate_stept, traj.integrate_stept);
-            nh.param("max_pose_pen_dist", traj.max_pose_pen_dist, traj.max_pose_pen_dist);
-            nh.param("c_obs", traj.c_obs, traj.c_obs);
-            nh.param("pose_exp_weight", traj.pose_exp_weight, traj.pose_exp_weight);
+            nh.param("max_pose_to_scan_dist", traj.max_pose_to_scan_dist, traj.max_pose_to_scan_dist);
             nh.param("inf_ratio", traj.inf_ratio, traj.inf_ratio);
-            nh.param("terminal_weight", traj.terminal_weight, traj.terminal_weight);
-            nh.param("num_curve_points", traj.num_curve_points, traj.num_curve_points);
+            nh.param("Q", traj.Q, traj.Q);            
+            nh.param("Q_f", traj.Q_f, traj.Q_f);
 
             // Control Params
             nh.param("k_fb_x",control.k_fb_x, control.k_fb_x);
@@ -106,8 +85,6 @@ namespace dynamic_gap
             nh.param("k_po_theta", projection.k_po_theta, projection.k_po_theta);
             nh.param("r_unity", projection.r_unity, projection.r_unity);
             nh.param("r_zero", projection.r_zero, projection.r_zero);
-            nh.param("k_CBF", projection.k_CBF, projection.k_CBF);
-            nh.param("cbf_param", projection.cbf_param, projection.cbf_param);
         } else
         {
             throw std::runtime_error("Model " + model + " not implemented!");

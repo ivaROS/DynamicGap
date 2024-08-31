@@ -26,14 +26,13 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/gap_estimation/GapAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
-#include <dynamic_gap/scan_processing/StaticScanSeparator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
-#include <dynamic_gap/goal_management/GoalSelector.h>
-#include <dynamic_gap/trajectory_scoring/TrajectoryScorer.h>
+#include <dynamic_gap/global_plan_management/GlobalPlanManager.h>
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_generation/NavigableGapGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
@@ -41,7 +40,6 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-// #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <message_filters/subscriber.h>
@@ -76,16 +74,79 @@ namespace dynamic_gap
             bool initialize(const std::string & name); // const ros::NodeHandle& nh
 
             /**
+            * \brief Indicator for if planner has been initialized
+            * \return boolean for if planner has been initialized 
+            */
+            int initialized() { return initialized_; } 
+
+            /**
             * \brief Check if global goal has been reached by robot
             * \return boolean for if global goal has been reached or not
             */
             bool isGoalReached();
 
             /**
+            * \brief Function for core planning loop of dynamic gap
+            * \return selected trajectory in odometry frame to track
+            */
+            dynamic_gap::Trajectory runPlanningLoop();        
+
+            /**
+            * \brief Generate command velocity based on trajectory tracking and safety modules
+            * \param localTrajectory selected local trajectory in odometry frame to track
+            * \return command velocity to send to robot
+            */
+            geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory);
+
+            /**
+            * \brief Final command velocity pre-processing to check if robot is stuck
+            * and planning has failed
+            * \param cmdVel most recent command velocity
+            * \return boolean for if planner is functioning and command velocity is fine
+            */
+            bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
+
+            /**
+            * \brief Interface function for receiving incoming global plan and updating
+            * the global plan local waypoint
+            * \param globalPlanMapFrame incoming global plan in map frame
+            * \return boolean type on whether planner successfully registered goal
+            */
+            bool setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
+
+            /**
+            * \brief Apply hard reset to planner to empty command velocity buffer
+            * and wipe currently tracking trajectory
+            */
+            void reset();
+
+            /**
             * \brief Call back function to robot laser scan
             * \param scan incoming laser scan msg
             */
             void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan);
+
+            /**
+            * \brief Joint call back function for robot pose (position + velocity) and robot acceleration messages
+            * \param rbtOdomMsg incoming robot odometry message
+            * \param rbtAccelMsg incoming robot acceleration message
+            */
+            void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
+                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
+
+            /**
+            * \brief Getter for number of agents currently in environment
+            * \return number of agents currently in environment
+            */
+            int getCurrentAgentCount() { return currentAgentCount_; }
+
+            /**
+            * \brief Call back function for other agent odometry messages
+            * \param agentOdomMsg incoming agent odometry message
+            */
+            void agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg);
+
+        private:
 
             /**
             * \brief Function for updating the gap models
@@ -132,14 +193,6 @@ namespace dynamic_gap
             void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
             /**
-            * \brief Interface function for receiving incoming global plan and updating
-            * the global plan local waypoint
-            * \param globalPlanMapFrame incoming global plan in map frame
-            * \return boolean type on whether planner successfully registered goal
-            */
-            bool setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame);
-
-            /**
             * \brief Function for updating all tf transform at the beginning of every planning cycle
             * \param msg incoming agent odometry message
             */
@@ -155,23 +208,34 @@ namespace dynamic_gap
             * \param isCurrentGapFeasible boolean for if the gap the robot is currently traveling through is feasible
             * \return set of feasible gaps
             */
-            std::vector<dynamic_gap::Gap *> gapSetFeasibilityCheck(bool & isCurrentGapFeasible);
+            std::vector<dynamic_gap::Gap *> gapSetFeasibilityCheck(const std::vector<dynamic_gap::Gap *> & manipulatedGaps, 
+                                                                    bool & isCurrentGapFeasible);
+
+            /**
+            * \brief Function for propagating current gap points/models forward in time
+            * \return set of propagated gaps we will use to plan
+            */
+            void propagateGapPoints(const std::vector<dynamic_gap::Gap *> & planningGaps);                                             
 
             /**
             * \brief Function for performing gap manipulation steps
             * \return manipulated set of gaps
             */
-            std::vector<dynamic_gap::Gap *> gapManipulate(const std::vector<dynamic_gap::Gap *> & feasibleGaps);
+            std::vector<dynamic_gap::Gap *> manipulateGaps(const std::vector<dynamic_gap::Gap *> & feasibleGaps);
 
             /**
             * \brief Function for generating candidate trajectories through the current set of gaps
             * \param gaps incoming set of gaps through which we want to generate trajectories
             * \param generatedTrajs set of generated trajectories
+            * \param pathPoseScores set of posewise scores for all paths
+            * \param pathTerminalPoseScores set of terminal pose scores for all paths
             * \return Vector of pose-wise scores for the generated trajectories
             */
-            std::vector<std::vector<float>> generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
-                                                             std::vector<dynamic_gap::Trajectory> & generatedTrajs,
-                                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
+            void generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
+                                    std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseScores,
+                                    std::vector<float> & pathTerminalPoseScores,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
@@ -180,7 +244,8 @@ namespace dynamic_gap
             * \return index of the highest score trajectory
             */
             int pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
-                        const std::vector<std::vector<float>> & pathPoseScores);
+                            const std::vector<std::vector<float>> & pathPoseScores, 
+                            const std::vector<float> & pathTerminalPoseScores);
 
             /**
             * \brief Helper function for switching to a new trajectory
@@ -215,44 +280,9 @@ namespace dynamic_gap
             */
             int getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray & currTrajRbtFrame);
 
-            /**
-            * \brief Function for core planning loop of dynamic gap
-            * \return selected trajectory in odometry frame to track
-            */
-            dynamic_gap::Trajectory runPlanningLoop();        
+            std::vector<dynamic_gap::Gap *> deepCopyCurrentSimplifiedGaps();
 
-            /**
-            * \brief Generate command velocity based on trajectory tracking and safety modules
-            * \param localTrajectory selected local trajectory in odometry frame to track
-            * \return command velocity to send to robot
-            */
-            geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory);
-
-            /**
-            * \brief Final command velocity pre-processing to check if robot is stuck
-            * and planning has failed
-            * \param cmdVel most recent command velocity
-            * \return boolean for if planner is functioning and command velocity is fine
-            */
-            bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
-
-            /**
-            * \brief Apply hard reset to planner to empty command velocity buffer
-            * and wipe currently tracking trajectory
-            */
-            void reset();
-
-            /**
-            * \brief Setter for current gap
-            * \param currentGap incoming gap that robot will be attempting to pass through
-            */
-            void setCurrentGap(dynamic_gap::Gap * currentGap) { delete currentGap_; currentGap_ = currentGap; return; }
-
-            /**
-            * \brief Getter for current gap
-            * \return gap that robot is currently attempting to pass through            
-            */
-            dynamic_gap::Gap * getCurrentGap() { return currentGap_; }
+            std::vector<dynamic_gap::Gap *> deepCopyCurrentRawGaps();
 
             /**
             * \brief Setter for current trajectory
@@ -267,28 +297,16 @@ namespace dynamic_gap
             dynamic_gap::Trajectory getCurrentTraj() { return currentTraj_; }
 
             /**
-            * \brief Getter for number of agents currently in environment
-            * \return number of agents currently in environment
-            */
-            int getCurrentAgentCount() { return currentAgentCount_; }
-
-            /**
-            * \brief Indicator for if planner has been initialized
-            * \return boolean for if planner has been initialized 
-            */
-            int initialized() { return initialized_; } 
-
-            /**
             * \brief Setter for estimator of current gap's left point
             * \param leftModel estimator of current gap's left point
             */
-            void setCurrentLeftModel(dynamic_gap::Estimator * leftModel);
+            void setCurrentLeftGapPtModelID(dynamic_gap::Estimator * leftModel);
 
             /**
             * \brief Setter for estimator of current gap's left point
             * \param rightModel estimator of current gap's right point
             */            
-            void setCurrentRightModel(dynamic_gap::Estimator * rightModel);
+            void setCurrentRightGapPtModelID(dynamic_gap::Estimator * rightModel);
 
             /**
             * \brief Getter for ID of model for current gap's left point
@@ -303,15 +321,6 @@ namespace dynamic_gap
             int getCurrentRightGapPtModelID();
 
             /**
-            * \brief Setter for peak velocity of approximated 
-            * spline trajectory through current gap
-            * \param peakVelX peak x-velocity of approximated spline trajectory through current gap
-            * \param peakVelY peak y-velocity of approximated spline trajectory through current gap            
-            */
-            void setCurrentGapPeakVelocities(const float & peakVelX, 
-                                             const float & peakVelY);
-
-            /**
             * \brief Helper function for pretty printing estimator states 
             * the left and right points of the current set of gaps
             * \param gaps current set of gaps
@@ -322,10 +331,10 @@ namespace dynamic_gap
             * \brief Helper function for visualizing navigable regions of current set of gaps
             * \param manipulatedGaps current set of manipulated gaps
             */
-            void visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps,
-                                        const int & highestScoreTrajIdx);    
+            void visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps);    
 
-    private:
+            float computeAverageTimeTaken(const float & timeTaken, const int & planningStepIdx);
+
         boost::mutex gapMutex_; /**< Current set of gaps mutex */
         dynamic_gap::DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
 
@@ -379,10 +388,8 @@ namespace dynamic_gap
         std::vector<dynamic_gap::Gap *> prevRawGaps_; /**< Previous set of raw gaps */
         std::vector<dynamic_gap::Gap *> prevSimplifiedGaps_; /**< Previous set of simplified gaps */
 
-        dynamic_gap::Gap * currentGap_ = NULL; /**< Gap that robot is currently attempting to pass through */
-
-        dynamic_gap::Estimator * currLeftGapPtModel_ = NULL; /**< Estimator of current gap's left point */
-        dynamic_gap::Estimator * currRightGapPtModel_ = NULL; /**< Estimator of current gap's right point */
+        int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
+        int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 
         int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
@@ -390,8 +397,6 @@ namespace dynamic_gap
 
         // Trajectories
         dynamic_gap::Trajectory currentTraj_; /**< Trajectory that robot is currently tracking */
-
-        geometry_msgs::TwistStamped currentPeakSplineVel_; /**< Peak velocity along approximated spline trajectory through current gap */
 
         int targetTrajectoryPoseIdx_ = 0; /**< Index of closest pose along the robot's current trajectory */
 
@@ -413,12 +418,11 @@ namespace dynamic_gap
         std::vector<Eigen::Vector4f> currentEstimatedAgentStates_; /**< Estimated states of agents currently in local environment */
 
         dynamic_gap::GapDetector * gapDetector_ = NULL; /**< Gap detector */
-        dynamic_gap::StaticScanSeparator * staticScanSeparator_ = NULL; /**< Static scan separator */
         dynamic_gap::GapVisualizer * gapVisualizer_ = NULL; /**< Gap visualizer */
-        dynamic_gap::GoalSelector * goalSelector_ = NULL; /**< Goal selector */
+        dynamic_gap::GlobalPlanManager * globalPlanManager_ = NULL; /**< Goal selector */
         dynamic_gap::TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
         dynamic_gap::GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
-        dynamic_gap::TrajectoryScorer * trajScorer_ = NULL; /**< Trajectory scorer */
+        dynamic_gap::TrajectoryEvaluator * trajEvaluator_ = NULL; /**< Trajectory scorer */
         dynamic_gap::DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
         dynamic_gap::GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
         dynamic_gap::GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
@@ -440,5 +444,54 @@ namespace dynamic_gap
 
         std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< Intermediate robot velocities between last model update and upcoming model update */
         std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
+    
+        // Timekeeping
+        float totalGapDetectionTimeTaken = 0.0f;
+        int gapDetectionCalls = 0;
+
+        float totalGapSimplificationTimeTaken = 0.0f;
+        int gapSimplificationCalls = 0;
+
+        float totalGapAssociationCheckTimeTaken = 0.0f;
+        int gapAssociationCheckCalls = 0;
+
+        float totalGapEstimationTimeTaken = 0.0f;
+        int gapEstimationCalls = 0;
+
+        float totalScanningTimeTaken = 0.0f;
+        int scanningLoopCalls = 0;
+
+        float totalGapPropagationTimeTaken = 0.0f;
+        int gapPropagationCalls = 0;
+
+        float totalGapManipulationTimeTaken = 0.0f;
+        int gapManipulationCalls = 0;
+
+        float totalGapFeasibilityCheckTimeTaken = 0.0f;
+        int gapFeasibilityCheckCalls = 0;
+
+        float totalScanPropagationTimeTaken = 0.0f;
+        int scanPropagationCalls = 0;
+
+        float totalGenerateGapTrajTimeTaken = 0.0f;
+        int generateGapTrajCalls = 0;
+
+        float totalSelectGapTrajTimeTaken = 0.0f;
+        int selectGapTrajCalls = 0;
+
+        float totalCompareToCurrentTrajTimeTaken = 0.0f;
+        int compareToCurrentTrajCalls = 0;
+
+        float totalPlanningTimeTaken = 0.0f;
+        int planningLoopCalls = 0;
+
+        float totalFeedbackControlTimeTaken = 0.0f;
+        int feedbackControlCalls = 0;
+
+        float totalProjectionOperatorTimeTaken = 0.0f;
+        int projectionOperatorCalls = 0;        
+
+        float totalControlTimeTaken = 0.0f;
+        int controlCalls = 0;   
     };
 }

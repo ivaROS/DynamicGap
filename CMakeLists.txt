@@ -72,13 +72,12 @@ add_library(${PROJECT_NAME}
   src/gap_estimation/PerfectEstimator.cpp
   src/gap_estimation/RotatingFrameCartesianKalmanFilter.cpp
   src/gap_feasibility/GapFeasibilityChecker.cpp
-  src/goal_management/GoalSelector.cpp
-  src/scan_processing/StaticScanSeparator.cpp
+  src/global_plan_management/GlobalPlanManager.cpp
   src/scan_processing/DynamicScanPropagator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
   src/trajectory_generation/NavigableGapGenerator.cpp
-  src/trajectory_scoring/TrajectoryScorer.cpp
+  src/trajectory_evaluation/TrajectoryEvaluator.cpp
   src/trajectory_tracking/TrajectoryController.cpp
   src/utils/Utils.cpp
   src/visualization/GapVisualizer.cpp

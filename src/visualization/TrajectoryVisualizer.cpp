@@ -7,10 +7,39 @@ namespace dynamic_gap
     {
         cfg_ = &cfg;
         trajSwitchIdxPublisher = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
+        planLoopIdxPublisher = nh.advertise<visualization_msgs::Marker>("planning_loop_idx", 10);
+
         globalPlanPublisher = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
         globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
+    }
+
+    void TrajectoryVisualizer::drawPlanningLoopIdx(const int & planningLoopIdx) 
+    {
+        visualization_msgs::Marker trajSwitchIdxMarker;
+        trajSwitchIdxMarker.header.frame_id = cfg_->robot_frame_id;
+        trajSwitchIdxMarker.header.stamp = ros::Time::now();
+
+        trajSwitchIdxMarker.ns = "planning_loop_idx";
+        trajSwitchIdxMarker.id = 0;
+        trajSwitchIdxMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        trajSwitchIdxMarker.action = visualization_msgs::Marker::ADD;
+        trajSwitchIdxMarker.pose.position.x = 0.0;
+        trajSwitchIdxMarker.pose.position.y = 0.0;
+        trajSwitchIdxMarker.pose.position.z = 0.05;
+        trajSwitchIdxMarker.pose.orientation.w = 1.0;
+        trajSwitchIdxMarker.pose.orientation.x = 0.0;
+        trajSwitchIdxMarker.pose.orientation.y = 0.0;
+        trajSwitchIdxMarker.pose.orientation.z = 0.0;
+
+        trajSwitchIdxMarker.scale.z = 0.3;
+        trajSwitchIdxMarker.color.a = 1.0; // Don't forget to set the alpha!
+        trajSwitchIdxMarker.color.r = 0.0;
+        trajSwitchIdxMarker.color.g = 0.0;
+        trajSwitchIdxMarker.color.b = 0.0;
+        trajSwitchIdxMarker.text = "PLAN: " + std::to_string(planningLoopIdx);
+        planLoopIdxPublisher.publish(trajSwitchIdxMarker);
     }
 
     void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const dynamic_gap::Trajectory & chosenTraj) 

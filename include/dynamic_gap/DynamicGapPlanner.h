@@ -30,10 +30,6 @@ namespace dynamic_gap
     {
         public: 
 
-            DynamicGapPlanner();
-
-            ~DynamicGapPlanner();
-
             /**
             * THIS IS A VIRTUAL FUNCTION THAT MUST BE OVERLOADED.
             * @brief Initializes the teb plugin

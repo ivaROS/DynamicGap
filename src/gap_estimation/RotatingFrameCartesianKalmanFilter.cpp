@@ -32,11 +32,6 @@ namespace dynamic_gap
         eyes = Eigen::MatrixXf::Identity(4,4);
     }
 
-    RotatingFrameCartesianKalmanFilter::~RotatingFrameCartesianKalmanFilter()
-    {
-        return;
-    }
-
     // For initializing a new model
     void RotatingFrameCartesianKalmanFilter::initialize(const std::string & side, const int & modelID,
                                                         const float & gapPtX, const float & gapPtY,
@@ -83,19 +78,14 @@ namespace dynamic_gap
     // For transferring an existing model state to a new model
     void RotatingFrameCartesianKalmanFilter::transfer(const Estimator & model)
     {
-        this->side_ = model.side_;
+        ROS_INFO_STREAM_NAMED("GapEstimation", "        transfering of model: " << model.modelID_);
+        // From Estimator.h
         this->modelID_ = model.modelID_;
+        this->side_ = model.side_;
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
-
-        // OBSERVATION MATRIX
-        // this->H_ = model.H_;
-        // this->H_transpose_ = model.H_transpose_;
-
-        // this->Q_scalar = model.Q_scalar;
-        // this->R_scalar = model.R_scalar;
-        // this->Q_k_ = model.Q_k_;
-        // this->R_k_ = model.R_k_;
+        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
+        this->x_hat_k_minus_ = model.x_hat_k_minus_;
+        this->x_hat_k_plus_ = model.x_hat_k_plus_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -103,53 +93,80 @@ namespace dynamic_gap
         this->P_k_minus_ = model.P_k_minus_;
         this->P_k_plus_ = model.P_k_plus_;
 
-        this->lastRbtVel_ = model.lastRbtVel_;
-        this->lastRbtAcc_ = model.lastRbtAcc_;
-        this->tLastUpdate_ = model.tLastUpdate_;
-
-        // this->xTilde_ = model.xTilde_;
-        this->x_hat_kmin1_plus_ = model.x_hat_kmin1_plus_;
-        this->x_hat_k_minus_ = model.x_hat_k_minus_;
-        this->x_hat_k_plus_ = model.x_hat_k_plus_;
+        this->xFrozen_ = model.xFrozen_;
+        this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
+        this->xTilde_ = model.xTilde_;
+
+        this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
+        this->lastRbtVel_ = model.lastRbtVel_;
+        this->lastRbtAcc_ = model.lastRbtAcc_;
+
+        this->tStart_ = model.tStart_;
+        this->tLastUpdate_ = model.tLastUpdate_;
+
+        this->manip_ = false; // will set to true if we do need to manip
+
+        // From RotatingFrameCartesianKalmanFilter.h
+        // this->H_ = model.H_;
+        // this->H_transpose_ = model.H_transpose_;
+
+        // this->R_k_ = model.R_k_;
+        // this->Q_k_ = model.Q_k_;
+        // this->dQ_ = model.dQ_;
+
+        // this->Q_1_ = model.Q_1_;
+        // this->Q_2_ = model.Q_2_;
+        // this->Q_3_ = model.Q_3_;
+
+        // this->R_scalar = model.R_scalar;
+        // this->Q_scalar = model.Q_scalar;
 
         // this->A_ = model.A_;
         // this->STM_ = model.STM_;
 
         // this->eyes = model.eyes;
+        // this->innovation_ = model.innovation_;
+        // this->residual_ = model.residual_;
 
-        this->tStart_ = model.tStart_;
+        // this->tmp_mat = model.tmp_mat;
 
+        // this->P_intermediate = model.P_intermediate;
+        // this->new_P = model.new_P;
+        
+        // this->lifetimeThreshold_ = model.lifetimeThreshold_;
+        
         return;
     }
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::integrate() 
     {
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    [integrate()]");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    [integrate()]");
         Eigen::Vector4f x_intermediate = x_hat_kmin1_plus_;
         Eigen::Vector4f new_x = x_hat_kmin1_plus_;
 
         for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        intermediate step " << i);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        intermediate step " << i);
             
             float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
             float ang_vel_ego = intermediateRbtVels_[i].twist.angular.z;
             
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        ang_vel_ego: " << ang_vel_ego);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        ang_vel_ego: " << ang_vel_ego);
 
             float p_dot_x = (x_intermediate[2] + ang_vel_ego*x_intermediate[1]);
             float p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
             float vdot_x_body = intermediateRbtAccs_[i].twist.linear.x;
             float vdot_y_body = intermediateRbtAccs_[i].twist.linear.y;
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
             float v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
             float v_dot_y = (-x_intermediate[2]*ang_vel_ego - vdot_y_body);
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        v_dot_x: " << v_dot_x << ", v_dot_y: " << v_dot_y);
 
             new_x << x_intermediate[0] + p_dot_x*dt, // r_x
                      x_intermediate[1] + p_dot_y*dt, // r_y
@@ -157,7 +174,7 @@ namespace dynamic_gap
                      x_intermediate[3] + v_dot_y*dt; // v_y
             
             x_intermediate = new_x;
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
         
         }
 
@@ -222,9 +239,9 @@ namespace dynamic_gap
         }
 
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
         processEgoRobotVelsAndAccs(t_update);
 
@@ -234,13 +251,13 @@ namespace dynamic_gap
                 // << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
                 //    range_bearing_measurement[0]*std::sin(range_bearing_measurement[1]);
         
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);        
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);        
 
         x_hat_k_minus_ = integrate();
         
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_minus_: " << x_hat_k_minus_[0] << ", " << x_hat_k_minus_[1] << ", " 
-                                                                      << x_hat_k_minus_[2] << ", " << x_hat_k_minus_[3]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_minus_: " << x_hat_k_minus_[0] << ", " << x_hat_k_minus_[1] << ", " 
+        //                                                               << x_hat_k_minus_[2] << ", " << x_hat_k_minus_[3]);
 
         P_intermediate = P_kmin1_plus_;
         new_P = P_kmin1_plus_;
@@ -277,12 +294,12 @@ namespace dynamic_gap
         P_k_minus_ = new_P;
         
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    P_k_minus_: " << P_k_minus_(0, 0) << ", " << P_k_minus_(0, 1) << ", " << P_k_minus_(0, 2) << ", " << P_k_minus_(0, 3));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(1, 0) << ", " << P_k_minus_(1, 1) << ", " << P_k_minus_(1, 2) << ", " << P_k_minus_(1, 3));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(2, 0) << ", " << P_k_minus_(2, 1) << ", " << P_k_minus_(2, 2) << ", " << P_k_minus_(2, 3));
-        ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(3, 0) << ", " << P_k_minus_(3, 1) << ", " << P_k_minus_(3, 2) << ", " << P_k_minus_(3, 3));     
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    P_k_minus_: " << P_k_minus_(0, 0) << ", " << P_k_minus_(0, 1) << ", " << P_k_minus_(0, 2) << ", " << P_k_minus_(0, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(1, 0) << ", " << P_k_minus_(1, 1) << ", " << P_k_minus_(1, 2) << ", " << P_k_minus_(1, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(2, 0) << ", " << P_k_minus_(2, 1) << ", " << P_k_minus_(2, 2) << ", " << P_k_minus_(2, 3));
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "                " << P_k_minus_(3, 0) << ", " << P_k_minus_(3, 1) << ", " << P_k_minus_(3, 2) << ", " << P_k_minus_(3, 3));     
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
         innovation_ = xTilde_ - H_*x_hat_k_minus_;
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
@@ -330,8 +347,8 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "3");
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    intermediateRbtVels_ size: " << intermediateRbtVels_.size());
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    intermediateRbtVels_ size: " << intermediateRbtVels_.size());
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());
         
         if (intermediateRbtVels_.size() > 0)
             lastRbtVel_ = intermediateRbtVels_.back();
@@ -341,26 +358,40 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "4");
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
         // ROS_INFO_STREAM_NAMED("GapEstimation", "    P_k_plus_: " << P_k_plus_(0, 0) << ", " << P_k_plus_(0, 1) << ", " << P_k_plus_(0, 2) << ", " << P_k_plus_(0, 3));
         // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(1, 0) << ", " << P_k_plus_(1, 1) << ", " << P_k_plus_(1, 2) << ", " << P_k_plus_(1, 3));
         // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(2, 0) << ", " << P_k_plus_(2, 1) << ", " << P_k_plus_(2, 2) << ", " << P_k_plus_(2, 3));
         // ROS_INFO_STREAM_NAMED("GapEstimation", "               " << P_k_plus_(3, 0) << ", " << P_k_plus_(3, 1) << ", " << P_k_plus_(3, 2) << ", " << P_k_plus_(3, 3));             
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    -----------");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    -----------");
 
         return;
     }    
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState()
     { 
+        ROS_INFO_STREAM_NAMED("GapEstimation", "[getState()]");
         Eigen::Vector4f state = x_hat_k_plus_;
 
+        // if gap has been pivoted: add additional flag to model to set velocity to zero.
+
         // if model is still fairly fresh and not converged, just assume it is attached to a static part of the environment
-        if ((tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_)
+        bool newModel = (tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_; 
+        if (newModel)
         {
+            ROS_INFO_STREAM_NAMED("GapEstimation", "        new model");
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
         } 
+
+        if (manip_)
+        {
+            ROS_INFO_STREAM_NAMED("GapEstimation", "        manipulated model");
+            state[0] = manipPosition[0];
+            state[1] = manipPosition[1];
+            state[2] = 0.0 - lastRbtVel_.twist.linear.x;
+            state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
+        }        
 
         return state;  
     }    

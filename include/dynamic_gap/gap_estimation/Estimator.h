@@ -45,6 +45,9 @@ namespace dynamic_gap
             ros::Time tStart_; /**< time of model initialization */
             ros::Time tLastUpdate_; /**< time of last model update */
 
+            bool manip_ = false;
+            Eigen::Vector2f manipPosition;
+
             /**
             * \brief Virtual function for initializing estimator, must be overridden by desired model class
             * \param side Gap side for model (left or right)
@@ -135,7 +138,7 @@ namespace dynamic_gap
                 {
                     float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
                     
-                    ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
+                    // ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << dt << " sec");
                     
                     ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
 
@@ -149,10 +152,30 @@ namespace dynamic_gap
             virtual Eigen::Vector4f getState() = 0;
 
             /**
-            * \brief Getter function for non-relative estimator state
+            * \brief Getter function for non-relative estimator state. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator state
             */               
             Eigen::Vector4f getGapState() { return xFrozen_; };
+
+            /**
+            * \brief Getter function for non-relative estimator position. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator position
+            */               
+            Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); };
+
+            /**
+            * \brief Getter function for non-relative estimator bearing. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator bearing
+            */               
+            float getGapBearing() { Eigen::Vector2f gapPosition = xFrozen_.head(2); 
+                                    float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
+                                    return gapTheta; };
+
+            /**
+            * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator velocity
+            */               
+            Eigen::Vector2f getGapVelocity() { return xFrozen_.tail(2); };
 
             /**
             * \brief Getter function for rewound non-relative estimator state
@@ -248,6 +271,13 @@ namespace dynamic_gap
                 xRewindProp_[2] = xRewind_[2] + (relLinAcc[0] + xRewind_[3]*egoAngVel)*dt;
                 xRewindProp_[3] = xRewind_[3] + (relLinAcc[1] - xRewind_[2]*egoAngVel)*dt;
                 xRewind_ = xRewindProp_; 
+            }
+
+            void setManip() { manip_ = true; }
+            void setNewPosition(const float & newTheta, const float & newRange) 
+            { 
+                manipPosition << newRange * std::cos(newTheta), 
+                                 newRange * std::sin(newTheta); 
             }
 
     };
