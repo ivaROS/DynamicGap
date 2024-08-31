@@ -23,10 +23,9 @@ namespace dynamic_gap
             odom_frame_id = model + "/odom";
             robot_frame_id = model + "/base_link";
             sensor_frame_id = model + "/hokuyo_link";
-
             
             odom_topic = "odom"; // model + "/odom";
-            imu_topic = model + "/imu";
+            acc_topic = "acc"; // model + "/acc";
             scan_topic = "scan"; // model + "/scan";
 
             // Robot

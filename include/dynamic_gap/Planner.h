@@ -52,6 +52,10 @@
 #include <pedsim_msgs/AgentStates.h>
 #include <pedsim_msgs/AgentState.h>
 
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 namespace dynamic_gap
 {
     /**
@@ -120,32 +124,6 @@ namespace dynamic_gap
             */
             void reset();
 
-            /**
-            * \brief Call back function to robot laser scan
-            * \param scan incoming laser scan msg
-            */
-            void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan);
-
-            /**
-            * \brief Joint call back function for robot pose (position + velocity) and robot acceleration messages
-            * \param rbtOdomMsg incoming robot odometry message
-            * \param rbtAccelMsg incoming robot acceleration message
-            */
-            void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
-
-            /**
-            * \brief Getter for number of agents currently in environment
-            * \return number of agents currently in environment
-            */
-            int getCurrentAgentCount() { return currentAgentCount_; }
-
-            /**
-            * \brief Call back function for other agent odometry messages
-            * \param agentOdomMsg incoming agent odometry message
-            */
-            void agentOdomCB(const nav_msgs::Odometry::ConstPtr& agentOdomMsg);
-
         private:
 
             /**
@@ -174,23 +152,37 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate);
 
-            /**
-            * \brief Call back function for robot pose (position + velocity) messages
-            * \param rbtOdomMsg incoming robot odometry message
-            */
-            void egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg);
+            // /**
+            // * \brief Call back function for robot pose (position + velocity) messages
+            // * \param rbtOdomMsg incoming robot odometry message
+            // */
+            // void egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg);
 
-            /**
-            * \brief Call back function for robot IMU messages
-            * \param rbtAccelMsg incoming robot acceleration message
-            */
-            void egoRobotImuCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
+            // /**
+            // * \brief Call back function for robot IMU messages
+            // * \param rbtAccelMsg incoming robot acceleration message
+            // */
+            // void egoRobotAccCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
 
             /**
             * \brief Call back function for other agent odometry messages
             * \param agentOdomMsg incoming agent odometry message
             */
             void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
+
+            /**
+            * \brief Call back function to robot laser scan
+            * \param scan incoming laser scan msg
+            */
+            void laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan);
+
+            /**
+            * \brief Joint call back function for robot pose (position + velocity) and robot acceleration messages
+            * \param rbtOdomMsg incoming robot odometry message
+            * \param rbtAccelMsg incoming robot acceleration message
+            */
+            void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
+                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
 
             /**
             * \brief Function for updating all tf transform at the beginning of every planning cycle
@@ -350,8 +342,16 @@ namespace dynamic_gap
 
         std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
-        ros::Subscriber rbtOdomSub_; /**< Subscriber to incoming robot pose */
-        ros::Subscriber rbtImuSub_; /**< Subscriber to incoming robot acceleration */
+        // ros::Subscriber rbtPoseSub_; /**< Subscriber to incoming robot pose */
+        // ros::Subscriber rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+
+        message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */
+        message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+
+        typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
+        typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
+        boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
+
         ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
 
         // typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */

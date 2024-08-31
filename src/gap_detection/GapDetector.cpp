@@ -79,7 +79,7 @@ namespace dynamic_gap
             for (unsigned int it = 1; it < fullScanRayCount_; ++it)
             {
                 currRange = scan_.ranges.at(it);
-                ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRange);
+                // ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRange);
 
                 if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
                 {

@@ -9,6 +9,7 @@ Panels:
         - /Dynamic Gap1/Marker3
         - /Dynamic Gap1/PoseArray2
         - /Axes1
+        - /Axes2
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -248,7 +249,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -311,7 +311,7 @@ Visualization Manager:
           Marker Topic: /rto/manip_gaps
           Name: Marker
           Namespaces:
-            manip: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -319,7 +319,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            gap_goal: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -327,7 +327,7 @@ Visualization Manager:
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            allTraj: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -335,7 +335,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_models
           Name: MarkerArray
           Namespaces:
-            gap_models: true
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -400,6 +400,15 @@ Visualization Manager:
       Reference Frame: rto/base_link
       Show Trail: false
       Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: odom
+      Show Trail: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -427,7 +436,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -9.425033569335938
+      Angle: -12.560029983520508
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -437,10 +446,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 57.83855438232422
+      Scale: 23.573265075683594
       Target Frame: <Fixed Frame>
-      X: 7.398615837097168
-      Y: 17.396265029907227
+      X: 16.107894897460938
+      Y: 9.98460865020752
     Saved: ~
 Window Geometry:
   Displays:

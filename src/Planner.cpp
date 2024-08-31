@@ -60,7 +60,7 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM("cfg_.scan_topic: " << cfg_.scan_topic);
         ROS_INFO_STREAM("cfg_.odom_topic: " << cfg_.odom_topic);
-        ROS_INFO_STREAM("cfg_.imu_topic: " << cfg_.imu_topic);
+        ROS_INFO_STREAM("cfg_.acc_topic: " << cfg_.acc_topic);
         ROS_INFO_STREAM("cfg_.ped_topic: " << cfg_.ped_topic);
 
         ROS_INFO_STREAM("cfg_.robot_frame_id: " << cfg_.robot_frame_id);
@@ -95,8 +95,14 @@ namespace dynamic_gap
 
         // Robot odometry message subscriber
         // ROS_INFO_STREAM("before rbtOdomSub_");
-        rbtOdomSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
+        // rbtPoseSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
+        // rbtAccSub_ = nh_.subscribe(cfg_.acc_topic, 10, &Planner::egoRobotAccCB, this);
         // ROS_INFO_STREAM("after rbtOdomSub_");
+
+        rbtPoseSub_.subscribe(nh_, cfg_.odom_topic, 10);
+        rbtAccSub_.subscribe(nh_, cfg_.acc_topic, 10);
+        sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtPoseSub_, rbtAccSub_));
+        sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
 
         // Robot laser scan message subscriber
         ROS_INFO_STREAM("before laserSub_");
@@ -107,10 +113,6 @@ namespace dynamic_gap
 
         // Visualization Setup
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
-        // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
-        
-        // MAP FRAME ID SHOULD BE: known_map
-        // ODOM FRAME ID SHOULD BE: map_static
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -131,17 +133,6 @@ namespace dynamic_gap
         intermediateRbtAccs_.clear();
 
         tPreviousModelUpdate_ = ros::Time::now();
-
-        /*
-
-        // Robot acceleration message subscriber        
-        // rbtImuSub_ = nh_.subscribe(cfg_.imu_topic, 10, &Planner::egoRobotImuCB, this);
-
-        // sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtOdomSub_, rbtAccSub_));
-        // sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, this, _1, _2));
-
-
-        */
 
         initialized_ = true;
 
@@ -387,15 +378,31 @@ namespace dynamic_gap
         }        
     }
     
-    void Planner::egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg)
+void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
+                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
-        ROS_INFO_STREAM("egoRobotOdomCB");
+        ROS_INFO_STREAM("jointPoseAccCB");
 
         if (!haveTFs)
             return;
 
         try
         {
+            // assuming acceleration message comes in wrt robot frame
+            currentRbtAcc_ = *rbtAccelMsg;
+            intermediateRbtAccs_.push_back(currentRbtAcc_);
+
+            ROS_INFO_STREAM("   pushing back currentRbtAcc_: " << currentRbtAcc_);
+
+            // deleting old sensor measurements already used in an update
+            for (int i = 0; i < intermediateRbtAccs_.size(); i++)
+            {
+                if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
+                {
+                    intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
+                    i--;
+                }
+            }
 
             // Transform the msg to odom frame
             if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
@@ -420,18 +427,15 @@ namespace dynamic_gap
             }
 
             //--------------- VELOCITY -------------------//
-            // velocity always comes in wrt robot frame in STDR
+            // assuming velocity always comes in wrt robot frame
             geometry_msgs::TwistStamped incomingRbtVel;
             incomingRbtVel.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
-            // incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
             incomingRbtVel.twist = rbtOdomMsg->twist.twist;
 
             currentRbtVel_ = incomingRbtVel;
-            currentRbtAcc_ = geometry_msgs::TwistStamped();    
-            currentRbtAcc_.header = currentRbtVel_.header;
-
             intermediateRbtVels_.push_back(currentRbtVel_);
-            intermediateRbtAccs_.push_back(currentRbtAcc_);
+
+            ROS_INFO_STREAM("   pushing back currentRbtVel_: " << currentRbtVel_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)
@@ -439,17 +443,76 @@ namespace dynamic_gap
                 if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
                     intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
-                    intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
                     i--;
                 }
             }
         } catch (...)
         {
-            ROS_WARN_STREAM_NAMED("Planner", "egoRobotOdomCB failed");
+            ROS_WARN_STREAM_NAMED("Planner", "jointPoseAccCB failed");
         }
     }
 
-    // void Planner::egoRobotImuCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+    // void Planner::egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg)
+    // {
+    //     ROS_INFO_STREAM("egoRobotOdomCB");
+
+    //     if (!haveTFs)
+    //         return;
+
+    //     try
+    //     {
+
+    //         // Transform the msg to odom frame
+    //         if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
+    //         {
+    //             // ROS_INFO_STREAM("odom msg is not in odom frame");
+    //             geometry_msgs::TransformStamped msgFrame2OdomFrame = tfBuffer_.lookupTransform(cfg_.odom_frame_id, rbtOdomMsg->header.frame_id, ros::Time(0));
+
+    //             geometry_msgs::PoseStamped rbtPoseMsgFrame, rbtPoseOdomFrame;
+    //             rbtPoseMsgFrame.header = rbtOdomMsg->header;
+    //             rbtPoseMsgFrame.pose = rbtOdomMsg->pose.pose;
+
+    //             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+
+    //             tf2::doTransform(rbtPoseMsgFrame, rbtPoseOdomFrame, msgFrame2OdomFrame);
+    //             rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
+    //         }
+    //         else
+    //         {
+    //             // ROS_INFO_STREAM("odom msg is in odom frame");
+
+    //             rbtPoseInOdomFrame_.pose = rbtOdomMsg->pose.pose;
+    //         }
+
+    //         //--------------- VELOCITY -------------------//
+    //         // velocity always comes in wrt robot frame in STDR
+    //         geometry_msgs::TwistStamped incomingRbtVel;
+    //         incomingRbtVel.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
+    //         // incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
+    //         incomingRbtVel.twist = rbtOdomMsg->twist.twist;
+
+    //         currentRbtVel_ = incomingRbtVel;
+    //         currentRbtAcc_ = geometry_msgs::TwistStamped();    
+    //         currentRbtAcc_.header = currentRbtVel_.header;
+
+    //         intermediateRbtVels_.push_back(currentRbtVel_);
+
+    //         // deleting old sensor measurements already used in an update
+    //         for (int i = 0; i < intermediateRbtVels_.size(); i++)
+    //         {
+    //             if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
+    //             {
+    //                 intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
+    //                 i--;
+    //             }
+    //         }
+    //     } catch (...)
+    //     {
+    //         ROS_WARN_STREAM_NAMED("Planner", "egoRobotOdomCB failed");
+    //     }
+    // }
+
+    // void Planner::egoRobotAccCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     // {
     //     try
     //     {
@@ -476,7 +539,7 @@ namespace dynamic_gap
 
     //     } catch (...)
     //     {
-    //         ROS_WARN_STREAM_NAMED("Planner", "egoRobotImuCB failed");
+    //         ROS_WARN_STREAM_NAMED("Planner", "egoRobotAccCB failed");
     //     }
     // }
     
@@ -514,7 +577,7 @@ namespace dynamic_gap
                 currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
             } catch (...) 
             {
-                ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB odometry failed for " << agentIState.id);
+                ROS_WARN_STREAM_NAMED("Planner", "pedOdomCB odometry failed for " << agentIState.id);
             }
             
             try 
@@ -531,7 +594,7 @@ namespace dynamic_gap
                 currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
             } catch (...) 
             {
-                ROS_WARN_STREAM_NAMED("Planner", "agentOdomCB velocity failed for " << agentIState.id);
+                ROS_WARN_STREAM_NAMED("Planner", "pedOdomCB velocity failed for " << agentIState.id);
             }            
         }
     }

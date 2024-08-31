@@ -143,6 +143,15 @@ namespace dynamic_gap
                     ROS_WARN_STREAM_COND_NAMED(dt < 0, "GapEstimation", "ERROR IN TIMESTEP CALCULATION, SHOULD NOT BE NEGATIVE");
 
                 }
+
+                ROS_INFO_STREAM("intermediateRbtVels_: ");
+                for (int i = 0; i < intermediateRbtVels_.size(); i++)
+                    ROS_INFO_STREAM("   i: " << intermediateRbtVels_[i]);
+
+
+                ROS_INFO_STREAM("intermediateRbtAccs_: ");
+                for (int i = 0; i < intermediateRbtAccs_.size(); i++)
+                    ROS_INFO_STREAM("   i: " << intermediateRbtAccs_[i]);
             }
 
             /**
