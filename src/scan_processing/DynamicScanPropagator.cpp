@@ -134,8 +134,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        LHS model dist: " << scanToLHSDist << 
             //                                                      ", RHS model dist: " << scanToRHSDist);
 
-            bool distCheck = (scanToLHSDist < 2 * cfg_->rbt.r_inscr && 
-                              scanToRHSDist < 2 * cfg_->rbt.r_inscr);
+            bool distCheck = (scanToLHSDist < 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio && 
+                              scanToRHSDist < 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
 
             // run angle check on LHS and RHS model velocities
             Eigen::Vector2f lhsVel = rawModels.at(leftHandSideModelIdx)->getGapVelocity();
@@ -146,7 +146,7 @@ namespace dynamic_gap
 
             float cosineDist = 1.0 - lhsVel.dot(rhsVel) / (lhsVel.norm() * rhsVel.norm() + eps);
             // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        cosineDist: " << cosineDist);
-            bool angleCheck = (cosineDist < 0.1);
+            bool angleCheck = (cosineDist < 0.25);
 
 
             // if attached

@@ -555,6 +555,7 @@ namespace dynamic_gap
             
             for (size_t i = 0; i < planningGaps.size(); i++) 
             {
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "   gap " << i);
                 // propagate gap forward in time to determine lifespan
                 gapFeasibilityChecker_->propagateGapPoints(planningGaps.at(i));
             }

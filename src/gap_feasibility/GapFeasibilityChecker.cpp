@@ -78,24 +78,24 @@ namespace dynamic_gap
             // END CONDITION 0: COLLISION //
             ////////////////////////////////
             
-            leftGapPtCollision = getGapRange(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            rightGapPtCollision = getGapRange(rightGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            collision = (leftGapPtCollision || rightGapPtCollision);
+            // leftGapPtCollision = getGapRange(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // rightGapPtCollision = getGapRange(rightGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // collision = (leftGapPtCollision || rightGapPtCollision);
 
-            if (collision) 
-            {
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 0 (collision) at " << t);
-                if (!gapHasCrossed)
-                {
-                    generateTerminalPoints(gap, leftGapState, rightGapState);
-                    gap->setGapLifespan(t);
-                    gap->end_condition = 0;
+            // if (collision) 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                    end condition 0 (collision) at " << t);
+            //     if (!gapHasCrossed)
+            //     {
+            //         generateTerminalPoints(gap, leftGapState, rightGapState);
+            //         gap->setGapLifespan(t);
+            //         gap->end_condition = 0;
 
-                    ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
-                }
+            //         ROS_INFO_STREAM_NAMED("GapFeasibility", "                    setting gap lifespan to " << gap->gapLifespan_); 
+            //     }
 
-                return;
-            }
+            //     return;
+            // }
 
             ///////////////////////////////////
             // END CONDITION 1: GAP CROSSING //
