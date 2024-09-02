@@ -146,18 +146,15 @@ namespace dynamic_gap
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
         float globalGoalYDiff = globalGoalOdomFrame_.pose.position.y - rbtPoseInOdomFrame_.pose.position.y;
         float globalGoalDist = sqrt(pow(globalGoalXDiff, 2) + pow(globalGoalYDiff, 2));
-        bool reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance;
+        reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance;
         
         if (reachedGlobalGoal)
-        {
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
-            return true;
-        } else
-        {
-            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << ", Goal tolerance: " << cfg_.goal.goal_tolerance);
-        }
+        else
+            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
+                                             ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
-        return false;
+        return reachedGlobalGoal;
     }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan)
@@ -532,7 +529,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
     }
 
-    bool Planner::setGoal(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
+    bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {
         if (globalPlanMapFrame.size() == 0) 
             return true;
@@ -568,6 +565,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         trajVisualizer_->drawRelevantGlobalPlanSnippet(visibleGlobalPlanSnippetRobotFrame);
 
         hasGlobalGoal_ = true;
+        setReachedGlobalGoal(false);
 
         return true;
     }
@@ -1104,6 +1102,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
         trajVisualizer_->drawPlanningLoopIdx(planningLoopCalls);
 
+        isGoalReached();
+
         std::vector<dynamic_gap::Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
@@ -1355,22 +1355,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         setCurrentTraj(dynamic_gap::Trajectory());
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
+        setCurrentLeftGapPtModelID(nullptr);
+        setCurrentRightGapPtModelID(nullptr);
         ROS_INFO_STREAM_NAMED("Planner", "velocity buffer size: " << cmdVelBuffer_.size());
         cmdVelBuffer_.clear();
         ROS_INFO_STREAM_NAMED("Planner", "velocity buffer size after clear: " << cmdVelBuffer_.size() << ", is full: " << cmdVelBuffer_.capacity());
         return;
-    }
-
-    void Planner::visualizeNavigableGaps(const std::vector<dynamic_gap::Gap *> & manipulatedGaps) 
-    {
-        // boost::mutex::scoped_lock gapset(gapMutex_);
-
-        gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        // gapVisualizer_->drawNavigableGaps(manipulatedGaps, lowestCostTrajIdx);        
-        // gapVisualizer_->drawNavigableGapsCenters(manipulatedGaps); 
-
-        // gapVisualizer_->drawGapSplines(manipulatedGaps);
-        goalVisualizer_->drawGapGoals(manipulatedGaps);
     }
 
     void Planner::printGapModels(const std::vector<dynamic_gap::Gap *> & gaps) 

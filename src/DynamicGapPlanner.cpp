@@ -19,8 +19,13 @@ namespace dynamic_gap
     {
         // ROS_INFO_STREAM("[DynamicGapPlanner::setPlan()]");
 
-        return planner_.setGoal(globalPlanMapFrame);
-
+        if (!planner_.initialized())
+        {
+            return false;
+        } else
+        {
+            return planner_.setPlan(globalPlanMapFrame);
+        }
         // 0: fail, 1: success
         // return 1;
     }
@@ -51,6 +56,8 @@ namespace dynamic_gap
             planner_.initialize(name_); // nh_
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
+
+        planner_.setReachedGlobalGoal(false);
 
         dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
