@@ -64,6 +64,13 @@ namespace dynamic_gap
     */
     float quaternionToYaw(const tf::Quaternion & quat);
 
+    /**
+    * \brief Helper for extracting yaw angle from quaternion
+    * \param quat incoming quaternion
+    * \return yaw angle
+    */
+    float quaternionToYaw(const geometry_msgs::Quaternion & quat);
+
     //////////////////////////////
     //     ANGLE CONVERSIONS    // 
     //////////////////////////////
@@ -88,6 +95,24 @@ namespace dynamic_gap
     */
     float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect, 
                                    const Eigen::Vector2f & rightVect);
+
+
+    /**
+    * @brief normalize angle to interval [-pi, pi)
+    * @remark This function is based on normalize_theta from g2o
+    *         see: https://github.com/RainerKuemmerle/g2o/blob/master/g2o/stuff/misc.h
+    */
+    inline float normalize_theta(const float & theta)
+    {
+        if (theta >= -M_PI && theta < M_PI) return theta;
+
+        float multiplier = std::floor(theta / (2.0 * M_PI));
+        float normalized_theta             = theta - multiplier * 2.0 * M_PI;
+        if (normalized_theta >= M_PI) normalized_theta -= 2.0 * M_PI;
+        if (normalized_theta < -M_PI) normalized_theta += 2.0 * M_PI;
+
+        return normalized_theta;
+    }
 
     //////////////////////////////
     //   GAP STATE OPERATIONS   // 

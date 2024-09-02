@@ -146,7 +146,12 @@ namespace dynamic_gap
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
         float globalGoalYDiff = globalGoalOdomFrame_.pose.position.y - rbtPoseInOdomFrame_.pose.position.y;
         float globalGoalDist = sqrt(pow(globalGoalXDiff, 2) + pow(globalGoalYDiff, 2));
-        reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance;
+
+        float globalGoalOrientation = quaternionToYaw(globalGoalOdomFrame_.pose.orientation);
+        float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
+        float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
+        reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance &&
+                            globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
         
         if (reachedGlobalGoal)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");

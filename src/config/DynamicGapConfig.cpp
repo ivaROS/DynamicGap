@@ -55,6 +55,7 @@ namespace dynamic_gap
 
             // Goal Param
             nh.param("xy_goal_tolerance", goal.goal_tolerance, goal.goal_tolerance);
+            nh.param("yaw_goal_tolerance", goal.yaw_goal_tolerance, goal.yaw_goal_tolerance);
             nh.param("xy_waypoint_tolerance", goal.waypoint_tolerance, goal.waypoint_tolerance);
 
             // Gap Association

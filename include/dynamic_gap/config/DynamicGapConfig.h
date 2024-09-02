@@ -90,6 +90,7 @@ namespace dynamic_gap
             struct Goal 
             {
                 float goal_tolerance = 0.2; /**< Distance threshold for global goal */
+                float yaw_goal_tolerance = M_PI; /**< Angular distance threshold for global goal */
                 float waypoint_tolerance = 0.1; /**< Distance threshold for global path local waypoint */
             } goal;
 

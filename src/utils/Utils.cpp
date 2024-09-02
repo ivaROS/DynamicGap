@@ -17,8 +17,12 @@ namespace dynamic_gap
 
     int theta2idx(const float & theta)
     {
-        assert(theta >= -M_PI);
-        assert(theta <= M_PI);
+        float theta_wrap = theta;
+        if (theta < -M_PI || theta >= M_PI)
+            theta_wrap = normalize_theta(theta);
+        
+        // assert(theta >= -M_PI);
+        // assert(theta <= M_PI);
 
         return int(std::round((theta + M_PI) / angle_increment));
     }
@@ -27,6 +31,12 @@ namespace dynamic_gap
     {
         return std::atan2(2.0 * (quat.w() * quat.z() + quat.x() * quat.y()), 
                             1 - 2.0 * (quat.y() * quat.y() + quat.z() * quat.z()));
+    }
+
+    float quaternionToYaw(const geometry_msgs::Quaternion & quat)
+    {
+        return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 
+                            1 - 2.0 * (quat.y * quat.y + quat.z * quat.z));
     }
 
     // if we wanted to incorporate how egocircle can change, 

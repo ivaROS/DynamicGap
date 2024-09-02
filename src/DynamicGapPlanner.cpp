@@ -1,6 +1,10 @@
 #include <dynamic_gap/DynamicGapPlanner.h>
-#include <pluginlib/class_list_macros.h>
 
+// MBF return codes
+#include <mbf_msgs/ExePathResult.h>
+
+// pluginlib macros
+#include <pluginlib/class_list_macros.h>
 
 PLUGINLIB_EXPORT_CLASS(dynamic_gap::DynamicGapPlanner, nav_core::BaseLocalPlanner)
 
@@ -61,6 +65,12 @@ namespace dynamic_gap
 
         dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
+        if (planner_.isGoalReached())
+        {
+            cmd_vel.twist = geometry_msgs::Twist();
+            return mbf_msgs::ExePathResult::SUCCESS;
+        }
+
         geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
         cmd_vel.twist = cmdVelNoStamp;
@@ -91,7 +101,7 @@ namespace dynamic_gap
         *         STOPPED           = 118  # The controller execution has been stopped rigorously
         */
 
-        return 0;
+        return mbf_msgs::ExePathResult::SUCCESS;
     }
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
