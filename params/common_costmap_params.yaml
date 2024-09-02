@@ -11,13 +11,13 @@ transform_tolerance: 0.2
 map_type: costmap
 
 obstacle_layer:
-  obstacle_range: 5.0 # Needs to be < raytrace_range it seems
-  raytrace_range: 5.5
+  obstacle_range: 4.9 # Needs to be < raytrace_range it seems. Needs to be less than max range to not consider max scan range as obstacle
+  raytrace_range: 5.0
   enabled:              true
   unknown_threshold:    15
   mark_threshold:       0
   combination_method:   1
-  track_unknown_space:  false    #true needed for disabling global path planning through unknown space
+  track_unknown_space:  true    #true needed for disabling global path planning through unknown space
 
   publish_voxel_map: false
   observation_sources:  scan
@@ -34,7 +34,7 @@ static_layer:
   map_topic:            /known_map
   
 inflation_layer:
-  inflation_radius:     1.0  # max. distance from an obstacle at which costs are incurred for planning paths.
-  cost_scaling_factor:  5.0 # exponential rate at which the obstacle cost drops off (default: 10)
+  inflation_radius:     0.5  # max. distance from an obstacle at which costs are incurred for planning paths.
+  cost_scaling_factor:  10.0 # exponential rate at which the obstacle cost drops off (default: 10)
 
 
