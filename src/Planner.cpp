@@ -383,12 +383,31 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         ROS_INFO_STREAM("jointPoseAccCB");
 
+        // odom coming in wrt rto/odom frame
+        // velocity coming in wrt rto/odom frame
+
+        if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
+            ROS_WARN_STREAM("Odom msg header frame " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
+
+        if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
+            ROS_WARN_STREAM("Odom msg child frame " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+        
+        if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
+            ROS_WARN_STREAM("Accel msg header frame " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+
+        // acceleration coming in wrt rto/base_link frame
+
+        ROS_INFO_STREAM("   rbtOdomMsg: " << *rbtOdomMsg);
+
+        ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
+
+
         if (!haveTFs)
             return;
 
         try
         {
-            // assuming acceleration message comes in wrt robot frame
+            // assuming acceleration message comes in wrt robot frame, no transforms
             currentRbtAcc_ = *rbtAccelMsg;
             intermediateRbtAccs_.push_back(currentRbtAcc_);
 
@@ -404,35 +423,38 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 }
             }
 
-            // Transform the msg to odom frame
-            if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
-            {
-                // ROS_INFO_STREAM("odom msg is not in odom frame");
-                geometry_msgs::TransformStamped msgFrame2OdomFrame = tfBuffer_.lookupTransform(cfg_.odom_frame_id, rbtOdomMsg->header.frame_id, ros::Time(0));
+            //--------------- POSE -------------------//
 
-                geometry_msgs::PoseStamped rbtPoseMsgFrame, rbtPoseOdomFrame;
-                rbtPoseMsgFrame.header = rbtOdomMsg->header;
-                rbtPoseMsgFrame.pose = rbtOdomMsg->pose.pose;
+            // ROS_INFO_STREAM("odom msg is not in odom frame");
 
-                //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+            geometry_msgs::PoseStamped rbtPoseOdomFrame;
+            rbtPoseOdomFrame.header = rbtOdomMsg->header;
+            rbtPoseOdomFrame.pose = rbtOdomMsg->pose.pose;
+            rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
 
-                tf2::doTransform(rbtPoseMsgFrame, rbtPoseOdomFrame, msgFrame2OdomFrame);
-                rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
-            }
-            else
-            {
-                // ROS_INFO_STREAM("odom msg is in odom frame");
-
-                rbtPoseInOdomFrame_.pose = rbtOdomMsg->pose.pose;
-            }
+            ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
 
             //--------------- VELOCITY -------------------//
             // assuming velocity always comes in wrt robot frame
-            geometry_msgs::TwistStamped incomingRbtVel;
-            incomingRbtVel.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
-            incomingRbtVel.twist = rbtOdomMsg->twist.twist;
+            geometry_msgs::Vector3Stamped rbtVelOdomFrame, rbtVelRbtFrame;
+            rbtVelOdomFrame.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
+            rbtVelOdomFrame.vector = rbtOdomMsg->twist.twist.linear;
+            // rbtVelOdomFrame.twist = rbtOdomMsg->twist.twist;
 
-            currentRbtVel_ = incomingRbtVel;
+            // transform into robot frame
+
+            geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id, 
+                                                                                            rbtOdomMsg->header.frame_id, ros::Time(0));
+
+            ROS_INFO_STREAM("   rbtVelOdomFrame: " << rbtVelOdomFrame);
+
+            tf2::doTransform(rbtVelOdomFrame, rbtVelRbtFrame, odomFrame2RbtFrame);
+
+            ROS_INFO_STREAM("   rbtVelRbtFrame: " << rbtVelRbtFrame);
+
+            currentRbtVel_.header = rbtVelRbtFrame.header;
+            currentRbtVel_.twist.linear = rbtVelRbtFrame.vector;
+
             intermediateRbtVels_.push_back(currentRbtVel_);
 
             ROS_INFO_STREAM("   pushing back currentRbtVel_: " << currentRbtVel_);
@@ -452,101 +474,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
     }
 
-    // void Planner::egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg)
-    // {
-    //     ROS_INFO_STREAM("egoRobotOdomCB");
-
-    //     if (!haveTFs)
-    //         return;
-
-    //     try
-    //     {
-
-    //         // Transform the msg to odom frame
-    //         if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
-    //         {
-    //             // ROS_INFO_STREAM("odom msg is not in odom frame");
-    //             geometry_msgs::TransformStamped msgFrame2OdomFrame = tfBuffer_.lookupTransform(cfg_.odom_frame_id, rbtOdomMsg->header.frame_id, ros::Time(0));
-
-    //             geometry_msgs::PoseStamped rbtPoseMsgFrame, rbtPoseOdomFrame;
-    //             rbtPoseMsgFrame.header = rbtOdomMsg->header;
-    //             rbtPoseMsgFrame.pose = rbtOdomMsg->pose.pose;
-
-    //             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-
-    //             tf2::doTransform(rbtPoseMsgFrame, rbtPoseOdomFrame, msgFrame2OdomFrame);
-    //             rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
-    //         }
-    //         else
-    //         {
-    //             // ROS_INFO_STREAM("odom msg is in odom frame");
-
-    //             rbtPoseInOdomFrame_.pose = rbtOdomMsg->pose.pose;
-    //         }
-
-    //         //--------------- VELOCITY -------------------//
-    //         // velocity always comes in wrt robot frame in STDR
-    //         geometry_msgs::TwistStamped incomingRbtVel;
-    //         incomingRbtVel.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
-    //         // incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
-    //         incomingRbtVel.twist = rbtOdomMsg->twist.twist;
-
-    //         currentRbtVel_ = incomingRbtVel;
-    //         currentRbtAcc_ = geometry_msgs::TwistStamped();    
-    //         currentRbtAcc_.header = currentRbtVel_.header;
-
-    //         intermediateRbtVels_.push_back(currentRbtVel_);
-
-    //         // deleting old sensor measurements already used in an update
-    //         for (int i = 0; i < intermediateRbtVels_.size(); i++)
-    //         {
-    //             if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
-    //             {
-    //                 intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
-    //                 i--;
-    //             }
-    //         }
-    //     } catch (...)
-    //     {
-    //         ROS_WARN_STREAM_NAMED("Planner", "egoRobotOdomCB failed");
-    //     }
-    // }
-
-    // void Planner::egoRobotAccCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
-    // {
-    //     try
-    //     {
-    //         // ROS_INFO_STREAM("joint pose acc cb");
-
-    //         // ROS_INFO_STREAM("accel time stamp: " << rbtAccelMsg->header.stamp.toSec());
-    //         currentRbtAcc_ = *rbtAccelMsg;
-    //         intermediateRbtAccs_.push_back(currentRbtAcc_);
-
-    //         // deleting old sensor measurements already used in an update
-    //         for (int i = 0; i < intermediateRbtAccs_.size(); i++)
-    //         {
-    //             if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
-    //             {
-    //                 intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
-    //                 i--;
-    //             }
-    //         }    
-
-    //         // ROS_INFO_STREAM("odom time stamp: " << rbtOdomMsg->header.stamp.toSec());
-
-    //         // ROS_INFO_STREAM("acc - odom time difference: " << (rbtAccelMsg->header.stamp - rbtOdomMsg->header.stamp).toSec());
-
-
-    //     } catch (...)
-    //     {
-    //         ROS_WARN_STREAM_NAMED("Planner", "egoRobotAccCB failed");
-    //     }
-    // }
-    
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
     {
         // ROS_INFO_STREAM("pedOdomCB()");        
         
+        // TODO: check frames in this
+
         if (!haveTFs)
             return;
 
