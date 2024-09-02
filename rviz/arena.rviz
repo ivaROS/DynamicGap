@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Dynamic Gap1
         - /Dynamic Gap1/Marker1
         - /Dynamic Gap1/Marker3
         - /Dynamic Gap1/PoseArray2
@@ -249,6 +248,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
+        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -389,7 +389,7 @@ Visualization Manager:
           Topic: /rto/curr_exec_dg_traj
           Unreliable: false
           Value: true
-      Enabled: true
+      Enabled: false
       Name: Dynamic Gap
     - Alpha: 1
       Class: rviz/Axes
@@ -409,6 +409,167 @@ Visualization Manager:
       Reference Frame: odom
       Show Trail: false
       Value: true
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /rto/goals
+          Name: Marker
+          Namespaces:
+            local_goal: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /rto/po_dir
+          Name: Marker
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/all_traj_vis
+          Name: MarkerArray
+          Namespaces:
+            allTraj: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/gap_goals
+          Name: MarkerArray
+          Namespaces:
+            gap_goal: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/gaps
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/other_ni_traj
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/pg_arcs
+          Name: MarkerArray
+          Namespaces:
+            fin: true
+            raw: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/pg_markers
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /rto/pg_sides
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/sel_gaps
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/traj_score
+          Name: MarkerArray
+          Namespaces:
+            trajScore: true
+          Queue Size: 100
+          Value: true
+        - Alpha: 1
+          Arrow Length: 0.30000001192092896
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.009999999776482582
+          Class: rviz/PoseArray
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.07000000029802322
+          Head Radius: 0.029999999329447746
+          Name: PoseArray
+          Queue Size: 10
+          Shaft Length: 0.23000000417232513
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow (Flat)
+          Topic: /rto/goal_select_traj
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Arrow Length: 0.30000001192092896
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.009999999776482582
+          Class: rviz/PoseArray
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.07000000029802322
+          Head Radius: 0.029999999329447746
+          Name: PoseArray
+          Queue Size: 10
+          Shaft Length: 0.23000000417232513
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow (Flat)
+          Topic: /rto/ni_traj
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Arrow Length: 0.30000001192092896
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.009999999776482582
+          Class: rviz/PoseArray
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.07000000029802322
+          Head Radius: 0.029999999329447746
+          Name: PoseArray
+          Queue Size: 10
+          Shaft Length: 0.23000000417232513
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow (Flat)
+          Topic: /rto/pg_traj
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Arrow Length: 0.30000001192092896
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.009999999776482582
+          Class: rviz/PoseArray
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.07000000029802322
+          Head Radius: 0.029999999329447746
+          Name: PoseArray
+          Queue Size: 10
+          Shaft Length: 0.23000000417232513
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow (Flat)
+          Topic: /rto/relevant_traj
+          Unreliable: false
+          Value: true
+      Enabled: true
+      Name: Potential Gap
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -446,10 +607,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 23.573265075683594
+      Scale: 65.9708023071289
       Target Frame: <Fixed Frame>
-      X: 16.107894897460938
-      Y: 9.98460865020752
+      X: 13.643122673034668
+      Y: 9.465786933898926
     Saved: ~
 Window Geometry:
   Displays:

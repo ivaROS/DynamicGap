@@ -105,8 +105,7 @@ namespace dynamic_gap
         scan.range_max = incomingScan.range_max; // this is the maximum possible range, not the max range within a particular scan
         scan.range_min = incomingScan.range_min;
 
-        ROS_INFO_STREAM("scan.angle_increment: " << scan.angle_increment);
-
+        // ROS_INFO_STREAM("scan.angle_increment: " << scan.angle_increment);
     }
 
 }
