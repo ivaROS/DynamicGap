@@ -420,6 +420,7 @@ namespace dynamic_gap
         Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
 
         // set target velocity to mean of left and right gap points
+        // TODO: correct this to be a proper convex combination
         Eigen::Vector2f v_target = (leftGapState.tail(2) + rightGapState.tail(2)) / 2.;
 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       p_target: " << p_target.transpose()); 
