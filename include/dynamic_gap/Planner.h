@@ -312,7 +312,8 @@ namespace dynamic_gap
 
         ros::NodeHandle nh_; /**< ROS node handle for local path planner */
         ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
-        // ros::Publisher staticScanPublisher_;
+
+        ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
 
         geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
         geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
@@ -346,6 +347,11 @@ namespace dynamic_gap
 
         int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
         int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
+
+        dynamic_gap::Estimator * currentLeftGapPtModel = nullptr; /**< Model for estimator of current gap's left point */
+        dynamic_gap::Estimator * currentRightGapPtModel = nullptr; /**< Model for estimator of current gap's right point */
+
+        float currentTIntercept_ = 0.0;
 
         int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
