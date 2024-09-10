@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Map1
         - /Dynamic Gap1/Marker1
         - /Dynamic Gap1/Marker3
         - /Dynamic Gap1/PoseArray2
@@ -34,7 +35,7 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.6000000238418579
+    - Alpha: 1
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: true
@@ -624,10 +625,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 63.73825454711914
+      Scale: 47.12932205200195
       Target Frame: <Fixed Frame>
-      X: 15.099382400512695
-      Y: 3.7671759128570557
+      X: 11.900096893310547
+      Y: 12.85888385772705
     Saved: ~
 Window Geometry:
   Displays:

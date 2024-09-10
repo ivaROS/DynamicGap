@@ -3,10 +3,10 @@ classdef ROS_MPC < handle
     %   Detailed explanation goes here
     
     properties
-        xr
-        vmax = 1
-        amax = 5
-        dt = 0.5
+        % xr
+        vmax = 1.0 % m / s
+        amax = 5.0 % m / s / s
+        dt = 0.5 % s
 
         vel_pub
         traj_sub
@@ -38,46 +38,73 @@ classdef ROS_MPC < handle
             %get array length
             num = length(msg.Poses);
 
-            vi = [msg.Poses(1).Position.X, msg.Poses(1).Position.Y]
-            p0 = [msg.Poses(2).Position.X, msg.Poses(2).Position.Y]
-            p1 = [msg.Poses(3).Position.X, msg.Poses(3).Position.Y]
-            p2 = [msg.Poses(4).Position.X, msg.Poses(4).Position.Y]
+            %%%%%%%%%%%%%%%%%%%%%%
+            %  p_left   p_right  %
+            %     o       o      %
+            %      \     /       %
+            %       \   /        %
+            %        \ /         %
+            %         o          %
+            %     p_center       %
+            %%%%%%%%%%%%%%%%%%%%%%
+
+            vi = [msg.Poses(1).Position.X, msg.Poses(1).Position.Y];
+            p_center = [msg.Poses(2).Position.X, msg.Poses(2).Position.Y];
+            p_right = [msg.Poses(3).Position.X, msg.Poses(3).Position.Y];
+            p_left = [msg.Poses(4).Position.X, msg.Poses(4).Position.Y];
 
             N = num - 4 - 1;
             xr = zeros(N+1, 2);
             
-            k = 1;
+            k = 5;
             for i = 1:(N+1)
                 xr(i,:) = [msg.Poses(k).Position.X, msg.Poses(k).Position.Y];
                 k = k + 1;
             end
 
-            [x1,x2,v1,v2,u1,u2] = self.run_mpc(xr, vi, self.dt, self.vmax, self.amax, p0, p1, p2);
+            [x1,x2,v1,v2,u1,u2, exitflag] = self.run_mpc(xr, vi, self.dt, self.vmax, self.amax, p_center, p_right, p_left);
             
-            poseArrayMsg = rosmessage(self.vel_pub);            
-            poseMsg = rosmessage("geometry_msgs/Pose" ,"DataFormat","struct");
+            [x1, x2, v1, v2, xr]
 
-            for i = 1:(N+1)
-                poseMsg.Position.X = v1(i);
-                poseMsg.Position.Y = v2(i);
-                poseMsg.Position.Z = 0;
-
-                poseMsg
-
-                poseArrayMsg.Poses(i) = poseMsg; 
+            if (exitflag >= 0)
+                poseArrayMsg = rosmessage(self.vel_pub);            
+                poseMsg = rosmessage("geometry_msgs/Pose" ,"DataFormat","struct");
+    
+                for i = 1:(N+1)
+                    poseMsg.Position.X = v1(i);
+                    poseMsg.Position.Y = v2(i);
+                    poseMsg.Position.Z = 0;
+    
+                    % poseMsg
+    
+                    poseArrayMsg.Poses(i) = poseMsg; 
+                end
+    
+                % poseArrayMsg
+    
+                send(self.vel_pub,poseArrayMsg);
             end
-
-            poseArrayMsg
-
-            send(self.vel_pub,poseArrayMsg);
             
         end
         
         %==========================================================
         %==========================================================
         %==========================================================
-        function [x1,x2,v1,v2,u1,u2] = run_mpc(self, xr, vi, dt, vmax, amax, p0, p1, p2)
+        function [x1,x2,v1,v2,u1,u2, exitflag] = run_mpc(self, xr, vi, dt, vmax, amax, p_center, p_right, p_left)
         
+        disp("[run_mpc()]");
+
+        p_center
+        p_left
+        p_right
+
+        vmax
+        amax
+        vi
+        dt
+        
+        xr
+
         % dimensions
         n = 4;
         m = 2;
@@ -100,7 +127,7 @@ classdef ROS_MPC < handle
         
         Xr = [xr, [vi(1);zeros(N,1)], [vi(2);zeros(N,1)]];
         Xr_r = Xr';
-        Xr_r = Xr_r(:);
+        Xr_r = Xr_r(:)
         
         % costs
         Qi = diag([1,1,0,0])*100;
@@ -169,12 +196,12 @@ classdef ROS_MPC < handle
         
         
         % get inequality constraints
-        % p0 = [0, -1];
-        % p1 = [1, 1];
-        % p2 = [-1, 1];
+        % p_center = [0, -1];
+        % p_right = [1, 1];
+        % p_left = [-1, 1];
         x_ch = xr(1,:);
-        [c1, d1] = self.gen_line1(p0, p1, x_ch);
-        [c2, d2] = self.gen_line1(p0, p2, x_ch);
+        [c1, d1] = self.gen_line1(p_center, p_right, x_ch);
+        [c2, d2] = self.gen_line1(p_center, p_left, x_ch);
         
         tmpC1 = {};
         tmpC2 = {};
@@ -229,6 +256,8 @@ classdef ROS_MPC < handle
         options = optimoptions('quadprog','Algorithm','active-set');
         [sol,fval,exitflag,output,lambda] = quadprog(H,f,AA,bb,Aeq,beq,lb,ub,x0,options);
         
+        exitflag
+
         % [sol(ind_x), sol(ind_v)]
         % [sol(ind_x1), sol(ind_x2), sol(ind_v1), sol(ind_v2)]
         % 
@@ -251,8 +280,8 @@ classdef ROS_MPC < handle
         % plot_surf(c1,d1, x1, x2)
         % plot_surf(c2,d2, x1, x2)
         % 
-        % plot([p0(1), p1(1)], [p0(2), p1(2)])
-        % plot([p0(1), p2(1)], [p0(2), p2(2)])
+        % plot([p_center(1), p_right(1)], [p_center(2), p_right(2)])
+        % plot([p_center(1), p_left(1)], [p_center(2), p_left(2)])
         
         end
 

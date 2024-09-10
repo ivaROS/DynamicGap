@@ -30,10 +30,7 @@ namespace dynamic_gap
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
                 float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
                 float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 1.0; /**< Maximum angular speed for robot */
-                float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
-                float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
-                float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */                
+                float vang_absmax = 1.0; /**< Maximum angular speed for robot */            
             } rbt;
 
             /**
@@ -83,8 +80,8 @@ namespace dynamic_gap
             {
                 // only ONE of these should be true
                 bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
-                bool mpc_ctrl = true; /**< Flag for enacting MPC control */
-                bool feedback_ctrl = false; /**< Flag for enacting feedback control */
+                bool mpc_ctrl = false; /**< Flag for enacting MPC control */
+                bool feedback_ctrl = true; /**< Flag for enacting feedback control */
             } ctrl;
 
             /**

@@ -33,9 +33,6 @@ namespace dynamic_gap
             nh.param("max_vel_x",rbt.vx_absmax, rbt.vx_absmax);
             nh.param("max_vel_y",rbt.vy_absmax, rbt.vy_absmax);
             nh.param("max_vel_theta", rbt.vang_absmax, rbt.vang_absmax);
-            nh.param("acc_lim_x",rbt.ax_absmax, rbt.ax_absmax);
-            nh.param("acc_lim_x",rbt.ay_absmax, rbt.ay_absmax);
-            nh.param("acc_lim_theta", rbt.aang_absmax, rbt.aang_absmax);
 
             // Environment
             // nh.param("num_agents", env.num_agents, env.num_agents);

@@ -1290,20 +1290,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // take opposite direction and scale by r_min
             Eigen::Vector2f terminalRadialPt = - currentMinSafeDist_ * centralBearingVect;
 
-            geometry_msgs::Pose terminalLeftPtAsPose;
-            terminalLeftPtAsPose.position.x = terminalLeftPt[0];
-            terminalLeftPtAsPose.position.y = terminalLeftPt[1];
-            mpcInput.poses.push_back(terminalLeftPtAsPose);
+            geometry_msgs::Pose terminalRadialPtAsPose;
+            terminalRadialPtAsPose.position.x = terminalRadialPt[0];
+            terminalRadialPtAsPose.position.y = terminalRadialPt[1];
+            mpcInput.poses.push_back(terminalRadialPtAsPose);
 
             geometry_msgs::Pose terminalRightPtAsPose;
             terminalRightPtAsPose.position.x = terminalRightPt[0];
             terminalRightPtAsPose.position.y = terminalRightPt[1];
             mpcInput.poses.push_back(terminalRightPtAsPose);
 
-            geometry_msgs::Pose terminalRadialPtAsPose;
-            terminalRadialPtAsPose.position.x = terminalRadialPt[0];
-            terminalRadialPtAsPose.position.y = terminalRadialPt[1];
-            mpcInput.poses.push_back(terminalRadialPtAsPose);
+            geometry_msgs::Pose terminalLeftPtAsPose;
+            terminalLeftPtAsPose.position.x = terminalLeftPt[0];
+            terminalLeftPtAsPose.position.y = terminalLeftPt[1];
+            mpcInput.poses.push_back(terminalLeftPtAsPose);            
 
             // trajectory
             for (int k = 0; k < chosenTraj.getPathRbtFrame().poses.size(); k++)
