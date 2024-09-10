@@ -9,6 +9,7 @@ Panels:
         - /Dynamic Gap1/PoseArray2
         - /Axes1
         - /Axes2
+        - /PoseArray1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -311,7 +312,7 @@ Visualization Manager:
           Marker Topic: /rto/manip_gaps
           Name: Marker
           Namespaces:
-            {}
+            manip: true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -319,7 +320,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            {}
+            gap_goal: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -327,7 +328,7 @@ Visualization Manager:
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            {}
+            allTraj: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -335,7 +336,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_models
           Name: MarkerArray
           Namespaces:
-            {}
+            gap_models: true
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -389,7 +390,7 @@ Visualization Manager:
           Topic: /rto/curr_exec_dg_traj
           Unreliable: false
           Value: true
-      Enabled: false
+      Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
       Class: rviz/Axes
@@ -416,7 +417,7 @@ Visualization Manager:
           Marker Topic: /rto/goals
           Name: Marker
           Namespaces:
-            local_goal: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -424,7 +425,7 @@ Visualization Manager:
           Marker Topic: /rto/po_dir
           Name: Marker
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -432,7 +433,7 @@ Visualization Manager:
           Marker Topic: /rto/all_traj_vis
           Name: MarkerArray
           Namespaces:
-            allTraj: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -440,7 +441,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_goals
           Name: MarkerArray
           Namespaces:
-            gap_goal: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -464,8 +465,7 @@ Visualization Manager:
           Marker Topic: /rto/pg_arcs
           Name: MarkerArray
           Namespaces:
-            fin: true
-            raw: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -497,7 +497,7 @@ Visualization Manager:
           Marker Topic: /rto/traj_score
           Name: MarkerArray
           Namespaces:
-            trajScore: true
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -568,8 +568,25 @@ Visualization Manager:
           Topic: /rto/relevant_traj
           Unreliable: false
           Value: true
-      Enabled: true
+      Enabled: false
       Name: Potential Gap
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 114; 159; 207
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /rto/mpc_input
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -607,10 +624,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 65.9708023071289
+      Scale: 63.73825454711914
       Target Frame: <Fixed Frame>
-      X: 13.643122673034668
-      Y: 9.465786933898926
+      X: 15.099382400512695
+      Y: 3.7671759128570557
     Saved: ~
 Window Geometry:
   Displays:

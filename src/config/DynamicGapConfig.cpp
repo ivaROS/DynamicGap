@@ -51,7 +51,7 @@ namespace dynamic_gap
             nh.param("future_scan_propagation", planning.future_scan_propagation, planning.future_scan_propagation);
 
             // Manual Control
-            nh.param("man_ctrl", man.man_ctrl, man.man_ctrl);
+            nh.param("man_ctrl", ctrl.man_ctrl, ctrl.man_ctrl);
 
             // Goal Param
             nh.param("xy_goal_tolerance", goal.goal_tolerance, goal.goal_tolerance);

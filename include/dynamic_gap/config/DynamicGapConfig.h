@@ -79,10 +79,13 @@ namespace dynamic_gap
             /**
             * \brief Hyperparameters for manual teleoperation control
             */
-            struct ManualControl 
+            struct Control 
             {
+                // only ONE of these should be true
                 bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
-            } man;
+                bool mpc_ctrl = true; /**< Flag for enacting MPC control */
+                bool feedback_ctrl = false; /**< Flag for enacting feedback control */
+            } ctrl;
 
             /**
             * \brief Hyperparameters for navigation goal

@@ -114,6 +114,9 @@ namespace dynamic_gap
         // Visualization Setup
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
 
+        mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
+        mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
+
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
         rbt2odom_.transform.rotation.w = 1;
@@ -139,8 +142,6 @@ namespace dynamic_gap
         return true;
     }
 
-
-
     bool Planner::isGoalReached()
     {
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
@@ -160,6 +161,29 @@ namespace dynamic_gap
                                              ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
         return reachedGlobalGoal;
+    }
+
+    void Planner::mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput)
+    {
+        if (mpcOutput->poses.size() == 0)
+        {
+            ROS_WARN_STREAM("MPC output length zero");
+            return;
+        }
+
+        if (mpcOutput->poses.size() > 1)
+        {
+            // first entry is initial condition
+
+            // second entry should be what we want
+            geometry_msgs::Twist dummyTwist;
+            dummyTwist.linear.x = mpcOutput->poses[1].position.x;
+            dummyTwist.linear.y = mpcOutput->poses[1].position.y;
+            mpcTwist_ = dummyTwist;
+        } else
+        {
+            ROS_WARN_STREAM("MPC output length one");
+        }
     }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan)
@@ -889,11 +913,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                              const dynamic_gap::Trajectory & incomingTraj, 
                                                              const bool & switchToIncoming) 
     {
+        publishToMpc_ = true;
+        
         if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
             setCurrentLeftGapPtModelID(incomingGap->leftGapPtModel_);
             setCurrentRightGapPtModelID(incomingGap->rightGapPtModel_);
+            currentInterceptTime_ = incomingGap->t_intercept;
+            currentMinSafeDist_ = incomingGap->minSafeDist_;
+
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
@@ -908,6 +937,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             setCurrentTraj(emptyTraj);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
+            currentInterceptTime_ = 0.0;
+            currentMinSafeDist_ = 0.0;
+
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
@@ -1227,6 +1259,59 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison average time: " << avgCompareToCurrentTrajTimeTaken << " seconds (" << (1.0 / avgCompareToCurrentTrajTimeTaken) << " Hz) ]");
         } 
 
+        // publish for safety module
+        if (publishToMpc_)
+        {    
+            publishToMpc_ = false;
+            geometry_msgs::PoseArray mpcInput;
+            mpcInput.header = chosenTraj.getPathRbtFrame().header;
+            
+            // current rbt vel
+            geometry_msgs::Pose currentRbtVelAsPose;
+            currentRbtVelAsPose.position.x = currentRbtVel_.twist.linear.x;
+            currentRbtVelAsPose.position.y = currentRbtVel_.twist.linear.y;
+            mpcInput.poses.push_back(currentRbtVelAsPose);
+
+            // three slice points            
+
+            // where to get t_intercept
+            Eigen::Vector2f terminalLeftPt = currentLeftGapPtState.head(2) + currentLeftGapPtState.tail(2) * currentInterceptTime_;
+            Eigen::Vector2f terminalRightPt = currentRightGapPtState.head(2) + currentRightGapPtState.tail(2) * currentInterceptTime_;
+
+            // get center bearing
+            Eigen::Vector2f terminalLeftBearingVect = terminalLeftPt / terminalLeftPt.norm();
+            float terminalThetaLeft = std::atan2(terminalLeftPt[1], terminalLeftPt[0]);
+            Eigen::Vector2f terminalRightBearingVect = terminalRightPt / terminalRightPt.norm();
+            float leftToRightAngle = getSweptLeftToRightAngle(terminalLeftBearingVect, terminalRightBearingVect);
+            float thetaCenter = (terminalThetaLeft - 0.5 * leftToRightAngle);
+
+            Eigen::Vector2f centralBearingVect(std::cos(thetaCenter), std::sin(thetaCenter));
+                    
+            // take opposite direction and scale by r_min
+            Eigen::Vector2f terminalRadialPt = - currentMinSafeDist_ * centralBearingVect;
+
+            geometry_msgs::Pose terminalLeftPtAsPose;
+            terminalLeftPtAsPose.position.x = terminalLeftPt[0];
+            terminalLeftPtAsPose.position.y = terminalLeftPt[1];
+            mpcInput.poses.push_back(terminalLeftPtAsPose);
+
+            geometry_msgs::Pose terminalRightPtAsPose;
+            terminalRightPtAsPose.position.x = terminalRightPt[0];
+            terminalRightPtAsPose.position.y = terminalRightPt[1];
+            mpcInput.poses.push_back(terminalRightPtAsPose);
+
+            geometry_msgs::Pose terminalRadialPtAsPose;
+            terminalRadialPtAsPose.position.x = terminalRadialPt[0];
+            terminalRadialPtAsPose.position.y = terminalRadialPt[1];
+            mpcInput.poses.push_back(terminalRadialPtAsPose);
+
+            // trajectory
+            for (int k = 0; k < chosenTraj.getPathRbtFrame().poses.size(); k++)
+                mpcInput.poses.push_back(chosenTraj.getPathRbtFrame().poses[k]);
+
+            mpcInputPublisher_.publish(mpcInput);
+        }
+
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        
 
@@ -1257,17 +1342,19 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         try
         {
-
-            if (cfg_.man.man_ctrl)  // MANUAL CONTROL 
-            {
-                ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
-                rawCmdVel = trajController_->manualControlLaw();
-            } else if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+            if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
                 rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 return rawCmdVel;
-            } else // FEEDBACK CONTROL 
+            } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
+            {
+                ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
+                rawCmdVel = trajController_->manualControlLaw();
+            } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
+            { 
+                rawCmdVel = mpcTwist_;
+            } else if (cfg_.ctrl.feedback_ctrl) // FEEDBACK CONTROL 
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
 
@@ -1295,6 +1382,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
                 ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");
                 ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
+            } else
+            {
+                throw std::runtime_error("No control method selected");
             }
 
             std::chrono::steady_clock::time_point projOpStartTime = std::chrono::steady_clock::now();
@@ -1325,6 +1415,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
+      
+            leftModel->isolateGapDynamics();
+            currentLeftGapPtState = leftModel->getGapState(); 
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
@@ -1338,6 +1431,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {        
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
             currentRightGapPtModelID = rightModel->getID();
+
+            rightModel->isolateGapDynamics();
+            currentRightGapPtState = rightModel->getGapState();             
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
@@ -1394,12 +1490,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
         
-        if (!keepPlanning && !cfg_.man.man_ctrl) 
+        if (!keepPlanning && !cfg_.ctrl.man_ctrl) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             reset();
         }
-        return keepPlanning || cfg_.man.man_ctrl;
+        return keepPlanning || cfg_.ctrl.man_ctrl;
     }
 
     // 0: gap detection

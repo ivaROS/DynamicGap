@@ -172,6 +172,8 @@ namespace dynamic_gap
             */
             void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
+            void mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput);
+
             /**
             * \brief Call back function to robot laser scan
             * \param scan incoming laser scan msg
@@ -328,7 +330,9 @@ namespace dynamic_gap
 
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
             ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
-            // ros::Publisher staticScanPublisher_;
+
+            ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
+            ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
@@ -384,6 +388,14 @@ namespace dynamic_gap
             int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
             int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 
+            Eigen::Vector4f currentLeftGapPtState; /**< State for estimator of current gap's left point */
+            Eigen::Vector4f currentRightGapPtState; /**< State for estimator of current gap's right point */
+
+            float currentInterceptTime_ = 0.0;
+            float currentMinSafeDist_ = 0.0;
+
+            bool publishToMpc_ = false;
+
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
             ros::Time tPreviousModelUpdate_; /**< ROS time step of previous gap point model update */
@@ -398,6 +410,8 @@ namespace dynamic_gap
             // Scans
             // sensor_msgs::LaserScan staticScan_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
+
+            geometry_msgs::Twist mpcTwist_;
 
             // Agents
 
