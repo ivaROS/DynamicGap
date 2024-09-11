@@ -156,9 +156,9 @@ namespace dynamic_gap
         
         if (reachedGlobalGoal)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
-        else
-            ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
-                                             ", Goal tolerance: " << cfg_.goal.goal_tolerance);
+        // else
+        //     ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
+        //                                      ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
         return reachedGlobalGoal;
     }
@@ -423,9 +423,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // acceleration coming in wrt rto/base_link frame
 
-        ROS_INFO_STREAM("   rbtOdomMsg: " << *rbtOdomMsg);
+        // ROS_INFO_STREAM("   rbtOdomMsg: " << *rbtOdomMsg);
 
-        ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
+        // ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
 
 
         if (!haveTFs)
@@ -437,7 +437,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             currentRbtAcc_ = *rbtAccelMsg;
             intermediateRbtAccs_.push_back(currentRbtAcc_);
 
-            ROS_INFO_STREAM("   pushing back currentRbtAcc_: " << currentRbtAcc_);
+            // ROS_INFO_STREAM("   pushing back currentRbtAcc_: " << currentRbtAcc_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtAccs_.size(); i++)
@@ -458,7 +458,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             rbtPoseOdomFrame.pose = rbtOdomMsg->pose.pose;
             rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
 
-            ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
+            // ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
 
             //--------------- VELOCITY -------------------//
             // assuming velocity always comes in wrt robot frame
@@ -472,18 +472,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id, 
                                                                                             rbtOdomMsg->header.frame_id, ros::Time(0));
 
-            ROS_INFO_STREAM("   rbtVelOdomFrame: " << rbtVelOdomFrame);
+            // ROS_INFO_STREAM("   rbtVelOdomFrame: " << rbtVelOdomFrame);
 
             tf2::doTransform(rbtVelOdomFrame, rbtVelRbtFrame, odomFrame2RbtFrame);
 
-            ROS_INFO_STREAM("   rbtVelRbtFrame: " << rbtVelRbtFrame);
+            // ROS_INFO_STREAM("   rbtVelRbtFrame: " << rbtVelRbtFrame);
 
             currentRbtVel_.header = rbtVelRbtFrame.header;
             currentRbtVel_.twist.linear = rbtVelRbtFrame.vector;
 
             intermediateRbtVels_.push_back(currentRbtVel_);
 
-            ROS_INFO_STREAM("   pushing back currentRbtVel_: " << currentRbtVel_);
+            // ROS_INFO_STREAM("   pushing back currentRbtVel_: " << currentRbtVel_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)
@@ -695,11 +695,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 if (success)
                 {
                     ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
-
-                    // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
-                    gapManipulator_->setGapGoal(planningGaps.at(i), 
-                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                                                globalGoalRobotFrame_);
                     
                     // MANIPULATE POINTS AT T=1
                     // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
@@ -920,8 +915,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             setCurrentTraj(incomingTraj);
             setCurrentLeftGapPtModelID(incomingGap->leftGapPtModel_);
             setCurrentRightGapPtModelID(incomingGap->rightGapPtModel_);
-            currentInterceptTime_ = incomingGap->t_intercept;
-            currentMinSafeDist_ = incomingGap->minSafeDist_;
+            // currentInterceptTime_ = incomingGap->t_intercept;
+            // currentMinSafeDist_ = incomingGap->minSafeDist_;
 
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
@@ -937,8 +932,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             setCurrentTraj(emptyTraj);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
-            currentInterceptTime_ = 0.0;
-            currentMinSafeDist_ = 0.0;
+            // currentInterceptTime_ = 0.0;
+            // currentMinSafeDist_ = 0.0;
 
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
@@ -1191,6 +1186,44 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
+        
+        ///////////////////////
+        // GAP GOAL CREATION //
+        ///////////////////////
+
+        for (size_t i = 0; i < manipulatedGaps.size(); i++) 
+        {
+            gapManipulator_->setGapGoal(manipulatedGaps.at(i), 
+                                        globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                        globalGoalRobotFrame_);
+        }
+
+        /*
+            // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
+            gapManipulator_->setGapGoal(planningGaps.at(i), 
+                                        globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                        globalGoalRobotFrame_);
+
+            Eigen::Vector2f terminalGoal = p_target + v_target * gap->t_intercept;
+
+            // clip at scan
+            float terminalGoalTheta = std::atan2(terminalGoal[1], terminalGoal[0]);
+            int terminalGoalScanIdx = theta2idx(terminalGoalTheta);
+
+            // if terminal goal lives beyond scan
+            if (scan_->ranges.at(terminalGoalScanIdx) < (terminalGoal.norm() + cfg_->traj.max_pose_to_scan_dist))
+            {
+                float newTerminalGoalRange = scan_->ranges.at(terminalGoalScanIdx) - cfg_->traj.max_pose_to_scan_dist;
+                terminalGoal << newTerminalGoalRange * std::cos(terminalGoalTheta),
+                                newTerminalGoalRange * std::sin(terminalGoalTheta);
+            }
+
+
+            gap->setTerminalGoal(terminalGoal);
+
+        */
+        
+        
         goalVisualizer_->drawGapGoals(manipulatedGaps);
 
         gapCount = feasibleGaps.size();
@@ -1260,57 +1293,57 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         } 
 
         // publish for safety module
-        if (publishToMpc_)
-        {    
-            publishToMpc_ = false;
-            geometry_msgs::PoseArray mpcInput;
-            mpcInput.header = chosenTraj.getPathRbtFrame().header;
+        // if (publishToMpc_)
+        // {    
+        //     publishToMpc_ = false;
+        //     geometry_msgs::PoseArray mpcInput;
+        //     mpcInput.header = chosenTraj.getPathRbtFrame().header;
             
-            // current rbt vel
-            geometry_msgs::Pose currentRbtVelAsPose;
-            currentRbtVelAsPose.position.x = currentRbtVel_.twist.linear.x;
-            currentRbtVelAsPose.position.y = currentRbtVel_.twist.linear.y;
-            mpcInput.poses.push_back(currentRbtVelAsPose);
+        //     // current rbt vel
+        //     geometry_msgs::Pose currentRbtVelAsPose;
+        //     currentRbtVelAsPose.position.x = currentRbtVel_.twist.linear.x;
+        //     currentRbtVelAsPose.position.y = currentRbtVel_.twist.linear.y;
+        //     mpcInput.poses.push_back(currentRbtVelAsPose);
 
-            // three slice points            
+        //     // three slice points            
 
-            // where to get t_intercept
-            Eigen::Vector2f terminalLeftPt = currentLeftGapPtState.head(2) + currentLeftGapPtState.tail(2) * currentInterceptTime_;
-            Eigen::Vector2f terminalRightPt = currentRightGapPtState.head(2) + currentRightGapPtState.tail(2) * currentInterceptTime_;
+        //     // where to get t_intercept
+        //     Eigen::Vector2f terminalLeftPt = currentLeftGapPtState.head(2) + currentLeftGapPtState.tail(2) * currentInterceptTime_;
+        //     Eigen::Vector2f terminalRightPt = currentRightGapPtState.head(2) + currentRightGapPtState.tail(2) * currentInterceptTime_;
 
-            // get center bearing
-            Eigen::Vector2f terminalLeftBearingVect = terminalLeftPt / terminalLeftPt.norm();
-            float terminalThetaLeft = std::atan2(terminalLeftPt[1], terminalLeftPt[0]);
-            Eigen::Vector2f terminalRightBearingVect = terminalRightPt / terminalRightPt.norm();
-            float leftToRightAngle = getSweptLeftToRightAngle(terminalLeftBearingVect, terminalRightBearingVect);
-            float thetaCenter = (terminalThetaLeft - 0.5 * leftToRightAngle);
+        //     // get center bearing
+        //     Eigen::Vector2f terminalLeftBearingVect = terminalLeftPt / terminalLeftPt.norm();
+        //     float terminalThetaLeft = std::atan2(terminalLeftPt[1], terminalLeftPt[0]);
+        //     Eigen::Vector2f terminalRightBearingVect = terminalRightPt / terminalRightPt.norm();
+        //     float leftToRightAngle = getSweptLeftToRightAngle(terminalLeftBearingVect, terminalRightBearingVect);
+        //     float thetaCenter = (terminalThetaLeft - 0.5 * leftToRightAngle);
 
-            Eigen::Vector2f centralBearingVect(std::cos(thetaCenter), std::sin(thetaCenter));
+        //     Eigen::Vector2f centralBearingVect(std::cos(thetaCenter), std::sin(thetaCenter));
                     
-            // take opposite direction and scale by r_min
-            Eigen::Vector2f terminalRadialPt = - currentMinSafeDist_ * centralBearingVect;
+        //     // take opposite direction and scale by r_min
+        //     Eigen::Vector2f terminalRadialPt = - currentMinSafeDist_ * centralBearingVect;
 
-            geometry_msgs::Pose terminalRadialPtAsPose;
-            terminalRadialPtAsPose.position.x = terminalRadialPt[0];
-            terminalRadialPtAsPose.position.y = terminalRadialPt[1];
-            mpcInput.poses.push_back(terminalRadialPtAsPose);
+        //     geometry_msgs::Pose terminalRadialPtAsPose;
+        //     terminalRadialPtAsPose.position.x = terminalRadialPt[0];
+        //     terminalRadialPtAsPose.position.y = terminalRadialPt[1];
+        //     mpcInput.poses.push_back(terminalRadialPtAsPose);
 
-            geometry_msgs::Pose terminalRightPtAsPose;
-            terminalRightPtAsPose.position.x = terminalRightPt[0];
-            terminalRightPtAsPose.position.y = terminalRightPt[1];
-            mpcInput.poses.push_back(terminalRightPtAsPose);
+        //     geometry_msgs::Pose terminalRightPtAsPose;
+        //     terminalRightPtAsPose.position.x = terminalRightPt[0];
+        //     terminalRightPtAsPose.position.y = terminalRightPt[1];
+        //     mpcInput.poses.push_back(terminalRightPtAsPose);
 
-            geometry_msgs::Pose terminalLeftPtAsPose;
-            terminalLeftPtAsPose.position.x = terminalLeftPt[0];
-            terminalLeftPtAsPose.position.y = terminalLeftPt[1];
-            mpcInput.poses.push_back(terminalLeftPtAsPose);            
+        //     geometry_msgs::Pose terminalLeftPtAsPose;
+        //     terminalLeftPtAsPose.position.x = terminalLeftPt[0];
+        //     terminalLeftPtAsPose.position.y = terminalLeftPt[1];
+        //     mpcInput.poses.push_back(terminalLeftPtAsPose);            
 
-            // trajectory
-            for (int k = 0; k < chosenTraj.getPathRbtFrame().poses.size(); k++)
-                mpcInput.poses.push_back(chosenTraj.getPathRbtFrame().poses[k]);
+        //     // trajectory
+        //     for (int k = 0; k < chosenTraj.getPathRbtFrame().poses.size(); k++)
+        //         mpcInput.poses.push_back(chosenTraj.getPathRbtFrame().poses[k]);
 
-            mpcInputPublisher_.publish(mpcInput);
-        }
+        //     mpcInputPublisher_.publish(mpcInput);
+        // }
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        

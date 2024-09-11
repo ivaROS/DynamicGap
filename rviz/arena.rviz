@@ -5,12 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Map1
+        - /Dynamic Gap1
         - /Dynamic Gap1/Marker1
         - /Dynamic Gap1/Marker3
         - /Dynamic Gap1/PoseArray2
-        - /Axes1
-        - /Axes2
-        - /PoseArray1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -391,6 +389,23 @@ Visualization Manager:
           Topic: /rto/curr_exec_dg_traj
           Unreliable: false
           Value: true
+        - Alpha: 1
+          Arrow Length: 0.30000001192092896
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.009999999776482582
+          Class: rviz/PoseArray
+          Color: 114; 159; 207
+          Enabled: true
+          Head Length: 0.07000000029802322
+          Head Radius: 0.029999999329447746
+          Name: PoseArray
+          Queue Size: 10
+          Shaft Length: 0.23000000417232513
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow (Flat)
+          Topic: /rto/mpc_input
+          Unreliable: false
+          Value: true
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -571,22 +586,21 @@ Visualization Manager:
           Value: true
       Enabled: false
       Name: Potential Gap
-    - Alpha: 1
-      Arrow Length: 0.30000001192092896
-      Axes Length: 0.30000001192092896
-      Axes Radius: 0.009999999776482582
-      Class: rviz/PoseArray
-      Color: 114; 159; 207
+    - Class: rviz/Marker
       Enabled: true
-      Head Length: 0.07000000029802322
-      Head Radius: 0.029999999329447746
-      Name: PoseArray
-      Queue Size: 10
-      Shaft Length: 0.23000000417232513
-      Shaft Radius: 0.009999999776482582
-      Shape: Arrow (Flat)
-      Topic: /rto/mpc_input
-      Unreliable: false
+      Marker Topic: /rto/trajectory_switch
+      Name: Marker
+      Namespaces:
+        traj_switch_count: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /rto/planning_loop_idx
+      Name: Marker
+      Namespaces:
+        planning_loop_idx: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -625,10 +639,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 47.12932205200195
+      Scale: 57.428646087646484
       Target Frame: <Fixed Frame>
-      X: 11.900096893310547
-      Y: 12.85888385772705
+      X: 13.104888916015625
+      Y: 16.282121658325195
     Saved: ~
 Window Geometry:
   Displays:

@@ -34,7 +34,7 @@ namespace dynamic_gap
     {
         visualization_msgs::Marker globalGoalMarker;
         globalGoalMarker.header.frame_id = globalGoalOdomFrame.header.frame_id;
-        globalGoalMarker.header.stamp = ros::Time::now();
+        globalGoalMarker.header.stamp = globalGoalOdomFrame.header.stamp;
         globalGoalMarker.ns = "global_goal";
         globalGoalMarker.id = 0;
         globalGoalMarker.type = visualization_msgs::Marker::SPHERE;
@@ -54,7 +54,7 @@ namespace dynamic_gap
     {
         visualization_msgs::Marker globalPathLocalWaypointMarker;
         globalPathLocalWaypointMarker.header.frame_id = globalPathLocalWaypoint.header.frame_id;
-        globalPathLocalWaypointMarker.header.stamp = ros::Time::now();
+        globalPathLocalWaypointMarker.header.stamp = globalPathLocalWaypoint.header.stamp;
         globalPathLocalWaypointMarker.ns = "local_goal";
         globalPathLocalWaypointMarker.id = 0;
         globalPathLocalWaypointMarker.type = visualization_msgs::Marker::SPHERE;

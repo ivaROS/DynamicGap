@@ -24,7 +24,7 @@ namespace dynamic_gap
 			lidx = gap->LIdx();
 			ridx = gap->RIdx();
 			ldist = gap->LRange();
-			rdist = gap->RDist();
+			rdist = gap->RRange();
 			ltheta = idx2theta(lidx);
 			rtheta = idx2theta(ridx);		
 

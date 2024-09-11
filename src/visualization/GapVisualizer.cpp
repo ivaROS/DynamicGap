@@ -103,7 +103,7 @@ namespace dynamic_gap
 
 
         visualization_msgs::Marker marker;
-        drawGap(marker, gaps, ns, true);
+        drawGap(marker, gaps, ns); // , true);
 
         // visualization_msgs::MarkerArray markerArray;
         // for (dynamic_gap::Gap * gap : gaps) 
@@ -121,7 +121,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
-                                const std::string & ns, const bool & initial)     
+                                const std::string & ns) // , const bool & initial)     
     {
         // ROS_INFO_STREAM("[drawGap] start");
 
@@ -142,11 +142,12 @@ namespace dynamic_gap
         float thickness = 0.05;
         marker.scale.x = thickness;     
 
-        std::string fullNamespace = ns;        
-        if (initial)
-            fullNamespace.append("_initial");
-        else
-            fullNamespace.append("_terminal");
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");     
+        // if (initial)
+        //     fullNamespace.append("_initial");
+        // else
+        //     fullNamespace.append("_terminal");
 
         // std::cout << "gap category: " << g.getCategory() << std::endl;
         //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
@@ -163,10 +164,10 @@ namespace dynamic_gap
         {
             marker.header.frame_id = gap->frame_;
 
-            int leftIdx = initial ? gap->LIdx() : gap->termLIdx(); // initial ? gap->RIdx() : gap->termRIdx(); //
-            int rightIdx = initial ? gap->RIdx() : gap->termRIdx(); // initial ? gap->LIdx() : gap->termLIdx(); //
-            float leftRange = initial ? gap->LRange() : gap->termLRange(); // initial ? gap->RDist() : gap->termRRange();
-            float rightRange = initial ? gap->RDist() : gap->termRRange(); // initial ? gap->LRange() : gap->termLRange();
+            int leftIdx = gap->LIdx(); // initial ?  : gap->termLIdx(); // initial ? gap->RIdx() : gap->termRIdx(); //
+            int rightIdx = gap->RIdx(); // initial ?  : gap->termRIdx(); // initial ? gap->LIdx() : gap->termLIdx(); //
+            float leftRange = gap->LRange(); // initial ?  : gap->termLRange(); // initial ? gap->RRange() : gap->termRRange();
+            float rightRange = gap->RRange(); // initial ?  : gap->termRRange(); // initial ? gap->LRange() : gap->termLRange();
 
             //ROS_INFO_STREAM("leftIdx: " << leftIdx << ", ldist: " << ldist << ", rightIdx: " << rightIdx << ", rightRange: " << rightRange);
             int gapIdxSpan = (leftIdx - rightIdx);
@@ -223,7 +224,7 @@ namespace dynamic_gap
         // manipGapsPublisher.publish(markerArray);
 
         visualization_msgs::Marker marker;
-        drawManipGap(marker, gaps, ns, true);
+        drawManipGap(marker, gaps, ns); // , true);
 
         manipGapsPublisher.publish(marker);
 
@@ -233,7 +234,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
-                                        const std::string & ns, const bool & initial)     
+                                        const std::string & ns) // , const bool & initial)     
     {
         // ROS_INFO_STREAM("[drawManipGap] start");
         // visualization_msgs::Marker marker;
@@ -253,11 +254,12 @@ namespace dynamic_gap
         float thickness = 0.05;
         marker.scale.x = thickness;     
 
-        std::string fullNamespace = ns;        
-        if (initial)
-            fullNamespace.append("_initial");
-        else
-            fullNamespace.append("_terminal");
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");        
+        // if (initial)
+        //     fullNamespace.append("_initial");
+        // else
+        //     fullNamespace.append("_terminal");
 
         // std::cout << "gap category: " << g.getCategory() << std::endl;
         //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
@@ -274,10 +276,10 @@ namespace dynamic_gap
         {
             marker.header.frame_id = gap->frame_;
 
-            int leftIdx = initial ? gap->manipLeftIdx() : gap->manipTermLeftIdx();
-            int rightIdx = initial ? gap->manipRightIdx() : gap->manipTermRightIdx();
-            float leftRange = initial ? gap->manipLeftRange() : gap->manipTermLeftRange();
-            float rightRange = initial ? gap->manipRightRange() : gap->manipTermRightRange();
+            int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
+            int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
+            float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
+            float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
 
             // ROS_INFO_STREAM("leftIdx: " << leftIdx << ", leftRange: " << leftRange);
             // ROS_INFO_STREAM("rightIdx: " << rightIdx << ", rightRange: " << rightRange);

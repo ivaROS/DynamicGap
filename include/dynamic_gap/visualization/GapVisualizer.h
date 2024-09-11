@@ -57,7 +57,7 @@ namespace dynamic_gap
             * \param initial boolean for if we are visualizing initial gap or terminal gap
             */
             void drawGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
-                            const std::string & ns, const bool & initial);
+                            const std::string & ns); // , const bool & initial);
 
             /**
             * \brief Helper function for visualizing single manipulated gap
@@ -67,7 +67,7 @@ namespace dynamic_gap
             * \param initial boolean for if we are visualizing initial gap or terminal gap
             */
             void drawManipGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
-                                        const std::string & ns, const bool & initial);
+                                        const std::string & ns); // , const bool & initial);
 
             /**
             * \brief Helper function for visualizing a single gap's left and right point models

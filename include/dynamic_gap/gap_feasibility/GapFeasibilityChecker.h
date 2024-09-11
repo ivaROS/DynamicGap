@@ -48,7 +48,7 @@ namespace dynamic_gap
             * \param gap incoming gap whose feasibility we want to evaluate
             * \return last point in time in which robot can fit through gap
             */
-            float generateCrossedGapTerminalPoints(const float & t, 
+            float rewindGapPoints(const float & t, 
                                                     dynamic_gap::Gap * gap);
 
             /**

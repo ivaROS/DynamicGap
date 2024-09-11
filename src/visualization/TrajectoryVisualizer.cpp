@@ -104,7 +104,7 @@ namespace dynamic_gap
 
         // The above makes this safe
         gapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
-        gapTrajMarker.header.stamp = ros::Time::now();
+        gapTrajMarker.header.stamp = traj.getPathRbtFrame().header.stamp;
         gapTrajMarker.ns = "allTraj";
         gapTrajMarker.type = visualization_msgs::Marker::ARROW;
         gapTrajMarker.action = visualization_msgs::Marker::ADD;
@@ -170,7 +170,6 @@ namespace dynamic_gap
             geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
                         
             trajPoseScoresMarker.header = path.header;
-            trajPoseScoresMarker.header.stamp = ros::Time::now();            
             trajPoseScoresMarker.id = i;
             trajPoseScoresMarker.pose.position = lastTrajPose.position;
             trajPoseScoresMarker.pose.orientation = lastTrajPose.orientation;

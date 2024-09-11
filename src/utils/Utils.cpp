@@ -9,8 +9,8 @@ namespace dynamic_gap
 
     float idx2theta(const int & idx)
     {
-        assert(idx >= 0);
-        assert(idx < 2*half_num_scan);
+        // assert(idx >= 0);
+        // assert(idx < 2*half_num_scan);
         
         return ((float) idx - half_num_scan) * angle_increment; // * M_PI / half_num_scan;
     }
