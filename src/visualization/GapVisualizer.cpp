@@ -516,7 +516,7 @@ namespace dynamic_gap
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
                                     dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
-        ROS_INFO_STREAM("[drawModel()]");
+        // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();
         modelMarker.ns = ns;
@@ -527,11 +527,11 @@ namespace dynamic_gap
         Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getState();
         Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getState();
 
-        ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
-        ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
+        // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
+        // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
 
-        ROS_INFO_STREAM("   gap->leftGapPtModel_->getRobotVel(): " << gap->leftGapPtModel_->getRobotVel());
-        ROS_INFO_STREAM("   gap->rightGapPtModel_->getRobotVel(): " << gap->rightGapPtModel_->getRobotVel());
+        // ROS_INFO_STREAM("   gap->leftGapPtModel_->getRobotVel(): " << gap->leftGapPtModel_->getRobotVel());
+        // ROS_INFO_STREAM("   gap->rightGapPtModel_->getRobotVel(): " << gap->rightGapPtModel_->getRobotVel());
 
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)

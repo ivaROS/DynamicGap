@@ -38,7 +38,7 @@ namespace dynamic_gap
     // but we will not really use the parameters
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
     {
-        ROS_INFO_STREAM("[DynamicGapPlanner::initialize()]");
+        // ROS_INFO_STREAM("[DynamicGapPlanner::initialize()]");
         // do NOT set nodehandle to any string
         // nh_ = ros::NodeHandle(); // "~/" + name pnh: planner node handle?
 
@@ -63,7 +63,8 @@ namespace dynamic_gap
 
         planner_.setReachedGlobalGoal(false);
 
-        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
+        dynamic_gap::Trajectory localTrajectory;
+        // dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
         if (planner_.isGoalReached())
         {
@@ -106,7 +107,7 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
     {
-        ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(short)]");
+        // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(short)]");
 
         std::string dummy_message;
         geometry_msgs::PoseStamped dummy_pose;
@@ -116,7 +117,7 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
-        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+        // ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
 
         // TODO: just hardcoding this now, need to revise
         bool success = 1;

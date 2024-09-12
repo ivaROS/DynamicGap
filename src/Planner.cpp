@@ -190,7 +190,8 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        ROS_INFO_STREAM("laserScanCB");
+        ROS_INFO_STREAM("[laserScanCB()]");
+        ROS_INFO_STREAM("       timestamp: " << scan->header.stamp);
 
         // pre-process scan (turning nan's into max ranges)
         float eps = 0.0000001f;
@@ -201,8 +202,6 @@ namespace dynamic_gap
         // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         
         scan_ = scan;
-
-        ros::Time curr_time = scan_->header.stamp;
 
         cfg_.updateParamFromScan(scan_);
 
@@ -407,7 +406,7 @@ namespace dynamic_gap
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                  const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
-        ROS_INFO_STREAM("jointPoseAccCB");
+        // ROS_INFO_STREAM("jointPoseAccCB");
 
         // odom coming in wrt rto/odom frame
         // velocity coming in wrt rto/odom frame
@@ -433,20 +432,36 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         try
         {
-            // assuming acceleration message comes in wrt robot frame, no transforms
-            currentRbtAcc_ = *rbtAccelMsg;
-            intermediateRbtAccs_.push_back(currentRbtAcc_);
-
-            // ROS_INFO_STREAM("   pushing back currentRbtAcc_: " << currentRbtAcc_);
+            // ROS_INFO_STREAM("   tPreviousModelUpdate_: " << tPreviousModelUpdate_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtAccs_.size(); i++)
             {
+                // ROS_INFO_STREAM("   intermediateRbtAccs_.at(" << i << "):");
+                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);                     
                 if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
+                    // ROS_INFO_STREAM("           erasing!");
                     intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
                     i--;
                 }
+            }
+
+            currentRbtAcc_ = *rbtAccelMsg;
+            if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
+            {
+                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
+            } else
+            {
+                // assuming acceleration message comes in wrt robot frame, no transforms
+                intermediateRbtAccs_.push_back(currentRbtAcc_);
+
+                // ROS_INFO_STREAM("   pushing back currentRbtAcc_: ");
+                // ROS_INFO_STREAM("       header.stamp: " << currentRbtAcc_.header.stamp);
+                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtAcc_.header.frame_id);
+                // ROS_INFO_STREAM("       linear: ");
+                // ROS_INFO_STREAM("           x: " << currentRbtAcc_.twist.linear.x);
+                // ROS_INFO_STREAM("           y: " << currentRbtAcc_.twist.linear.y);
             }
 
             //--------------- POSE -------------------//
@@ -481,19 +496,34 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             currentRbtVel_.header = rbtVelRbtFrame.header;
             currentRbtVel_.twist.linear = rbtVelRbtFrame.vector;
 
-            intermediateRbtVels_.push_back(currentRbtVel_);
-
-            // ROS_INFO_STREAM("   pushing back currentRbtVel_: " << currentRbtVel_);
-
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)
             {
+                // ROS_INFO_STREAM("   intermediateRbtVels_.at(" << i << "):");
+                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);                
                 if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
+                    // ROS_INFO_STREAM("           erasing!");
                     intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
                     i--;
                 }
             }
+
+            if (intermediateRbtVels_.size() > 0 && (intermediateRbtVels_.back().header.stamp == currentRbtVel_.header.stamp))
+            {
+                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtVel_");
+            } else
+            {
+                intermediateRbtVels_.push_back(currentRbtVel_);
+
+                // ROS_INFO_STREAM("   pushing back currentRbtVel_: ");
+                // ROS_INFO_STREAM("       header.stamp: " << currentRbtVel_.header.stamp);
+                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtVel_.header.frame_id);
+                // ROS_INFO_STREAM("       linear: ");
+                // ROS_INFO_STREAM("           x: " << currentRbtVel_.twist.linear.x);
+                // ROS_INFO_STREAM("           y: " << currentRbtVel_.twist.linear.y);
+            }
+
         } catch (...)
         {
             ROS_WARN_STREAM_NAMED("Planner", "jointPoseAccCB failed");
@@ -623,7 +653,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
-            ROS_INFO_STREAM("tfCB succeeded");
+            // ROS_INFO_STREAM("tfCB succeeded");
         } catch (...) 
         {
             ROS_WARN_STREAM("tfCB failed");
@@ -1375,50 +1405,50 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         try
         {
-            if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
-            { 
-                ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
-                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
-                return rawCmdVel;
-            } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
-            {
-                ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
-                rawCmdVel = trajController_->manualControlLaw();
-            } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
-            { 
-                rawCmdVel = mpcTwist_;
-            } else if (cfg_.ctrl.feedback_ctrl) // FEEDBACK CONTROL 
-            {
-                ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
+            // if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+            // { 
+            ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
+            rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+            return rawCmdVel;
+            // } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
+            // {
+            //     ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
+            //     rawCmdVel = trajController_->manualControlLaw();
+            // } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
+            // { 
+            //     rawCmdVel = mpcTwist_;
+            // } else if (cfg_.ctrl.feedback_ctrl) // FEEDBACK CONTROL 
+            // {
+            //     ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
 
-                // Know Current Pose
-                geometry_msgs::PoseStamped currPoseStRobotFrame;
-                currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
-                currPoseStRobotFrame.pose.orientation.w = 1;
-                geometry_msgs::PoseStamped currPoseStampedOdomFrame;
-                currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
-                tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
-                geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
+            //     // Know Current Pose
+            //     geometry_msgs::PoseStamped currPoseStRobotFrame;
+            //     currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
+            //     currPoseStRobotFrame.pose.orientation.w = 1;
+            //     geometry_msgs::PoseStamped currPoseStampedOdomFrame;
+            //     currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
+            //     tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
+            //     geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
 
-                // obtain current robot pose in odom frame
+            //     // obtain current robot pose in odom frame
 
-                // traj in odom frame here
+            //     // traj in odom frame here
 
-                // get point along trajectory to target/move towards
-                targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
+            //     // get point along trajectory to target/move towards
+            //     targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
 
-                geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
+            //     geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
 
-                std::chrono::steady_clock::time_point feedbackControlStartTime = std::chrono::steady_clock::now();
-                rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose);
-                float feedbackControlTimeTaken = timeTaken(feedbackControlStartTime);
-                float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
-                ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");
-                ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
-            } else
-            {
-                throw std::runtime_error("No control method selected");
-            }
+            //     std::chrono::steady_clock::time_point feedbackControlStartTime = std::chrono::steady_clock::now();
+            //     rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose);
+            //     float feedbackControlTimeTaken = timeTaken(feedbackControlStartTime);
+            //     float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
+            //     ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");
+            //     ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
+            // } else
+            // {
+            //     throw std::runtime_error("No control method selected");
+            // }
 
             std::chrono::steady_clock::time_point projOpStartTime = std::chrono::steady_clock::now();
             cmdVel = trajController_->processCmdVel(rawCmdVel,

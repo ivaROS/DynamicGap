@@ -9,7 +9,7 @@ namespace dynamic_gap
         H_transpose_ = H_.transpose();
         
         R_scalar = 0.01;
-        Q_scalar = 0.5;
+        Q_scalar = 0.01;
 
         Q_k_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
@@ -224,6 +224,11 @@ namespace dynamic_gap
 
         // inter_dt = (dt / intermediateRbtVels_.size());
 
+        ROS_INFO_STREAM("    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+
+        ROS_INFO_STREAM("    intermediateRbtVels_.size(): " << intermediateRbtVels_.size());
+        ROS_INFO_STREAM("    intermediateRbtAccs_.size(): " << intermediateRbtAccs_.size());
+
         if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
         {
             ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "    GapEstimation", "intermediateRbtVels_ is empty, no update");
@@ -238,7 +243,6 @@ namespace dynamic_gap
         }
 
 
-        ROS_INFO_STREAM("    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
         ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
         ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
@@ -369,7 +373,7 @@ namespace dynamic_gap
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState()
     { 
-        ROS_INFO_STREAM("[getState()]");
+        // ROS_INFO_STREAM("[getState()]");
         Eigen::Vector4f state = x_hat_k_plus_;
 
         // if gap has been pivoted: add additional flag to model to set velocity to zero.
@@ -378,14 +382,14 @@ namespace dynamic_gap
         bool newModel = (tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_; 
         if (newModel)
         {
-            ROS_INFO_STREAM("        new model");
+            // ROS_INFO_STREAM("        new model");
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
         } 
 
         if (manip_)
         {
-            ROS_INFO_STREAM("        manipulated model");
+            // ROS_INFO_STREAM("        manipulated model");
             state[0] = manipPosition[0];
             state[1] = manipPosition[1];
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;

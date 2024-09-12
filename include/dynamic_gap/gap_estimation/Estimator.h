@@ -92,7 +92,8 @@ namespace dynamic_gap
             */
             void processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
             {
-                /*
+                /*                */
+
                 // Printing original dt values from intermediate odom measurements
                 ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
 
@@ -102,7 +103,6 @@ namespace dynamic_gap
                 }
 
                 ROS_INFO_STREAM_NAMED("GapEstimation", "   tUpdate" << " - t_" << (intermediateRbtVels_.size() - 1) << " difference:" << (tUpdate - intermediateRbtVels_[intermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
-                */
 
                 // Tweaking ego robot velocities/acceleration to make sure that updates:
                 //      1. Are never negative (backwards in time)
@@ -134,6 +134,9 @@ namespace dynamic_gap
                 intermediateRbtVels_.push_back(intermediateRbtVels_.back());
                 intermediateRbtVels_.back().header.stamp = tUpdate;
 
+                intermediateRbtAccs_.push_back(intermediateRbtAccs_.back());
+                intermediateRbtAccs_.back().header.stamp = tUpdate;
+
                 for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
                 {
                     float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
@@ -146,12 +149,25 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM("intermediateRbtVels_: ");
                 for (int i = 0; i < intermediateRbtVels_.size(); i++)
-                    ROS_INFO_STREAM("   i: " << intermediateRbtVels_[i]);
-
+                {
+                    ROS_INFO_STREAM("   " << i << ": ");                
+                    ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_[i].header.stamp);
+                    ROS_INFO_STREAM("       header.frame_id: " << intermediateRbtVels_[i].header.frame_id);
+                    ROS_INFO_STREAM("       linear: ");
+                    ROS_INFO_STREAM("           x: " << intermediateRbtVels_[i].twist.linear.x);
+                    ROS_INFO_STREAM("           y: " << intermediateRbtVels_[i].twist.linear.y);                 
+                }
 
                 ROS_INFO_STREAM("intermediateRbtAccs_: ");
                 for (int i = 0; i < intermediateRbtAccs_.size(); i++)
-                    ROS_INFO_STREAM("   i: " << intermediateRbtAccs_[i]);
+                {
+                    ROS_INFO_STREAM("   " << i << ": ");                
+                    ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_[i].header.stamp);
+                    ROS_INFO_STREAM("       header.frame_id: " << intermediateRbtAccs_[i].header.frame_id);
+                    ROS_INFO_STREAM("       linear: ");
+                    ROS_INFO_STREAM("           x: " << intermediateRbtAccs_[i].twist.linear.x);
+                    ROS_INFO_STREAM("           y: " << intermediateRbtAccs_[i].twist.linear.y);
+                }
             }
 
             /**
