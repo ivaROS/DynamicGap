@@ -68,26 +68,26 @@ namespace dynamic_gap
         agentVels_ = agentVels;
 
         // acceleration and velocity come in wrt robot frame
-        interpIntermediateRbtVels_ = intermediateRbtVels;
-        interpIntermediateRbtAccs_ = intermediateRbtAccs;
+        intermediateRbtVels_ = intermediateRbtVels;
+        intermediateRbtAccs_ = intermediateRbtAccs;
         // lastRbtVel_ = _current_rbt_vel;
         // lastRbtAcc_ = _current_rbt_acc;
 
         // dt = scan_dt;
         // life_time += dt;
 
-        // inter_dt = (dt / interpIntermediateRbtVels_.size());
+        // inter_dt = (dt / intermediateRbtVels_.size());
 
-        if (interpIntermediateRbtVels_.size() == 0 || interpIntermediateRbtAccs_.size() == 0)
+        if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
         {
-            ROS_WARN_STREAM_COND_NAMED(interpIntermediateRbtVels_.size() == 0, "    GapEstimation", "interpIntermediateRbtVels_ is empty, no update");
-            ROS_WARN_STREAM_COND_NAMED(interpIntermediateRbtAccs_.size() == 0, "    GapEstimation", "interpIntermediateRbtAccs_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "    GapEstimation", "intermediateRbtVels_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "    GapEstimation", "intermediateRbtAccs_ is empty, no update");
             return;
         }
 
-        if (interpIntermediateRbtVels_.size() != interpIntermediateRbtAccs_.size())
+        if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
         {
-            // ROS_INFO_STREAM_NAMED("GapEstimation", "interpIntermediateRbtVels_ is of size " << interpIntermediateRbtVels_.size() << " while interpIntermediateRbtAccs_ is of size " << interpIntermediateRbtAccs_.size());
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
             return;
         }
 
@@ -108,11 +108,11 @@ namespace dynamic_gap
         P_kmin1_plus_ = P_k_plus_;
         tLastUpdate_ = tUpdate;
         
-        if (interpIntermediateRbtVels_.size() > 0)
-            lastRbtVel_ = interpIntermediateRbtVels_.back();
+        if (intermediateRbtVels_.size() > 0)
+            lastRbtVel_ = intermediateRbtVels_.back();
         
-        if (interpIntermediateRbtAccs_.size() > 0)
-            lastRbtAcc_ = interpIntermediateRbtAccs_.back();
+        if (intermediateRbtAccs_.size() > 0)
+            lastRbtAcc_ = intermediateRbtAccs_.back();
 
         // ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
         // ROS_INFO_STREAM_NAMED("GapEstimation", "-----------");

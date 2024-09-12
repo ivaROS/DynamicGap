@@ -97,8 +97,8 @@ namespace dynamic_gap
         this->G_k_ = model.G_k_;
         this->xTilde_ = model.xTilde_;
 
-        this->interpIntermediateRbtVels_ = model.interpIntermediateRbtVels_;
-        this->interpIntermediateRbtAccs_ = model.interpIntermediateRbtAccs_;
+        this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
         this->lastRbtVel_ = model.lastRbtVel_;
         this->lastRbtAcc_ = model.lastRbtAcc_;
 
@@ -145,15 +145,15 @@ namespace dynamic_gap
         Eigen::Vector4f x_intermediate = x_hat_kmin1_plus_;
         Eigen::Vector4f new_x = x_hat_kmin1_plus_;
 
-        for (int i = 0; i < (interpIntermediateRbtVels_.size() - 1); i++) 
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {
             ROS_INFO_STREAM("        intermediate step " << i);
             
-            float dt = (interpIntermediateRbtVels_[i + 1].header.stamp - interpIntermediateRbtVels_[i].header.stamp).toSec();
+            float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
 
             ROS_INFO_STREAM("        dt " << dt);
 
-            float ang_vel_ego = interpIntermediateRbtVels_[i].twist.angular.z;
+            float ang_vel_ego = intermediateRbtVels_[i].twist.angular.z;
             
             ROS_INFO_STREAM("        ang_vel_ego: " << ang_vel_ego);
 
@@ -161,8 +161,8 @@ namespace dynamic_gap
             float p_dot_y = (x_intermediate[3] - ang_vel_ego*x_intermediate[0]);
             ROS_INFO_STREAM("        p_dot_x: " << p_dot_x << ", p_dot_y: " << p_dot_y);
 
-            float vdot_x_body = interpIntermediateRbtAccs_[i].twist.linear.x;
-            float vdot_y_body = interpIntermediateRbtAccs_[i].twist.linear.y;
+            float vdot_x_body = intermediateRbtAccs_[i].twist.linear.x;
+            float vdot_y_body = intermediateRbtAccs_[i].twist.linear.y;
             ROS_INFO_STREAM("        vdot_x_body: " << vdot_x_body << ", vdot_y_body: " << vdot_y_body);
 
             float v_dot_x = (x_intermediate[3]*ang_vel_ego - vdot_x_body);
@@ -184,8 +184,8 @@ namespace dynamic_gap
 
     void RotatingFrameCartesianKalmanFilter::linearize(const int & idx) 
     {
-        float dt = (interpIntermediateRbtVels_[idx + 1].header.stamp - interpIntermediateRbtVels_[idx].header.stamp).toSec();    
-        float ang_vel_ego = interpIntermediateRbtVels_[idx].twist.angular.z;
+        float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();    
+        float ang_vel_ego = intermediateRbtVels_[idx].twist.angular.z;
         
         A_ << 0.0, ang_vel_ego, 1.0, 0.0,
              -ang_vel_ego, 0.0, 0.0, 1.0,
@@ -197,7 +197,7 @@ namespace dynamic_gap
 
     void RotatingFrameCartesianKalmanFilter::discretizeQ(const int & idx) 
     {
-        float dt = (interpIntermediateRbtVels_[idx + 1].header.stamp - interpIntermediateRbtVels_[idx].header.stamp).toSec();
+        float dt = (intermediateRbtVels_[idx + 1].header.stamp - intermediateRbtVels_[idx].header.stamp).toSec();
 
         Q_1_ = Q_k_;
         Q_2_ = A_ * Q_1_ + Q_1_ * A_.transpose();
@@ -214,36 +214,41 @@ namespace dynamic_gap
                                                     const ros::Time & t_update)
     {    
         // acceleration and velocity come in wrt robot frame
-        interpIntermediateRbtVels_ = intermediateRbtVels;
-        interpIntermediateRbtAccs_ = intermediateRbtAccs;
+        intermediateRbtVels_ = intermediateRbtVels;
+        intermediateRbtAccs_ = intermediateRbtAccs;
+        // lastRbtVel_ = _current_rbt_vel;
+        // lastRbtAcc_ = _current_rbt_acc;
+
+        // dt = scan_dt;
+        // life_time += dt;
+
+        // inter_dt = (dt / intermediateRbtVels_.size());
 
         ROS_INFO_STREAM("    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-        ROS_INFO_STREAM("    t_update: " << t_update); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-        ROS_INFO_STREAM("    tLastUpdate_: " << tLastUpdate_); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
 
-        ROS_INFO_STREAM("    incoming interpIntermediateRbtVels_.size(): " << interpIntermediateRbtVels_.size());
-        ROS_INFO_STREAM("    incoming interpIntermediateRbtAccs_.size(): " << interpIntermediateRbtAccs_.size());
+        ROS_INFO_STREAM("    intermediateRbtVels_.size(): " << intermediateRbtVels_.size());
+        ROS_INFO_STREAM("    intermediateRbtAccs_.size(): " << intermediateRbtAccs_.size());
 
-        if (interpIntermediateRbtVels_.size() == 0 || interpIntermediateRbtAccs_.size() == 0)
+        if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
         {
-            ROS_WARN_STREAM_COND_NAMED(interpIntermediateRbtVels_.size() == 0, "    GapEstimation", "interpIntermediateRbtVels_ is empty, no update");
-            ROS_WARN_STREAM_COND_NAMED(interpIntermediateRbtAccs_.size() == 0, "    GapEstimation", "interpIntermediateRbtAccs_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "    GapEstimation", "intermediateRbtVels_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "    GapEstimation", "intermediateRbtAccs_ is empty, no update");
             return;
         }
+
+        if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
+        {
+            ROS_INFO_STREAM("    intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
+            return;
+        }
+
 
         ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
         ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
         processEgoRobotVelsAndAccs(t_update);
 
-        if (interpIntermediateRbtVels_.size() != interpIntermediateRbtAccs_.size())
-        {
-            ROS_INFO_STREAM("    interpIntermediateRbtVels_ is of size " << interpIntermediateRbtVels_.size() << " while interpIntermediateRbtAccs_ is of size " << interpIntermediateRbtAccs_.size());
-            return;
-        }
-
-
-        // get_interpIntermediateRbtVels__accs();
+        // get_intermediateRbtVels__accs();
 
         xTilde_ = measurement; 
                 // << range_bearing_measurement[0]*std::cos(range_bearing_measurement[1]),
@@ -259,31 +264,31 @@ namespace dynamic_gap
 
         P_intermediate = P_kmin1_plus_;
         new_P = P_kmin1_plus_;
-        for (int i = 0; i < (interpIntermediateRbtVels_.size() - 1); i++) 
+        for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++) 
         {
             linearize(i);
 
-            // ROS_INFO_STREAM("    A_: " << A_(0, 0) << ", " << A_(0, 1) << ", " << A_(0, 2) << ", " << A_(0, 3));
-            // ROS_INFO_STREAM("        " << A_(1, 0) << ", " << A_(1, 1) << ", " << A_(1, 2) << ", " << A_(1, 3));
-            // ROS_INFO_STREAM("        " << A_(2, 0) << ", " << A_(2, 1) << ", " << A_(2, 2) << ", " << A_(2, 3));
-            // ROS_INFO_STREAM("        " << A_(3, 0) << ", " << A_(3, 1) << ", " << A_(3, 2) << ", " << A_(3, 3));     
+            ROS_INFO_STREAM("    A_: " << A_(0, 0) << ", " << A_(0, 1) << ", " << A_(0, 2) << ", " << A_(0, 3));
+            ROS_INFO_STREAM("        " << A_(1, 0) << ", " << A_(1, 1) << ", " << A_(1, 2) << ", " << A_(1, 3));
+            ROS_INFO_STREAM("        " << A_(2, 0) << ", " << A_(2, 1) << ", " << A_(2, 2) << ", " << A_(2, 3));
+            ROS_INFO_STREAM("        " << A_(3, 0) << ", " << A_(3, 1) << ", " << A_(3, 2) << ", " << A_(3, 3));     
 
-            // ROS_INFO_STREAM("    STM_: " << STM_(0, 0) << ", " << STM_(0, 1) << ", " << STM_(0, 2) << ", " << STM_(0, 3));
-            // ROS_INFO_STREAM("          " << STM_(1, 0) << ", " << STM_(1, 1) << ", " << STM_(1, 2) << ", " << STM_(1, 3));
-            // ROS_INFO_STREAM("          " << STM_(2, 0) << ", " << STM_(2, 1) << ", " << STM_(2, 2) << ", " << STM_(2, 3));
-            // ROS_INFO_STREAM("          " << STM_(3, 0) << ", " << STM_(3, 1) << ", " << STM_(3, 2) << ", " << STM_(3, 3));     
+            ROS_INFO_STREAM("    STM_: " << STM_(0, 0) << ", " << STM_(0, 1) << ", " << STM_(0, 2) << ", " << STM_(0, 3));
+            ROS_INFO_STREAM("          " << STM_(1, 0) << ", " << STM_(1, 1) << ", " << STM_(1, 2) << ", " << STM_(1, 3));
+            ROS_INFO_STREAM("          " << STM_(2, 0) << ", " << STM_(2, 1) << ", " << STM_(2, 2) << ", " << STM_(2, 3));
+            ROS_INFO_STREAM("          " << STM_(3, 0) << ", " << STM_(3, 1) << ", " << STM_(3, 2) << ", " << STM_(3, 3));     
 
             discretizeQ(i);
 
-            // ROS_INFO_STREAM("    dQ_: " << dQ_(0, 0) << ", " << dQ_(0, 1) << ", " << dQ_(0, 2) << ", " << dQ_(0, 3));
-            // ROS_INFO_STREAM("         " << dQ_(1, 0) << ", " << dQ_(1, 1) << ", " << dQ_(1, 2) << ", " << dQ_(1, 3));
-            // ROS_INFO_STREAM("         " << dQ_(2, 0) << ", " << dQ_(2, 1) << ", " << dQ_(2, 2) << ", " << dQ_(2, 3));
-            // ROS_INFO_STREAM("         " << dQ_(3, 0) << ", " << dQ_(3, 1) << ", " << dQ_(3, 2) << ", " << dQ_(3, 3));     
+            ROS_INFO_STREAM("    dQ_: " << dQ_(0, 0) << ", " << dQ_(0, 1) << ", " << dQ_(0, 2) << ", " << dQ_(0, 3));
+            ROS_INFO_STREAM("         " << dQ_(1, 0) << ", " << dQ_(1, 1) << ", " << dQ_(1, 2) << ", " << dQ_(1, 3));
+            ROS_INFO_STREAM("         " << dQ_(2, 0) << ", " << dQ_(2, 1) << ", " << dQ_(2, 2) << ", " << dQ_(2, 3));
+            ROS_INFO_STREAM("         " << dQ_(3, 0) << ", " << dQ_(3, 1) << ", " << dQ_(3, 2) << ", " << dQ_(3, 3));     
 
-            // ROS_INFO_STREAM("    P_intermediate: " << P_intermediate(0, 0) << ", " << P_intermediate(0, 1) << ", " << P_intermediate(0, 2) << ", " << P_intermediate(0, 3));
-            // ROS_INFO_STREAM("                    " << P_intermediate(1, 0) << ", " << P_intermediate(1, 1) << ", " << P_intermediate(1, 2) << ", " << P_intermediate(1, 3));
-            // ROS_INFO_STREAM("                    " << P_intermediate(2, 0) << ", " << P_intermediate(2, 1) << ", " << P_intermediate(2, 2) << ", " << P_intermediate(2, 3));
-            // ROS_INFO_STREAM("                    " << P_intermediate(3, 0) << ", " << P_intermediate(3, 1) << ", " << P_intermediate(3, 2) << ", " << P_intermediate(3, 3));     
+            ROS_INFO_STREAM("    P_intermediate: " << P_intermediate(0, 0) << ", " << P_intermediate(0, 1) << ", " << P_intermediate(0, 2) << ", " << P_intermediate(0, 3));
+            ROS_INFO_STREAM("                    " << P_intermediate(1, 0) << ", " << P_intermediate(1, 1) << ", " << P_intermediate(1, 2) << ", " << P_intermediate(1, 3));
+            ROS_INFO_STREAM("                    " << P_intermediate(2, 0) << ", " << P_intermediate(2, 1) << ", " << P_intermediate(2, 2) << ", " << P_intermediate(2, 3));
+            ROS_INFO_STREAM("                    " << P_intermediate(3, 0) << ", " << P_intermediate(3, 1) << ", " << P_intermediate(3, 2) << ", " << P_intermediate(3, 3));     
 
             new_P = STM_ * P_intermediate * STM_.transpose() + dQ_;
 
@@ -307,9 +312,17 @@ namespace dynamic_gap
         R_k_ << sensor_noise_factor, 0.0,
                0.0, sensor_noise_factor;
 
+        ROS_INFO_STREAM("1");
+
         // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
         // R_k_ << cfg_->gap_est.R_xx, 0.0,
         //        0.0, cfg_->gap_est.R_yy;
+
+        ROS_INFO_STREAM("H_transpose_: " << H_transpose_(0, 0) << ", " << H_transpose_(0, 1));
+        ROS_INFO_STREAM("              " << H_transpose_(1, 0) << ", " << H_transpose_(1, 1));
+        ROS_INFO_STREAM("              " << H_transpose_(2, 0) << ", " << H_transpose_(2, 1));
+        ROS_INFO_STREAM("              " << H_transpose_(3, 0) << ", " << H_transpose_(3, 1));
+
         tmp_mat = H_*P_k_minus_*H_transpose_ + R_k_;
 
         G_k_ = P_k_minus_ * H_transpose_ * tmp_mat.inverse();
@@ -319,20 +332,34 @@ namespace dynamic_gap
         ROS_INFO_STREAM("      " << G_k_(2, 0) << ", " << G_k_(2, 1));
         ROS_INFO_STREAM("      " << G_k_(3, 0) << ", " << G_k_(3, 1));
 
+        ROS_INFO_STREAM("eyes: " << eyes(0, 0) << ", " << eyes(0, 1) << ", " << eyes(0, 2) << ", " << eyes(0, 3));
+        ROS_INFO_STREAM("      " << eyes(1, 0) << ", " << eyes(1, 1) << ", " << eyes(1, 2) << ", " << eyes(1, 3));
+        ROS_INFO_STREAM("      " << eyes(2, 0) << ", " << eyes(2, 1) << ", " << eyes(2, 2) << ", " << eyes(2, 3));
+        ROS_INFO_STREAM("      " << eyes(3, 0) << ", " << eyes(3, 1) << ", " << eyes(3, 2) << ", " << eyes(3, 3));
+
+        ROS_INFO_STREAM("H_: " << H_(0, 0) << ", " << H_(0, 1) << ", " << H_(0, 2) << ", " << H_(0, 3));
+        ROS_INFO_STREAM("    " << H_(1, 0) << ", " << H_(1, 1) << ", " << H_(1, 2) << ", " << H_(1, 3));
+        
         P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
     
+        ROS_INFO_STREAM("2");
+
         x_hat_kmin1_plus_ = x_hat_k_plus_;
         P_kmin1_plus_ = P_k_plus_;
         tLastUpdate_ = t_update;
 
-        ROS_INFO_STREAM("    interpIntermediateRbtVels_ size: " << interpIntermediateRbtVels_.size());
-        ROS_INFO_STREAM("    interpIntermediateRbtAccs_ size: " << interpIntermediateRbtAccs_.size());
+        ROS_INFO_STREAM("3");
+
+        ROS_INFO_STREAM("    intermediateRbtVels_ size: " << intermediateRbtVels_.size());
+        ROS_INFO_STREAM("    intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());
         
-        if (interpIntermediateRbtVels_.size() > 0)
-            lastRbtVel_ = interpIntermediateRbtVels_.back();
+        if (intermediateRbtVels_.size() > 0)
+            lastRbtVel_ = intermediateRbtVels_.back();
         
-        if (interpIntermediateRbtAccs_.size() > 0)
-            lastRbtAcc_ = interpIntermediateRbtAccs_.back();
+        if (intermediateRbtAccs_.size() > 0)
+            lastRbtAcc_ = intermediateRbtAccs_.back();
+
+        ROS_INFO_STREAM("4");
 
         ROS_INFO_STREAM("    x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
         ROS_INFO_STREAM("    P_k_plus_: " << P_k_plus_(0, 0) << ", " << P_k_plus_(0, 1) << ", " << P_k_plus_(0, 2) << ", " << P_k_plus_(0, 3));
