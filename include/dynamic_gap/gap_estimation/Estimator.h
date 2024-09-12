@@ -197,6 +197,56 @@ namespace dynamic_gap
                     intermediateRbtAccs_.back().header.stamp = tUpdate;
                 }
 
+                // Interpolating to make sure that vels and accs share all of the same time steps
+                // std::vector<geometry_msgs::TwistStamped> testIntermediateRbtVels_ = intermediateRbtVels_;
+                // std::vector<geometry_msgs::TwistStamped> testIntermediateRbtAccs_ = intermediateRbtAccs_;
+
+                // ROS_INFO_STREAM("incoming testIntermediateRbtVels_: ");
+                // for (int i = 0; i < testIntermediateRbtVels_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << testIntermediateRbtVels_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << testIntermediateRbtVels_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << testIntermediateRbtVels_[i].twist.linear.y);                 
+                // }
+
+                // ROS_INFO_STREAM("incoming testIntermediateRbtAccs_: ");
+                // for (int i = 0; i < testIntermediateRbtAccs_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << testIntermediateRbtAccs_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << testIntermediateRbtAccs_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << testIntermediateRbtAccs_[i].twist.linear.y);
+                // }
+
+                if (intermediateRbtVels_.size() > 0 && intermediateRbtAccs_.size() > 0)
+                    interpolateIntermediateValues(intermediateRbtVels_, intermediateRbtAccs_);
+                
+                if (intermediateRbtAccs_.size() > 0 && intermediateRbtVels_.size() > 0)
+                    interpolateIntermediateValues(intermediateRbtAccs_, intermediateRbtVels_);
+
+                // ROS_INFO_STREAM("outgoing testIntermediateRbtVels_: ");
+                // for (int i = 0; i < testIntermediateRbtVels_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << testIntermediateRbtVels_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << testIntermediateRbtVels_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << testIntermediateRbtVels_[i].twist.linear.y);                 
+                // }
+
+                // ROS_INFO_STREAM("outgoing testIntermediateRbtAccs_: ");
+                // for (int i = 0; i < testIntermediateRbtAccs_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << testIntermediateRbtAccs_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << testIntermediateRbtAccs_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << testIntermediateRbtAccs_[i].twist.linear.y);
+                // }
+
                 for (int i = 0; i < (intermediateRbtVels_.size() - 1); i++)
                 {
                     float dt = (intermediateRbtVels_[i + 1].header.stamp - intermediateRbtVels_[i].header.stamp).toSec();
@@ -212,7 +262,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_[i].header.stamp);
-                    ROS_INFO_STREAM("       header.frame_id: " << intermediateRbtVels_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << intermediateRbtVels_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << intermediateRbtVels_[i].twist.linear.y);                 
@@ -223,11 +272,85 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_[i].header.stamp);
-                    ROS_INFO_STREAM("       header.frame_id: " << intermediateRbtAccs_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << intermediateRbtAccs_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << intermediateRbtAccs_[i].twist.linear.y);
                 }
+            }
+
+            void interpolateIntermediateValues(std::vector<geometry_msgs::TwistStamped> & vectorI,
+                                               const std::vector<geometry_msgs::TwistStamped> & vectorJ)
+            {
+                // filling in velocities first
+                for (int j = 0; j < vectorJ.size(); j++)
+                {
+                    // see if acceleration's timestamp is present
+                    int timeJLowerBoundIthIdx = -1; // largest timestamp in i smaller than j
+                    int timeJUpperBoundIthIdx = -1; // smallest timestamp in i bigger than j
+
+                    int timeJIthIndex = -1;
+                    for (int i = 0; i < vectorI.size(); i++)
+                    {
+                        if (vectorJ[j].header.stamp > 
+                            vectorI[i].header.stamp)
+                            timeJLowerBoundIthIdx = i;
+
+                        if (timeJUpperBoundIthIdx < 0 && vectorJ[j].header.stamp < 
+                                                         vectorI[i].header.stamp)
+                            timeJUpperBoundIthIdx = i;
+
+                        if (vectorJ[j].header.stamp == 
+                            vectorI[i].header.stamp)
+                        {
+                            timeJIthIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (timeJIthIndex > 0) // acceleration's timestamp is present, we don't need to do anything
+                    {
+                        ROS_INFO_STREAM("       timeJIthIndex: " << timeJIthIndex);
+                        continue;
+                    } else
+                    {
+                        ROS_INFO_STREAM("       timeJLowerBoundIthIdx: " << timeJLowerBoundIthIdx);
+                        ROS_INFO_STREAM("       timeJUpperBoundIthIdx: " << timeJUpperBoundIthIdx);
+
+                        if (timeJLowerBoundIthIdx == -1 && timeJUpperBoundIthIdx == -1) // lower bound is -1 and upper bound is -1
+                        {
+                            //      only if one array is empty, should not happen
+                            // ROS_INFO_STREAM("lower and upper bounds are -1, should not happen");
+                        } else if (timeJLowerBoundIthIdx == -1 && timeJUpperBoundIthIdx >= 0) // lower bound is -1 and upper bound is >=0
+                        {
+                            // nothing in i is smaller than j, just re-add first element of i
+                            vectorI.insert(vectorI.begin(), vectorI.at(0));
+                            vectorI.at(0).header.stamp = vectorJ.at(j).header.stamp;
+                        } else if (timeJLowerBoundIthIdx >= 0 && timeJUpperBoundIthIdx == -1) // lower bound is >=0 and upper bound is -1
+                        {
+                            // nothing in i is bigger than j, just re-add last element of i
+                            vectorI.insert(vectorI.end(), vectorI.at(vectorI.size() - 1));
+                            vectorI.at(vectorI.size() - 1).header.stamp = vectorJ.at(j).header.stamp;
+                        } else if (timeJLowerBoundIthIdx >= 0 && timeJUpperBoundIthIdx >= 0) // lower bound is >=0 and upper bound is >=0
+                        {
+                            geometry_msgs::TwistStamped interpTwist;
+                            interpTwist.header.frame_id = vectorJ.at(j).header.frame_id;
+                            interpTwist.header.stamp = vectorJ.at(j).header.stamp;
+
+                            float linear_x_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.x - vectorI.at(timeJLowerBoundIthIdx).twist.linear.x);
+                            float linear_y_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.y - vectorI.at(timeJLowerBoundIthIdx).twist.linear.y);
+
+                            float time_diff_num = (interpTwist.header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
+                            float time_diff_denom = (vectorI.at(timeJUpperBoundIthIdx).header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
+
+                            interpTwist.twist.linear.x = vectorI.at(timeJLowerBoundIthIdx).twist.linear.x +
+                                                            linear_x_diff * time_diff_num / time_diff_denom; 
+                            interpTwist.twist.linear.y = vectorI.at(timeJLowerBoundIthIdx).twist.linear.y +
+                                                            linear_y_diff * time_diff_num / time_diff_denom; 
+                        
+                            vectorI.insert(vectorI.begin() + timeJUpperBoundIthIdx, interpTwist);
+                        }
+                    }
+                }                
             }
 
             /**

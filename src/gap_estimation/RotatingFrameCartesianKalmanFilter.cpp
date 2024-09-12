@@ -216,15 +216,10 @@ namespace dynamic_gap
         // acceleration and velocity come in wrt robot frame
         intermediateRbtVels_ = intermediateRbtVels;
         intermediateRbtAccs_ = intermediateRbtAccs;
-        // lastRbtVel_ = _current_rbt_vel;
-        // lastRbtAcc_ = _current_rbt_acc;
-
-        // dt = scan_dt;
-        // life_time += dt;
-
-        // inter_dt = (dt / intermediateRbtVels_.size());
 
         ROS_INFO_STREAM("    update for model: " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        ROS_INFO_STREAM("    t_update: " << t_update); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        ROS_INFO_STREAM("    tLastUpdate_: " << tLastUpdate_); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
 
         ROS_INFO_STREAM("    intermediateRbtVels_.size(): " << intermediateRbtVels_.size());
         ROS_INFO_STREAM("    intermediateRbtAccs_.size(): " << intermediateRbtAccs_.size());
@@ -236,17 +231,16 @@ namespace dynamic_gap
             return;
         }
 
+        ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+        ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
+
+        processEgoRobotVelsAndAccs(t_update);
+
         if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
         {
             ROS_INFO_STREAM("    intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
             return;
         }
-
-
-        ROS_INFO_STREAM("    x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
-        ROS_INFO_STREAM("    current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
-
-        processEgoRobotVelsAndAccs(t_update);
 
         // get_intermediateRbtVels__accs();
 
