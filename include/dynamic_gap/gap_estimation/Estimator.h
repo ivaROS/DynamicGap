@@ -92,16 +92,6 @@ namespace dynamic_gap
             */
             void processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
             {
-                // Printing original dt values from intermediate odom measurements
-                // ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (interpIntermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
-
-                // for (int i = 0; i < (interpIntermediateRbtVels_.size() - 1); i++)
-                // {
-                //     ROS_INFO_STREAM_NAMED("GapEstimation", "   t_" << (i+1) << " - t_" << i << " difference: " << (interpIntermediateRbtVels_[i + 1].header.stamp - interpIntermediateRbtVels_[i].header.stamp).toSec() << " sec");
-                // }
-
-                // ROS_INFO_STREAM_NAMED("GapEstimation", "   tUpdate" << " - t_" << (interpIntermediateRbtVels_.size() - 1) << " difference:" << (tUpdate - interpIntermediateRbtVels_[interpIntermediateRbtVels_.size() - 1].header.stamp).toSec() << " sec");
-
                 // Tweaking ego robot velocities/acceleration to make sure that updates:
                 //      1. Are never negative (backwards in time)
                 //      2. Always start from time of last update
@@ -115,35 +105,40 @@ namespace dynamic_gap
                 }
 
                 // Inserting placeholder odometry to represent the time of the last update
-                bool velValueAtScanTime = false;
-                for (int i = 0; i < interpIntermediateRbtVels_.size(); i++)
-                {
-                    if (interpIntermediateRbtVels_[i].header.stamp == tLastUpdate_)
-                    {
-                        velValueAtScanTime = true;
-                        break;
-                    }
-                }
-                if (!velValueAtScanTime)
-                {
-                    interpIntermediateRbtVels_.insert(interpIntermediateRbtVels_.begin(), lastRbtVel_);
-                    interpIntermediateRbtVels_[0].header.stamp = tLastUpdate_;
-                }
+                interpIntermediateRbtVels_.insert(interpIntermediateRbtVels_.begin(), lastRbtVel_);
+                interpIntermediateRbtVels_[0].header.stamp = tLastUpdate_;                
+                // bool velValueAtScanTime = false;
+                // for (int i = 0; i < interpIntermediateRbtVels_.size(); i++)
+                // {
+                //     if (interpIntermediateRbtVels_[i].header.stamp == tLastUpdate_)
+                //     {
+                //         velValueAtScanTime = true;
+                //         break;
+                //     }
+                // }
+                // if (!velValueAtScanTime)
+                // {
+                //     interpIntermediateRbtVels_.insert(interpIntermediateRbtVels_.begin(), lastRbtVel_);
+                //     interpIntermediateRbtVels_[0].header.stamp = tLastUpdate_;
+                // }
 
-                bool accValueAtScanTime = false;
-                for (int i = 0; i < interpIntermediateRbtAccs_.size(); i++)
-                {
-                    if (interpIntermediateRbtAccs_[i].header.stamp == tLastUpdate_)
-                    {
-                        accValueAtScanTime = true;
-                        break;
-                    }
-                }
-                if (!accValueAtScanTime)
-                {
-                    interpIntermediateRbtAccs_.insert(interpIntermediateRbtAccs_.begin(), lastRbtAcc_);
-                    interpIntermediateRbtAccs_[0].header.stamp = tLastUpdate_;
-                }
+                interpIntermediateRbtAccs_.insert(interpIntermediateRbtAccs_.begin(), lastRbtAcc_);
+                interpIntermediateRbtAccs_[0].header.stamp = tLastUpdate_;
+
+                // bool accValueAtScanTime = false;
+                // for (int i = 0; i < interpIntermediateRbtAccs_.size(); i++)
+                // {
+                //     if (interpIntermediateRbtAccs_[i].header.stamp == tLastUpdate_)
+                //     {
+                //         accValueAtScanTime = true;
+                //         break;
+                //     }
+                // }
+                // if (!accValueAtScanTime)
+                // {
+                //     interpIntermediateRbtAccs_.insert(interpIntermediateRbtAccs_.begin(), lastRbtAcc_);
+                //     interpIntermediateRbtAccs_[0].header.stamp = tLastUpdate_;
+                // }
 
                 // Erasing odometry measurements that occur *after* the incoming laser scan was received
                 while (!interpIntermediateRbtVels_.empty() && tUpdate < interpIntermediateRbtVels_[interpIntermediateRbtVels_.size() - 1].header.stamp)
@@ -152,36 +147,41 @@ namespace dynamic_gap
                     interpIntermediateRbtAccs_.erase(interpIntermediateRbtAccs_.end() - 1);
                 }
 
-                // Inserting placeholder odometry to represent the time that the incoming laser scan was received
-                velValueAtScanTime = false;
-                for (int i = 0; i < interpIntermediateRbtVels_.size(); i++)
-                {
-                    if (interpIntermediateRbtVels_[i].header.stamp == tUpdate)
-                    {
-                        velValueAtScanTime = true;
-                        break;
-                    }
-                }
-                if (!velValueAtScanTime)
-                {
-                    interpIntermediateRbtVels_.push_back(interpIntermediateRbtVels_.back());
-                    interpIntermediateRbtVels_.back().header.stamp = tUpdate;
-                }
+                interpIntermediateRbtVels_.push_back(interpIntermediateRbtVels_.back());
+                interpIntermediateRbtVels_.back().header.stamp = tUpdate;   
+                // // Inserting placeholder odometry to represent the time that the incoming laser scan was received
+                // velValueAtScanTime = false;
+                // for (int i = 0; i < interpIntermediateRbtVels_.size(); i++)
+                // {
+                //     if (interpIntermediateRbtVels_[i].header.stamp == tUpdate)
+                //     {
+                //         velValueAtScanTime = true;
+                //         break;
+                //     }
+                // }
+                // if (!velValueAtScanTime)
+                // {
+                //     interpIntermediateRbtVels_.push_back(interpIntermediateRbtVels_.back());
+                //     interpIntermediateRbtVels_.back().header.stamp = tUpdate;
+                // }
 
-                accValueAtScanTime = false;
-                for (int i = 0; i < interpIntermediateRbtAccs_.size(); i++)
-                {
-                    if (interpIntermediateRbtAccs_[i].header.stamp == tUpdate)
-                    {
-                        accValueAtScanTime = true;
-                        break;
-                    }
-                }
-                if (!accValueAtScanTime)
-                {
-                    interpIntermediateRbtAccs_.push_back(interpIntermediateRbtAccs_.back());
-                    interpIntermediateRbtAccs_.back().header.stamp = tUpdate;
-                }
+                interpIntermediateRbtAccs_.push_back(interpIntermediateRbtAccs_.back());
+                interpIntermediateRbtAccs_.back().header.stamp = tUpdate;
+
+                // accValueAtScanTime = false;
+                // for (int i = 0; i < interpIntermediateRbtAccs_.size(); i++)
+                // {
+                //     if (interpIntermediateRbtAccs_[i].header.stamp == tUpdate)
+                //     {
+                //         accValueAtScanTime = true;
+                //         break;
+                //     }
+                // }
+                // if (!accValueAtScanTime)
+                // {
+                //     interpIntermediateRbtAccs_.push_back(interpIntermediateRbtAccs_.back());
+                //     interpIntermediateRbtAccs_.back().header.stamp = tUpdate;
+                // }
 
                 /*
                 // Interpolating to make sure that vels and accs share all of the same time steps
@@ -193,7 +193,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << testInterpIntermediateRbtVels_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << interpIntermediateRbtVels_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << testInterpIntermediateRbtVels_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << testInterpIntermediateRbtVels_[i].twist.linear.y);                 
@@ -204,7 +203,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << testInterpIntermediateRbtAccs_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << testInterpIntermediateRbtAccs_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << testInterpIntermediateRbtAccs_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << testInterpIntermediateRbtAccs_[i].twist.linear.y);
@@ -221,7 +219,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << testInterpIntermediateRbtVels_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << interpIntermediateRbtVels_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << testInterpIntermediateRbtVels_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << testInterpIntermediateRbtVels_[i].twist.linear.y);                 
@@ -232,13 +229,12 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << testInterpIntermediateRbtAccs_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << interpIntermediateRbtAccs_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << testInterpIntermediateRbtAccs_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << testInterpIntermediateRbtAccs_[i].twist.linear.y);
                 }
                 */
-                
+
                 for (int i = 0; i < (interpIntermediateRbtVels_.size() - 1); i++)
                 {
                     float dt = (interpIntermediateRbtVels_[i + 1].header.stamp - interpIntermediateRbtVels_[i].header.stamp).toSec();
@@ -253,7 +249,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << interpIntermediateRbtVels_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << interpIntermediateRbtVels_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << interpIntermediateRbtVels_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << interpIntermediateRbtVels_[i].twist.linear.y);                 
@@ -264,7 +259,6 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM("   " << i << ": ");                
                     ROS_INFO_STREAM("       header.stamp: " << interpIntermediateRbtAccs_[i].header.stamp);
-                    // ROS_INFO_STREAM("       header.frame_id: " << interpIntermediateRbtAccs_[i].header.frame_id);
                     ROS_INFO_STREAM("       linear: ");
                     ROS_INFO_STREAM("           x: " << interpIntermediateRbtAccs_[i].twist.linear.x);
                     ROS_INFO_STREAM("           y: " << interpIntermediateRbtAccs_[i].twist.linear.y);
