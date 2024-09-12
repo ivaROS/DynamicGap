@@ -63,8 +63,8 @@ namespace dynamic_gap
 
         planner_.setReachedGlobalGoal(false);
 
-        dynamic_gap::Trajectory localTrajectory;
-        // dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
+        // dynamic_gap::Trajectory localTrajectory;
+        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
         if (planner_.isGoalReached())
         {

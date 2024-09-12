@@ -257,25 +257,25 @@ namespace dynamic_gap
 
                 }
 
-                ROS_INFO_STREAM("intermediateRbtVels_: ");
-                for (int i = 0; i < intermediateRbtVels_.size(); i++)
-                {
-                    ROS_INFO_STREAM("   " << i << ": ");                
-                    ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_[i].header.stamp);
-                    ROS_INFO_STREAM("       linear: ");
-                    ROS_INFO_STREAM("           x: " << intermediateRbtVels_[i].twist.linear.x);
-                    ROS_INFO_STREAM("           y: " << intermediateRbtVels_[i].twist.linear.y);                 
-                }
+                // ROS_INFO_STREAM("intermediateRbtVels_: ");
+                // for (int i = 0; i < intermediateRbtVels_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << intermediateRbtVels_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << intermediateRbtVels_[i].twist.linear.y);                 
+                // }
 
-                ROS_INFO_STREAM("intermediateRbtAccs_: ");
-                for (int i = 0; i < intermediateRbtAccs_.size(); i++)
-                {
-                    ROS_INFO_STREAM("   " << i << ": ");                
-                    ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_[i].header.stamp);
-                    ROS_INFO_STREAM("       linear: ");
-                    ROS_INFO_STREAM("           x: " << intermediateRbtAccs_[i].twist.linear.x);
-                    ROS_INFO_STREAM("           y: " << intermediateRbtAccs_[i].twist.linear.y);
-                }
+                // ROS_INFO_STREAM("intermediateRbtAccs_: ");
+                // for (int i = 0; i < intermediateRbtAccs_.size(); i++)
+                // {
+                //     ROS_INFO_STREAM("   " << i << ": ");                
+                //     ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_[i].header.stamp);
+                //     ROS_INFO_STREAM("       linear: ");
+                //     ROS_INFO_STREAM("           x: " << intermediateRbtAccs_[i].twist.linear.x);
+                //     ROS_INFO_STREAM("           y: " << intermediateRbtAccs_[i].twist.linear.y);
+                // }
             }
 
             void interpolateIntermediateValues(std::vector<geometry_msgs::TwistStamped> & vectorI,
@@ -309,12 +309,12 @@ namespace dynamic_gap
 
                     if (timeJIthIndex > 0) // acceleration's timestamp is present, we don't need to do anything
                     {
-                        ROS_INFO_STREAM("       timeJIthIndex: " << timeJIthIndex);
+                        // ROS_INFO_STREAM("       timeJIthIndex: " << timeJIthIndex);
                         continue;
                     } else
                     {
-                        ROS_INFO_STREAM("       timeJLowerBoundIthIdx: " << timeJLowerBoundIthIdx);
-                        ROS_INFO_STREAM("       timeJUpperBoundIthIdx: " << timeJUpperBoundIthIdx);
+                        // ROS_INFO_STREAM("       timeJLowerBoundIthIdx: " << timeJLowerBoundIthIdx);
+                        // ROS_INFO_STREAM("       timeJUpperBoundIthIdx: " << timeJUpperBoundIthIdx);
 
                         if (timeJLowerBoundIthIdx == -1 && timeJUpperBoundIthIdx == -1) // lower bound is -1 and upper bound is -1
                         {
