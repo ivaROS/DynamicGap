@@ -432,16 +432,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         try
         {
-            // ROS_INFO_STREAM("   tPreviousModelUpdate_: " << tPreviousModelUpdate_);
+            ROS_INFO_STREAM("   tPreviousModelUpdate_: " << tPreviousModelUpdate_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtAccs_.size(); i++)
             {
-                // ROS_INFO_STREAM("   intermediateRbtAccs_.at(" << i << "):");
-                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);                     
+                ROS_INFO_STREAM("   intermediateRbtAccs_.at(" << i << "):");
+                ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);                     
                 if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
-                    // ROS_INFO_STREAM("           erasing!");
+                    ROS_INFO_STREAM("           erasing!");
                     intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
                     i--;
                 }
@@ -450,18 +450,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             currentRbtAcc_ = *rbtAccelMsg;
             if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
             {
-                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
+                ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
             } else
             {
                 // assuming acceleration message comes in wrt robot frame, no transforms
                 intermediateRbtAccs_.push_back(currentRbtAcc_);
 
-                // ROS_INFO_STREAM("   pushing back currentRbtAcc_: ");
-                // ROS_INFO_STREAM("       header.stamp: " << currentRbtAcc_.header.stamp);
-                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtAcc_.header.frame_id);
-                // ROS_INFO_STREAM("       linear: ");
-                // ROS_INFO_STREAM("           x: " << currentRbtAcc_.twist.linear.x);
-                // ROS_INFO_STREAM("           y: " << currentRbtAcc_.twist.linear.y);
+                ROS_INFO_STREAM("   pushing back currentRbtAcc_: ");
+                ROS_INFO_STREAM("       header.stamp: " << currentRbtAcc_.header.stamp);
+                ROS_INFO_STREAM("       header.frame_id: " << currentRbtAcc_.header.frame_id);
+                ROS_INFO_STREAM("       linear: ");
+                ROS_INFO_STREAM("           x: " << currentRbtAcc_.twist.linear.x);
+                ROS_INFO_STREAM("           y: " << currentRbtAcc_.twist.linear.y);
             }
 
             //--------------- POSE -------------------//
@@ -499,11 +499,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)
             {
-                // ROS_INFO_STREAM("   intermediateRbtVels_.at(" << i << "):");
-                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);                
+                ROS_INFO_STREAM("   intermediateRbtVels_.at(" << i << "):");
+                ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);                
                 if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
-                    // ROS_INFO_STREAM("           erasing!");
+                    ROS_INFO_STREAM("           erasing!");
                     intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
                     i--;
                 }
@@ -511,17 +511,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             if (intermediateRbtVels_.size() > 0 && (intermediateRbtVels_.back().header.stamp == currentRbtVel_.header.stamp))
             {
-                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtVel_");
+                ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtVel_");
             } else
             {
                 intermediateRbtVels_.push_back(currentRbtVel_);
 
-                // ROS_INFO_STREAM("   pushing back currentRbtVel_: ");
-                // ROS_INFO_STREAM("       header.stamp: " << currentRbtVel_.header.stamp);
-                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtVel_.header.frame_id);
-                // ROS_INFO_STREAM("       linear: ");
-                // ROS_INFO_STREAM("           x: " << currentRbtVel_.twist.linear.x);
-                // ROS_INFO_STREAM("           y: " << currentRbtVel_.twist.linear.y);
+                ROS_INFO_STREAM("   pushing back currentRbtVel_: ");
+                ROS_INFO_STREAM("       header.stamp: " << currentRbtVel_.header.stamp);
+                ROS_INFO_STREAM("       header.frame_id: " << currentRbtVel_.header.frame_id);
+                ROS_INFO_STREAM("       linear: ");
+                ROS_INFO_STREAM("           x: " << currentRbtVel_.twist.linear.x);
+                ROS_INFO_STREAM("           y: " << currentRbtVel_.twist.linear.y);
             }
 
         } catch (...)
