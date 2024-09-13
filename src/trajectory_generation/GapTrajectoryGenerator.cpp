@@ -104,26 +104,26 @@ namespace dynamic_gap
                                                         cfg_->traj.integrate_stept, logger);
             } else // parallel navigation
             {
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running pursuit guidance");                
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running pursuit guidance");                
 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point velocity: (" << leftVelX << ", " << leftVelY << "), initial right gap point velocity: (" << rightVelX << ", " << rightVelY << ")"); 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal: (" << initialGoal[0] << ", " << initialGoal[1] << ")"); 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
-
-                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoalX << ", " << terminalGoalY << ")"); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point velocity: (" << leftVelX << ", " << leftVelY << "), initial right gap point velocity: (" << rightVelX << ", " << rightVelY << ")"); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal: (" << initialGoal[0] << ", " << initialGoal[1] << ")"); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
 
                 // For PN, we will drive at terminal Goal, so pass it on to know when to stop                
                 Eigen::Vector2f terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
-                
+
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoal[0] << ", " << terminalGoal[1] << ")"); 
+
                 // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
 
                 robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoal[0], initialGoal[1]};
                 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->gapLifespan_); 
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->gamma_intercept_goal); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->gapLifespan_); 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->gamma_intercept_goal); 
 
                 ParallelNavigation parallelNavigation(selectedGap->gamma_intercept_goal, 
                                                         cfg_->rbt.vx_absmax,

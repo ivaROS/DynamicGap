@@ -72,6 +72,7 @@ namespace dynamic_gap
                 t_intercept_right = otherGap.t_intercept_right;
                 gamma_intercept_left = otherGap.gamma_intercept_left;
                 gamma_intercept_right = otherGap.gamma_intercept_right;
+                gamma_intercept_goal = otherGap.gamma_intercept_goal;
 
                 end_condition = otherGap.end_condition;
 
@@ -251,95 +252,95 @@ namespace dynamic_gap
             */            
             void setManipRightRange(const float & manipRightRange) { manip.rightRange_ = manipRightRange; }
 
-            /**
-            * \brief Getter for trailing manipulated left gap point index
-            * \return trailing manipulated left gap point index
-            */
-            int manipTrailingLeftIdx() const { return manip.trailingLeftIdx_; }
-
-            /**
-            * \brief Setter for trailing manipulated left gap point index
-            * \param manipLeftIdx manipulated left gap point index
-            */            
-            void setManipTrailingLeftIdx(const int & manipTrailingLeftIdx) { manip.trailingLeftIdx_ = manipTrailingLeftIdx; }
-
-            /**
-            * \brief Getter for trailing manipulated right gap point index
-            * \return trailing manipulated right gap point index
-            */
-            int manipTrailingRightIdx() const { return manip.trailingRightIdx_; }
-
-            /**
-            * \brief Setter for trailing manipulated right gap point index
-            * \param manipRightIdx trailing manipulated right gap point index
-            */            
-            void setManipTrailingRightIdx(const int & manipTrailingRightIdx) { manip.trailingRightIdx_ = manipTrailingRightIdx; }
-
-            /**
-            * \brief Getter for trailing manipulated left gap point distance
-            * \return manipulated left gap point distance
-            */
-            float manipTrailingLeftRange() const { return manip.trailingLeftRange_; }
-
-            /**
-            * \brief Setter for trailing manipulated left gap point distance
-            * \param manipLeftRange manipulated left gap point distance
-            */
-            void setManipTrailingLeftRange(const float & manipTrailingLeftRange) { manip.trailingLeftRange_ = manipTrailingLeftRange; }
-
-            /**
-            * \brief Getter for trailing manipulated right gap point distance
-            * \return manipulated right gap point distance
-            */
-            float manipTrailingRightRange() const { return manip.trailingRightRange_; }
-
-            /**
-            * \brief Setter for trailing manipulated right gap point distance
-            * \param manipRightRange manipulated right gap point distance
-            */            
-            void setManipTrailingRightRange(const float & manipTrailingRightRange) { manip.trailingRightRange_ = manipTrailingRightRange; }
-
-            /**
-            * \brief Getter for terminal manipulated left gap point index
-            * \return terminal manipulated left gap point index
-            */
-            int manipTermLeftIdx() const { return manip.termLeftIdx_; }
+            // /**
+            // * \brief Getter for trailing manipulated left gap point index
+            // * \return trailing manipulated left gap point index
+            // */
+            // int manipTrailingLeftIdx() const { return manip.trailingLeftIdx_; }
 
             // /**
-            // * \brief Setter for terminal manipulated left gap point index
-            // * \param manipTermLeftIdx manipulated left gap point index
+            // * \brief Setter for trailing manipulated left gap point index
+            // * \param manipLeftIdx manipulated left gap point index
             // */            
-            // void setManipTermLeftIdx(const int & manipTermLeftIdx) { manip.termLeftIdx_ = manipTermLeftIdx; }
-
-            /**
-            * \brief Getter for terminal manipulated right gap point index
-            * \return terminal manipulated right gap point index
-            */
-            int manipTermRightIdx() const { return manip.termRightIdx_; }
+            // void setManipTrailingLeftIdx(const int & manipTrailingLeftIdx) { manip.trailingLeftIdx_ = manipTrailingLeftIdx; }
 
             // /**
-            // * \brief Setter for terminal manipulated right gap point index
-            // * \param manipTermRightIdx terminal manipulated right gap point index
-            // */            
-            // void setManipTermRightIdx(const int & manipTermRightIdx) { manip.termRightIdx_ = manipTermRightIdx; }
-
-            /**
-            * \brief Getter for terminal manipulated left gap point distance
-            * \return terminal manipulated left gap point distance
-            */
-            float manipTermLeftRange() const { return manip.termLeftRange_; }
+            // * \brief Getter for trailing manipulated right gap point index
+            // * \return trailing manipulated right gap point index
+            // */
+            // int manipTrailingRightIdx() const { return manip.trailingRightIdx_; }
 
             // /**
-            // * \brief Setter for terminal manipulated left gap point distance
-            // * \param manipTermLeftRange terminal manipulated left gap point distance
+            // * \brief Setter for trailing manipulated right gap point index
+            // * \param manipRightIdx trailing manipulated right gap point index
             // */            
-            // void setManipTermLeftRange(const float & manipTermLeftRange) { manip.termLeftRange_ = manipTermLeftRange; }
+            // void setManipTrailingRightIdx(const int & manipTrailingRightIdx) { manip.trailingRightIdx_ = manipTrailingRightIdx; }
 
-            /**
-            * \brief Getter for terminal manipulated right gap point distance
-            * \return terminal manipulated right gap point distance
-            */
-            float manipTermRightRange() const { return manip.termRightRange_; }
+            // /**
+            // * \brief Getter for trailing manipulated left gap point distance
+            // * \return manipulated left gap point distance
+            // */
+            // float manipTrailingLeftRange() const { return manip.trailingLeftRange_; }
+
+            // /**
+            // * \brief Setter for trailing manipulated left gap point distance
+            // * \param manipLeftRange manipulated left gap point distance
+            // */
+            // void setManipTrailingLeftRange(const float & manipTrailingLeftRange) { manip.trailingLeftRange_ = manipTrailingLeftRange; }
+
+            // /**
+            // * \brief Getter for trailing manipulated right gap point distance
+            // * \return manipulated right gap point distance
+            // */
+            // float manipTrailingRightRange() const { return manip.trailingRightRange_; }
+
+            // /**
+            // * \brief Setter for trailing manipulated right gap point distance
+            // * \param manipRightRange manipulated right gap point distance
+            // */            
+            // void setManipTrailingRightRange(const float & manipTrailingRightRange) { manip.trailingRightRange_ = manipTrailingRightRange; }
+
+            // /**
+            // * \brief Getter for terminal manipulated left gap point index
+            // * \return terminal manipulated left gap point index
+            // */
+            // int manipTermLeftIdx() const { return manip.termLeftIdx_; }
+
+            // // /**
+            // // * \brief Setter for terminal manipulated left gap point index
+            // // * \param manipTermLeftIdx manipulated left gap point index
+            // // */            
+            // // void setManipTermLeftIdx(const int & manipTermLeftIdx) { manip.termLeftIdx_ = manipTermLeftIdx; }
+
+            // /**
+            // * \brief Getter for terminal manipulated right gap point index
+            // * \return terminal manipulated right gap point index
+            // */
+            // int manipTermRightIdx() const { return manip.termRightIdx_; }
+
+            // // /**
+            // // * \brief Setter for terminal manipulated right gap point index
+            // // * \param manipTermRightIdx terminal manipulated right gap point index
+            // // */            
+            // // void setManipTermRightIdx(const int & manipTermRightIdx) { manip.termRightIdx_ = manipTermRightIdx; }
+
+            // /**
+            // * \brief Getter for terminal manipulated left gap point distance
+            // * \return terminal manipulated left gap point distance
+            // */
+            // float manipTermLeftRange() const { return manip.termLeftRange_; }
+
+            // // /**
+            // // * \brief Setter for terminal manipulated left gap point distance
+            // // * \param manipTermLeftRange terminal manipulated left gap point distance
+            // // */            
+            // // void setManipTermLeftRange(const float & manipTermLeftRange) { manip.termLeftRange_ = manipTermLeftRange; }
+
+            // /**
+            // * \brief Getter for terminal manipulated right gap point distance
+            // * \return terminal manipulated right gap point distance
+            // */
+            // float manipTermRightRange() const { return manip.termRightRange_; }
 
             // /**
             // * \brief Setter for terminal manipulated right gap point distance
@@ -480,78 +481,77 @@ namespace dynamic_gap
                 return Eigen::Vector2f(x, y);
             }
 
-            /**
-            * \brief Getter for initial manipulated left gap point in Cartesian frame
-            * \param x x-position for left gap point
-            * \param y y-position for left gap point
-            */
-            void getManipulatedTrailingLCartesian(float &x, float &y) const
-            {
-                float thetaLeft = idx2theta(manip.trailingLeftIdx_);
-                // std::cout << "rightRange_: " << rightRange_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (manip.trailingLeftRange_) * cos(thetaLeft);
-                y = (manip.trailingLeftRange_) * sin(thetaLeft);
-            }
+            // /**
+            // * \brief Getter for initial manipulated left gap point in Cartesian frame
+            // * \param x x-position for left gap point
+            // * \param y y-position for left gap point
+            // */
+            // void getManipulatedTrailingLCartesian(float &x, float &y) const
+            // {
+            //     float thetaLeft = idx2theta(manip.trailingLeftIdx_);
+            //     // std::cout << "rightRange_: " << rightRange_ << ", rightIdx_: " << rightIdx_ << ", half_scan: " << half_scan << std::endl;
+            //     x = (manip.trailingLeftRange_) * cos(thetaLeft);
+            //     y = (manip.trailingLeftRange_) * sin(thetaLeft);
+            // }
 
-            /**
-            * \brief Getter for initial manipulated right gap point in Cartesian frame
-            * \param x x-position for right gap point
-            * \param y y-position for right gap point
-            */
-            void getManipulatedTrailingRCartesian(float &x, float &y) const
-            {
-                float thetaRight = idx2theta(manip.trailingRightIdx_);
-                // std::cout << "leftRange_: " << leftRange_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
-                x = (manip.trailingRightRange_) * cos(thetaRight);
-                y = (manip.trailingRightRange_) * sin(thetaRight);
-            }
+            // /**
+            // * \brief Getter for initial manipulated right gap point in Cartesian frame
+            // * \param x x-position for right gap point
+            // * \param y y-position for right gap point
+            // */
+            // void getManipulatedTrailingRCartesian(float &x, float &y) const
+            // {
+            //     float thetaRight = idx2theta(manip.trailingRightIdx_);
+            //     // std::cout << "leftRange_: " << leftRange_ << ", leftIdx_: " << leftIdx_ << ", half_scan: " << half_scan << std::endl;
+            //     x = (manip.trailingRightRange_) * cos(thetaRight);
+            //     y = (manip.trailingRightRange_) * sin(thetaRight);
+            // }
 
-            Eigen::Vector2f getManipulatedTrailingLPosition() const
-            {
-                float x = 0.0, y = 0.0;
-                getManipulatedTrailingLCartesian(x, y);
+            // Eigen::Vector2f getManipulatedTrailingLPosition() const
+            // {
+            //     float x = 0.0, y = 0.0;
+            //     getManipulatedTrailingLCartesian(x, y);
 
-                return Eigen::Vector2f(x, y);
-            }
+            //     return Eigen::Vector2f(x, y);
+            // }
 
-            Eigen::Vector2f getManipulatedTrailingRPosition() const
-            {
-                float x = 0.0, y = 0.0;
-                getManipulatedTrailingRCartesian(x, y);
+            // Eigen::Vector2f getManipulatedTrailingRPosition() const
+            // {
+            //     float x = 0.0, y = 0.0;
+            //     getManipulatedTrailingRCartesian(x, y);
 
-                return Eigen::Vector2f(x, y);
-            }
+            //     return Eigen::Vector2f(x, y);
+            // }
 
-            void setTerminalManipulatedLPosition(const Eigen::Vector2f & p_left_term_lead)
-            {
-                // get theta
-                float theta = std::atan2(p_left_term_lead[1], p_left_term_lead[0]);
+            // void setTerminalManipulatedLPosition(const Eigen::Vector2f & p_left_term_lead)
+            // {
+            //     // get theta
+            //     float theta = std::atan2(p_left_term_lead[1], p_left_term_lead[0]);
 
-                // get r
-                float r = p_left_term_lead.norm();
+            //     // get r
+            //     float r = p_left_term_lead.norm();
 
-                // get idx
-                int idx = theta2idx(theta);
+            //     // get idx
+            //     int idx = theta2idx(theta);
 
-                manip.termLeftIdx_ = idx;
-                manip.termLeftRange_ = r;
-            }
+            //     manip.termLeftIdx_ = idx;
+            //     manip.termLeftRange_ = r;
+            // }
 
-            void setTerminalManipulatedRPosition(const Eigen::Vector2f & p_right_term_lead)
-            {
-                // get theta
-                float theta = std::atan2(p_right_term_lead[1], p_right_term_lead[0]);
+            // void setTerminalManipulatedRPosition(const Eigen::Vector2f & p_right_term_lead)
+            // {
+            //     // get theta
+            //     float theta = std::atan2(p_right_term_lead[1], p_right_term_lead[0]);
 
-                // get r
-                float r = p_right_term_lead.norm();
+            //     // get r
+            //     float r = p_right_term_lead.norm();
 
-                // get idx
-                int idx = theta2idx(theta);
+            //     // get idx
+            //     int idx = theta2idx(theta);
 
-                manip.termRightIdx_ = idx;
-                manip.termRightRange_ = r;
-            }
-
+            //     manip.termRightIdx_ = idx;
+            //     manip.termRightRange_ = r;
+            // }
 
             // /**
             // * \brief Pretty printer for gap's left and right points in Cartesian frame
@@ -714,6 +714,17 @@ namespace dynamic_gap
 
             /**
             * \brief Setter for gap goal point
+            * \param initial boolean for setting initial gap point
+            * \param goalPt gap goal point
+            */
+            void setGoalVel(const Eigen::Vector2f & goalVel)
+            {
+                goal.vx_ = goalVel[0];
+                goal.vy_ = goalVel[1];
+            }
+
+            /**
+            * \brief Setter for gap goal point
             * \param initial boolean for setting terminal gap point
             * \param goalPt gap goal point
             */
@@ -748,6 +759,9 @@ namespace dynamic_gap
             {
                 float x_ = 0.0; /**< Gap initial goal x-value */
                 float y_ = 0.0; /**< Gap initial goal y-value */
+
+                float vx_ = 0.0; /**< Gap initial goal x-vel */
+                float vy_ = 0.0; /**< Gap initial goal y-vel */
 
             } goal;
 
@@ -800,19 +814,19 @@ namespace dynamic_gap
                 int rightIdx_ = 0; /**< Initial manipulated right gap point index */
                 float rightRange_ = 5; /**< Initial manipulated right gap point range */
 
-                int termLeftIdx_ = 511; /**< Terminal manipulated left gap point index */
-                float termLeftRange_ = 5; /**< Terminal manipulated left gap point range */
+                // int termLeftIdx_ = 511; /**< Terminal manipulated left gap point index */
+                // float termLeftRange_ = 5; /**< Terminal manipulated left gap point range */
 
-                int termRightIdx_ = 0; /**< Terminal manipulated right gap point index */
-                float termRightRange_ = 5; /**< Terminal manipulated right gap point range */
+                // int termRightIdx_ = 0; /**< Terminal manipulated right gap point index */
+                // float termRightRange_ = 5; /**< Terminal manipulated right gap point range */
             
                 // "trailing" gap points that define back points;
 
-                int trailingLeftIdx_ = 511;  /**< Trailing manipulated left gap point index */
-                float trailingLeftRange_ = 5; /**< Trailing manipulated left gap point index */
+                // int trailingLeftIdx_ = 511;  /**< Trailing manipulated left gap point index */
+                // float trailingLeftRange_ = 5; /**< Trailing manipulated left gap point index */
 
-                int trailingRightIdx_ = 0; /**< Trailing manipulated right gap point index */
-                int trailingRightRange_ = 5; /**< Trailing manipulated right gap point range */
+                // int trailingRightIdx_ = 0; /**< Trailing manipulated right gap point index */
+                // int trailingRightRange_ = 5; /**< Trailing manipulated right gap point range */
             } manip;
     };
 }

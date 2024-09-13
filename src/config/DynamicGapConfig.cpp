@@ -79,7 +79,6 @@ namespace dynamic_gap
 
             // Projection Params
             nh.param("k_po_x", projection.k_po_x, projection.k_po_x);
-            nh.param("k_po_theta", projection.k_po_theta, projection.k_po_theta);
             nh.param("r_unity", projection.r_unity, projection.r_unity);
             nh.param("r_zero", projection.r_zero, projection.r_zero);
         } else

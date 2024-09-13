@@ -210,12 +210,12 @@ namespace dynamic_gap
                 return;
             }
 
-            rbtVelDes_ = speedRobot_ * rbtToGoal / rbtToGoal.norm();
+            rbtVelDes_ = rbtToGoal;
 
             // rbtVelDes_[0] = (x[6] - x[0]);
             // rbtVelDes_[1] = (x[7] - x[1]);
             
-            // clipVelocities(rbtVelDes_);
+            clipVelocities(rbtVelDes_);
 
             dxdt[0] = rbtVelDes_[0];
             dxdt[1] = rbtVelDes_[1];
@@ -223,6 +223,24 @@ namespace dynamic_gap
             dxdt[7] = 0.0;
             return;
         }
+
+        void clipVelocities(Eigen::Vector2f & linVel) 
+        {
+            float speedLinXFeedback = std::abs(linVel[0]);
+            float speedLinYFeedback = std::abs(linVel[0]);
+            
+            if (speedLinXFeedback <= speedRobot_ && speedLinYFeedback <= speedRobot_) 
+            {
+                // std::cout << "not clipping" << std::endl;
+            } else 
+            {
+                linVel[0] *= epsilonDivide(speedRobot_, std::max(speedLinXFeedback, speedLinYFeedback));
+                linVel[1] *= epsilonDivide(speedRobot_, std::max(speedLinXFeedback, speedLinYFeedback));
+            }
+
+            // std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, velAngFeedback));
+            return;
+        }        
     };
 
     /**

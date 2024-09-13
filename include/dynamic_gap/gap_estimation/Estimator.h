@@ -37,6 +37,12 @@ namespace dynamic_gap
             Eigen::Matrix<float, 4, 2> G_k_; /**< Kalman gain at step k */
             Eigen::Vector2f xTilde_; /**< Current sensor measurement */
 
+            Eigen::Matrix2f R_k_; /**<  Measurement noise matrix */
+            Eigen::Matrix4f Q_k_; /**< Covariance noise matrix */
+
+            Eigen::Matrix2f R_temp_; /**<  Measurement noise matrix */
+            Eigen::Matrix4f Q_temp_; /**< Covariance noise matrix */
+
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< sequence of ego-robot velocities received since last model update */
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< sequence of ego-robot accelerations received since last model update */     
             geometry_msgs::TwistStamped lastRbtVel_; /**< most recent ego-robot velocity from last model update */

@@ -14,12 +14,12 @@ namespace dynamic_gap
     {
         try
         {
-            // ROS_INFO_STREAM("    [setGapGoal()]");
+            ROS_INFO_STREAM("    [setGapGoal()]");
 
-            int leftIdx = gap->manipTermLeftIdx();
-            int rightIdx = gap->manipTermRightIdx();
-            float leftRange = gap->manipTermLeftRange();
-            float rightRange = gap->manipTermRightRange();
+            int leftIdx = gap->manipLeftIdx();
+            int rightIdx = gap->manipRightIdx();
+            float leftRange = gap->manipLeftRange();
+            float rightRange = gap->manipRightRange();
 
             float leftTheta = idx2theta(leftIdx);
             float rightTheta = idx2theta(rightIdx);
@@ -32,8 +32,14 @@ namespace dynamic_gap
             Eigen::Vector2f leftPt(xLeft, yLeft);
             Eigen::Vector2f rightPt(xRight, yRight);
 
-            // ROS_INFO_STREAM("        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
-            // ROS_INFO_STREAM("        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
+            gap->leftGapPtModel_->isolateGapDynamics();
+            gap->rightGapPtModel_->isolateGapDynamics();
+
+            Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
+            Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+
+            ROS_INFO_STREAM("        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
+            ROS_INFO_STREAM("        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
             float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
@@ -63,35 +69,35 @@ namespace dynamic_gap
                 // Still set mid point for pursuit guidance policy and feasibility check
                 gap->globalGoalWithin = true;
 
-                // ROS_INFO_STREAM("        global goal within gap");
-                // ROS_INFO_STREAM("            goal: " << globalGoalRobotFrameVector[0] << 
-                                                                        // ", " << globalGoalRobotFrameVector[1]);
+                ROS_INFO_STREAM("        global goal within gap");
+                ROS_INFO_STREAM("            goal: " << globalGoalRobotFrameVector[0] << 
+                                                                        ", " << globalGoalRobotFrameVector[1]);
                    
             }
             
             if (leftToRightAngle < M_PI) // M_PI / 2,  M_PI / 4
             {
-                // ROS_INFO_STREAM("        Option 1: gap mid point");
+                ROS_INFO_STREAM("        Option 1: gap mid point");
 
                 float centerTheta = leftTheta - (leftToRightAngle / 2.0);
                 float centerRange = (leftRange + rightRange) / 2.;
                 Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
-                                        centerRange * std::sin(centerTheta));
+                                         centerRange * std::sin(centerTheta));
+                Eigen::Vector2f centerVel = ((leftGapState.tail(2) + rightGapState.tail(2)) / 2.);
+
+                ROS_INFO_STREAM("            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
                 
-                // ROS_INFO_STREAM("            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
-                
-                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
+                // Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
             
-                Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
+                // Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
 
                 // ROS_INFO_STREAM("            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
 
-                gap->setTerminalGoal(inflatedCenterPt);
-                gap->gamma_intercept_goal = std::atan2(inflatedCenterPt[1], inflatedCenterPt[0]);
-
+                gap->setGoal(centerPt);
+                gap->setGoalVel(centerVel);
             } else
             {
-                // ROS_INFO_STREAM("        Option 2: global path local waypoint biased");
+                ROS_INFO_STREAM("        Option 2: global path local waypoint biased");
 
                 Eigen::Vector2f globalPathLocalWaypointRobotFrameVector(globalPathLocalWaypointRobotFrame.pose.position.x, 
                                                                         globalPathLocalWaypointRobotFrame.pose.position.y);
@@ -110,17 +116,18 @@ namespace dynamic_gap
 
                 float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
                 Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
+                Eigen::Vector2f biasedGapVel = leftGapState.tail(2) + (rightGapState.tail(2) - leftGapState.tail(2)) * leftToGapGoalAngle / leftToRightAngle;
 
-                // ROS_INFO_STREAM("            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
+                ROS_INFO_STREAM("            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
+                // Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
 
-                Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
+                // Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
-                // ROS_INFO_STREAM("            original goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
+                // ROS_INFO_STREAM("            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
 
-                gap->setTerminalGoal(inflatedBiasedGapGoal);
-                gap->gamma_intercept_goal = std::atan2(inflatedBiasedGapGoal[1], inflatedBiasedGapGoal[0]);
+                gap->setGoal(biasedGapGoal);
+                gap->setGoalVel(biasedGapVel);
             }
 
 
@@ -498,17 +505,80 @@ namespace dynamic_gap
         // get points
 
         sensor_msgs::LaserScan desScan = *scan_.get();
-        int rangesSize = desScan.ranges.size();
         int leftIdx = gap->manipLeftIdx();
         int rightIdx = gap->manipRightIdx();
         float leftRange = gap->manipLeftRange();
         float rightRange = gap->manipRightRange();
 
-        // ad hoc fix for complete empty space
-        if ((leftIdx - rightIdx) == (rangesSize - 1) )
+        float leftTheta = idx2theta(leftIdx);
+        float rightTheta = idx2theta(rightIdx);
+        float xLeft = (leftRange) * cos(leftTheta);
+        float yLeft = (leftRange) * sin(leftTheta);
+        float xRight = (rightRange) * cos(rightTheta);
+        float yRight = (rightRange) * sin(rightTheta);
+        
+        Eigen::Vector2f leftPt(xLeft, yLeft);
+        Eigen::Vector2f rightPt(xRight, yRight);
+
+        ROS_INFO_STREAM("    [reduceGap()]");
+        ROS_INFO_STREAM("        pre-reduce gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
+        ROS_INFO_STREAM("        pre-reduce gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
+
+        Eigen::Vector2f leftUnitNorm = unitNorm(leftPt);
+        Eigen::Vector2f rightUnitNorm = unitNorm(rightPt);
+        float leftToRightAngle = getSweptLeftToRightAngle(leftUnitNorm, rightUnitNorm);
+
+        float angle_tolerance = 0.1;
+        if (std::abs(leftToRightAngle - 2*M_PI) <  angle_tolerance)
         {
-            gap->setManipLeftIdx(leftIdx - int(0.1 * rangesSize));
-            gap->setManipRightIdx(rightIdx + int(0.1 * rangesSize));      
+            ROS_INFO_STREAM("           reducing gap!");
+
+            ///////////////////////
+            // ANGULAR INFLATION //
+            ///////////////////////
+
+            float alpha_left = std::asin(cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / leftPt.norm() );
+            float alpha_right = std::asin(cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / rightPt.norm() );
+
+            float beta_left = (M_PI / 2) - alpha_left;
+            float beta_right = (M_PI / 2) - alpha_right;
+
+            float r_infl_left = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / sin(beta_left);
+            float r_infl_right = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / sin(beta_right);
+
+            Eigen::Vector2f leftAngularInflDir = Rnegpi2 * leftUnitNorm;
+            Eigen::Vector2f rightAngularInflDir = Rpi2 * rightUnitNorm;
+
+            // perform inflation
+            Eigen::Vector2f inflatedLeftPt = leftPt + leftAngularInflDir * r_infl_left;
+            Eigen::Vector2f inflatedRightPt = rightPt + rightAngularInflDir * r_infl_right;
+
+            float inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
+            float inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
+
+            Eigen::Vector2f inflatedLeftUnitNorm(std::cos(inflatedLeftTheta), std::sin(inflatedLeftTheta));
+            Eigen::Vector2f inflatedRightUnitNorm(std::cos(inflatedRightTheta), std::sin(inflatedRightTheta));
+
+            // update gap points
+            int inflatedLeftIdx = theta2idx(inflatedLeftTheta);
+            int inflatedRightIdx = theta2idx(inflatedRightTheta);
+            
+            float leftToInflatedLeftAngle = getSweptLeftToRightAngle(leftUnitNorm, inflatedLeftUnitNorm);
+            float leftToInflatedRightAngle = getSweptLeftToRightAngle(leftUnitNorm, inflatedRightUnitNorm);
+            float inflatedLeftRange = leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
+            float inflatedRightRange = leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
+
+
+            gap->setManipLeftIdx(inflatedLeftIdx);
+            gap->setManipRightIdx(inflatedRightIdx);      
+            gap->setManipLeftRange(inflatedLeftRange);
+            gap->setManipRightRange(inflatedRightRange);
+
+            gap->getManipulatedLCartesian(xLeft, yLeft);
+            gap->getManipulatedRCartesian(xRight, yRight);
+            ROS_INFO_STREAM("           post-reduce gap in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
+            ROS_INFO_STREAM("           post-reduce gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
+
         }
 
         return;
@@ -609,30 +679,30 @@ namespace dynamic_gap
             ROS_INFO_STREAM("        post-inflate gap in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
             ROS_INFO_STREAM("        post-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
-            Eigen::Vector2f trailingLeftPt = leftPt - leftAngularInflDir * r_infl_left;
-            Eigen::Vector2f trailingRightPt = rightPt - rightAngularInflDir * r_infl_right;
+            // Eigen::Vector2f trailingLeftPt = leftPt - leftAngularInflDir * r_infl_left;
+            // Eigen::Vector2f trailingRightPt = rightPt - rightAngularInflDir * r_infl_right;
 
-            ROS_INFO_STREAM("        trailingLeftPt: (" << trailingLeftPt.transpose());
-            ROS_INFO_STREAM("        trailingRightPt: (" << trailingRightPt.transpose());
+            // ROS_INFO_STREAM("        trailingLeftPt: (" << trailingLeftPt.transpose());
+            // ROS_INFO_STREAM("        trailingRightPt: (" << trailingRightPt.transpose());
 
-            float trailingLeftTheta = std::atan2(trailingLeftPt[1], trailingLeftPt[0]);
-            float trailingRightTheta = std::atan2(trailingRightPt[1], trailingRightPt[0]);
+            // float trailingLeftTheta = std::atan2(trailingLeftPt[1], trailingLeftPt[0]);
+            // float trailingRightTheta = std::atan2(trailingRightPt[1], trailingRightPt[0]);
 
-            int trailingLeftIdx = theta2idx(trailingLeftTheta);
-            int trailingRightIdx = theta2idx(trailingRightTheta);
+            // int trailingLeftIdx = theta2idx(trailingLeftTheta);
+            // int trailingRightIdx = theta2idx(trailingRightTheta);
             
-            float trailingLeftRange = trailingLeftPt.norm(); // leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
-            float trailingRightRange = trailingRightPt.norm(); // leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
+            // float trailingLeftRange = trailingLeftPt.norm(); // leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedLeftAngle, leftToRightAngle);
+            // float trailingRightRange = trailingRightPt.norm(); // leftRange + (rightRange - leftRange) * epsilonDivide(leftToInflatedRightAngle, leftToRightAngle);
 
-            gap->setManipTrailingLeftIdx(trailingLeftIdx);
-            gap->setManipTrailingRightIdx(trailingRightIdx);
-            gap->setManipTrailingLeftRange(trailingLeftRange);
-            gap->setManipTrailingRightRange(trailingRightRange);
+            // gap->setManipTrailingLeftIdx(trailingLeftIdx);
+            // gap->setManipTrailingRightIdx(trailingRightIdx);
+            // gap->setManipTrailingLeftRange(trailingLeftRange);
+            // gap->setManipTrailingRightRange(trailingRightRange);
 
-            gap->getManipulatedTrailingLCartesian(xLeft, yLeft);
-            gap->getManipulatedTrailingRCartesian(xRight, yRight);
-            ROS_INFO_STREAM("        post-inflate gap in polar. trailing left: (" << trailingLeftIdx << ", " << trailingLeftRange << "), trailing right: (" << trailingRightIdx << ", " << trailingRightRange << ")");
-            ROS_INFO_STREAM("        post-inflate gap in cart. trailing left: (" << xLeft << ", " << yLeft << "), trailing right: (" << xRight << ", " << yRight << ")");
+            // gap->getManipulatedTrailingLCartesian(xLeft, yLeft);
+            // gap->getManipulatedTrailingRCartesian(xRight, yRight);
+            // ROS_INFO_STREAM("        post-inflate gap in polar. trailing left: (" << trailingLeftIdx << ", " << trailingLeftRange << "), trailing right: (" << trailingRightIdx << ", " << trailingRightRange << ")");
+            // ROS_INFO_STREAM("        post-inflate gap in cart. trailing left: (" << xLeft << ", " << yLeft << "), trailing right: (" << xRight << ", " << yRight << ")");
 
 
             return true;

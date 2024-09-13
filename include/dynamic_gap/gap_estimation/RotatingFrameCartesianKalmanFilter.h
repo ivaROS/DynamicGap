@@ -16,6 +16,7 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <limits>
+#include <random>
 
 #include <dynamic_gap/gap_estimation/Estimator.h>
 
@@ -35,8 +36,6 @@ namespace dynamic_gap
             Eigen::Matrix<float, 2, 4> H_; /**< Observation matrix */
             Eigen::Matrix<float, 4, 2> H_transpose_; /**< Transposed observation matrix */
 
-            Eigen::Matrix2f R_k_; /**<  Measurement noise matrix */
-            Eigen::Matrix4f Q_k_; /**< Covariance noise matrix */
             Eigen::Matrix4f dQ_; /**< Discretized covariance noise matrix */
 
             Eigen::Matrix4f Q_1_; /**< 1st order approximation of discretized covariance noise matrix */
@@ -45,6 +44,9 @@ namespace dynamic_gap
 
             float R_scalar = 0.0; /**< Scalar value used to populate R matrix*/
             float Q_scalar = 0.0; /**< Scalar value used to populate Q matrix*/
+
+            float alpha_R = 0.3; /**< Adaptive R parameter */
+            float alpha_Q = 0.3; /**< Adaptie Q parameter */
 
             Eigen::Matrix4f A_; /**< Continuous form of autonomous dynamics term */
             Eigen::Matrix4f STM_; /**< Discrete form of autonomous dynamics term */
@@ -62,6 +64,8 @@ namespace dynamic_gap
 
             double lifetimeThreshold_ = 0.5; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
+            std::default_random_engine generator;
+            std::uniform_real_distribution<double> xTildeDistribution; // (-0.05, 0.05);
         public:
 
             RotatingFrameCartesianKalmanFilter();

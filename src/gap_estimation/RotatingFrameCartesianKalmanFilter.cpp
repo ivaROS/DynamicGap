@@ -11,12 +11,14 @@ namespace dynamic_gap
         R_scalar = 0.1; // low value: velocities become very sensitive
         Q_scalar = 0.5;
 
-        Q_k_ << 0.0, 0.0, 0.0, 0.0,
+        Q_temp_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, Q_scalar, 0.0,
                0.0, 0.0, 0.0, Q_scalar;
-        R_k_ << R_scalar, 0.0,
+        Q_k_ = Q_temp_;
+        R_temp_ << R_scalar, 0.0,
                 0.0, R_scalar;
+        R_k_ = R_temp_;
 
         G_k_ << 1.0, 1.0,
                 1.0, 1.0,
@@ -30,6 +32,9 @@ namespace dynamic_gap
         STM_ = A_;
 
         eyes = Eigen::MatrixXf::Identity(4,4);
+
+        // xTildeDistribution = std::uniform_real_distribution<double>(0.9, 1.1);
+
     }
 
     // For initializing a new model
@@ -63,7 +68,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("        gapPtVxRel: " << gapPtVxRel << ", gapPtVyRel: " << gapPtVyRel);
 
         this->xTilde_ << gapPtX, gapPtY;
-        
+
         this->x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
         // ROS_INFO_STREAM("        x_hat_kmin1_plus_: " << x_hat_kmin1_plus_.transpose());
 
@@ -96,6 +101,11 @@ namespace dynamic_gap
 
         this->G_k_ = model.G_k_;
         this->xTilde_ = model.xTilde_;
+
+        this->R_k_ = model.R_k_;
+        this->R_temp_ = model.R_temp_;
+        this->Q_k_ = model.Q_k_;
+        this->Q_temp_ = model.Q_temp_;
 
         this->intermediateRbtVels_ = model.intermediateRbtVels_;
         this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
@@ -297,14 +307,20 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
-        innovation_ = xTilde_ - H_*x_hat_k_minus_;
-        x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
-        residual_ = xTilde_ - H_*x_hat_k_plus_;
-        
-        float sensor_noise_factor = R_scalar * xTilde_.norm();
-        R_k_ << sensor_noise_factor, 0.0,
-               0.0, sensor_noise_factor;
+        Eigen::Vector2f noisyXTilde_ = xTilde_;
+        noisyXTilde_[0] += xTildeDistribution(generator);
+        noisyXTilde_[1] += xTildeDistribution(generator);
 
+        innovation_ = noisyXTilde_ - H_*x_hat_k_minus_;
+        x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
+        residual_ = noisyXTilde_ - H_*x_hat_k_plus_;
+
+        // float sensor_noise_factor = R_scalar * xTilde_.norm();
+        // R_k_ << sensor_noise_factor, 0.0,
+        //        0.0, sensor_noise_factor;
+
+        // R_k_ = (alpha_R * R_temp_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
+        
         // ROS_INFO_STREAM("1");
 
         // // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
@@ -335,6 +351,9 @@ namespace dynamic_gap
         
         P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
     
+        // Q_temp_ = (alpha_Q * Q_k_) + (1.0 - alpha_Q) * (G_k_ * residual_ * residual_.transpose() * G_k_.transpose());
+        // Q_k_ = Q_temp_;
+
         // ROS_INFO_STREAM("2");
 
         x_hat_kmin1_plus_ = x_hat_k_plus_;

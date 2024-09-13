@@ -116,7 +116,7 @@ namespace dynamic_gap
             * @remark New on MBF API
             * @return True if a cancel has been successfully requested, false if not implemented.
             */
-            bool cancel() { return false; };
+            bool cancel() { return true; };
 
         private:
             dynamic_gap::Planner planner_; /**< Local path planner object */

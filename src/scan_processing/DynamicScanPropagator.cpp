@@ -157,7 +157,7 @@ namespace dynamic_gap
 
                 // set pointwise model index
                 pointwiseModelIndices.at(i) = leftHandSideModelIdx; // attach model
-                // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        attaching scan idx: " << i << " to model position :" << lhsPt.transpose() << " and velocity: " << lhsVel.transpose());
+                ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        attaching scan idx: " << i << " to model position :" << lhsPt.transpose() << " and velocity: " << lhsVel.transpose());
 
             } else
             {

@@ -719,7 +719,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
                 // MANIPULATE POINTS AT T=0            
-                gapManipulator_->reduceGap(planningGaps.at(i));
+                // gapManipulator_->reduceGap(planningGaps.at(i));
 
                 gapManipulator_->convertRadialGap(planningGaps.at(i));
 
@@ -729,9 +729,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 {
                     ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
                     
-                    // MANIPULATE POINTS AT T=1
-                    // ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating terminal gap " << i);
-                
+                    gapManipulator_->setGapGoal(planningGaps.at(i), 
+                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                                globalGoalRobotFrame_);                    
+
                     manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
                 }
             }
@@ -813,7 +814,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 
                 // Run go to goal behavior
-                bool runGoToGoal = gaps.at(i)->globalGoalWithin; // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+                bool runGoToGoal = (gaps.at(i)->globalGoalWithin); // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
 
                 dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
                 std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
@@ -837,9 +838,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // Run pursuit guidance behavior
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running pursuit guidance");
                 pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
-                                                                    currentRbtVel_, 
-                                                                    globalGoalRobotFrame_,
-                                                                    false);
+                                                                            currentRbtVel_, 
+                                                                            globalGoalRobotFrame_,
+                                                                            false);
 
                 pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
                 trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans);
@@ -1103,10 +1104,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             
-            // if (incomingPathCost < currentPathSubCost) {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "TRAJECTORY CHANGE TO INCOMING: lower cost");
-            //     changeTrajectoryHelper(incomingGap, incoming, time_arr, false);
-            // }
+            if (incomingPathCost < currentPathSubCost) 
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+                                                            ": incoming trajectory is lower score");
+                changeTrajectoryHelper(incomingGap, incomingTraj, ableToSwitchToIncomingPath);
+            }
             
           
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
@@ -1220,17 +1223,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
         
-        ///////////////////////
-        // GAP GOAL CREATION //
-        ///////////////////////
-
-        for (size_t i = 0; i < manipulatedGaps.size(); i++) 
-        {
-            gapManipulator_->setGapGoal(manipulatedGaps.at(i), 
-                                        globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                                        globalGoalRobotFrame_);
-        }
-
         /*
             // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
             gapManipulator_->setGapGoal(planningGaps.at(i), 

@@ -524,8 +524,11 @@ namespace dynamic_gap
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getState();
-        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getState();
+        gap->leftGapPtModel_->isolateGapDynamics();
+        gap->rightGapPtModel_->isolateGapDynamics();
+
+        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getGapState();
+        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getGapState();
 
         // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
         // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
@@ -538,14 +541,12 @@ namespace dynamic_gap
         {
             modelMarker.pose.position.x = leftModelState[0];
             modelMarker.pose.position.y = leftModelState[1];
-            gapVel << leftModelState[2] + gap->leftGapPtModel_->getRobotVel().twist.linear.x,
-                      leftModelState[3] + gap->leftGapPtModel_->getRobotVel().twist.linear.y;
+            gapVel = leftModelState.tail(2);
         } else
         {
             modelMarker.pose.position.x = rightModelState[0];
             modelMarker.pose.position.y = rightModelState[1];            
-            gapVel << rightModelState[2] + gap->rightGapPtModel_->getRobotVel().twist.linear.x, 
-                      rightModelState[3] + gap->rightGapPtModel_->getRobotVel().twist.linear.y;
+            gapVel << rightModelState.tail(2); 
         }
         modelMarker.pose.position.z = 0.01;
 
