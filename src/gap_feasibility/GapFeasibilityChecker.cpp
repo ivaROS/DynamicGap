@@ -205,7 +205,6 @@ namespace dynamic_gap
             rewindLeftGapState = gap->leftGapPtModel_->getRewindGapState();
             rewindRightGapState = gap->rightGapPtModel_->getRewindGapState();  
 
-
             leftRewindPt = rewindLeftGapState.head(2);
             rightRewindPt = rewindRightGapState.head(2);           
 
@@ -218,11 +217,15 @@ namespace dynamic_gap
 
             leftToRightAngle = getSweptLeftToRightAngle(leftBearingVect, rightBearingVect);
 
+            float r_min = std::min( leftRewindPt.norm(), rightRewindPt.norm() );
+            Eigen::Vector2f rewindLeftGapStateStar = r_min * leftBearingVect;
+            Eigen::Vector2f rewindRightGapStateStar = r_min * rightBearingVect;
+
             // if gap is sufficiently open
             // option 1: arc-length:
             if (tRewind == 0 || 
                 (leftToRightAngle < M_PI &&
-                 (leftRewindPt - rightRewindPt).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio))
+                 (rewindLeftGapStateStar - rewindRightGapStateStar).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio))
             { 
                 // ROS_INFO_STREAM("                    terminal points at time " << t_rew << ", left: (" << leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << rightCrossPt[0] << ", " << rightCrossPt[1]);
                 // generateTerminalPoints(gap, rewindLeftGapState, rewindRightGapState);
@@ -404,8 +407,9 @@ namespace dynamic_gap
         // Eigen::Vector2f rightGapPtPos = rightGapState.head(2);
         Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
 
-        ROS_INFO_STREAM("                       leftGapState: " << leftGapState.transpose()); 
-        ROS_INFO_STREAM("                       rightGapState: " << rightGapState.transpose()); 
+        // ROS_INFO_STREAM("                       leftGapState: " << leftGapState.transpose()); 
+
+        // ROS_INFO_STREAM("                       rightGapState: " << rightGapState.transpose()); 
 
         ///////////////////////////////
         // Evaluating left gap point //
@@ -422,7 +426,9 @@ namespace dynamic_gap
         ROS_INFO_STREAM("                       t_intercept_left: " << t_intercept_left); 
         ROS_INFO_STREAM("                       gamma_intercept_left: " << gamma_intercept_left); 
 
-        if (isnan(t_intercept_left) || isnan(gamma_intercept_left)) // can happen if K < 1
+        if (!gap->rgc_ && 
+            gap->end_condition == 1 && 
+            isnan(gamma_intercept_left)) // can happen if K < 1
         {
             ROS_INFO_STREAM("                    gap is not feasible! t_intercept_left: " << t_intercept_left << ", gamma_intercept_left: " << gamma_intercept_left); 
             return false;
@@ -443,20 +449,34 @@ namespace dynamic_gap
         ROS_INFO_STREAM("                       t_intercept_right: " << t_intercept_right); 
         ROS_INFO_STREAM("                       gamma_intercept_right: " << gamma_intercept_right); 
 
-        if (isnan(t_intercept_right) || isnan(gamma_intercept_right)) // can happen if K < 1
+        if (!gap->rgc_ && 
+            gap->end_condition == 1 && 
+            isnan(gamma_intercept_right)) // can happen if K < 1
         {
             ROS_INFO_STREAM("                    gap is not feasible! t_intercept_right: " << t_intercept_right << ", gamma_intercept_right: " << gamma_intercept_right); 
             return false;
         } 
 
+        ROS_INFO_STREAM("                       gap->getManipulatedLPosition(): " << gap->getManipulatedLPosition().transpose()); 
+        ROS_INFO_STREAM("                       gap->getManipulatedTrailingLPosition(): " << gap->getManipulatedTrailingLPosition().transpose()); 
+
+        ROS_INFO_STREAM("                       gap->getManipulatedRPosition(): " << gap->getManipulatedRPosition().transpose()); 
+        ROS_INFO_STREAM("                       gap->getManipulatedTrailingRPosition(): " << gap->getManipulatedTrailingRPosition().transpose()); 
+
         Eigen::Vector2f p_left_term_lead = gap->getManipulatedLPosition() + leftGapPtVel * t_intercept_left;
         Eigen::Vector2f p_right_term_lead = gap->getManipulatedRPosition() + rightGapPtVel * t_intercept_right;
+
+        ROS_INFO_STREAM("                       p_left_term_lead: " << p_left_term_lead.transpose()); 
+        ROS_INFO_STREAM("                       p_right_term_lead: " << p_right_term_lead.transpose()); 
 
         Eigen::Vector2f n_left_term_lead = p_left_term_lead / p_left_term_lead.norm();
         Eigen::Vector2f n_right_term_lead = p_right_term_lead / p_right_term_lead.norm();
 
         Eigen::Vector2f p_left_term_trail = gap->getManipulatedTrailingLPosition() + leftGapPtVel * t_intercept_left;
         Eigen::Vector2f p_right_term_trail = gap->getManipulatedTrailingRPosition() + rightGapPtVel * t_intercept_right;
+
+        ROS_INFO_STREAM("                       p_left_term_trail: " << p_left_term_trail.transpose()); 
+        ROS_INFO_STREAM("                       p_right_term_trail: " << p_right_term_trail.transpose()); 
 
         Eigen::Vector2f n_left_term_trail = p_left_term_trail / p_left_term_trail.norm();
         Eigen::Vector2f n_right_term_trail = p_right_term_trail / p_right_term_trail.norm();
@@ -493,12 +513,15 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("                       gamma_intercept_goal: " << gamma_intercept_goal); 
 
         if (!gap->rgc_ && 
-            (gap->end_condition == 0 || gap->end_condition == 1) && 
-            t_intercept_left > gap->gapLifespan_ || t_intercept_right > gap->gapLifespan_)
+            gap->end_condition == 1 && 
+            (t_intercept_left > gap->gapLifespan_ || t_intercept_right > gap->gapLifespan_))
         {
-            ROS_INFO_STREAM("                    gap is not feasible! t_intercept_left: " 
-                                    << t_intercept_left << ", t_intercept_right: " << t_intercept_right << 
-                                    ", gap lifespan: " << gap->gapLifespan_); 
+            ROS_INFO_STREAM("                    gap is not feasible!");
+            ROS_INFO_STREAM("                       t_intercept_left: " << t_intercept_left);
+            ROS_INFO_STREAM("                       t_intercept_right: " << t_intercept_right);
+            ROS_INFO_STREAM("                       gap lifespan: " << gap->gapLifespan_); 
+            ROS_INFO_STREAM("                       gap->end_condition: " << gap->end_condition); 
+
             return false;
         } else
         {
@@ -527,8 +550,8 @@ namespace dynamic_gap
         }
     }
 
-    void GapFeasibilityChecker::parallelNavigationHelper(const Eigen::Vector2f & p_target, 
-                                                            const Eigen::Vector2f & v_target, 
+    void GapFeasibilityChecker::parallelNavigationHelper(const Eigen::Vector2f & p_target_init, 
+                                                            const Eigen::Vector2f & v_target_init, 
                                                             const float speed_robot,
                                                             float & t_intercept, 
                                                             float & gamma_intercept)
@@ -537,43 +560,60 @@ namespace dynamic_gap
 
         // float eps = 0.00001;
 
-        float lambda = std::atan2(p_target[1], p_target[0]);
-        float gamma = std::atan2(v_target[1], v_target[0]);
+        float scaling_factor = 0.99;
 
-        if (v_target.norm() < eps) // static gap point
+        Eigen::Vector2f p_target = p_target_init;
+        Eigen::Vector2f v_target = v_target_init;
+
+        t_intercept = std::numeric_limits<float>::quiet_NaN();
+        gamma_intercept = std::numeric_limits<float>::quiet_NaN();
+
+        while ( isnan(t_intercept) )
         {
-            ROS_INFO_STREAM("                           static gap point"); 
+            float lambda = std::atan2(p_target[1], p_target[0]);
+            float gamma = std::atan2(v_target[1], v_target[0]);
 
-            t_intercept = p_target.norm() / speed_robot;
-            gamma_intercept = lambda;
-        } else // moving gap point
-        {
-            ROS_INFO_STREAM("                           dynamic gap point");
+            if (v_target.norm() < eps) // static gap point
+            {
+                ROS_INFO_STREAM("                           static gap point"); 
 
-            float K = epsilonDivide(speed_robot, v_target.norm()); // just set to one dimensional norm
+                t_intercept = p_target.norm() / speed_robot;
+                gamma_intercept = lambda;
+            } else // moving gap point
+            {
+                ROS_INFO_STREAM("                           dynamic gap point");
 
-            assert(K > 0);
+                float K = epsilonDivide(speed_robot, v_target.norm()); // just set to one dimensional norm
 
-            ROS_INFO_STREAM("                           K: " << K);
+                assert(K > 0);
 
-            Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
-            Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
+                ROS_INFO_STREAM("                           K: " << K);
 
-            ROS_INFO_STREAM("                           n_lambda: " << n_lambda.transpose());
-            ROS_INFO_STREAM("                           n_gamma: " << n_gamma.transpose());
+                Eigen::Vector2f n_lambda(std::cos(lambda), std::sin(lambda));
+                Eigen::Vector2f n_gamma(std::cos(gamma), std::sin(gamma));
 
-            float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
+                ROS_INFO_STREAM("                           n_lambda: " << n_lambda.transpose());
+                ROS_INFO_STREAM("                           n_gamma: " << n_gamma.transpose());
 
-            ROS_INFO_STREAM("                           theta: " << theta);
+                float theta = getSignedLeftToRightAngle(n_gamma, n_lambda);
 
-            float delta = std::asin( epsilonDivide(std::sin(theta), K));
+                ROS_INFO_STREAM("                           theta: " << theta);
 
-            ROS_INFO_STREAM("                           delta: " << delta);
+                float delta = std::asin( epsilonDivide(std::sin(theta), K));
 
-            t_intercept = (p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
+                ROS_INFO_STREAM("                           delta: " << delta);
 
-            gamma_intercept = lambda + delta;
-        
+                t_intercept = (p_target.norm() / v_target.norm()) * (epsilonDivide(1.0, (K * std::cos(delta) - std::cos(theta))));
+
+                gamma_intercept = lambda + delta;
+
+                if ( isnan(t_intercept) )
+                {
+                    ROS_INFO_STREAM("                               t_intercept was nan! scaling down: ");
+                    p_target *= scaling_factor; // iteratively lessen and lessen until we can intercept
+                    v_target *= scaling_factor; // iteratively lessen and lessen until we can intercept
+                }
+            }
         }
 
         // if (isnan(t_intercept))

@@ -53,6 +53,8 @@ namespace dynamic_gap
             */            
             bool inflateGapSides(dynamic_gap::Gap * gap);
 
+            void reduceGap(dynamic_gap::Gap * gap);            
+            
             void convertRadialGap(dynamic_gap::Gap * gap);
 
         private:

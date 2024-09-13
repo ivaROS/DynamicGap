@@ -65,7 +65,7 @@ namespace dynamic_gap
         this->xTilde_ << gapPtX, gapPtY;
         
         this->x_hat_kmin1_plus_ << gapPtX, gapPtY, gapPtVxRel, gapPtVyRel;
-        // ROS_INFO_STREAM("        x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", : " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+        // ROS_INFO_STREAM("        x_hat_kmin1_plus_: " << x_hat_kmin1_plus_.transpose());
 
         this->x_hat_k_minus_ = x_hat_kmin1_plus_; 
         this->x_hat_k_plus_ = x_hat_kmin1_plus_;
@@ -175,7 +175,7 @@ namespace dynamic_gap
                      x_intermediate[3] + v_dot_y*dt; // v_y
             
             x_intermediate = new_x;
-            // ROS_INFO_STREAM("        x_intermediate: " << x_intermediate[0] << ", " << x_intermediate[1] << ", " << x_intermediate[2] << ", " << x_intermediate[3]);
+            // ROS_INFO_STREAM("        x_intermediate: " << x_intermediate.transpose());
         
         }
 
@@ -253,8 +253,7 @@ namespace dynamic_gap
 
         x_hat_k_minus_ = integrate();
         
-        // ROS_INFO_STREAM("    x_hat_k_minus_: " << x_hat_k_minus_[0] << ", " << x_hat_k_minus_[1] << ", " 
-                                                // << x_hat_k_minus_[2] << ", " << x_hat_k_minus_[3]);
+        // ROS_INFO_STREAM("    x_hat_k_minus_: " << x_hat_k_minus_.transpose());
 
         P_intermediate = P_kmin1_plus_;
         new_P = P_kmin1_plus_;

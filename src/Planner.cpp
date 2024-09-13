@@ -719,7 +719,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
                 // MANIPULATE POINTS AT T=0            
+                gapManipulator_->reduceGap(planningGaps.at(i));
+
                 gapManipulator_->convertRadialGap(planningGaps.at(i));
+
                 bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));
                 
                 if (success)

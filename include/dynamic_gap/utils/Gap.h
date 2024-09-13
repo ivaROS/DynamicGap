@@ -475,7 +475,7 @@ namespace dynamic_gap
             Eigen::Vector2f getManipulatedRPosition() const
             {
                 float x = 0.0, y = 0.0;
-                getRCartesian(x, y);
+                getManipulatedRCartesian(x, y);
 
                 return Eigen::Vector2f(x, y);
             }
