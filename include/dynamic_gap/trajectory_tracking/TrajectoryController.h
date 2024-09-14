@@ -153,7 +153,9 @@ namespace dynamic_gap
             * \param weightedVelLinYSafe weighted safe command velocity in y direction
             */
             void visualizeProjectionOperator(const float & weightedVelLinXSafe, 
-                                             const float & weightedVelLinYSafe);
+                                             const float & weightedVelLinYSafe,
+                                             const float & minDistTheta, 
+                                                const float & minDist);
 
             /**
             * \brief Function for running bearing rate CBF on command velocity

@@ -288,7 +288,7 @@ namespace dynamic_gap
 
         // cmdVel_safe
         if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
-            visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe);
+            visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minDistTheta, minDist);
 
         velLinXFeedback += weightedVelLinXSafe;
         velLinYFeedback += weightedVelLinYSafe;
@@ -322,15 +322,22 @@ namespace dynamic_gap
     }
     
     void TrajectoryController::visualizeProjectionOperator(const float & weightedVelLinXSafe, 
-                                                           const float & weightedVelLinYSafe) 
+                                                           const float & weightedVelLinYSafe,
+                                                           const float & minDistTheta, 
+                                                           const float & minDist) 
     {
+        ROS_INFO_STREAM("[visualizeProjectionOperator()]");
+
         visualization_msgs::Marker projOpMarker;
         projOpMarker.header.frame_id = cfg_->robot_frame_id;
+        projOpMarker.header.stamp = ros::Time();
+        projOpMarker.id = 0;
+
         projOpMarker.type = visualization_msgs::Marker::ARROW;
         projOpMarker.action = visualization_msgs::Marker::ADD;
-        projOpMarker.pose.position.x = 0;
-        projOpMarker.pose.position.y = 0;
-        projOpMarker.pose.position.z = 0.5;
+        projOpMarker.pose.position.x = minDist * std::cos(minDistTheta);
+        projOpMarker.pose.position.y = minDist * std::sin(minDistTheta);
+        projOpMarker.pose.position.z = 0.1;
         float dir = std::atan2(weightedVelLinYSafe, weightedVelLinXSafe);
         tf2::Quaternion projOpQuat;
         projOpQuat.setRPY(0, 0, dir);
@@ -340,12 +347,15 @@ namespace dynamic_gap
         projOpMarker.scale.y = 0.01;  
         projOpMarker.scale.z = 0.01;
         
+
+        
         projOpMarker.color.a = 1;
         projOpMarker.color.r = 0.0;
         projOpMarker.color.g = 0.0;
         projOpMarker.color.b = 0.0;
-        projOpMarker.id = 0;
-        projOpMarker.lifetime = ros::Duration(0.1);
+        projOpMarker.lifetime = ros::Duration(0);
+
+        ROS_INFO_STREAM("   projOpMarker: " << projOpMarker);
 
         projOpPublisher_.publish(projOpMarker);
     }
