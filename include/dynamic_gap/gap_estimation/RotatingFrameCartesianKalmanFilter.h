@@ -62,7 +62,7 @@ namespace dynamic_gap
             Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
             Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
 
-            double lifetimeThreshold_ = 0.5; /**< Threshold in seconds that gap model must exist for before we trust and use state */
+            double lifetimeThreshold_ = 1.0; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
             std::default_random_engine generator;
             std::uniform_real_distribution<double> xTildeDistribution; // (-0.05, 0.05);
