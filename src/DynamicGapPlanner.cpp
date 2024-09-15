@@ -117,7 +117,7 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
-        // ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
 
         // TODO: just hardcoding this now, need to revise
         bool success = 1;

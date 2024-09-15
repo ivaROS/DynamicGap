@@ -158,7 +158,7 @@ namespace dynamic_gap
         float errorTheta = std::arg(errorMat(0, 0));
 
         Eigen::Vector2f error(errorX, errorY);
-        Eigen::Vector2f errorDir = error / error.norm();
+        Eigen::Vector2f errorDir = epsilonDivide(error, error.norm());
 
         Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * errorDir;
 
@@ -252,7 +252,7 @@ namespace dynamic_gap
         float minDistTheta = 0;
         float minDist = 0;
 
-        // ROS_INFO_STREAM_NAMED("Controller", "feedback command velocities: " << cmdVelFeedback[0] << ", " << cmdVelFeedback[1]);
+        ROS_INFO_STREAM_NAMED("Controller", "        feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback);
 
         // applies PO
         float velLinXSafe = 0.;
@@ -291,22 +291,7 @@ namespace dynamic_gap
             visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minDistTheta, minDist);
 
         velLinXFeedback += weightedVelLinXSafe;
-        velLinYFeedback += weightedVelLinYSafe;
-
-        if (cfg_->planning.heading)
-        {
-            // if angular error is large, rotate first 
-            // (otherwise, rotation and translation at the same time can take robot off trajectory and cause collisions)
-            if (std::abs(velAngFeedback) > 0.50)
-            {
-                velLinXFeedback = 0.0;
-                velLinYFeedback = 0.0;
-            }                
-
-            // do not want robot to drive backwards
-            if (velLinXFeedback < 0)
-                velLinXFeedback = 0;   
-        }         
+        velLinYFeedback += weightedVelLinYSafe; 
 
         ROS_INFO_STREAM_NAMED("Controller", "        summed command velocity, v_x:" << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);

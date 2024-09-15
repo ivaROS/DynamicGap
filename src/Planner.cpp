@@ -1400,7 +1400,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         try
         {
-            if (localTrajectory.poses.size() < 2) // OBSTACLE AVOIDANCE CONTROL 
+            if (localTrajectory.poses.size() == 0) // OBSTACLE AVOIDANCE CONTROL 
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " < 2, obstacle avoidance control chosen.");
                 rawCmdVel = trajController_->obstacleAvoidanceControlLaw();

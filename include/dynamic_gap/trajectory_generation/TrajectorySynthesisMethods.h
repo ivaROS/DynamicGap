@@ -123,7 +123,8 @@ namespace dynamic_gap
         */
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", rbtToGoalDistance: " << rbtToGoalDistance);
+            ROS_INFO_STREAM("t: " << t);
+            ROS_INFO_STREAM("   x: " << x[0] << ", " << x[1]);
 
             Eigen::Vector2f n_gamma_intercept(std::cos(gammaIntercept_), std::sin(gammaIntercept_));
 
@@ -140,9 +141,10 @@ namespace dynamic_gap
             //      v1: rbt vector is further than left pt vector and right pt vector [DONE]
             //      v2: rbt vector is beyond range of gap arc at rbt's particular bearing (tricky because robot will leave gap slice)
 
-            if (rbtToTerminalGoal.norm() < 0.25)
-            // if (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm())
+            if (rbtToTerminalGoal.norm() < 0.25 ||
+                (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm()))
             {
+                ROS_INFO_STREAM("   prematured stop");
                 // stop trajectory prematurely
                 dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
                 dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;

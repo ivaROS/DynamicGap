@@ -219,7 +219,7 @@ namespace dynamic_gap
                 // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
-        // std::cout << "leaving at : " << shortened.size() << std::endl;
+        std::cout << "leaving at : " << processedPoses.size() << std::endl;
         
         geometry_msgs::PoseArray processedPath = rawPath;        
         processedPath.poses = processedPoses;
@@ -244,8 +244,8 @@ namespace dynamic_gap
             processedPath.poses.at(idx-1).orientation.z = q.z();
             processedPath.poses.at(idx-1).orientation.w = q.w();
         }
-        processedPath.poses.pop_back();
-        processedPathTiming.pop_back();
+        // processedPath.poses.pop_back();
+        // processedPathTiming.pop_back();
 
         dynamic_gap::Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;
