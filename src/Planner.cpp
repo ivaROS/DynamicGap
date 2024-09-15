@@ -58,7 +58,7 @@ namespace dynamic_gap
         currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
         // staticScanPublisher_ = nh_.advertise<sensor_msgs::LaserScan>("static_scan", 1);
 
-        mpcInputPublisher_ = nh.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
+        // mpcInputPublisher_ = nh.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
@@ -814,7 +814,7 @@ namespace dynamic_gap
             setCurrentTraj(incomingTraj);
             setCurrentLeftGapPtModelID(incomingGap->leftGapPtModel_);
             setCurrentRightGapPtModelID(incomingGap->rightGapPtModel_);
-            currentTIntercept_ = incomingGap->t_intercept;
+            // currentTIntercept_ = incomingGap->t_intercept;
             currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
@@ -829,7 +829,7 @@ namespace dynamic_gap
             setCurrentTraj(emptyTraj);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
-            currentTIntercept_ = 0.0;
+            // currentTIntercept_ = 0.0;
             currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
@@ -1148,31 +1148,31 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison average time: " << avgCompareToCurrentTrajTimeTaken << " seconds (" << (1.0 / avgCompareToCurrentTrajTimeTaken) << " Hz) ]");
         } 
 
-        // publish for safety module
-        if (currentLeftGapPtModel && currentRightGapPtModel)
-        {
-            geometry_msgs::PoseArray mpcInput;
-            mpcInput.header.stamp = ros::Time::now();
-            mpcInput.header.frame_id = cfg_.robot_frame_id;
+        // // publish for safety module
+        // if (currentLeftGapPtModel && currentRightGapPtModel)
+        // {
+        //     geometry_msgs::PoseArray mpcInput;
+        //     mpcInput.header.stamp = ros::Time::now();
+        //     mpcInput.header.frame_id = cfg_.robot_frame_id;
             
-            // current rbt vel
-            geometry_msgs::Pose currentRbtVelAsPose;
-            currentRbtVelAsPose.position.x = currentRbtVel_.twist.linear.x;
-            currentRbtVelAsPose.position.y = currentRbtVel_.twist.linear.y;
-            mpcInput.poses.push_back(currentRbtVelAsPose);
+        //     // current rbt vel
+        //     geometry_msgs::Pose currentRbtVelAsPose;
+        //     currentRbtVelAsPose.position.x = currentRbtVel_.twist.linear.x;
+        //     currentRbtVelAsPose.position.y = currentRbtVel_.twist.linear.y;
+        //     mpcInput.poses.push_back(currentRbtVelAsPose);
 
-            // three slice points            
-            currentLeftGapPtModel->isolateGapDynamics();
-            currentRightGapPtModel->isolateGapDynamics();
+        //     // three slice points            
+        //     currentLeftGapPtModel->isolateGapDynamics();
+        //     currentRightGapPtModel->isolateGapDynamics();
 
-            Eigen::Vector4f leftGapState = currentLeftGapPtModel->getGapState();
-            Eigen::Vector4f rightGapState = currentRightGapPtModel->getGapState();
+        //     Eigen::Vector4f leftGapState = currentLeftGapPtModel->getGapState();
+        //     Eigen::Vector4f rightGapState = currentRightGapPtModel->getGapState();
 
-            Eigen::Vector2f terminalLeftPt = leftGapState.head(2);
+        //     Eigen::Vector2f terminalLeftPt = leftGapState.head(2);
 
 
-            mpcInputPublisher_.publish(mpcInput);
-        }
+        //     mpcInputPublisher_.publish(mpcInput);
+        // }
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        
@@ -1269,12 +1269,12 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
-            currentLeftGapPtModel = leftModel;
+            // currentLeftGapPtModel = leftModel;
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
             currentLeftGapPtModelID = -1;
-            currentLeftGapPtModel = nullptr;
+            // currentLeftGapPtModel = nullptr;
         }
     }
 
@@ -1284,12 +1284,12 @@ namespace dynamic_gap
         {        
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
             currentRightGapPtModelID = rightModel->getID();
-            currentRightGapPtModel = rightModel;
+            // currentRightGapPtModel = rightModel;
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
             currentRightGapPtModelID = -1;
-            currentRightGapPtModel = nullptr;
+            // currentRightGapPtModel = nullptr;
         } 
     }
 

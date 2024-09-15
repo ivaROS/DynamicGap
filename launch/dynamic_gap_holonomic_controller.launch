@@ -1,7 +1,7 @@
 <launch>
   <env name="ROSCONSOLE_CONFIG_FILE" value="$(find nav_configs)/config/dynamic_gap_rosconsole.conf"/>
 
-  <arg name="use_recovery_behaviors" default="true"/>
+  <arg name="use_recovery_behaviors" default="false"/>
   <arg name="robot_namespace" default="robot0" />
   <arg name="robot_radius" default="0.20"/>
   <arg name="num_agents" default="0"/>

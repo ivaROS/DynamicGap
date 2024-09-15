@@ -613,7 +613,7 @@ namespace dynamic_gap
             Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
             Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
 
-            std::string frame_ = ""; /**< Frame ID for gap */
+            std::string frame_ = "robot5"; /**< Frame ID for gap */
             
             bool radial_ = false; /**< Initial gap radial characteristic identifier */
             

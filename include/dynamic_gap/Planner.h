@@ -348,10 +348,10 @@ namespace dynamic_gap
         int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
         int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 
-        dynamic_gap::Estimator * currentLeftGapPtModel = nullptr; /**< Model for estimator of current gap's left point */
-        dynamic_gap::Estimator * currentRightGapPtModel = nullptr; /**< Model for estimator of current gap's right point */
+        // dynamic_gap::Estimator * currentLeftGapPtModel = nullptr; /**< Model for estimator of current gap's left point */
+        // dynamic_gap::Estimator * currentRightGapPtModel = nullptr; /**< Model for estimator of current gap's right point */
 
-        float currentTIntercept_ = 0.0;
+        // float currentTIntercept_ = 0.0;
 
         int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
