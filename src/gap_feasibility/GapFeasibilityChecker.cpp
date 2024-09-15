@@ -405,11 +405,11 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_left: " << gamma_intercept_left); 
 
-        if (isnan(t_intercept_left) || isnan(gamma_intercept_left)) // can happen if K < 1
-        {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept_left: " << t_intercept_left << ", gamma_intercept_left: " << gamma_intercept_left); 
-            return false;
-        }
+        // if (isnan(t_intercept_left) || isnan(gamma_intercept_left)) // can happen if K < 1
+        // {
+        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept_left: " << t_intercept_left << ", gamma_intercept_left: " << gamma_intercept_left); 
+        //     return false;
+        // }
 
         float t_intercept_right = 0.0;
         float gamma_intercept_right = 0.0;
@@ -422,11 +422,11 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_right: " << gamma_intercept_right); 
 
-        if (isnan(t_intercept_right) || isnan(gamma_intercept_right)) // can happen if K < 1
-        {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept_right: " << t_intercept_right << ", gamma_intercept_right: " << gamma_intercept_right); 
-            return false;
-        }
+        // if (isnan(t_intercept_right) || isnan(gamma_intercept_right)) // can happen if K < 1
+        // {
+        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept_right: " << t_intercept_right << ", gamma_intercept_right: " << gamma_intercept_right); 
+        //     return false;
+        // }
 
         // set target position to gap goal
         Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);

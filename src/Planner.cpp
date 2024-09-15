@@ -224,9 +224,10 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation for " << currRawGaps_.size() << " gaps took " << simpGapEstimationTimeTaken << " seconds]");
             ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation average time: " << avgSimpGapEstimationTimeTaken << " seconds (" << (1.0 / avgSimpGapEstimationTimeTaken) << " Hz) ]");
 
-            gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
+            gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"), true);
             gapVisualizer_->drawGapsModels(currRawGaps_);
-            gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
+            gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"), true);
+            gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"), false);
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
 
             readyToPlan = true;
@@ -593,7 +594,7 @@ namespace dynamic_gap
                 {
                     ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
 
-                    gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
+                    // gapManipulator_->radialExtendGap(manipulatedGaps.at(i)); // to set s
                     gapManipulator_->setGapGoal(planningGaps.at(i), 
                                                 globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
                                                 globalGoalRobotFrame_);

@@ -11,8 +11,11 @@ namespace dynamic_gap
     {
         cfg_ = &cfg;
         rawGapsPublisher = nh.advertise<visualization_msgs::Marker>("raw_gaps", 10);
+        rawGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gaps_fig", 10);
+
         simpGapsPublisher = nh.advertise<visualization_msgs::Marker>("simp_gaps", 10);
-        
+        simpGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gaps_fig", 10);
+
         manipGapsPublisher = nh.advertise<visualization_msgs::Marker>("manip_gaps", 10);
         navigableGapsPublisher = nh.advertise<visualization_msgs::Marker>("reachable_gaps", 10);
         
@@ -87,36 +90,62 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_terminal", manipTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable", reachable));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
+
+        std_msgs::ColorRGBA gapwiseColor;
+        gapwiseColor.a = 1.0;
+
+        // (28, 124, 84)
+        gapwiseColor.r = 28./255.; gapwiseColor.g = 124./255.; gapwiseColor.b = 84./255.;
+        gapwiseColors.push_back(gapwiseColor);
+
+        // (115, 226, 167)
+        gapwiseColor.r = 115./255.; gapwiseColor.g = 226./255.; gapwiseColor.b = 167./255.;
+        gapwiseColors.push_back(gapwiseColor);       
+
+        // (53, 86, 16)
+        gapwiseColor.r = 53./255.; gapwiseColor.g = 86./255.; gapwiseColor.b = 16./255.;
+        gapwiseColors.push_back(gapwiseColor);    
+
+        // (27, 81, 45)
+        gapwiseColor.r = 27./255.; gapwiseColor.g = 81./255.; gapwiseColor.b = 45./255.;
+        gapwiseColors.push_back(gapwiseColor);    
+
+        // (153, 188, 56)
+        gapwiseColor.r = 153./255.; gapwiseColor.g = 188./255.; gapwiseColor.b = 56./255.;
+        gapwiseColors.push_back(gapwiseColor);          
     }
 
-    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
+    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns, const bool & initial) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
         // First, clearing topic.
-        // visualization_msgs::MarkerArray clearMarkerArray;
+        visualization_msgs::MarkerArray clearMarkerArray;
         visualization_msgs::Marker clearMarker;
         clearMarker.id = 0;
         clearMarker.ns = ns;
         clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        // clearMarkerArray.markers.push_back(clearMarker);
+        clearMarkerArray.markers.push_back(clearMarker);
 
+        // visualization_msgs::Marker marker;
+        // drawGap(marker, gaps, ns, true);
 
-        visualization_msgs::Marker marker;
-        drawGap(marker, gaps, ns, true);
-
-        // visualization_msgs::MarkerArray markerArray;
+        visualization_msgs::MarkerArray markerArray;
         // for (dynamic_gap::Gap * gap : gaps) 
-        //     drawGap(markerArray, gap, ns, true);
+        drawGapMarkerArray(markerArray, gaps, ns, initial);
 
         if (ns == "raw") 
         {
-            rawGapsPublisher.publish(clearMarker);
-            rawGapsPublisher.publish(marker);
+            // rawGapsPublisher.publish(clearMarker);
+            // rawGapsPublisher.publish(marker);
+            rawGapsFigPublisher.publish(clearMarkerArray);
+            rawGapsFigPublisher.publish(markerArray);
         } else if (ns == "simp") 
         {
-            simpGapsPublisher.publish(clearMarker);
-            simpGapsPublisher.publish(marker);
+            // simpGapsPublisher.publish(clearMarker);
+            // simpGapsPublisher.publish(marker);
+            simpGapsFigPublisher.publish(clearMarkerArray);
+            simpGapsFigPublisher.publish(markerArray);
         }
     }
 
@@ -198,6 +227,117 @@ namespace dynamic_gap
             }
         }
         // ROS_INFO_STREAM("[drawGap] end");
+    }
+
+    void GapVisualizer::drawGapMarkerArray(visualization_msgs::MarkerArray & markerArray,
+                                            const std::vector<dynamic_gap::Gap *> & gaps, 
+                                            const std::string & ns, const bool & initial) 
+    {
+        visualization_msgs::Marker marker;
+
+        marker.header.stamp = ros::Time();
+        marker.ns = ns;
+        marker.type = visualization_msgs::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;        
+
+        float thickness = 0.05;
+        marker.scale.x = thickness;     
+
+
+        int counter = 0;
+        for (dynamic_gap::Gap * gap : gaps) 
+        {
+            int id = (int) markerArray.markers.size();
+            marker.header.frame_id = gap->frame_;
+
+            // ROS_INFO_STREAM("ID: "<< id);
+
+            gap->leftGapPtModel_->isolateGapDynamics();
+            gap->rightGapPtModel_->isolateGapDynamics();
+
+            Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
+            Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+
+
+            int leftIdx, rightIdx;
+            float leftRange, rightRange;
+
+            if (initial)
+            {
+                leftIdx = gap->LIdx();
+                rightIdx = gap->RIdx();
+                leftRange = gap->LRange();
+                rightRange = gap->RDist();
+            } else
+            {
+                Eigen::Vector2f leftPtTerminal = leftGapState.head(2) + leftGapState.tail(2) * gap->gapLifespan_; 
+                Eigen::Vector2f rightPtTerminal = rightGapState.head(2) + rightGapState.tail(2) * gap->gapLifespan_; 
+
+                leftIdx = theta2idx( std::atan2(leftPtTerminal[1], leftPtTerminal[0]) );
+                rightIdx = theta2idx( std::atan2(rightPtTerminal[1], rightPtTerminal[0]) );
+                leftRange = leftPtTerminal.norm();
+                rightRange = rightPtTerminal.norm();
+            }
+
+            int gapIdxSpan = (leftIdx - rightIdx);
+            if (gapIdxSpan < 0)
+                gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
+
+            int num_segments = gapIdxSpan / min_resoln + 1;
+            float distIncrement = (leftRange - rightRange) / num_segments;
+            int midGapIdx = rightIdx; //  + viz_offset;
+            float midGapDist = rightRange;
+
+            std_msgs::ColorRGBA ithGapColor = gapwiseColors.at(counter);
+            if (!initial)
+                ithGapColor.a = 0.5;
+
+            marker.colors.clear();
+            marker.colors.insert(marker.colors.begin(), 2, ithGapColor);
+
+            float thickness = 0.05;
+            marker.scale.x = thickness;
+            marker.scale.y = 0.1;
+            marker.scale.z = 0.1;
+
+            geometry_msgs::Point midGapPt;
+            midGapPt.z = 0.0005;
+            std::vector<geometry_msgs::Point> midGapPts;
+
+            marker.lifetime = ros::Duration(0);
+
+            float midGapTheta = 0.0;
+            for (int i = 0; i < num_segments; i++)
+            {
+                midGapPts.clear();
+                midGapTheta = idx2theta(midGapIdx);
+                midGapPt.x = midGapDist * cos(midGapTheta);
+                midGapPt.y = midGapDist * sin(midGapTheta);
+                midGapPts.push_back(midGapPt);
+
+                midGapIdx = (midGapIdx + min_resoln) % cfg_->scan.full_scan; // int(gap->half_scan * 2);
+                midGapDist += distIncrement;
+
+                midGapTheta = idx2theta(midGapIdx);
+                midGapPt.x = midGapDist * cos(midGapTheta);
+                midGapPt.y = midGapDist * sin(midGapTheta);
+                midGapPts.push_back(midGapPt);
+
+                marker.points = midGapPts;
+                marker.id = id++;
+                markerArray.markers.push_back(marker);
+            }
+
+            counter++;
+        }
     }
 
     void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
@@ -462,10 +602,12 @@ namespace dynamic_gap
         // gapmodel_vel_error_publisher.publish(clearMarkerArray);
 
         visualization_msgs::MarkerArray gapModelMarkerArray; // , gap_vel_error_arr , gap_pos_GT_arr, gap_vel_GT_arr;
+        int gap_counter = 0;
         for (dynamic_gap::Gap * gap : gaps) 
         {
-            drawGapModels(gapModelMarkerArray, gap, "gap_models"); // gap_vel_error_arr
+            drawGapModels(gapModelMarkerArray, gap, "gap_models", gap_counter); // gap_vel_error_arr
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
+            gap_counter++;
         }
         // gapModelPosPublisher.publish(gap_pos_arr);
         gapModelsPublisher.publish(gapModelMarkerArray);
@@ -476,7 +618,8 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                        dynamic_gap::Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
+                                        dynamic_gap::Gap * gap, const std::string & ns,
+                                        const int & gap_counter) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
@@ -484,12 +627,12 @@ namespace dynamic_gap
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
         // visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
-        drawModel(leftModelMarker, gap, left, id, ns);
+        drawModel(leftModelMarker, gap, left, id, ns, gap_counter);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
         // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
-        drawModel(rightModelMarker, gap, !left, id, ns);
+        drawModel(rightModelMarker, gap, !left, id, ns, gap_counter);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
         // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
@@ -512,7 +655,8 @@ namespace dynamic_gap
     */    
 
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
-                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns) 
+                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns,
+                                    const int & gap_counter) 
     {
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();
@@ -521,22 +665,25 @@ namespace dynamic_gap
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         
-        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getState();
-        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getState();
-           
+        gap->leftGapPtModel_->isolateGapDynamics();
+        gap->rightGapPtModel_->isolateGapDynamics();
+
+        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getGapState();
+        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getGapState();
+
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)
         {
             modelMarker.pose.position.x = leftModelState[0];
             modelMarker.pose.position.y = leftModelState[1];
-            gapVel << leftModelState[2] + gap->leftGapPtModel_->getRobotVel().twist.linear.x,
-                      leftModelState[3] + gap->leftGapPtModel_->getRobotVel().twist.linear.y;
+            gapVel << leftModelState[2],
+                      leftModelState[3];
         } else
         {
             modelMarker.pose.position.x = rightModelState[0];
             modelMarker.pose.position.y = rightModelState[1];            
-            gapVel << rightModelState[2] + gap->rightGapPtModel_->getRobotVel().twist.linear.x, 
-                      rightModelState[3] + gap->rightGapPtModel_->getRobotVel().twist.linear.y;
+            gapVel << rightModelState[2], 
+                      rightModelState[3];
         }
         modelMarker.pose.position.z = 0.01;
 
@@ -553,9 +700,7 @@ namespace dynamic_gap
         modelMarker.scale.y = 0.1;
         modelMarker.scale.z = 0.000001;
 
-        modelMarker.color.a = 1.0;
-        modelMarker.color.r = 1.0;
-        modelMarker.color.b = 1.0;
+        modelMarker.color = gapwiseColors.at(gap_counter);
         modelMarker.lifetime = ros::Duration(0);
     }
 

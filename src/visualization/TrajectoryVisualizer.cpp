@@ -112,8 +112,8 @@ namespace dynamic_gap
         gapTrajMarker.scale.y = 0.04; // 0.01;
         gapTrajMarker.scale.z = 0.0001;
         gapTrajMarker.color.a = 1;
-        gapTrajMarker.color.b = 1.0;
-        gapTrajMarker.color.g = 1.0;
+        gapTrajMarker.color.b = 0.0;
+        gapTrajMarker.color.g = 0.0;
         gapTrajMarker.lifetime = ros::Duration(0);
 
         for (const dynamic_gap::Trajectory & traj : trajs) 

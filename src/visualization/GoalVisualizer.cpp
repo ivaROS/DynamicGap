@@ -10,7 +10,7 @@ namespace dynamic_gap
         gapGoalsPublisher = nh.advertise<visualization_msgs::Marker>("gap_goals", 10);
 
         gapGoalsColor.r = 1.0;
-        gapGoalsColor.g = 0.0;
+        gapGoalsColor.g = 1.0;
         gapGoalsColor.b = 0.0;
         gapGoalsColor.a = 1;
 
