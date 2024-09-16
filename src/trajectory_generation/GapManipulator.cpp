@@ -87,13 +87,13 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM("            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
                 
-                // Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
             
-                // Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
+                Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
 
-                // ROS_INFO_STREAM("            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
+                ROS_INFO_STREAM("            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
 
-                gap->setGoal(centerPt);
+                gap->setGoal(inflatedCenterPt);
                 gap->setGoalVel(centerVel);
             } else
             {
@@ -120,40 +120,15 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM("            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-                // Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
 
-                // Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
+                Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
-                // ROS_INFO_STREAM("            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
+                ROS_INFO_STREAM("            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
 
-                gap->setGoal(biasedGapGoal);
+                gap->setGoal(inflatedBiasedGapGoal);
                 gap->setGoalVel(biasedGapVel);
             }
-
-
-            // // needs to be distance between L/confined. Always positive.
-            // float leftToGapGoalAngle = getSignedLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
-
-            // // ROS_INFO_STREAM("            biasedGapGoalTheta: " << biasedGapGoalTheta);
-            // // ROS_INFO_STREAM("            biasedGapGoalIdx: " << biasedGapGoalIdx);
-            // // ROS_INFO_STREAM("            leftToGapGoalAngle: " << leftToGapGoalAngle << ", leftToRightAngle: " << leftToRightAngle);
-
-
-            // Eigen::Vector2f gapGoalAngularOffset(0.0, 0.0); 
-            // if ( (leftToGapGoalAngle / leftToRightAngle) < 0.1) // biased gap goal on left side
-            //     gapGoalAngularOffset = Rnegpi2 * unitNorm(leftPt) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;    
-            // else                                                // biased gap goal on right side
-            //     gapGoalAngularOffset = Rpi2 * unitNorm(rightPt) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-
-            // Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
-            // Eigen::Vector2f gapGoalOffset = gapGoalRadialOffset + gapGoalAngularOffset;
-            
-            // // ROS_INFO_STREAM("            biasedGapGoal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);
-            // // ROS_INFO_STREAM("            gapGoalRadialOffset: " << gapGoalRadialOffset[0] << ", " << gapGoalRadialOffset[1]);
-            // // ROS_INFO_STREAM("            gapGoalAngularOffset: " << gapGoalAngularOffset[0] << ", " << gapGoalAngularOffset[1]);
-            
-            // Eigen::Vector2f offsetBiasedGapGoal = gapGoalOffset + biasedGapGoal;
-            // // ROS_INFO_STREAM("anchor: (" << anchor[0] << ", " << anchor[1] << "), offset with r_ins " << cfg_->rbt.r_inscr << " and inf ratio " << cfg_->traj.inf_ratio << ", :(" << offset[0] << ", " << offset[1] << "), offsetBiasedGapGoal: (" << offsetBiasedGapGoal[0] << ", " << offsetBiasedGapGoal[1] << ")");
 
         } catch (...)
         {

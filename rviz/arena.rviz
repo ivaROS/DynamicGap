@@ -586,13 +586,13 @@ Visualization Manager:
       Enabled: false
       Name: Potential Gap
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/trajectory_switch
       Name: Marker
       Namespaces:
-        traj_switch_count: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /rto/planning_loop_idx
@@ -646,10 +646,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 172.07061767578125
+      Scale: 41.943363189697266
       Target Frame: <Fixed Frame>
-      X: 5.9251604080200195
-      Y: 4.432777404785156
+      X: 16.334543228149414
+      Y: 14.548705101013184
     Saved: ~
 Window Geometry:
   Displays:

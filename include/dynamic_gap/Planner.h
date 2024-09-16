@@ -502,5 +502,7 @@ namespace dynamic_gap
 
             float totalControlTimeTaken = 0.0f;
             int controlCalls = 0;   
+
+            bool colliding = false;
     };
 }

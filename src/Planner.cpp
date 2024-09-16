@@ -203,6 +203,17 @@ namespace dynamic_gap
         
         scan_ = scan;
 
+        float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
+
+        if (minScanDist < cfg_.rbt.r_inscr)
+        {
+            ROS_INFO_STREAM("       in collision!");
+            colliding = true;
+        } else
+        {
+            colliding = false;
+        }
+
         cfg_.updateParamFromScan(scan_);
 
         // ROS_INFO_STREAM("scan: " << *scan_);
@@ -1102,14 +1113,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                             ": current trajectory is of cost infinity," << incomingPathStatus);
                 return changeTrajectoryHelper(incomingGap, incomingTraj, ableToSwitchToIncomingPath);
             }
-
             
-            if (incomingPathCost < currentPathSubCost) 
-            {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
-                                                            ": incoming trajectory is lower score");
-                changeTrajectoryHelper(incomingGap, incomingTraj, ableToSwitchToIncomingPath);
-            }
+            // if (incomingPathCost < currentPathSubCost) 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+            //                                                 ": incoming trajectory is lower score");
+            //     changeTrajectoryHelper(incomingGap, incomingTraj, ableToSwitchToIncomingPath);
+            // }
             
           
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
@@ -1164,10 +1174,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     dynamic_gap::Trajectory Planner::runPlanningLoop() 
     {
-        if (!readyToPlan)
+        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
+
+        if (!readyToPlan || colliding)
             return dynamic_gap::Trajectory();
 
-        ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
         trajVisualizer_->drawPlanningLoopIdx(planningLoopCalls);
 
         isGoalReached();
