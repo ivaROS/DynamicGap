@@ -106,13 +106,17 @@ namespace dynamic_gap
         gapwiseColor.r = 53./255.; gapwiseColor.g = 86./255.; gapwiseColor.b = 16./255.;
         gapwiseColors.push_back(gapwiseColor);    
 
+        // (153, 188, 56)
+        gapwiseColor.r = 153./255.; gapwiseColor.g = 188./255.; gapwiseColor.b = 56./255.;
+        gapwiseColors.push_back(gapwiseColor);          
+
         // (27, 81, 45)
         gapwiseColor.r = 27./255.; gapwiseColor.g = 81./255.; gapwiseColor.b = 45./255.;
         gapwiseColors.push_back(gapwiseColor);    
 
-        // (153, 188, 56)
-        gapwiseColor.r = 153./255.; gapwiseColor.g = 188./255.; gapwiseColor.b = 56./255.;
-        gapwiseColors.push_back(gapwiseColor);          
+        // (20, 235, 211)
+        gapwiseColor.r = 20./255.; gapwiseColor.g = 235./255.; gapwiseColor.b = 211./255.;
+        gapwiseColors.push_back(gapwiseColor);            
     }
 
     void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns, const bool & initial) 

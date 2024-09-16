@@ -107,7 +107,7 @@ Visualization Manager:
           Length: 0.5
           Name: Axes
           Radius: 0.05000000074505806
-          Reference Frame: robot5_laser_0
+          Reference Frame: robot6_laser_0
           Show Trail: false
           Value: true
       Enabled: true
@@ -121,7 +121,7 @@ Visualization Manager:
               Marker Topic: /raw_gaps_fig
               Name: MarkerArray
               Namespaces:
-                raw: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -129,7 +129,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps_fig
               Name: MarkerArray
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -137,7 +137,7 @@ Visualization Manager:
               Marker Topic: /gap_goals
               Name: Marker
               Namespaces:
-                gap_goal: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -189,7 +189,7 @@ Visualization Manager:
               Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
-                gap_models: true
+                {}
               Queue Size: 100
               Value: true
           Enabled: true
@@ -201,7 +201,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                allTraj: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -375,7 +375,7 @@ Visualization Manager:
           Marker Topic: /robot6/marker
           Name: MarkerArray
           Namespaces:
-            {}
+            robot6: true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -537,7 +537,7 @@ Visualization Manager:
       Marker Topic: /global_goal
       Name: Marker
       Namespaces:
-        global_goal: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -568,7 +568,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.23412036895752
+      Distance: 13.406025886535645
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -576,9 +576,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.6114325523376465
-        Y: 0.4204982817173004
-        Z: -4.21834659576416
+        X: 0.6908826231956482
+        Y: 1.3523077964782715
+        Z: -4.217414379119873
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
