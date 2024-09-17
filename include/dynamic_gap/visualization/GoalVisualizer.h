@@ -40,7 +40,7 @@ namespace dynamic_gap
             //                  dynamic_gap::Gap * gap, 
             //                  const bool & initial);
 
-            void drawGapGoals(visualization_msgs::Marker & marker, 
+            void drawGapGoals(visualization_msgs::MarkerArray & marker, 
                                 const std::vector<dynamic_gap::Gap *> & gaps, 
                                 const bool & initial);
 
@@ -51,6 +51,7 @@ namespace dynamic_gap
 
             ros::Publisher globalPathLocalWaypointPublisher; /**< Publisher for global path local waypoint */
             ros::Publisher gapGoalsPublisher; /**< Publisher for gap goals */
+            ros::Publisher gapGoalsFigPublisher;
             ros::Publisher globalGoalPublisher; /**< Publisher for global goal */
     };
 }

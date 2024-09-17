@@ -121,7 +121,7 @@ Visualization Manager:
               Marker Topic: /raw_gaps_fig
               Name: MarkerArray
               Namespaces:
-                {}
+                raw: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -129,7 +129,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps_fig
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -189,7 +189,7 @@ Visualization Manager:
               Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -201,7 +201,7 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -537,7 +537,15 @@ Visualization Manager:
       Marker Topic: /global_goal
       Name: Marker
       Namespaces:
-        {}
+        global_goal: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gap_goals_fig
+      Name: MarkerArray
+      Namespaces:
+        gap_goal: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -568,7 +576,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.406025886535645
+      Distance: 13.212979316711426
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -576,9 +584,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.6908826231956482
-        Y: 1.3523077964782715
-        Z: -4.217414379119873
+        X: 0.7026755809783936
+        Y: 0.867496132850647
+        Z: -4.217903137207031
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

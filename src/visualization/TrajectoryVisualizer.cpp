@@ -13,6 +13,33 @@ namespace dynamic_gap
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
         globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
+
+        std_msgs::ColorRGBA gapwiseColor;
+        gapwiseColor.a = 1.0;
+
+        // (28, 124, 84)
+        gapwiseColor.r = 28./255.; gapwiseColor.g = 124./255.; gapwiseColor.b = 84./255.;
+        gapwiseColors.push_back(gapwiseColor);
+
+        // (115, 226, 167)
+        gapwiseColor.r = 115./255.; gapwiseColor.g = 226./255.; gapwiseColor.b = 167./255.;
+        gapwiseColors.push_back(gapwiseColor);       
+
+        // (53, 86, 16)
+        gapwiseColor.r = 53./255.; gapwiseColor.g = 86./255.; gapwiseColor.b = 16./255.;
+        gapwiseColors.push_back(gapwiseColor);    
+
+        // (153, 188, 56)
+        gapwiseColor.r = 153./255.; gapwiseColor.g = 188./255.; gapwiseColor.b = 56./255.;
+        gapwiseColors.push_back(gapwiseColor);          
+
+        // (27, 81, 45)
+        gapwiseColor.r = 27./255.; gapwiseColor.g = 81./255.; gapwiseColor.b = 45./255.;
+        gapwiseColors.push_back(gapwiseColor);    
+
+        // (20, 235, 211)
+        gapwiseColor.r = 20./255.; gapwiseColor.g = 235./255.; gapwiseColor.b = 211./255.;
+        gapwiseColors.push_back(gapwiseColor);          
     }
 
     void TrajectoryVisualizer::drawPlanningLoopIdx(const int & planningLoopIdx) 
@@ -112,19 +139,22 @@ namespace dynamic_gap
         gapTrajMarker.scale.y = 0.04; // 0.01;
         gapTrajMarker.scale.z = 0.0001;
         gapTrajMarker.color.a = 1;
-        gapTrajMarker.color.b = 0.0;
-        gapTrajMarker.color.g = 0.0;
         gapTrajMarker.lifetime = ros::Duration(0);
 
+        int traj_counter = 0;
         for (const dynamic_gap::Trajectory & traj : trajs) 
         {
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+
+            gapTrajMarker.color = gapwiseColors.at(traj_counter);
+
             for (const geometry_msgs::Pose & pose : path.poses) 
             {
                 gapTrajMarker.id = int (gapTrajMarkerArray.markers.size());
                 gapTrajMarker.pose = pose;
                 gapTrajMarkerArray.markers.push_back(gapTrajMarker);
             }
+            traj_counter++;            
         }
         gapTrajectoriesPublisher.publish(gapTrajMarkerArray);
     }

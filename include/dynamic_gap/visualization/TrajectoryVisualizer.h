@@ -52,6 +52,8 @@ namespace dynamic_gap
 
         private: 
 
+            std::vector<std_msgs::ColorRGBA> gapwiseColors; /**< Map from gap namespace to color for visualization */
+
             ros::Publisher gapTrajectoriesPublisher; /**< Publisher for gap trajectories */
             ros::Publisher trajPoseScoresPublisher; /**< Publisher for gap trajectory pose-wise scores */
             ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */
