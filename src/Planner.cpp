@@ -300,6 +300,7 @@ namespace dynamic_gap
             gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
             gapVisualizer_->drawGapsModels(currRawGaps_);
             gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
+            gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
 
             readyToPlan = true;

@@ -39,6 +39,11 @@ namespace dynamic_gap
 
         // Simplified gaps
         std::vector<double> simpGapColorTriplet = {1.0, 1.0, 0.0};
+        simpTmin1.a = 0.5;
+        simpTmin1.r = simpGapColorTriplet[0];
+        simpTmin1.g = simpGapColorTriplet[1];
+        simpTmin1.b = simpGapColorTriplet[2]; 
+
         simpInitial.a = 1.0;
         simpInitial.r = simpGapColorTriplet[0];
         simpInitial.g = simpGapColorTriplet[1];
@@ -81,6 +86,7 @@ namespace dynamic_gap
         // colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw", raw));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw_initial", rawInitial));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw_terminal", rawTerminal));
+        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("simp_tmin1", simpTmin1));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("simp_initial", simpInitial));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("simp_terminal", simpTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_initial", manipInitial));
@@ -143,7 +149,15 @@ namespace dynamic_gap
         marker.scale.x = thickness;     
 
         std::string fullNamespace = ns;
-        fullNamespace.append("_initial");     
+        
+        if (fullNamespace == "simp_tmin1")
+        {
+            marker.id = 0;
+        } else
+        {
+            fullNamespace.append("_initial");
+            marker.id = 1;
+        } 
         // if (initial)
         //     fullNamespace.append("_initial");
         // else
