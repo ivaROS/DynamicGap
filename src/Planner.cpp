@@ -506,6 +506,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             currentRbtVel_.header = rbtVelRbtFrame.header;
             currentRbtVel_.twist.linear = rbtVelRbtFrame.vector;
+            currentRbtVel_.twist.angular = rbtOdomMsg->twist.twist.angular; // z is same between frames
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)

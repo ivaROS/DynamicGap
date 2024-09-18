@@ -344,6 +344,7 @@ namespace dynamic_gap
 
                             float linear_x_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.x - vectorI.at(timeJLowerBoundIthIdx).twist.linear.x);
                             float linear_y_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.y - vectorI.at(timeJLowerBoundIthIdx).twist.linear.y);
+                            float angular_z_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.angular.z - vectorI.at(timeJLowerBoundIthIdx).twist.angular.z);
 
                             float time_diff_num = (interpTwist.header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
                             float time_diff_denom = (vectorI.at(timeJUpperBoundIthIdx).header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
@@ -352,7 +353,9 @@ namespace dynamic_gap
                                                             linear_x_diff * time_diff_num / time_diff_denom; 
                             interpTwist.twist.linear.y = vectorI.at(timeJLowerBoundIthIdx).twist.linear.y +
                                                             linear_y_diff * time_diff_num / time_diff_denom; 
-                        
+                            interpTwist.twist.angular.z = vectorI.at(timeJLowerBoundIthIdx).twist.angular.z +
+                                                            angular_z_diff * time_diff_num / time_diff_denom;
+
                             vectorI.insert(vectorI.begin() + timeJUpperBoundIthIdx, interpTwist);
                         }
                     }

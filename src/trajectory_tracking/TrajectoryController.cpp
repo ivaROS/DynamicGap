@@ -164,7 +164,7 @@ namespace dynamic_gap
 
         float velLinXFeedback = constantVelocityCommand[0];
         float velLinYFeedback = constantVelocityCommand[1];
-        float velAngFeedback = 0.0;
+        float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y);
@@ -179,6 +179,8 @@ namespace dynamic_gap
         return cmdVel; 
 
     }
+
+    /*
     geometry_msgs::Twist TrajectoryController::controlLaw(const geometry_msgs::Pose & current, 
                                                           const geometry_msgs::Pose & desired) 
     {    
@@ -219,7 +221,14 @@ namespace dynamic_gap
         // obtain feedback velocities
         float velLinXFeedback = errorX * cfg_->control.k_fb_x;
         float velLinYFeedback = errorY * cfg_->control.k_fb_y;
-        float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
+        
+        float velAngFeedback = 0.0;
+        ROS_INFO_STREAM("       cfg_->planning.heading: " << cfg_->planning.heading);
+        if (cfg_->planning.heading)
+        {
+            ROS_INFO_STREAM_NAMED("Controller", "        applying heading control");            
+            velAngFeedback = errorTheta * cfg_->control.k_fb_theta;
+        }
 
         float cmdSpeed = sqrt(pow(velLinXFeedback, 2) + pow(velLinYFeedback, 2));
 
@@ -234,6 +243,7 @@ namespace dynamic_gap
         cmdVel.angular.z = velAngFeedback;
         return cmdVel;
     }
+    */
 
     geometry_msgs::Twist TrajectoryController::processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                              const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
