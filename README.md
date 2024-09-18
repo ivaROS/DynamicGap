@@ -1,60 +1,27 @@
-### Dependencies and Installation
+### Dynamic Gap
 
-Dependency | Version |
---- | --- | 
-ROS | Noetic |
-CMake | 3.16 |
-OSQP | v0.6.2 |
-OsqpEigen | v0.8.0 |
-`stdr_simulator` | Current |
-`modify_stdr_scan` | Current |
-`navigation_test` | Current |
+Insert GIF
 
-This planner is designed to run on ROS Noetic / Ubuntu 20.04.
+### Installation
 
-First, install [ROS Noetic](http://wiki.ros.org/noetic/Installation).
+This branch is designed to be deployed in [Arena-Rosnav](https://arena-rosnav.readthedocs.io/en/latest/).
 
-Once that is completed, install the ROS Navigation stack:
+We forked our own version of the benchmarking environment to solve some pre-existent problems in the repositories. To install our version, enter the following command in the terminal
 
-``` sudo apt-get install ros-noetic-navigation```
+```curl https://raw.githubusercontent.com/max-assel/arena-rosnav/patch/install.sh | bash```
 
-We run this planner in the STDR Simulator (we need the second_order branch):
+Then, open a new terminal and run the following command
 
-``` git clone -b second_order https://github.com/ivaROS/stdr_simulator.git```
+```curl https://raw.githubusercontent.com/max-assel/arena-rosnav/patch/install2.sh | bash```
 
-We also need a custom package to allow for detection of other agents in the simulator:
+Finally, open another new terminal and run the following command
 
-``` git clone https://github.com/max-assel/modify_stdr_scan.git```
+```curl https://raw.githubusercontent.com/max-assel/arena-rosnav/patch/install3_training.sh | bash```
 
-Within the planner, we use the OsqpEigen library to generate trajectories. You can follow the installation instructions [here](https://github.com/robotology/osqp-eigen). 
+### Testing
 
-Lastly, we use the `navigation_test` repository to set up and queue experiments:
+You must be in the poetry environment to run benchmarking, to do so
 
-``` git clone https://github.com/max-assel/navigation_test.git```
+```cd ~/arena_ws/src/arena/arena-rosnav```
 
-### Building
-
-Navigate to your ROS workspace and build:
-
-``` catkin build ```
-
-### Running
-To run experiments, you can run
-
-``` rosrun nav_scripts stdr_master.py```
-
-And you can further modify experiments within `stdr_master.py`, including what planners to use, how many experiments, what maps, what obstacles, etc.
-
-### Documentation
-To generate Doxygen documentation for viewing:
-
-``` mkdir doc ```
-
-``` rosdoc_lite . ```
-
-``` firefox doc/html/annotated.html ```
-
-### TODOs for Max
-- Make sure all nodes die correctly
-- add flag for static/dynamic to toggle propagation
-- add move_base_virtual, egocircle
+```poetry shell```
