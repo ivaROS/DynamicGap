@@ -19,7 +19,7 @@ namespace dynamic_gap
         gapModelsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_models", 10);
         
         std_msgs::ColorRGBA rawInitial, rawTerminal, 
-                            simpInitial, simpTerminal,
+                            simpInitial, simpTerminal, simpTmin1,
                             manipInitial, manipTerminal, 
                             reachable, 
                             gap_model, 

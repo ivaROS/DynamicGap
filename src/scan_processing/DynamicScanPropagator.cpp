@@ -37,6 +37,8 @@ namespace dynamic_gap
 
         // set first scan to current scan
         sensor_msgs::LaserScan scan = *scan_.get();
+        scan.intensities.resize(scan.ranges.size());
+
         futureScans_.at(0) = scan; // at t = 0.0
 
         // order models by index
@@ -181,6 +183,12 @@ namespace dynamic_gap
             {            
                 if (pointwiseModelIndices.at(i) > 0)
                 {
+                    if (futureScanTimeIdx == 1)
+                    {
+                        // only for first future scan, adjust intensities to mark dynamic points
+                        futureScans_.at(0).intensities.at(i) = 255;
+                    }
+
                     // polar to cartesian
                     float range = defaultScan.ranges.at(i);
                     float theta = idx2theta(i);
@@ -225,6 +233,12 @@ namespace dynamic_gap
 
             t_i = t_iplus1;
         }
+
+        // for the *first* entry to futureScans, we set the intensity values
+        // to max for the scan points that *are* attached to models, meaning the
+        // scan points that we estimate to be dynamic, we then visualize this scan
+        // to verify what portions of the scan are being estimated as dynamic
+        visualizePropagatedEgocircle(futureScans_.at(0));        
 
         return futureScans_;
     }
