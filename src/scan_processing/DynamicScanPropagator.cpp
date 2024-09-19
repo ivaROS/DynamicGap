@@ -45,8 +45,8 @@ namespace dynamic_gap
 
         futureScans_.at(0) = scan; // at t = 0.0
 
-        // sensor_msgs::LaserScan visPropScan = scan;
-        // visPropScan.intensities.resize(visPropScan.ranges.size());
+        sensor_msgs::LaserScan visPropScan = scan;
+        visPropScan.intensities.resize(visPropScan.ranges.size());
 
         // order models by index
         std::map<int, dynamic_gap::Estimator *> rawModels;
@@ -178,7 +178,7 @@ namespace dynamic_gap
             {
                 // set default scan range to max
                 wipedScan.ranges.at(i) = cfg_->scan.range_max; // set to max range
-                // visPropScan.intensities.at(i) = 255;
+                visPropScan.intensities.at(i) = 255;
 
                 // set pointwise model index
                 if ( (scanPt - lhsPt).norm() < (scanPt - rhsPt).norm())
@@ -260,7 +260,7 @@ namespace dynamic_gap
         // to verify what portions of the scan are being estimated as dynamic
 
 
-        // visualizePropagatedEgocircle(visPropScan);        
+        visualizePropagatedEgocircle(visPropScan);        
 
         return futureScans_;
     }
