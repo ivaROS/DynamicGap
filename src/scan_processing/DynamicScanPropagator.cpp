@@ -29,6 +29,11 @@ namespace dynamic_gap
     void DynamicScanPropagator::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & propagatedScan) 
     {
         propagatedEgocirclePublisher_.publish(propagatedScan);
+
+        ROS_INFO_STREAM("propagated egocircle ranges: ");
+        for (int i = 0; i < propagatedScan.ranges.size(); i++)
+            ROS_INFO_STREAM("       i: " << i << ", range: " <<  propagatedScan.ranges.at(i) << ", intensity: " << propagatedScan.intensities.at(i));
+
     }
 
     std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScan(const std::vector<dynamic_gap::Gap *> & rawGaps)
@@ -37,9 +42,11 @@ namespace dynamic_gap
 
         // set first scan to current scan
         sensor_msgs::LaserScan scan = *scan_.get();
-        scan.intensities.resize(scan.ranges.size());
 
         futureScans_.at(0) = scan; // at t = 0.0
+
+        // sensor_msgs::LaserScan visPropScan = scan;
+        // visPropScan.intensities.resize(visPropScan.ranges.size());
 
         // order models by index
         std::map<int, dynamic_gap::Estimator *> rawModels;
@@ -83,42 +90,50 @@ namespace dynamic_gap
         std::vector<int> pointwiseModelIndices(defaultScan.ranges.size());
 
         // for each point in scan
+        // ROS_INFO_STREAM("defaultScan");
         for (int i = 0; i < defaultScan.ranges.size(); i++)
         {
+            // ROS_INFO_STREAM("       i: " << i);
             // get right hand side model (model idx should be less than scan idx)
             int rightHandSideModelIdx = -1;
             std::map<int, dynamic_gap::Estimator *>::iterator right_iter;
-            for (right_iter = rawModels.begin();
-                    right_iter != rawModels.end();
-                    ++right_iter)
+            for (right_iter = rawModels.begin(); right_iter != rawModels.end(); ++right_iter)
             {
+                // ROS_INFO_STREAM("           checking righthand model : " << right_iter->first);
                 if (right_iter->first <= i)
                 {
+                    // ROS_INFO_STREAM("               replacing");
                     rightHandSideModelIdx = right_iter->first;
                     // no break, keep going
                 }
             }
             
             if (rightHandSideModelIdx == -1) // no attachment
+            {
+                // ROS_INFO_STREAM("           no attachments for righthand model");            
                 rightHandSideModelIdx = prev(rawModels.end())->first;
+            }
 
             // get left hand side model
             int leftHandSideModelIdx = -1;
             std::map<int, dynamic_gap::Estimator *>::iterator left_iter;
-            for (left_iter = rawModels.begin();
-                    left_iter != rawModels.end();
-                    ++left_iter)
+            for (left_iter = rawModels.begin(); left_iter != rawModels.end(); ++left_iter)
             {
-                if (left_iter->first > i)
+                // ROS_INFO_STREAM("           checking lefthand model : " << left_iter->first);
+
+                if (left_iter->first >= i)
                 {
+                    // ROS_INFO_STREAM("           setting");
                     leftHandSideModelIdx = left_iter->first;
                     break;
                 }
             }
             
             if (leftHandSideModelIdx == -1) // no attachment
+            {
+                // ROS_INFO_STREAM("           no attachments for lefthand model");                        
                 leftHandSideModelIdx = rawModels.begin()->first;
-
+            }
             // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        at scan idx: " << i << ", LHS model idx: " << leftHandSideModelIdx << ", RHS model idx: " << rightHandSideModelIdx);
 
             // run distance check on LHS and RHS model positions
@@ -127,39 +142,50 @@ namespace dynamic_gap
 
             Eigen::Vector2f scanPt(range*cos(theta), range*sin(theta));
 
-            Eigen::Vector2f lhsPt = rawModels.at(leftHandSideModelIdx)->getGapPosition();
-            Eigen::Vector2f rhsPt = rawModels.at(rightHandSideModelIdx)->getGapPosition();
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        scanPt: " << scanPt.transpose());
 
-            float scanToLHSDist = (scanPt - lhsPt).norm();
-            float scanToRHSDist = (scanPt - rhsPt).norm();
+            Eigen::Vector2f lhsPt = rawModels.at(leftHandSideModelIdx)->getGapPosition();
+            Eigen::Vector2f lhsVel = rawModels.at(leftHandSideModelIdx)->getGapVelocity();
+            Eigen::Vector2f rhsPt = rawModels.at(rightHandSideModelIdx)->getGapPosition();
+            Eigen::Vector2f rhsVel = rawModels.at(rightHandSideModelIdx)->getGapVelocity();
+
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        lhsPt: " << lhsPt.transpose());
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        lhsVel: " << lhsVel.transpose());
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        rhsPt: " << rhsPt.transpose());
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        rhsVel: " << rhsVel.transpose());
+
+            // float scanToLHSDist = (scanPt - lhsPt).norm();
+            // float scanToRHSDist = (scanPt - rhsPt).norm();
 
             // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        LHS model dist: " << scanToLHSDist << 
             //                                                      ", RHS model dist: " << scanToRHSDist);
 
-            bool distCheck = (scanToLHSDist < 3 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio && 
-                              scanToRHSDist < 3 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
-
+            // bit hacky, we just know moving obstacles will be roughly robot sized
+            // bool distCheck = (scanToLHSDist < 3 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio && 
+            //                   scanToRHSDist < 3 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
+            bool distCheck = (lhsPt - rhsPt).norm() < 4 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            bool speedCheck = (lhsVel.norm() >= 0.10 && rhsVel.norm() >= 0.10);
             // run angle check on LHS and RHS model velocities
-            Eigen::Vector2f lhsVel = rawModels.at(leftHandSideModelIdx)->getGapVelocity();
-            Eigen::Vector2f rhsVel = rawModels.at(rightHandSideModelIdx)->getGapVelocity();
 
-            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        lhsVel: " << lhsVel.transpose());
-            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        rhsVel: " << rhsVel.transpose());
+            float vectorProj = lhsVel.dot(rhsVel) / (lhsVel.norm() * rhsVel.norm() + eps);
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        vectorProj: " << vectorProj);
+            bool angleCheck = (vectorProj > 0.0);
 
-            float cosineDist = 1.0 - lhsVel.dot(rhsVel) / (lhsVel.norm() * rhsVel.norm() + eps);
-            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        cosineDist: " << cosineDist);
-            bool angleCheck = (cosineDist < 0.25);
-
+            // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        distCheck: " << distCheck << ", speedCheck: " << speedCheck << ", angleCheck: " << angleCheck);
 
             // if attached
-            if (distCheck && angleCheck)
+            if (distCheck && speedCheck && angleCheck)
             {
                 // set default scan range to max
                 wipedScan.ranges.at(i) = cfg_->scan.range_max; // set to max range
+                // visPropScan.intensities.at(i) = 255;
 
                 // set pointwise model index
-                pointwiseModelIndices.at(i) = leftHandSideModelIdx; // attach model
-                ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        attaching scan idx: " << i << " to model position :" << lhsPt.transpose() << " and velocity: " << lhsVel.transpose());
+                if ( (scanPt - lhsPt).norm() < (scanPt - rhsPt).norm())
+                    pointwiseModelIndices.at(i) = leftHandSideModelIdx; // attach model
+                else
+                    pointwiseModelIndices.at(i) = rightHandSideModelIdx; // attach model
+                // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        attaching scan idx: " << i << " to model position :" << lhsPt.transpose() << " and velocity: " << lhsVel.transpose());
 
             } else
             {
@@ -183,12 +209,6 @@ namespace dynamic_gap
             {            
                 if (pointwiseModelIndices.at(i) > 0)
                 {
-                    if (futureScanTimeIdx == 1)
-                    {
-                        // only for first future scan, adjust intensities to mark dynamic points
-                        futureScans_.at(0).intensities.at(i) = 255;
-                    }
-
                     // polar to cartesian
                     float range = defaultScan.ranges.at(i);
                     float theta = idx2theta(i);
@@ -238,7 +258,9 @@ namespace dynamic_gap
         // to max for the scan points that *are* attached to models, meaning the
         // scan points that we estimate to be dynamic, we then visualize this scan
         // to verify what portions of the scan are being estimated as dynamic
-        visualizePropagatedEgocircle(futureScans_.at(0));        
+
+
+        // visualizePropagatedEgocircle(visPropScan);        
 
         return futureScans_;
     }

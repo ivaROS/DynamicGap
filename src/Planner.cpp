@@ -194,9 +194,9 @@ namespace dynamic_gap
         ROS_INFO_STREAM("       timestamp: " << scan->header.stamp);
 
         // pre-process scan (turning nan's into max ranges)
-        float eps = 0.0000001f;
+        float eps = 0.00001f;
         for (int i = 0; i < scan->ranges.size(); i++)
-            scan->ranges.at(i) = (std::isnan(scan->ranges.at(i)) ? cfg_.scan.range_max - eps : scan->ranges.at(i));
+            scan->ranges.at(i) = (std::isnan(scan->ranges.at(i)) ? (cfg_.scan.range_max - eps) : scan->ranges.at(i));
 
         std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
         // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");

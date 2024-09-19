@@ -115,7 +115,7 @@ namespace dynamic_gap
 
         bool outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
 
-        cmdVel = cmd_vel_stamped.twist;
+        // cmdVel = cmd_vel_stamped.twist;
 
         ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
 
