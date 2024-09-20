@@ -38,7 +38,7 @@ namespace dynamic_gap
         rawTerminal.b = rawGapColorTriplet[2];
 
         // Simplified gaps
-        std::vector<double> simpGapColorTriplet = {1.0, 1.0, 0.0};
+        std::vector<double> simpGapColorTriplet = {0.6, 0.0, 1.0};
         simpTmin1.a = 0.5;
         simpTmin1.r = simpGapColorTriplet[0];
         simpTmin1.g = simpGapColorTriplet[1];
@@ -115,11 +115,11 @@ namespace dynamic_gap
         // for (dynamic_gap::Gap * gap : gaps) 
         //     drawGap(markerArray, gap, ns, true);
 
-        if (ns == "raw") 
+        if (ns.find("raw") != std::string::npos) 
         {
             rawGapsPublisher.publish(clearMarker);
             rawGapsPublisher.publish(marker);
-        } else if (ns == "simp") 
+        } else if (ns.find("simp") != std::string::npos) 
         {
             simpGapsPublisher.publish(clearMarker);
             simpGapsPublisher.publish(marker);

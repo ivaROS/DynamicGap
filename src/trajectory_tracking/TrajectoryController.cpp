@@ -297,8 +297,8 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        safe command velocity, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
 
         // cmdVel_safe
-        if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
-            visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minDistTheta, minDist);
+        // if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
+        visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minDistTheta, minDist);
 
         velLinXFeedback += weightedVelLinXSafe;
         velLinYFeedback += weightedVelLinYSafe; 
@@ -332,15 +332,15 @@ namespace dynamic_gap
         projOpMarker.action = visualization_msgs::Marker::ADD;
         projOpMarker.pose.position.x = minDist * std::cos(minDistTheta);
         projOpMarker.pose.position.y = minDist * std::sin(minDistTheta);
-        projOpMarker.pose.position.z = 0.1;
+        projOpMarker.pose.position.z = 0.01;
         float dir = std::atan2(weightedVelLinYSafe, weightedVelLinXSafe);
         tf2::Quaternion projOpQuat;
         projOpQuat.setRPY(0, 0, dir);
         projOpMarker.pose.orientation = tf2::toMsg(projOpQuat);
 
-        projOpMarker.scale.x = sqrt(pow(weightedVelLinXSafe, 2) + pow(weightedVelLinYSafe, 2));
-        projOpMarker.scale.y = 0.01;  
-        projOpMarker.scale.z = 0.01;
+        projOpMarker.scale.x = sqrt(pow(weightedVelLinXSafe, 2) + pow(weightedVelLinYSafe, 2)) + 0.00001;
+        projOpMarker.scale.y = 0.1;
+        projOpMarker.scale.z = 0.000001;
         
 
         

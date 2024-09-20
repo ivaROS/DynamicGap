@@ -6,10 +6,9 @@ Panels:
       Expanded:
         - /Map1
         - /Dynamic Gap1
-        - /Dynamic Gap1/LaserScan1
-        - /Dynamic Gap1/LaserScan2
         - /Dynamic Gap1/Marker1
         - /Dynamic Gap1/Marker3
+        - /Dynamic Gap1/PoseArray3
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
         - /Marker3
@@ -322,21 +321,22 @@ Visualization Manager:
           Use rainbow: true
           Value: true
         - Class: rviz/Marker
-          Enabled: true
-          Marker Topic: /rto/raw_gaps
-          Name: Marker
-          Namespaces:
-            raw: true
-          Queue Size: 100
-          Value: true
-        - Class: rviz/Marker
           Enabled: false
-          Marker Topic: /rto/simp_gaps
+          Marker Topic: /rto/raw_gaps
           Name: Marker
           Namespaces:
             {}
           Queue Size: 100
           Value: false
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /rto/simp_gaps
+          Name: Marker
+          Namespaces:
+            simp: true
+            simp_tmin1: true
+          Queue Size: 100
+          Value: true
         - Class: rviz/Marker
           Enabled: false
           Marker Topic: /rto/manip_gaps
@@ -346,13 +346,13 @@ Visualization Manager:
           Queue Size: 100
           Value: false
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            gap_goal: true
+            {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /rto/candidate_trajectories
@@ -392,7 +392,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -402,7 +402,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/relevant_global_plan_snippet
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Arrow Length: 0.30000001192092896
           Axes Length: 0.30000001192092896
@@ -426,7 +426,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 114; 159; 207
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -436,7 +436,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/mpc_input
           Unreliable: false
-          Value: true
+          Value: false
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -626,13 +626,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/planning_loop_idx
       Name: Marker
       Namespaces:
-        planning_loop_idx: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /rto/po_dir
@@ -678,10 +678,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 82.79986572265625
-      Target Frame: <Fixed Frame>
-      X: 5.821133136749268
-      Y: 18.30249786376953
+      Scale: 125.96017456054688
+      Target Frame: rto/base_link
+      X: 0.8651476502418518
+      Y: -0.3738381564617157
     Saved: ~
 Window Geometry:
   Displays:
