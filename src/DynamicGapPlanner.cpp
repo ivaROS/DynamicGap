@@ -63,8 +63,9 @@ namespace dynamic_gap
 
         planner_.setReachedGlobalGoal(false);
 
-        // dynamic_gap::Trajectory localTrajectory;
-        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
+        dynamic_gap::Trajectory localTrajectory;
+        int trajFlag; 
+        planner_.runPlanningLoop(localTrajectory, trajFlag);
 
         if (planner_.isGoalReached())
         {
@@ -72,7 +73,7 @@ namespace dynamic_gap
             return mbf_msgs::ExePathResult::SUCCESS;
         }
 
-        geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
+        geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame(), trajFlag);
 
         cmd_vel.twist = cmdVelNoStamp;
 

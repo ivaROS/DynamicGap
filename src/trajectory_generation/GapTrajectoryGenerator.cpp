@@ -155,6 +155,29 @@ namespace dynamic_gap
 
     }
 
+    dynamic_gap::Trajectory GapTrajectoryGenerator::generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame)
+    {
+        geometry_msgs::PoseArray idlingPath;
+        std::vector<float> idlingPathTiming;
+        geometry_msgs::Pose idlePose;
+
+        for (float t = cfg_->traj.integrate_stept; t <= cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
+        {
+
+            // put slightly in direction of heading so there's no angular error
+            float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame.pose.orientation);
+
+            idlePose.position.x = 0.01 * std::cos(rbtPoseOrientation);
+            idlePose.position.y = 0.01 * std::sin(rbtPoseOrientation);
+            idlePose.orientation = rbtPoseInOdomFrame.pose.orientation;
+            idlingPath.poses.push_back(idlePose);
+            idlingPathTiming.push_back(t);
+        }
+
+        dynamic_gap::Trajectory idlingTrajectory(idlingPath, idlingPathTiming);
+        return idlingTrajectory;
+    }
+
     // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformPath(const geometry_msgs::PoseArray & path,
                                                                               const geometry_msgs::TransformStamped & transform)
@@ -178,7 +201,8 @@ namespace dynamic_gap
         return transformedPath;
     }
 
-    dynamic_gap::Trajectory GapTrajectoryGenerator::processTrajectory(const dynamic_gap::Trajectory & traj)
+    dynamic_gap::Trajectory GapTrajectoryGenerator::processTrajectory(const dynamic_gap::Trajectory & traj,
+                                                                        const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
         std::vector<float> rawPathTiming = traj.getPathTiming();
@@ -209,7 +233,7 @@ namespace dynamic_gap
             poseToPoseDiffX = rawPose.position.x - processedPoses.back().position.x;
             poseToPoseDiffY = rawPose.position.y - processedPoses.back().position.y;
             poseToPoseDist = sqrt(pow(poseToPoseDiffX, 2) + pow(poseToPoseDiffY, 2));
-            if (poseToPoseDist > poseToPoseDistThreshold) 
+            if (!prune || (prune && poseToPoseDist > poseToPoseDistThreshold))
             {
                 // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
                 processedPoses.push_back(rawPose);
@@ -244,8 +268,6 @@ namespace dynamic_gap
             processedPath.poses.at(idx-1).orientation.z = q.z();
             processedPath.poses.at(idx-1).orientation.w = q.w();
         }
-        // processedPath.poses.pop_back();
-        // processedPathTiming.pop_back();
 
         dynamic_gap::Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;

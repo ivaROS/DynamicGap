@@ -167,7 +167,7 @@ namespace dynamic_gap
         float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
-        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y);
+        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y << ", yaw: "<< desYaw);
         ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);

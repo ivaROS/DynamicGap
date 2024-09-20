@@ -93,14 +93,15 @@ namespace dynamic_gap
             * \brief Function for core planning loop of dynamic gap
             * \return selected trajectory in odometry frame to track
             */
-            dynamic_gap::Trajectory runPlanningLoop();        
+            void runPlanningLoop(dynamic_gap::Trajectory & chosenTraj, int & trajFlag);        
 
             /**
             * \brief Generate command velocity based on trajectory tracking and safety modules
             * \param localTrajectory selected local trajectory in odometry frame to track
             * \return command velocity to send to robot
             */
-            geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory);
+            geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
+                                                int & trajFlag);
 
             /**
             * \brief Final command velocity pre-processing to check if robot is stuck
@@ -263,9 +264,10 @@ namespace dynamic_gap
             * \param isIncomingGapFeasible boolean for if the incoming gap is feasible 
             * \return the trajectory that the robot will track
             */
-            dynamic_gap::Trajectory compareToCurrentTraj(dynamic_gap::Gap * incomingGap, 
-                                                            const dynamic_gap::Trajectory & incomingTraj,                                                        
-                                                            const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
+            dynamic_gap::Trajectory compareToCurrentTraj(const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
+                                                            const std::vector<dynamic_gap::Trajectory> & trajs,
+                                                            const int & lowestCostTrajIdx,
+                                                            const int & trajFlag,
                                                             const bool & isIncomingGapFeasible,
                                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 

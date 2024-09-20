@@ -51,6 +51,8 @@ namespace dynamic_gap
                                                         const geometry_msgs::PoseStamped & globalGoalRobotFrame,
                                                         const bool & runGoToGoal);
 
+            dynamic_gap::Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+
             /**
             * \brief helper function for transforming trajectory from source frame to destination frame
             * \param path path that is to be transformed
@@ -67,7 +69,8 @@ namespace dynamic_gap
             * \param traj incoming trajectory to be processed
             * \return post-processed trajectory
             */                       
-            dynamic_gap::Trajectory processTrajectory(const dynamic_gap::Trajectory & traj);
+            dynamic_gap::Trajectory processTrajectory(const dynamic_gap::Trajectory & traj,
+                                                        const bool & prune);
 
         private: 
 

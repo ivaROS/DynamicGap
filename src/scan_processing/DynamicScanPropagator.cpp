@@ -30,9 +30,9 @@ namespace dynamic_gap
     {
         propagatedEgocirclePublisher_.publish(propagatedScan);
 
-        ROS_INFO_STREAM("propagated egocircle ranges: ");
-        for (int i = 0; i < propagatedScan.ranges.size(); i++)
-            ROS_INFO_STREAM("       i: " << i << ", range: " <<  propagatedScan.ranges.at(i) << ", intensity: " << propagatedScan.intensities.at(i));
+        // ROS_INFO_STREAM("propagated egocircle ranges: ");
+        // for (int i = 0; i < propagatedScan.ranges.size(); i++)
+        //     ROS_INFO_STREAM("       i: " << i << ", range: " <<  propagatedScan.ranges.at(i) << ", intensity: " << propagatedScan.intensities.at(i));
 
     }
 
