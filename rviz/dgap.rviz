@@ -174,13 +174,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /simp_gaps
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /manip_gaps
@@ -384,6 +384,8 @@ Visualization Manager:
           Value: true
         map:
           Value: false
+        mod_laser:
+          Value: true
         mount_xtion_pro_link:
           Value: false
         odom:
@@ -467,7 +469,8 @@ Visualization Manager:
                 gyro_link:
                   {}
                 laser:
-                  {}
+                  mod_laser:
+                    {}
                 mount_xtion_pro_link:
                   {}
                 plate_bottom_link:
@@ -542,7 +545,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.523585319519043
+      Distance: 12.131032943725586
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -560,7 +563,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.152270793914795
+      Yaw: 3.157270908355713
     Saved: ~
 Window Geometry:
   Displays:

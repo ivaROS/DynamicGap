@@ -15,8 +15,8 @@ namespace dynamic_gap
         public:
             std::string map_frame_id = "map"; /**< Map frame ID */
             std::string odom_frame_id = "odom"; /**< Odometry frame ID */
-            std::string robot_frame_id = "robot0"; /**< Robot frame ID */
-            std::string sensor_frame_id = "camera_link"; /**< Sensor frame ID */
+            std::string robot_frame_id = "base_link"; /**< Robot frame ID */
+            std::string sensor_frame_id = "laser"; /**< Sensor frame ID */
 
             /**
             * \brief Hyperparameters for ego-robot

@@ -16,6 +16,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/Imu.h>
 // #include <std_msgs/Header.h>
 #include <nav_msgs/Odometry.h>
 
@@ -125,7 +126,7 @@ namespace dynamic_gap
             * \param rbtAccelMsg incoming robot acceleration message
             */
             void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
+                                 const sensor_msgs::Imu::ConstPtr & rbtAccelMsg);
 
             /**
             * \brief Getter for number of agents currently in environment

@@ -44,7 +44,7 @@ namespace dynamic_gap
 
     bool Planner::initialize(const ros::NodeHandle& nh)
     {
-        // ROS_INFO_STREAM("starting initialize");
+        ROS_INFO_STREAM("starting initialize");
         if (initialized_)
         {
             ROS_WARN("DynamicGap Planner already initalized");
@@ -108,7 +108,7 @@ namespace dynamic_gap
         currentTrueAgentVels_ = std::vector<geometry_msgs::Vector3Stamped>(currentAgentCount_);
 
         // ROS_INFO_STREAM("future_scans size: " << future_scans.size());
-        // ROS_INFO_STREAM("done initializing");
+        ROS_INFO_STREAM("done initializing");
 
         intermediateRbtVels_.clear();
         intermediateRbtAccs_.clear();
@@ -133,29 +133,13 @@ namespace dynamic_gap
         return false;
     }
 
-    void Planner::preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> rawScan)
-    {
-        return;
-    }
-
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
         std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
-        // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         
-        boost::shared_ptr<sensor_msgs::LaserScan> rawScan;
-        rawScan->header = scan->header;
-        rawScan->angle_min = scan->angle_min;
-        rawScan->angle_max = scan->angle_max;
-        rawScan->angle_increment = scan->angle_increment;
-        rawScan->time_increment = scan->time_increment;
-        rawScan->range_max = scan->range_max;
-        rawScan->range_min = scan->range_min;
-        rawScan->ranges = scan->ranges;
-
-        preprocessScan(rawScan);
-        scan_ = rawScan;
+        scan_ = scan;
 
         ros::Time curr_time = scan_->header.stamp;
 
@@ -247,6 +231,9 @@ namespace dynamic_gap
             gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
 
             readyToPlan = true;
+        } else
+        {
+            ROS_WARN_STREAM_NAMED("Planner", "in laserScanCB, global goal is not received");
         }
         
         // update current scan for proper classes
@@ -357,73 +344,132 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("GapEstimation", "updateModel failed");
         }        
     }
-    
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+                                 const sensor_msgs::Imu::ConstPtr & rbtAccelMsg)
     {
+        updateTF();
+
+        ROS_INFO_STREAM("jointPoseAccCB");
+
+        // odom coming in wrt rto/odom frame
+        // velocity coming in wrt rto/odom frame
+
+        // if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
+        //     ROS_WARN_STREAM("Odom msg header frame " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
+
+        // if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
+        //     ROS_WARN_STREAM("Odom msg child frame " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+        
+        // if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
+        //     ROS_WARN_STREAM("Accel msg header frame " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+
+        // acceleration coming in wrt rto/base_link frame
+
+        // ROS_INFO_STREAM("   rbtOdomMsg: " << *rbtOdomMsg);
+
+        // ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
+
         try
         {
-            // ROS_INFO_STREAM("joint pose acc cb");
-
-            // ROS_INFO_STREAM("accel time stamp: " << rbtAccelMsg->header.stamp.toSec());
-            currentRbtAcc_ = *rbtAccelMsg;
-            intermediateRbtAccs_.push_back(currentRbtAcc_);
+            // ROS_INFO_STREAM("   tPreviousModelUpdate_: " << tPreviousModelUpdate_);
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtAccs_.size(); i++)
             {
+                // ROS_INFO_STREAM("   intermediateRbtAccs_.at(" << i << "):");
+                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);                     
                 if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
+                    // ROS_INFO_STREAM("           erasing!");
                     intermediateRbtAccs_.erase(intermediateRbtAccs_.begin() + i);
                     i--;
                 }
-            }    
-
-            // ROS_INFO_STREAM("odom time stamp: " << rbtOdomMsg->header.stamp.toSec());
-
-            // ROS_INFO_STREAM("acc - odom time difference: " << (rbtAccelMsg->header.stamp - rbtOdomMsg->header.stamp).toSec());
-
-            updateTF();
-
-            // Transform the msg to odom frame
-            if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
-            {
-                //std::cout << "odom msg is not in odom frame" << std::endl;
-                geometry_msgs::TransformStamped msgFrame2OdomFrame = tfBuffer_.lookupTransform(cfg_.odom_frame_id, rbtOdomMsg->header.frame_id, ros::Time(0));
-
-                geometry_msgs::PoseStamped rbtPoseMsgFrame, rbtPoseOdomFrame;
-                rbtPoseMsgFrame.header = rbtOdomMsg->header;
-                rbtPoseMsgFrame.pose = rbtOdomMsg->pose.pose;
-
-                //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-
-                tf2::doTransform(rbtPoseMsgFrame, rbtPoseOdomFrame, msgFrame2OdomFrame);
-                rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
             }
-            else
+
+            currentRbtAcc_.header = rbtAccelMsg->header;
+            currentRbtAcc_.twist.linear = rbtAccelMsg->linear_acceleration; 
+            currentRbtAcc_.twist.angular = rbtAccelMsg->angular_velocity; 
+            
+            if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
             {
-                rbtPoseInOdomFrame_.pose = rbtOdomMsg->pose.pose;
+                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
+            } else
+            {
+                // assuming acceleration message comes in wrt robot frame, no transforms
+                intermediateRbtAccs_.push_back(currentRbtAcc_);
+
+                // ROS_INFO_STREAM("   pushing back currentRbtAcc_: ");
+                // ROS_INFO_STREAM("       header.stamp: " << currentRbtAcc_.header.stamp);
+                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtAcc_.header.frame_id);
+                // ROS_INFO_STREAM("       linear: ");
+                // ROS_INFO_STREAM("           x: " << currentRbtAcc_.twist.linear.x);
+                // ROS_INFO_STREAM("           y: " << currentRbtAcc_.twist.linear.y);
             }
+
+            //--------------- POSE -------------------//
+
+            // ROS_INFO_STREAM("odom msg is not in odom frame");
+
+            geometry_msgs::PoseStamped rbtPoseOdomFrame;
+            rbtPoseOdomFrame.header = rbtOdomMsg->header;
+            rbtPoseOdomFrame.pose = rbtOdomMsg->pose.pose;
+            rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
+
+            // ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
 
             //--------------- VELOCITY -------------------//
-            // velocity always comes in wrt robot frame in STDR
-            geometry_msgs::TwistStamped incomingRbtVel;
-            incomingRbtVel.header = rbtOdomMsg->header;
-            incomingRbtVel.header.frame_id = rbtAccelMsg->header.frame_id;
-            incomingRbtVel.twist = rbtOdomMsg->twist.twist;
+            // assuming velocity always comes in wrt robot frame
+            geometry_msgs::Vector3Stamped rbtVelOdomFrame, rbtVelRbtFrame;
+            rbtVelOdomFrame.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
+            rbtVelOdomFrame.vector = rbtOdomMsg->twist.twist.linear;
+            // rbtVelOdomFrame.twist = rbtOdomMsg->twist.twist;
 
-            currentRbtVel_ = incomingRbtVel;
-            intermediateRbtVels_.push_back(currentRbtVel_);
+            // transform into robot frame
+
+            geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id, 
+                                                                                            rbtOdomMsg->header.frame_id, ros::Time(0));
+
+            // ROS_INFO_STREAM("   rbtOdomMsg->child_frame_id: " << rbtOdomMsg->child_frame_id);
+
+            // ROS_INFO_STREAM("   rbtOdomMsg->header.frame_id: " << rbtOdomMsg->header.frame_id);
+
+
+            tf2::doTransform(rbtVelOdomFrame, rbtVelRbtFrame, odomFrame2RbtFrame);
+
+            // ROS_INFO_STREAM("   rbtVelRbtFrame: " << rbtVelRbtFrame);
+
+            currentRbtVel_.header = rbtVelRbtFrame.header;
+            currentRbtVel_.twist.linear = rbtVelRbtFrame.vector;
+            currentRbtVel_.twist.angular = rbtOdomMsg->twist.twist.angular; // z is same between frames
 
             // deleting old sensor measurements already used in an update
             for (int i = 0; i < intermediateRbtVels_.size(); i++)
             {
+                // ROS_INFO_STREAM("   intermediateRbtVels_.at(" << i << "):");
+                // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);                
                 if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
                 {
+                    // ROS_INFO_STREAM("           erasing!");
                     intermediateRbtVels_.erase(intermediateRbtVels_.begin() + i);
                     i--;
                 }
             }
+
+            if (intermediateRbtVels_.size() > 0 && (intermediateRbtVels_.back().header.stamp == currentRbtVel_.header.stamp))
+            {
+                // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtVel_");
+            } else
+            {
+                intermediateRbtVels_.push_back(currentRbtVel_);
+
+                // ROS_INFO_STREAM("   pushing back currentRbtVel_: ");
+                // ROS_INFO_STREAM("       header.stamp: " << currentRbtVel_.header.stamp);
+                // ROS_INFO_STREAM("       header.frame_id: " << currentRbtVel_.header.frame_id);
+                // ROS_INFO_STREAM("       linear: ");
+                // ROS_INFO_STREAM("           x: " << currentRbtVel_.twist.linear.x);
+                // ROS_INFO_STREAM("           y: " << currentRbtVel_.twist.linear.y);
+            }
+
         } catch (...)
         {
             ROS_WARN_STREAM_NAMED("Planner", "jointPoseAccCB failed");
@@ -531,11 +577,17 @@ namespace dynamic_gap
 
             // for lookupTransform, parameters are (destination frame, source frame)
             map2rbt_  = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.map_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "map2rbt_: " << map2rbt_);        
             odom2rbt_ = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.odom_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "odom2rbt_: " << odom2rbt_);        
             rbt2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.robot_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "rbt2odom_: " << rbt2odom_);        
             map2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.map_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "map2odom_: " << map2odom_);        
             cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "cam2odom_: " << cam2odom_);        
             rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
+            // ROS_INFO_STREAM_NAMED("Planner", "rbt2cam_: " << rbt2cam_);        
 
             tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
         } catch (...) 

@@ -21,18 +21,17 @@ namespace dynamic_gap
     // but we will not really use the parameters
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap)
     {
-        // ROS_INFO_STREAM_NAMED("Planner", "DynamicGap: initialize");
+        ROS_INFO_STREAM_NAMED("Planner", "DynamicGapPlanner::initialize");
         plannerName_ = name;
         nh_ = ros::NodeHandle("~/" + plannerName_); // pnh: planner node handle?
         planner_.initialize(nh_);
-        std::string robot_name = "/robot" + std::to_string(planner_.getCurrentAgentCount());
 
-        laserSub_ = nh_.subscribe(robot_name + "/mod_laser_0", 5, &Planner::laserScanCB, &planner_);
+        laserSub_ = nh_.subscribe("/mod_scan", 5, &Planner::laserScanCB, &planner_);
         
         // Linking the robot pose and acceleration subscribers because these messages are published 
         // essentially at the same time in STDR
-        rbtPoseSub_.subscribe(nh_, robot_name + "/odom", 10);
-        rbtAccSub_.subscribe(nh_, robot_name + "/acc", 10);
+        rbtPoseSub_.subscribe(nh_, "/odom", 10);
+        rbtAccSub_.subscribe(nh_, "/mobile_base/sensors/imu_data", 10);
         sync_.reset(new CustomSynchronizer(rbtPoseAndAccSyncPolicy(10), rbtPoseSub_, rbtAccSub_));
         sync_->registerCallback(boost::bind(&Planner::jointPoseAccCB, &planner_, _1, _2));
 
@@ -52,7 +51,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM("computeVelocity called before initializing planner");
         }
 
-        dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
+        // dynamic_gap::Trajectory localTrajectory = planner_.runPlanningLoop();
 
         // cmdVel = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame());
 
