@@ -23,7 +23,7 @@ obstacle_layer:
   observation_sources:  scan
   scan:
     data_type: LaserScan
-    topic: /robot0/laser_0
+    topic: /laser
     marking: true
     clearing: true
     

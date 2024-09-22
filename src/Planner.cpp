@@ -133,13 +133,29 @@ namespace dynamic_gap
         return false;
     }
 
+    void Planner::preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> rawScan)
+    {
+        return;
+    }
+
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
         std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
         // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         
-        scan_ = scan;
+        boost::shared_ptr<sensor_msgs::LaserScan> rawScan;
+        rawScan->header = scan->header;
+        rawScan->angle_min = scan->angle_min;
+        rawScan->angle_max = scan->angle_max;
+        rawScan->angle_increment = scan->angle_increment;
+        rawScan->time_increment = scan->time_increment;
+        rawScan->range_max = scan->range_max;
+        rawScan->range_min = scan->range_min;
+        rawScan->ranges = scan->ranges;
+
+        preprocessScan(rawScan);
+        scan_ = rawScan;
 
         ros::Time curr_time = scan_->header.stamp;
 

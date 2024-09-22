@@ -111,6 +111,8 @@ namespace dynamic_gap
             */
             void reset();
 
+            void preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> rawScan);
+
             /**
             * \brief Call back function to robot laser scan
             * \param scan incoming laser scan msg

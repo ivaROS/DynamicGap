@@ -173,7 +173,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         
         cmdVel.linear.x = velLinXFeedback;
-        cmdVel.linear.y = velLinYFeedback;
+        cmdVel.linear.y = 0.0; // velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
 
         return cmdVel; 
@@ -230,7 +230,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         
         cmdVel.linear.x = velLinXFeedback;
-        cmdVel.linear.y = velLinYFeedback;
+        cmdVel.linear.y = 0.0; //velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
         return cmdVel;
     }
