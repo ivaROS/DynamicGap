@@ -68,29 +68,8 @@ namespace dynamic_gap
             * \return updated model state
             */
             Eigen::Vector4f updateStateFromEnv();
-            // Eigen::Vector4f getState();
-            // Eigen::Vector4f getTrueState();
 
             float min_dist_thresh = 1.5;
-
-            // Eigen::Vector4f getGapState();
-            // Eigen::Vector4f getRewindGapState();
-            // Eigen::Vector4f get_modified_polar_state();
-            // Eigen::Vector4f get_frozen_modified_polar_state();
-            // Eigen::Vector4f get_rewind_modified_polar_state();
-
-            // Eigen::Vector2f getXTilde();
-
-            // geometry_msgs::TwistStamped getRobotVel();
-            // Eigen::Vector4f integrate();
-            // void linearize(const int & idx);
-            // void discretizeQ(const int & idx);
-
-            // void gapStatePropagate(const float & dt);
-            // void rewindPropagate(const float & dt);
-            // void isolateGapDynamics();
-            // void setRewindState();
-            // int getID();
 
     };
 }

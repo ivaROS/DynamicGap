@@ -28,7 +28,7 @@ namespace dynamic_gap
     class GlobalPlanManager
     {
         public: 
-            GlobalPlanManager(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GlobalPlanManager(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
             /**
             * \brief parse global path to obtain local waypoint along global path

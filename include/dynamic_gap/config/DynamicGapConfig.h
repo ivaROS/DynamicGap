@@ -20,7 +20,7 @@ namespace dynamic_gap
             std::string odom_topic = "TBD"; /**< Odometry ROS topic */
             std::string acc_topic = "TBD"; /**< IMU ROS topic */
             std::string scan_topic = "TBD"; /**< Laser scan ROS topic */
-            std::string ped_topic = "/pedsim_simulator/simulated_agents";
+            std::string ped_topic = "/pedsim_simulator/simulated_agents"; /**< Topic for pedestrian states (cheat mode only) */
 
             /**
             * \brief Hyperparameters for ego-robot
@@ -32,14 +32,6 @@ namespace dynamic_gap
                 float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
                 float vang_absmax = 1.0; /**< Maximum angular speed for robot */            
             } rbt;
-
-            /**
-            * \brief Hyperparameters for planning environment
-            */
-            struct Environment
-            {
-                int num_agents = 0; /**< Total number of agents in environment */
-            } env;
 
             /**
             * \brief Hyperparameters for laser scan
@@ -64,7 +56,7 @@ namespace dynamic_gap
             struct PlanningMode 
             {
                 int pursuit_guidance_method = 1; /**< 0 - pure pursuit, 1 - parallel navigation */
-                bool heading = false; /**< Boolean for if robot tracks path headings or not */
+                bool heading = true; /**< Boolean for if robot tracks path headings or not */
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
                 bool egocircle_prop_cheat = false; /**< Flag for enacting future scan propagation through cheating */
                 bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
@@ -143,7 +135,6 @@ namespace dynamic_gap
             struct ProjectionParam 
             {
                 float k_po_x = 1.0; /**< Proportional gain in x-direction for projection operator */
-
                 float r_unity = 0.5; /**< Robot to environment distance at which projection operator takes on a value of 1 */
                 float r_zero = 1.0; /**< Robot to environment distance at which projection operator takes on a value of 0 */
             } projection;

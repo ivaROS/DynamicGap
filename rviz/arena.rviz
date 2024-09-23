@@ -28,7 +28,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -112,7 +112,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -333,8 +333,7 @@ Visualization Manager:
           Marker Topic: /rto/simp_gaps
           Name: Marker
           Namespaces:
-            simp: true
-            simp_tmin1: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -358,7 +357,7 @@ Visualization Manager:
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            allTraj: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -366,7 +365,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_models
           Name: MarkerArray
           Namespaces:
-            gap_models: true
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1

@@ -3,7 +3,7 @@
 
 namespace dynamic_gap 
 {
-    TrajectoryEvaluator::TrajectoryEvaluator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    TrajectoryEvaluator::TrajectoryEvaluator(const dynamic_gap::DynamicGapConfig& cfg)
     {
         cfg_ = & cfg;
     }
@@ -47,16 +47,7 @@ namespace dynamic_gap
         {
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
-            
-            // // if the ending cost is less than 1 and the total cost is 0, return trajectory of 100s
-            // if (terminalPoseCost < 0.25 && totalTrajCost == 0) 
-            // {
-            //     // std::cout << "returning really good trajectory" << std::endl;
-            //     posewiseCosts = std::vector<float>(path.poses.size(), -100);
-            //     return;            
-            // }
 
-            // Should be safe, subtract terminal pose cost from first pose cost
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalPoseCost);
         }
         

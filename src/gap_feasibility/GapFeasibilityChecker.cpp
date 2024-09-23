@@ -5,7 +5,6 @@ namespace dynamic_gap
 {
     void GapFeasibilityChecker::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
-        boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
     }
 
@@ -133,10 +132,6 @@ namespace dynamic_gap
             // END CONDITION 2: GAP OVERLAPPING //
             //////////////////////////////////////
 
-            // prevLeftBearingVect = prevLeftGapState.head(2) / getGapRange(prevLeftGapState); // << std::cos(prev_thetaLeft), std::sin(prev_thetaLeft);
-            // prevRightBearingVect = prevRightGapState.head(2) / getGapRange(prevRightGapState); // << std::cos(prev_thetaRight), std::sin(prev_thetaRight);
-            // prevLeftToRightAngle = getSweptLeftToRightAngle(prevLeftBearingVect, prevRightBearingVect);            
-
             // ROS_INFO_STREAM("prevLeftToRightAngle: " << prevLeftToRightAngle << ", leftToRightAngle: " << leftToRightAngle);            
             
             if (leftToRightAngle < M_PI && leftBearingDotCentBearing < 0.0 && rightBearingDotCentBearing < 0.0) 
@@ -144,7 +139,6 @@ namespace dynamic_gap
                 // checking for case of gap crossing behind the robot
                 ROS_INFO_STREAM("                    end condition 2 (overlapping) at " << t);
 
-                // generateTerminalPoints(gap, prevLeftGapState, prevRightGapState); // prev_left_frozen_mp_state[1], prev_left_frozen_mp_state[0], prev_right_frozen_mp_state[1], prev_right_frozen_mp_state[0]);
                 gap->setGapLifespan(t - cfg_->traj.integrate_stept);
                 gap->end_condition = 2;
 
@@ -164,8 +158,6 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM("                    end condition 3 (time out) at " << cfg_->traj.integrate_maxt);
 
-
-        // generateTerminalPoints(gap, leftGapState, rightGapState);
         gap->setGapLifespan(cfg_->traj.integrate_maxt);
         gap->end_condition = 3;
         ROS_INFO_STREAM("                    setting gap lifespan to " << gap->gapLifespan_); 
@@ -228,7 +220,6 @@ namespace dynamic_gap
                  (rewindLeftGapStateStar - rewindRightGapStateStar).norm() >  2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio))
             { 
                 // ROS_INFO_STREAM("                    terminal points at time " << t_rew << ", left: (" << leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << rightCrossPt[0] << ", " << rightCrossPt[1]);
-                // generateTerminalPoints(gap, rewindLeftGapState, rewindRightGapState);
                 return tRewind;
             }
             
@@ -240,30 +231,6 @@ namespace dynamic_gap
         // should never fall out of this?
         return 0.0;
     }
-
-    // void GapFeasibilityChecker::generateTerminalPoints(dynamic_gap::Gap * gap, 
-    //                                                     const Eigen::Vector4f & leftCrossPt,
-    //                                                     const Eigen::Vector4f & rightCrossPt)
-    // {        
-    //     float thetaLeft = getGapBearing(leftCrossPt);
-    //     int idxLeft = theta2idx(thetaLeft);
-    //     float rangeLeft = getGapRange(leftCrossPt);
-
-    //     float thetaRight = getGapBearing(rightCrossPt);
-    //     int idxRight = theta2idx(thetaRight);
-    //     float rangeRight = getGapRange(rightCrossPt);
-
-    //     gap->setTerminalPoints(idxLeft, rangeLeft, idxRight, rangeRight);
-
-    //     ROS_INFO_STREAM("                    setting terminal points (polar) to, left: (" << 
-    //                                             idxLeft << ", " << rangeLeft << "), right: (" << 
-    //                                             idxRight << ", " << rangeRight << ")");
-
-
-    //     ROS_INFO_STREAM("                    setting terminal points (cart) to, left: (" << 
-    //                                             leftCrossPt[0] << ", " << leftCrossPt[1] << "), right: (" << 
-    //                                             rightCrossPt[0] << ", " << rightCrossPt[1] << ")");
-    // }
 
     bool GapFeasibilityChecker::pursuitGuidanceAnalysis(dynamic_gap::Gap * gap)
     {
@@ -425,6 +392,9 @@ namespace dynamic_gap
         ROS_INFO_STREAM("                       t_intercept_left: " << t_intercept_left); 
         ROS_INFO_STREAM("                       gamma_intercept_left: " << gamma_intercept_left); 
 
+        gap->t_intercept_left = t_intercept_left;
+        gap->gamma_intercept_left = gamma_intercept_left;
+
         ///////////////////////////////
         // Evaluating right gap point //
         ///////////////////////////////
@@ -439,6 +409,9 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM("                       t_intercept_right: " << t_intercept_right); 
         ROS_INFO_STREAM("                       gamma_intercept_right: " << gamma_intercept_right); 
+
+        gap->t_intercept_right = t_intercept_right;
+        gap->gamma_intercept_right = gamma_intercept_right;
 
         // set target position to gap goal
         Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
@@ -511,24 +484,10 @@ namespace dynamic_gap
             }
 
             // set gamma_rbt
+            gap->t_intercept_goal = t_intercept_goal;
             gap->gamma_intercept_goal = terminalGoalTheta;
 
             gap->setTerminalGoal(terminalGoal);
-
-            // // set t_intercept left
-            // gap->t_intercept_left = t_intercept_left;
-
-            // // set t_intercept right
-            // gap->t_intercept_right = t_intercept_right;
-
-            // // set gamma left
-            // gap->gamma_intercept_left = gamma_intercept_left;
-
-            // // set gamma right
-            // gap->gamma_intercept_right = gamma_intercept_right;
-
-            // gap->setTerminalManipulatedLPosition(p_left_term_lead);
-            // gap->setTerminalManipulatedRPosition(p_right_term_lead);
 
             return true;            
         }

@@ -22,7 +22,7 @@ namespace dynamic_gap
     class GapFeasibilityChecker 
     {
         public: 
-            GapFeasibilityChecker(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
+            GapFeasibilityChecker(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
 
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
@@ -49,7 +49,7 @@ namespace dynamic_gap
             * \return last point in time in which robot can fit through gap
             */
             float rewindGapPoints(const float & t, 
-                                                    dynamic_gap::Gap * gap);
+                                    dynamic_gap::Gap * gap);
 
             /**
             * \brief Set terminal range and bearing values for gap based on 
@@ -78,8 +78,6 @@ namespace dynamic_gap
                                     float & t_intercept);
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
-
-            boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
 
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */            
     };

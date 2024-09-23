@@ -259,8 +259,8 @@ namespace dynamic_gap
         float velAngFeedback = rawCmdVel.angular.z;
 
         // ROS_INFO_STREAM_NAMED("Controller", rbtPoseInSensorFrame.pose);
-        float minDistTheta = 0;
-        float minDist = 0;
+        float minRangeTheta = 0;
+        float minRange = 0;
 
         ROS_INFO_STREAM_NAMED("Controller", "        feedback command velocities: " << velLinXFeedback << ", " << velLinYFeedback);
 
@@ -278,7 +278,7 @@ namespace dynamic_gap
 
             runProjectionOperator(rbtPoseInSensorFrame,
                                     cmdVelFeedback, Psi, dPsiDx, velLinXSafe, velLinYSafe,
-                                    minDistTheta, minDist);
+                                    minRangeTheta, minRange);
             
             // float PsiCBF = 0.0;
             // Eigen::Vector4f state(rbtPoseInSensorFrame.pose.position.x, rbtPoseInSensorFrame.pose.position.y, currRbtVel.linear.x, currRbtVel.linear.y);
@@ -298,7 +298,7 @@ namespace dynamic_gap
 
         // cmdVel_safe
         // if (weightedVelLinXSafe != 0 || weightedVelLinYSafe != 0)
-        visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minDistTheta, minDist);
+        visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minRangeTheta, minRange);
 
         velLinXFeedback += weightedVelLinXSafe;
         velLinYFeedback += weightedVelLinYSafe; 
@@ -318,8 +318,8 @@ namespace dynamic_gap
     
     void TrajectoryController::visualizeProjectionOperator(const float & weightedVelLinXSafe, 
                                                            const float & weightedVelLinYSafe,
-                                                           const float & minDistTheta, 
-                                                           const float & minDist) 
+                                                           const float & minRangeTheta, 
+                                                           const float & minRange) 
     {
         ROS_INFO_STREAM("[visualizeProjectionOperator()]");
 
@@ -330,8 +330,8 @@ namespace dynamic_gap
 
         projOpMarker.type = visualization_msgs::Marker::ARROW;
         projOpMarker.action = visualization_msgs::Marker::ADD;
-        projOpMarker.pose.position.x = minDist * std::cos(minDistTheta);
-        projOpMarker.pose.position.y = minDist * std::sin(minDistTheta);
+        projOpMarker.pose.position.x = minRange * std::cos(minRangeTheta);
+        projOpMarker.pose.position.y = minRange * std::sin(minRangeTheta);
         projOpMarker.pose.position.z = 0.01;
         float dir = std::atan2(weightedVelLinYSafe, weightedVelLinXSafe);
         tf2::Quaternion projOpQuat;
@@ -519,7 +519,7 @@ namespace dynamic_gap
                                                      Eigen::Vector2f & cmdVelFeedback,
                                                      float & Psi, Eigen::Vector2f & dPsiDx,
                                                      float & velLinXSafe, float & velLinYSafe,
-                                                     float & minDistTheta, float & minDist) 
+                                                     float & minRangeTheta, float & minRange) 
 {
         // iterates through current egocircle and finds the minimum distance to the robot's pose
         // ROS_INFO_STREAM_NAMED("Controller", "rbtPoseInSensorFrame pose: " << rbtPoseInSensorFrame.pose.position.x << ", " << rbtPoseInSensorFrame.pose.position.y);
@@ -533,14 +533,14 @@ namespace dynamic_gap
         }
         auto minDistScanIter = std::min_element(minScanDists.begin(), minScanDists.end());
         int minDistScanIdx = std::distance(minScanDists.begin(), minDistScanIter);
-        minDistTheta = idx2theta(minDistScanIdx);
+        minRangeTheta = idx2theta(minDistScanIdx);
 
-        minDist = minScanDists.at(minDistScanIdx);
+        minRange = minScanDists.at(minDistScanIdx);
 
-        ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minDistTheta: "<< minDistTheta << ", minDist: " << minDist);
+        ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minRangeTheta: "<< minRangeTheta << ", minRange: " << minRange);
         // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
               
-        Eigen::Vector2f closestScanPtToRobot(-minDist * std::cos(minDistTheta), -minDist * std::sin(minDistTheta));
+        Eigen::Vector2f closestScanPtToRobot(-minRange * std::cos(minRangeTheta), -minRange * std::sin(minRangeTheta));
 
         Eigen::Vector3f PsiDerAndPsi = calculateProjectionOperator(closestScanPtToRobot); // return Psi, and dPsiDx
         dPsiDx = Eigen::Vector2f(PsiDerAndPsi(0), PsiDerAndPsi(1));
@@ -565,9 +565,9 @@ namespace dynamic_gap
         float rUnity = cfg_->projection.r_unity;
         float rZero = cfg_->projection.r_zero;
 
-        float minDist = closestScanPtToRobot.norm(); // sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
-        float Psi = (rUnity / minDist - rUnity / rZero) / (1.0 - rUnity / rZero);
-        float derivativeDenominator = pow(minDist, 3) * (rUnity - rZero);
+        float minRange = closestScanPtToRobot.norm(); // sqrt(pow(min_diff_x, 2) + pow(min_diff_y, 2)); // (closest_pt - rbt)
+        float Psi = (rUnity / minRange - rUnity / rZero) / (1.0 - rUnity / rZero);
+        float derivativeDenominator = pow(minRange, 3) * (rUnity - rZero);
         float derivatorNominatorTerm = rUnity * rZero;
         float PsiDerivativeXTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[0], derivativeDenominator);
         float PsiDerivativeYTerm = epsilonDivide(derivatorNominatorTerm * closestScanPtToRobot[1], derivativeDenominator);

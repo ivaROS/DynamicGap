@@ -7,9 +7,7 @@
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <numeric>
-// #include <map>
-// #include <visualization_msgs/MarkerArray.h>
-// #include <visualization_msgs/Marker.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <geometry_msgs/PoseStamped.h>

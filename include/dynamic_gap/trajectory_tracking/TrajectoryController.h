@@ -28,7 +28,7 @@ namespace dynamic_gap
 {
     /**
     * \brief Class responsible for (a) tracking selected trajectory and 
-    * (b) enacting last resort safety modules
+    *                              (b) enacting last resort safety modules
     */
     class TrajectoryController 
     {
@@ -46,7 +46,7 @@ namespace dynamic_gap
             * \brief Control law for pure obstacle avoidance
             * \return command velocity for robot
             */
-            geometry_msgs::Twist obstacleAvoidanceControlLaw(); // const sensor_msgs::LaserScan & scan
+            geometry_msgs::Twist obstacleAvoidanceControlLaw();
             
             /**
             * \brief Control law for manual robot operation
@@ -61,7 +61,7 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist constantVelocityControlLaw(const geometry_msgs::Pose & current, 
-                                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
+                                                            const geometry_msgs::Pose & desired);
 
             /**
             * \brief Control law for trajectory tracking
@@ -70,15 +70,13 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist controlLaw(const geometry_msgs::Pose & current, 
-                                            const geometry_msgs::Pose & desired); // const sensor_msgs::LaserScan & scan, 
+                                            const geometry_msgs::Pose & desired);
 
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
             * \param rawCmdVel raw command velocity
             * \param rbtPoseInSensorFrame robot pose in sensor frame
-            * \param currGapLeftPtModel current gap's estimator for left gap point
-            * \param currGapRightPtModel current gap's estimator for right gap point
             * \param currRbtVel current robot velocity
             * \param currRbtAcc current robot acceleration
             * \return processed command velocity
@@ -86,7 +84,7 @@ namespace dynamic_gap
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                 const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
                                                 const geometry_msgs::TwistStamped & currRbtVel, 
-                                                const geometry_msgs::TwistStamped & currRbtAcc); // const sensor_msgs::LaserScan & scan, 
+                                                const geometry_msgs::TwistStamped & currRbtAcc);
             
             /**
             * \brief Extract pose within target trajectory that we should track
@@ -108,7 +106,6 @@ namespace dynamic_gap
             Eigen::Matrix2cf getComplexMatrix(const float & x, 
                                               const float & y, 
                                               const float & theta);
-            // float dist2Pose(const float & theta, const float & dist, const geometry_msgs::Pose & pose);
 
             /**
             * \brief Helper function for clipping velocities to maximum allowed velocities
@@ -151,11 +148,13 @@ namespace dynamic_gap
             * \brief Function for visualizing projection operator output in RViz
             * \param weightedVelLinXSafe weighted safe command velocity in x direction
             * \param weightedVelLinYSafe weighted safe command velocity in y direction
+            * \param minDistTheta theta at which minimum range occurs
+            * \param minRange minimum range in scan
             */
             void visualizeProjectionOperator(const float & weightedVelLinXSafe, 
                                              const float & weightedVelLinYSafe,
-                                             const float & minDistTheta, 
-                                                const float & minDist);
+                                             const float & minRangeTheta, 
+                                                const float & minRange);
 
             /**
             * \brief Function for running bearing rate CBF on command velocity

@@ -70,21 +70,21 @@ namespace dynamic_gap
 
         // Initialize everything
         gapDetector_ = new dynamic_gap::GapDetector(cfg_);
-        gapAssociator_ = new dynamic_gap::GapAssociator(nh_, cfg_);
+        gapAssociator_ = new dynamic_gap::GapAssociator(cfg_);
         gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
 
-        globalPlanManager_ = new dynamic_gap::GlobalPlanManager(nh_, cfg_);
+        globalPlanManager_ = new dynamic_gap::GlobalPlanManager(cfg_);
         goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
 
-        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(nh_, cfg_);
+        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(cfg_);
 
-        gapManipulator_ = new dynamic_gap::GapManipulator(nh_, cfg_);
+        gapManipulator_ = new dynamic_gap::GapManipulator(cfg_);
 
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
-        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
+        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(cfg_); 
 
-        trajEvaluator_ = new dynamic_gap::TrajectoryEvaluator(nh_, cfg_);
+        trajEvaluator_ = new dynamic_gap::TrajectoryEvaluator(cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
 
@@ -732,8 +732,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
                 // MANIPULATE POINTS AT T=0            
-                // gapManipulator_->reduceGap(planningGaps.at(i));
-
                 gapManipulator_->convertRadialGap(planningGaps.at(i));
 
                 bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));

@@ -22,7 +22,7 @@ namespace dynamic_gap
     class GapManipulator 
     {
         public: 
-            GapManipulator(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
+            GapManipulator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
 
             /**
             * \brief update current scan
@@ -33,8 +33,8 @@ namespace dynamic_gap
             /**
             * \brief algorithm for setting gap goal 
             * \param gap queried gap
+            * \param globalPathLocalWaypointRobotFrame global path local waypoint in robot frame
             * \param globalGoalRobotFrame global goal in robot frame
-            * \param initial boolean for if we are setting initial gap goal or terminal gap goal
             */
             void setGapGoal(dynamic_gap::Gap * gap, 
                             const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
@@ -49,12 +49,13 @@ namespace dynamic_gap
             /**
             * \brief function for inflating gap radially and angularly to account for robot size
             * \param gap queried gap
-            * \param initial boolean for if we are setting initial gap parameters or terminal gap parameters
             */            
             bool inflateGapSides(dynamic_gap::Gap * gap);
-
-            void reduceGap(dynamic_gap::Gap * gap);            
             
+            /**
+            * \brief function for convering radial gaps into swept gaps to allow maneuvering around corners
+            * \param gap queried gap
+            */                   
             void convertRadialGap(dynamic_gap::Gap * gap);
 
         private:
@@ -91,7 +92,5 @@ namespace dynamic_gap
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
 
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
-            // sensor_msgs::LaserScan staticScan_; /**< Current laser scan for static portion of environment */
-            // sensor_msgs::LaserScan dynamicScan_; /**< Propagated laser scan for future timestep 
     };
 }

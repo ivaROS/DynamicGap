@@ -58,14 +58,13 @@ namespace dynamic_gap
 
             Eigen::Matrix2f tmp_mat; /**< place holder for inverse calculations */
 
-            // Eigen::Vector4f frozen_x, rewind_x;
             Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
             Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
 
             double lifetimeThreshold_ = 0.0; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
             std::default_random_engine generator;
-            std::uniform_real_distribution<double> xTildeDistribution; // (-0.05, 0.05);
+            std::uniform_real_distribution<double> xTildeDistribution;
         public:
 
             RotatingFrameCartesianKalmanFilter();

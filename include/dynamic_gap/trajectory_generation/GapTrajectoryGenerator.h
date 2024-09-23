@@ -42,6 +42,7 @@ namespace dynamic_gap
             * \param selectedGap gap through which trajectory will be generated
             * \param currPose current robot pose
             * \param currVel current robot velocity
+            * \param globalGoalRobotFrame global goal in the robot frame
             * \param runGoToGoal boolean for if go to goal trajectory method should be run
             * \return trajectory through gap
             */
@@ -51,6 +52,11 @@ namespace dynamic_gap
                                                         const geometry_msgs::PoseStamped & globalGoalRobotFrame,
                                                         const bool & runGoToGoal);
 
+            /**
+            * \brief generate trajectory for idling in place
+            * \param rbtPoseInOdomFrame robot pose in odometry frame
+            * \return trajectory through gap
+            */
             dynamic_gap::Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
 
             /**
@@ -67,6 +73,7 @@ namespace dynamic_gap
             * removing intermediate poses that are sufficiently close together and
             * setting intermediate pose orientations to follow the path
             * \param traj incoming trajectory to be processed
+            * \param prune flag for if you want to prune poses off of trajectory 
             * \return post-processed trajectory
             */                       
             dynamic_gap::Trajectory processTrajectory(const dynamic_gap::Trajectory & traj,

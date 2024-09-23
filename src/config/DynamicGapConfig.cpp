@@ -4,12 +4,6 @@ namespace dynamic_gap
 {
     void DynamicGapConfig::loadRosParamFromNodeHandle(const std::string & name)
     {
-        // Would need to do a bit of processing
-        //      Read in params:
-        //          model
-        //          
-        //      set config parameters in this class using model
-
         ros::NodeHandle nh("~/" + name);
 
         ROS_INFO_STREAM("Setting nh to: " << "~/" << name);
@@ -33,9 +27,6 @@ namespace dynamic_gap
             nh.param("max_vel_x",rbt.vx_absmax, rbt.vx_absmax);
             nh.param("max_vel_y",rbt.vy_absmax, rbt.vy_absmax);
             nh.param("max_vel_theta", rbt.vang_absmax, rbt.vang_absmax);
-
-            // Environment
-            // nh.param("num_agents", env.num_agents, env.num_agents);
 
             // Scan
             nh.param("max_range", scan.range_max, scan.range_max);
@@ -100,10 +91,8 @@ namespace dynamic_gap
         scan.half_scan_f = float(scan.half_scan);        
         scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
 
-        scan.range_max = incomingScan.range_max; // this is the maximum possible range, not the max range within a particular scan
+        scan.range_max = incomingScan.range_max; // this is the maximum detectable range, not the max range within a particular scan
         scan.range_min = incomingScan.range_min;
-
-        // ROS_INFO_STREAM("scan.angle_increment: " << scan.angle_increment);
     }
 
 }

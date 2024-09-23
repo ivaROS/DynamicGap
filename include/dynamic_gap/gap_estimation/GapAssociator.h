@@ -38,7 +38,10 @@ namespace dynamic_gap
 	class GapAssociator
 	{
 	public:
-		GapAssociator(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
+		/**
+		* \brief Constructor with nodehandle and cfg
+		*/
+		GapAssociator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
 		/**
 		* \brief Populate distance matrix between points in current gaps and points in previous gaps.
@@ -106,11 +109,11 @@ namespace dynamic_gap
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
 		*/							  
 		void instantiateNewModel(const int & i,
-								const std::vector<dynamic_gap::Gap *> & currentGaps, 
-								int & currentModelIdx,
-								const ros::Time & scanTime,
-								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
-								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
+									const std::vector<dynamic_gap::Gap *> & currentGaps, 
+									int & currentModelIdx,
+									const ros::Time & scanTime,
+									const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
+									const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
 
 		/**
 		* \brief A single function wrapper for solving rectangular assignment problem
