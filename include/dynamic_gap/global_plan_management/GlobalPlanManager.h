@@ -2,22 +2,23 @@
 
 #include <ros/ros.h>
 #include <math.h>
-#include <dynamic_gap/utils/Gap.h>
-#include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
+
+#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-// #include "tf/transform_datatypes.h"
-// #include <tf/LinearMath/Matrix3x3.h>
-// #include <tf2/LinearMath/Quaternion.h>
+#include <boost/shared_ptr.hpp>
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <sensor_msgs/LaserScan.h>
-#include <boost/shared_ptr.hpp>
+
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
 
 namespace dynamic_gap
 {
@@ -28,7 +29,7 @@ namespace dynamic_gap
     class GlobalPlanManager
     {
         public: 
-            GlobalPlanManager(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GlobalPlanManager(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
             /**
             * \brief parse global path to obtain local waypoint along global path

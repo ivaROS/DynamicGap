@@ -11,22 +11,12 @@
   <buildtool_depend>catkin</buildtool_depend>
   
   <depend>base_local_planner</depend>
-  <!-- <depend>dynamic_reconfigure</depend> -->
-  <!-- <depend>egocircle</depend> -->
-  <!-- <depend>nav_configs</depend> -->
-  <!-- <depend>geometry_msgs</depend> -->
-  <!-- <depend>nav_msgs</depend> -->
   <depend>mbf_costmap_core</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
-  <!-- <depend>std_msgs</depend> -->
   <depend>pluginlib</depend>
   <depend>nav_core</depend>
-  <!-- <depend>modify_stdr_scan</depend> -->
   <depend>pedsim_msgs</depend>
-
-  <!-- <depend>pips_trajectory_msgs</depend> -->
-  <!-- <depend>message_generation</depend> -->
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

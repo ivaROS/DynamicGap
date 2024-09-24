@@ -4,12 +4,6 @@ namespace dynamic_gap
 {
     void DynamicGapConfig::loadRosParamFromNodeHandle(const std::string & name)
     {
-        // Would need to do a bit of processing
-        //      Read in params:
-        //          model
-        //          
-        //      set config parameters in this class using model
-
         ros::NodeHandle nh("~/" + name);
 
         ROS_INFO_STREAM("Setting nh to: " << "~/" << name);
@@ -34,15 +28,14 @@ namespace dynamic_gap
             nh.param("max_vel_y",rbt.vy_absmax, rbt.vy_absmax);
             nh.param("max_vel_theta", rbt.vang_absmax, rbt.vang_absmax);
 
-            // Environment
-            // nh.param("num_agents", env.num_agents, env.num_agents);
-
             // Scan
             nh.param("max_range", scan.range_max, scan.range_max);
 
             // Planning Information
             nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
             nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
+            nh.param("heading", planning.heading, planning.heading);
+            ROS_INFO_STREAM("       setting heading to " << planning.heading);
             nh.param("gap_feasibility_check", planning.gap_feasibility_check, planning.gap_feasibility_check);
             nh.param("perfect_gap_models", planning.perfect_gap_models, planning.perfect_gap_models);
             nh.param("future_scan_propagation", planning.future_scan_propagation, planning.future_scan_propagation);
@@ -98,10 +91,8 @@ namespace dynamic_gap
         scan.half_scan_f = float(scan.half_scan);        
         scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
 
-        scan.range_max = incomingScan.range_max; // this is the maximum possible range, not the max range within a particular scan
+        scan.range_max = incomingScan.range_max; // this is the maximum detectable range, not the max range within a particular scan
         scan.range_min = incomingScan.range_min;
-
-        // ROS_INFO_STREAM("scan.angle_increment: " << scan.angle_increment);
     }
 
 }

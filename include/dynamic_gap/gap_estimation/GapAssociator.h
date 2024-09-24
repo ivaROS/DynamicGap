@@ -1,14 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////
-// Hungarian.h: Header file for Class HungarianAlgorithm.
-// 
-// This is a C++ wrapper with slight modification of a hungarian algorithm implementation by Markus Buehren.
-// The original implementation is a few mex-functions for use in MATLAB, found here:
-// http://www.mathworks.com/matlabcentral/fileexchange/6543-functions-for-the-rectangular-assignment-problem
-// 
-// Both this code and the orignal code are published under the BSD license.
-// by Cong Ma, 2016
-// 
 
+/**
+* Adapted from https://github.com/mcximing/hungarian-algorithm-cpp/blob/master/Hungarian.h
+*/
 #pragma once
 
 #include <ros/ros.h>
@@ -16,7 +9,6 @@
 
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-// #include <sensor_msgs/LaserScan.h>
 #include <iostream>
 #include <vector>
 #include <stdlib.h>
@@ -25,8 +17,6 @@
 #include <chrono>
 
 #include <Eigen/Core>
-
-// using namespace std;
 
 namespace dynamic_gap
 {
@@ -38,7 +28,10 @@ namespace dynamic_gap
 	class GapAssociator
 	{
 	public:
-		GapAssociator(const ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
+		/**
+		* \brief Constructor with nodehandle and cfg
+		*/
+		GapAssociator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
 		/**
 		* \brief Populate distance matrix between points in current gaps and points in previous gaps.
@@ -106,11 +99,11 @@ namespace dynamic_gap
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
 		*/							  
 		void instantiateNewModel(const int & i,
-								const std::vector<dynamic_gap::Gap *> & currentGaps, 
-								int & currentModelIdx,
-								const ros::Time & scanTime,
-								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
-								const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
+									const std::vector<dynamic_gap::Gap *> & currentGaps, 
+									int & currentModelIdx,
+									const ros::Time & scanTime,
+									const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
+									const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
 
 		/**
 		* \brief A single function wrapper for solving rectangular assignment problem

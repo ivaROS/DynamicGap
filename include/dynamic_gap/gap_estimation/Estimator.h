@@ -5,7 +5,7 @@
 #include <map>
 
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
+// #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 
@@ -51,8 +51,8 @@ namespace dynamic_gap
             ros::Time tStart_; /**< time of model initialization */
             ros::Time tLastUpdate_; /**< time of last model update */
 
-            bool manip_ = false;
-            Eigen::Vector2f manipPosition;
+            bool manip_ = false; /**< Flag for if gap model is attached to manipulated point  */
+            Eigen::Vector2f manipPosition; /**< Manipulated gap point position */
 
             /**
             * \brief Virtual function for initializing estimator, must be overridden by desired model class
@@ -98,8 +98,6 @@ namespace dynamic_gap
             */
             void processEgoRobotVelsAndAccs(const ros::Time & tUpdate)
             {
-                /*                */
-
                 // Printing original dt values from intermediate odom measurements
                 // ROS_INFO_STREAM_NAMED("GapEstimation", "   t_0 - tLastUpdate_ difference:" << (intermediateRbtVels_[0].header.stamp - tLastUpdate_).toSec() << " sec");
 
@@ -284,6 +282,13 @@ namespace dynamic_gap
                 // }
             }
 
+            /**
+            * \brief helper function for interpolating intermediate vel/acc measurements
+            * so that during model update, we have vel/acc measurements at all intermediate timesteps
+            *
+            * \param vectorI vector which we want to *add* interpolated values to
+            * \param vectorJ vector which we base interpolation off of 
+            */
             void interpolateIntermediateValues(std::vector<geometry_msgs::TwistStamped> & vectorI,
                                                const std::vector<geometry_msgs::TwistStamped> & vectorJ)
             {
@@ -297,16 +302,13 @@ namespace dynamic_gap
                     int timeJIthIndex = -1;
                     for (int i = 0; i < vectorI.size(); i++)
                     {
-                        if (vectorJ[j].header.stamp > 
-                            vectorI[i].header.stamp)
+                        if (vectorJ[j].header.stamp > vectorI[i].header.stamp)
                             timeJLowerBoundIthIdx = i;
 
-                        if (timeJUpperBoundIthIdx < 0 && vectorJ[j].header.stamp < 
-                                                         vectorI[i].header.stamp)
+                        if (timeJUpperBoundIthIdx < 0 && vectorJ[j].header.stamp < vectorI[i].header.stamp)
                             timeJUpperBoundIthIdx = i;
 
-                        if (vectorJ[j].header.stamp == 
-                            vectorI[i].header.stamp)
+                        if (vectorJ[j].header.stamp == vectorI[i].header.stamp)
                         {
                             timeJIthIndex = i;
                             break;
@@ -344,6 +346,7 @@ namespace dynamic_gap
 
                             float linear_x_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.x - vectorI.at(timeJLowerBoundIthIdx).twist.linear.x);
                             float linear_y_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.linear.y - vectorI.at(timeJLowerBoundIthIdx).twist.linear.y);
+                            float angular_z_diff = (vectorI.at(timeJUpperBoundIthIdx).twist.angular.z - vectorI.at(timeJLowerBoundIthIdx).twist.angular.z);
 
                             float time_diff_num = (interpTwist.header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
                             float time_diff_denom = (vectorI.at(timeJUpperBoundIthIdx).header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
@@ -352,7 +355,9 @@ namespace dynamic_gap
                                                             linear_x_diff * time_diff_num / time_diff_denom; 
                             interpTwist.twist.linear.y = vectorI.at(timeJLowerBoundIthIdx).twist.linear.y +
                                                             linear_y_diff * time_diff_num / time_diff_denom; 
-                        
+                            interpTwist.twist.angular.z = vectorI.at(timeJLowerBoundIthIdx).twist.angular.z +
+                                                            angular_z_diff * time_diff_num / time_diff_denom;
+
                             vectorI.insert(vectorI.begin() + timeJUpperBoundIthIdx, interpTwist);
                         }
                     }
@@ -381,9 +386,12 @@ namespace dynamic_gap
             * \brief Getter function for non-relative estimator bearing. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator bearing
             */               
-            float getGapBearing() { Eigen::Vector2f gapPosition = xFrozen_.head(2); 
-                                    float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
-                                    return gapTheta; };
+            float getGapBearing() 
+            { 
+                Eigen::Vector2f gapPosition = xFrozen_.head(2); 
+                float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
+                return gapTheta; 
+            };
 
             /**
             * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().

@@ -2,6 +2,9 @@
 
 #include <dynamic_gap/visualization/Visualizer.h>
 
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -28,7 +31,11 @@ namespace dynamic_gap
             void drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs,
                                                 const std::vector<std::vector<float>> & trajPoseScores);
 
-            void drawPlanningLoopIdx(const int & trajSwitchIndex);
+            /**
+            * \brief Visualize counter for planning loop
+            * \param planningLoopIdx counter for planning loop
+            */
+            void drawPlanningLoopIdx(const int & planningLoopIdx);
 
             /**
             * \brief Visualize occurrence of a trajectory switch for planner

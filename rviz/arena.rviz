@@ -6,9 +6,12 @@ Panels:
       Expanded:
         - /Map1
         - /Dynamic Gap1
-        - /Dynamic Gap1/LaserScan1
         - /Dynamic Gap1/Marker1
         - /Dynamic Gap1/Marker3
+        - /Dynamic Gap1/PoseArray3
+        - /Potential Gap1/PoseArray1
+        - /Potential Gap1/PoseArray4
+        - /Marker3
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -25,7 +28,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -109,7 +112,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -273,7 +276,7 @@ Visualization Manager:
           Color: 239; 41; 41
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 239; 41; 41
           Min Color: 0; 0; 0
@@ -288,6 +291,34 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/LaserScan
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 239; 41; 41
+          Min Color: 114; 159; 207
+          Name: LaserScan
+          Position Transformer: XYZ
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.05000000074505806
+          Style: Flat Squares
+          Topic: /rto/propagated_egocircle
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
           Value: true
         - Class: rviz/Marker
           Enabled: false
@@ -298,35 +329,35 @@ Visualization Manager:
           Queue Size: 100
           Value: false
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /rto/simp_gaps
+          Name: Marker
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: false
+          Marker Topic: /rto/manip_gaps
           Name: Marker
           Namespaces:
             {}
           Queue Size: 100
           Value: false
         - Class: rviz/Marker
-          Enabled: true
-          Marker Topic: /rto/manip_gaps
-          Name: Marker
-          Namespaces:
-            manip: true
-          Queue Size: 100
-          Value: true
-        - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /rto/gap_goals
           Name: Marker
           Namespaces:
-            gap_goal: true
+            {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /rto/candidate_trajectories
           Name: MarkerArray
           Namespaces:
-            allTraj: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -334,7 +365,7 @@ Visualization Manager:
           Marker Topic: /rto/gap_models
           Name: MarkerArray
           Namespaces:
-            gap_models: true
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -360,7 +391,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -370,7 +401,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/relevant_global_plan_snippet
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Arrow Length: 0.30000001192092896
           Axes Length: 0.30000001192092896
@@ -394,7 +425,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 114; 159; 207
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -404,7 +435,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/mpc_input
           Unreliable: false
-          Value: true
+          Value: false
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -436,13 +467,13 @@ Visualization Manager:
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /rto/po_dir
           Name: Marker
           Namespaces:
             {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /rto/all_traj_vis
@@ -468,13 +499,13 @@ Visualization Manager:
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /rto/other_ni_traj
           Name: MarkerArray
           Namespaces:
             {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /rto/pg_arcs
@@ -555,7 +586,7 @@ Visualization Manager:
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -565,14 +596,14 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/pg_traj
           Unreliable: false
-          Value: true
+          Value: false
         - Alpha: 1
           Arrow Length: 0.30000001192092896
           Axes Length: 0.30000001192092896
           Axes Radius: 0.009999999776482582
           Class: rviz/PoseArray
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.07000000029802322
           Head Radius: 0.029999999329447746
           Name: PoseArray
@@ -582,7 +613,7 @@ Visualization Manager:
           Shape: Arrow (Flat)
           Topic: /rto/relevant_traj
           Unreliable: false
-          Value: true
+          Value: false
       Enabled: false
       Name: Potential Gap
     - Class: rviz/Marker
@@ -594,21 +625,21 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/planning_loop_idx
       Name: Marker
       Namespaces:
-        planning_loop_idx: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/po_dir
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -646,10 +677,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 41.943363189697266
-      Target Frame: <Fixed Frame>
-      X: 16.334543228149414
-      Y: 14.548705101013184
+      Scale: 125.96017456054688
+      Target Frame: rto/base_link
+      X: 0.8651476502418518
+      Y: -0.3738381564617157
     Saved: ~
 Window Geometry:
   Displays:
@@ -657,7 +688,7 @@ Window Geometry:
   Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000022d0000039efc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000039e000000c900ffffff000000010000010f00000270fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000270000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000041800fffffffb0000000800540069006d00650100000000000004500000000000000000000005050000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000022d0000039efc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000039e000000c900ffffff000000010000010f0000039efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d0000039e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000041800fffffffb0000000800540069006d00650100000000000004500000000000000000000005050000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -665,7 +696,7 @@ Window Geometry:
   Tool Properties:
     collapsed: false
   Views:
-    collapsed: false
+    collapsed: true
   Width: 1848
   X: 72
   Y: 27
