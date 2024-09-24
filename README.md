@@ -41,7 +41,7 @@ To quickly deploy a planner with Arena-rosnav, you can select the desired planne
    ┣ 📂scripts
  ┣ 📂task_generator
  ┣ 📂testing
- ┣ 📂trainings
+ ┣ 📂training
  ┣ 📂utils
 </pre>
 
@@ -72,7 +72,7 @@ If you would like to run more systematic tests, then you can set the `config.yam
    ┣ 📂scripts
  ┣ 📂task_generator
  ┣ 📂testing
- ┣ 📂trainings
+ ┣ 📂training
  ┣ 📂utils
 </pre>
 
