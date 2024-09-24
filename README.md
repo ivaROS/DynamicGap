@@ -7,9 +7,11 @@
 
 </p>
 
-<img align="center" width="200" src="./assets/dgap_empty.gif" alt="empty"> 
-<img align="center" width="200" src="./assets/dgap_factory.gif" alt="empty"> 
-<img align="center" width="200" src="./assets/dgap_hospital.gif" alt="empty"> 
+<p>
+    <img align="center" width="200" src="./assets/dgap_empty.gif" alt="empty"> 
+    <img align="center" width="200" src="./assets/dgap_factory.gif" alt="empty"> 
+    <img align="center" width="200" src="./assets/dgap_hospital.gif" alt="empty"> 
+</p>
 
 Dynamic gap is a local motion planner designed to run in dynamic, structured environments. That means that this planner can excel in both empty regions full of moving agents as well as crowded, dense regions with corridors, obstacles, and rooms. In this proposed work, we extend the family of perception-informed gap-based planners to dynamic settings by modeling how gaps evolve over time. This gap evolution informs feasibility analysis, trajectory generation, and trajectory selection.
 
