@@ -13,11 +13,11 @@
 
 namespace dynamic_gap 
 {
+    
     typedef boost::array<float, 8> robotAndGapState; /**< state vector which includes 2D robot, left gap point, right gap point, and gap goal positions */
 
-
     /**
-    * \brief Structure for generating trajectories with parallel navigation technique
+    * \brief Structure for generating trajectories with pure pursuit technique
     */    
     struct PurePursuit 
     {
@@ -252,7 +252,6 @@ namespace dynamic_gap
     {
         geometry_msgs::PoseArray & path_; /**< resulting path of trajectory */
         std::string frame_; /**< frame ID of trajectory */
-        // float _scale;
         std::vector<float>& pathTiming_; /**< resulting path timing of trajectory */
 
         TrajectoryLogger(geometry_msgs::PoseArray & path, const std::string & frame, 

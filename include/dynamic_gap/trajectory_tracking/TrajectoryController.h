@@ -1,28 +1,28 @@
 #pragma once
 
 #include <ros/ros.h>
-#include <dynamic_gap/config/DynamicGapConfig.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-// #include <ros/ros.h>
-#include "geometry_msgs/Twist.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/PoseArray.h"
-// #include "geometry_msgs/TransformStamped.h"
-#include "nav_msgs/Odometry.h"
+
 #include <sensor_msgs/LaserScan.h>
 #include <tf/tf.h>
-#include <dynamic_gap/utils/Gap.h>
-#include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
+
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseArray.h>
+#include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-// #include <tf2/LinearMath/Quaternion.h>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
+
+#include <dynamic_gap/config/DynamicGapConfig.h>
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 
 namespace dynamic_gap 
 {
@@ -148,59 +148,13 @@ namespace dynamic_gap
             * \brief Function for visualizing projection operator output in RViz
             * \param weightedVelLinXSafe weighted safe command velocity in x direction
             * \param weightedVelLinYSafe weighted safe command velocity in y direction
-            * \param minDistTheta theta at which minimum range occurs
+            * \param minRangeTheta theta at which minimum range occurs
             * \param minRange minimum range in scan
             */
             void visualizeProjectionOperator(const float & weightedVelLinXSafe, 
                                              const float & weightedVelLinYSafe,
                                              const float & minRangeTheta, 
                                                 const float & minRange);
-
-            /**
-            * \brief Function for running bearing rate CBF on command velocity
-            * \param state current robot state (position and velocity)
-            * \param leftGapPtState current left gap point state
-            * \param rightGapPtState current right gap point state
-            * \param currRbtAcc current robot acceleration
-            * \param velLinXSafe safe command velocity in x direction
-            * \param velLinYSafe safe command velocity in y direction
-            * \param PsiCBF CBF value            
-            */
-            void runBearingRateCBF(const Eigen::Vector4f & state, 
-                                    const Eigen::Vector4f & leftGapPtState,
-                                    const Eigen::Vector4f & rightGapPtState,
-                                    const Eigen::Vector2f & currRbtAcc,
-                                    float & velLinXSafe, 
-                                    float & velLinYSafe, 
-                                    float & PsiCBF);
-
-            /**
-            * \brief Function for running left gap side bearing CBF
-            * \param state current robot state (position and velocity)
-            * \return left gap side bearing CBF value
-            */
-            float leftGapSideCBF(const Eigen::Vector4f & state);
-
-            /**
-            * \brief Function for running left gap side bearing CBF gradient
-            * \param state current robot state (position and velocity)
-            * \return left gap side bearing CBF gradient
-            */            
-            Eigen::Vector4f leftGapSideCBFDerivative(const Eigen::Vector4f & state);
-
-            /**
-            * \brief Function for running right gap side bearing CBF
-            * \param state current robot state (position and velocity)
-            * \return right gap side bearing CBF value
-            */            
-            float rightGapSideCBF(const Eigen::Vector4f & state);
-
-            /**
-            * \brief Function for running right gap side bearing CBF gradient
-            * \param state current robot state (position and velocity)
-            * \return right gap side bearing CBF gradient
-            */  
-            Eigen::Vector4f rightGapSideCBFDerivative(const Eigen::Vector4f & state);
 
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
             const DynamicGapConfig * cfg_ = NULL; /**< Planner hyperparameter config list */

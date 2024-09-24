@@ -16,7 +16,6 @@ namespace dynamic_gap
     class Gap
     {
         public:
-            // colon used here is an initialization list. helpful for const variables.
             Gap(const std::string & frame, 
                 const int & rightIdx, 
                 const float & rangeRight, 
@@ -58,7 +57,6 @@ namespace dynamic_gap
 
                 // deep copy for new models
                 // Here, you can define what type of model you want to use
-
                 leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
                 rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
                 // leftGapPtModel_ = new PerfectEstimator();
@@ -286,6 +284,10 @@ namespace dynamic_gap
                 y = (manip.rightRange_) * sin(thetaRight);
             }
 
+            /**
+            * \brief Getter for initial manipulated left gap point in Cartesian frame
+            * \return Initial manipulated left gap point in Cartesian frame
+            */
             Eigen::Vector2f getManipulatedLPosition() const
             {
                 float x = 0.0, y = 0.0;
@@ -294,6 +296,10 @@ namespace dynamic_gap
                 return Eigen::Vector2f(x, y);
             }
 
+            /**
+            * \brief Getter for initial manipulated right gap point in Cartesian frame
+            * \return Initial manipulated right gap point in Cartesian frame
+            */
             Eigen::Vector2f getManipulatedRPosition() const
             {
                 float x = 0.0, y = 0.0;
@@ -354,8 +360,7 @@ namespace dynamic_gap
                 float nearSideAngle = (M_PI - farSideAngle - gapAngle);
                 // ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
 
-                radial_ = nearSideAngle > 0.75 * M_PI;
- 
+                radial_ = nearSideAngle > (0.75 * M_PI);
             }
 
             /**
@@ -398,7 +403,6 @@ namespace dynamic_gap
             
             /**
             * \brief Setter for gap goal point
-            * \param initial boolean for setting initial gap point
             * \param goalPt gap goal point
             */
             void setGoal(const Eigen::Vector2f & goalPt)
@@ -408,9 +412,8 @@ namespace dynamic_gap
             }
 
             /**
-            * \brief Setter for gap goal point
-            * \param initial boolean for setting initial gap point
-            * \param goalPt gap goal point
+            * \brief Setter for gap goal veloicty
+            * \param goalVel gap goal velocity
             */
             void setGoalVel(const Eigen::Vector2f & goalVel)
             {
@@ -419,9 +422,8 @@ namespace dynamic_gap
             }
 
             /**
-            * \brief Setter for gap goal point
-            * \param initial boolean for setting terminal gap point
-            * \param goalPt gap goal point
+            * \brief Setter for terminal gap goal point
+            * \param goalPt terminal gap goal point
             */
             void setTerminalGoal(const Eigen::Vector2f & goalPt)
             {

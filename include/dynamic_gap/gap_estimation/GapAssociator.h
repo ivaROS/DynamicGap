@@ -1,14 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////
-// Hungarian.h: Header file for Class HungarianAlgorithm.
-// 
-// This is a C++ wrapper with slight modification of a hungarian algorithm implementation by Markus Buehren.
-// The original implementation is a few mex-functions for use in MATLAB, found here:
-// http://www.mathworks.com/matlabcentral/fileexchange/6543-functions-for-the-rectangular-assignment-problem
-// 
-// Both this code and the orignal code are published under the BSD license.
-// by Cong Ma, 2016
-// 
 
+/**
+* Adapted from https://github.com/mcximing/hungarian-algorithm-cpp/blob/master/Hungarian.h
+*/
 #pragma once
 
 #include <ros/ros.h>
@@ -16,7 +9,6 @@
 
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-// #include <sensor_msgs/LaserScan.h>
 #include <iostream>
 #include <vector>
 #include <stdlib.h>
@@ -25,8 +17,6 @@
 #include <chrono>
 
 #include <Eigen/Core>
-
-// using namespace std;
 
 namespace dynamic_gap
 {

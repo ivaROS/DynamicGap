@@ -1,16 +1,19 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <vector>
 #include <math.h>
+
+#include <sensor_msgs/LaserScan.h>
+#include <boost/shared_ptr.hpp>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
-#include <vector>
-// #include <geometry_msgs/PoseStamped.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <sensor_msgs/LaserScan.h>
-#include <boost/shared_ptr.hpp>
+
 
 namespace dynamic_gap 
 {

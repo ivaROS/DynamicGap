@@ -10,32 +10,6 @@ PLUGINLIB_EXPORT_CLASS(dynamic_gap::DynamicGapPlanner, nav_core::BaseLocalPlanne
 
 namespace dynamic_gap 
 {
-    bool DynamicGapPlanner::isGoalReached()
-    {
-        // ROS_INFO_STREAM("[DynamicGapPlanner::isGoalReached()]");
-
-        return planner_.isGoalReached();
-
-        // return 0;
-    }
-
-    bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
-    {
-        // ROS_INFO_STREAM("[DynamicGapPlanner::setPlan()]");
-
-        if (!planner_.initialized())
-        {
-            return false;
-        } else
-        {
-            return planner_.setPlan(globalPlanMapFrame);
-        }
-        // 0: fail, 1: success
-        // return 1;
-    }
-
-    // This function signature must be used in order for planner to succeed as a move_base plugin,
-    // but we will not really use the parameters
     void DynamicGapPlanner::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros)
     {
         // ROS_INFO_STREAM("[DynamicGapPlanner::initialize()]");
@@ -46,6 +20,26 @@ namespace dynamic_gap
         planner_.initialize(name_);
 
         return;
+    }
+
+    bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
+    {
+        // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(short)]");
+
+        std::string dummy_message;
+        geometry_msgs::PoseStamped dummy_pose;
+        geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
+
+        bool outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
+
+        cmdVel = cmd_vel_stamped.twist;
+
+        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+
+        // TODO: just hardcoding this now, need to revise
+        bool success = 1;
+
+        return success;
     }
 
     uint32_t DynamicGapPlanner::computeVelocityCommands(const geometry_msgs::PoseStamped& pose,
@@ -77,7 +71,7 @@ namespace dynamic_gap
 
         cmd_vel.twist = cmdVelNoStamp;
 
-        bool old_flag = planner_.recordAndCheckVel(cmdVelNoStamp);
+        bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp);
 
         /*
         *         SUCCESS           = 0
@@ -102,27 +96,31 @@ namespace dynamic_gap
         *         MAP_ERROR         = 117  # The map is not running properly
         *         STOPPED           = 118  # The controller execution has been stopped rigorously
         */
-
-        return mbf_msgs::ExePathResult::SUCCESS;
+        if (acceptedCmdVel)
+            return mbf_msgs::ExePathResult::SUCCESS;
+        else
+            return mbf_msgs::ExePathResult::FAILURE;
     }
 
-    bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
+    bool DynamicGapPlanner::isGoalReached()
     {
-        // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(short)]");
+        // ROS_INFO_STREAM("[DynamicGapPlanner::isGoalReached()]");
 
-        std::string dummy_message;
-        geometry_msgs::PoseStamped dummy_pose;
-        geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
+        return planner_.isGoalReached();
+    }
 
-        bool outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
+    bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
+    {
+        // ROS_INFO_STREAM("[DynamicGapPlanner::setPlan()]");
 
-        cmdVel = cmd_vel_stamped.twist;
-
-        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
-
-        // TODO: just hardcoding this now, need to revise
-        bool success = 1;
-
-        return success;
+        if (!planner_.initialized())
+        {
+            return false;
+        } else
+        {
+            return planner_.setPlan(globalPlanMapFrame);
+        }
+        // 0: fail, 1: success
+        // return 1;
     }
 }

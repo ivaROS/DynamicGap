@@ -2,12 +2,6 @@
 
 namespace dynamic_gap
 {   
-    Planner::Planner()
-    {
-        // Do something? maybe set names
-        // ros::NodeHandle nh_("planner_node");
-    }
-
     Planner::~Planner()
     {
         // delete current raw, simplified, and selected gaps
@@ -42,7 +36,7 @@ namespace dynamic_gap
         delete trajVisualizer_;
     }
 
-    bool Planner::initialize(const std::string & name) // const ros::NodeHandle& nh
+    bool Planner::initialize(const std::string & name)
     {
         // ROS_INFO_STREAM("starting initialize");
         if (initialized_)
@@ -51,12 +45,8 @@ namespace dynamic_gap
             return true;
         }
 
-        // nh_ = nh;
-
-        // ros::NodeHandle nh_test;
-
         // Config Setup
-        cfg_.loadRosParamFromNodeHandle(name); // nh_
+        cfg_.loadRosParamFromNodeHandle(name);
 
         ROS_INFO_STREAM("cfg_.scan_topic: " << cfg_.scan_topic);
         ROS_INFO_STREAM("cfg_.odom_topic: " << cfg_.odom_topic);
@@ -71,10 +61,8 @@ namespace dynamic_gap
         // Initialize everything
         gapDetector_ = new dynamic_gap::GapDetector(cfg_);
         gapAssociator_ = new dynamic_gap::GapAssociator(cfg_);
-        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
 
         globalPlanManager_ = new dynamic_gap::GlobalPlanManager(cfg_);
-        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
 
         gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(cfg_);
 
@@ -82,22 +70,19 @@ namespace dynamic_gap
 
         gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
 
-        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(cfg_); 
+        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
 
         trajEvaluator_ = new dynamic_gap::TrajectoryEvaluator(cfg_);
         trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
+
+        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
+        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
         trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);        
         
         tfSub_ = nh_.subscribe("/tf", 10, &Planner::tfCB, this);
-
-        // Robot odometry message subscriber
-        // ROS_INFO_STREAM("before rbtOdomSub_");
-        // rbtPoseSub_ = nh_.subscribe(cfg_.odom_topic, 10, &Planner::egoRobotOdomCB, this);
-        // rbtAccSub_ = nh_.subscribe(cfg_.acc_topic, 10, &Planner::egoRobotAccCB, this);
-        // ROS_INFO_STREAM("after rbtOdomSub_");
 
         rbtPoseSub_.subscribe(nh_, cfg_.odom_topic, 10);
         rbtAccSub_.subscribe(nh_, cfg_.acc_topic, 10);

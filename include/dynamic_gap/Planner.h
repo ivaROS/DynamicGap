@@ -3,7 +3,6 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 
-// #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -11,7 +10,7 @@
 #include <numeric>
 #include <iostream>
 #include <chrono>
-#include <map>
+// #include <map>
 
 #include <math.h>
 
@@ -64,17 +63,17 @@ namespace dynamic_gap
     {
 
         public:
-            Planner();
+            Planner() {}
 
             ~Planner();
 
             /**
             * \brief initialize Planner class
             * 
-            * \param nh ROS node handle 
+            * \param name planner name (used for ROS namespaces) 
             * \return initialization success / failure
             */
-            bool initialize(const std::string & name); // const ros::NodeHandle& nh
+            bool initialize(const std::string & name);
 
             /**
             * \brief Indicator for if planner has been initialized
@@ -90,6 +89,8 @@ namespace dynamic_gap
 
             /**
             * \brief Function for core planning loop of dynamic gap
+            * \param chosenTraj trajectory that is synthesized during planning loop
+            * \param trajFlag flag for if robot is idling or moving
             * \return selected trajectory in odometry frame to track
             */
             void runPlanningLoop(dynamic_gap::Trajectory & chosenTraj, int & trajFlag);        
@@ -97,6 +98,7 @@ namespace dynamic_gap
             /**
             * \brief Generate command velocity based on trajectory tracking and safety modules
             * \param localTrajectory selected local trajectory in odometry frame to track
+            * \param trajFlag flag for if robot is idling or moving
             * \return command velocity to send to robot
             */
             geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
@@ -124,6 +126,10 @@ namespace dynamic_gap
             */
             void reset();
 
+            /**
+            * \brief Function to check if global goal has been reached
+            * \param status whether or not global goal has been reached 
+            */
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal = status; }
 
         private:
@@ -154,24 +160,16 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate);
 
-            // /**
-            // * \brief Call back function for robot pose (position + velocity) messages
-            // * \param rbtOdomMsg incoming robot odometry message
-            // */
-            // void egoRobotOdomCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg);
-
-            // /**
-            // * \brief Call back function for robot IMU messages
-            // * \param rbtAccelMsg incoming robot acceleration message
-            // */
-            // void egoRobotAccCB(const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
-
             /**
             * \brief Call back function for other agent odometry messages
             * \param agentOdomMsg incoming agent odometry message
             */
             void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
+            /**
+            * \brief Call back function for MPC output
+            * \param mpcOutput output decision variables for MPC
+            */
             void mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput);
 
             /**
@@ -201,6 +199,7 @@ namespace dynamic_gap
 
             /**
             * \brief Function for evaluating the feasibility of a set of gaps
+            * \param manipulatedGaps set of manipulated gaps which we will evaluate for feasibility
             * \param isCurrentGapFeasible boolean for if the gap the robot is currently traveling through is feasible
             * \return set of feasible gaps
             */
@@ -209,15 +208,17 @@ namespace dynamic_gap
 
             /**
             * \brief Function for propagating current gap points/models forward in time
+            * \param planningGaps set of gaps we will use to plan 
             * \return set of propagated gaps we will use to plan
             */
             void propagateGapPoints(const std::vector<dynamic_gap::Gap *> & planningGaps);                                             
 
             /**
             * \brief Function for performing gap manipulation steps
+            * \param planningGaps set of gaps we will use to plan 
             * \return manipulated set of gaps
             */
-            std::vector<dynamic_gap::Gap *> manipulateGaps(const std::vector<dynamic_gap::Gap *> & feasibleGaps);
+            std::vector<dynamic_gap::Gap *> manipulateGaps(const std::vector<dynamic_gap::Gap *> & planningGaps);
 
             /**
             * \brief Function for generating candidate trajectories through the current set of gaps
@@ -225,6 +226,7 @@ namespace dynamic_gap
             * \param generatedTrajs set of generated trajectories
             * \param pathPoseScores set of posewise scores for all paths
             * \param pathTerminalPoseScores set of terminal pose scores for all paths
+            * \param futureScans set of propagated scans to use during scoring
             * \return Vector of pose-wise scores for the generated trajectories
             */
             void generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
@@ -237,6 +239,7 @@ namespace dynamic_gap
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
             * \param trajs set of recently generated trajectories
             * \param pathPoseScores vector of pose-wise scores for the generated trajectories
+            * \param pathTerminalPoseScores set of terminal pose scores for all paths
             * \return index of the highest score trajectory
             */
             int pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
@@ -257,10 +260,12 @@ namespace dynamic_gap
             /**
             * \brief Compare incoming highest scoring trajectory to the trajectory that the
             * robot is currently following to determine if robot should switch to the incoming trajectory
-            * \param incomingGap incoming gap to switch to
-            * \param incomingTraj incoming trajectory to switch to
             * \param feasibleGaps set of feasible gaps which we are manipulating
+            * \param trajs set of trajectories to compare against current trajectory
+            * \param lowestCostTrajIdx index of lowest cost trajectory
+            * \param trajFlag flag for if robot is idling or moving
             * \param isIncomingGapFeasible boolean for if the incoming gap is feasible 
+            * \param futureScans set of propagated scans to use during scoring
             * \return the trajectory that the robot will track
             */
             dynamic_gap::Trajectory compareToCurrentTraj(const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
@@ -277,15 +282,23 @@ namespace dynamic_gap
             */
             int getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray & currTrajRbtFrame);
 
+            /**
+            * \brief Function for deep copying simplified gaps
+            * \return Deep copied simplified gaps
+            */
             std::vector<dynamic_gap::Gap *> deepCopyCurrentSimplifiedGaps();
 
+            /**
+            * \brief Function for deep copying raw gaps
+            * \return Deep copied raw gaps
+            */
             std::vector<dynamic_gap::Gap *> deepCopyCurrentRawGaps();
 
             /**
             * \brief Setter for current trajectory
             * \param currentTraj incoming trajectory that robot is going to start tracking
             */
-            void setCurrentTraj(const dynamic_gap::Trajectory & currentTraj) { currentTraj_ = currentTraj; return; }
+            void setCurrentTraj(const dynamic_gap::Trajectory & currentTraj) { currentTraj_ = currentTraj; }
 
             /**
             * \brief Getter for current trajectory
@@ -324,6 +337,11 @@ namespace dynamic_gap
             */
             void printGapModels(const std::vector<dynamic_gap::Gap *> & gaps);
             
+            /**
+            * \brief Helper function for computing average computation times for planning
+            * \param timeTaken time taken for particular step
+            * \param planningStepIdx index for particular step
+            */
             float computeAverageTimeTaken(const float & timeTaken, const int & planningStepIdx);
 
             boost::mutex gapMutex_; /**< Current set of gaps mutex */
@@ -340,9 +358,6 @@ namespace dynamic_gap
 
             std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
-            // ros::Subscriber rbtPoseSub_; /**< Subscriber to incoming robot pose */
-            // ros::Subscriber rbtAccSub_; /**< Subscriber to incoming robot acceleration */
-
             message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */
             message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
 
@@ -352,10 +367,6 @@ namespace dynamic_gap
 
             ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
 
-            // typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
-            // typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
-            // boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
-        
             geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
             geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
             geometry_msgs::TransformStamped rbt2odom_; /**< Transformation from robot frame to odometry frame */
@@ -392,10 +403,10 @@ namespace dynamic_gap
             Eigen::Vector4f currentLeftGapPtState; /**< State for estimator of current gap's left point */
             Eigen::Vector4f currentRightGapPtState; /**< State for estimator of current gap's right point */
 
-            float currentInterceptTime_ = 0.0;
-            float currentMinSafeDist_ = 0.0;
+            float currentInterceptTime_ = 0.0; /**< Intercept time for current gap */
+            float currentMinSafeDist_ = 0.0; /**< Minimum safe distance for current gap */
 
-            bool publishToMpc_ = false;
+            bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
 
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
@@ -409,21 +420,14 @@ namespace dynamic_gap
             int trajectoryChangeCount_ = 0; /**< Counter for times that planner has switched local trajectories */
 
             // Scans
-            // sensor_msgs::LaserScan staticScan_;
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
 
-            geometry_msgs::Twist mpcTwist_;
+            geometry_msgs::Twist mpcTwist_; /**< Command velocity output for MPC */
 
-            // Agents
-
-            bool haveTFs = false;
-
-            int currentAgentCount_; /**< Number of agents in environment */
+            bool haveTFs = false; /**< Flag for if transforms have been received */
 
             std::map<std::string, geometry_msgs::Pose> currentTrueAgentPoses_; /**< Ground truth poses of agents currently in local environment */
             std::map<std::string, geometry_msgs::Vector3Stamped> currentTrueAgentVels_; /**< Ground truth velocities of agents currently in local environment */
-
-            std::vector<Eigen::Vector4f> currentEstimatedAgentStates_; /**< Estimated states of agents currently in local environment */
 
             dynamic_gap::GapDetector * gapDetector_ = NULL; /**< Gap detector */
             dynamic_gap::GapVisualizer * gapVisualizer_ = NULL; /**< Gap visualizer */
@@ -442,6 +446,8 @@ namespace dynamic_gap
             bool hasGlobalGoal_ = false; /**< Indicator for if planner's global goal has been set */
             bool initialized_ = false; /**< Indicator for if planner has been initialized */
             bool readyToPlan = false; /**< Indicator for if planner has read in a laser scan and is ready to start planning */
+            bool reachedGlobalGoal = false; /**< Flag for if global goal has been reached */
+            bool colliding = false; /**< Flag for if robot is currently in collision */
 
             // Velocities
             boost::circular_buffer<float> cmdVelBuffer_; /**< Buffer of prior command velocities */
@@ -451,58 +457,54 @@ namespace dynamic_gap
 
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< Intermediate robot velocities between last model update and upcoming model update */
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
-        
-            bool reachedGlobalGoal = false;
 
             // Timekeeping
-            float totalGapDetectionTimeTaken = 0.0f;
-            int gapDetectionCalls = 0;
+            float totalGapDetectionTimeTaken = 0.0f; /**< Total time taken for gap detection */
+            int gapDetectionCalls = 0; /**< Total number of calls for gap detection */
 
-            float totalGapSimplificationTimeTaken = 0.0f;
-            int gapSimplificationCalls = 0;
+            float totalGapSimplificationTimeTaken = 0.0f; /**< Total time taken for gap simplification */
+            int gapSimplificationCalls = 0; /**< Total number of calls for gap simplification */
 
-            float totalGapAssociationCheckTimeTaken = 0.0f;
-            int gapAssociationCheckCalls = 0;
+            float totalGapAssociationCheckTimeTaken = 0.0f; /**< Total time taken for gap association */
+            int gapAssociationCheckCalls = 0; /**< Total number of calls for gap association */
 
-            float totalGapEstimationTimeTaken = 0.0f;
-            int gapEstimationCalls = 0;
+            float totalGapEstimationTimeTaken = 0.0f; /**< Total time taken for gap estimation */
+            int gapEstimationCalls = 0; /**< Total number of calls for gap estimation */
 
-            float totalScanningTimeTaken = 0.0f;
-            int scanningLoopCalls = 0;
+            float totalScanningTimeTaken = 0.0f; /**< Total time taken for scan loop */
+            int scanningLoopCalls = 0; /**< Total number of calls for scan loop */
 
-            float totalGapPropagationTimeTaken = 0.0f;
-            int gapPropagationCalls = 0;
+            float totalGapPropagationTimeTaken = 0.0f; /**< Total time taken for gap propagation */
+            int gapPropagationCalls = 0; /**< Total number of calls for gap propagation */
 
-            float totalGapManipulationTimeTaken = 0.0f;
-            int gapManipulationCalls = 0;
+            float totalGapManipulationTimeTaken = 0.0f; /**< Total time taken for gap manipulation */
+            int gapManipulationCalls = 0; /**< Total number of calls for gap manipulation */
 
-            float totalGapFeasibilityCheckTimeTaken = 0.0f;
-            int gapFeasibilityCheckCalls = 0;
+            float totalGapFeasibilityCheckTimeTaken = 0.0f; /**< Total time taken for gap feasibility analysis */
+            int gapFeasibilityCheckCalls = 0; /**< Total number of calls for gap feasibility analysis */
 
-            float totalScanPropagationTimeTaken = 0.0f;
-            int scanPropagationCalls = 0;
+            float totalScanPropagationTimeTaken = 0.0f; /**< Total time taken for scan propagation */
+            int scanPropagationCalls = 0; /**< Total number of calls for scan propagation */
 
-            float totalGenerateGapTrajTimeTaken = 0.0f;
-            int generateGapTrajCalls = 0;
+            float totalGenerateGapTrajTimeTaken = 0.0f; /**< Total time taken for gap trajectory synthesis */
+            int generateGapTrajCalls = 0; /**< Total number of calls for gap trajetory synthesis */
 
-            float totalSelectGapTrajTimeTaken = 0.0f;
-            int selectGapTrajCalls = 0;
+            float totalSelectGapTrajTimeTaken = 0.0f; /**< Total time taken for trajectory selection */
+            int selectGapTrajCalls = 0; /**< Total number of calls for trajectory selection */
 
-            float totalCompareToCurrentTrajTimeTaken = 0.0f;
-            int compareToCurrentTrajCalls = 0;
+            float totalCompareToCurrentTrajTimeTaken = 0.0f; /**< Total time taken for trajectory comparison */
+            int compareToCurrentTrajCalls = 0; /**< Total number of calls for trajectory comparison */
 
-            float totalPlanningTimeTaken = 0.0f;
-            int planningLoopCalls = 0;
+            float totalPlanningTimeTaken = 0.0f; /**< Total time taken for planning loop */
+            int planningLoopCalls = 0; /**< Total number of calls for planning loop */
 
-            float totalFeedbackControlTimeTaken = 0.0f;
-            int feedbackControlCalls = 0;
+            float totalFeedbackControlTimeTaken = 0.0f; /**< Total time taken for feedback control */
+            int feedbackControlCalls = 0; /**< Total number of calls for feedback control */
 
-            float totalProjectionOperatorTimeTaken = 0.0f;
-            int projectionOperatorCalls = 0;        
+            float totalProjectionOperatorTimeTaken = 0.0f; /**< Total time taken for projection operator */
+            int projectionOperatorCalls = 0; /**< Total number of calls for projection operator */
 
-            float totalControlTimeTaken = 0.0f;
-            int controlCalls = 0;   
-
-            bool colliding = false;
+            float totalControlTimeTaken = 0.0f; /**< Total time taken for control loop */
+            int controlCalls = 0; /**< Total number of calls for control loop */
     };
 }

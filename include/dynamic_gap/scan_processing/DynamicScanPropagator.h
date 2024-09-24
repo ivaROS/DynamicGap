@@ -16,7 +16,7 @@ namespace dynamic_gap
     class DynamicScanPropagator 
     {
         public: 
-            DynamicScanPropagator(const DynamicGapConfig& cfg);
+            DynamicScanPropagator(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief update current scan

@@ -1,30 +1,20 @@
 #pragma once
 
 #include <ros/ros.h>
-#include "std_msgs/String.h"
 
 #include <dynamic_gap/config/DynamicGapConfig.h>
-// #include <nav_msgs/Odometry.h>
+#include <std_msgs/String.h>
 #include <geometry_msgs/Pose.h>
-// #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <limits>
-// #include <sensor_msgs/Imu.h>
-// #include <tf2_ros/buffer.h>
-// #include <sensor_msgs/LaserScan.h>
-// #include <tf2_ros/transform_listener.h>
-// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
 #include <dynamic_gap/gap_estimation/Estimator.h>
 
-// #include <random>
-
-
-// using namespace Eigen;
 
 namespace dynamic_gap 
 {

@@ -14,9 +14,9 @@
 #include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/shared_ptr.hpp>
-// #include <omp.h>
+
 #include <boost/thread/mutex.hpp>
-// #include "tf/transform_datatypes.h"
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -30,7 +30,7 @@ namespace dynamic_gap
     class TrajectoryEvaluator
     {
         public:
-            TrajectoryEvaluator(ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg);
+            TrajectoryEvaluator(const dynamic_gap::DynamicGapConfig& cfg);
 
             /**
             * \brief receive new laser scan and update member variable accordingly

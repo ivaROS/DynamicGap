@@ -4,16 +4,12 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <vector>
-// #include <sensor_msgs/LaserScan.h>
-// #include <geometry_msgs/PoseStamped.h>
-// #include <boost/shared_ptr.hpp>
-// #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <tf/tf.h>
 #include <chrono>
 
 namespace dynamic_gap 
 {
-    enum planningStepIdxs {GAP_DET = 0, 
+    enum planningStepIdxs { GAP_DET = 0, 
                             GAP_SIMP = 1, 
                             GAP_ASSOC = 2, 
                             GAP_EST = 3,
@@ -98,8 +94,9 @@ namespace dynamic_gap
 
 
     /**
-    * @brief normalize angle to interval [-pi, pi)
-    * @remark This function is based on normalize_theta from g2o
+    * \brief normalize angle to interval [-pi, pi)
+    * \param theta incoming angle to normalize
+    * \remark This function is based on normalize_theta from g2o
     *         see: https://github.com/RainerKuemmerle/g2o/blob/master/g2o/stuff/misc.h
     */
     inline float normalize_theta(const float & theta)
@@ -167,8 +164,8 @@ namespace dynamic_gap
     
     /**
     * \brief Signum function
-    * \param z input
-    * \return sign of input (1 / -1)
+    * \param value input
+    * \return sign of input (1 or -1)
     */
     int signum(const float & value);
 

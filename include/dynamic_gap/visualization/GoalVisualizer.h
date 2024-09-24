@@ -3,6 +3,8 @@
 
 #include <dynamic_gap/visualization/Visualizer.h>
 
+#include <geometry_msgs/PoseStamped.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -27,19 +29,19 @@ namespace dynamic_gap
             */
             void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
         
+            /**
+            * \brief Visualize global goal
+            * \param globalGoalOdomFrame global goal in odom frame
+            */
             void drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame);
 
         private: 
-            // /**
-            // * \brief Visualize a single gap goal 
-            // * \param gapGoalsMarkerArray marker array to add gap goal marker to
-            // * \param gap gap whose goal we want to visualize
-            // * \param initial boolean for if we want to visualize the gap's initial goal or terminal goal
-            // */        
-            // void drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-            //                  dynamic_gap::Gap * gap, 
-            //                  const bool & initial);
-
+            /**
+            * \brief Visualize set of gap goals
+            * \param marker marker to visualize
+            * \param gaps set of gaps to visualize
+            * \param initial flag for visualizing initial or terminal gap goals
+            */
             void drawGapGoals(visualization_msgs::Marker & marker, 
                                 const std::vector<dynamic_gap::Gap *> & gaps, 
                                 const bool & initial);

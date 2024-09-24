@@ -188,7 +188,7 @@ namespace dynamic_gap
             if (gapIdxSpan < 0)
                 gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
 
-            int num_segments = gapIdxSpan / min_resoln + 1;
+            int num_segments = gapIdxSpan / gapSpanResoln + 1;
             float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
             float midGapDist = rightRange;
@@ -202,7 +202,7 @@ namespace dynamic_gap
                 p1.y = midGapDist * sin(midGapTheta);
                 marker.points.push_back(p1);
                 
-                midGapIdx = (midGapIdx + min_resoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+                midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
                 midGapDist += distIncrement;
 
                 geometry_msgs::Point p2;
@@ -304,7 +304,7 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
 
-            int num_segments = gapIdxSpan / min_resoln + 1;
+            int num_segments = gapIdxSpan / gapSpanResoln + 1;
             float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
             float midGapDist = rightRange;
@@ -323,7 +323,7 @@ namespace dynamic_gap
                 p1.y = midGapDist * sin(midGapTheta);
                 marker.points.push_back(p1);
                 
-                midGapIdx = (midGapIdx + min_resoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+                midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
                 midGapDist += distIncrement;
 
                 // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
@@ -368,7 +368,7 @@ namespace dynamic_gap
         if (gapIdxSpan < 0)
             gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
 
-        int num_segments = gapIdxSpan / min_resoln + 1;
+        int num_segments = gapIdxSpan / gapSpanResoln + 1;
         float distIncrement = (leftRange - rightRange) / num_segments;
         int midGapIdx = rightIdx; //  + viz_offset;
         float midGapDist = rightRange;
@@ -427,7 +427,7 @@ namespace dynamic_gap
             midGapPt.y = midGapDist * sin(midGapTheta);
             midGapPts.push_back(midGapPt);
 
-            midGapIdx = (midGapIdx + min_resoln) % cfg_->scan.full_scan; // int(gap->half_scan * 2);
+            midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(gap->half_scan * 2);
             midGapDist += distIncrement;
 
             midGapTheta = idx2theta(midGapIdx);
@@ -582,92 +582,4 @@ namespace dynamic_gap
         modelMarker.color.b = 1.0;
         modelMarker.lifetime = ros::Duration(0);
     }
-
-    void GapVisualizer::drawNavigableGaps(const std::vector<dynamic_gap::Gap *> & gaps,
-                                            const int & highestScoreTrajIdx) 
-    {
-        // if (!cfg_->gap_viz.debug_viz) return;
-        
-        // visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns = "clear";
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        // clearMarkerArray.markers.push_back(clearMarker);
-        navigableGapsPublisher.publish(clearMarker);
-
-        // First, clearing topic.
-        visualization_msgs::Marker marker;
-        drawNavigableGap(marker, gaps, highestScoreTrajIdx);
-
-        navigableGapsPublisher.publish(marker);
-    }
-    
-    void GapVisualizer::drawNavigableGap(visualization_msgs::Marker & marker, 
-                                            const std::vector<dynamic_gap::Gap *> & gaps,
-                                            const int & highestScoreTrajIdx)     
-    {
-        // ROS_INFO_STREAM("[drawNavigableGap] start");
-
-        /*
-        // visualization_msgs::Marker marker;
-        marker.header.stamp = ros::Time();
-        marker.id = 0;
-        marker.ns = "navigableGaps";
-        marker.type = visualization_msgs::Marker::LINE_LIST;
-        marker.action = visualization_msgs::Marker::ADD;
-
-        marker.pose.position.x = 0.0;
-        marker.pose.position.y = 0.0;
-        marker.pose.position.z = 0.0075;
-        marker.pose.orientation.x = 0.0;
-        marker.pose.orientation.y = 0.0;
-        marker.pose.orientation.z = 0.0;
-        marker.pose.orientation.w = 1.0;        
-
-        float thickness = 0.05;
-        marker.scale.x = thickness;
-
-        // std::cout << "gap category: " << g.getCategory() << std::endl;
-        //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
-        auto colorIter = colorMap.find("reachable");
-        if (colorIter == colorMap.end()) 
-        {
-            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-            return;
-        }        
-        marker.color = colorIter->second;
-   
-        for (int i = 0; i < gaps.size(); i++) 
-        {
-            if (i != highestScoreTrajIdx)
-                continue;
-
-            dynamic_gap::Gap * gap = gaps.at(i);
-            marker.header.frame_id = gap->frame_;
-            
-            Eigen::Vector2d curvePt(0.0, 0.0);        
-            for (int j = 0; j < gap->allCurvePts_.rows() - 1; j++) 
-            {  
-                curvePt = gap->allCurvePts_.row(j);
-                
-                geometry_msgs::Point p1;
-                p1.x = curvePt[0];
-                p1.y = curvePt[1];
-                marker.points.push_back(p1);
-
-                // ROS_INFO_STREAM("connecting " << i << " to " << (i + 1));
-
-                curvePt = gap->allCurvePts_.row(j + 1);
-        
-                geometry_msgs::Point p2;        
-                p2.x = curvePt[0];
-                p2.y = curvePt[1];
-                marker.points.push_back(p2);
-            }
-        }
-        // ROS_INFO_STREAM("[drawNavigableGap] end");
-        */
-    }
-
 }

@@ -8,20 +8,9 @@ add_compile_options(-std=c++17)
 set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
-  # dynamic_reconfigure
-  # egocircle
-  # geometry_msgs
-  # nav_msgs
-  # nav_configs
   roscpp
   rospy
-  # modify_stdr_scan
   pedsim_msgs
-  # std_msgs
-  # benchmarking_tools
-  # pips_trajectory_msgs
-  # dynamic_reconfigure
-  # message_generation
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -30,12 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
-find_package(OsqpEigen REQUIRED)
-# find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
-
-#generate_dynamic_reconfigure_options(
-#  cfg/dg.cfg
-#)
 
 ###################################
 ## catkin specific configuration ##
@@ -50,7 +33,6 @@ catkin_package(
     ${PROJECT_NAME}
   CATKIN_DEPENDS
     ${CATKIN_PACKAGE_DEPENDENCIES}
-  # DEPENDS OpenMP 
 )
 
 ###########
@@ -89,12 +71,4 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}
-	OsqpEigen::OsqpEigen
 )
-
-#catkin_install_python(PROGRAMS
-#  scripts/vis_teb_obsts.py 
-#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
-
-# target_include_directories(dynamic_gap PRIVATE ${MATPLOTLIB_CPP_INCLUDE_DIRS})

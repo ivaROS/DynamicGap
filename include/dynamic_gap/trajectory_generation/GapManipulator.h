@@ -2,16 +2,18 @@
 
 #include <ros/ros.h>
 #include <math.h>
-#include <dynamic_gap/utils/Gap.h>
-#include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/config/DynamicGapConfig.h>
-#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
+
 #include <vector>
 #include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/shared_ptr.hpp>
+
+#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/config/DynamicGapConfig.h>
+#include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 
 namespace dynamic_gap 
 {
@@ -22,7 +24,7 @@ namespace dynamic_gap
     class GapManipulator 
     {
         public: 
-            GapManipulator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg;};
+            GapManipulator(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; };
 
             /**
             * \brief update current scan

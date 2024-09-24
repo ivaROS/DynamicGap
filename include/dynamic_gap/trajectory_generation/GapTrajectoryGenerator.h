@@ -4,28 +4,21 @@
 #include <boost/numeric/odeint.hpp>
 #include <boost/shared_ptr.hpp>
 
-// #include <traj_generator.h>
-// #include <turtlebot_trajectory_generator/near_identity.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/trajectory_generation/TrajectorySynthesisMethods.h>
 
-// #include <vector>
 #include <geometry_msgs/PoseStamped.h>
-// #include <geometry_msgs/Twist.h>
-// #include <geometry_msgs/PoseArray.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-// #include <tf/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-// #include "tf/transform_datatypes.h"
-// #include <sensor_msgs/LaserScan.h>
-#include "OsqpEigen/OsqpEigen.h"
+
 
 namespace dynamic_gap 
 {
@@ -35,7 +28,7 @@ namespace dynamic_gap
     class GapTrajectoryGenerator
     {
         public:
-            GapTrajectoryGenerator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; };
+            GapTrajectoryGenerator(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; };
             
             /**
             * \brief generate local collision-free trajectory through gap
