@@ -2,6 +2,28 @@
 
 namespace dynamic_gap
 {
+    ///////////// SCAN PRE-PROCESSING ///////////////////////
+
+    void GapDetector::preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> scan)
+    {
+        // pre-process scan (turning nan's and inf's into max ranges)
+        float eps = 0.00001f;
+        for (int i = 0; i < scan->ranges.size(); i++)
+        {
+            if (std::isnan(scan->ranges.at(i)))
+            {
+                ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "NaN detected in scan, replacing with max range");
+                scan->ranges.at(i) = cfg_->scan.range_max - eps;
+            }
+
+            if (std::isinf(scan->ranges.at(i)))
+            {
+                ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "Inf detected in scan, replacing with max range");
+                scan->ranges.at(i) = cfg_->scan.range_max - eps;
+            }
+        }
+    }
+    
     ////////////////// GAP DETECTION ///////////////////////
     
     bool GapDetector::isFinite(const float & range)

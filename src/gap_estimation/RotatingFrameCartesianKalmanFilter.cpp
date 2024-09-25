@@ -32,9 +32,6 @@ namespace dynamic_gap
         STM_ = A_;
 
         eyes = Eigen::MatrixXf::Identity(4,4);
-
-        // xTildeDistribution = std::uniform_real_distribution<double>(0.9, 1.1);
-
     }
 
     // For initializing a new model
@@ -307,13 +304,9 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
-        Eigen::Vector2f noisyXTilde_ = xTilde_;
-        noisyXTilde_[0] += xTildeDistribution(generator);
-        noisyXTilde_[1] += xTildeDistribution(generator);
-
-        innovation_ = noisyXTilde_ - H_*x_hat_k_minus_;
+        innovation_ = xTilde_ - H_*x_hat_k_minus_;
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
-        residual_ = noisyXTilde_ - H_*x_hat_k_plus_;
+        residual_ = xTilde_ - H_*x_hat_k_plus_;
 
         // float sensor_noise_factor = R_scalar * xTilde_.norm();
         // R_k_ << sensor_noise_factor, 0.0,

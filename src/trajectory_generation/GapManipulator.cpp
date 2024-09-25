@@ -60,9 +60,6 @@ namespace dynamic_gap
             //        within one of our gaps. Therefore, we will perform a lazy check
             //        to enable the planner to run g2g if the global goal is within the scan,
             //        and then we can evaluate whether or not the path is fine later
-            
-            // isGlobalPathLocalWaypointWithinGapAngle(globalGoalIdx, rightIdx, leftIdx) && 
-                
             if (checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
             {                
                 // all we will do is mark it for later so we can run g2g policy on global goal.
@@ -87,7 +84,7 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM("            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
                 
-                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(centerPt);
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
             
                 Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
 
@@ -120,7 +117,7 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM("            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * unitNorm(biasedGapGoal);
+                Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
 
                 Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
@@ -222,30 +219,6 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
             
             float s = std::min(gap->getMinSafeDist(), cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
-
-            // // // ROS_INFO_STREAM("leftPt: (" << xLeft << ", " << yLeft << "), rightPt: (" << xRight << ", " << yRight << ")");
-            // // // ROS_INFO_STREAM("eL_robot: (" << eL_robot[0] << ", " << eL_robot[1] << ") , eR_robot: (" << eR_robot[0] << ", " << eR_robot[1] << ")");
-
-            // float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
-
-            // float thetaCenter = (leftTheta - 0.5*leftToRightAngle);
-
-            // // middle of gap direction
-            // Eigen::Vector2f eB(std::cos(thetaCenter), std::sin(thetaCenter));
-            // // // ROS_INFO_STREAM("eB: (" << eB[0] << ", " << eB[1] << ")");
-
-            // Eigen::Vector2f norm_eB = unitNorm(eB); 
-            // // angular size of gap
-            // // // ROS_INFO_STREAM("normalized eB: " << norm_eB[0] << ", " << norm_eB[1]);
-
-            // // minSafeDist is the minimum distance within the laser scan 
-            // // // ROS_INFO_STREAM("min safe dist: " << s);
-            
-            // // point opposite direction of middle of gap, magnitude of min safe dist
-            // Eigen::Vector2f extendedGapOrigin =  - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * norm_eB; //
-            // // // ROS_INFO_STREAM("extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
-
-            // // ROS_INFO_STREAM("        finishing with gap extendedGapOrigin: " << extendedGapOrigin[0] << ", " << extendedGapOrigin[1]);
 
             return;
         } catch (...)
@@ -456,10 +429,8 @@ namespace dynamic_gap
                 gap->rightGapPtModel_->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
             }
 
-            gap->setManipLeftIdx(newLeftIdx);
-            gap->setManipRightIdx(newRightIdx);      
-            gap->setManipLeftRange(newLeftRange);
-            gap->setManipRightRange(newRightRange);
+            gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);
+
             gap->getManipulatedLCartesian(xLeft, yLeft);
             gap->getManipulatedRCartesian(xRight, yRight);
 
@@ -501,8 +472,8 @@ namespace dynamic_gap
             ROS_INFO_STREAM("        pre-inflate gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
             ROS_INFO_STREAM("        pre-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
-            Eigen::Vector2f leftUnitNorm = unitNorm(leftPt);
-            Eigen::Vector2f rightUnitNorm = unitNorm(rightPt);
+            Eigen::Vector2f leftUnitNorm = leftPt.normalized();
+            Eigen::Vector2f rightUnitNorm = rightPt.normalized();
             float leftToRightAngle = getSweptLeftToRightAngle(leftUnitNorm, rightUnitNorm);
 
             ///////////////////////
@@ -559,10 +530,7 @@ namespace dynamic_gap
             if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");
                 inflatedLeftIdx++;
 
-            gap->setManipLeftIdx(inflatedLeftIdx);
-            gap->setManipRightIdx(inflatedRightIdx);      
-            gap->setManipLeftRange(inflatedLeftRange);
-            gap->setManipRightRange(inflatedRightRange);
+            gap->setManipPoints(inflatedLeftIdx, inflatedRightIdx, inflatedLeftRange, inflatedRightRange);
 
             gap->getManipulatedLCartesian(xLeft, yLeft);
             gap->getManipulatedRCartesian(xRight, yRight);
