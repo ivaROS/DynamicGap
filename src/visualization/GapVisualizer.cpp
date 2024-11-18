@@ -11,10 +11,10 @@ namespace dynamic_gap
     {
         cfg_ = &cfg;
         rawGapsPublisher = nh.advertise<visualization_msgs::Marker>("raw_gaps", 10);
-        rawGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gaps_fig", 10);
+        // rawGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gaps_fig", 10);
 
         simpGapsPublisher = nh.advertise<visualization_msgs::Marker>("simp_gaps", 10);
-        simpGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gaps_fig", 10);
+        // simpGapsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gaps_fig", 10);
 
         manipGapsPublisher = nh.advertise<visualization_msgs::Marker>("manip_gaps", 10);
         navigableGapsPublisher = nh.advertise<visualization_msgs::Marker>("reachable_gaps", 10);
@@ -131,25 +131,26 @@ namespace dynamic_gap
         clearMarker.action = visualization_msgs::Marker::DELETEALL;
         clearMarkerArray.markers.push_back(clearMarker);
 
-        // visualization_msgs::Marker marker;
-        // drawGap(marker, gaps, ns, true);
+        visualization_msgs::Marker marker;
+        drawGap(marker, gaps, ns, true);
 
-        visualization_msgs::MarkerArray markerArray;
+        // visualization_msgs::MarkerArray markerArray;
         // for (dynamic_gap::Gap * gap : gaps) 
-        drawGapMarkerArray(markerArray, gaps, ns, initial);
+        //     drawGap()
+        // drawGapMarkerArray(markerArray, gaps, ns, initial);
 
         if (ns == "raw") 
         {
-            // rawGapsPublisher.publish(clearMarker);
-            // rawGapsPublisher.publish(marker);
-            rawGapsFigPublisher.publish(clearMarkerArray);
-            rawGapsFigPublisher.publish(markerArray);
+            rawGapsPublisher.publish(clearMarker);
+            rawGapsPublisher.publish(marker);
+            // rawGapsFigPublisher.publish(clearMarkerArray);
+            // rawGapsFigPublisher.publish(markerArray);
         } else if (ns == "simp") 
         {
-            // simpGapsPublisher.publish(clearMarker);
-            // simpGapsPublisher.publish(marker);
-            simpGapsFigPublisher.publish(clearMarkerArray);
-            simpGapsFigPublisher.publish(markerArray);
+            simpGapsPublisher.publish(clearMarker);
+            simpGapsPublisher.publish(marker);
+            // simpGapsFigPublisher.publish(clearMarkerArray);
+            // simpGapsFigPublisher.publish(markerArray);
         }
     }
 
@@ -588,6 +589,7 @@ namespace dynamic_gap
     }
     */
 
+
     void GapVisualizer::drawGapsModels(const std::vector<dynamic_gap::Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
@@ -606,12 +608,10 @@ namespace dynamic_gap
         // gapmodel_vel_error_publisher.publish(clearMarkerArray);
 
         visualization_msgs::MarkerArray gapModelMarkerArray; // , gap_vel_error_arr , gap_pos_GT_arr, gap_vel_GT_arr;
-        int gap_counter = 0;
         for (dynamic_gap::Gap * gap : gaps) 
         {
-            drawGapModels(gapModelMarkerArray, gap, "gap_models", gap_counter); // gap_vel_error_arr
+            drawGapModels(gapModelMarkerArray, gap, "gap_models"); // gap_vel_error_arr
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
-            gap_counter++;
         }
         // gapModelPosPublisher.publish(gap_pos_arr);
         gapModelsPublisher.publish(gapModelMarkerArray);
@@ -622,8 +622,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                        dynamic_gap::Gap * gap, const std::string & ns,
-                                        const int & gap_counter) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
+                                        dynamic_gap::Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
@@ -631,12 +630,12 @@ namespace dynamic_gap
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
         // visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
-        drawModel(leftModelMarker, gap, left, id, ns, gap_counter);
+        drawModel(leftModelMarker, gap, left, id, ns);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
         // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
-        drawModel(rightModelMarker, gap, !left, id, ns, gap_counter);
+        drawModel(rightModelMarker, gap, !left, id, ns);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
         // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightModelMarker, g, true, ns);
         // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
@@ -659,9 +658,9 @@ namespace dynamic_gap
     */    
 
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
-                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns,
-                                    const int & gap_counter) 
+                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
+        // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();
         modelMarker.ns = ns;
@@ -675,19 +674,23 @@ namespace dynamic_gap
         Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getGapState();
         Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getGapState();
 
+        // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
+        // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
+
+        // ROS_INFO_STREAM("   gap->leftGapPtModel_->getRobotVel(): " << gap->leftGapPtModel_->getRobotVel());
+        // ROS_INFO_STREAM("   gap->rightGapPtModel_->getRobotVel(): " << gap->rightGapPtModel_->getRobotVel());
+
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)
         {
             modelMarker.pose.position.x = leftModelState[0];
             modelMarker.pose.position.y = leftModelState[1];
-            gapVel << leftModelState[2],
-                      leftModelState[3];
+            gapVel = leftModelState.tail(2);
         } else
         {
             modelMarker.pose.position.x = rightModelState[0];
             modelMarker.pose.position.y = rightModelState[1];            
-            gapVel << rightModelState[2], 
-                      rightModelState[3];
+            gapVel << rightModelState.tail(2); 
         }
         modelMarker.pose.position.z = 0.01;
 
@@ -704,10 +707,11 @@ namespace dynamic_gap
         modelMarker.scale.y = 0.1;
         modelMarker.scale.z = 0.000001;
 
-        modelMarker.color = gapwiseColors.at(gap_counter);
+        modelMarker.color.a = 1.0;
+        modelMarker.color.r = 1.0;
+        modelMarker.color.b = 1.0;
         modelMarker.lifetime = ros::Duration(0);
     }
-
     void GapVisualizer::drawNavigableGaps(const std::vector<dynamic_gap::Gap *> & gaps,
                                             const int & highestScoreTrajIdx) 
     {

@@ -24,9 +24,9 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 1.5; /**< Maximum angular speed for robot */
+                float vx_absmax = 0.25; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.25; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 0.25; /**< Maximum angular speed for robot */
                 float ax_absmax = 3.0; /**< Maximum linear acceleration in x-direction for robot */
                 float ay_absmax = 3.0; /**< Maximum linear acceleration in y-direction for robot */
                 float aang_absmax = 3.0; /**< Maximum angular acceleration for robot */                

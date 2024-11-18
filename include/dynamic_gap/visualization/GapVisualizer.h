@@ -81,8 +81,7 @@ namespace dynamic_gap
             */
             void drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
                                dynamic_gap::Gap * gap, 
-                               const std::string & ns,
-                               const int & gap_counter);
+                               const std::string & ns);
 
             /**
             * \brief Helper function for visualizing a single gap point model
@@ -96,8 +95,7 @@ namespace dynamic_gap
                             dynamic_gap::Gap * gap, 
                             const bool & left, 
                             int & id, 
-                            const std::string & ns,
-                            const int & gap_counter);
+                            const std::string & ns);
 
             void drawNavigableGap(visualization_msgs::Marker & marker, 
                                     const std::vector<dynamic_gap::Gap *> & gaps,

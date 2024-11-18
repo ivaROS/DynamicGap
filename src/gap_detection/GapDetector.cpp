@@ -66,6 +66,9 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapDetector", "gapDetection min_dist: " << minScanDist_);
 
             std::string frame = scan_.header.frame_id;
+
+            ROS_INFO_STREAM_NAMED("GapDetector", "frame: " << frame);
+
             // starting the left point of the gap at front facing value
             // std::cout << "max laser scan range: " << scan.range_max << std::endl;
             int gapRIdx = 0;

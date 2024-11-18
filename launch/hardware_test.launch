@@ -13,7 +13,7 @@
     <!-- run laser-->
     <include file="$(find rplidar_ros)/launch/rplidar_s2.launch"/>
     
-    <node pkg="mod_tb_scan" type="mod_tb_scan" name="mod_tb_scan" output="screen" />
+    <node pkg="mod_tb_scan" type="mod_tb_scan" name="mod_tb_scan" output="log" />
 
 	<node pkg="tf" type="static_transform_publisher" name="world2odom" args="0 0 0 0 0 0 /world /odom 1" />
 	<node pkg="tf" type="static_transform_publisher" name="world_map_broadcaster" args="0 0 0 0 0 0 /world /map 1" />
@@ -51,7 +51,6 @@
       <rosparam file="$(find dynamic_gap)/params/local_costmap_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/params/global_costmap_params.yaml" command="load"/>
       
-      <!-- none of these have to do with frames/ids -->
       <rosparam file="$(find dynamic_gap)/params/move_base_params.yaml" command="load"/>
       <rosparam file="$(find dynamic_gap)/params/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
       <rosparam file="$(find dynamic_gap)/params/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
@@ -63,7 +62,6 @@
 
       <remap from="/cmd_vel" to="/mobile_base/commands/velocity"/>
 
-      <!-- Approach-specific parameters/remappings/etc -->      
       <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
       <param name="DynamicGapPlanner/odom_frame_id" value="odom"/>
       <param name="DynamicGapPlanner/robot_frame_id" value="base_footprint"/>
@@ -71,7 +69,6 @@
 
       <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
 
-      <!-- remapping for obstacles -->
       <param name="DynamicGapPlanner/num_agents" value="0" />
       <param name="global_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
       <param name="global_costmap/robot_base_frame" value="base_footprint" />

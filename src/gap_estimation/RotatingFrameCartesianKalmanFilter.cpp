@@ -366,7 +366,7 @@ namespace dynamic_gap
 
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::getState()
     { 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "[getState()]");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "[getState()]");
         Eigen::Vector4f state = x_hat_k_plus_;
 
         // if gap has been pivoted: add additional flag to model to set velocity to zero.
@@ -375,14 +375,14 @@ namespace dynamic_gap
         bool newModel = (tLastUpdate_ - tStart_).toSec() < lifetimeThreshold_; 
         if (newModel)
         {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        new model");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        new model");
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
         } 
 
         if (manip_)
         {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "        manipulated model");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "        manipulated model");
             state[0] = manipPosition[0];
             state[1] = manipPosition[1];
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;

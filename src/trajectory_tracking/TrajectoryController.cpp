@@ -89,7 +89,8 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "obstacle avoidance control");
         float safeDirX = 0;
         float safeDirY = 0;                                   
-        
+        float safeDirTheta = 0;                                   
+
         float scanRange = 0.0, scanTheta = 0.0;
         for (int i = 0; i < scan_->ranges.size(); i++) 
         {
@@ -97,15 +98,15 @@ namespace dynamic_gap
             scanTheta =  idx2theta(i);
 
             safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
-            safeDirY += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
+            safeDirTheta += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
         }
 
         safeDirX /= scan_->ranges.size();
-        safeDirY /= scan_->ranges.size();
+        safeDirTheta /= scan_->ranges.size();
 
         float cmdVelX = safeDirX;
-        float cmdVelY = safeDirY;
-        float cmdVelTheta = 0.0;
+        float cmdVelY = 0.0;
+        float cmdVelTheta = safeDirTheta;
 
 
         ROS_INFO_STREAM_NAMED("Controller", "raw safe vels: " << cmdVelX << ", " << cmdVelY);
@@ -116,7 +117,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "final safe vels: " << cmdVelX << ", " << cmdVelY);
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-        cmdVel.linear.x = cmdVelX;
+        cmdVel.linear.x = std::max(0.0f, cmdVelX);
         cmdVel.linear.y = cmdVelY; 
         cmdVel.angular.z = cmdVelTheta;    
 
@@ -163,8 +164,8 @@ namespace dynamic_gap
         Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * errorDir;
 
         float velLinXFeedback = constantVelocityCommand[0];
-        float velLinYFeedback = constantVelocityCommand[1];
-        float velAngFeedback = 0.0;
+        float velLinYFeedback = 0.0f; // constantVelocityCommand[1];
+        float velAngFeedback = errorTheta;
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y);
@@ -172,7 +173,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta);
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_y: " << velLinYFeedback << ", v_ang: " << velAngFeedback);
         
-        cmdVel.linear.x = velLinXFeedback;
+        cmdVel.linear.x = std::max(0.0f, velLinXFeedback);
         cmdVel.linear.y = 0.0; // velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
 
