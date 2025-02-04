@@ -168,7 +168,7 @@ namespace dynamic_gap
             {
                 // set default scan range to max
                 wipedScan.ranges.at(i) = cfg_->scan.range_max; // set to max range
-                visPropScan.intensities.at(i) = 255;
+                // visPropScan.intensities.at(i) = 255;
 
                 // set pointwise model index
                 if ( (scanPt - lhsPt).norm() < (scanPt - rhsPt).norm())

@@ -4,14 +4,13 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Map1
         - /Dynamic Gap1
-        - /Dynamic Gap1/Marker1
-        - /Dynamic Gap1/Marker3
-        - /Dynamic Gap1/PoseArray3
+        - /Dynamic Gap1/Scans1
+        - /Dynamic Gap1/Gaps1
+        - /Dynamic Gap1/Gaps1/MarkerArray1
+        - /Dynamic Gap1/Trajectories1
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
-        - /Marker3
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -28,7 +27,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -112,7 +111,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -264,178 +263,219 @@ Visualization Manager:
       Value: false
     - Class: rviz/Group
       Displays:
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Autocompute Value Bounds:
-            Max Value: 0
-            Min Value: 0
-            Value: true
-          Axis: Z
-          Channel Name: intensity
-          Class: rviz/LaserScan
-          Color: 239; 41; 41
-          Color Transformer: FlatColor
-          Decay Time: 0
-          Enabled: false
-          Invert Rainbow: false
-          Max Color: 239; 41; 41
-          Min Color: 0; 0; 0
-          Name: LaserScan
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.05000000074505806
-          Style: Flat Squares
-          Topic: /rto/scan
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Autocompute Value Bounds:
-            Max Value: 10
-            Min Value: -10
-            Value: true
-          Axis: Z
-          Channel Name: intensity
-          Class: rviz/LaserScan
-          Color: 255; 255; 255
-          Color Transformer: Intensity
-          Decay Time: 0
-          Enabled: true
-          Invert Rainbow: false
-          Max Color: 239; 41; 41
-          Min Color: 114; 159; 207
-          Name: LaserScan
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.05000000074505806
-          Style: Flat Squares
-          Topic: /rto/propagated_egocircle
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
-          Value: true
         - Class: rviz/Marker
           Enabled: false
-          Marker Topic: /rto/raw_gaps
+          Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
             {}
           Queue Size: 100
           Value: false
-        - Class: rviz/Marker
+        - Class: rviz/Group
+          Displays:
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 0
+                Min Value: 0
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/LaserScan
+              Color: 239; 41; 41
+              Color Transformer: FlatColor
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 239; 41; 41
+              Min Color: 0; 0; 0
+              Name: LaserScan
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.05000000074505806
+              Style: Flat Squares
+              Topic: /rto/scan
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Autocompute Value Bounds:
+                Max Value: 10
+                Min Value: -10
+                Value: true
+              Axis: Z
+              Channel Name: intensity
+              Class: rviz/LaserScan
+              Color: 255; 255; 255
+              Color Transformer: Intensity
+              Decay Time: 0
+              Enabled: true
+              Invert Rainbow: false
+              Max Color: 239; 41; 41
+              Min Color: 114; 159; 207
+              Name: LaserScan
+              Position Transformer: XYZ
+              Queue Size: 10
+              Selectable: true
+              Size (Pixels): 3
+              Size (m): 0.05000000074505806
+              Style: Flat Squares
+              Topic: /rto/propagated_egocircle
+              Unreliable: false
+              Use Fixed Frame: true
+              Use rainbow: true
+              Value: true
           Enabled: true
-          Marker Topic: /rto/simp_gaps
-          Name: Marker
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/Marker
-          Enabled: false
-          Marker Topic: /rto/manip_gaps
-          Name: Marker
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: false
-        - Class: rviz/Marker
-          Enabled: false
-          Marker Topic: /rto/gap_goals
-          Name: Marker
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: false
-        - Class: rviz/MarkerArray
+          Name: Scans
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Marker
+              Enabled: false
+              Marker Topic: /rto/raw_gaps
+              Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /rto/simp_gaps
+              Name: Marker
+              Namespaces:
+                simp: true
+                simp_tmin1: true
+              Queue Size: 100
+              Value: true
+            - Class: rviz/Marker
+              Enabled: false
+              Marker Topic: /rto/manip_gaps
+              Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/gap_models
+              Name: MarkerArray
+              Namespaces:
+                gap_models: true
+              Queue Size: 100
+              Value: true
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /rto/gap_goals
+              Name: Marker
+              Namespaces:
+                gap_goal: true
+              Queue Size: 100
+              Value: true
           Enabled: true
-          Marker Topic: /rto/candidate_trajectories
-          Name: MarkerArray
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
+          Name: Gaps
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/candidate_trajectories
+              Name: MarkerArray
+              Namespaces:
+                allTraj: true
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Arrow Length: 0.30000001192092896
+              Axes Length: 0.30000001192092896
+              Axes Radius: 0.009999999776482582
+              Class: rviz/PoseArray
+              Color: 255; 25; 0
+              Enabled: false
+              Head Length: 0.07000000029802322
+              Head Radius: 0.029999999329447746
+              Name: PoseArray
+              Queue Size: 10
+              Shaft Length: 0.23000000417232513
+              Shaft Radius: 0.009999999776482582
+              Shape: Arrow (Flat)
+              Topic: /rto/entire_global_plan
+              Unreliable: false
+              Value: false
+            - Alpha: 1
+              Arrow Length: 0.30000001192092896
+              Axes Length: 0.30000001192092896
+              Axes Radius: 0.009999999776482582
+              Class: rviz/PoseArray
+              Color: 255; 25; 0
+              Enabled: false
+              Head Length: 0.07000000029802322
+              Head Radius: 0.029999999329447746
+              Name: PoseArray
+              Queue Size: 10
+              Shaft Length: 0.23000000417232513
+              Shaft Radius: 0.009999999776482582
+              Shape: Arrow (Flat)
+              Topic: /rto/relevant_global_plan_snippet
+              Unreliable: false
+              Value: false
+            - Alpha: 1
+              Arrow Length: 0.30000001192092896
+              Axes Length: 0.30000001192092896
+              Axes Radius: 0.009999999776482582
+              Class: rviz/PoseArray
+              Color: 255; 25; 0
+              Enabled: true
+              Head Length: 0.07000000029802322
+              Head Radius: 0.029999999329447746
+              Name: PoseArray
+              Queue Size: 10
+              Shaft Length: 0.23000000417232513
+              Shaft Radius: 0.009999999776482582
+              Shape: Arrow (Flat)
+              Topic: /rto/curr_exec_dg_traj
+              Unreliable: false
+              Value: true
+            - Class: rviz/Marker
+              Enabled: false
+              Marker Topic: /rto/trajectory_switch
+              Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
           Enabled: true
-          Marker Topic: /rto/gap_models
-          Name: MarkerArray
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Arrow Length: 0.30000001192092896
-          Axes Length: 0.30000001192092896
-          Axes Radius: 0.009999999776482582
-          Class: rviz/PoseArray
-          Color: 255; 25; 0
+          Name: Trajectories
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/Marker
+              Enabled: false
+              Marker Topic: /rto/po_dir
+              Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Alpha: 1
+              Arrow Length: 0.30000001192092896
+              Axes Length: 0.30000001192092896
+              Axes Radius: 0.009999999776482582
+              Class: rviz/PoseArray
+              Color: 114; 159; 207
+              Enabled: false
+              Head Length: 0.07000000029802322
+              Head Radius: 0.029999999329447746
+              Name: PoseArray
+              Queue Size: 10
+              Shaft Length: 0.23000000417232513
+              Shaft Radius: 0.009999999776482582
+              Shape: Arrow (Flat)
+              Topic: /rto/mpc_input
+              Unreliable: false
+              Value: false
           Enabled: false
-          Head Length: 0.07000000029802322
-          Head Radius: 0.029999999329447746
-          Name: PoseArray
-          Queue Size: 10
-          Shaft Length: 0.23000000417232513
-          Shaft Radius: 0.009999999776482582
-          Shape: Arrow (Flat)
-          Topic: /rto/entire_global_plan
-          Unreliable: false
-          Value: false
-        - Alpha: 1
-          Arrow Length: 0.30000001192092896
-          Axes Length: 0.30000001192092896
-          Axes Radius: 0.009999999776482582
-          Class: rviz/PoseArray
-          Color: 255; 25; 0
-          Enabled: false
-          Head Length: 0.07000000029802322
-          Head Radius: 0.029999999329447746
-          Name: PoseArray
-          Queue Size: 10
-          Shaft Length: 0.23000000417232513
-          Shaft Radius: 0.009999999776482582
-          Shape: Arrow (Flat)
-          Topic: /rto/relevant_global_plan_snippet
-          Unreliable: false
-          Value: false
-        - Alpha: 1
-          Arrow Length: 0.30000001192092896
-          Axes Length: 0.30000001192092896
-          Axes Radius: 0.009999999776482582
-          Class: rviz/PoseArray
-          Color: 255; 25; 0
-          Enabled: true
-          Head Length: 0.07000000029802322
-          Head Radius: 0.029999999329447746
-          Name: PoseArray
-          Queue Size: 10
-          Shaft Length: 0.23000000417232513
-          Shaft Radius: 0.009999999776482582
-          Shape: Arrow (Flat)
-          Topic: /rto/curr_exec_dg_traj
-          Unreliable: false
-          Value: true
-        - Alpha: 1
-          Arrow Length: 0.30000001192092896
-          Axes Length: 0.30000001192092896
-          Axes Radius: 0.009999999776482582
-          Class: rviz/PoseArray
-          Color: 114; 159; 207
-          Enabled: false
-          Head Length: 0.07000000029802322
-          Head Radius: 0.029999999329447746
-          Name: PoseArray
-          Queue Size: 10
-          Shaft Length: 0.23000000417232513
-          Shaft Radius: 0.009999999776482582
-          Shape: Arrow (Flat)
-          Topic: /rto/mpc_input
-          Unreliable: false
-          Value: false
+          Name: Tracking
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -616,30 +656,6 @@ Visualization Manager:
           Value: false
       Enabled: false
       Name: Potential Gap
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /rto/trajectory_switch
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /rto/planning_loop_idx
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /rto/po_dir
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -677,10 +693,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 125.96017456054688
+      Scale: 42.17112731933594
       Target Frame: rto/base_link
-      X: 0.8651476502418518
-      Y: -0.3738381564617157
+      X: 8.481538772583008
+      Y: -0.9230348467826843
     Saved: ~
 Window Geometry:
   Displays:

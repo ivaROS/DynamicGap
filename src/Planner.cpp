@@ -1411,10 +1411,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
         float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        
+        float avgNumberGaps = computeAverageNumberGaps(gapCount);
 
         ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop for " << gapCount << " gaps took " << planningLoopTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average time: " << avgPlanningLoopTimeTaken << " seconds (" << (1.0 / avgPlanningLoopTimeTaken) << " Hz) ]");
-        
+        ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average number of gaps: " << avgNumberGaps << "]");
+
         // delete set of planning gaps
         for (dynamic_gap::Gap * planningGap : planningGaps)
             delete planningGap;
@@ -1599,6 +1601,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             reset();
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
+    }
+
+    // Run after computeAverageTimeTaken, we are using planningLoopCalls
+    float Planner::computeAverageNumberGaps(const int & gapCount)
+    {
+        totalNumGaps += gapCount;
+        return (totalNumGaps / (float) planningLoopCalls);
     }
 
     // 0: gap detection

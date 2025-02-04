@@ -344,6 +344,12 @@ namespace dynamic_gap
             */
             float computeAverageTimeTaken(const float & timeTaken, const int & planningStepIdx);
 
+            /**
+            * \brief Helper function for computing average number of gaps planned over per planning loop
+            * \param numGaps number of gaps planned over per planning loop
+            */
+            float computeAverageNumberGaps(const int & numGaps);
+
             boost::mutex gapMutex_; /**< Current set of gaps mutex */
             dynamic_gap::DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
 
@@ -506,5 +512,7 @@ namespace dynamic_gap
 
             float totalControlTimeTaken = 0.0f; /**< Total time taken for control loop */
             int controlCalls = 0; /**< Total number of calls for control loop */
+
+            int totalNumGaps = 0; /**< Total number of gaps planned over during deployment */
     };
 }
