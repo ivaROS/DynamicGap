@@ -36,6 +36,14 @@ namespace dynamic_gap
         delete trajVisualizer_;
     }
 
+    void Planner::reconfigureCallback(dynamic_gap::ParametersConfig &config, uint32_t level)
+    {
+        estParams_.Q_ = config.Q;
+        estParams_.R_ = config.R;
+
+        gapAssociator_->updateParams(estParams_);
+    }
+
     bool Planner::initialize(const std::string & name)
     {
         // ROS_INFO_STREAM("starting initialize");

@@ -17,6 +17,7 @@
   <depend>pluginlib</depend>
   <depend>nav_core</depend>
   <depend>pedsim_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

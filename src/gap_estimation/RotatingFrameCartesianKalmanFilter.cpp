@@ -41,11 +41,14 @@ namespace dynamic_gap
     void RotatingFrameCartesianKalmanFilter::initialize(const std::string & side, const int & modelID,
                                                         const float & gapPtX, const float & gapPtY,
                                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                                        const geometry_msgs::TwistStamped & lastRbtAcc) 
+                                                        const geometry_msgs::TwistStamped & lastRbtAcc, const EstimationParameters & estParams) 
     {
         this->side_ = side;
         this->modelID_ = modelID;
         // ROS_INFO_STREAM("    initialize model: " << modelID_);
+
+        this->R_scalar = estParams.R_;
+        this->Q_scalar = estParams.Q_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -106,6 +109,9 @@ namespace dynamic_gap
         this->R_temp_ = model.R_temp_;
         this->Q_k_ = model.Q_k_;
         this->Q_temp_ = model.Q_temp_;
+
+        this->Q_scalar = model.Q_scalar;
+        this->R_scalar = model.R_scalar;
 
         this->intermediateRbtVels_ = model.intermediateRbtVels_;
         this->intermediateRbtAccs_ = model.intermediateRbtAccs_;

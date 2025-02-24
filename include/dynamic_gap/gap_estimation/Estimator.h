@@ -12,6 +12,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <dynamic_gap/utils/Utils.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -43,6 +45,9 @@ namespace dynamic_gap
             Eigen::Matrix2f R_temp_; /**<  Measurement noise matrix */
             Eigen::Matrix4f Q_temp_; /**< Covariance noise matrix */
 
+            float R_scalar = 0.0; /**< Scalar value used to populate R matrix*/
+            float Q_scalar = 0.0; /**< Scalar value used to populate Q matrix*/
+
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< sequence of ego-robot velocities received since last model update */
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< sequence of ego-robot accelerations received since last model update */     
             geometry_msgs::TwistStamped lastRbtVel_; /**< most recent ego-robot velocity from last model update */
@@ -67,7 +72,7 @@ namespace dynamic_gap
             virtual void initialize(const std::string & side, const int & modelID, 
                                     const float & gapPtX, const float & gapPtY,
                                     const ros::Time & tUpdate, const geometry_msgs::TwistStamped & lastRbtVel,
-                                    const geometry_msgs::TwistStamped & lastRbtAcc) = 0;
+                                    const geometry_msgs::TwistStamped & lastRbtAcc, const EstimationParameters & estParams) = 0;
             
             /**
             * \brief Virtual function for transferring incoming model to this model

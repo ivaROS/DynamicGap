@@ -30,9 +30,6 @@ namespace dynamic_gap
             Eigen::Matrix4f Q_2_; /**< 2nd order approximation of discretized covariance noise matrix */ 
             Eigen::Matrix4f Q_3_; /**< 3rd order approximation of discretized covariance noise matrix */
 
-            float R_scalar = 0.0; /**< Scalar value used to populate R matrix*/
-            float Q_scalar = 0.0; /**< Scalar value used to populate Q matrix*/
-
             float alpha_R = 0.3; /**< Adaptive R parameter */
             float alpha_Q = 0.3; /**< Adaptie Q parameter */
 
@@ -60,7 +57,7 @@ namespace dynamic_gap
             void initialize(const std::string & side, const int & modelID, 
                             const float & gapPtX, const float & gapPtY,
                             const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                            const geometry_msgs::TwistStamped & lastRbtAcc);
+                            const geometry_msgs::TwistStamped & lastRbtAcc, const EstimationParameters & estParams);
             void transfer(const Estimator & placeholder);
 
             void update(const Eigen::Vector2f & measurement, 

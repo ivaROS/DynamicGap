@@ -36,6 +36,9 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <dynamic_gap/ParametersConfig.h>
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -74,6 +77,8 @@ namespace dynamic_gap
             * \return initialization success / failure
             */
             bool initialize(const std::string & name);
+
+            void reconfigureCallback(dynamic_gap::ParametersConfig &config, uint32_t level);
 
             /**
             * \brief Indicator for if planner has been initialized
@@ -514,5 +519,7 @@ namespace dynamic_gap
             int controlCalls = 0; /**< Total number of calls for control loop */
 
             int totalNumGaps = 0; /**< Total number of gaps planned over during deployment */
+
+            EstimationParameters estParams_; /**< Estimation parameters for gap estimation */
     };
 }

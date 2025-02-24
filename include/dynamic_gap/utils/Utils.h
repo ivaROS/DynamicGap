@@ -27,6 +27,11 @@ namespace dynamic_gap
                             CONTROL = 15
                             };
 
+    struct EstimationParameters
+    {
+        float Q_ = 0.0; /**< Process noise covariance */
+        float R_ = 0.0; /**< Measurement noise covariance */
+    };
 
     //////////////////////////////
     //       CONVERSIONS        // 

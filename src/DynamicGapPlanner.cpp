@@ -19,6 +19,9 @@ namespace dynamic_gap
         name_ = name;
         planner_.initialize(name_);
 
+        dynamic_reconfigure::Server<dynamic_gap::ParametersConfig> server;
+        server.setCallback(boost::bind(&Planner::reconfigureCallback, &planner_, _1, _2));
+
         return;
     }
 

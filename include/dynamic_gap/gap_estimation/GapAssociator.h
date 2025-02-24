@@ -33,6 +33,8 @@ namespace dynamic_gap
 		*/
 		GapAssociator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
+		void updateParams(const EstimationParameters & estParams);
+
 		/**
 		* \brief Populate distance matrix between points in current gaps and points in previous gaps.
 		* 
@@ -162,5 +164,6 @@ namespace dynamic_gap
 		std::vector< std::vector<float>> currentGapPoints; /**< sequence of points within current gaps */
 		const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
 		float assocThresh; /**<  maximum distance threshold for which we will consider an association between models valid */
+		EstimationParameters estParams_; /**< parameters for gap estimation */
 	};
 }

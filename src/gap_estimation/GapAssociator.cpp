@@ -13,6 +13,11 @@
 
 namespace dynamic_gap 
 {
+	void GapAssociator::updateParams(const EstimationParameters & estParams) 
+	{
+		estParams_ = estParams;
+	}
+
 	std::vector< std::vector<float>> GapAssociator::obtainGapPoints(const std::vector<dynamic_gap::Gap *> & gaps) 
 	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
@@ -206,11 +211,11 @@ namespace dynamic_gap
 		if (i % 2 == 0) 
 		{   // curr left
 			currentGaps.at(currentGapIdx)->leftGapPtModel_->initialize("left", currentModelIdx, gapPtX, gapPtY, 
-																			scanTime, lastRbtVel, lastRbtAcc);				
+																			scanTime, lastRbtVel, lastRbtAcc, estParams_);				
 		} else 
 		{
 			currentGaps.at(currentGapIdx)->rightGapPtModel_->initialize("right", currentModelIdx, gapPtX, gapPtY,
-																			scanTime, lastRbtVel, lastRbtAcc);				
+																			scanTime, lastRbtVel, lastRbtAcc, estParams_);				
 		}
 		currentModelIdx += 1;
 	}

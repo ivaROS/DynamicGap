@@ -11,6 +11,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   roscpp
   rospy
   pedsim_msgs
+  dynamic_reconfigure
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -19,6 +20,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
+generate_dynamic_reconfigure_options(
+  cfg/Parameters.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
