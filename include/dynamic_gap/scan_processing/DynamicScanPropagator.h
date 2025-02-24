@@ -30,7 +30,7 @@ namespace dynamic_gap
             * \param rawGaps set of current raw gaps to extract models from to determine what parts of scan are dynamic
             * \return set of propagated laser scans for scoring
             * */
-            std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScan(const std::vector<dynamic_gap::Gap *> & rawGaps);
+            std::vector<sensor_msgs::LaserScan> propagateCurrentLaserScan(const std::vector<Gap *> & rawGaps);
 
 
         private:

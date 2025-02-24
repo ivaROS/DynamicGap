@@ -34,7 +34,7 @@ namespace dynamic_gap
     {
         public:
 
-            TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            TrajectoryController(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief receive new laser scan and update member variable accordingly

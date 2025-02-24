@@ -95,7 +95,7 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
     }
 
-    void GapVisualizer::drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
+    void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -112,7 +112,7 @@ namespace dynamic_gap
         drawGap(marker, gaps, ns); // , true);
 
         // visualization_msgs::MarkerArray markerArray;
-        // for (dynamic_gap::Gap * gap : gaps) 
+        // for (Gap * gap : gaps) 
         //     drawGap(markerArray, gap, ns, true);
 
         if (ns.find("raw") != std::string::npos) 
@@ -126,7 +126,7 @@ namespace dynamic_gap
         }
     }
 
-    void GapVisualizer::drawGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
+    void GapVisualizer::drawGap(visualization_msgs::Marker & marker, const std::vector<Gap *> & gaps, 
                                 const std::string & ns) // , const bool & initial)     
     {
         // ROS_INFO_STREAM("[drawGap] start");
@@ -174,7 +174,7 @@ namespace dynamic_gap
 
         marker.color = colorIter->second;
    
-        for (dynamic_gap::Gap * gap : gaps) 
+        for (Gap * gap : gaps) 
         {
             marker.header.frame_id = gap->frame_;
 
@@ -215,7 +215,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("[drawGap] end");
     }
 
-    void GapVisualizer::drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns) 
+    void GapVisualizer::drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -230,7 +230,7 @@ namespace dynamic_gap
         // visualization_msgs::MarkerArray markerArray;
 
         // bool circle = false;
-        // for (dynamic_gap::Gap * gap : gaps) 
+        // for (Gap * gap : gaps) 
         // {
         //     // drawManipGap(markerArray, gap, ns, true); // initial
         //     drawManipGap(markerArray, gap, ns, false); // false
@@ -243,11 +243,11 @@ namespace dynamic_gap
         manipGapsPublisher.publish(marker);
 
         // visualization_msgs::MarkerArray markerArray;
-        // for (dynamic_gap::Gap * gap : gaps) 
+        // for (Gap * gap : gaps) 
         //     drawGap(markerArray, gap, ns, true)
     }
 
-    void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<dynamic_gap::Gap *> & gaps, 
+    void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<Gap *> & gaps, 
                                         const std::string & ns) // , const bool & initial)     
     {
         // ROS_INFO_STREAM("[drawManipGap] start");
@@ -286,7 +286,7 @@ namespace dynamic_gap
 
         marker.color = colorIter->second;
    
-        for (dynamic_gap::Gap * gap : gaps) 
+        for (Gap * gap : gaps) 
         {
             marker.header.frame_id = gap->frame_;
 
@@ -340,7 +340,7 @@ namespace dynamic_gap
     }
 
     /*
-    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & markerArray, dynamic_gap::Gap * gap, 
+    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & markerArray, Gap * gap, 
                                         const std::string & ns, const bool & initial) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
@@ -460,7 +460,7 @@ namespace dynamic_gap
     }
     */
 
-    void GapVisualizer::drawGapsModels(const std::vector<dynamic_gap::Gap *> & gaps) 
+    void GapVisualizer::drawGapsModels(const std::vector<Gap *> & gaps) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -478,7 +478,7 @@ namespace dynamic_gap
         // gapmodel_vel_error_publisher.publish(clearMarkerArray);
 
         visualization_msgs::MarkerArray gapModelMarkerArray; // , gap_vel_error_arr , gap_pos_GT_arr, gap_vel_GT_arr;
-        for (dynamic_gap::Gap * gap : gaps) 
+        for (Gap * gap : gaps) 
         {
             drawGapModels(gapModelMarkerArray, gap, "gap_models"); // gap_vel_error_arr
             // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
@@ -492,7 +492,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                        dynamic_gap::Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
+                                        Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
@@ -513,7 +513,7 @@ namespace dynamic_gap
 
     /*
     void GapVisualizer::drawGapGroundTruthModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
-                                                    dynamic_gap::Gap * gap, std::string ns) 
+                                                    Gap * gap, std::string ns) 
     {
         int id = (int) gapModelMarkerArray.markers.size();
 
@@ -528,7 +528,7 @@ namespace dynamic_gap
     */    
 
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
-                                    dynamic_gap::Gap * gap, const bool & left, int & id, const std::string & ns) 
+                                    Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
         // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->frame_;

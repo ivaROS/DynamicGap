@@ -3,7 +3,7 @@
 
 namespace dynamic_gap 
 {
-    TrajectoryEvaluator::TrajectoryEvaluator(const dynamic_gap::DynamicGapConfig& cfg)
+    TrajectoryEvaluator::TrajectoryEvaluator(const DynamicGapConfig& cfg)
     {
         cfg_ = & cfg;
     }
@@ -21,7 +21,7 @@ namespace dynamic_gap
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
-    void TrajectoryEvaluator::evaluateTrajectory(const dynamic_gap::Trajectory & traj,
+    void TrajectoryEvaluator::evaluateTrajectory(const Trajectory & traj,
                                                 std::vector<float> & posewiseCosts,
                                                 float & terminalPoseCost,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans) 

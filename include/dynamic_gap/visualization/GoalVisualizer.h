@@ -15,13 +15,13 @@ namespace dynamic_gap
         using Visualizer::Visualizer;
 
         public: 
-            GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GoalVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief Visualize set of gap goals
             * \param gaps set of gaps whose goals we want to visualize
             */
-            void drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps);
+            void drawGapGoals(const std::vector<Gap *> & gaps);
 
             /**
             * \brief Visualize global path local waypoint
@@ -43,7 +43,7 @@ namespace dynamic_gap
             * \param initial flag for visualizing initial or terminal gap goals
             */
             void drawGapGoals(visualization_msgs::Marker & marker, 
-                                const std::vector<dynamic_gap::Gap *> & gaps, 
+                                const std::vector<Gap *> & gaps, 
                                 const bool & initial);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */

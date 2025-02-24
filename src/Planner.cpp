@@ -5,11 +5,11 @@ namespace dynamic_gap
     Planner::~Planner()
     {
         // delete current raw, simplified, and selected gaps
-        for (dynamic_gap::Gap * rawGap : currRawGaps_)
+        for (Gap * rawGap : currRawGaps_)
             delete rawGap;
         currRawGaps_.clear();
 
-        for (dynamic_gap::Gap * simplifiedGap : currSimplifiedGaps_)
+        for (Gap * simplifiedGap : currSimplifiedGaps_)
             delete simplifiedGap;
         currSimplifiedGaps_.clear();
 
@@ -36,7 +36,7 @@ namespace dynamic_gap
         delete trajVisualizer_;
     }
 
-    void Planner::reconfigureCallback(dynamic_gap::ParametersConfig &config, uint32_t level)
+    void Planner::reconfigureCallback(ParametersConfig &config, uint32_t level)
     {
         estParams_.Q_ = config.Q;
         estParams_.R_ = config.R;
@@ -67,25 +67,25 @@ namespace dynamic_gap
         ROS_INFO_STREAM("cfg_.odom_frame_id: " << cfg_.odom_frame_id);
 
         // Initialize everything
-        gapDetector_ = new dynamic_gap::GapDetector(cfg_);
-        gapAssociator_ = new dynamic_gap::GapAssociator(cfg_);
+        gapDetector_ = new GapDetector(cfg_);
+        gapAssociator_ = new GapAssociator(cfg_);
 
-        globalPlanManager_ = new dynamic_gap::GlobalPlanManager(cfg_);
+        globalPlanManager_ = new GlobalPlanManager(cfg_);
 
-        gapFeasibilityChecker_ = new dynamic_gap::GapFeasibilityChecker(cfg_);
+        gapFeasibilityChecker_ = new GapFeasibilityChecker(cfg_);
 
-        gapManipulator_ = new dynamic_gap::GapManipulator(cfg_);
+        gapManipulator_ = new GapManipulator(cfg_);
 
-        gapTrajGenerator_ = new dynamic_gap::GapTrajectoryGenerator(cfg_);
+        gapTrajGenerator_ = new GapTrajectoryGenerator(cfg_);
 
-        dynamicScanPropagator_ = new dynamic_gap::DynamicScanPropagator(nh_, cfg_); 
+        dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
 
-        trajEvaluator_ = new dynamic_gap::TrajectoryEvaluator(cfg_);
-        trajController_ = new dynamic_gap::TrajectoryController(nh_, cfg_);
+        trajEvaluator_ = new TrajectoryEvaluator(cfg_);
+        trajController_ = new TrajectoryController(nh_, cfg_);
 
-        gapVisualizer_ = new dynamic_gap::GapVisualizer(nh_, cfg_);
-        goalVisualizer_ = new dynamic_gap::GoalVisualizer(nh_, cfg_);
-        trajVisualizer_ = new dynamic_gap::TrajectoryVisualizer(nh_, cfg_);
+        gapVisualizer_ = new GapVisualizer(nh_, cfg_);
+        goalVisualizer_ = new GoalVisualizer(nh_, cfg_);
+        trajVisualizer_ = new TrajectoryVisualizer(nh_, cfg_);
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);        
@@ -311,11 +311,11 @@ namespace dynamic_gap
         }
 
         // delete previous gaps
-        for (dynamic_gap::Gap * prevRawGap : prevRawGaps_)
+        for (Gap * prevRawGap : prevRawGaps_)
             delete prevRawGap;
         prevRawGaps_.clear();
         
-        for (dynamic_gap::Gap * prevSimplifiedGap : prevSimplifiedGaps_)
+        for (Gap * prevSimplifiedGap : prevSimplifiedGaps_)
             delete prevSimplifiedGap;
         prevSimplifiedGaps_.clear();
 
@@ -333,7 +333,7 @@ namespace dynamic_gap
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    void Planner::updateModels(std::vector<dynamic_gap::Gap *> & gaps, 
+    void Planner::updateModels(std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate) 
@@ -357,14 +357,14 @@ namespace dynamic_gap
     }
 
     void Planner::updateModel(const int & idx, 
-                                std::vector<dynamic_gap::Gap *> & gaps, 
+                                std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate) 
     {
 		try
         {
-            dynamic_gap::Gap * gap = gaps[int(idx / 2.0)];
+            Gap * gap = gaps[int(idx / 2.0)];
     
             float rX = 0.0, rY = 0.0;
             if (idx % 2 == 0) 
@@ -677,7 +677,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         trajController_->updateEgoCircle(scan_);
     }
 
-    void Planner::propagateGapPoints(const std::vector<dynamic_gap::Gap *> & planningGaps)                                             
+    void Planner::propagateGapPoints(const std::vector<Gap *> & planningGaps)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPoints()]");
@@ -712,12 +712,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::manipulateGaps(const std::vector<dynamic_gap::Gap *> & planningGaps) 
+    std::vector<Gap *> Planner::manipulateGaps(const std::vector<Gap *> & planningGaps) 
     {
         ROS_INFO_STREAM_NAMED("GapManipulator", "[manipulateGaps()]");
 
         boost::mutex::scoped_lock gapset(gapMutex_);
-        std::vector<dynamic_gap::Gap *> manipulatedGaps;
+        std::vector<Gap *> manipulatedGaps;
 
         try
         {
@@ -750,12 +750,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return manipulatedGaps;
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::gapSetFeasibilityCheck(const std::vector<dynamic_gap::Gap *> & manipulatedGaps, 
+    std::vector<Gap *> Planner::gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
                                                                     bool & isCurrentGapFeasible)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[gapSetFeasibilityCheck()]");
-        std::vector<dynamic_gap::Gap *> feasibleGaps;
+        std::vector<Gap *> feasibleGaps;
 
         try
         {
@@ -779,7 +779,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 {                    
                     feasibleGaps.push_back(manipulatedGaps.at(i)); // shallow copy
 
-                    // feasibleGaps.push_back(new dynamic_gap::Gap(*manipulatedGaps.at(i)));
+                    // feasibleGaps.push_back(new Gap(*manipulatedGaps.at(i)));
                     // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
                 
                     if (manipulatedGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && 
@@ -798,8 +798,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return feasibleGaps;
     }
 
-    void Planner::generateGapTrajs(std::vector<dynamic_gap::Gap *> & gaps, 
-                                    std::vector<dynamic_gap::Trajectory> & generatedTrajs,
+    void Planner::generateGapTrajs(std::vector<Gap *> & gaps, 
+                                    std::vector<Trajectory> & generatedTrajs,
                                     std::vector<std::vector<float>> & pathPoseCosts,
                                     std::vector<float> & pathTerminalPoseCosts,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
@@ -821,7 +821,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // Run go to goal behavior
                 bool runGoToGoal = (gaps.at(i)->globalGoalWithin);
 
-                dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
+                Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
                 std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
                 float goToGoalTerminalPoseCost, pursuitGuidanceTerminalPoseCost;
                 float goToGoalCost, pursuitGuidancePoseCost;
@@ -874,7 +874,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             std::vector<float> idlingPoseCosts;
             float idlingTerminalPoseCost, idlingCost;
 
-            dynamic_gap::Trajectory idlingTrajectory;
+            Trajectory idlingTrajectory;
             idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
             
             idlingTrajectory = gapTrajGenerator_->processTrajectory(idlingTrajectory, false);
@@ -899,7 +899,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    int Planner::pickTraj(const std::vector<dynamic_gap::Trajectory> & trajs, 
+    int Planner::pickTraj(const std::vector<Trajectory> & trajs, 
                           const std::vector<std::vector<float>> & pathPoseCosts, 
                           const std::vector<float> & pathTerminalPoseCosts) 
     {
@@ -962,8 +962,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return lowestCostTrajIdx;
     }
 
-    dynamic_gap::Trajectory Planner::changeTrajectoryHelper(dynamic_gap::Gap * incomingGap, 
-                                                             const dynamic_gap::Trajectory & incomingTraj, 
+    Trajectory Planner::changeTrajectoryHelper(Gap * incomingGap, 
+                                                             const Trajectory & incomingTraj, 
                                                              const bool & switchToIncoming) 
     {
         publishToMpc_ = true;
@@ -990,7 +990,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return incomingTraj;  
         } else 
         {
-            dynamic_gap::Trajectory emptyTraj;
+            Trajectory emptyTraj;
             geometry_msgs::PoseArray emptyPath = geometry_msgs::PoseArray();
             emptyPath.header = incomingTraj.getPathRbtFrame().header;
             std::vector<float> emptyPathTiming;
@@ -1008,8 +1008,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }        
     }
 
-    dynamic_gap::Trajectory Planner::compareToCurrentTraj(const std::vector<dynamic_gap::Gap *> & feasibleGaps, 
-                                                            const std::vector<dynamic_gap::Trajectory> & trajs,
+    Trajectory Planner::compareToCurrentTraj(const std::vector<Gap *> & feasibleGaps, 
+                                                            const std::vector<Trajectory> & trajs,
                                                             const int & lowestCostTrajIdx,
                                                             const int & trajFlag,
                                                             const bool & isIncomingGapFeasible,
@@ -1018,9 +1018,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
         
-        dynamic_gap::Gap * incomingGap = (trajFlag == 0 ? feasibleGaps.at(lowestCostTrajIdx) : nullptr);
-        dynamic_gap::Trajectory incomingTraj = trajs.at(lowestCostTrajIdx);
-        dynamic_gap::Trajectory currentTraj = getCurrentTraj();
+        Gap * incomingGap = (trajFlag == 0 ? feasibleGaps.at(lowestCostTrajIdx) : nullptr);
+        Trajectory incomingTraj = trajs.at(lowestCostTrajIdx);
+        Trajectory currentTraj = getCurrentTraj();
 
         try 
         {            
@@ -1118,7 +1118,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    re-evaluating incoming trajectory received a subcost of: " << incomingPathCost);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating current trajectory");            
             
-            dynamic_gap::Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
+            Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
             std::vector<float> currentPathPoseCosts;
             float currentPathTerminalPoseCost;
             trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, currentPathPoseCosts, currentPathTerminalPoseCost, futureScans);
@@ -1171,45 +1171,45 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return std::min(minPoseNormIdx, int(currTrajRbtFrame.poses.size() - 1));
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentRawGaps()
+    std::vector<Gap *> Planner::deepCopyCurrentRawGaps()
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        std::vector<dynamic_gap::Gap *> copiedRawGaps;
+        std::vector<Gap *> copiedRawGaps;
 
-        for (dynamic_gap::Gap * currRawGap : currRawGaps_)
-            copiedRawGaps.push_back(new dynamic_gap::Gap(*currRawGap));
+        for (Gap * currRawGap : currRawGaps_)
+            copiedRawGaps.push_back(new Gap(*currRawGap));
 
         return copiedRawGaps;
     }
 
-    std::vector<dynamic_gap::Gap *> Planner::deepCopyCurrentSimplifiedGaps()
+    std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps()
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        std::vector<dynamic_gap::Gap *> planningGaps;
+        std::vector<Gap *> planningGaps;
 
-        for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
-            planningGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
+        for (Gap * currSimplifiedGap : currSimplifiedGaps_)
+            planningGaps.push_back(new Gap(*currSimplifiedGap));
 
         return planningGaps;
     }
 
-    void Planner::runPlanningLoop(dynamic_gap::Trajectory & chosenTraj, int & trajFlag) 
+    void Planner::runPlanningLoop(Trajectory & chosenTraj, int & trajFlag) 
     {
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
 
         if (!initialized_ || !hasLaserScan_ || !hasGlobalGoal_)
         {
             ROS_WARN_STREAM_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
-            chosenTraj = dynamic_gap::Trajectory();
+            chosenTraj = Trajectory();
             return;            
         }
 
         if (colliding_)
         {
             ROS_WARN_STREAM_NAMED("Planner", "In collision");
-            chosenTraj = dynamic_gap::Trajectory();
+            chosenTraj = Trajectory();
             return;
         }
 
@@ -1217,8 +1217,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         isGoalReached();
 
-        std::vector<dynamic_gap::Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
-        std::vector<dynamic_gap::Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
+        std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
+        std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
@@ -1238,7 +1238,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // GAP MANIPULATION //
         //////////////////////
         std::chrono::steady_clock::time_point manipulateGapsStartTime = std::chrono::steady_clock::now();
-        std::vector<dynamic_gap::Gap *> manipulatedGaps = manipulateGaps(planningGaps);
+        std::vector<Gap *> manipulatedGaps = manipulateGaps(planningGaps);
         float gapManipulationTimeTaken = timeTaken(manipulateGapsStartTime);
         float avgGapManipulationTimeTaken = computeAverageTimeTaken(gapManipulationTimeTaken, GAP_MANIP);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation for " << gapCount << " gaps took " << gapManipulationTimeTaken << " seconds]");
@@ -1248,16 +1248,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // GAP FEASIBILITY CHECK //
         ///////////////////////////
         bool isCurrentGapFeasible = false;
-        std::vector<dynamic_gap::Gap *> feasibleGaps;
+        std::vector<Gap *> feasibleGaps;
         std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
         if (cfg_.planning.gap_feasibility_check)
         {
             feasibleGaps = gapSetFeasibilityCheck(manipulatedGaps, isCurrentGapFeasible);
         } else
         {
-            for (dynamic_gap::Gap * currSimplifiedGap : currSimplifiedGaps_)
+            for (Gap * currSimplifiedGap : currSimplifiedGaps_)
                 feasibleGaps.push_back(currSimplifiedGap);
-                // feasibleGaps.push_back(new dynamic_gap::Gap(*currSimplifiedGap));
+                // feasibleGaps.push_back(new Gap(*currSimplifiedGap));
             // TODO: need to set feasible to true for all gaps as well
         }
         float feasibilityTimeTaken = timeTaken(feasibilityStartTime);
@@ -1322,7 +1322,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ///////////////////////////////////////////
         // GAP TRAJECTORY GENERATION AND SCORING //
         ///////////////////////////////////////////
-        std::vector<dynamic_gap::Trajectory> trajs;
+        std::vector<Trajectory> trajs;
         std::vector<std::vector<float>> pathPoseCosts; 
         std::vector<float> pathTerminalPoseCosts; 
         std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
@@ -1435,11 +1435,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average number of gaps: " << avgNumberGaps << "]");
 
         // delete set of planning gaps
-        for (dynamic_gap::Gap * planningGap : planningGaps)
+        for (Gap * planningGap : planningGaps)
             delete planningGap;
 
         // delete set of planning gaps
-        for (dynamic_gap::Gap * copiedRawGap : copiedRawGaps)
+        for (Gap * copiedRawGap : copiedRawGaps)
             delete copiedRawGap;
 
         return;
@@ -1531,7 +1531,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return cmdVel;
     }
 
-    void Planner::setCurrentLeftGapPtModelID(dynamic_gap::Estimator * leftModel) 
+    void Planner::setCurrentLeftGapPtModelID(Estimator * leftModel) 
     { 
         if (leftModel) 
         {
@@ -1547,7 +1547,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
     }
 
-    void Planner::setCurrentRightGapPtModelID(dynamic_gap::Estimator * rightModel) 
+    void Planner::setCurrentRightGapPtModelID(Estimator * rightModel) 
     { 
         if (rightModel) 
         {        
@@ -1575,7 +1575,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     void Planner::reset()
     {
-        setCurrentTraj(dynamic_gap::Trajectory());
+        setCurrentTraj(Trajectory());
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
         setCurrentLeftGapPtModelID(nullptr);
@@ -1586,13 +1586,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    void Planner::printGapModels(const std::vector<dynamic_gap::Gap *> & gaps) 
+    void Planner::printGapModels(const std::vector<Gap *> & gaps) 
     {
         // THIS IS NOT FOR MANIPULATED GAPS
         float x = 0.0, y = 0.0;
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            dynamic_gap::Gap * gap = gaps.at(i);
+            Gap * gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap->RIdx() << " to "  << gap->LIdx() << ", left model: " << gap->leftGapPtModel_->getID() << ", rightGapPtModel: " << gap->rightGapPtModel_->getID());
             Eigen::Vector4f left_state = gap->leftGapPtModel_->getState();
             gap->getLCartesian(x, y);            

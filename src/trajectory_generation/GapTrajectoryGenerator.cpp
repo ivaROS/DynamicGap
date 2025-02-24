@@ -2,7 +2,7 @@
 
 namespace dynamic_gap 
 {
-    dynamic_gap::Trajectory GapTrajectoryGenerator::generateTrajectory(dynamic_gap::Gap * selectedGap, 
+    Trajectory GapTrajectoryGenerator::generateTrajectory(Gap * selectedGap, 
                                                                         const geometry_msgs::PoseStamped & currPose, 
                                                                         const geometry_msgs::TwistStamped & currVel,
                                                                         const geometry_msgs::PoseStamped & globalGoalRobotFrame,
@@ -43,7 +43,7 @@ namespace dynamic_gap
                 GoToGoal goToGoal(cfg_->rbt.vx_absmax);
                 boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                 goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, logger);
-                dynamic_gap::Trajectory traj(path, pathTiming);
+                Trajectory traj(path, pathTiming);
                 float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
                 // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
                 return traj;
@@ -141,7 +141,7 @@ namespace dynamic_gap
             }
 
 
-            dynamic_gap::Trajectory traj(path, pathTiming);
+            Trajectory traj(path, pathTiming);
             float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
             return traj;
@@ -149,13 +149,13 @@ namespace dynamic_gap
         } catch (...) 
         {
             ROS_FATAL_STREAM("integrator");
-            dynamic_gap::Trajectory traj(path, pathTiming);
+            Trajectory traj(path, pathTiming);
             return traj;
         }
 
     }
 
-    dynamic_gap::Trajectory GapTrajectoryGenerator::generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame)
+    Trajectory GapTrajectoryGenerator::generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame)
     {
         geometry_msgs::PoseArray idlingPath;
         std::vector<float> idlingPathTiming;
@@ -174,7 +174,7 @@ namespace dynamic_gap
             idlingPathTiming.push_back(t);
         }
 
-        dynamic_gap::Trajectory idlingTrajectory(idlingPath, idlingPathTiming);
+        Trajectory idlingTrajectory(idlingPath, idlingPathTiming);
         return idlingTrajectory;
     }
 
@@ -201,7 +201,7 @@ namespace dynamic_gap
         return transformedPath;
     }
 
-    dynamic_gap::Trajectory GapTrajectoryGenerator::processTrajectory(const dynamic_gap::Trajectory & traj,
+    Trajectory GapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
                                                                         const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
@@ -269,7 +269,7 @@ namespace dynamic_gap
             processedPath.poses.at(idx-1).orientation.w = q.w();
         }
 
-        dynamic_gap::Trajectory processedTrajectory(processedPath, processedPathTiming);
+        Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;
     }
 

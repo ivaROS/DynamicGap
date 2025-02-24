@@ -37,7 +37,7 @@ namespace dynamic_gap
                 // rightGapPtModel_ = new PerfectEstimator();
             };
 
-            Gap(const dynamic_gap::Gap & otherGap)
+            Gap(const Gap & otherGap)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
                 gapLifespan_ = otherGap.gapLifespan_;

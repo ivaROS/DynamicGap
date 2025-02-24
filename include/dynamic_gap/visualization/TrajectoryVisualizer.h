@@ -15,20 +15,20 @@ namespace dynamic_gap
         using Visualizer::Visualizer;
         
         public: 
-            TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief Visualize set of candidate trajectories through gaps
             * \param trajs set of trajectories to visualize
             */
-            void drawGapTrajectories(const std::vector<dynamic_gap::Trajectory> & trajs);
+            void drawGapTrajectories(const std::vector<Trajectory> & trajs);
 
             /**
             * \brief Visualize pose-wise scores along candidate trajectories
             * \param trajs set of trajectories whose pose-wise scores we want to visualize
             * \param trajPoseScores pose-wise scores to visualize
             */
-            void drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs,
+            void drawGapTrajectoryPoseScores(const std::vector<Trajectory> & trajs,
                                                 const std::vector<std::vector<float>> & trajPoseScores);
 
             /**
@@ -43,7 +43,7 @@ namespace dynamic_gap
             * \param chosenTraj new trajectory that planner is switching to
             */
             void drawTrajectorySwitchCount(const int & trajSwitchIndex, 
-                                            const dynamic_gap::Trajectory & chosenTraj);
+                                            const Trajectory & chosenTraj);
 
             /**
             * \brief Visualize global plan we are using within local planner

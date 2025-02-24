@@ -20,7 +20,7 @@ namespace dynamic_gap
         public: 
             Visualizer() {};
 
-            Visualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            Visualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
         protected:
             const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */

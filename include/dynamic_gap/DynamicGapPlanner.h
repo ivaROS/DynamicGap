@@ -118,7 +118,7 @@ namespace dynamic_gap
             bool cancel() { return true; };
 
         private:
-            dynamic_gap::Planner planner_; /**< Local path planner object */
+            Planner planner_; /**< Local path planner object */
             std::string name_; /**< Local path planner name */
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
     };

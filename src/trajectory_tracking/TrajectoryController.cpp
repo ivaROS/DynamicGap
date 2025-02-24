@@ -2,7 +2,7 @@
 
 namespace dynamic_gap
 {
-    TrajectoryController::TrajectoryController(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    TrajectoryController::TrajectoryController(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         projOpPublisher_ = nh.advertise<visualization_msgs::Marker>("po_dir", 10);
         cfg_ = & cfg;

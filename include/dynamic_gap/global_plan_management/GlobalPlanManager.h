@@ -29,7 +29,7 @@ namespace dynamic_gap
     class GlobalPlanManager
     {
         public: 
-            GlobalPlanManager(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; }
+            GlobalPlanManager(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
             /**
             * \brief parse global path to obtain local waypoint along global path

@@ -31,7 +31,7 @@ namespace dynamic_gap
 		/**
 		* \brief Constructor with nodehandle and cfg
 		*/
-		GapAssociator(const dynamic_gap::DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
+		GapAssociator(const DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 		
 		void updateParams(const EstimationParameters & estParams);
 
@@ -42,8 +42,8 @@ namespace dynamic_gap
 		* \param previousGaps previous set of gaps
 		* \return distance matrix: 2D matrix with entries that represent distance between gap points at corresponding indices 
 		*/		
-		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<dynamic_gap::Gap *> & currentGaps, 
-														 const std::vector<dynamic_gap::Gap *> & previousGaps);
+		std::vector<std::vector<float>> obtainDistMatrix(const std::vector<Gap *> & currentGaps, 
+														 const std::vector<Gap *> & previousGaps);
 		
 		/**
 		* \brief Obtain minimum distance association between current gap points and previous gap points 
@@ -65,8 +65,8 @@ namespace dynamic_gap
 		*/				
 		void assignModels(const std::vector<int> & association, 
 						  const std::vector< std::vector<float> > & distMatrix, 
-						  std::vector<dynamic_gap::Gap *>& currentGaps, 
-						  const std::vector<dynamic_gap::Gap *> & previousGaps,
+						  std::vector<Gap *>& currentGaps, 
+						  const std::vector<Gap *> & previousGaps,
 						  int & currentModelIdx,
 						  const ros::Time & scanTime, 
 						  const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
@@ -79,7 +79,7 @@ namespace dynamic_gap
 		* \param gaps incoming set of gaps
 		* \return vector of gap points
 		*/			
-		std::vector< std::vector<float>> obtainGapPoints(const std::vector<dynamic_gap::Gap *> & gaps);
+		std::vector< std::vector<float>> obtainGapPoints(const std::vector<Gap *> & gaps);
 
 		/**
 		* \brief Helper function for handing off a model from a previous gap point to a current gap point
@@ -88,8 +88,8 @@ namespace dynamic_gap
 		* \param previousGaps previous set of gaps	
 		*/		
 		void handOffModel(const std::vector<int> & pair,
-						  const std::vector<dynamic_gap::Gap *> & currentGaps, 
-						  const std::vector<dynamic_gap::Gap *> & previousGaps);	
+						  const std::vector<Gap *> & currentGaps, 
+						  const std::vector<Gap *> & previousGaps);	
 		
 		/**
 		* \brief Helper function for instantiating a new model for a current gap point
@@ -101,7 +101,7 @@ namespace dynamic_gap
 		* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
 		*/							  
 		void instantiateNewModel(const int & i,
-									const std::vector<dynamic_gap::Gap *> & currentGaps, 
+									const std::vector<Gap *> & currentGaps, 
 									int & currentModelIdx,
 									const ros::Time & scanTime,
 									const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 

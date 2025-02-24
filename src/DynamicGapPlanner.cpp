@@ -19,7 +19,7 @@ namespace dynamic_gap
         name_ = name;
         planner_.initialize(name_);
 
-        dynamic_reconfigure::Server<dynamic_gap::ParametersConfig> server;
+        dynamic_reconfigure::Server<ParametersConfig> server;
         server.setCallback(boost::bind(&Planner::reconfigureCallback, &planner_, _1, _2));
 
         return;
@@ -60,7 +60,7 @@ namespace dynamic_gap
 
         planner_.setReachedGlobalGoal(false);
 
-        dynamic_gap::Trajectory localTrajectory;
+        Trajectory localTrajectory;
         int trajFlag; 
         planner_.runPlanningLoop(localTrajectory, trajFlag);
 

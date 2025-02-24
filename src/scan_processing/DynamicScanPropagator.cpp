@@ -23,7 +23,7 @@ namespace dynamic_gap
 
     }
 
-    std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScan(const std::vector<dynamic_gap::Gap *> & rawGaps)
+    std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScan(const std::vector<Gap *> & rawGaps)
     {
         // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", " [propagateCurrentLaserScan]: ");
 
@@ -39,8 +39,8 @@ namespace dynamic_gap
         visPropScan.intensities.resize(visPropScan.ranges.size());
 
         // order models by index
-        std::map<int, dynamic_gap::Estimator *> rawModels;
-        for (const dynamic_gap::Gap * rawGap : rawGaps)
+        std::map<int, Estimator *> rawModels;
+        for (const Gap * rawGap : rawGaps)
         {
             // left
             rawGap->leftGapPtModel_->isolateGapDynamics();
@@ -48,7 +48,7 @@ namespace dynamic_gap
             int leftGapPtIdx = theta2idx(leftGapPtTheta);
 
             if (leftGapPtIdx >= 0 && leftGapPtIdx < scan.ranges.size())
-                rawModels.insert(std::pair<int, dynamic_gap::Estimator *>(leftGapPtIdx, rawGap->leftGapPtModel_));
+                rawModels.insert(std::pair<int, Estimator *>(leftGapPtIdx, rawGap->leftGapPtModel_));
             else
                 ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        left gap pt idx out of bounds");
 
@@ -58,14 +58,14 @@ namespace dynamic_gap
             int rightGapPtIdx = theta2idx(rightGapPtTheta);
 
             if (rightGapPtIdx >= 0 && rightGapPtIdx < scan.ranges.size())
-                rawModels.insert(std::pair<int, dynamic_gap::Estimator *>(rightGapPtIdx, rawGap->rightGapPtModel_));
+                rawModels.insert(std::pair<int, Estimator *>(rightGapPtIdx, rawGap->rightGapPtModel_));
             else
                 ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        right gap pt idx out of bounds");
 
         }
 
         // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "    rawModels: ");
-        // for (std::map<int, dynamic_gap::Estimator *>::iterator iter = rawModels.begin();
+        // for (std::map<int, Estimator *>::iterator iter = rawModels.begin();
         //             iter != rawModels.end();
         //             ++iter)
         // {
@@ -86,7 +86,7 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("       i: " << i);
             // get right hand side model (model idx should be less than scan idx)
             int rightHandSideModelIdx = -1;
-            std::map<int, dynamic_gap::Estimator *>::iterator right_iter;
+            std::map<int, Estimator *>::iterator right_iter;
             for (right_iter = rawModels.begin(); right_iter != rawModels.end(); ++right_iter)
             {
                 // ROS_INFO_STREAM("           checking righthand model : " << right_iter->first);
@@ -106,7 +106,7 @@ namespace dynamic_gap
 
             // get left hand side model
             int leftHandSideModelIdx = -1;
-            std::map<int, dynamic_gap::Estimator *>::iterator left_iter;
+            std::map<int, Estimator *>::iterator left_iter;
             for (left_iter = rawModels.begin(); left_iter != rawModels.end(); ++left_iter)
             {
                 // ROS_INFO_STREAM("           checking lefthand model : " << left_iter->first);

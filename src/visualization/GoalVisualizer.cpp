@@ -2,7 +2,7 @@
 
 namespace dynamic_gap
 {
-    GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
         globalGoalPublisher = nh.advertise<visualization_msgs::Marker>("global_goal", 10);
@@ -70,7 +70,7 @@ namespace dynamic_gap
         globalPathLocalWaypointPublisher.publish(globalPathLocalWaypointMarker);
     }
 
-    void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps) 
+    void GoalVisualizer::drawGapGoals(const std::vector<Gap *> & gaps) 
     {
         // First, clearing topic.
         // visualization_msgs::MarkerArray clearMarkerArray;
@@ -85,7 +85,7 @@ namespace dynamic_gap
         visualization_msgs::Marker gapGoalsMarker;
         drawGapGoals(gapGoalsMarker, gaps, false);
 
-        // for (dynamic_gap::Gap * gap : gaps) 
+        // for (Gap * gap : gaps) 
         // {
         //     //drawGapGoal(gapGoalsMarkerArray, gap, true);
         //     drawGapGoal(gapGoalsMarkerArray, gap, false);
@@ -97,7 +97,7 @@ namespace dynamic_gap
     }
 
     void GoalVisualizer::drawGapGoals(visualization_msgs::Marker & marker, 
-                                        const std::vector<dynamic_gap::Gap *> & gaps, 
+                                        const std::vector<Gap *> & gaps, 
                                         const bool & initial) 
     {
         ROS_INFO_STREAM("[drawGapGoal()]");
@@ -126,7 +126,7 @@ namespace dynamic_gap
 
         marker.color = gapGoalsColor;
 
-        for (dynamic_gap::Gap * gap : gaps) 
+        for (Gap * gap : gaps) 
         {
             // marker.header.frame_id = gap->frame_;
 
@@ -149,7 +149,7 @@ namespace dynamic_gap
 
     /*
     void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-                                     dynamic_gap::Gap * gap, const bool & initial) 
+                                     Gap * gap, const bool & initial) 
     {
         visualization_msgs::Marker gapGoalMarker;
         gapGoalMarker.header.frame_id = gap->frame_;

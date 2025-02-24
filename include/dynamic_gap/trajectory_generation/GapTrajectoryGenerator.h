@@ -28,7 +28,7 @@ namespace dynamic_gap
     class GapTrajectoryGenerator
     {
         public:
-            GapTrajectoryGenerator(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; };
+            GapTrajectoryGenerator(const DynamicGapConfig& cfg) { cfg_ = &cfg; };
             
             /**
             * \brief generate local collision-free trajectory through gap
@@ -39,7 +39,7 @@ namespace dynamic_gap
             * \param runGoToGoal boolean for if go to goal trajectory method should be run
             * \return trajectory through gap
             */
-            dynamic_gap::Trajectory generateTrajectory(dynamic_gap::Gap * selectedGap, 
+            Trajectory generateTrajectory(Gap * selectedGap, 
                                                         const geometry_msgs::PoseStamped & currPose, 
                                                         const geometry_msgs::TwistStamped & currVel,
                                                         const geometry_msgs::PoseStamped & globalGoalRobotFrame,
@@ -50,7 +50,7 @@ namespace dynamic_gap
             * \param rbtPoseInOdomFrame robot pose in odometry frame
             * \return trajectory through gap
             */
-            dynamic_gap::Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+            Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
 
             /**
             * \brief helper function for transforming trajectory from source frame to destination frame
@@ -69,7 +69,7 @@ namespace dynamic_gap
             * \param prune flag for if you want to prune poses off of trajectory 
             * \return post-processed trajectory
             */                       
-            dynamic_gap::Trajectory processTrajectory(const dynamic_gap::Trajectory & traj,
+            Trajectory processTrajectory(const Trajectory & traj,
                                                         const bool & prune);
 
         private: 

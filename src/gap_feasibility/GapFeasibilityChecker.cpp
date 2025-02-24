@@ -8,7 +8,7 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-    void GapFeasibilityChecker::propagateGapPoints(dynamic_gap::Gap * gap) 
+    void GapFeasibilityChecker::propagateGapPoints(Gap * gap) 
     {
         ROS_INFO_STREAM("                [propagateGapPoints()]");
 
@@ -166,7 +166,7 @@ namespace dynamic_gap
         return;
     }
 
-    float GapFeasibilityChecker::rewindGapPoints(const float & t, dynamic_gap::Gap * gap) 
+    float GapFeasibilityChecker::rewindGapPoints(const float & t, Gap * gap) 
     {    
         // ROS_INFO_STREAM("                   [rewindGapPoints()]");
 
@@ -233,7 +233,7 @@ namespace dynamic_gap
         return 0.0;
     }
 
-    bool GapFeasibilityChecker::pursuitGuidanceAnalysis(dynamic_gap::Gap * gap)
+    bool GapFeasibilityChecker::pursuitGuidanceAnalysis(Gap * gap)
     {
         // check what method we are using
         if (cfg_->planning.pursuit_guidance_method == 0)
@@ -247,7 +247,7 @@ namespace dynamic_gap
         }
     }
     
-    bool GapFeasibilityChecker::purePursuitFeasibilityCheck(dynamic_gap::Gap * gap)
+    bool GapFeasibilityChecker::purePursuitFeasibilityCheck(Gap * gap)
     {
         ROS_INFO_STREAM("                [purePursuitFeasibilityCheck()]"); 
         // calculate intercept angle and intercept time using center point (gap goal)
@@ -358,7 +358,7 @@ namespace dynamic_gap
         }
     }
 
-    bool GapFeasibilityChecker::parallelNavigationFeasibilityCheck(dynamic_gap::Gap * gap)
+    bool GapFeasibilityChecker::parallelNavigationFeasibilityCheck(Gap * gap)
     {
         ROS_INFO_STREAM("                [parallelNavigationFeasibilityCheck()]"); 
 

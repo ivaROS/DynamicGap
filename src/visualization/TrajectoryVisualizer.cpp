@@ -3,7 +3,7 @@
 
 namespace dynamic_gap
 {
-    TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
         trajSwitchIdxPublisher = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
@@ -42,7 +42,7 @@ namespace dynamic_gap
         planLoopIdxPublisher.publish(trajSwitchIdxMarker);
     }
 
-    void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const dynamic_gap::Trajectory & chosenTraj) 
+    void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const Trajectory & chosenTraj) 
     {
         geometry_msgs::PoseArray path = chosenTraj.getPathRbtFrame();
         geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
@@ -78,7 +78,7 @@ namespace dynamic_gap
         globalPlanPublisher.publish(globalPlanPoseArray);
     }
 
-    void TrajectoryVisualizer::drawGapTrajectories(const std::vector<dynamic_gap::Trajectory> & trajs) 
+    void TrajectoryVisualizer::drawGapTrajectories(const std::vector<Trajectory> & trajs) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
 
@@ -100,7 +100,7 @@ namespace dynamic_gap
         visualization_msgs::MarkerArray gapTrajMarkerArray;
         visualization_msgs::Marker gapTrajMarker;
 
-        dynamic_gap::Trajectory traj = trajs.at(0);
+        Trajectory traj = trajs.at(0);
 
         // The above makes this safe
         gapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
@@ -116,7 +116,7 @@ namespace dynamic_gap
         gapTrajMarker.color.g = 1.0;
         gapTrajMarker.lifetime = ros::Duration(0);
 
-        for (const dynamic_gap::Trajectory & traj : trajs) 
+        for (const Trajectory & traj : trajs) 
         {
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
             for (const geometry_msgs::Pose & pose : path.poses) 
@@ -129,7 +129,7 @@ namespace dynamic_gap
         gapTrajectoriesPublisher.publish(gapTrajMarkerArray);
     }
 
-    void TrajectoryVisualizer::drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs, 
+    void TrajectoryVisualizer::drawGapTrajectoryPoseScores(const std::vector<Trajectory> & trajs, 
                                                            const std::vector<std::vector<float>> & trajPoseScores) 
     {
         visualization_msgs::MarkerArray clearMarkerArray;

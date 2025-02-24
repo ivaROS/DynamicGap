@@ -36,7 +36,7 @@ namespace dynamic_gap
         return isFinite(prevRange) != isFinite(currRange);
     }
 
-    bool GapDetector::sweptGapSizeCheck(dynamic_gap::Gap * gap)
+    bool GapDetector::sweptGapSizeCheck(Gap * gap)
     {
         bool largeGap = gap->LIdx() - gap->RIdx() > (3 * halfScanRayCount_ / 2);
         bool canRobotFit = gap->getGapEuclideanDist() > 3 * cfg_->rbt.r_inscr;
@@ -59,7 +59,7 @@ namespace dynamic_gap
         return canRobotFit;
     }   
 
-    bool GapDetector::bridgeCondition(const std::vector<dynamic_gap::Gap *> & rawGaps)
+    bool GapDetector::bridgeCondition(const std::vector<Gap *> & rawGaps)
     {
         bool multipleGaps = rawGaps.size() > 1;
         bool firstAndLastGapsBorder = (rawGaps.front()->RIdx() == 0 && 
@@ -68,10 +68,10 @@ namespace dynamic_gap
         return multipleGaps && firstAndLastGapsBorder;
     }
 
-    std::vector<dynamic_gap::Gap *> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
+    std::vector<Gap *> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
                                                                 const geometry_msgs::PoseStamped & globalGoalRbtFrame)
     {
-        std::vector<dynamic_gap::Gap *> rawGaps;
+        std::vector<Gap *> rawGaps;
 
         try
         {
@@ -106,7 +106,7 @@ namespace dynamic_gap
                 if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
                 {
                     // initializing a radial gap
-                    dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, it - 1, prevRange, true, minScanDist_);
+                    Gap * gap = new Gap(frame, it - 1, prevRange, true, minScanDist_);
                     gap->addLeftInformation(it, currRange);
 
                     rawGaps.push_back(gap);
@@ -121,7 +121,7 @@ namespace dynamic_gap
                     {
                         withinSweptGap = false;                    
                         // ROS_INFO_STREAM_NAMED("GapDetector", "    gap ending: infinity to finite");
-                        dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                        Gap * gap = new Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
                         gap->addLeftInformation(it, currRange);
 
                         //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
@@ -153,7 +153,7 @@ namespace dynamic_gap
             if (withinSweptGap) 
             {
                 // // ROS_INFO_STREAM_NAMED("GapDetector", "    catching last gap");
-                dynamic_gap::Gap * gap = new dynamic_gap::Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                Gap * gap = new Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
                 gap->addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
                 
                 // // ROS_INFO_STREAM_NAMED("GapDetector", "gapRIdx: " << gapRIdx << ", gapRDist: " << gapRDist);
@@ -198,8 +198,8 @@ namespace dynamic_gap
 
     ////////////////// GAP SIMPLIFICATION ///////////////////////
 
-    int GapDetector::checkSimplifiedGapsMergeability(dynamic_gap::Gap * rawGap, 
-                                                     const std::vector<dynamic_gap::Gap *> & simplifiedGaps)
+    int GapDetector::checkSimplifiedGapsMergeability(Gap * rawGap, 
+                                                     const std::vector<Gap *> & simplifiedGaps)
     {
         int lastMergeable = -1;
 
@@ -230,8 +230,8 @@ namespace dynamic_gap
         return lastMergeable;
     }
 
-    bool GapDetector::mergeSweptGapCondition(dynamic_gap::Gap * rawGap, 
-                                             const std::vector<dynamic_gap::Gap *> & simplifiedGaps)
+    bool GapDetector::mergeSweptGapCondition(Gap * rawGap, 
+                                             const std::vector<Gap *> & simplifiedGaps)
     {
         // checking if difference between raw gap left dist and simplified gap right (widest distances, encompassing both gaps)
         // dist is sufficiently small (to fit robot)
@@ -241,11 +241,11 @@ namespace dynamic_gap
         return adjacentGapPtDistDiffCheck && simplifiedGaps.back()->isRadial() && simplifiedGaps.back()->isRightType();
     }
 
-    std::vector<dynamic_gap::Gap *> GapDetector::gapSimplification(const std::vector<dynamic_gap::Gap *> & rawGaps)
+    std::vector<Gap *> GapDetector::gapSimplification(const std::vector<Gap *> & rawGaps)
     {
         // ROS_INFO_STREAM_NAMED("GapDetector", "[gapSimplification()]");
 
-        std::vector<dynamic_gap::Gap *> simplifiedGaps;
+        std::vector<Gap *> simplifiedGaps;
 
         try
         {
@@ -255,7 +255,7 @@ namespace dynamic_gap
             // float curr_left_dist = 0.0;
             int lastMergeable = -1;
             
-            for (dynamic_gap::Gap * rawGap : rawGaps)
+            for (Gap * rawGap : rawGaps)
             {
                 // // ROS_INFO_STREAM_NAMED("GapDetector", "on raw gap: (" << rawGap->RIdx() << ", " << rawGap->RRange() << ") to (" << rawGap->LIdx() << ", " << rawGap->LRange() << ")");
                 
@@ -269,14 +269,14 @@ namespace dynamic_gap
                     }
 
                     // creating a separate set of Gap objects for simplifiedGaps
-                    simplifiedGaps.push_back(new dynamic_gap::Gap(*rawGap));
+                    simplifiedGaps.push_back(new Gap(*rawGap));
                 } else {
                     if (rawGap->isRadial()) // if gap is radial
                     {
                         if (rawGap->isRightType()) // if right dist < left dist
                         {
                             // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (radial, right<left)");
-                            simplifiedGaps.push_back(new dynamic_gap::Gap(*rawGap));
+                            simplifiedGaps.push_back(new Gap(*rawGap));
                         }
                         else
                         {
@@ -295,7 +295,7 @@ namespace dynamic_gap
                             } else 
                             {
                                 // ROS_INFO_STREAM_NAMED("GapDetector", "no merge, adding raw gap (swept, left<right)");                            
-                                simplifiedGaps.push_back(new dynamic_gap::Gap(*rawGap));
+                                simplifiedGaps.push_back(new Gap(*rawGap));
                             }
                         }
                     }
@@ -309,7 +309,7 @@ namespace dynamic_gap
                         } else 
                         {
                             // ROS_INFO_STREAM_NAMED("GapDetector", "adding raw gap (swept)");                            
-                            simplifiedGaps.push_back(new dynamic_gap::Gap(*rawGap));
+                            simplifiedGaps.push_back(new Gap(*rawGap));
                         }
                     }
                 }

@@ -18,27 +18,27 @@ namespace dynamic_gap
     {
         using Visualizer::Visualizer;
         public: 
-            GapVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GapVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief Visualize set of gaps
             * \param gaps set of gaps to visualize
             * \param ns namespace of gaps to visualize
             */
-            void drawGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns);
+            void drawGaps(const std::vector<Gap *> & gaps, const std::string & ns);
             
             /**
             * \brief Visualize set of manipulated gaps
             * \param gaps set of manipulated gaps to visualize
             * \param ns namespace of manipulated gaps to visualize
             */            
-            void drawManipGaps(const std::vector<dynamic_gap::Gap *> & gaps, const std::string & ns);
+            void drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns);
             
             /**
             * \brief Visualize set of gap models
             * \param gaps set of gaps whose models we want to visualize
             */
-            void drawGapsModels(const std::vector<dynamic_gap::Gap *> & gaps);
+            void drawGapsModels(const std::vector<Gap *> & gaps);
 
         private:
             /**
@@ -47,7 +47,7 @@ namespace dynamic_gap
             * \param cfg Planner hyperparameter config list
             */
             void initialize(ros::NodeHandle& nh, 
-                            const dynamic_gap::DynamicGapConfig& cfg);
+                            const DynamicGapConfig& cfg);
 
             /**
             * \brief Helper function for visualizing single gap
@@ -56,7 +56,7 @@ namespace dynamic_gap
             * \param ns namespace of gap to visualize
             */
             void drawGap(visualization_msgs::Marker & marker, 
-                            const std::vector<dynamic_gap::Gap *> & gaps, 
+                            const std::vector<Gap *> & gaps, 
                             const std::string & ns);
 
             /**
@@ -66,7 +66,7 @@ namespace dynamic_gap
             * \param ns namespace of manipulated gap to visualize
             */
             void drawManipGap(visualization_msgs::Marker & marker, 
-                                const std::vector<dynamic_gap::Gap *> & gaps, 
+                                const std::vector<Gap *> & gaps, 
                                 const std::string & ns);
 
             /**
@@ -76,7 +76,7 @@ namespace dynamic_gap
             * \param ns namespace of gap whose models we want to visualize
             */
             void drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
-                               dynamic_gap::Gap * gap, 
+                               Gap * gap, 
                                const std::string & ns);
 
             /**
@@ -88,7 +88,7 @@ namespace dynamic_gap
             * \param ns namespace of gap whose models we want to visualize
             */
             void drawModel(visualization_msgs::Marker & modelMarker, 
-                            dynamic_gap::Gap * gap, 
+                            Gap * gap, 
                             const bool & left, 
                             int & id, 
                             const std::string & ns);

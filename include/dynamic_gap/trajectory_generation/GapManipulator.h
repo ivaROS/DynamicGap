@@ -24,7 +24,7 @@ namespace dynamic_gap
     class GapManipulator 
     {
         public: 
-            GapManipulator(const dynamic_gap::DynamicGapConfig& cfg) { cfg_ = &cfg; };
+            GapManipulator(const DynamicGapConfig& cfg) { cfg_ = &cfg; };
 
             /**
             * \brief update current scan
@@ -38,7 +38,7 @@ namespace dynamic_gap
             * \param globalPathLocalWaypointRobotFrame global path local waypoint in robot frame
             * \param globalGoalRobotFrame global goal in robot frame
             */
-            void setGapGoal(dynamic_gap::Gap * gap, 
+            void setGapGoal(Gap * gap, 
                             const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
                             const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
             
@@ -46,19 +46,19 @@ namespace dynamic_gap
             * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
             * \param gap queried gap
             */
-            void radialExtendGap(dynamic_gap::Gap * gap); 
+            void radialExtendGap(Gap * gap); 
             
             /**
             * \brief function for inflating gap radially and angularly to account for robot size
             * \param gap queried gap
             */            
-            bool inflateGapSides(dynamic_gap::Gap * gap);
+            bool inflateGapSides(Gap * gap);
             
             /**
             * \brief function for convering radial gaps into swept gaps to allow maneuvering around corners
             * \param gap queried gap
             */                   
-            void convertRadialGap(dynamic_gap::Gap * gap);
+            void convertRadialGap(Gap * gap);
 
         private:
 

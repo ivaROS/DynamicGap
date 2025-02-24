@@ -18,13 +18,13 @@ namespace dynamic_gap
 		estParams_ = estParams;
 	}
 
-	std::vector< std::vector<float>> GapAssociator::obtainGapPoints(const std::vector<dynamic_gap::Gap *> & gaps) 
+	std::vector< std::vector<float>> GapAssociator::obtainGapPoints(const std::vector<Gap *> & gaps) 
 	{
 		std::vector< std::vector<float>> points(2*gaps.size(), std::vector<float>(2));
 		int count = 0;
 		int lidx = 0, ridx = 0;
 		float ldist = 0.0, rdist = 0.0, ltheta = 0.0, rtheta = 0.0;
-		for (dynamic_gap::Gap * gap : gaps) 
+		for (Gap * gap : gaps) 
 		{	
 			lidx = gap->LIdx();
 			ridx = gap->RIdx();
@@ -44,8 +44,8 @@ namespace dynamic_gap
 		return points;
 	}
 
-	std::vector<std::vector<float>> GapAssociator::obtainDistMatrix(const std::vector<dynamic_gap::Gap *> & currentGaps, 
-																	const std::vector<dynamic_gap::Gap *> & previousGaps) 
+	std::vector<std::vector<float>> GapAssociator::obtainDistMatrix(const std::vector<Gap *> & currentGaps, 
+																	const std::vector<Gap *> & previousGaps) 
 	{
 		std::vector<std::vector<float>> distMatrix(2 * currentGaps.size(), std::vector<float>(2 * previousGaps.size()));
 		
@@ -90,8 +90,8 @@ namespace dynamic_gap
 		return distMatrix;
 }
 	
-	void printGapAssociations(const std::vector<dynamic_gap::Gap *> & currentGaps, 
-							  const std::vector<dynamic_gap::Gap *> & previousGaps, 
+	void printGapAssociations(const std::vector<Gap *> & currentGaps, 
+							  const std::vector<Gap *> & previousGaps, 
 							  const std::vector<int> & association,
 							  const std::vector<std::vector<float>> & distMatrix) 
 	{
@@ -138,8 +138,8 @@ namespace dynamic_gap
         }
     }
 
-	void printGapTransition(const std::vector<dynamic_gap::Gap *> & currentGaps, 
-							const std::vector<dynamic_gap::Gap *> & previousGaps,
+	void printGapTransition(const std::vector<Gap *> & currentGaps, 
+							const std::vector<Gap *> & previousGaps,
 							const std::vector<std::vector<float>> & distMatrix, 
 							const std::vector<int> & pair,
 							const bool & validAssociation) 
@@ -194,7 +194,7 @@ namespace dynamic_gap
 	}
 
 	void GapAssociator::instantiateNewModel(const int & i,
-											const std::vector<dynamic_gap::Gap *> & currentGaps, 
+											const std::vector<Gap *> & currentGaps, 
 											int & currentModelIdx,
 											const ros::Time & scanTime,
 									 		const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,		 
@@ -221,8 +221,8 @@ namespace dynamic_gap
 	}
 
 	void GapAssociator::handOffModel(const std::vector<int> & pair,
-									 const std::vector<dynamic_gap::Gap *> & currentGaps, 
-									 const std::vector<dynamic_gap::Gap *> & previousGaps)
+									 const std::vector<Gap *> & currentGaps, 
+									 const std::vector<Gap *> & previousGaps)
 	{
 		// // ROS_INFO_STREAM_NAMED("GapAssociator", "					[handOffModel()]");
 		int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
@@ -262,8 +262,8 @@ namespace dynamic_gap
 
 	void GapAssociator::assignModels(const std::vector<int> & association, 
 									 const std::vector<std::vector<float>> & distMatrix, 
-									 std::vector<dynamic_gap::Gap *> & currentGaps, 
-									 const std::vector<dynamic_gap::Gap *> & previousGaps,
+									 std::vector<Gap *> & currentGaps, 
+									 const std::vector<Gap *> & previousGaps,
 									 int & currentModelIdx,
                                      const ros::Time & scanTime, 
 									 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 

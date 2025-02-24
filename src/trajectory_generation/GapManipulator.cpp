@@ -8,7 +8,7 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-    void GapManipulator::setGapGoal(dynamic_gap::Gap * gap, 
+    void GapManipulator::setGapGoal(Gap * gap, 
                                     const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
                                     const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
     {
@@ -192,7 +192,7 @@ namespace dynamic_gap
         return dist2goal < rangeAtGoalIdx;
     }
 
-    void GapManipulator::radialExtendGap(dynamic_gap::Gap * gap) 
+    void GapManipulator::radialExtendGap(Gap * gap) 
     {
         try
         {
@@ -228,7 +228,7 @@ namespace dynamic_gap
     }
 
 
-    void GapManipulator::convertRadialGap(dynamic_gap::Gap * gap) 
+    void GapManipulator::convertRadialGap(Gap * gap) 
     {
         try 
         {
@@ -446,7 +446,7 @@ namespace dynamic_gap
         }
     }
 
-    bool GapManipulator::inflateGapSides(dynamic_gap::Gap * gap) 
+    bool GapManipulator::inflateGapSides(Gap * gap) 
     {
         try 
         {
