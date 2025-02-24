@@ -144,16 +144,16 @@ namespace dynamic_gap
         float globalGoalOrientation = quaternionToYaw(globalGoalOdomFrame_.pose.orientation);
         float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
-        reachedGlobalGoal = globalGoalDist < cfg_.goal.goal_tolerance &&
-                            globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
+        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.goal_tolerance &&
+                             globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
         
-        if (reachedGlobalGoal)
+        if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
         // else
         //     ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
         //                                      ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
-        return reachedGlobalGoal;
+        return reachedGlobalGoal_;
     }
 
     void Planner::mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput)
@@ -183,17 +183,17 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        ROS_INFO_STREAM("[laserScanCB()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         ROS_INFO_STREAM("       timestamp: " << scan->header.stamp);
 
-        // pre-process scan (turning nan's into max ranges)
-        float eps = 0.00001f;
-        for (int i = 0; i < scan->ranges.size(); i++)
-            scan->ranges.at(i) = (std::isnan(scan->ranges.at(i)) ? (cfg_.scan.range_max - eps) : scan->ranges.at(i));
-
         std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
-        // ROS_INFO_STREAM_NAMED("Planner", "[laserScanCB()]");
         
+        /////////////////////////////////////
+        //////// SCAN PRE-PROCESSING ////////
+        /////////////////////////////////////
+
+        gapDetector_->preprocessScan(scan);
+
         scan_ = scan;
 
         float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
@@ -201,10 +201,10 @@ namespace dynamic_gap
         if (minScanDist < cfg_.rbt.r_inscr)
         {
             ROS_INFO_STREAM("       in collision!");
-            colliding = true;
+            colliding_ = true;
         } else
         {
-            colliding = false;
+            colliding_ = false;
         }
 
         cfg_.updateParamFromScan(scan_);
@@ -212,103 +212,104 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("scan: " << *scan_);
 
         ros::Time tCurrentFilterUpdate = scan_->header.stamp;
-        if (hasGlobalGoal_)
-        {
-            // grabbing current intermediate robot velocities and accelerations
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtVels = intermediateRbtVels_;
-            std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs = intermediateRbtAccs_;
 
-            ///////////////////////////////
-            //////// GAP DETECTION ////////
-            ///////////////////////////////
-            std::chrono::steady_clock::time_point gapDetectionStartTime = std::chrono::steady_clock::now();
-            currRawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
-            float gapDetectionTimeTaken = timeTaken(gapDetectionStartTime);
-            float avgGapDetectionTimeTaken = computeAverageTimeTaken(gapDetectionTimeTaken, GAP_DET);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection for " << currRawGaps_.size() << " gaps took " << gapDetectionTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection average time: " << avgGapDetectionTimeTaken << " seconds (" << (1.0 / avgGapDetectionTimeTaken) << " Hz) ]");
+        // grabbing current intermediate robot velocities and accelerations
+        std::vector<geometry_msgs::TwistStamped> intermediateRbtVels = intermediateRbtVels_;
+        std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs = intermediateRbtAccs_;
 
-            /////////////////////////////////////
-            //////// RAW GAP ASSOCIATION ////////
-            /////////////////////////////////////
-            std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
-            rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
-            rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
-            gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
-                                        currRawGaps_, prevRawGaps_, 
-                                        currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs);
-            float rawGapAssociationTimeTaken = timeTaken(rawGapAssociationStartTime);
-            float avgRawGapAssociationTimeTaken = computeAverageTimeTaken(rawGapAssociationTimeTaken, GAP_ASSOC);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association for " << currRawGaps_.size() << " gaps took " << rawGapAssociationTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association average time: " << avgRawGapAssociationTimeTaken << " seconds (" << (1.0 / avgRawGapAssociationTimeTaken) << " Hz) ]");
+        ///////////////////////////////
+        //////// GAP DETECTION ////////
+        ///////////////////////////////
+        std::chrono::steady_clock::time_point gapDetectionStartTime = std::chrono::steady_clock::now();
+        currRawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
+        float gapDetectionTimeTaken = timeTaken(gapDetectionStartTime);
+        float avgGapDetectionTimeTaken = computeAverageTimeTaken(gapDetectionTimeTaken, GAP_DET);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection for " << currRawGaps_.size() << " gaps took " << gapDetectionTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection average time: " << avgGapDetectionTimeTaken << " seconds (" << (1.0 / avgGapDetectionTimeTaken) << " Hz) ]");
 
-            ////////////////////////////////////
-            //////// RAW GAP ESTIMATION ////////
-            ////////////////////////////////////
-            std::chrono::steady_clock::time_point rawGapEstimationStartTime = std::chrono::steady_clock::now();
-            updateModels(currRawGaps_, intermediateRbtVels, 
-                         intermediateRbtAccs, tCurrentFilterUpdate);
-            float rawGapEstimationTimeTaken = timeTaken(rawGapEstimationStartTime);
-            float avgRawGapEstimationTimeTaken = computeAverageTimeTaken(rawGapEstimationTimeTaken, GAP_EST);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation for " << currRawGaps_.size() << " gaps took " << rawGapEstimationTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation average time: " << avgRawGapEstimationTimeTaken << " seconds (" << (1.0 / avgRawGapEstimationTimeTaken) << " Hz) ]");
+        /////////////////////////////////////
+        //////// RAW GAP ASSOCIATION ////////
+        /////////////////////////////////////
+        std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
+        rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
+        rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
+        gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
+                                    currRawGaps_, prevRawGaps_, 
+                                    currentModelIdx_, tCurrentFilterUpdate,
+                                    intermediateRbtVels, intermediateRbtAccs);
+        float rawGapAssociationTimeTaken = timeTaken(rawGapAssociationStartTime);
+        float avgRawGapAssociationTimeTaken = computeAverageTimeTaken(rawGapAssociationTimeTaken, GAP_ASSOC);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association for " << currRawGaps_.size() << " gaps took " << rawGapAssociationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association average time: " << avgRawGapAssociationTimeTaken << " seconds (" << (1.0 / avgRawGapAssociationTimeTaken) << " Hz) ]");
 
-            ////////////////////////////////////
-            //////// GAP SIMPLIFICATION ////////
-            ////////////////////////////////////       
-            std::chrono::steady_clock::time_point gapSimplificationStartTime = std::chrono::steady_clock::now();
-            currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
-            float gapSimplificationTimeTaken = timeTaken(gapSimplificationStartTime);
-            float avgGapSimplificationTimeTaken = computeAverageTimeTaken(gapSimplificationTimeTaken, GAP_SIMP);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification for " << currSimplifiedGaps_.size() << " gaps took " << gapSimplificationTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification average time: " << avgGapSimplificationTimeTaken << " seconds (" << (1.0 / avgGapSimplificationTimeTaken) << " Hz) ]");
+        ////////////////////////////////////
+        //////// RAW GAP ESTIMATION ////////
+        ////////////////////////////////////
+        std::chrono::steady_clock::time_point rawGapEstimationStartTime = std::chrono::steady_clock::now();
+        updateModels(currRawGaps_, intermediateRbtVels, 
+                        intermediateRbtAccs, tCurrentFilterUpdate);
+        float rawGapEstimationTimeTaken = timeTaken(rawGapEstimationStartTime);
+        float avgRawGapEstimationTimeTaken = computeAverageTimeTaken(rawGapEstimationTimeTaken, GAP_EST);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation for " << currRawGaps_.size() << " gaps took " << rawGapEstimationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation average time: " << avgRawGapEstimationTimeTaken << " seconds (" << (1.0 / avgRawGapEstimationTimeTaken) << " Hz) ]");
 
-            ////////////////////////////////////////////
-            //////// SIMPLIFIED GAP ASSOCIATION ////////
-            ////////////////////////////////////////////
-            std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
-            simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
-            simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
-            gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
-                                        currSimplifiedGaps_, prevSimplifiedGaps_, 
-                                        currentModelIdx_, tCurrentFilterUpdate,
-                                        intermediateRbtVels, intermediateRbtAccs);
-            float simpGapAssociationTimeTaken = timeTaken(simpGapAssociationStartTime);
-            float avgSimpGapAssociationTimeTaken = computeAverageTimeTaken(simpGapAssociationTimeTaken, GAP_ASSOC);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association for " << currSimplifiedGaps_.size() << " gaps took " << simpGapAssociationTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association average time: " << avgSimpGapAssociationTimeTaken << " seconds (" << (1.0 / avgSimpGapAssociationTimeTaken) << " Hz) ]");
+        ////////////////////////////////////
+        //////// GAP SIMPLIFICATION ////////
+        ////////////////////////////////////       
+        std::chrono::steady_clock::time_point gapSimplificationStartTime = std::chrono::steady_clock::now();
+        currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
+        float gapSimplificationTimeTaken = timeTaken(gapSimplificationStartTime);
+        float avgGapSimplificationTimeTaken = computeAverageTimeTaken(gapSimplificationTimeTaken, GAP_SIMP);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification for " << currSimplifiedGaps_.size() << " gaps took " << gapSimplificationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification average time: " << avgGapSimplificationTimeTaken << " seconds (" << (1.0 / avgGapSimplificationTimeTaken) << " Hz) ]");
 
-            ///////////////////////////////////////////
-            //////// SIMPLIFIED GAP ESTIMATION ////////
-            ///////////////////////////////////////////     
-            std::chrono::steady_clock::time_point simpGapEstimationStartTime = std::chrono::steady_clock::now();
-            updateModels(currSimplifiedGaps_, intermediateRbtVels, 
-                         intermediateRbtAccs, tCurrentFilterUpdate);
-            float simpGapEstimationTimeTaken = timeTaken(simpGapEstimationStartTime);
-            float avgSimpGapEstimationTimeTaken = computeAverageTimeTaken(simpGapEstimationTimeTaken, GAP_EST);
-            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation for " << currRawGaps_.size() << " gaps took " << simpGapEstimationTimeTaken << " seconds]");
-            ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation average time: " << avgSimpGapEstimationTimeTaken << " seconds (" << (1.0 / avgSimpGapEstimationTimeTaken) << " Hz) ]");
+        ////////////////////////////////////////////
+        //////// SIMPLIFIED GAP ASSOCIATION ////////
+        ////////////////////////////////////////////
+        std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
+        simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
+        simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
+        gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
+                                    currSimplifiedGaps_, prevSimplifiedGaps_, 
+                                    currentModelIdx_, tCurrentFilterUpdate,
+                                    intermediateRbtVels, intermediateRbtAccs);
+        float simpGapAssociationTimeTaken = timeTaken(simpGapAssociationStartTime);
+        float avgSimpGapAssociationTimeTaken = computeAverageTimeTaken(simpGapAssociationTimeTaken, GAP_ASSOC);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association for " << currSimplifiedGaps_.size() << " gaps took " << simpGapAssociationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association average time: " << avgSimpGapAssociationTimeTaken << " seconds (" << (1.0 / avgSimpGapAssociationTimeTaken) << " Hz) ]");
 
-            gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
-            gapVisualizer_->drawGapsModels(currRawGaps_);
-            gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
-            gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
-            gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
+        ///////////////////////////////////////////
+        //////// SIMPLIFIED GAP ESTIMATION ////////
+        ///////////////////////////////////////////     
+        std::chrono::steady_clock::time_point simpGapEstimationStartTime = std::chrono::steady_clock::now();
+        updateModels(currSimplifiedGaps_, intermediateRbtVels, 
+                        intermediateRbtAccs, tCurrentFilterUpdate);
+        float simpGapEstimationTimeTaken = timeTaken(simpGapEstimationStartTime);
+        float avgSimpGapEstimationTimeTaken = computeAverageTimeTaken(simpGapEstimationTimeTaken, GAP_EST);
+        ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation for " << currRawGaps_.size() << " gaps took " << simpGapEstimationTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation average time: " << avgSimpGapEstimationTimeTaken << " seconds (" << (1.0 / avgSimpGapEstimationTimeTaken) << " Hz) ]");
 
-            readyToPlan = true;
-        }
+        gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
+        gapVisualizer_->drawGapsModels(currRawGaps_);
+        gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
+        gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
+        gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
+
+        hasLaserScan_ = true;
         
         // update current scan for proper classes
         updateEgoCircle();
 
-        // update global path local waypoint according to new scan
-        globalPlanManager_->generateGlobalPathLocalWaypoint(map2rbt_);
-        geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
-        goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
-        goalVisualizer_->drawGlobalGoal(globalGoalOdomFrame_);
-        trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
-        
+        if (hasGlobalGoal_)
+        {
+            // update global path local waypoint according to new scan
+            globalPlanManager_->generateGlobalPathLocalWaypoint(map2rbt_);
+            geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
+            goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
+            goalVisualizer_->drawGlobalGoal(globalGoalOdomFrame_);
+            trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
+        }
+
         // delete previous gaps
         for (dynamic_gap::Gap * prevRawGap : prevRawGaps_)
             delete prevRawGap;
@@ -409,7 +410,7 @@ namespace dynamic_gap
     }
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
         // ROS_INFO_STREAM("jointPoseAccCB");
 
@@ -417,13 +418,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // velocity coming in wrt rto/odom frame
 
         if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
-            ROS_WARN_STREAM("Odom msg header frame " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
+            ROS_WARN_STREAM("Odom msg header frame (for ego-robot pose) " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
 
         if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
-            ROS_WARN_STREAM("Odom msg child frame " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+            ROS_WARN_STREAM("Odom msg child frame (for ego-robot velocity) " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
         
         if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
-            ROS_WARN_STREAM("Accel msg header frame " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+            ROS_WARN_STREAM("Accel msg header frame (for ego-robot acceleration) " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
 
         // acceleration coming in wrt rto/base_link frame
 
@@ -432,7 +433,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
 
 
-        if (!haveTFs)
+        if (!haveTFs_)
             return;
 
         try
@@ -485,12 +486,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             geometry_msgs::Vector3Stamped rbtVelOdomFrame, rbtVelRbtFrame;
             rbtVelOdomFrame.header = rbtOdomMsg->header; // TODO: make sure this is correct frame
             rbtVelOdomFrame.vector = rbtOdomMsg->twist.twist.linear;
-            // rbtVelOdomFrame.twist = rbtOdomMsg->twist.twist;
 
             // transform into robot frame
 
             geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id, 
-                                                                                            rbtOdomMsg->header.frame_id, ros::Time(0));
+                                                                                            rbtOdomMsg->header.frame_id, 
+                                                                                            ros::Time(0));
 
             // ROS_INFO_STREAM("   rbtVelOdomFrame: " << rbtVelOdomFrame);
 
@@ -540,9 +541,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         // ROS_INFO_STREAM("pedOdomCB()");        
         
-        // TODO: check frames in this
-
-        if (!haveTFs)
+        if (!haveTFs_)
             return;
 
         for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
@@ -599,7 +598,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (globalPlanMapFrame.size() == 0) 
             return true;
         
-        if (!haveTFs)
+        if (!haveTFs_)
             return false;
 
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
@@ -616,7 +615,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         geometry_msgs::PoseStamped newglobalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
 
         // Plan New
-        float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
+        float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLofcalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
         
         if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
@@ -655,7 +654,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
             rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
-            haveTFs = true;
+            haveTFs_ = true;
 
             tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
@@ -683,8 +682,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPoints()]");
 
-        // grabbing the current set of gaps
-        // std::vector<dynamic_gap::Gap *> propagatedGaps = currSimplifiedGaps_;
+        if (planningGaps.empty())
+        {
+            ROS_WARN_STREAM_NAMED("GapFeasibility", "    planningGaps is empty, returning");
+            return;
+        }
 
         try
         {
@@ -712,7 +714,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     std::vector<dynamic_gap::Gap *> Planner::manipulateGaps(const std::vector<dynamic_gap::Gap *> & planningGaps) 
     {
-
         ROS_INFO_STREAM_NAMED("GapManipulator", "[manipulateGaps()]");
 
         boost::mutex::scoped_lock gapset(gapMutex_);
@@ -818,7 +819,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                 
                 // Run go to goal behavior
-                bool runGoToGoal = (gaps.at(i)->globalGoalWithin); // (vec.at(i).goal.goalwithin || vec.at(i).artificial);
+                bool runGoToGoal = (gaps.at(i)->globalGoalWithin);
 
                 dynamic_gap::Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
                 std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
@@ -1198,8 +1199,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << planningLoopCalls);
 
-        if (!readyToPlan || colliding)
+        if (!initialized_ || !hasLaserScan_ || !hasGlobalGoal_)
         {
+            ROS_WARN_STREAM_THROTTLE_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
+            chosenTraj = dynamic_gap::Trajectory();
+            return;            
+        }
+
+        if (colliding_)
+        {
+            ROS_WARN_STREAM_THROTTLE_NAMED("Planner", "In collision");
             chosenTraj = dynamic_gap::Trajectory();
             return;
         }
@@ -1445,7 +1454,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
-        if (!haveTFs)
+        if (!haveTFs_)
             return cmdVel;
         
         try

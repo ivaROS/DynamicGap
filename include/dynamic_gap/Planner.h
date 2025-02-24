@@ -135,7 +135,7 @@ namespace dynamic_gap
             * \brief Function to check if global goal has been reached
             * \param status whether or not global goal has been reached 
             */
-            void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal = status; }
+            void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
         private:
 
@@ -435,7 +435,7 @@ namespace dynamic_gap
 
             geometry_msgs::Twist mpcTwist_; /**< Command velocity output for MPC */
 
-            bool haveTFs = false; /**< Flag for if transforms have been received */
+            bool haveTFs_ = false; /**< Flag for if transforms have been received */
 
             std::map<std::string, geometry_msgs::Pose> currentTrueAgentPoses_; /**< Ground truth poses of agents currently in local environment */
             std::map<std::string, geometry_msgs::Vector3Stamped> currentTrueAgentVels_; /**< Ground truth velocities of agents currently in local environment */
@@ -456,9 +456,9 @@ namespace dynamic_gap
             // Status
             bool hasGlobalGoal_ = false; /**< Indicator for if planner's global goal has been set */
             bool initialized_ = false; /**< Indicator for if planner has been initialized */
-            bool readyToPlan = false; /**< Indicator for if planner has read in a laser scan and is ready to start planning */
-            bool reachedGlobalGoal = false; /**< Flag for if global goal has been reached */
-            bool colliding = false; /**< Flag for if robot is currently in collision */
+            bool hasLaserScan_ = false; /**< Indicator for if planner has read in a laser scan */
+            bool reachedGlobalGoal_ = false; /**< Flag for if global goal has been reached */
+            bool colliding_ = false; /**< Flag for if robot is currently in collision */
 
             // Velocities
             boost::circular_buffer<float> cmdVelBuffer_; /**< Buffer of prior command velocities */

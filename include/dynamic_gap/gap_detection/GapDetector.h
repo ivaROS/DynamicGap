@@ -25,6 +25,13 @@ namespace dynamic_gap
             GapDetector(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
             /**
+            * \brief Preprocess incoming laser scan to remove NaN/Inf values
+            *
+            * \param scan pointer to incoming laser scan
+            */
+            void preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> scan);
+
+            /**
             * \brief Detect raw set of gaps from incoming laser scan.
             * 
             * \param scanPtr pointer to incoming laser scan

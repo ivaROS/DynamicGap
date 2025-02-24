@@ -91,8 +91,8 @@ namespace dynamic_gap
         scan.half_scan_f = float(scan.half_scan);        
         scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
 
-        scan.range_max = incomingScan.range_max; // this is the maximum detectable range, not the max range within a particular scan
-        scan.range_min = incomingScan.range_min;
+        scan.range_max = incomingScan.range_max; // maximum detectable range, not max range within a particular scan
+        scan.range_min = incomingScan.range_min; // minimum detectable range, not min range within a particular scan
     }
 
 }

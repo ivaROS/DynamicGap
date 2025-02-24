@@ -45,7 +45,8 @@ namespace dynamic_gap
        
         float leftBearingDotCentBearing = 0.0, rightBearingDotCentBearing = 0.0;
         bool gapHasCrossed = false;
-        bool bearingsCrossed = false, crossedGapPtsDistCheck = false;    
+        bool bearingsCrossed = false;
+        bool crossedGapPtsDistCheck = false;    
 
         bool leftSideOpening = (getGapBearingRateOfChange(leftGapState) > 0.0);
         bool rightSideOpening = (getGapBearingRateOfChange(rightGapState) < 0.0);
@@ -77,8 +78,8 @@ namespace dynamic_gap
             // END CONDITION 0: COLLISION //
             ////////////////////////////////
             
-            // leftGapPtCollision = getGapRange(leftGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
-            // rightGapPtCollision = getGapRange(rightGapState) < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // leftGapPtCollision = leftGapState.head(2).normalized() < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+            // rightGapPtCollision = rightGapState.head(2).normalized() < cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
             // collision = (leftGapPtCollision || rightGapPtCollision);
 
             // if (collision) 
@@ -100,11 +101,11 @@ namespace dynamic_gap
             // END CONDITION 1: GAP CROSSING //
             ///////////////////////////////////
             
-            thetaLeft = getGapBearing(leftGapState);
-            thetaRight = getGapBearing(rightGapState);
+            thetaLeft = gap->leftGapPtModel_->getGapBearing();
+            thetaRight = gap->rightGapPtModel_->getGapBearing();
             // ROS_INFO_STREAM("thetaLeft: " << thetaLeft << ", thetaRight: " << thetaRight);
-            leftBearingVect = leftGapState.head(2) / getGapRange(leftGapState); // << std::cos(thetaLeft), std::sin(thetaLeft);
-            rightBearingVect = rightGapState.head(2) / getGapRange(rightGapState); // << std::cos(thetaRight), std::sin(thetaRight);
+            leftBearingVect = leftGapState.head(2).normalized();
+            rightBearingVect = rightGapState.head(2).normalized();
             leftToRightAngle = getSweptLeftToRightAngle(leftBearingVect, rightBearingVect);
             thetaCenter = (thetaLeft - 0.5 * leftToRightAngle);
 
@@ -204,8 +205,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("                           rewindRightGapState: " << rewindRightGapState.transpose());
 
 
-            leftBearingVect = rewindLeftGapState.head(2) / getGapRange(rewindLeftGapState);
-            rightBearingVect = rewindRightGapState.head(2) / getGapRange(rewindRightGapState);
+            leftBearingVect = leftRewindPt.normalized();
+            rightBearingVect = rightRewindPt.normalized();
 
             leftToRightAngle = getSweptLeftToRightAngle(leftBearingVect, rightBearingVect);
 

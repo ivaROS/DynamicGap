@@ -141,17 +141,20 @@ namespace dynamic_gap
             */            
             void setRRange(const float & rrange) { rightRange_ = rrange; }
 
+            void setManipPoints(const int & newLeftIdx, const int & newRightIdx, 
+                                const float & newLeftRange, const & float newRightRange)
+            {
+                manip.leftIdx_ = newLeftIdx;
+                manip.rightIdx_ = newRightIdx;
+                manip.leftRange_ = newLeftRange;
+                manip.rightRange_ = newRightRange;
+            }        
+
             /**
             * \brief Getter for initial manipulated left gap point index
             * \return initial manipulated left gap point index
             */
             int manipLeftIdx() const { return manip.leftIdx_; }
-
-            /**
-            * \brief Setter for initial manipulated left gap point index
-            * \param manipLeftIdx manipulated left gap point index
-            */            
-            void setManipLeftIdx(const int & manipLeftIdx) { manip.leftIdx_ = manipLeftIdx; }
 
             /**
             * \brief Getter for initial manipulated right gap point index
@@ -160,34 +163,16 @@ namespace dynamic_gap
             int manipRightIdx() const { return manip.rightIdx_; }
 
             /**
-            * \brief Setter for initial manipulated right gap point index
-            * \param manipRightIdx initial manipulated right gap point index
-            */            
-            void setManipRightIdx(const int & manipRightIdx) { manip.rightIdx_ = manipRightIdx; }
-
-            /**
             * \brief Getter for initial manipulated left gap point distance
             * \return manipulated left gap point distance
             */
             float manipLeftRange() const { return manip.leftRange_; }
 
             /**
-            * \brief Setter for initial manipulated left gap point distance
-            * \param manipLeftRange manipulated left gap point distance
-            */
-            void setManipLeftRange(const float & manipLeftRange) { manip.leftRange_ = manipLeftRange; }
-
-            /**
             * \brief Getter for initial manipulated right gap point distance
             * \return manipulated right gap point distance
             */
             float manipRightRange() const { return manip.rightRange_; }
-
-            /**
-            * \brief Setter for initial manipulated right gap point distance
-            * \param manipRightRange manipulated right gap point distance
-            */            
-            void setManipRightRange(const float & manipRightRange) { manip.rightRange_ = manipRightRange; }
 
             /**
             * \brief Conclude gap construction by populating gap's initial left side information 
@@ -200,6 +185,8 @@ namespace dynamic_gap
                 leftIdx_ = leftIdx;
                 leftRange_ = leftRange;
                 rightType_ = rightRange_ < leftRange_;
+
+                
 
                 // initializing convex polar gap coordinates to raw ones
                 manip.leftIdx_ = leftIdx_;
