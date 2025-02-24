@@ -615,7 +615,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         geometry_msgs::PoseStamped newglobalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
 
         // Plan New
-        float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLofcalWaypointOdomFrame.pose.position.x;
+        float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
         
         if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
@@ -1201,14 +1201,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         if (!initialized_ || !hasLaserScan_ || !hasGlobalGoal_)
         {
-            ROS_WARN_STREAM_THROTTLE_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
+            ROS_WARN_STREAM_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
             chosenTraj = dynamic_gap::Trajectory();
             return;            
         }
 
         if (colliding_)
         {
-            ROS_WARN_STREAM_THROTTLE_NAMED("Planner", "In collision");
+            ROS_WARN_STREAM_NAMED("Planner", "In collision");
             chosenTraj = dynamic_gap::Trajectory();
             return;
         }

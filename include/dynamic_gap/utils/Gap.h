@@ -142,7 +142,7 @@ namespace dynamic_gap
             void setRRange(const float & rrange) { rightRange_ = rrange; }
 
             void setManipPoints(const int & newLeftIdx, const int & newRightIdx, 
-                                const float & newLeftRange, const & float newRightRange)
+                                const float & newLeftRange, const float & newRightRange)
             {
                 manip.leftIdx_ = newLeftIdx;
                 manip.rightIdx_ = newRightIdx;
