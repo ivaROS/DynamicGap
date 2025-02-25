@@ -26,7 +26,7 @@ find_package(Eigen3 REQUIRED)
 ################################################
 
 generate_dynamic_reconfigure_options(
-  cfg/Parameters.cfg
+  cfg/EstimationParameters.cfg
 )
 
 ###################################

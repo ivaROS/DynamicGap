@@ -19,11 +19,24 @@ namespace dynamic_gap
         name_ = name;
         planner_.initialize(name_);
 
-        dynamic_reconfigure::Server<ParametersConfig> server;
-        server.setCallback(boost::bind(&Planner::reconfigureCallback, &planner_, _1, _2));
+        ros::NodeHandle nh("~/" + name);
+        ros::NodeHandle estimation_nh(nh, "estimation");
+        dynamic_estimation_recfg_ = boost::make_shared<dynamic_reconfigure::Server<EstimationParametersConfig>>(estimation_nh);
+        dynamic_reconfigure::Server<EstimationParametersConfig>::CallbackType estimation_cb =
+        boost::bind(&DynamicGapPlanner::reconfigureEstimationCallback, this, _1, _2);
+        dynamic_estimation_recfg_->setCallback(estimation_cb);
 
         return;
     }
+
+    void DynamicGapPlanner::reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level)
+    {
+        // estParams_.Q_ = config.Q;
+        // estParams_.R_ = config.R;
+
+        // gapAssociator_->updateParams(estParams_);
+    }
+
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
     {
@@ -50,6 +63,8 @@ namespace dynamic_gap
                                                         geometry_msgs::TwistStamped &cmd_vel,
                                                         std::string &message)
     {
+        boost::mutex::scoped_lock cfg_lock(config_mutex_);
+
         // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(long)]");
 
         if (!planner_.initialized())

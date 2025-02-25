@@ -23,6 +23,9 @@
 
 #include <dynamic_gap/Planner.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <dynamic_gap/EstimationParametersConfig.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -117,9 +120,17 @@ namespace dynamic_gap
             */
             bool cancel() { return true; };
 
+            void reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level);
+
         private:
             Planner planner_; /**< Local path planner object */
             std::string name_; /**< Local path planner name */
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
+            boost::mutex config_mutex_;  //!< Mutex for config accesses and changes
+
+            EstimationParameters estParams_; /**< Estimation parameters for gap estimation */
+
+            boost::shared_ptr<dynamic_reconfigure::Server<EstimationParametersConfig>>
+                dynamic_estimation_recfg_;                             //!< Dynamic reconfigure server to allow config modifications at runtime
     };
 }
