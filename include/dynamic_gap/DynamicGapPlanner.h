@@ -25,6 +25,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <dynamic_gap/EstimationParametersConfig.h>
+#include <dynamic_gap/ControlParametersConfig.h>
 
 namespace dynamic_gap 
 {
@@ -122,6 +123,8 @@ namespace dynamic_gap
 
             void reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level);
 
+            void reconfigureControlCallback(ControlParametersConfig &config, uint32_t level);
+
         private:
             Planner planner_; /**< Local path planner object */
             std::string name_; /**< Local path planner name */
@@ -132,5 +135,11 @@ namespace dynamic_gap
 
             boost::shared_ptr<dynamic_reconfigure::Server<EstimationParametersConfig>>
                 dynamic_estimation_recfg_;                             //!< Dynamic reconfigure server to allow config modifications at runtime
+
+            ControlParameters ctrlParams_; /**< Control parameters for gap control */
+
+            boost::shared_ptr<dynamic_reconfigure::Server<ControlParametersConfig>>
+                dynamic_control_recfg_;                             //!< Dynamic reconfigure server to allow config modifications at runtime
+
     };
 }

@@ -81,6 +81,8 @@ namespace dynamic_gap
             */
             int initialized() { return initialized_; } 
 
+            void setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams);
+
             /**
             * \brief Check if global goal has been reached by robot
             * \return boolean for if global goal has been reached or not
@@ -514,7 +516,5 @@ namespace dynamic_gap
             int controlCalls = 0; /**< Total number of calls for control loop */
 
             int totalNumGaps = 0; /**< Total number of gaps planned over during deployment */
-
-            EstimationParameters estParams_; /**< Estimation parameters for gap estimation */
     };
 }

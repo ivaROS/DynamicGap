@@ -20,21 +20,34 @@ namespace dynamic_gap
         planner_.initialize(name_);
 
         ros::NodeHandle nh("~/" + name);
+
         ros::NodeHandle estimation_nh(nh, "estimation");
         dynamic_estimation_recfg_ = boost::make_shared<dynamic_reconfigure::Server<EstimationParametersConfig>>(estimation_nh);
         dynamic_reconfigure::Server<EstimationParametersConfig>::CallbackType estimation_cb =
         boost::bind(&DynamicGapPlanner::reconfigureEstimationCallback, this, _1, _2);
         dynamic_estimation_recfg_->setCallback(estimation_cb);
 
+        ros::NodeHandle control_nh(nh, "control");
+        dynamic_control_recfg_ = boost::make_shared<dynamic_reconfigure::Server<ControlParametersConfig>>(control_nh);
+        dynamic_reconfigure::Server<ControlParametersConfig>::CallbackType control_cb =
+        boost::bind(&DynamicGapPlanner::reconfigureControlCallback, this, _1, _2);
+        dynamic_control_recfg_->setCallback(control_cb);
+
         return;
     }
+
+    void DynamicGapPlanner::reconfigureControlCallback(ControlParametersConfig &config, uint32_t level)
+    {
+        ctrlParams_.linear_vel_x_ = config.linear_vel_x;
+        ctrlParams_.linear_vel_y_ = config.linear_vel_y;
+        ctrlParams_.angular_vel_z_ = config.angular_vel_z;
+    }
+
 
     void DynamicGapPlanner::reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level)
     {
         // estParams_.Q_ = config.Q;
         // estParams_.R_ = config.R;
-
-        // gapAssociator_->updateParams(estParams_);
     }
 
 
@@ -74,6 +87,8 @@ namespace dynamic_gap
         }
 
         planner_.setReachedGlobalGoal(false);
+
+        planner_.setParams(estParams_, ctrlParams_);
 
         Trajectory localTrajectory;
         int trajFlag; 

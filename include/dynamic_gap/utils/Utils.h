@@ -47,6 +47,14 @@ namespace dynamic_gap
         float R_ = 0.0; /**< Measurement noise covariance */
     };
 
+    struct ControlParameters
+    {
+        float linear_vel_x_ = 0.0; /**< Linear vel x */
+        float linear_vel_y_ = 0.0; /**< Linear vel y */
+        float angular_vel_z_ = 0.0; /**< Angular vel z */
+    };
+
+
     //////////////////////////////
     //       CONVERSIONS        // 
     //////////////////////////////

@@ -127,6 +127,13 @@ namespace dynamic_gap
         return true;
     }
 
+    void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
+    {
+        gapAssociator_->updateParams(estParams);
+        trajController_->updateParams(ctrlParams);
+    }
+
+
     bool Planner::isGoalReached()
     {
         float globalGoalXDiff = globalGoalOdomFrame_.pose.position.x - rbtPoseInOdomFrame_.pose.position.x;
@@ -1464,7 +1471,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
-                rawCmdVel = trajController_->manualControlLaw();
+                // rawCmdVel = trajController_->manualControlLawKeyboard();
+                rawCmdVel = trajController_->manualControlLawReconfig();
             } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
             { 
                 rawCmdVel = mpcTwist_;

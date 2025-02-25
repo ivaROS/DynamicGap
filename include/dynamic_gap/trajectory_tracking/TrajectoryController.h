@@ -24,6 +24,9 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 
+#include <thread>
+#include <chrono>
+
 namespace dynamic_gap 
 {
     /**
@@ -35,6 +38,8 @@ namespace dynamic_gap
         public:
 
             TrajectoryController(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
+
+            void updateParams(const ControlParameters & ctrlParams);
 
             /**
             * \brief receive new laser scan and update member variable accordingly
@@ -52,7 +57,13 @@ namespace dynamic_gap
             * \brief Control law for manual robot operation
             * \return command velocity for robot
             */
-            geometry_msgs::Twist manualControlLaw();
+            geometry_msgs::Twist manualControlLawKeyboard();
+
+            /**
+            * \brief Control law for manual robot operation
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist manualControlLawReconfig();
 
             /**
             * \brief Control law for trajectory tracking
@@ -170,5 +181,7 @@ namespace dynamic_gap
 
             float manualVelLinIncrement_; /**< Linear command velocity increment for manual control */
             float manualVelAngIncrement_; /**< Angular command velocity increment for manual control */
+
+            ControlParameters ctrlParams_; /**< Control parameters for gap control */
     };
 }

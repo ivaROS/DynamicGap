@@ -14,10 +14,53 @@ namespace dynamic_gap
         manualVelAngIncrement_ = 0.10f;
     }
 
+    void TrajectoryController::updateParams(const ControlParameters & ctrlParams)
+    {
+        ctrlParams_ = ctrlParams;
+    }
+
+
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
+    }
+
+    geometry_msgs::Twist TrajectoryController::manualControlLawReconfig() 
+    {
+        ROS_INFO_STREAM_NAMED("Controller", "Manual Control");
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        // char key = getch();
+        // ROS_INFO_STREAM_NAMED("Controller", "Keyboard input: " << key);
+
+        // if (key == 'w')
+        //     manualVelX_ += manualVelLinIncrement_;
+        // else if (key == 'a')
+        //     manualVelY_ += manualVelLinIncrement_;
+        // else if (key == 's')
+        // {
+        //     manualVelX_ = 0.0f;
+        //     manualVelY_ = 0.0f;
+        //     manualVelAng_ = 0.0f;
+        // } else if (key == 'd')
+        //     manualVelY_ -= manualVelLinIncrement_;
+        // else if (key == 'o')
+        //     manualVelAng_ += manualVelAngIncrement_;
+        // else if (key == 'p')
+        //     manualVelAng_ -= manualVelAngIncrement_;
+
+        cmdVel.linear.x = ctrlParams_.linear_vel_x_;
+        cmdVel.linear.y = ctrlParams_.linear_vel_y_;
+        cmdVel.angular.z = ctrlParams_.angular_vel_z_;
+    
+        ROS_WARN_STREAM_NAMED("Controller", "Manual control command:");
+        ROS_WARN_STREAM_NAMED("Controller", "       linear x: " << cmdVel.linear.x);
+        ROS_WARN_STREAM_NAMED("Controller", "       linear y: " << cmdVel.linear.y);
+        ROS_WARN_STREAM_NAMED("Controller", "       angular z: " << cmdVel.angular.z);
+
+        return cmdVel;
     }
 
     // For non-blocking keyboard inputs
@@ -49,7 +92,7 @@ namespace dynamic_gap
         return ch;
     }
 
-    geometry_msgs::Twist TrajectoryController::manualControlLaw() 
+    geometry_msgs::Twist TrajectoryController::manualControlLawKeyboard() 
     {
         ROS_INFO_STREAM_NAMED("Controller", "Manual Control");
 
@@ -78,6 +121,11 @@ namespace dynamic_gap
         cmdVel.linear.y = manualVelY_;
         cmdVel.angular.z = manualVelAng_;
     
+        ROS_WARN_STREAM_NAMED("Controller", "Manual control command:");
+        ROS_WARN_STREAM_NAMED("Controller", "       linear x: " << cmdVel.linear.x);
+        ROS_WARN_STREAM_NAMED("Controller", "       linear y: " << cmdVel.linear.y);
+        ROS_WARN_STREAM_NAMED("Controller", "       angular z: " << cmdVel.angular.z);
+
         return cmdVel;
     }
 
