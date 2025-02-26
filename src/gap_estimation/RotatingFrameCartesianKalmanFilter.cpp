@@ -8,8 +8,8 @@ namespace dynamic_gap
               0.0, 1.0, 0.0, 0.0;
         H_transpose_ = H_.transpose();
         
-        R_scalar = 0.1; // low value: velocities become very sensitive
-        Q_scalar = 0.5;
+        Q_scalar = 0.1;
+        R_scalar = 0.5; // low value: velocities become very sensitive
 
         Q_temp_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
@@ -296,7 +296,8 @@ namespace dynamic_gap
         // R_k_ << sensor_noise_factor, 0.0,
         //        0.0, sensor_noise_factor;
 
-        // R_k_ = (alpha_R * R_temp_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
+        // R_temp_ = (alpha_R * R_k_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
+        // R_k_ = R_temp_;
         
         // ROS_INFO_STREAM("1");
 

@@ -71,9 +71,9 @@ namespace dynamic_gap
             struct Control 
             {
                 // only ONE of these should be true
-                bool man_ctrl = true; /**< Flag for enacting manual teleoperation control */
+                bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
                 bool mpc_ctrl = false; /**< Flag for enacting MPC control */
-                bool feedback_ctrl = false; /**< Flag for enacting feedback control */
+                bool feedback_ctrl = true; /**< Flag for enacting feedback control */
             } ctrl;
 
             /**

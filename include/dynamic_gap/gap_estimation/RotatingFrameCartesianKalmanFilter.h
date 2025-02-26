@@ -30,8 +30,8 @@ namespace dynamic_gap
             Eigen::Matrix4f Q_2_; /**< 2nd order approximation of discretized covariance noise matrix */ 
             Eigen::Matrix4f Q_3_; /**< 3rd order approximation of discretized covariance noise matrix */
 
-            float alpha_R = 0.3; /**< Adaptive R parameter */
-            float alpha_Q = 0.3; /**< Adaptie Q parameter */
+            // float alpha_Q = 0.99; /**< Adaptie Q parameter */
+            // float alpha_R = 0.001; /**< Adaptive R parameter */
 
             Eigen::Matrix4f A_; /**< Continuous form of autonomous dynamics term */
             Eigen::Matrix4f STM_; /**< Discrete form of autonomous dynamics term */
@@ -46,7 +46,7 @@ namespace dynamic_gap
             Eigen::Matrix4f P_intermediate; /**< placeholding variable for covariance matrix during updates */
             Eigen::Matrix4f new_P; /**< placeholding variable for covariance matrix during updates */
 
-            double lifetimeThreshold_ = 2.0; /**< Threshold in seconds that gap model must exist for before we trust and use state */
+            double lifetimeThreshold_ = 0.0; /**< Threshold in seconds that gap model must exist for before we trust and use state */
 
         public:
 
