@@ -65,6 +65,8 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist manualControlLawReconfig();
 
+            geometry_msgs::Twist manualControlLawPrescribed(const geometry_msgs::Pose & current);
+
             /**
             * \brief Control law for trajectory tracking
             * \param current current robot pose
@@ -183,5 +185,7 @@ namespace dynamic_gap
             float manualVelAngIncrement_; /**< Angular command velocity increment for manual control */
 
             ControlParameters ctrlParams_; /**< Control parameters for gap control */
+
+            std::chrono::steady_clock::time_point startTime_; /**< Start time */
     };
 }

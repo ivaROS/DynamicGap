@@ -12,13 +12,13 @@ namespace dynamic_gap
         {
             if (std::isnan(scan->ranges.at(i)))
             {
-                ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "NaN detected in scan, replacing with max range");
+                // ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "NaN detected in scan, replacing with max range");
                 scan->ranges.at(i) = cfg_->scan.range_max - eps;
             }
 
             if (std::isinf(scan->ranges.at(i)))
             {
-                ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "Inf detected in scan, replacing with max range");
+                // ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "GapDetector", "Inf detected in scan, replacing with max range");
                 scan->ranges.at(i) = cfg_->scan.range_max - eps;
             }
         }

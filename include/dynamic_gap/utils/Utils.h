@@ -43,8 +43,8 @@ namespace dynamic_gap
 
     struct EstimationParameters
     {
-        float Q_ = 0.0; /**< Process noise covariance */
-        float R_ = 0.0; /**< Measurement noise covariance */
+        float Q_ = 0.1; /**< Process noise covariance */
+        float R_ = 0.5; /**< Measurement noise covariance */
     };
 
     struct ControlParameters

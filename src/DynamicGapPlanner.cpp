@@ -46,8 +46,8 @@ namespace dynamic_gap
 
     void DynamicGapPlanner::reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level)
     {
-        // estParams_.Q_ = config.Q;
-        // estParams_.R_ = config.R;
+        estParams_.Q_ = config.Q;
+        estParams_.R_ = config.R;
     }
 
 

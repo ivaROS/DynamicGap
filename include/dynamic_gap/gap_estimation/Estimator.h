@@ -80,6 +80,22 @@ namespace dynamic_gap
             */            
             virtual void transfer(const Estimator & incomingModel) = 0;
 
+            void setParams(const EstimationParameters & estParams)
+            {
+                this->R_scalar = estParams.R_;
+                this->Q_scalar = estParams.Q_;
+
+                Q_temp_ << 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, Q_scalar, 0.0,
+                0.0, 0.0, 0.0, Q_scalar;
+                Q_k_ = Q_temp_;
+                R_temp_ << R_scalar, 0.0,
+                        0.0, R_scalar;
+                R_k_ = R_temp_;                
+            }
+        
+
             /**
             * \brief Virtual function for updating estimator based on new sensor measurements
             * \param measurement new sensor measurement

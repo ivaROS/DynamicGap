@@ -1456,6 +1456,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (!haveTFs_)
             return cmdVel;
         
+        // Know Current Pose
+        geometry_msgs::PoseStamped currPoseStRobotFrame;
+        currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
+        currPoseStRobotFrame.pose.orientation.w = 1;
+        geometry_msgs::PoseStamped currPoseStampedOdomFrame;
+        currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
+        tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
+        geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
+
         try
         {
             if (trajFlag == 1) // idling
@@ -1472,22 +1481,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
                 // rawCmdVel = trajController_->manualControlLawKeyboard();
-                rawCmdVel = trajController_->manualControlLawReconfig();
+                // rawCmdVel = trajController_->manualControlLawReconfig();
+                rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
             } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
             { 
                 rawCmdVel = mpcTwist_;
             } else if (cfg_.ctrl.feedback_ctrl) // FEEDBACK CONTROL 
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
-
-                // Know Current Pose
-                geometry_msgs::PoseStamped currPoseStRobotFrame;
-                currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
-                currPoseStRobotFrame.pose.orientation.w = 1;
-                geometry_msgs::PoseStamped currPoseStampedOdomFrame;
-                currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
-                tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
-                geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
 
                 // obtain current robot pose in odom frame
 
@@ -1506,7 +1507,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
             } else
             {
-                throw std::runtime_error("No control method selected");
+                ROS_ERROR_STREAM_NAMED("Controller", "No control method selected");
             }
 
             std::chrono::steady_clock::time_point projOpStartTime = std::chrono::steady_clock::now();

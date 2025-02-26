@@ -12,6 +12,8 @@ namespace dynamic_gap
         manualVelAng_ = 0.0f;
         manualVelLinIncrement_ = 0.05f;
         manualVelAngIncrement_ = 0.10f;
+
+        startTime_ = std::chrono::steady_clock::now();
     }
 
     void TrajectoryController::updateParams(const ControlParameters & ctrlParams)
@@ -24,6 +26,61 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         scan_ = scan;
+    }
+
+    geometry_msgs::Twist TrajectoryController::manualControlLawPrescribed(const geometry_msgs::Pose & current) 
+    {
+        ROS_INFO_STREAM_NAMED("Controller", "Manual Control");
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+
+        int64_t timeElapsed = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime_).count();
+        double timeElapsedSec = timeElapsed / 1e6;
+
+        // Pure linear
+        // if (timeElapsedSec < 5)
+        // {
+        //     cmdVel.linear.x = 0.4f;
+        //     cmdVel.linear.y = 0.0f;
+        //     cmdVel.angular.z = 0.0f;
+        // } else if (timeElapsedSec < 10)
+        // {
+        //     cmdVel.linear.x = -0.4f;
+        //     cmdVel.linear.y = 0.0;
+        //     cmdVel.angular.z = 0.0f;
+        // } else
+        // {
+        //     startTime_ = std::chrono::steady_clock::now();
+        // }
+
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
+        geometry_msgs::Quaternion currOrient = current.orientation;
+        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+        float currYaw = quaternionToYaw(currQuat); 
+
+        // Linear + rotational
+        float ptOneTime = 6.0;
+        float ptTwoTime = 6.0;
+        if (timeElapsedSec < ptOneTime)
+        {
+            float desTheta = (M_PI / 2) + (M_PI / 4) * std::sin(timeElapsedSec * (2 * M_PI / ptOneTime)); // should go from 0.0 to pi/4
+            cmdVel.linear.x = 0.75f;
+            cmdVel.linear.y = 0.0f;
+            cmdVel.angular.z = 1.0 * (desTheta - currYaw);
+        } else if (timeElapsedSec < (ptOneTime + ptTwoTime))
+        {
+            float desTheta = (M_PI / 2) - (M_PI / 4) * std::sin((timeElapsedSec - ptOneTime) * (2 * M_PI / ptTwoTime));
+            cmdVel.linear.x = -0.75f;
+            cmdVel.linear.y = 0.0;
+            cmdVel.angular.z = 1.0 * (desTheta - currYaw);
+        } else
+        {
+            startTime_ = std::chrono::steady_clock::now();
+        }        
+
+        return cmdVel;
     }
 
     geometry_msgs::Twist TrajectoryController::manualControlLawReconfig() 

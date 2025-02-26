@@ -236,6 +236,7 @@ namespace dynamic_gap
 																			  				*previousGaps.at(previousGapIdx)->rightGapPtModel_);			
 			// currentGaps.at(currentGapIdx)->leftGapPtModel_ = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 			// 																  previousGaps.at(previousGapIdx)->rightGapPtModel_;
+			currentGaps.at(currentGapIdx)->leftGapPtModel_->setParams(estParams_);
 		} else // curr right
 		{
 			// // ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering right");
@@ -243,6 +244,7 @@ namespace dynamic_gap
 																			   				 *previousGaps.at(previousGapIdx)->rightGapPtModel_);		
 			// currentGaps.at(currentGapIdx)->rightGapPtModel_ = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPtModel_ :
 			// 																   previousGaps.at(previousGapIdx)->rightGapPtModel_;
+			currentGaps.at(currentGapIdx)->rightGapPtModel_->setParams(estParams_);
 		} 		
 	}
 

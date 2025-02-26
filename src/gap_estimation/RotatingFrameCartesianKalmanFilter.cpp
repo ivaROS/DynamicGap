@@ -47,6 +47,15 @@ namespace dynamic_gap
         this->R_scalar = estParams.R_;
         this->Q_scalar = estParams.Q_;
 
+        Q_temp_ << 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, Q_scalar, 0.0,
+        0.0, 0.0, 0.0, Q_scalar;
+        Q_k_ = Q_temp_;
+        R_temp_ << R_scalar, 0.0,
+                0.0, R_scalar;
+        R_k_ = R_temp_;
+
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
         // larger P_0 helps with GT values that are non-zero
@@ -107,8 +116,6 @@ namespace dynamic_gap
         this->Q_k_ = model.Q_k_;
         this->Q_temp_ = model.Q_temp_;
 
-        this->Q_scalar = model.Q_scalar;
-        this->R_scalar = model.R_scalar;
 
         this->intermediateRbtVels_ = model.intermediateRbtVels_;
         this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
@@ -120,35 +127,6 @@ namespace dynamic_gap
 
         this->manip_ = false; // will set to true if we do need to manip
 
-        // From RotatingFrameCartesianKalmanFilter.h
-        // this->H_ = model.H_;
-        // this->H_transpose_ = model.H_transpose_;
-
-        // this->R_k_ = model.R_k_;
-        // this->Q_k_ = model.Q_k_;
-        // this->dQ_ = model.dQ_;
-
-        // this->Q_1_ = model.Q_1_;
-        // this->Q_2_ = model.Q_2_;
-        // this->Q_3_ = model.Q_3_;
-
-        // this->R_scalar = model.R_scalar;
-        // this->Q_scalar = model.Q_scalar;
-
-        // this->A_ = model.A_;
-        // this->STM_ = model.STM_;
-
-        // this->eyes = model.eyes;
-        // this->innovation_ = model.innovation_;
-        // this->residual_ = model.residual_;
-
-        // this->tmp_mat = model.tmp_mat;
-
-        // this->P_intermediate = model.P_intermediate;
-        // this->new_P = model.new_P;
-        
-        // this->lifetimeThreshold_ = model.lifetimeThreshold_;
-        
         return;
     }
 
@@ -321,6 +299,9 @@ namespace dynamic_gap
         // R_k_ = (alpha_R * R_temp_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
         
         // ROS_INFO_STREAM("1");
+
+        // ROS_WARN_STREAM_NAMED("GapEstimation", "Q: " << Q_k_);
+        // ROS_WARN_STREAM_NAMED("GapEstimation", "R: " << R_k_);
 
         // // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
         // R_k_ << cfg_->gap_est.R_xx, 0.0,
