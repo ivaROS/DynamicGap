@@ -292,27 +292,6 @@ namespace dynamic_gap
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
         residual_ = xTilde_ - H_*x_hat_k_plus_;
 
-        // float sensor_noise_factor = R_scalar * xTilde_.norm();
-        // R_k_ << sensor_noise_factor, 0.0,
-        //        0.0, sensor_noise_factor;
-
-        // R_temp_ = (alpha_R * R_k_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
-        // R_k_ = R_temp_;
-        
-        // ROS_INFO_STREAM("1");
-
-        // ROS_WARN_STREAM_NAMED("GapEstimation", "Q: " << Q_k_);
-        // ROS_WARN_STREAM_NAMED("GapEstimation", "R: " << R_k_);
-
-        // // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
-        // R_k_ << cfg_->gap_est.R_xx, 0.0,
-        //        0.0, cfg_->gap_est.R_yy;
-
-        // ROS_INFO_STREAM("H_transpose_: " << H_transpose_(0, 0) << ", " << H_transpose_(0, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(1, 0) << ", " << H_transpose_(1, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(2, 0) << ", " << H_transpose_(2, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(3, 0) << ", " << H_transpose_(3, 1));
-
         tmp_mat = H_*P_k_minus_*H_transpose_ + R_k_;
 
         G_k_ = P_k_minus_ * H_transpose_ * tmp_mat.inverse();
@@ -331,17 +310,10 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("    " << H_(1, 0) << ", " << H_(1, 1) << ", " << H_(1, 2) << ", " << H_(1, 3));
         
         P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
-    
-        // Q_temp_ = (alpha_Q * Q_k_) + (1.0 - alpha_Q) * (G_k_ * residual_ * residual_.transpose() * G_k_.transpose());
-        // Q_k_ = Q_temp_;
-
-        // ROS_INFO_STREAM("2");
 
         x_hat_kmin1_plus_ = x_hat_k_plus_;
         P_kmin1_plus_ = P_k_plus_;
         tLastUpdate_ = t_update;
-
-        // ROS_INFO_STREAM("3");
 
         // ROS_INFO_STREAM("    intermediateRbtVels_ size: " << intermediateRbtVels_.size());
         // ROS_INFO_STREAM("    intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());

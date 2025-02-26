@@ -517,6 +517,7 @@ namespace dynamic_gap
             }
 
             void setManip() { manip_ = true; }
+            
             void setNewPosition(const float & newTheta, const float & newRange) 
             { 
                 manipPosition << newRange * std::cos(newTheta), 

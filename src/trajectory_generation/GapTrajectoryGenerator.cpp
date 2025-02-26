@@ -3,10 +3,10 @@
 namespace dynamic_gap 
 {
     Trajectory GapTrajectoryGenerator::generateTrajectory(Gap * selectedGap, 
-                                                                        const geometry_msgs::PoseStamped & currPose, 
-                                                                        const geometry_msgs::TwistStamped & currVel,
-                                                                        const geometry_msgs::PoseStamped & globalGoalRobotFrame,
-                                                                        const bool & runGoToGoal) 
+                                                            const geometry_msgs::PoseStamped & currPose, 
+                                                            const geometry_msgs::TwistStamped & currVel,
+                                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame,
+                                                            const bool & runGoToGoal) 
     {
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        [generateTrajectory()]");
 
@@ -180,7 +180,7 @@ namespace dynamic_gap
 
     // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformPath(const geometry_msgs::PoseArray & path,
-                                                                              const geometry_msgs::TransformStamped & transform)
+                                                                    const geometry_msgs::TransformStamped & transform)
     {
         geometry_msgs::PoseStamped sourcePose;
         sourcePose.header.frame_id = transform.header.frame_id; // cfg_->robot_frame_id;
@@ -202,7 +202,7 @@ namespace dynamic_gap
     }
 
     Trajectory GapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
-                                                                        const bool & prune)
+                                                            const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
         std::vector<float> rawPathTiming = traj.getPathTiming();
