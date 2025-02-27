@@ -205,12 +205,12 @@ namespace dynamic_gap
 
         if (transformedPath.poses.size() != path.poses.size())
         {
-            ROS_WARN_STREAM("transformed path size mismatch: " << transformedPath.poses.size() << " vs " << path.poses.size());
+            ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "transformed path size mismatch: " << transformedPath.poses.size() << " vs " << path.poses.size());
         }
 
         if (transformedPath.header.frame_id.empty())
         {
-            ROS_WARN_STREAM("transformed path frame id is empty");
+            ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "transformed path frame id is empty");
         }
 
         // ROS_WARN_STREAM("leaving transform back with length: " << transformedPath.poses.size());
@@ -259,7 +259,7 @@ namespace dynamic_gap
                 // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
-        std::cout << "leaving at : " << processedPoses.size() << std::endl;
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "leaving at : " << processedPoses.size());
         
         geometry_msgs::PoseArray processedPath = rawPath;        
         processedPath.poses = processedPoses;
