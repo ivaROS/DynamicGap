@@ -9,6 +9,7 @@ Panels:
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
+        - /Dynamic Gap1/Trajectories1/MarkerArray4
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
       Splitter Ratio: 0.32637855410575867
@@ -386,40 +387,6 @@ Visualization Manager:
                 allTraj: true
               Queue Size: 100
               Value: true
-            - Alpha: 1
-              Arrow Length: 0.30000001192092896
-              Axes Length: 0.30000001192092896
-              Axes Radius: 0.009999999776482582
-              Class: rviz/PoseArray
-              Color: 255; 25; 0
-              Enabled: false
-              Head Length: 0.07000000029802322
-              Head Radius: 0.029999999329447746
-              Name: PoseArray
-              Queue Size: 10
-              Shaft Length: 0.23000000417232513
-              Shaft Radius: 0.009999999776482582
-              Shape: Arrow (Flat)
-              Topic: /rto/entire_global_plan
-              Unreliable: false
-              Value: false
-            - Alpha: 1
-              Arrow Length: 0.30000001192092896
-              Axes Length: 0.30000001192092896
-              Axes Radius: 0.009999999776482582
-              Class: rviz/PoseArray
-              Color: 255; 25; 0
-              Enabled: false
-              Head Length: 0.07000000029802322
-              Head Radius: 0.029999999329447746
-              Name: PoseArray
-              Queue Size: 10
-              Shaft Length: 0.23000000417232513
-              Shaft Radius: 0.009999999776482582
-              Shape: Arrow (Flat)
-              Topic: /rto/relevant_global_plan_snippet
-              Unreliable: false
-              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/trajectory_switch
@@ -436,6 +403,22 @@ Visualization Manager:
                 currentTraj: true
               Queue Size: 100
               Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/entire_global_plan
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /rto/relevant_global_plan_snippet
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
@@ -684,10 +667,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 52.89946365356445
+      Scale: 74.31993865966797
       Target Frame: rto/base_link
-      X: 6.305128574371338
-      Y: -0.5398474931716919
+      X: 4.5385918617248535
+      Y: 0.06790941953659058
     Saved: ~
 Window Geometry:
   Displays:

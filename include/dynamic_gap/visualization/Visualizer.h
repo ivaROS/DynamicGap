@@ -24,5 +24,25 @@ namespace dynamic_gap
 
         protected:
             const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
+
+            void clearMarkerPublisher(const ros::Publisher & publisher)
+            {
+                visualization_msgs::Marker clearMarker;
+                clearMarker.id = 0;
+                clearMarker.ns =  "clear";
+                clearMarker.action = visualization_msgs::Marker::DELETEALL;
+                publisher.publish(clearMarker);
+            }
+
+            void clearMarkerArrayPublisher(const ros::Publisher & publisher)
+            {
+                visualization_msgs::MarkerArray clearMarkerArray;
+                visualization_msgs::Marker clearMarker;
+                clearMarker.id = 0;
+                clearMarker.ns =  "clear";
+                clearMarker.action = visualization_msgs::Marker::DELETEALL;
+                clearMarkerArray.markers.push_back(clearMarker);
+                publisher.publish(clearMarkerArray);
+            }
     };
 }

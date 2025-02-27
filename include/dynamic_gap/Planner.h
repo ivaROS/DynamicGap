@@ -386,8 +386,8 @@ namespace dynamic_gap
             geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
             geometry_msgs::TransformStamped rbt2odom_; /**< Transformation from robot frame to odometry frame */
             geometry_msgs::TransformStamped map2odom_; /**< Transformation from map frame to odometry frame */
-            geometry_msgs::TransformStamped cam2odom_; /**< Transformation from camera frame to odometry frame */
-            geometry_msgs::TransformStamped rbt2cam_; /**< Transformation from robot frame to camera frame */
+            // geometry_msgs::TransformStamped cam2odom_; /**< Transformation from camera frame to odometry frame */
+            // geometry_msgs::TransformStamped rbt2cam_; /**< Transformation from robot frame to camera frame */
 
             geometry_msgs::PoseStamped rbtPoseInRbtFrame_; /**< Robot pose in robot frame */
             geometry_msgs::PoseStamped rbtPoseInSensorFrame_; /**< Robot pose in sensor frame */

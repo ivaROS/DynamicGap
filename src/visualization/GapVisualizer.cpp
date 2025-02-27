@@ -97,31 +97,18 @@ namespace dynamic_gap
 
     void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         // First, clearing topic.
-        // visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns = ns;
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        // clearMarkerArray.markers.push_back(clearMarker);
-
+        clearMarkerPublisher(rawGapsPublisher);
+        clearMarkerPublisher(simpGapsPublisher);
 
         visualization_msgs::Marker marker;
         drawGap(marker, gaps, ns); // , true);
 
-        // visualization_msgs::MarkerArray markerArray;
-        // for (Gap * gap : gaps) 
-        //     drawGap(markerArray, gap, ns, true);
-
         if (ns.find("raw") != std::string::npos) 
         {
-            rawGapsPublisher.publish(clearMarker);
             rawGapsPublisher.publish(marker);
         } else if (ns.find("simp") != std::string::npos) 
         {
-            simpGapsPublisher.publish(clearMarker);
             simpGapsPublisher.publish(marker);
         }
     }
@@ -223,34 +210,13 @@ namespace dynamic_gap
 
     void GapVisualizer::drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         // First, clearing topic.
-        // visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns = ns;
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        manipGapsPublisher.publish(clearMarker);
-
-        // visualization_msgs::MarkerArray markerArray;
-
-        // bool circle = false;
-        // for (Gap * gap : gaps) 
-        // {
-        //     // drawManipGap(markerArray, gap, ns, true); // initial
-        //     drawManipGap(markerArray, gap, ns, false); // false
-        // }
-        // manipGapsPublisher.publish(markerArray);
+        clearMarkerPublisher(manipGapsPublisher);
 
         visualization_msgs::Marker marker;
         drawManipGap(marker, gaps, ns); // , true);
 
         manipGapsPublisher.publish(marker);
-
-        // visualization_msgs::MarkerArray markerArray;
-        // for (Gap * gap : gaps) 
-        //     drawGap(markerArray, gap, ns, true)
     }
 
     void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<Gap *> & gaps, 
@@ -351,176 +317,32 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("[drawManipGap] end");
     }
 
-    /*
-    void GapVisualizer::drawManipGap(visualization_msgs::MarkerArray & markerArray, Gap * gap, 
-                                        const std::string & ns, const bool & initial) 
-    {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
-        // float viz_jitter = cfg_->gap_viz.viz_jitter;
-        // int viz_offset = 0;
-        
-        // if (viz_jitter > 0 && gap->isRadial(initial))
-        // {
-        //     viz_offset = gap->isRightType(initial) ? -2 : 2;
-        // }
-
-        int leftIdx = initial ? gap->manipLeftIdx() : gap->manipTermLeftIdx();
-        int rightIdx = initial ? gap->manipRightIdx() : gap->manipTermRightIdx();
-        float leftRange = initial ? gap->manipLeftRange() : gap->manipTermLeftRange();
-        float rightRange = initial ? gap->manipRightRange() : gap->manipTermRightRange();
-
-        std::string fullNamespace = ns;
-        if (initial)
-            fullNamespace.append("_initial");
-        else
-            fullNamespace.append("_terminal");
-
-        int gapIdxSpan = (leftIdx - rightIdx);
-        if (gapIdxSpan < 0)
-            gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
-
-        int num_segments = gapIdxSpan / gapSpanResoln + 1;
-        float distIncrement = (leftRange - rightRange) / num_segments;
-        int midGapIdx = rightIdx; //  + viz_offset;
-        float midGapDist = rightRange;
-
-        visualization_msgs::Marker marker;
-        marker.header.frame_id = gap->frame_;
-        marker.header.stamp = ros::Time();
-        marker.ns = ns;
-        marker.type = visualization_msgs::Marker::LINE_STRIP;
-        marker.action = visualization_msgs::Marker::ADD;
-
-        marker.pose.position.x = 0.0;
-        marker.pose.position.y = 0.0;
-        marker.pose.position.z = 0.0;
-        marker.pose.orientation.x = 0.0;
-        marker.pose.orientation.y = 0.0;
-        marker.pose.orientation.z = 0.0;
-        marker.pose.orientation.w = 1.0;
-
-
-        // ROS_INFO_STREAM("drawManipGap fullNamespace: " << fullNamespace);
-        auto colorIter = colorMap.find(fullNamespace);
-        if (colorIter == colorMap.end()) 
-        {
-            ROS_FATAL_STREAM("[drawManipGaps] Visualization Color not found, return without drawing");
-            return;
-        }
-
-        // marker.colors = colorIter->second;
-        // marker.colors.push_back(colorIter->second);
-        // marker.colors.push_back(colorIter->second);
-        marker.colors.insert(marker.colors.begin(), 2, colorIter->second);
-
-        float thickness = 0.05;
-        marker.scale.x = thickness;
-        marker.scale.y = 0.1;
-        marker.scale.z = 0.1;
-
-        // geometry_msgs::Point linel;
-        geometry_msgs::Point midGapPt;
-        midGapPt.z = 0.0005;
-        // linel.z = 0.0005;
-        std::vector<geometry_msgs::Point> midGapPts;
-
-        int id = (int) markerArray.markers.size();
-        // ROS_INFO_STREAM("ID: "<< id);
-
-        marker.lifetime = ros::Duration(0);
-
-        float midGapTheta = 0.0;
-        for (int i = 0; i < num_segments; i++)
-        {
-            midGapPts.clear();
-            midGapTheta = idx2theta(midGapIdx);
-            midGapPt.x = midGapDist * cos(midGapTheta);
-            midGapPt.y = midGapDist * sin(midGapTheta);
-            midGapPts.push_back(midGapPt);
-
-            midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(gap->half_scan * 2);
-            midGapDist += distIncrement;
-
-            midGapTheta = idx2theta(midGapIdx);
-            midGapPt.x = midGapDist * cos(midGapTheta);
-            midGapPt.y = midGapDist * sin(midGapTheta);
-            midGapPts.push_back(midGapPt);
-
-            marker.points = midGapPts;
-            marker.id = id++;
-            markerArray.markers.push_back(marker);
-        }
-
-        // close the last
-        // midGapPts.clear();
-        // midGapTheta = idx2theta(midGapIdx);
-        // midGapPt.x = midGapDist * cos(midGapTheta);
-        // midGapPt.y = midGapDist * sin(midGapTheta);
-        // midGapPts.push_back(midGapPt);
-
-        // float rtheta = idx2theta(rightIdx);
-        // midGapPt.x = rightRange * cos(rtheta);
-        // midGapPt.y = rightRange * sin(rtheta);
-        // midGapPts.push_back(midGapPt);
-
-        marker.scale.x = thickness;
-        marker.points = midGapPts;
-        marker.id = id++;
-        marker.lifetime = ros::Duration(0);
-        markerArray.markers.push_back(marker);
-    }
-    */
-
     void GapVisualizer::drawGapsModels(const std::vector<Gap *> & gaps) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         // First, clearing topic.
-        visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns = "gap_models";
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        clearMarkerArray.markers.push_back(clearMarker);
-        // gapModelPosPublisher.publish(clearMarkerArray);
-        gapModelsPublisher.publish(clearMarkerArray);
-        // gapmodel_pos_GT_publisher.publish(clearMarkerArray);
-        // gapmodel_vel_GT_publisher.publish(clearMarkerArray);
-        // gapmodel_vel_error_publisher.publish(clearMarkerArray);
+        clearMarkerArrayPublisher(gapModelsPublisher);
 
         visualization_msgs::MarkerArray gapModelMarkerArray; // , gap_vel_error_arr , gap_pos_GT_arr, gap_vel_GT_arr;
         for (Gap * gap : gaps) 
         {
             drawGapModels(gapModelMarkerArray, gap, "gap_models"); // gap_vel_error_arr
-            // drawGapGroundTruthModels(gap_pos_GT_arr, gap_vel_GT_arr, gap, "gap_GT_models");
         }
-        // gapModelPosPublisher.publish(gap_pos_arr);
         gapModelsPublisher.publish(gapModelMarkerArray);
-        // gapmodel_vel_error_publisher.publish(gap_vel_error_arr);
-        // gapmodel_pos_GT_publisher.publish(gap_pos_GT_arr);
-        // gapmodel_vel_GT_publisher.publish(gap_vel_GT_arr);
-        // prev_num_models = 2* gaps.size();
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                        Gap * gap, const std::string & ns) // visualization_msgs::MarkerArray & gap_vel_error_arr,  
+                                        Gap * gap, const std::string & ns)
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
 
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
-        // visualization_msgs::Marker leftGapPtModel_vel_error_pt, rightGapPtModel_vel_error_pt;
 
         drawModel(leftModelMarker, gap, left, id, ns);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
-        // draw_model_vel_error(leftGapPtModel_vel_error_pt, leftModelMarker, g, true, ns);
-        // gap_vel_error_arr.markers.push_back(leftGapPtModel_vel_error_pt);
 
         drawModel(rightModelMarker, gap, !left, id, ns);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
-        // draw_model_vel_error(rightGapPtModel_vel_error_pt, rightModelMarker, g, true, ns);
-        // gap_vel_error_arr.markers.push_back(rightGapPtModel_vel_error_pt);
     }
 
     /*

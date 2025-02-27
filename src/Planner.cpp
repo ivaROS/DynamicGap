@@ -101,7 +101,6 @@ namespace dynamic_gap
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
         // Visualization Setup
-        // currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
@@ -343,9 +342,6 @@ namespace dynamic_gap
                                 const ros::Time & tCurrentFilterUpdate) 
     {
         // ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
-        
-        // try
-        // {
 
         for (int i = 0; i < 2*gaps.size(); i++) 
         {
@@ -353,11 +349,6 @@ namespace dynamic_gap
             updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
             // ROS_INFO_STREAM_NAMED("GapEstimation", "");
         }
-
-        // } catch (...)
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapEstimation", "updateModels failed");
-        // }
 
         return;
     }
@@ -368,9 +359,6 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate) 
     {
-		// try
-        // {
-
         Gap * gap = gaps[int(idx / 2.0)];
 
         float rX = 0.0, rY = 0.0;
@@ -409,12 +397,7 @@ namespace dynamic_gap
             {                
                 ROS_WARN_STREAM_NAMED("GapEstimation", "right model is null");
             }
-        } 
-
-        // } catch (...) 
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapEstimation", "updateModel failed");
-        // }        
+        }    
     }
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
@@ -443,9 +426,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         if (!haveTFs_)
             return;
-
-        // try
-        // {
 
         // ROS_INFO_STREAM("   tPreviousModelUpdate_: " << tPreviousModelUpdate_);
 
@@ -539,11 +519,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // ROS_INFO_STREAM("           x: " << currentRbtVel_.twist.linear.x);
             // ROS_INFO_STREAM("           y: " << currentRbtVel_.twist.linear.y);
         }
-
-        // } catch (...)
-        // {
-        //     ROS_WARN_STREAM_NAMED("Planner", "jointPoseAccCB failed");
-        // }
     }
 
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
@@ -565,27 +540,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
             geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
 
-            // try 
-            // {
-                agentPoseMsgFrame.header = agentIState.header;
-                agentPoseMsgFrame.pose = agentIState.pose;
-                // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
+            agentPoseMsgFrame.header = agentIState.header;
+            agentPoseMsgFrame.pose = agentIState.pose;
+            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
-                //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-                tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
-                
-                // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
+            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+            tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
+            
+            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
 
-                // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-                currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
-            
-                // } catch (...) 
-            // {
-            //     ROS_WARN_STREAM_NAMED("Planner", "pedOdomCB odometry failed for " << agentIState.id);
-            // }
-            
-            // try 
-            // {
+            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
+            currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
 
             // std::cout << "in agentOdomCB" << std::endl;
             // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
@@ -597,11 +562,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
             currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
-
-            // } catch (...) 
-            // {
-            //     ROS_WARN_STREAM_NAMED("Planner", "pedOdomCB velocity failed for " << agentIState.id);
-            // }            
+        
         }
     }
 
@@ -651,9 +612,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // ignoring message entirely, just making separate thread for tfs to not
         // tether to other callbacks
 
-        // try 
-        // {
-            
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);        
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);        
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);        
@@ -664,21 +622,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         odom2rbt_ = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.odom_frame_id, ros::Time(0));
         rbt2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.robot_frame_id, ros::Time(0));
         map2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.map_frame_id, ros::Time(0));
-        cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
-        rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
+        // cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
+        // rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
         haveTFs_ = true;
 
-        tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
+        // tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
         // ROS_INFO_STREAM("tfCB succeeded");
-
-        // } catch (...) 
-        // {
-        //     ROS_WARN_STREAM("tfCB failed");
-        //     ros::Duration(0.1).sleep();
-        //     return;
-        // }
     }
 
     void Planner::updateEgoCircle()
@@ -703,10 +654,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return;
         }
 
-        // try
-        // {
-
-
         ROS_INFO_STREAM_NAMED("GapFeasibility", "    current raw gaps:");
         printGapModels(currRawGaps_);
         checkGapModels(currRawGaps_);
@@ -715,18 +662,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
-        
         for (size_t i = 0; i < planningGaps.size(); i++) 
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "   gap " << i);
             // propagate gap forward in time to determine lifespan
             gapFeasibilityChecker_->propagateGapPoints(planningGaps.at(i));
         }
-
-        // } catch(...)
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapFeasibility", "   propagateGapPoints failed");
-        // }
 
         return;
 
@@ -738,9 +679,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         boost::mutex::scoped_lock gapset(gapMutex_);
         std::vector<Gap *> manipulatedGaps;
-
-        // try
-        // {
 
         for (size_t i = 0; i < planningGaps.size(); i++)
         {
@@ -763,12 +701,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
         }
 
-        // } catch (...)
-        // {
-        //     ROS_INFO_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
-        //     ROS_WARN_STREAM_NAMED("GapManipulator", "   gapManipulate failed");
-        // }
-
         return manipulatedGaps;
     }
 
@@ -778,9 +710,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[gapSetFeasibilityCheck()]");
         std::vector<Gap *> feasibleGaps;
-
-        // try
-        // {
 
         // grabbing the current set of gaps
 
@@ -802,7 +731,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {                    
                 feasibleGaps.push_back(manipulatedGaps.at(i)); // shallow copy
 
-                // feasibleGaps.push_back(new Gap(*manipulatedGaps.at(i)));
                 // ROS_INFO_STREAM("Pushing back gap with peak velocity of : " << gaps.at(i)->peakSplineVelX_ << ", " << gaps.at(i)->peakSplineVelY_);
             
                 if (manipulatedGaps.at(i)->leftGapPtModel_->getID() == currentLeftGapPtModelID && 
@@ -813,11 +741,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
         }
             
-        // } catch(...)
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapFeasibility", "   gapSetFeasibilityCheck failed");
-        // }
-
         return feasibleGaps;
     }
 
@@ -833,9 +756,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         pathPoseCosts = std::vector<std::vector<float>>(gaps.size());
         pathTerminalPoseCosts = std::vector<float>(gaps.size());
-
-        // try 
-        // {
 
         for (size_t i = 0; i < gaps.size(); i++) 
         {
@@ -889,8 +809,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
-            traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), cam2odom_));
-            // pathTimings.at(i) = std::get<1>(traj);
+            traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
             generatedTrajs.push_back(traj);
         }
 
@@ -901,7 +820,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         Trajectory idlingTrajectory;
         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
         
-        // idlingTrajectory = gapTrajGenerator_->processTrajectory(idlingTrajectory, false);
         trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans);
         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        idlingCost: " << idlingCost);
@@ -909,13 +827,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         pathPoseCosts.push_back(idlingPoseCosts);
         pathTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
-        idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), cam2odom_));
+        idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
         generatedTrajs.push_back(idlingTrajectory);            
-
-        // } catch (...) 
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "generateGapTrajs failed");
-        // }
 
         trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
@@ -933,9 +846,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         int lowestCostTrajIdx = -1;        
         
-        // try
-        // {
-
         // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << paths.size());
         if (trajs.size() == 0) 
         {
@@ -981,11 +891,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    picking gap: " << lowestCostTrajIdx);
 
-        // } catch (...)
-        // {
-        //     ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "   pickTraj failed");
-        // }
-
         return lowestCostTrajIdx;
     }
 
@@ -1007,10 +912,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 setCurrentLeftGapPtModelID(nullptr);
                 setCurrentRightGapPtModelID(nullptr);
             }
-            // currentInterceptTime_ = incomingGap->t_intercept;
-            // currentMinSafeDist_ = incomingGap->minSafeDist_;
 
-            // currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
             trajVisualizer_->drawCurrentTrajectory(incomingTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
@@ -1026,10 +928,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             setCurrentTraj(emptyTraj);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
-            // currentInterceptTime_ = 0.0;
-            // currentMinSafeDist_ = 0.0;
 
-            // currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
             trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
@@ -1052,9 +951,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         Trajectory incomingTraj = trajs.at(lowestCostTrajIdx);
         Trajectory currentTraj = getCurrentTraj();
 
-        // try 
-        // {         
-
         // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapPtModelID() << ", current right gap index: " << getCurrentRightGapPtModelID());
 
         // std::cout << "current traj length: " << currentPath.poses.size() << std::endl;
@@ -1067,21 +963,22 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // Transform into the current robot frame to score against the current scan //
         //////////////////////////////////////////////////////////////////////////////
         geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformPath(incomingTraj.getPathOdomFrame(), odom2rbt_);
-        // incomingPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating incoming trajectory");
         std::vector<float> incomingPathPoseCosts;
         float incomingPathTerminalPoseCost;
         trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans);
 
-        float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0));
+        float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), 
+                                                                                incomingPathPoseCosts.end(), 
+                                                                                float(0));
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a cost of: " << incomingPathCost);
         
 
         ///////////////////////////////////////////////////////////////////////
         //  Evaluate the incoming path to determine if we can switch onto it //
         ///////////////////////////////////////////////////////////////////////
-        std::string incomingPathStatus = "incoming path is safe to switch onto"; // (incomingPathOdomFrame.poses.size() > 0) ? "incoming traj length 0" : "incoming cost infinite";
+        std::string incomingPathStatus = "incoming path is safe to switch onto";
 
         bool ableToSwitchToIncomingPath = true;
         if (incomingTraj.getPathRbtFrame().poses.size() == 0)
@@ -1094,7 +991,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ableToSwitchToIncomingPath = false;
         }
             
-
         ///////////////////////////////////////////////////////////////////////////////////
         //  Enact a trajectory switch if the currently executing path is empty (size: 0) //
         ///////////////////////////////////////////////////////////////////////////////////
@@ -1122,7 +1018,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //  Enact a trajectory switch if the currently executing path has been completely tracked //
         ////////////////////////////////////////////////////////////////////////////////////////////   
         geometry_msgs::PoseArray currentPathRobotFrame = gapTrajGenerator_->transformPath(currentTraj.getPathOdomFrame(), odom2rbt_);
-        // currentPathRobotFrame.header.frame_id = cfg_.robot_frame_id;
         int currentPathPoseIdx = getClosestTrajectoryPoseIdx(currentPathRobotFrame);
         geometry_msgs::PoseArray reducedCurrentPathRobotFrame = currentPathRobotFrame;
         reducedCurrentPathRobotFrame.poses = std::vector<geometry_msgs::Pose>(currentPathRobotFrame.poses.begin() + currentPathPoseIdx, currentPathRobotFrame.poses.end());

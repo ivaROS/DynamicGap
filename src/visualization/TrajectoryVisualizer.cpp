@@ -11,14 +11,21 @@ namespace dynamic_gap
 
         currentTrajectoryPublisher_ = nh.advertise<visualization_msgs::MarkerArray>("curr_exec_dg_traj", 1);
 
-        globalPlanPublisher = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
+        // globalPlanPublisher = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
+        globalPlanPublisher = nh.advertise<visualization_msgs::MarkerArray>("entire_global_plan", 10);
+
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
-        globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
+
+        // globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
+        globalPlanSnippetPublisher = nh.advertise<visualization_msgs::MarkerArray>("relevant_global_plan_snippet", 10);
     }
 
     void TrajectoryVisualizer::drawCurrentTrajectory(const Trajectory & traj)
     {
+        // First, clearing topic.
+        clearMarkerArrayPublisher(currentTrajectoryPublisher_);
+
         visualization_msgs::MarkerArray trajMarkerArray;
         visualization_msgs::Marker trajMarker;
 
@@ -34,7 +41,7 @@ namespace dynamic_gap
         trajMarker.type = visualization_msgs::Marker::ARROW;
         trajMarker.action = visualization_msgs::Marker::ADD;
         trajMarker.scale.x = 0.1;
-        trajMarker.scale.y = 0.04; // 0.01;
+        trajMarker.scale.y = 0.08; // 0.01;
         trajMarker.scale.z = 0.0001;
         trajMarker.color.a = 1;
         trajMarker.color.r = 1.0;
@@ -56,6 +63,9 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawPlanningLoopIdx(const int & planningLoopIdx) 
     {
+        // First, clearing topic.
+        clearMarkerPublisher(planLoopIdxPublisher);
+
         visualization_msgs::Marker trajSwitchIdxMarker;
 
         if (cfg_->robot_frame_id.empty())
@@ -90,6 +100,9 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawTrajectorySwitchCount(const int & trajSwitchIndex, const Trajectory & chosenTraj) 
     {
+        // First, clearing topic.
+        clearMarkerPublisher(trajSwitchIdxPublisher);
+
         geometry_msgs::PoseArray path = chosenTraj.getPathRbtFrame();
         geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
 
@@ -118,7 +131,9 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
+        // First, clearing topic.
+        clearMarkerArrayPublisher(globalPlanPublisher);
+
         if (globalPlan.empty()) 
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
 
@@ -128,26 +143,43 @@ namespace dynamic_gap
             return;
         }
 
-        geometry_msgs::PoseArray globalPlanPoseArray;
-        globalPlanPoseArray.header = globalPlan.at(0).header;
-        for (const geometry_msgs::PoseStamped & pose : globalPlan) 
-            globalPlanPoseArray.poses.push_back(pose.pose);
+        visualization_msgs::MarkerArray globalPlanMarkerArray;
+        visualization_msgs::Marker globalPlanMarker;
 
-        globalPlanPublisher.publish(globalPlanPoseArray);
+        globalPlanMarker.header.frame_id = globalPlan.at(0).header.frame_id;
+        globalPlanMarker.header.stamp = globalPlan.at(0).header.stamp;
+        globalPlanMarker.ns = "globalPlan";
+        globalPlanMarker.type = visualization_msgs::Marker::ARROW;
+        globalPlanMarker.action = visualization_msgs::Marker::ADD;
+        globalPlanMarker.scale.x = 0.1;
+        globalPlanMarker.scale.y = 0.04; // 0.01;
+        globalPlanMarker.scale.z = 0.0001;
+        globalPlanMarker.color.a = 1;
+        globalPlanMarker.color.r = 1.0;
+        globalPlanMarker.color.g = 0.0;
+        globalPlanMarker.color.b = 0.0;
+
+        globalPlanMarker.lifetime = ros::Duration(0);     
+        
+        for (const geometry_msgs::PoseStamped & poseStamped : globalPlan) 
+        {
+            globalPlanMarker.id = int (globalPlanMarkerArray.markers.size());
+            globalPlanMarker.pose = poseStamped.pose;
+            globalPlanMarkerArray.markers.push_back(globalPlanMarker);
+        }
+
+        // geometry_msgs::PoseArray globalPlanPoseArray;
+        // globalPlanPoseArray.header = globalPlan.at(0).header;
+        // for (const geometry_msgs::PoseStamped & pose : globalPlan) 
+            // globalPlanPoseArray.poses.push_back(pose.pose);
+
+        globalPlanPublisher.publish(globalPlanMarkerArray);
     }
 
     void TrajectoryVisualizer::drawGapTrajectories(const std::vector<Trajectory> & trajs) 
     {
-        // if (!cfg_->gap_viz.debug_viz) return;
-
         // First, clearing topic.
-        visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns =  "clear";
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        clearMarkerArray.markers.push_back(clearMarker);
-        gapTrajectoriesPublisher.publish(clearMarkerArray);
+        clearMarkerArrayPublisher(gapTrajectoriesPublisher);
 
         if (trajs.size() == 0)
         {
@@ -196,13 +228,8 @@ namespace dynamic_gap
     void TrajectoryVisualizer::drawGapTrajectoryPoseScores(const std::vector<Trajectory> & trajs, 
                                                            const std::vector<std::vector<float>> & trajPoseScores) 
     {
-        visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns =  "clear";
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        clearMarkerArray.markers.push_back(clearMarker);
-        trajPoseScoresPublisher.publish(clearMarkerArray);
+        // First, clearing topic.
+        clearMarkerArrayPublisher(trajPoseScoresPublisher);
 
         if (trajs.size() == 0)
             return;
@@ -273,10 +300,9 @@ namespace dynamic_gap
 
     void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet) 
     {
-        // try 
-        // { 
+        // First, clearing topic.
+        clearMarkerArrayPublisher(globalPlanSnippetPublisher);
 
-        geometry_msgs::PoseArray globalPlanSnippetPoseArray;
         if (globalPlanSnippet.empty())             // Should be safe with this check
         {
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlanSnippet.size() << " < 1");
@@ -289,15 +315,38 @@ namespace dynamic_gap
             return;
         }
 
-        globalPlanSnippetPoseArray.header = globalPlanSnippet.at(0).header;
+        visualization_msgs::MarkerArray globalPlanSnippetMarkerArray;
+        visualization_msgs::Marker globalPlanSnippetMarker;
 
-        for (const geometry_msgs::PoseStamped & pose : globalPlanSnippet) 
-            globalPlanSnippetPoseArray.poses.push_back(pose.pose);
+        // The above makes this safe
+        globalPlanSnippetMarker.header.frame_id = globalPlanSnippet.at(0).header.frame_id;
+        globalPlanSnippetMarker.header.stamp = globalPlanSnippet.at(0).header.stamp;
+        globalPlanSnippetMarker.ns = "globalPlanSnippet";
+        globalPlanSnippetMarker.type = visualization_msgs::Marker::ARROW;
+        globalPlanSnippetMarker.action = visualization_msgs::Marker::ADD;
+        globalPlanSnippetMarker.scale.x = 0.1;
+        globalPlanSnippetMarker.scale.y = 0.04; // 0.01;
+        globalPlanSnippetMarker.scale.z = 0.0001;
+        globalPlanSnippetMarker.color.a = 1;
+        globalPlanSnippetMarker.color.r = 1.0;
+        globalPlanSnippetMarker.lifetime = ros::Duration(0);
 
-        globalPlanSnippetPublisher.publish(globalPlanSnippetPoseArray);
+        for (const geometry_msgs::PoseStamped & poseStamped : globalPlanSnippet) 
+        {
+            globalPlanSnippetMarker.id = int (globalPlanSnippetMarkerArray.markers.size());
+            globalPlanSnippetMarker.pose = poseStamped.pose;
+            globalPlanSnippetMarkerArray.markers.push_back(globalPlanSnippetMarker);
+        }
 
-        // } catch (...) {
-        //     ROS_FATAL_STREAM("getVisibleGlobalPlanSnippetRobotFrame");
-        // }
+        globalPlanSnippetPublisher.publish(globalPlanSnippetMarkerArray);
+
+        // geometry_msgs::PoseArray globalPlanSnippetPoseArray;
+
+        // globalPlanSnippetPoseArray.header = globalPlanSnippet.at(0).header;
+
+        // for (const geometry_msgs::PoseStamped & pose : globalPlanSnippet) 
+        //     globalPlanSnippetPoseArray.poses.push_back(pose.pose);
+
+        // globalPlanSnippetPublisher.publish(globalPlanSnippetPoseArray);
     }
 }
