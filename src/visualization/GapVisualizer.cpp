@@ -564,10 +564,19 @@ namespace dynamic_gap
         }
         modelMarker.pose.position.z = 0.01;
 
-        float gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
+        float gapVelTheta;
+        if (gapVel.norm() < std::numeric_limits<float>::epsilon())
+        {
+            gapVelTheta = 0.0;
+        } else
+        {
+            gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
+
+        }
+
         tf2::Quaternion quat;
         quat.setRPY(0.0, 0.0, gapVelTheta);
-
+        
         modelMarker.pose.orientation.x = quat.getX();
         modelMarker.pose.orientation.y = quat.getY();
         modelMarker.pose.orientation.z = quat.getZ();

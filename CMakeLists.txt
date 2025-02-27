@@ -68,6 +68,7 @@ add_library(${PROJECT_NAME}
   src/scan_processing/DynamicScanPropagator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
+  src/trajectory_generation/GapGoalPlacer.cpp
   src/trajectory_evaluation/TrajectoryEvaluator.cpp
   src/trajectory_tracking/TrajectoryController.cpp
   # src/utils/Utils.cpp

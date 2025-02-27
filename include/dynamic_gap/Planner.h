@@ -33,6 +33,7 @@
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
 #include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
+#include <dynamic_gap/trajectory_generation/GapGoalPlacer.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 
@@ -112,7 +113,7 @@ namespace dynamic_gap
             * \param cmdVel most recent command velocity
             * \return boolean for if planner is functioning and command velocity is fine
             */
-            bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel);
+            bool recordAndCheckVel(const geometry_msgs::Twist & cmdVel, const int & trajFlag);
 
             /**
             * \brief Interface function for receiving incoming global plan and updating
@@ -444,6 +445,7 @@ namespace dynamic_gap
             GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
             TrajectoryEvaluator * trajEvaluator_ = NULL; /**< Trajectory scorer */
             DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
+            GapGoalPlacer * gapGoalPlacer_ = NULL; /**< Gap goal placer */
             GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
             GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
             TrajectoryController * trajController_ = NULL; /**< Trajectory controller */

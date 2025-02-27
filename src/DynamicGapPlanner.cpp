@@ -104,7 +104,7 @@ namespace dynamic_gap
 
         cmd_vel.twist = cmdVelNoStamp;
 
-        bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp);
+        bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp, trajFlag);
 
         /*
         *         SUCCESS           = 0

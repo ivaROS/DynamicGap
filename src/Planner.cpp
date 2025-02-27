@@ -29,6 +29,8 @@ namespace dynamic_gap
 
         delete gapTrajGenerator_;
 
+        delete gapGoalPlacer_;
+
         delete dynamicScanPropagator_;
 
         delete trajEvaluator_;
@@ -67,6 +69,8 @@ namespace dynamic_gap
         gapFeasibilityChecker_ = new GapFeasibilityChecker(cfg_);
 
         gapManipulator_ = new GapManipulator(cfg_);
+
+        gapGoalPlacer_ = new GapGoalPlacer(cfg_);
 
         gapTrajGenerator_ = new GapTrajectoryGenerator(cfg_);
 
@@ -670,6 +674,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         globalPlanManager_->updateEgoCircle(scan_);
         gapManipulator_->updateEgoCircle(scan_);
+        gapGoalPlacer_->updateEgoCircle(scan_);
         gapFeasibilityChecker_->updateEgoCircle(scan_);
         dynamicScanPropagator_->updateEgoCircle(scan_);
         trajEvaluator_->updateEgoCircle(scan_);
@@ -733,7 +738,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 {
                     ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
                     
-                    gapManipulator_->setGapGoal(planningGaps.at(i), 
+                    gapGoalPlacer_->setGapGoal(planningGaps.at(i), 
                                                 globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
                                                 globalGoalRobotFrame_);                    
 
@@ -876,7 +881,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             Trajectory idlingTrajectory;
             idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
             
-            idlingTrajectory = gapTrajGenerator_->processTrajectory(idlingTrajectory, false);
+            // idlingTrajectory = gapTrajGenerator_->processTrajectory(idlingTrajectory, false);
             trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans);
             idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        idlingCost: " << idlingCost);
@@ -1604,7 +1609,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
     }
 
-    bool Planner::recordAndCheckVel(const geometry_msgs::Twist & cmdVel) 
+    bool Planner::recordAndCheckVel(const geometry_msgs::Twist & cmdVel, const int & trajFlag) 
     {
         float cmdVelNorm = std::abs(cmdVel.linear.x) + std::abs(cmdVel.linear.y) + std::abs(cmdVel.angular.z);
 
@@ -1613,9 +1618,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
         
-        if (!keepPlanning && !cfg_.ctrl.man_ctrl) 
+        if (trajFlag == 0 && !keepPlanning && !cfg_.ctrl.man_ctrl) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
+            ROS_INFO_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             reset();
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
