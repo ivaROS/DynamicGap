@@ -32,11 +32,11 @@ namespace dynamic_gap
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
-            /**
-            * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
-            * \param gap queried gap
-            */
-            void radialExtendGap(Gap * gap); 
+            // /**
+            // * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
+            // * \param gap queried gap
+            // */
+            // void radialExtendGap(Gap * gap); 
             
             /**
             * \brief function for inflating gap radially and angularly to account for robot size

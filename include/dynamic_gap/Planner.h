@@ -341,6 +341,13 @@ namespace dynamic_gap
             void printGapModels(const std::vector<Gap *> & gaps);
             
             /**
+            * \brief Helper function for validating estimator states 
+            * the left and right points of the current set of gaps
+            * \param gaps current set of gaps
+            */
+            void checkGapModels(const std::vector<Gap *> & gaps);
+
+            /**
             * \brief Helper function for computing average computation times for planning
             * \param timeTaken time taken for particular step
             * \param planningStepIdx index for particular step

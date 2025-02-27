@@ -54,6 +54,24 @@ namespace dynamic_gap
         float angular_vel_z_ = 0.0; /**< Angular vel z */
     };
 
+    //////////////////////////////
+    //         CHECKING         // 
+    //////////////////////////////
+
+    inline bool checkModelState(const Eigen::Vector4f & state)
+    {
+        // check for nan
+
+        if (std::isnan(state[0]) || std::isnan(state[1]) || std::isnan(state[2]) || std::isnan(state[3]))
+            return false;
+
+        // check for inf
+        if (std::isinf(state[0]) || std::isinf(state[1]) || std::isinf(state[2]) || std::isinf(state[3]))
+            return false;
+
+        return true;
+
+    }
 
     //////////////////////////////
     //       CONVERSIONS        // 

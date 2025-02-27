@@ -71,7 +71,6 @@ add_library(${PROJECT_NAME}
   src/trajectory_generation/GapGoalPlacer.cpp
   src/trajectory_evaluation/TrajectoryEvaluator.cpp
   src/trajectory_tracking/TrajectoryController.cpp
-  # src/utils/Utils.cpp
   src/visualization/GapVisualizer.cpp
   src/visualization/GoalVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
