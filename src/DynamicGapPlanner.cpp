@@ -63,7 +63,7 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
-        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "computeVelocityCommands cmdVel: " << cmdVel);
 
         // TODO: just hardcoding this now, need to revise
         bool success = 1;
@@ -83,7 +83,7 @@ namespace dynamic_gap
         if (!planner_.initialized())
         {
             planner_.initialize(name_); // nh_
-            ROS_WARN_STREAM("computeVelocity called before initializing planner");
+            ROS_WARN_STREAM_NAMED("DynamicGapPlanner", "computeVelocity called before initializing planner");
         }
 
         planner_.setReachedGlobalGoal(false);

@@ -39,7 +39,7 @@ namespace dynamic_gap
 
         if (globalGoalOdomFrame.header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawGlobalGoal] Global goal frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGlobalGoal] Global goal frame_id is empty");
             return;
         }
 
@@ -69,7 +69,7 @@ namespace dynamic_gap
 
         if (globalPathLocalWaypoint.header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawGlobalPathLocalWaypoint] Global path local waypoint frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGlobalPathLocalWaypoint] Global path local waypoint frame_id is empty");
             return;
         }
 
@@ -108,14 +108,14 @@ namespace dynamic_gap
                                         const std::vector<Gap *> & gaps, 
                                         const bool & initial) 
     {
-        ROS_INFO_STREAM("[drawGapGoals()]");
+        ROS_INFO_STREAM_NAMED("Visualizer", "[drawGapGoals()]");
 
         if (gaps.size() == 0)
             return;
 
         if (gaps[0]->frame_.empty())
         {
-            ROS_WARN_STREAM("[drawGapGoals] Gap frame is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapGoals] Gap frame is empty");
             return;
         }
 
@@ -149,12 +149,12 @@ namespace dynamic_gap
             {
                 p.x = gap->goal.x_;
                 p.y = gap->goal.y_;
-                ROS_INFO_STREAM("visualizing initial goal: " << gap->goal.x_ << ", " << gap->goal.y_);
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing initial goal: " << gap->goal.x_ << ", " << gap->goal.y_);
             } else 
             {
                 p.x = gap->terminalGoal.x_;
                 p.y = gap->terminalGoal.y_; 
-                ROS_INFO_STREAM("visualizing terminal goal: " << gap->terminalGoal.x_ << ", " << gap->terminalGoal.y_);
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing terminal goal: " << gap->terminalGoal.x_ << ", " << gap->terminalGoal.y_);
             }
 
             marker.points.push_back(p);

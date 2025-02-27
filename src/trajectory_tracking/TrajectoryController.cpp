@@ -322,7 +322,7 @@ namespace dynamic_gap
             
         } else 
         {
-            ROS_DEBUG_STREAM_THROTTLE(10, "Projection operator off");
+            ROS_DEBUG_STREAM_THROTTLE_NAMED(10, "Controller", "Projection operator off");
         }
         
         float weightedVelLinXSafe = cfg_->projection.k_po_x * velLinXSafe;
@@ -354,11 +354,11 @@ namespace dynamic_gap
                                                            const float & minRangeTheta, 
                                                            const float & minRange) 
     {
-        ROS_INFO_STREAM("[visualizeProjectionOperator()]");
+        ROS_INFO_STREAM_NAMED("Controller", "[visualizeProjectionOperator()]");
 
         if (cfg_->robot_frame_id.empty())
         {
-            ROS_WARN_STREAM("robot_frame_id not set, cannot visualize projection operator");
+            ROS_WARN_STREAM_NAMED("Controller", "robot_frame_id not set, cannot visualize projection operator");
             return;
         }
 
@@ -389,7 +389,7 @@ namespace dynamic_gap
         projOpMarker.color.b = 0.0;
         projOpMarker.lifetime = ros::Duration(0);
 
-        ROS_INFO_STREAM("   projOpMarker: " << projOpMarker);
+        ROS_INFO_STREAM_NAMED("Controller", "   projOpMarker: " << projOpMarker);
 
         projOpPublisher_.publish(projOpMarker);
     }

@@ -26,7 +26,7 @@ namespace dynamic_gap
                                                 float & terminalPoseCost,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "         [evaluateTrajectory()]");
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
         // Requires LOCAL FRAME
 
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
@@ -38,17 +38,17 @@ namespace dynamic_gap
         {
             // std::cout << "regular range at " << i << ": ";
             posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "           pose " << i << " score: " << posewiseCosts.at(i));
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
         }
         float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "             pose-wise cost: " << totalTrajCost);
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             pose-wise cost: " << totalTrajCost);
 
         if (posewiseCosts.size() > 0) 
         {
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            terminal cost: " << terminalPoseCost);
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
         }
         
         // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
@@ -59,7 +59,7 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock planlock(globalPlanMutex_);
         // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", pose);
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            final pose: (" << pose.position.x << ", " << pose.position.y << "), local goal: (" << globalPathLocalWaypointRobotFrame_.pose.position.x << ", " << globalPathLocalWaypointRobotFrame_.pose.position.y << ")");
         float dx = pose.position.x - globalPathLocalWaypointRobotFrame_.pose.position.x;
         float dy = pose.position.y - globalPathLocalWaypointRobotFrame_.pose.position.y;
         return sqrt(pow(dx, 2) + pow(dy, 2));
@@ -92,7 +92,7 @@ namespace dynamic_gap
         float cost = chapterCost(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
         ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            robot pose: " << pose.position.x << ", " << pose.position.y << 
-                    ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", static cost: " << cost);
+                                                        ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", static cost: " << cost);
         return cost;
     }
 

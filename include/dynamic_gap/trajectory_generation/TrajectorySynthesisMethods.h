@@ -123,8 +123,8 @@ namespace dynamic_gap
         */
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
-            ROS_INFO_STREAM("t: " << t);
-            ROS_INFO_STREAM("   x: " << x[0] << ", " << x[1]);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   x: " << x[0] << ", " << x[1]);
 
             Eigen::Vector2f n_gamma_intercept(std::cos(gammaIntercept_), std::sin(gammaIntercept_));
 
@@ -144,7 +144,7 @@ namespace dynamic_gap
             if (rbtToTerminalGoal.norm() < 0.25 ||
                 (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm()))
             {
-                ROS_INFO_STREAM("   prematured stop");
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   prematured stop");
                 // stop trajectory prematurely
                 dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
                 dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
@@ -260,7 +260,7 @@ namespace dynamic_gap
         {
             if (frame_.empty())
             {
-                ROS_WARN_STREAM("TrajectoryLogger frame id is empty");
+                ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "TrajectoryLogger frame id is empty");
             }
         }
 

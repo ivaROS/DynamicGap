@@ -47,9 +47,6 @@ namespace dynamic_gap
 
     void GapManipulator::convertRadialGap(Gap * gap) 
     {
-        // try 
-        // {
-
         if (!gap->isRadial()) 
             return;
 
@@ -264,18 +261,10 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
         // ROS_INFO_STREAM_NAMED("GapManipulator",  "post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
-
-        // } catch (...)
-        // {
-        //     ROS_ERROR_STREAM_NAMED("GapManipulator", "convertRadialGap() failed");
-        // }
     }
 
     bool GapManipulator::inflateGapSides(Gap * gap) 
     {
-        // try 
-        // {
-
         // get points
 
         sensor_msgs::LaserScan desScan = *scan_.get();
@@ -294,9 +283,9 @@ namespace dynamic_gap
         Eigen::Vector2f leftPt(xLeft, yLeft);
         Eigen::Vector2f rightPt(xRight, yRight);
 
-        ROS_INFO_STREAM("    [inflateGapSides()]");
-        ROS_INFO_STREAM("        pre-inflate gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
-        ROS_INFO_STREAM("        pre-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "    [inflateGapSides()]");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-inflate gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        pre-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
         Eigen::Vector2f leftUnitNorm = leftPt.normalized();
         Eigen::Vector2f rightUnitNorm = rightPt.normalized();
@@ -318,15 +307,15 @@ namespace dynamic_gap
         Eigen::Vector2f leftAngularInflDir = Rnegpi2 * leftUnitNorm;
         Eigen::Vector2f rightAngularInflDir = Rpi2 * rightUnitNorm;
 
-        ROS_INFO_STREAM("        leftAngularInflDir: (" << leftAngularInflDir.transpose());
-        ROS_INFO_STREAM("        rightAngularInflDir: (" << rightAngularInflDir.transpose());
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        leftAngularInflDir: (" << leftAngularInflDir.transpose());
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        rightAngularInflDir: (" << rightAngularInflDir.transpose());
 
         // perform inflation
         Eigen::Vector2f inflatedLeftPt = leftPt + leftAngularInflDir * r_infl_left;
         Eigen::Vector2f inflatedRightPt = rightPt + rightAngularInflDir * r_infl_right;
 
-        ROS_INFO_STREAM("        inflatedLeftPt: (" << inflatedLeftPt.transpose());
-        ROS_INFO_STREAM("        inflatedRightPt: (" << inflatedRightPt.transpose());
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedLeftPt: (" << inflatedLeftPt.transpose());
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedRightPt: (" << inflatedRightPt.transpose());
 
         float inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
         float inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
@@ -348,7 +337,7 @@ namespace dynamic_gap
         // if gap is too small, mark it to be discarded
         if (newLeftToRightAngle > leftToRightAngle)
         {
-            ROS_INFO_STREAM("        inflation has failed, new points in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed, new points in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
 
             return false;
         }
@@ -360,8 +349,8 @@ namespace dynamic_gap
 
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);
-        ROS_INFO_STREAM("        post-inflate gap in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
-        ROS_INFO_STREAM("        post-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        post-inflate gap in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        post-inflate gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
         // Eigen::Vector2f trailingLeftPt = leftPt - leftAngularInflDir * r_infl_left;
         // Eigen::Vector2f trailingRightPt = rightPt - rightAngularInflDir * r_infl_right;
@@ -390,11 +379,5 @@ namespace dynamic_gap
 
 
         return true;
-
-        // } catch (...)
-        // {
-        //     ROS_ERROR_STREAM_NAMED("GapManipulator", "[inflateGapSides() failed]");
-        //     return false;
-        // }
     }
 }

@@ -470,12 +470,12 @@ namespace dynamic_gap
             */
             void setTerminalGoal(const Eigen::Vector2f & goalPt)
             {
-                ROS_INFO_STREAM("[setTerminalGoal()]");
+                ROS_INFO_STREAM_NAMED("Gap", "[setTerminalGoal()]");
                 
                 terminalGoal.x_ = goalPt[0];
                 terminalGoal.y_ = goalPt[1];
 
-                ROS_INFO_STREAM("   terminalGoal, x: " << terminalGoal.x_ << ", " << terminalGoal.y_);
+                ROS_INFO_STREAM_NAMED("Gap", "   terminalGoal, x: " << terminalGoal.x_ << ", " << terminalGoal.y_);
             }
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
