@@ -155,6 +155,59 @@ namespace dynamic_gap
                 manip.rightRange_ = newRightRange;
             }        
 
+            bool checkManipPoints()
+            {
+                if (std::isnan(manip.leftRange_) || std::isnan(manip.rightRange_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have NaN ranges");
+                    return false;
+                }
+
+                if (std::isinf(manip.leftRange_) || std::isinf(manip.rightRange_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have Inf ranges");
+                    return false;
+                }
+
+                if (std::isnan(manip.leftIdx_) || std::isnan(manip.rightIdx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have NaN indices");
+                    return false;
+                }
+
+                if (std::isinf(manip.leftIdx_) || std::isinf(manip.rightIdx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have Inf indices");
+                    return false;
+                }
+
+                if (manip.leftIdx_ < 0 || manip.rightIdx_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have negative indices");
+                    return false;
+                }
+
+                if (manip.leftRange_ < 0 || manip.rightRange_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have negative ranges");
+                    return false;
+                }
+
+                if (manip.leftIdx_ == manip.rightIdx_)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have same indices");
+                    return false;
+                }
+
+                if (manip.leftIdx_ >= 2*half_num_scan || manip.rightIdx_ >= 2*half_num_scan)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manipulated gap points have indices out of bounds");
+                    return false;
+                }
+
+                return true;
+            }
+
             /**
             * \brief Getter for initial manipulated left gap point index
             * \return initial manipulated left gap point index
@@ -190,8 +243,6 @@ namespace dynamic_gap
                 leftIdx_ = leftIdx;
                 leftRange_ = leftRange;
                 rightType_ = rightRange_ < leftRange_;
-
-                
 
                 // initializing convex polar gap coordinates to raw ones
                 manip.leftIdx_ = leftIdx_;

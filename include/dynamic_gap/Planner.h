@@ -271,12 +271,14 @@ namespace dynamic_gap
             * \param futureScans set of propagated scans to use during scoring
             * \return the trajectory that the robot will track
             */
-            Trajectory compareToCurrentTraj(const std::vector<Gap *> & feasibleGaps, 
-                                                            const std::vector<Trajectory> & trajs,
-                                                            const int & lowestCostTrajIdx,
-                                                            const int & trajFlag,
-                                                            const bool & isIncomingGapFeasible,
-                                                            const std::vector<sensor_msgs::LaserScan> & futureScans);
+            Trajectory compareToCurrentTraj(Gap * incomingGap,
+                                            const Trajectory & incomingTraj,
+                                            // const std::vector<Gap *> & feasibleGaps, 
+                                            // const std::vector<Trajectory> & trajs,
+                                            // const int & lowestCostTrajIdx,
+                                            // const int & trajFlag,
+                                            const bool & isIncomingGapFeasible,
+                                            const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for getting index of closest pose in trajectory
