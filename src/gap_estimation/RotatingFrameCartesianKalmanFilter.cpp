@@ -217,8 +217,8 @@ namespace dynamic_gap
 
         if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
         {
-            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "    GapEstimation", "intermediateRbtVels_ is empty, no update");
-            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "    GapEstimation", "intermediateRbtAccs_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "GapEstimation", "intermediateRbtVels_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "GapEstimation", "intermediateRbtAccs_ is empty, no update");
             return;
         }
 
