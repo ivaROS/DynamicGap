@@ -17,6 +17,8 @@ namespace dynamic_gap
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
+            void drawCurrentTrajectory(const Trajectory & traj);
+
             /**
             * \brief Visualize set of candidate trajectories through gaps
             * \param trajs set of trajectories to visualize
@@ -59,6 +61,7 @@ namespace dynamic_gap
 
         private: 
 
+            ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
             ros::Publisher gapTrajectoriesPublisher; /**< Publisher for gap trajectories */
             ros::Publisher trajPoseScoresPublisher; /**< Publisher for gap trajectory pose-wise scores */
             ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */

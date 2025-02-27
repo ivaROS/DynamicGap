@@ -356,6 +356,12 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM("[visualizeProjectionOperator()]");
 
+        if (cfg_->robot_frame_id.empty())
+        {
+            ROS_WARN_STREAM("robot_frame_id not set, cannot visualize projection operator");
+            return;
+        }
+
         visualization_msgs::Marker projOpMarker;
         projOpMarker.header.frame_id = cfg_->robot_frame_id;
         projOpMarker.header.stamp = ros::Time();

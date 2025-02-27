@@ -101,10 +101,10 @@ namespace dynamic_gap
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
         // Visualization Setup
-        currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
+        // currentTrajectoryPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("curr_exec_dg_traj", 1);
 
-        mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
-        mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
+        // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
+        // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -159,28 +159,28 @@ namespace dynamic_gap
         return reachedGlobalGoal_;
     }
 
-    void Planner::mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput)
-    {
-        if (mpcOutput->poses.size() == 0)
-        {
-            ROS_WARN_STREAM("MPC output length zero");
-            return;
-        }
+    // void Planner::mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput)
+    // {
+    //     if (mpcOutput->poses.size() == 0)
+    //     {
+    //         ROS_WARN_STREAM("MPC output length zero");
+    //         return;
+    //     }
 
-        if (mpcOutput->poses.size() > 1)
-        {
-            // first entry is initial condition
+    //     if (mpcOutput->poses.size() > 1)
+    //     {
+    //         // first entry is initial condition
 
-            // second entry should be what we want
-            geometry_msgs::Twist dummyTwist;
-            dummyTwist.linear.x = mpcOutput->poses[1].position.x;
-            dummyTwist.linear.y = mpcOutput->poses[1].position.y;
-            mpcTwist_ = dummyTwist;
-        } else
-        {
-            ROS_WARN_STREAM("MPC output length one");
-        }
-    }
+    //         // second entry should be what we want
+    //         geometry_msgs::Twist dummyTwist;
+    //         dummyTwist.linear.x = mpcOutput->poses[1].position.x;
+    //         dummyTwist.linear.y = mpcOutput->poses[1].position.y;
+    //         mpcTwist_ = dummyTwist;
+    //     } else
+    //     {
+    //         ROS_WARN_STREAM("MPC output length one");
+    //     }
+    // }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan)
     {
@@ -1010,7 +1010,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // currentInterceptTime_ = incomingGap->t_intercept;
             // currentMinSafeDist_ = incomingGap->minSafeDist_;
 
-            currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
+            // currentTrajectoryPublisher_.publish(incomingTraj.getPathRbtFrame());          
+            trajVisualizer_->drawCurrentTrajectory(incomingTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
 
@@ -1027,7 +1028,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // currentInterceptTime_ = 0.0;
             // currentMinSafeDist_ = 0.0;
 
-            currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
+            // currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
+            trajVisualizer_->drawCurrentTrajectory(incomingTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
 
@@ -1174,7 +1176,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
-        currentTrajectoryPublisher_.publish(currentTraj.getPathRbtFrame());
+        // currentTrajectoryPublisher_.publish(currentTraj.getPathRbtFrame());
+        trajVisualizer_->drawCurrentTrajectory(currentTraj);
 
         // } catch (...) 
         // {

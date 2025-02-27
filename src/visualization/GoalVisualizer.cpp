@@ -33,6 +33,13 @@ namespace dynamic_gap
     void GoalVisualizer::drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame)
     {
         visualization_msgs::Marker globalGoalMarker;
+
+        if (globalGoalOdomFrame.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawGlobalGoal] Global goal frame_id is empty");
+            return;
+        }
+
         globalGoalMarker.header.frame_id = globalGoalOdomFrame.header.frame_id;
         globalGoalMarker.header.stamp = globalGoalOdomFrame.header.stamp;
         globalGoalMarker.ns = "global_goal";
@@ -53,6 +60,13 @@ namespace dynamic_gap
     void GoalVisualizer::drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint)
     {
         visualization_msgs::Marker globalPathLocalWaypointMarker;
+
+        if (globalPathLocalWaypoint.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawGlobalPathLocalWaypoint] Global path local waypoint frame_id is empty");
+            return;
+        }
+
         globalPathLocalWaypointMarker.header.frame_id = globalPathLocalWaypoint.header.frame_id;
         globalPathLocalWaypointMarker.header.stamp = globalPathLocalWaypoint.header.stamp;
         globalPathLocalWaypointMarker.ns = "local_goal";
@@ -100,10 +114,16 @@ namespace dynamic_gap
                                         const std::vector<Gap *> & gaps, 
                                         const bool & initial) 
     {
-        ROS_INFO_STREAM("[drawGapGoal()]");
+        ROS_INFO_STREAM("[drawGapGoals()]");
 
         if (gaps.size() == 0)
             return;
+
+        if (gaps[0]->frame_.empty())
+        {
+            ROS_WARN_STREAM("[drawGapGoals] Gap frame is empty");
+            return;
+        }
 
         marker.header.stamp = ros::Time();
         marker.ns = "gap_goal";

@@ -364,7 +364,6 @@ namespace dynamic_gap
             DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
 
             ros::NodeHandle nh_; /**< ROS node handle for local path planner */
-            ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
 
             ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */

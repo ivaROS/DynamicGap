@@ -176,6 +176,12 @@ namespace dynamic_gap
    
         for (Gap * gap : gaps) 
         {
+            if (gap->frame_.empty())
+            {
+                ROS_WARN_STREAM("[drawGap] Gap frame is empty");
+                return;
+            }
+
             marker.header.frame_id = gap->frame_;
 
             int leftIdx = gap->LIdx(); // initial ?  : gap->termLIdx(); // initial ? gap->RIdx() : gap->termRIdx(); //
@@ -288,6 +294,12 @@ namespace dynamic_gap
    
         for (Gap * gap : gaps) 
         {
+            if (gap->frame_.empty())
+            {
+                ROS_WARN_STREAM("[drawManipGap] Gap frame is empty");
+                return;
+            }
+
             marker.header.frame_id = gap->frame_;
 
             int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
@@ -530,6 +542,12 @@ namespace dynamic_gap
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
                                     Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
+        if (gap->frame_.empty())
+        {
+            ROS_WARN_STREAM("[drawModel] Gap frame is empty");
+            return;
+        }
+        
         // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->frame_;
         modelMarker.header.stamp = ros::Time();

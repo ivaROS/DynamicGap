@@ -159,6 +159,10 @@ namespace dynamic_gap
     Trajectory GapTrajectoryGenerator::generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame)
     {
         geometry_msgs::PoseArray idlingPath;
+
+        idlingPath.header.stamp = rbtPoseInOdomFrame.header.stamp;
+        idlingPath.header.frame_id = cfg_->sensor_frame_id;
+
         std::vector<float> idlingPathTiming;
         geometry_msgs::Pose idlePose;
 

@@ -9,15 +9,61 @@ namespace dynamic_gap
         trajSwitchIdxPublisher = nh.advertise<visualization_msgs::Marker>("trajectory_switch", 10);
         planLoopIdxPublisher = nh.advertise<visualization_msgs::Marker>("planning_loop_idx", 10);
 
+        currentTrajectoryPublisher_ = nh.advertise<visualization_msgs::MarkerArray>("curr_exec_dg_traj", 1);
+
         globalPlanPublisher = nh.advertise<geometry_msgs::PoseArray>("entire_global_plan", 10);
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
         globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
     }
 
+    void TrajectoryVisualizer::drawCurrentTrajectory(const Trajectory & traj)
+    {
+        visualization_msgs::MarkerArray trajMarkerArray;
+        visualization_msgs::Marker trajMarker;
+
+        if (traj.getPathRbtFrame().header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawCurrentTrajectory] Trajectory frame_id is empty");
+            return;
+        }
+
+        trajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
+        trajMarker.header.stamp = traj.getPathRbtFrame().header.stamp;
+        trajMarker.ns = "currentTraj";
+        trajMarker.type = visualization_msgs::Marker::ARROW;
+        trajMarker.action = visualization_msgs::Marker::ADD;
+        trajMarker.scale.x = 0.1;
+        trajMarker.scale.y = 0.04; // 0.01;
+        trajMarker.scale.z = 0.0001;
+        trajMarker.color.a = 1;
+        trajMarker.color.r = 1.0;
+        trajMarker.color.g = 0.0;
+        trajMarker.color.b = 0.0;
+
+        trajMarker.lifetime = ros::Duration(0);     
+        
+        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+        for (const geometry_msgs::Pose & pose : path.poses) 
+        {
+            trajMarker.id = int (trajMarkerArray.markers.size());
+            trajMarker.pose = pose;
+            trajMarkerArray.markers.push_back(trajMarker);
+        }
+    
+        currentTrajectoryPublisher_.publish(trajMarkerArray);
+    }
+
     void TrajectoryVisualizer::drawPlanningLoopIdx(const int & planningLoopIdx) 
     {
         visualization_msgs::Marker trajSwitchIdxMarker;
+
+        if (cfg_->robot_frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawPlanningLoopIdx] Trajectory frame_id is empty");
+            return; 
+        }
+
         trajSwitchIdxMarker.header.frame_id = cfg_->robot_frame_id;
         trajSwitchIdxMarker.header.stamp = ros::Time::now();
 
@@ -101,6 +147,12 @@ namespace dynamic_gap
         visualization_msgs::Marker gapTrajMarker;
 
         Trajectory traj = trajs.at(0);
+
+        if (traj.getPathRbtFrame().header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawGapTrajectories] Trajectory frame_id is empty");
+            return;
+        }
 
         // The above makes this safe
         gapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
