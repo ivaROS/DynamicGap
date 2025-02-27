@@ -957,7 +957,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
             pathCosts.at(i) = pathTerminalPoseCosts.at(i) + std::accumulate(pathPoseCosts.at(i).begin(), 
-                                                                                pathPoseCosts.at(i).end(), float(0));
+                                                                            pathPoseCosts.at(i).end(), float(0));
             
             pathCosts.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathCosts.at(i);
             
@@ -990,8 +990,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     }
 
     Trajectory Planner::changeTrajectoryHelper(Gap * incomingGap, 
-                                                             const Trajectory & incomingTraj, 
-                                                             const bool & switchToIncoming) 
+                                                const Trajectory & incomingTraj, 
+                                                const bool & switchToIncoming) 
     {
         publishToMpc_ = true;
         
@@ -1018,10 +1018,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return incomingTraj;  
         } else 
         {
-            Trajectory emptyTraj;
             geometry_msgs::PoseArray emptyPath = geometry_msgs::PoseArray();
             emptyPath.header = incomingTraj.getPathRbtFrame().header;
             std::vector<float> emptyPathTiming;
+            Trajectory emptyTraj(emptyPath, emptyPathTiming);
+
             setCurrentTraj(emptyTraj);
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
@@ -1029,7 +1030,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // currentMinSafeDist_ = 0.0;
 
             // currentTrajectoryPublisher_.publish(emptyTraj.getPathRbtFrame());
-            trajVisualizer_->drawCurrentTrajectory(incomingTraj);
+            trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
 
@@ -1038,11 +1039,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     }
 
     Trajectory Planner::compareToCurrentTraj(const std::vector<Gap *> & feasibleGaps, 
-                                                            const std::vector<Trajectory> & trajs,
-                                                            const int & lowestCostTrajIdx,
-                                                            const int & trajFlag,
-                                                            const bool & isIncomingGapFeasible,
-                                                            const std::vector<sensor_msgs::LaserScan> & futureScans) // bool isIncomingGapAssociated,
+                                                const std::vector<Trajectory> & trajs,
+                                                const int & lowestCostTrajIdx,
+                                                const int & trajFlag,
+                                                const bool & isIncomingGapFeasible,
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);

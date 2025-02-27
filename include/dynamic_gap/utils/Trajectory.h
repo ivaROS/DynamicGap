@@ -21,6 +21,26 @@ namespace dynamic_gap
             {
                 pathRbtFrame_ = pathRbtFrame;
                 pathTiming_ = pathTiming;
+
+                if (pathRbtFrame.poses.empty())
+                {
+                    ROS_WARN_STREAM("Trajectory path in robot frame is empty");
+                }
+
+                if (pathTiming.empty())
+                {
+                    ROS_WARN_STREAM("Trajectory path timing is empty");
+                }
+
+                if (pathRbtFrame.poses.size() != pathTiming.size())
+                {
+                    ROS_WARN_STREAM("Trajectory path and timing size mismatch");
+                }
+
+                if (pathRbtFrame_.header.frame_id.empty())
+                {
+                    ROS_WARN_STREAM("Trajectory path frame id is empty");
+                }
             }
 
             /**

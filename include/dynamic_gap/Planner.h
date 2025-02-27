@@ -169,11 +169,11 @@ namespace dynamic_gap
             */
             void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
-            /**
-            * \brief Call back function for MPC output
-            * \param mpcOutput output decision variables for MPC
-            */
-            void mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput);
+            // /**
+            // * \brief Call back function for MPC output
+            // * \param mpcOutput output decision variables for MPC
+            // */
+            // void mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput);
 
             /**
             * \brief Call back function to robot laser scan

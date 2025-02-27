@@ -93,6 +93,12 @@ namespace dynamic_gap
         geometry_msgs::PoseArray path = chosenTraj.getPathRbtFrame();
         geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
 
+        if (path.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawTrajectorySwitchCount] Trajectory frame_id is empty");
+            return; 
+        }
+
         visualization_msgs::Marker trajSwitchIdxMarker;
         trajSwitchIdxMarker.header = path.header;
         trajSwitchIdxMarker.ns = "traj_switch_count";
@@ -113,8 +119,14 @@ namespace dynamic_gap
     void TrajectoryVisualizer::drawGlobalPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlan) 
     {
         // if (!cfg_->gap_viz.debug_viz) return;
-        if (globalPlan.size() < 1) 
+        if (globalPlan.empty()) 
             ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
+
+        if (globalPlan.at(0).header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawGlobalPlan] Trajectory frame_id is empty");
+            return;
+        }
 
         geometry_msgs::PoseArray globalPlanPoseArray;
         globalPlanPoseArray.header = globalPlan.at(0).header;
@@ -221,6 +233,12 @@ namespace dynamic_gap
             geometry_msgs::PoseArray path = trajs.at(i).getPathRbtFrame();
             geometry_msgs::Pose lastTrajPose = (path.poses.size() > 0) ? path.poses.back() : geometry_msgs::Pose();
                         
+            if (path.header.frame_id.empty())
+            {
+                ROS_WARN_STREAM("[drawGapTrajectoryPoseScores] Trajectory frame_id is empty");
+                return;
+            }
+
             trajPoseScoresMarker.header = path.header;
             trajPoseScoresMarker.id = i;
             trajPoseScoresMarker.pose.position = lastTrajPose.position;
@@ -259,8 +277,19 @@ namespace dynamic_gap
         // { 
 
         geometry_msgs::PoseArray globalPlanSnippetPoseArray;
-        if (globalPlanSnippet.size() > 0)             // Should be safe with this check
-            globalPlanSnippetPoseArray.header = globalPlanSnippet.at(0).header;
+        if (globalPlanSnippet.empty())             // Should be safe with this check
+        {
+            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlanSnippet.size() << " < 1");
+            return;
+        }    
+        
+        if (globalPlanSnippet.at(0).header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("[drawRelevantGlobalPlanSnippet] Trajectory frame_id is empty");
+            return;
+        }
+
+        globalPlanSnippetPoseArray.header = globalPlanSnippet.at(0).header;
 
         for (const geometry_msgs::PoseStamped & pose : globalPlanSnippet) 
             globalPlanSnippetPoseArray.poses.push_back(pose.pose);

@@ -35,6 +35,11 @@ namespace dynamic_gap
                 rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
                 // leftGapPtModel_ = new PerfectEstimator();
                 // rightGapPtModel_ = new PerfectEstimator();
+
+                if (frame.empty())
+                {
+                    ROS_WARN_STREAM("Gap frame is empty");
+                }
             };
 
             Gap(const Gap & otherGap)

@@ -256,7 +256,13 @@ namespace dynamic_gap
 
         TrajectoryLogger(geometry_msgs::PoseArray & path, const std::string & frame, 
                          std::vector<float> & pathTiming): 
-                         path_(path), frame_(frame), pathTiming_(pathTiming) {}
+                         path_(path), frame_(frame), pathTiming_(pathTiming) 
+        {
+            if (frame_.empty())
+            {
+                ROS_WARN_STREAM("TrajectoryLogger frame id is empty");
+            }
+        }
 
         /**
         * \brief () operator for logger that records trajectory state

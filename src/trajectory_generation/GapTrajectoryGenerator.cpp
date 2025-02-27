@@ -202,6 +202,17 @@ namespace dynamic_gap
         }
         transformedPath.header.frame_id = destPose.header.frame_id; // cfg_->odom_frame_id;
         transformedPath.header.stamp = transform.header.stamp;
+
+        if (transformedPath.poses.size() != path.poses.size())
+        {
+            ROS_WARN_STREAM("transformed path size mismatch: " << transformedPath.poses.size() << " vs " << path.poses.size());
+        }
+
+        if (transformedPath.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM("transformed path frame id is empty");
+        }
+
         // ROS_WARN_STREAM("leaving transform back with length: " << transformedPath.poses.size());
         return transformedPath;
     }
