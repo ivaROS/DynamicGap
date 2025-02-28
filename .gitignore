@@ -7,3 +7,5 @@
 .idea/
 doc/
 simulation_data/
+*.bag
+*.zip
