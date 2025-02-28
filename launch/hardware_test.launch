@@ -19,7 +19,7 @@
 	<node pkg="tf" type="static_transform_publisher" name="world_map_broadcaster" args="0 0 0 0 0 0 /world /map 1" />
     <node pkg="tf" type="static_transform_publisher" name="world2kmap" args="0 0 0 0 0 0  /map /known_map 1" />
     <node pkg="tf" type="static_transform_publisher" name="base2laser" args="0 0 0 0 0 0  /base_link /laser 1" />
-    <node pkg="tf" type="static_transform_publisher" name="base2modlaser" args="0 0 0 0 0 3.15149  /laser /mod_laser 1" />
+    <!-- <node pkg="tf" type="static_transform_publisher" name="base2modlaser" args="0 0 0 0 0 3.15149  /laser /mod_laser 1" /> -->
 
     <!-- map server, necessary for /move_base/make_plan service to work -->
     <node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">

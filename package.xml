@@ -21,6 +21,7 @@
   <!-- <depend>std_msgs</depend> -->
   <depend>pluginlib</depend>
   <depend>nav_core</depend>
+  <depend>mod_tb_scan</depend>
   <!-- <depend>pips_trajectory_msgs</depend> -->
   <!-- <depend>message_generation</depend> -->
 

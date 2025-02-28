@@ -10,6 +10,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   pluginlib
   roscpp
   rospy
+  mod_tb_scan
 )
 
 find_package(catkin REQUIRED COMPONENTS

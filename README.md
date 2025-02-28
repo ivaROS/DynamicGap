@@ -1,4 +1,4 @@
-### Dependencies and Installation
+# Dependencies and Installation
 
 Dependency | Version |
 --- | --- | 
@@ -32,29 +32,39 @@ Lastly, we use the `navigation_test` repository to set up and queue experiments:
 
 ``` git clone https://github.com/max-assel/navigation_test.git```
 
-### Building
+# Building
 
 Navigate to your ROS workspace and build:
 
 ``` catkin build ```
 
-### Running
-To run experiments, you can run
+# Running
+First, turn on the turtlebot, should hear a beep and power light should turn green.
 
-``` rosrun nav_scripts stdr_master.py```
+Second, confirm that your ROS networking variables are correctly set:
 
-And you can further modify experiments within `stdr_master.py`, including what planners to use, how many experiments, what maps, what obstacles, etc.
+```
+export ROS_MASTER_URI=http://localhost:11311
 
-### Documentation
-To generate Doxygen documentation for viewing:
+export ROS_IP=localhost
 
-``` mkdir doc ```
+export ROS_HOSTNAME=localhost
+```
 
-``` rosdoc_lite . ```
+## Teleop
+Start up turtlebot:
 
-``` firefox doc/html/annotated.html ```
+``` roslaunch turtlebot_bringup minimal.launch```
 
-### TODOs for Max
-- Make sure all nodes die correctly
-- add flag for static/dynamic to toggle propagation
-- add move_base_virtual, egocircle
+To start teleop:
+
+```roslaunch turtlebot_teleop keyboard_teleop.launch```
+
+## move_base
+Make sure laser + turtlebot cord are connected to laptop
+
+To start up turtlebot + laser + move_base/dynamic_gap, run
+
+```roslaunch dynamic_gap move_base_hardware_test.launch```
+
+Then, give the planner a desired goal position
