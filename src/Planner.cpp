@@ -23,6 +23,8 @@ namespace dynamic_gap
         delete globalPlanManager_;
         delete goalVisualizer_;
 
+        delete gapPropagator_;
+
         delete gapFeasibilityChecker_;
 
         delete gapManipulator_;
@@ -67,6 +69,8 @@ namespace dynamic_gap
         globalPlanManager_ = new GlobalPlanManager(cfg_);
 
         gapFeasibilityChecker_ = new GapFeasibilityChecker(cfg_);
+
+        gapPropagator_ = new GapPropagator(cfg_);
 
         gapManipulator_ = new GapManipulator(cfg_);
 
@@ -662,7 +666,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             ROS_INFO_STREAM_NAMED("GapFeasibility", "   gap " << i);
             // propagate gap forward in time to determine lifespan
-            gapFeasibilityChecker_->propagateGapPoints(planningGaps.at(i));
+            gapPropagator_->propagateGapPoints(planningGaps.at(i));
         }
 
         return;

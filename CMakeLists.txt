@@ -64,6 +64,7 @@ add_library(${PROJECT_NAME}
   src/gap_estimation/PerfectEstimator.cpp
   src/gap_estimation/RotatingFrameCartesianKalmanFilter.cpp
   src/gap_feasibility/GapFeasibilityChecker.cpp
+  src/gap_propagation/GapPropagator.cpp
   src/global_plan_management/GlobalPlanManager.cpp
   src/scan_processing/DynamicScanPropagator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
