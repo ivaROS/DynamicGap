@@ -161,6 +161,13 @@ namespace dynamic_gap
         return;
     }
 
+    void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & gaps) 
+    {
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [propagateGapPointsV2()]");
+
+        return;
+    }
+
     float GapPropagator::rewindGapPoints(const float & t, Gap * gap) 
     {    
         // ROS_INFO_STREAM("                   [rewindGapPoints()]");

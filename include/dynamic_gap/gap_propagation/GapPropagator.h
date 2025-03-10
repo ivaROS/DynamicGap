@@ -34,6 +34,8 @@ namespace dynamic_gap
             */                 
             void propagateGapPoints(Gap * gap);
 
+            void propagateGapPointsV2(const std::vector<Gap *> & gaps);
+
         private:
             /**
             * \brief Rewind crossed gap to find last point in time in which

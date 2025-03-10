@@ -215,7 +215,14 @@ namespace dynamic_gap
             * \param planningGaps set of gaps we will use to plan 
             * \return set of propagated gaps we will use to plan
             */
-            void propagateGapPoints(const std::vector<Gap *> & planningGaps);                                             
+            void propagateGapPoints(const std::vector<Gap *> & planningGaps);            
+            
+            /**
+            * \brief Function for propagating current gap points/models forward in time (v2)
+            * \param planningGaps set of gaps we will use to plan
+            * \return set of propagated gaps we will use to plan
+            */
+            void propagateGapPointsV2(const std::vector<Gap *> & planningGaps);
 
             /**
             * \brief Function for performing gap manipulation steps
