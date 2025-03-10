@@ -163,7 +163,7 @@ namespace dynamic_gap
 
     void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & gaps) 
     {
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [GapPropagator::propagateGapPointsV2()]");
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "   [GapPropagator::propagateGapPointsV2()]");
 
         gapPoints_.clear();
 
@@ -176,12 +176,127 @@ namespace dynamic_gap
         // 3. Assign Ungap IDs to gap points
         assignUnGapIDsToGapPoints();
 
-        // For point in gap points, ...
-        for (int i = 0; i < gapPoints_.size(); i++)
+        // 4. Propagate gap points loop
+        for (float t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
         {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "    gap point " << i);
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "       model state: " << gapPoints_.at(i).model->getGapState().transpose());
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "       ungapID: " << gapPoints_.at(i).ungapID);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       t: " << t);
+
+            // 5. Propagate points
+            for (int i = 0; i < gapPoints_.size(); i++)
+            {
+                gapPoints_.at(i)->propagate(cfg_->traj.integrate_stept);
+            }
+
+            // 6. Re-sort by bearing
+            std::sort(gapPoints_.begin(), gapPoints_.end(), GapPointComparator());
+
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       Gap points: ");
+            for (int i = 0; i < gapPoints_.size(); i++)
+            {
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "           gap point " << i);
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               scan idx: " << gapPoints_.at(i)->getScanIdx());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               model state: " << gapPoints_.at(i)->getModel()->getGapState().transpose());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               model ID: " << gapPoints_.at(i)->getModel()->getID());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               ungapID: " << gapPoints_.at(i)->getUngapID());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               is left: " << gapPoints_.at(i)->isLeft());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               is right: " << gapPoints_.at(i)->isRight());
+            }
+
+            // 7. Generate gaps
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       Generating gaps ...");
+            for (int i = 0; i < gapPoints_.size(); i++) // outer loop through points
+            {
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "           looping for outer gap point " << i);
+
+                GapPoint * gapPtI = gapPoints_.at(i);
+
+                if (gapPtI->isAssignedToGap()) // skip if point is already assigned to a gap
+                {
+                    ROS_INFO_STREAM_NAMED("GapFeasibility", "               gap point is already assigned to a gap, continuing...");
+                    continue;
+                }
+
+                if (gapPtI->isRight()) // checking for open gap (right to left)
+                {
+                    ROS_INFO_STREAM_NAMED("GapFeasibility", "               gap point is right, looping for open gap");
+                    for (int adder = 1; adder < gapPoints_.size(); adder++) // inner loop through points
+                    {
+                        int j = (i + adder) % gapPoints_.size();
+                        ROS_INFO_STREAM_NAMED("GapFeasibility", "                   looping for inner gap point " << j);
+                     
+                        GapPoint * gapPtJ = gapPoints_.at(j);
+
+                        if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
+                        {
+                            ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gap point is already assigned to a gap, continuing...");
+                            continue;
+                        }
+
+                        if (gapPtJ->isRight())
+                        {
+                            ROS_INFO_STREAM_NAMED("GapFeasibility", "                       found a better right gap point, breaking...");
+                            break;
+                        } else
+                        {
+                            ROS_INFO_STREAM_NAMED("GapFeasibility", "                       creating an open gap from pt " << i << " to pt " << j);
+                            // Create an open gap
+                            gapPtI->assignToGap();
+                            gapPtJ->assignToGap();
+
+                            // Create a gap
+
+                            break;
+                        }
+                    }
+                } else if (gapPtI->isLeft()) // checking for reversed gap
+                {
+                    ROS_INFO_STREAM_NAMED("GapFeasibility", "               gap point is right, looping for reversed gap");
+                    for (int adder = 1; adder < gapPoints_.size(); adder++) // inner loop through points
+                    {                        
+                        int j = (i + adder) % gapPoints_.size();
+                        ROS_INFO_STREAM_NAMED("GapFeasibility", "                   looping for inner gap point " << j);
+                     
+                        GapPoint * gapPtJ = gapPoints_.at(j);
+
+                        if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
+                        {
+                            ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gap point is already assigned to a gap, continuing...");                        
+                            continue;
+                        }
+
+                        if (gapPtJ->isLeft())
+                        {
+                            ROS_INFO_STREAM_NAMED("GapFeasibility", "                       found a better right gap point, breaking...");
+                            break;
+                        } else
+                        {
+                            if (gapPtJ->getUngapID() != gapPtI->getUngapID())
+                            {
+                                ROS_INFO_STREAM_NAMED("GapFeasibility", "                       creating a reversed gap from pt " << i << " to pt " << j);                         
+                                // Create a reversed gap
+                                gapPtI->assignToGap();
+                                gapPtJ->assignToGap();
+
+                                // Create a gap
+
+                                break;
+                            } else
+                            {
+                                ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gap points form an ungap, continuing...");
+                            }
+                        }
+                    }
+                } else
+                {
+                    ROS_WARN_STREAM_NAMED("GapFeasibility", "        gap point is not left or right");
+                }
+            }
+        }
+
+        // delete gap points
+        for (GapPoint * gapPt : gapPoints_)
+        {
+            delete gapPt;
         }
 
         return;
@@ -197,10 +312,9 @@ namespace dynamic_gap
             int rightGapPtIdx = theta2idx(rightGapPtTheta);
 
             if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(GapPoint(gap->rightGapPtModel_, rightGapPtIdx));
-                // rawModels.insert(std::pair<int, Estimator *>(rightGapPtIdx, gap->rightGapPtModel_));
+                gapPoints_.push_back(new GapPoint(gap->rightGapPtModel_, rightGapPtIdx, false));
             else
-                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        right gap pt idx out of bounds");
+                ROS_WARN_STREAM_NAMED("GapFeasibility", "        right gap pt idx out of bounds");
 
             // left
             gap->leftGapPtModel_->isolateGapDynamics();
@@ -208,10 +322,9 @@ namespace dynamic_gap
             int leftGapPtIdx = theta2idx(leftGapPtTheta);
 
             if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(GapPoint(gap->leftGapPtModel_, leftGapPtIdx));
-                // rawModels.insert(std::pair<int, Estimator *>(leftGapPtIdx, gap->leftGapPtModel_));
+                gapPoints_.push_back(new GapPoint(gap->leftGapPtModel_, leftGapPtIdx, true));
             else
-                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        left gap pt idx out of bounds");
+                ROS_WARN_STREAM_NAMED("GapFeasibility", "        left gap pt idx out of bounds");
             }
     }
 
@@ -219,15 +332,15 @@ namespace dynamic_gap
     {
         for (int i = 0; i < gapPoints_.size(); i++)
         {
-            Eigen::Vector4f ptIState = gapPoints_.at(i).model->getGapState();
+            Eigen::Vector4f ptIState = gapPoints_.at(i)->getModel()->getGapState();
 
             int nextIdx = (i + 1) % gapPoints_.size();
-            Eigen::Vector4f ptJState = gapPoints_.at(nextIdx).model->getGapState();
+            Eigen::Vector4f ptJState = gapPoints_.at(nextIdx)->getModel()->getGapState();
 
             if (isUngap(ptIState, ptJState))
             {
-                gapPoints_.at(i).ungapID = i;
-                gapPoints_.at(nextIdx).ungapID = i;
+                gapPoints_.at(i)->setUngapID(i);
+                gapPoints_.at(nextIdx)->setUngapID(i);
             }
         }
     }
@@ -244,14 +357,18 @@ namespace dynamic_gap
         bool distCheck = (ptIPos - ptJPos).norm() < 4 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
         // // check if speed of points is greater than 0.10
-        // bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
+        bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
 
         // // run angle check on LHS and RHS model velocities
-        // float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
-        // bool angleCheck = (vectorProj > 0.0);
+        float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
+        bool angleCheck = (vectorProj > 0.0);
 
-        return distCheck; // (distCheck && speedCheck && angleCheck);
+        return (distCheck && speedCheck && angleCheck);
     }
+
+    ////////
+    // v1 //
+    ////////
 
     float GapPropagator::rewindGapPoints(const float & t, Gap * gap) 
     {    
