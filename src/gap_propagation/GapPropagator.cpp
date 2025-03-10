@@ -161,9 +161,19 @@ namespace dynamic_gap
         return;
     }
 
+    struct GapPropagator::GapPoint 
+    {
+        Estimator * model = NULL;
+        int ungapID;
+    };
+
     void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & gaps) 
     {
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                [propagateGapPointsV2()]");
+
+        // Turn gaps into gap points
+
+        // Assign Ungap IDs to gap points
 
         return;
     }
