@@ -161,21 +161,96 @@ namespace dynamic_gap
         return;
     }
 
-    struct GapPropagator::GapPoint 
-    {
-        Estimator * model = NULL;
-        int ungapID;
-    };
-
     void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & gaps) 
     {
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [propagateGapPointsV2()]");
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [GapPropagator::propagateGapPointsV2()]");
 
-        // Turn gaps into gap points
+        gapPoints_.clear();
 
-        // Assign Ungap IDs to gap points
+        // 1. Turn gaps into gap points
+        convertGapsToGapPoints(gaps);
+
+        // 2. Sort gap points by bearing
+        std::sort(gapPoints_.begin(), gapPoints_.end(), GapPointComparator());
+
+        // 3. Assign Ungap IDs to gap points
+        assignUnGapIDsToGapPoints();
+
+        // For point in gap points, ...
+        for (int i = 0; i < gapPoints_.size(); i++)
+        {
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "    gap point " << i);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       model state: " << gapPoints_.at(i).model->getGapState().transpose());
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       ungapID: " << gapPoints_.at(i).ungapID);
+        }
 
         return;
+    }
+
+    void GapPropagator::convertGapsToGapPoints(const std::vector<Gap *> & gaps)
+    {
+        for (const Gap * gap : gaps)
+        {
+            // right
+            gap->rightGapPtModel_->isolateGapDynamics();
+            float rightGapPtTheta = gap->rightGapPtModel_->getGapBearing();
+            int rightGapPtIdx = theta2idx(rightGapPtTheta);
+
+            if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
+                gapPoints_.push_back(GapPoint(gap->rightGapPtModel_, rightGapPtIdx));
+                // rawModels.insert(std::pair<int, Estimator *>(rightGapPtIdx, gap->rightGapPtModel_));
+            else
+                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        right gap pt idx out of bounds");
+
+            // left
+            gap->leftGapPtModel_->isolateGapDynamics();
+            float leftGapPtTheta = gap->leftGapPtModel_->getGapBearing();
+            int leftGapPtIdx = theta2idx(leftGapPtTheta);
+
+            if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
+                gapPoints_.push_back(GapPoint(gap->leftGapPtModel_, leftGapPtIdx));
+                // rawModels.insert(std::pair<int, Estimator *>(leftGapPtIdx, gap->leftGapPtModel_));
+            else
+                ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        left gap pt idx out of bounds");
+            }
+    }
+
+    void GapPropagator::assignUnGapIDsToGapPoints()
+    {
+        for (int i = 0; i < gapPoints_.size(); i++)
+        {
+            Eigen::Vector4f ptIState = gapPoints_.at(i).model->getGapState();
+
+            int nextIdx = (i + 1) % gapPoints_.size();
+            Eigen::Vector4f ptJState = gapPoints_.at(nextIdx).model->getGapState();
+
+            if (isUngap(ptIState, ptJState))
+            {
+                gapPoints_.at(i).ungapID = i;
+                gapPoints_.at(nextIdx).ungapID = i;
+            }
+        }
+    }
+
+    bool GapPropagator::isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState)
+    {
+        Eigen::Vector2f ptIPos = ptIState.head(2);
+        Eigen::Vector2f ptJPos = ptJState.head(2);
+
+        Eigen::Vector2f ptIVel = ptIState.tail(2);
+        Eigen::Vector2f ptJVel = ptJState.tail(2);
+
+        // check if distance between points is less than 4 * r_inscr * inf_ratio
+        bool distCheck = (ptIPos - ptJPos).norm() < 4 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+
+        // // check if speed of points is greater than 0.10
+        // bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
+
+        // // run angle check on LHS and RHS model velocities
+        // float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
+        // bool angleCheck = (vectorProj > 0.0);
+
+        return distCheck; // (distCheck && speedCheck && angleCheck);
     }
 
     float GapPropagator::rewindGapPoints(const float & t, Gap * gap) 

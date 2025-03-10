@@ -10,6 +10,7 @@ Panels:
         - /Dynamic Gap1/Gaps1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray4
+        - /Dynamic Gap1/Marker1
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
       Splitter Ratio: 0.32637855410575867
@@ -264,14 +265,6 @@ Visualization Manager:
       Value: false
     - Class: rviz/Group
       Displays:
-        - Class: rviz/Marker
-          Enabled: false
-          Marker Topic: /rto/planning_loop_idx
-          Name: Marker
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: false
         - Class: rviz/Group
           Displays:
             - Alpha: 1
@@ -450,6 +443,14 @@ Visualization Manager:
               Value: false
           Enabled: false
           Name: Tracking
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /rto/planning_loop_idx
+          Name: Marker
+          Namespaces:
+            planning_loop_idx: true
+          Queue Size: 100
+          Value: true
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -667,7 +668,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 74.31993865966797
+      Scale: 50.64695358276367
       Target Frame: rto/base_link
       X: 4.5385918617248535
       Y: 0.06790941953659058

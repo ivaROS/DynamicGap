@@ -37,6 +37,12 @@ namespace dynamic_gap
             void propagateGapPointsV2(const std::vector<Gap *> & gaps);
 
         private:
+            void convertGapsToGapPoints(const std::vector<Gap *> & gaps);
+
+            void assignUnGapIDsToGapPoints();
+
+            bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
+
             /**
             * \brief Rewind crossed gap to find last point in time in which
             * robot can fit through gap 
@@ -49,5 +55,26 @@ namespace dynamic_gap
 
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */        
-    };
+
+            struct GapPoint 
+            {
+                GapPoint(Estimator * model, const int & scanIdx) : model(model), scanIdx(scanIdx) {}
+                GapPoint(Estimator * model, const int & scanIdx, const int & ungapID) : model(model), scanIdx(scanIdx), ungapID(ungapID) {}
+
+                Estimator * model = NULL;
+                int ungapID = -1;
+                int scanIdx = -1;
+            };
+
+            struct GapPointComparator
+            {
+                bool operator() (const GapPoint & lhs, const GapPoint & rhs) const
+                {
+                    return lhs.scanIdx < rhs.scanIdx;
+                }
+            };
+
+            std::vector<GapPoint> gapPoints_;
+        
+        };
 }

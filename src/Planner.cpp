@@ -662,6 +662,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
+        gapPropagator_->propagateGapPointsV2(planningGaps);
+
         return;
     }
 
