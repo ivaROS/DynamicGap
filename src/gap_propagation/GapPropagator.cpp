@@ -167,6 +167,14 @@ namespace dynamic_gap
 
         gapPoints_.clear();
 
+        gapTubes_.clear();
+        gapTubes_.resize(int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1);
+        gapTubes_.at(0).resize(gaps.size());
+        for (int i = 0; i < gaps.size(); i++)
+        {
+            gapTubes_.at(0).at(i) = new Gap(*gaps.at(i));
+        }
+
         // 1. Turn gaps into gap points
         convertGapsToGapPoints(gaps);
 
@@ -177,9 +185,12 @@ namespace dynamic_gap
         assignUnGapIDsToGapPoints();
 
         // 4. Propagate gap points loop
-        for (float t = cfg_->traj.integrate_stept; t < cfg_->traj.integrate_maxt; t += cfg_->traj.integrate_stept) 
-        {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "       t: " << t);
+        float t_i = 0.0, t_iplus1 = 0.0;
+        for (int futureTimeIdx = 1; futureTimeIdx < gapTubes_.size(); futureTimeIdx++) 
+        {        
+            t_iplus1 = t_i + cfg_->traj.integrate_stept;        
+
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       t: " << t_iplus1);
 
             // 5. Propagate points
             for (int i = 0; i < gapPoints_.size(); i++)
@@ -244,6 +255,8 @@ namespace dynamic_gap
                             gapPtJ->assignToGap();
 
                             // Create a gap
+                            gapTubes_.at(futureTimeIdx).push_back(new Gap(gapPtI->getFrame(),
+                                                                            *gapPtJ, *gapPtI));
 
                             break;
                         }
@@ -278,7 +291,8 @@ namespace dynamic_gap
                                 gapPtJ->assignToGap();
 
                                 // Create a gap
-
+                                gapTubes_.at(futureTimeIdx).push_back(new Gap(gapPtI->getFrame(),
+                                                                                *gapPtI, *gapPtJ));
 
                                 break;
                             } else
@@ -292,12 +306,22 @@ namespace dynamic_gap
                     ROS_WARN_STREAM_NAMED("GapFeasibility", "        gap point is not left or right");
                 }
             }
+            t_i = t_iplus1;
         }
 
         // delete gap points
         for (PropagatedGapPoint * gapPt : gapPoints_)
         {
             delete gapPt;
+        }
+
+        // delete gap tubes
+        for (std::vector<Gap *> gapTube : gapTubes_)
+        {
+            for (Gap * gap : gapTube)
+            {
+                delete gap;
+            }
         }
 
         return;

@@ -74,19 +74,20 @@ namespace dynamic_gap
             }
 
             Gap(const std::string & frame,
-                const bool & radial,
-                const bool & rightType,
                 const PropagatedGapPoint & leftPropagatedGapPoint,
                 const PropagatedGapPoint & rightPropagatedGapPoint)
             {
-                frame_ = frame;
-                radial_ = radial;
-                rightType_ = rightType;
-
                 if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
                 {
+                    frame_ = frame;
+
                     leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
                     rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
+
+                    // radial_ = radial;
+                    // rightType_ = rightType;
+                    setRadial();
+                    setRightType();
 
                     goal_ = new GapGoal();
                 }

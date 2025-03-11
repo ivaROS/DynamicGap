@@ -65,6 +65,8 @@ namespace dynamic_gap
             };
 
             std::vector<PropagatedGapPoint *> gapPoints_;
+
+            std::vector<std::vector<Gap *>> gapTubes_;
         
         };
 }
