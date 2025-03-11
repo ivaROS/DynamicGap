@@ -25,22 +25,12 @@ namespace dynamic_gap
                 const float & rangeRight, 
                 const bool & radial) : 
                 frame_(frame), 
-                // rightIdx_(rightIdx), 
-                // rightRange_(rangeRight), 
                 radial_(radial)
-                // minSafeDist_(minSafeDist_)
             {
-                // extendedGapOrigin_ << 0.0, 0.0;
-                // termExtendedGapOrigin_ << 0.0, 0.0;
-
                 leftGapPt_ = new GapPoint(-1, -1.0); // temp values
                 rightGapPt_ = new GapPoint(rightIdx, rangeRight);
 
                 // // Here, you can define what type of model you want to use
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // // leftGapPtModel_ = new PerfectEstimator();
-                // // rightGapPtModel_ = new PerfectEstimator();
 
                 if (frame.empty())
                 {
@@ -52,9 +42,6 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
                 gapLifespan_ = otherGap.gapLifespan_;
-                // minSafeDist_ = otherGap.minSafeDist_;
-                // extendedGapOrigin_ = otherGap.extendedGapOrigin_;
-                // termExtendedGapOrigin_ = otherGap.termExtendedGapOrigin_;
 
                 frame_ = otherGap.frame_;
 
@@ -65,37 +52,16 @@ namespace dynamic_gap
                 goal_ = otherGap.goal_;
 
                 // deep copy for new models
-                // leftIdx_ = otherGap.leftIdx_;
-                // leftRange_ = otherGap.leftRange_;
                 leftGapPt_ = new GapPoint(*otherGap.leftGapPt_);
-
-                // rightIdx_ = otherGap.rightIdx_;
-                // rightRange_ = otherGap.rightRange_;
                 rightGapPt_ = new GapPoint(*otherGap.rightGapPt_);
-
-                // // Here, you can define what type of model you want to use
-                // leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // rightGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
-                // // leftGapPtModel_ = new PerfectEstimator();
-                // // rightGapPtModel_ = new PerfectEstimator();
-
-                // transfer models (need to deep copy the models, not just the pointers)
-                // leftGapPtModel_->transfer(*otherGap.leftGapPtModel_);
-                // rightGapPtModel_->transfer(*otherGap.rightGapPtModel_);
 
                 globalGoalWithin = otherGap.globalGoalWithin;
 
-                // t_intercept_left = otherGap.t_intercept_left;
-                // t_intercept_right = otherGap.t_intercept_right;
-                // gamma_intercept_left = otherGap.gamma_intercept_left;
-                // gamma_intercept_right = otherGap.gamma_intercept_right;
                 gamma_intercept_goal = otherGap.gamma_intercept_goal;
 
                 end_condition = otherGap.end_condition;
 
                 // copy all the variables
-
-                // manip = otherGap.manip;
 
                 rgc_ = otherGap.rgc_;
             }
@@ -161,10 +127,6 @@ namespace dynamic_gap
                 leftGapPt_->setManipRange(newLeftRange);
                 rightGapPt_->setManipIdx(newRightIdx);
                 rightGapPt_->setManipRange(newRightRange);
-                // manip.leftIdx_ = newLeftIdx;
-                // manip.rightIdx_ = newRightIdx;
-                // manip.leftRange_ = newLeftRange;
-                // manip.rightRange_ = newRightRange;
             }        
 
             bool checkPoints()
@@ -209,102 +171,55 @@ namespace dynamic_gap
                 leftGapPt_->setOrigRange(leftRange); // leftRange_ = leftRange;
 
                 // initializing convex polar gap coordinates to raw ones
-                // manip.leftIdx_ = leftIdx;
-                // manip.leftRange_ = leftRange;
-                // manip.rightIdx_ = rightIdx_;
-                // manip.rightRange_ = rightRange_;
                 leftGapPt_->initManipPoint();
                 rightGapPt_->initManipPoint();
 
                 setRadial();
             }
 
-            void setGapLifespan(const float & gapLifespan)
-            {
-                gapLifespan_ = gapLifespan;
-            }
+            void setGapLifespan(const float & gapLifespan) { gapLifespan_ = gapLifespan; }
 
             /**
             * \brief Getter for initial left gap point in Cartesian frame
             * \param x x-position for left gap point
             * \param y y-position for left gap point
             */
-            void getLCartesian(float &x, float &y) const
-            {
-                leftGapPt_->getOrigCartesian(x, y);
-            }
+            void getLCartesian(float &x, float &y) const { leftGapPt_->getOrigCartesian(x, y); }
 
             /**
             * \brief Getter for right gap point in Cartesian frame
             * \param x x-position for right gap point
             * \param y y-position for right gap point
             */
-            void getRCartesian(float &x, float &y) const
-            {
-                rightGapPt_->getOrigCartesian(x, y);
-            }
-
-            // /**
-            // * \brief Getter for left gap point
-            //  */
-            // Eigen::Vector2f getLPosition() const
-            // {
-            //     float x = 0.0, y = 0.0;
-            //     getLCartesian(x, y);
-
-            //     return Eigen::Vector2f(x, y);
-            // }
-
-            // Eigen::Vector2f getRPosition() const
-            // {
-            //     float x = 0.0, y = 0.0;
-            //     getRCartesian(x, y);
-
-            //     return Eigen::Vector2f(x, y);
-            // }
+            void getRCartesian(float &x, float &y) const { rightGapPt_->getOrigCartesian(x, y); }
 
             /**
             * \brief Getter for initial manipulated left gap point in Cartesian frame
             * \param x x-position for left gap point
             * \param y y-position for left gap point
             */
-            void getManipulatedLCartesian(float &x, float &y) const
-            {
-                leftGapPt_->getManipCartesian(x, y);
-            }
+            void getManipulatedLCartesian(float &x, float &y) const { leftGapPt_->getManipCartesian(x, y); }
 
             /**
             * \brief Getter for initial manipulated right gap point in Cartesian frame
             * \param x x-position for right gap point
             * \param y y-position for right gap point
             */
-            void getManipulatedRCartesian(float &x, float &y) const
-            {
-                rightGapPt_->getManipCartesian(x, y);
-            }
+            void getManipulatedRCartesian(float &x, float &y) const { rightGapPt_->getManipCartesian(x, y); }
 
             /**
             * \brief Getter for initial manipulated left gap point in Cartesian frame
             * \return Initial manipulated left gap point in Cartesian frame
             */
-            Eigen::Vector2f getManipulatedLPosition() const
-            {
-                return leftGapPt_->getManipCartesian();
-            }
+            Eigen::Vector2f getManipulatedLPosition() const { return leftGapPt_->getManipCartesian(); }
 
             /**
             * \brief Getter for initial manipulated right gap point in Cartesian frame
             * \return Initial manipulated right gap point in Cartesian frame
             */
-            Eigen::Vector2f getManipulatedRPosition() const
-            {
-                return rightGapPt_->getManipCartesian();
-            }
+            Eigen::Vector2f getManipulatedRPosition() const { return rightGapPt_->getManipCartesian(); }
 
-            void setRightType()
-            {
-                rightType_ = rightGapPt_->getOrigRange() < leftGapPt_->getOrigRange();
-            }
+            void setRightType() { rightType_ = rightGapPt_->getOrigRange() < leftGapPt_->getOrigRange(); }
 
             /**
             * \brief Determine if gap is radial
@@ -365,25 +280,13 @@ namespace dynamic_gap
             * \brief Getter for gap radial condition
             * \return Gap radial condition
             */
-            bool isRadial() const
-            {
-                return radial_;
-            }
+            bool isRadial() const { return radial_; }
 
             /**
             * \brief Getter for gap "right type" (if right point is closer than left point) condition
             * \return Gap "right type" condition
             */
-            bool isRightType() const
-            {
-                return rightType_;
-            }
-
-            // /**
-            // * \brief Getter for initial minimum safe distance for gap
-            // * \return initial minimum safe distance for gap
-            // */
-            // float getMinSafeDist() { return minSafeDist_; }
+            bool isRightType() const { return rightType_; }
 
             /** 
             * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
@@ -405,14 +308,19 @@ namespace dynamic_gap
                 return sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
             }
 
+            std::string frame_ = ""; /**< Frame ID for gap */
+
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
+
+            int end_condition = -1; // 0 - collision, 1 - shut, 2 - overlapped, 3 - timed out
 
             // float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
 
             // Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
             // Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
 
-            std::string frame_ = ""; /**< Frame ID for gap */
+            GapPoint * leftGapPt_; /**< Left gap point */
+            GapPoint * rightGapPt_; /**< Right gap point */
             
             bool radial_ = false; /**< Initial gap radial characteristic identifier */
             
@@ -421,45 +329,9 @@ namespace dynamic_gap
             bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
             GapGoal goal_; /**< Gap goal */
-
-            GapPoint * leftGapPt_; /**< Left gap point */
-            GapPoint * rightGapPt_; /**< Right gap point */
-
-            // Estimator * leftGapPtModel_ = NULL; /**< Left gap point estimator */
-            // Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
-
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */
-
-            // float t_intercept_left = 0.0; /**< Intercept time for left gap point */
-            // float gamma_intercept_left = 0.0; /**< Intercept angle for left gap point */
-
-            // float t_intercept_right = 0.0; /**< Intercept time for right gap point */
-            // float gamma_intercept_right = 0.0; /**< Intercept angle for right gap point */
-
             float t_intercept_goal = 0.0;  /**< Intercept time for gap goal point */
             float gamma_intercept_goal = 0.0; /**< Intercept angle for gap goal point */
 
-            int end_condition = -1; // 0 - collision, 1 - shut, 2 - overlapped, 3 - timed out
-
-        private:
-
-            // int leftIdx_ = 511; /**< Initial left gap point index */
-            // float leftRange_ = 5; /**< Initial left gap point range */
-
-            // int rightIdx_ = 0; /**< Initial right gap point index */
-            // float rightRange_ = 5; /**< Initial right gap point range */
-            
-            // /**
-            // * \brief Parameters of manipulated form of gap
-            // */
-            // struct Manip 
-            // {
-            //     // "leading" gap points that define gap itself
-            //     int leftIdx_ = 511; /**< Initial manipulated left gap point index */
-            //     float leftRange_ = 5; /**< Initial manipulated left gap point range */
-
-            //     int rightIdx_ = 0; /**< Initial manipulated right gap point index */
-            //     float rightRange_ = 5; /**< Initial manipulated right gap point range */
-            // } manip;
     };
 }
