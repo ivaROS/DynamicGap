@@ -313,7 +313,7 @@ namespace dynamic_gap
             int rightGapPtIdx = theta2idx(rightGapPtTheta);
 
             if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), rightGapPtIdx, false));
+                gapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), gap->getFrame(), rightGapPtIdx, false));
             else
                 ROS_WARN_STREAM_NAMED("GapFeasibility", "        right gap pt idx out of bounds");
 
@@ -323,7 +323,7 @@ namespace dynamic_gap
             int leftGapPtIdx = theta2idx(leftGapPtTheta);
 
             if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), leftGapPtIdx, true));
+                gapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), gap->getFrame(), leftGapPtIdx, true));
             else
                 ROS_WARN_STREAM_NAMED("GapFeasibility", "        left gap pt idx out of bounds");
         }

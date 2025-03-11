@@ -3,6 +3,8 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/utils/PropagatedGapPoint.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
@@ -22,6 +24,16 @@ namespace dynamic_gap
                 // Do NOT want to initialize model here
             }
 
+            GapPoint(const int & idx, const float & range)
+            {
+                orig.idx_ = idx;
+                orig.range_ = range;
+
+                // Here, you can define what type of model you want to use
+                model_ = new RotatingFrameCartesianKalmanFilter();
+                // model_ = new PerfectEstimator();
+            }
+
             GapPoint(const GapPoint & otherGapPoint)
             {
                 orig.idx_ = otherGapPoint.orig.idx_;
@@ -37,14 +49,17 @@ namespace dynamic_gap
                 model_->transfer(*otherGapPoint.model_);
             }
 
-            GapPoint(const int & idx, const float & range)
+            // Run before manipulation
+            GapPoint(const PropagatedGapPoint & propagatedGapPoint)
             {
-                orig.idx_ = idx;
-                orig.range_ = range;
+                orig.idx_ = theta2idx(propagatedGapPoint.getModel()->getGapBearing());
+                orig.range_ = propagatedGapPoint.getModel()->getGapRange();
 
                 // Here, you can define what type of model you want to use
                 model_ = new RotatingFrameCartesianKalmanFilter();
                 // model_ = new PerfectEstimator();
+
+                model_->transferFromPropagatedGapPoint(*propagatedGapPoint.getModel());
             }
 
             bool checkOrigPoint()

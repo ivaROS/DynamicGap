@@ -130,6 +130,50 @@ namespace dynamic_gap
         return;
     }
 
+    // For transferring an existing model state to a new model
+    void RotatingFrameCartesianKalmanFilter::transferFromPropagatedGapPoint(const Estimator & model)
+    {
+        // ROS_INFO_STREAM("        transfering of model: " << model.modelID_);
+        // From Estimator.h
+        this->modelID_ = model.modelID_;  // keeping the same for now ...
+        this->side_ = model.side_;
+
+        // We have been propagating xFrozen_ forward in time, so we will use that as our new x_hat_kmin1_plus_
+        this->x_hat_kmin1_plus_ = model.xFrozen_;
+        this->x_hat_k_minus_ = model.xFrozen_;
+        this->x_hat_k_plus_ = model.xFrozen_;
+
+        // COVARIANCE MATRIX
+        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
+        this->P_kmin1_plus_ = model.P_kmin1_plus_;
+        this->P_k_minus_ = model.P_k_minus_;
+        this->P_k_plus_ = model.P_k_plus_;
+
+        this->xFrozen_ = model.xFrozen_;
+        this->xRewind_ = model.xRewind_;
+
+        this->G_k_ = model.G_k_;
+        this->xTilde_ = model.xFrozen_.head(2);
+
+        this->R_k_ = model.R_k_;
+        this->R_temp_ = model.R_temp_;
+        this->Q_k_ = model.Q_k_;
+        this->Q_temp_ = model.Q_temp_;
+
+
+        this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
+        this->lastRbtVel_ = model.lastRbtVel_;
+        this->lastRbtAcc_ = model.lastRbtAcc_;
+
+        this->tStart_ = model.tStart_;
+        this->tLastUpdate_ = model.tLastUpdate_;
+
+        this->manip_ = false; // will set to true if we do need to manip
+
+        return;
+    }
+
     Eigen::Vector4f RotatingFrameCartesianKalmanFilter::integrate() 
     {
         // ROS_INFO_STREAM("    [integrate()]");

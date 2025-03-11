@@ -80,6 +80,12 @@ namespace dynamic_gap
             */            
             virtual void transfer(const Estimator & incomingModel) = 0;
 
+            /**
+            * \brief Virtual function for transfering incoming model from propagated point to this model
+            * \param incomingModel incoming model from which we must transfer information to this model
+            */
+            virtual void transferFromPropagatedGapPoint(const Estimator & incomingModel) = 0;
+
             void setParams(const EstimationParameters & estParams)
             {
                 this->R_scalar = estParams.R_;
@@ -395,54 +401,66 @@ namespace dynamic_gap
             * \brief Getter function for non-relative estimator state. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator state
             */               
-            Eigen::Vector4f getGapState() { return xFrozen_; };
+            Eigen::Vector4f getGapState() { return xFrozen_; }
 
             /**
             * \brief Getter function for non-relative estimator position. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator position
             */               
-            Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); };
+            Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); }
 
             /**
             * \brief Getter function for non-relative estimator bearing. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator bearing
             */               
-            float getGapBearing() 
+            float getGapBearing() const 
             { 
                 Eigen::Vector2f gapPosition = xFrozen_.head(2); 
                 float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
                 return gapTheta; 
-            };
+            }
+
+            /**
+            *\brief Getter function for non-relative estimator range. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator range
+            */
+            float getGapRange() const
+            {
+                Eigen::Vector2f gapPosition = xFrozen_.head(2); 
+                float gapRange = gapPosition.norm();
+                return gapRange;
+            }
+
 
             /**
             * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator velocity
             */               
-            Eigen::Vector2f getGapVelocity() { return xFrozen_.tail(2); };
+            Eigen::Vector2f getGapVelocity() { return xFrozen_.tail(2); }
 
             /**
             * \brief Getter function for rewound non-relative estimator state
             * \return rewound non-relative (gap) estimator state
             */  
-            Eigen::Vector4f getRewindGapState() { return xRewind_; };
+            Eigen::Vector4f getRewindGapState() { return xRewind_; }
 
             /**
             * \brief Getter function for robot velocity
             * \return robot velocity
             */ 
-            geometry_msgs::TwistStamped getRobotVel() { return lastRbtVel_; };
+            geometry_msgs::TwistStamped getRobotVel() { return lastRbtVel_; }
 
             /**
             * \brief Getter function for model ID
             * \return robot velocity
             */ 
-            int getID() { return modelID_; };
+            int getID() { return modelID_; }
 
             /**
             * \brief Getter function for sensor measurement
             * \return sensor measurement
             */ 
-            Eigen::Vector2f getXTilde() { return xTilde_; };
+            Eigen::Vector2f getXTilde() { return xTilde_; }
 
             /**
             * \brief Function for subtracting off ego-robot velocity to obtain gap-only dynamical state

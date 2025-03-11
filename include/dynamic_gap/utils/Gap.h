@@ -73,11 +73,30 @@ namespace dynamic_gap
                 // rgc_ = otherGap.rgc_;
             }
 
-            // Gap(const PropagatedGapPoint & leftPropagatedGapPoint,
-            //     const PropagatedGapPoint & rightPropagatedGapPoint)
-            // {
+            Gap(const std::string & frame,
+                const bool & radial,
+                const bool & rightType,
+                const PropagatedGapPoint & leftPropagatedGapPoint,
+                const PropagatedGapPoint & rightPropagatedGapPoint)
+            {
+                frame_ = frame;
+                radial_ = radial;
+                rightType_ = rightType;
 
-            // }
+                if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
+                {
+                    leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
+                    rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
+
+                    goal_ = new GapGoal();
+                }
+                else
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap points are not left and right");
+                }
+
+
+            }
 
             ~Gap() 
             {

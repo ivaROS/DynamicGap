@@ -56,6 +56,12 @@ namespace dynamic_gap
         return;
     }
 
+    // For transferring an existing model state to a new model
+    void PerfectEstimator::transferFromPropagatedGapPoint(const Estimator & incomingModel)
+    {
+        throw std::runtime_error("PerfectEstimator::transferFromPropagatedGapPoint not implemented"); 
+    }
+
     void PerfectEstimator::update(const Eigen::Vector2f & measurement, 
                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
                                     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
