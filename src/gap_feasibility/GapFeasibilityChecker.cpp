@@ -415,10 +415,10 @@ namespace dynamic_gap
         // gap->gamma_intercept_right = gamma_intercept_right;
 
         // set target position to gap goal
-        Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
+        Eigen::Vector2f p_target = gap->goal_.getOrigGoalPos();  // (gap->goal.x_, gap->goal.y_);
 
         // set target velocity to mean of left and right gap points
-        Eigen::Vector2f v_target(gap->goal.vx_, gap->goal.vy_);
+        Eigen::Vector2f v_target = gap->goal_.getOrigGoalVel(); // (gap->goal.vx_, gap->goal.vy_);
 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       p_target: " << p_target.transpose()); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       v_target: " << v_target.transpose()); 
@@ -488,7 +488,8 @@ namespace dynamic_gap
             gap->t_intercept_goal = t_intercept_goal;
             gap->gamma_intercept_goal = terminalGoalTheta;
 
-            gap->setTerminalGoal(terminalGoal);
+            // gap->setTerminalGoal(terminalGoal);
+            gap->goal_.setTermGoalPos(terminalGoal);
 
             return true;            
         }

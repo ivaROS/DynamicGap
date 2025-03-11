@@ -89,8 +89,10 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
 
-            gap->setGoal(inflatedCenterPt);
-            gap->setGoalVel(centerVel);
+            gap->goal_.setOrigGoalPos(inflatedCenterPt);
+            gap->goal_.setOrigGoalVel(centerVel);
+            // gap->setGoal(inflatedCenterPt);
+            // gap->setGoalVel(centerVel);
         } else
         {
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 2: global path local waypoint biased");
@@ -122,8 +124,10 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
 
-            gap->setGoal(inflatedBiasedGapGoal);
-            gap->setGoalVel(biasedGapVel);
+            gap->goal_.setOrigGoalPos(inflatedBiasedGapGoal);
+            gap->goal_.setOrigGoalVel(biasedGapVel);
+            // gap->setGoal(inflatedBiasedGapGoal);
+            // gap->setGoalVel(biasedGapVel);
         }      
     }
 

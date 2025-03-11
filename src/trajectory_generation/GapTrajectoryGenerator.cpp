@@ -55,7 +55,7 @@ namespace dynamic_gap
 
         Eigen::Vector4f leftGapState = selectedGap->leftGapPtModel_->getGapState();
         Eigen::Vector4f rightGapState = selectedGap->rightGapPtModel_->getGapState();
-        Eigen::Vector2f initialGoal(selectedGap->goal.x_, selectedGap->goal.y_);
+        Eigen::Vector2f initialGoal = selectedGap->goal_.getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
 
         float leftVelX = leftGapState[2];
         float leftVelY = leftGapState[3];
@@ -115,7 +115,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
 
             // For PN, we will drive at terminal Goal, so pass it on to know when to stop                
-            Eigen::Vector2f terminalGoal(selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+            Eigen::Vector2f terminalGoal = selectedGap->goal_.getTermGoalPos();  // (selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoal[0] << ", " << terminalGoal[1] << ")"); 
 

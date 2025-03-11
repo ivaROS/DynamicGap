@@ -147,14 +147,14 @@ namespace dynamic_gap
             geometry_msgs::Point p;
             if (initial) 
             {
-                p.x = gap->goal.x_;
-                p.y = gap->goal.y_;
-                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing initial goal: " << gap->goal.x_ << ", " << gap->goal.y_);
+                p.x = gap->goal_.getOrigGoalPosX(); // gap->goal.x_;
+                p.y = gap->goal_.getOrigGoalPosY(); // gap->goal.y_;
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing initial goal: " << p.x << ", " << p.y);
             } else 
             {
-                p.x = gap->terminalGoal.x_;
-                p.y = gap->terminalGoal.y_; 
-                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing terminal goal: " << gap->terminalGoal.x_ << ", " << gap->terminalGoal.y_);
+                p.x = gap->goal_.getTermGoalPosX(); // gap->terminalGoal.x_;
+                p.y = gap->goal_.getTermGoalPosY(); // gap->terminalGoal.y_; 
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing terminal goal: " << p.x << ", " << p.y);
             }
 
             marker.points.push_back(p);
