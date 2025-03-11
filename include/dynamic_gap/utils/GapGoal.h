@@ -12,55 +12,52 @@ namespace dynamic_gap
 
             void setOrigGoalPos(const Eigen::Vector2f & goalPt)
             {
-                orig.x_ = goalPt[0];
-                orig.y_ = goalPt[1];
+                origGoalPos_ = goalPt;
             }
 
             void setOrigGoalVel(const Eigen::Vector2f & goalVel)
             {
-                vx_ = goalVel[0];
-                vy_ = goalVel[1];
+                origGoalVel_ = goalVel;
             }
 
             void setTermGoalPos(const Eigen::Vector2f & goalPt)
             {
-                term.x_ = goalPt[0];
-                term.y_ = goalPt[1];
+                termGoalPos_ = goalPt;
             }
 
             float getOrigGoalPosX() const
             {
-                return orig.x_;
+                return origGoalPos_[0];
             }
 
             float getOrigGoalPosY() const
             {
-                return orig.y_;
+                return origGoalPos_[1];
             }
 
             Eigen::Vector2f getOrigGoalPos() const
             {
-                return Eigen::Vector2f(orig.x_, orig.y_);
+                return origGoalPos_;
             }
 
             Eigen::Vector2f getOrigGoalVel() const
             {
-                return Eigen::Vector2f(vx_, vy_);
+                return origGoalVel_;
             }
 
             float getTermGoalPosX() const
             {
-                return term.x_;
+                return termGoalPos_[0];
             }
 
             float getTermGoalPosY() const
             {
-                return term.y_;
+                return termGoalPos_[1];
             }
 
             Eigen::Vector2f getTermGoalPos() const
             {
-                return Eigen::Vector2f(term.x_, term.y_);
+                return termGoalPos_;
             }
 
         private:
@@ -68,19 +65,25 @@ namespace dynamic_gap
             float t_intercept_ = 0.0; /**< Time to intercept gap goal */
             float gamma_intercept_ = 0.0; /**< Angle to intercept gap goal */
 
-            float vx_ = 0.0; /**< Original gap goal x-vel */
-            float vy_ = 0.0; /**< Original gap goal y-vel */
+            // float vx_ = 0.0; /**< Original gap goal x-vel */
+            // float vy_ = 0.0; /**< Original gap goal y-vel */
 
-            struct Orig
-            {
-                float x_ = 0.0; /**< Original gap goal x-value */
-                float y_ = 0.0; /**< Original gap goal y-value */
-            } orig;
+            Eigen::Vector2f origGoalPos_; /**< Original gap goal position */
 
-            struct Term
-            {
-                float x_ = 0.0; /**< Terminal gap goal x-value */
-                float y_ = 0.0; /**< Terminal gap goal y-value */
-            } term;
+            Eigen::Vector2f origGoalVel_; /**< Original gap goal velocity */
+
+            Eigen::Vector2f termGoalPos_; /**< Terminal gap goal position */
+
+            // struct Orig
+            // {
+            //     float x_ = 0.0; /**< Original gap goal x-value */
+            //     float y_ = 0.0; /**< Original gap goal y-value */
+            // } orig;
+
+            // struct Term
+            // {
+            //     float x_ = 0.0; /**< Terminal gap goal x-value */
+            //     float y_ = 0.0; /**< Terminal gap goal y-value */
+            // } term;
     };
 }

@@ -60,10 +60,6 @@ namespace dynamic_gap
 
                 goal_ = otherGap.goal_;
 
-                // goal = otherGap.goal;
-
-                // terminalGoal = otherGap.terminalGoal;
-
                 // deep copy for new models
                 // Here, you can define what type of model you want to use
                 leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
@@ -447,40 +443,6 @@ namespace dynamic_gap
 
                 return sqrt(pow(rightRange_, 2) + pow(leftRange_, 2) - 2 * rightRange_ * leftRange_ * cos(gapAngle));
             }
-            
-            // /**
-            // * \brief Setter for gap goal point
-            // * \param goalPt gap goal point
-            // */
-            // void setGoal(const Eigen::Vector2f & goalPt)
-            // {
-            //     goal.x_ = goalPt[0];
-            //     goal.y_ = goalPt[1];
-            // }
-
-            // /**
-            // * \brief Setter for gap goal veloicty
-            // * \param goalVel gap goal velocity
-            // */
-            // void setGoalVel(const Eigen::Vector2f & goalVel)
-            // {
-            //     goal.vx_ = goalVel[0];
-            //     goal.vy_ = goalVel[1];
-            // }
-
-            // /**
-            // * \brief Setter for terminal gap goal point
-            // * \param goalPt terminal gap goal point
-            // */
-            // void setTerminalGoal(const Eigen::Vector2f & goalPt)
-            // {
-            //     ROS_INFO_STREAM_NAMED("Gap", "[setTerminalGoal()]");
-                
-            //     terminalGoal.x_ = goalPt[0];
-            //     terminalGoal.y_ = goalPt[1];
-
-            //     ROS_INFO_STREAM_NAMED("Gap", "   terminalGoal, x: " << terminalGoal.x_ << ", " << terminalGoal.y_);
-            // }
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
 
@@ -498,28 +460,6 @@ namespace dynamic_gap
             bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
             GapGoal goal_; /**< Gap goal */
-
-            // /**
-            // * \brief Gap's initial goal
-            // */
-            // struct Goal 
-            // {
-            //     float x_ = 0.0; /**< Gap initial goal x-value */
-            //     float y_ = 0.0; /**< Gap initial goal y-value */
-
-            //     float vx_ = 0.0; /**< Gap initial goal x-vel */
-            //     float vy_ = 0.0; /**< Gap initial goal y-vel */
-
-            // } goal;
-
-            // /**
-            // * \brief Gap's terminal goal
-            // */
-            // struct TerminalGoal 
-            // {
-            //     float x_ = 0.0; /**< Gap terminal goal x-value */
-            //     float y_ = 0.0; /**< Gap terminal goal y-value */
-            // } terminalGoal;
 
             Estimator * leftGapPtModel_ = NULL; /**< Left gap point estimator */
             Estimator * rightGapPtModel_ = NULL; /**< Right gap point estimator */
