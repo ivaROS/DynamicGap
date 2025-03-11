@@ -30,6 +30,7 @@ namespace dynamic_gap
                 manip.idx_ = otherGapPoint.manip.idx_;
                 manip.range_ = otherGapPoint.manip.range_;
 
+                // Deep copy of models
                 model_ = new RotatingFrameCartesianKalmanFilter();
                 // model_ = new PerfectEstimator();
 

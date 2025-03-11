@@ -113,7 +113,7 @@ namespace dynamic_gap
         if (gaps.size() == 0)
             return;
 
-        if (gaps[0]->frame_.empty())
+        if (gaps[0]->getFrame().empty())
         {
             ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapGoals] Gap frame is empty");
             return;
@@ -121,7 +121,7 @@ namespace dynamic_gap
 
         marker.header.stamp = ros::Time();
         marker.ns = "gap_goal";
-        marker.header.frame_id = gaps[0]->frame_;
+        marker.header.frame_id = gaps[0]->getFrame();
 
         marker.type = visualization_msgs::Marker::SPHERE_LIST;
         marker.action = visualization_msgs::Marker::ADD;     
@@ -142,18 +142,18 @@ namespace dynamic_gap
 
         for (Gap * gap : gaps) 
         {
-            // marker.header.frame_id = gap->frame_;
+            // marker.header.frame_id = gap->getFrame();
 
             geometry_msgs::Point p;
             if (initial) 
             {
-                p.x = gap->goal_.getOrigGoalPosX(); // gap->goal.x_;
-                p.y = gap->goal_.getOrigGoalPosY(); // gap->goal.y_;
+                p.x = gap->getGoal()->getOrigGoalPosX(); // gap->goal.x_;
+                p.y = gap->getGoal()->getOrigGoalPosY(); // gap->goal.y_;
                 ROS_INFO_STREAM_NAMED("Visualizer", "visualizing initial goal: " << p.x << ", " << p.y);
             } else 
             {
-                p.x = gap->goal_.getTermGoalPosX(); // gap->terminalGoal.x_;
-                p.y = gap->goal_.getTermGoalPosY(); // gap->terminalGoal.y_; 
+                p.x = gap->getGoal()->getTermGoalPosX(); // gap->terminalGoal.x_;
+                p.y = gap->getGoal()->getTermGoalPosY(); // gap->terminalGoal.y_; 
                 ROS_INFO_STREAM_NAMED("Visualizer", "visualizing terminal goal: " << p.x << ", " << p.y);
             }
 

@@ -8,6 +8,7 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/utils/GapGoal.h>
 #include <dynamic_gap/utils/GapPoint.h>
+#include <dynamic_gap/utils/PropagatedGapPoint.h>
 #include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
 #include <dynamic_gap/gap_estimation/PerfectEstimator.h>
 
@@ -23,14 +24,15 @@ namespace dynamic_gap
             Gap(const std::string & frame, 
                 const int & rightIdx, 
                 const float & rangeRight, 
-                const bool & radial) : 
-                frame_(frame), 
-                radial_(radial)
+                const bool & radial)
             {
+                frame_ = frame;
+                radial_ = radial;
+
                 leftGapPt_ = new GapPoint(-1, -1.0); // temp values
                 rightGapPt_ = new GapPoint(rightIdx, rangeRight);
 
-                // // Here, you can define what type of model you want to use
+                goal_ = new GapGoal();
 
                 if (frame.empty())
                 {
@@ -38,36 +40,48 @@ namespace dynamic_gap
                 }
             };
 
+            // This constructor should only be run
+            //      After:
+            //          Gap Detection (points are set)
+            //      Before:
+            //          Gap Propagation
+            //          Gap Feasibility Analysis
+            //          Gap Manipulation
             Gap(const Gap & otherGap)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
-                gapLifespan_ = otherGap.gapLifespan_;
+                // gapLifespan_ = otherGap.gapLifespan_;
 
                 frame_ = otherGap.frame_;
-
                 radial_ = otherGap.radial_;
-
                 rightType_ = otherGap.rightType_;
 
-                goal_ = otherGap.goal_;
-
-                // deep copy for new models
+                // deep copy for new points
                 leftGapPt_ = new GapPoint(*otherGap.leftGapPt_);
                 rightGapPt_ = new GapPoint(*otherGap.rightGapPt_);
 
-                globalGoalWithin = otherGap.globalGoalWithin;
+                goal_ = new GapGoal();
 
-                gamma_intercept_goal = otherGap.gamma_intercept_goal;
+                // globalGoalWithin = otherGap.globalGoalWithin;
 
-                end_condition = otherGap.end_condition;
+                // gamma_intercept_goal = otherGap.gamma_intercept_goal;
 
-                // copy all the variables
+                // goal_ = otherGap.goal_;
 
-                rgc_ = otherGap.rgc_;
+                // end_condition = otherGap.end_condition;
+
+                // rgc_ = otherGap.rgc_;
             }
+
+            // Gap(const PropagatedGapPoint & leftPropagatedGapPoint,
+            //     const PropagatedGapPoint & rightPropagatedGapPoint)
+            // {
+
+            // }
 
             ~Gap() 
             {
+                delete goal_;
                 delete leftGapPt_;
                 delete rightGapPt_;
             };
@@ -179,6 +193,8 @@ namespace dynamic_gap
 
             void setGapLifespan(const float & gapLifespan) { gapLifespan_ = gapLifespan; }
 
+            float getGapLifespan() const { return gapLifespan_; }
+
             /**
             * \brief Getter for initial left gap point in Cartesian frame
             * \param x x-position for left gap point
@@ -276,18 +292,6 @@ namespace dynamic_gap
                 radial_ = nearSideAngle > (0.75 * M_PI);
             }
 
-            /**
-            * \brief Getter for gap radial condition
-            * \return Gap radial condition
-            */
-            bool isRadial() const { return radial_; }
-
-            /**
-            * \brief Getter for gap "right type" (if right point is closer than left point) condition
-            * \return Gap "right type" condition
-            */
-            bool isRightType() const { return rightType_; }
-
             /** 
             * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
             * \return distance between left and right gap points
@@ -308,19 +312,59 @@ namespace dynamic_gap
                 return sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
             }
 
+            std::string getFrame() const { return frame_; }
+            
+            void setEndCondition(const int & end_condition) { end_condition_ = end_condition; }
+            int getEndCondition() const { return end_condition_; }
+
+            GapPoint * getLeftGapPt() const { return leftGapPt_; }
+            GapPoint * getRightGapPt() const { return rightGapPt_; }
+
+            /**
+            * \brief Getter for gap radial condition
+            * \return Gap radial condition
+            */
+            bool isRadial() const { return radial_; }
+
+            /**
+            * \brief Getter for gap "right type" (if right point is closer than left point) condition
+            * \return Gap "right type" condition
+            */
+            bool isRightType() const { return rightType_; }
+
+            void setRGC() { rgc_ = true; }
+
+            /**
+            * \brief Getter for gap converted to swept gap condition
+            * \return Gap converted to swept gap condition
+            */
+            bool isRGC() const { return rgc_; }
+
+            GapGoal * getGoal() const { return goal_; }
+
+            void setGlobalGoalWithin() { globalGoalWithin = true; }
+            bool getGlobalGoalWithin() const { return globalGoalWithin; }
+
+            void setTInterceptGoal(const float & t_intercept_goal) { tInterceptGoal_ = t_intercept_goal; }
+            float getTInterceptGoal() const { return tInterceptGoal_; }
+
+            void setGammaInterceptGoal(const float & gamma_intercept_goal) { gammaInterceptGoal_ = gamma_intercept_goal; }
+            float getGammaInterceptGoal() const { return gammaInterceptGoal_; }
+
+        private:
             std::string frame_ = ""; /**< Frame ID for gap */
 
-            float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
+            float gapLifespan_ = -1.0; /**< Gap lifespan over prediction horizon */
 
-            int end_condition = -1; // 0 - collision, 1 - shut, 2 - overlapped, 3 - timed out
+            int end_condition_ = UNSET; 
 
             // float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
 
             // Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
             // Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
 
-            GapPoint * leftGapPt_; /**< Left gap point */
-            GapPoint * rightGapPt_; /**< Right gap point */
+            GapPoint * leftGapPt_ = NULL; /**< Left gap point */
+            GapPoint * rightGapPt_ = NULL; /**< Right gap point */
             
             bool radial_ = false; /**< Initial gap radial characteristic identifier */
             
@@ -328,10 +372,10 @@ namespace dynamic_gap
 
             bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
-            GapGoal goal_; /**< Gap goal */
+            GapGoal * goal_ = NULL; /**< Gap goal */
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */
-            float t_intercept_goal = 0.0;  /**< Intercept time for gap goal point */
-            float gamma_intercept_goal = 0.0; /**< Intercept angle for gap goal point */
+            float tInterceptGoal_ = 0.0;  /**< Intercept time for gap goal point */
+            float gammaInterceptGoal_ = 0.0; /**< Intercept angle for gap goal point */
 
     };
 }

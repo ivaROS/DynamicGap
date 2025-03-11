@@ -114,21 +114,21 @@ namespace dynamic_gap
                 if (pair.at(0) % 2 == 0) // curr left
 				{
                     currentGaps.at(currentGapIdx)->getLCartesian(currX, currY);
-					currentGapModelID = currentGaps.at(currentGapIdx)->leftGapPt_->getModel()->getID();
+					currentGapModelID = currentGaps.at(currentGapIdx)->getLeftGapPt()->getModel()->getID();
 				} else // curr right
                 {
 					currentGaps.at(currentGapIdx)->getRCartesian(currX, currY);
-					currentGapModelID = currentGaps.at(currentGapIdx)->rightGapPt_->getModel()->getID();
+					currentGapModelID = currentGaps.at(currentGapIdx)->getRightGapPt()->getModel()->getID();
 				}
 
                 if (pair.at(1) % 2 == 0) // prev left
 				{
                     previousGaps.at(previousGapIdx)->getLCartesian(prevX, prevY);
-					previousGapModelID = previousGaps.at(previousGapIdx)->leftGapPt_->getModel()->getID();
+					previousGapModelID = previousGaps.at(previousGapIdx)->getLeftGapPt()->getModel()->getID();
 				} else // prev right
                 {
 				   	previousGaps.at(previousGapIdx)->getRCartesian(prevX, prevY);
-					previousGapModelID = previousGaps.at(previousGapIdx)->rightGapPt_->getModel()->getID();				
+					previousGapModelID = previousGaps.at(previousGapIdx)->getRightGapPt()->getModel()->getID();				
 				}
 
                 // ROS_INFO_STREAM_NAMED("GapAssociator", "From { pt: (" << prevX << ", " << prevY << "), ID: " << previousGapModelID << "} to { pt: (" << currX << ", " << currY << "), ID: " << currentGapModelID << "} with a distance of " << distMatrix.at(pair.at(0)).at(pair.at(1)));
@@ -157,11 +157,11 @@ namespace dynamic_gap
 
 		if (i % 2 == 0) 
 		{   // curr left
-			currentGaps.at(currentGapIdx)->leftGapPt_->getModel()->initialize("left", currentModelIdx, gapPtX, gapPtY, 
+			currentGaps.at(currentGapIdx)->getLeftGapPt()->getModel()->initialize("left", currentModelIdx, gapPtX, gapPtY, 
 																			scanTime, lastRbtVel, lastRbtAcc, estParams_);				
 		} else 
 		{
-			currentGaps.at(currentGapIdx)->rightGapPt_->getModel()->initialize("right", currentModelIdx, gapPtX, gapPtY,
+			currentGaps.at(currentGapIdx)->getRightGapPt()->getModel()->initialize("right", currentModelIdx, gapPtX, gapPtY,
 																			scanTime, lastRbtVel, lastRbtAcc, estParams_);				
 		}
 		currentModelIdx += 1;
@@ -179,19 +179,19 @@ namespace dynamic_gap
 		if (pair.at(0) % 2 == 0)  // curr left
 		{
 			// // ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering left");
-			currentGaps.at(currentGapIdx)->leftGapPt_->getModel()->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPt_->getModel() :
-																			  				*previousGaps.at(previousGapIdx)->rightGapPt_->getModel());			
-			// currentGaps.at(currentGapIdx)->leftGapPt_->getModel() = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPt_->getModel() :
-			// 																  previousGaps.at(previousGapIdx)->rightGapPt_->getModel();
-			currentGaps.at(currentGapIdx)->leftGapPt_->getModel()->setParams(estParams_);
+			currentGaps.at(currentGapIdx)->getLeftGapPt()->getModel()->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->getLeftGapPt()->getModel() :
+																			  				*previousGaps.at(previousGapIdx)->getRightGapPt()->getModel());			
+			// currentGaps.at(currentGapIdx)->getLeftGapPt()->getModel() = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->getLeftGapPt()->getModel() :
+			// 																  previousGaps.at(previousGapIdx)->getRightGapPt()->getModel();
+			currentGaps.at(currentGapIdx)->getLeftGapPt()->getModel()->setParams(estParams_);
 		} else // curr right
 		{
 			// // ROS_INFO_STREAM_NAMED("GapAssociator", "						transfering right");
-			currentGaps.at(currentGapIdx)->rightGapPt_->getModel()->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->leftGapPt_->getModel() :
-																			   				 *previousGaps.at(previousGapIdx)->rightGapPt_->getModel());		
-			// currentGaps.at(currentGapIdx)->rightGapPt_->getModel() = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->leftGapPt_->getModel() :
-			// 																   previousGaps.at(previousGapIdx)->rightGapPt_->getModel();
-			currentGaps.at(currentGapIdx)->rightGapPt_->getModel()->setParams(estParams_);
+			currentGaps.at(currentGapIdx)->getRightGapPt()->getModel()->transfer((pair.at(1) % 2 == 0) ? *previousGaps.at(previousGapIdx)->getLeftGapPt()->getModel() :
+																			   				 *previousGaps.at(previousGapIdx)->getRightGapPt()->getModel());		
+			// currentGaps.at(currentGapIdx)->getRightGapPt()->getModel() = (pair.at(1) % 2 == 0) ? previousGaps.at(previousGapIdx)->getLeftGapPt()->getModel() :
+			// 																   previousGaps.at(previousGapIdx)->getRightGapPt()->getModel();
+			currentGaps.at(currentGapIdx)->getRightGapPt()->getModel()->setParams(estParams_);
 		} 		
 	}
 

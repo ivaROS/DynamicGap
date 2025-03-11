@@ -41,6 +41,13 @@ namespace dynamic_gap
                             CONTROL = 15
                             };
 
+    enum gapEndConditions { UNSET = -1, 
+                            COLLISION = 0, 
+                            SHUT = 1, 
+                            OVERLAPPED = 2, 
+                            TIMED_OUT = 3
+                            };
+
     struct EstimationParameters
     {
         float Q_ = 0.1; /**< Process noise covariance */

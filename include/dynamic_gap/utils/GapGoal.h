@@ -8,7 +8,12 @@ namespace dynamic_gap
     class GapGoal
     {
         public:
-            GapGoal() {}
+            GapGoal() 
+            {
+                origGoalPos_ = Eigen::Vector2f(0.0, 0.0);
+                origGoalVel_ = Eigen::Vector2f(0.0, 0.0);
+                termGoalPos_ = Eigen::Vector2f(0.0, 0.0);
+            }
 
             void setOrigGoalPos(const Eigen::Vector2f & goalPt)
             {

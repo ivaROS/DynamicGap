@@ -373,22 +373,22 @@ namespace dynamic_gap
 
         if (idx % 2 == 0) 
         {
-            if (gap->leftGapPt_->getModel())
+            if (gap->getLeftGapPt()->getModel())
             {
-                gap->leftGapPt_->getModel()->update(measurement, 
-                                                    intermediateRbtVels, intermediateRbtAccs, 
-                                                    currentTrueAgentPoses_, 
-                                                    currentTrueAgentVels_,
-                                                    tCurrentFilterUpdate);                    
+                gap->getLeftGapPt()->getModel()->update(measurement, 
+                                                        intermediateRbtVels, intermediateRbtAccs, 
+                                                        currentTrueAgentPoses_, 
+                                                        currentTrueAgentVels_,
+                                                        tCurrentFilterUpdate);                    
             } else
             {
                 ROS_WARN_STREAM_NAMED("GapEstimation", "left model is null");
             }
         } else 
         {
-            if (gap->rightGapPt_->getModel())
+            if (gap->getRightGapPt()->getModel())
             {
-                gap->rightGapPt_->getModel()->update(measurement, 
+                gap->getRightGapPt()->getModel()->update(measurement, 
                                                         intermediateRbtVels, intermediateRbtAccs, 
                                                         currentTrueAgentPoses_, 
                                                         currentTrueAgentVels_,
@@ -762,8 +762,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {                    
                 feasibleGaps.push_back(manipulatedGaps.at(i)); // shallow copy
             
-                if (manipulatedGaps.at(i)->leftGapPt_->getModel()->getID() == currentLeftGapPtModelID && 
-                    manipulatedGaps.at(i)->rightGapPt_->getModel()->getID() == currentRightGapPtModelID) 
+                if (manipulatedGaps.at(i)->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
+                    manipulatedGaps.at(i)->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID) 
                 {
                     isCurrentGapFeasible = true;
                 }
@@ -792,7 +792,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
             
             // Run go to goal behavior
-            bool runGoToGoal = (gaps.at(i)->globalGoalWithin);
+            bool runGoToGoal = gaps.at(i)->getGlobalGoalWithin();
 
             Trajectory traj, goToGoalTraj, pursuitGuidanceTraj;
             std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
@@ -934,8 +934,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             setCurrentTraj(incomingTraj);
             if (incomingGap) // actual trajectory
             {
-                setCurrentLeftGapPtModelID(incomingGap->leftGapPt_->getModel());
-                setCurrentRightGapPtModelID(incomingGap->rightGapPt_->getModel());
+                setCurrentLeftGapPtModelID(incomingGap->getLeftGapPt()->getModel());
+                setCurrentRightGapPtModelID(incomingGap->getRightGapPt()->getModel());
             } else // idling trajectory
             {
                 setCurrentLeftGapPtModelID(nullptr);
@@ -1481,8 +1481,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         for (size_t i = 0; i < gaps.size(); i++)
         {
             Gap * gap = gaps.at(i);        
-            Eigen::Vector4f left_state = gap->leftGapPt_->getModel()->getState();
-            Eigen::Vector4f right_state = gap->rightGapPt_->getModel()->getState();
+            Eigen::Vector4f left_state = gap->getLeftGapPt()->getModel()->getState();
+            Eigen::Vector4f right_state = gap->getRightGapPt()->getModel()->getState();
 
             if (!checkModelState(left_state) || !checkModelState(right_state))
             {
@@ -1500,12 +1500,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             Gap * gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap->RIdx() << " to "  << gap->LIdx() << 
-                                                ", left model: " << gap->leftGapPt_->getModel()->getID() << 
-                                                ", rightGapPtModel: " << gap->rightGapPt_->getModel()->getID());
-            Eigen::Vector4f left_state = gap->leftGapPt_->getModel()->getState();
+                                                ", left model: " << gap->getLeftGapPt()->getModel()->getID() << 
+                                                ", rightGapPtModel: " << gap->getRightGapPt()->getModel()->getID());
+            Eigen::Vector4f left_state = gap->getLeftGapPt()->getModel()->getState();
             gap->getLCartesian(x, y);            
             ROS_INFO_STREAM_NAMED("Planner", "        left point: (" << x << ", " << y << "), left model: (" << left_state.transpose() << ")");
-            Eigen::Vector4f right_state = gap->rightGapPt_->getModel()->getState();
+            Eigen::Vector4f right_state = gap->getRightGapPt()->getModel()->getState();
             gap->getRCartesian(x, y);
             ROS_INFO_STREAM_NAMED("Planner", "        right point: (" << x << ", " << y << "), right model: (" << right_state.transpose() << ")");
         }

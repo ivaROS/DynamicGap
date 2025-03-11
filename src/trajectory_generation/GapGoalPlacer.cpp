@@ -31,11 +31,11 @@ namespace dynamic_gap
         Eigen::Vector2f leftPt(xLeft, yLeft);
         Eigen::Vector2f rightPt(xRight, yRight);
 
-        gap->leftGapPt_->getModel()->isolateGapDynamics();
-        gap->rightGapPt_->getModel()->isolateGapDynamics();
+        gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
+        Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getGapState();
 
         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
@@ -63,7 +63,7 @@ namespace dynamic_gap
         {                
             // all we will do is mark it for later so we can run g2g policy on global goal.
             // Still set mid point for pursuit guidance policy and feasibility check
-            gap->globalGoalWithin = true;
+            gap->setGlobalGoalWithin();
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        global goal within gap");
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            goal: " << globalGoalRobotFrameVector[0] << 
@@ -78,7 +78,7 @@ namespace dynamic_gap
             float centerTheta = leftTheta - (leftToRightAngle / 2.0);
             float centerRange = (leftRange + rightRange) / 2.;
             Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
-                    centerRange * std::sin(centerTheta));
+                                        centerRange * std::sin(centerTheta));
             Eigen::Vector2f centerVel = ((leftGapState.tail(2) + rightGapState.tail(2)) / 2.);
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
@@ -89,8 +89,8 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
 
-            gap->goal_.setOrigGoalPos(inflatedCenterPt);
-            gap->goal_.setOrigGoalVel(centerVel);
+            gap->getGoal()->setOrigGoalPos(inflatedCenterPt);
+            gap->getGoal()->setOrigGoalVel(centerVel);
             // gap->setGoal(inflatedCenterPt);
             // gap->setGoalVel(centerVel);
         } else
@@ -124,8 +124,8 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
 
-            gap->goal_.setOrigGoalPos(inflatedBiasedGapGoal);
-            gap->goal_.setOrigGoalVel(biasedGapVel);
+            gap->getGoal()->setOrigGoalPos(inflatedBiasedGapGoal);
+            gap->getGoal()->setOrigGoalVel(biasedGapVel);
             // gap->setGoal(inflatedBiasedGapGoal);
             // gap->setGoalVel(biasedGapVel);
         }      

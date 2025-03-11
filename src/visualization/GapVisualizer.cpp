@@ -163,13 +163,13 @@ namespace dynamic_gap
    
         for (Gap * gap : gaps) 
         {
-            if (gap->frame_.empty())
+            if (gap->getFrame().empty())
             {
                 ROS_WARN_STREAM("[drawGap] Gap frame is empty");
                 return;
             }
 
-            marker.header.frame_id = gap->frame_;
+            marker.header.frame_id = gap->getFrame();
 
             int leftIdx = gap->LIdx(); // initial ?  : gap->termLIdx(); // initial ? gap->RIdx() : gap->termRIdx(); //
             int rightIdx = gap->RIdx(); // initial ?  : gap->termRIdx(); // initial ? gap->LIdx() : gap->termLIdx(); //
@@ -260,13 +260,13 @@ namespace dynamic_gap
    
         for (Gap * gap : gaps) 
         {
-            if (gap->frame_.empty())
+            if (gap->getFrame().empty())
             {
                 ROS_WARN_STREAM("[drawManipGap] Gap frame is empty");
                 return;
             }
 
-            marker.header.frame_id = gap->frame_;
+            marker.header.frame_id = gap->getFrame();
 
             int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
             int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
@@ -364,31 +364,31 @@ namespace dynamic_gap
     void GapVisualizer::drawModel(visualization_msgs::Marker & modelMarker, 
                                     Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
-        if (gap->frame_.empty())
+        if (gap->getFrame().empty())
         {
             ROS_WARN_STREAM("[drawModel] Gap frame is empty");
             return;
         }
         
         // ROS_INFO_STREAM("[drawModel()]");
-        modelMarker.header.frame_id = gap->frame_;
+        modelMarker.header.frame_id = gap->getFrame();
         modelMarker.header.stamp = ros::Time();
         modelMarker.ns = ns;
         modelMarker.id = id++;
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         
-        gap->leftGapPt_->getModel()->isolateGapDynamics();
-        gap->rightGapPt_->getModel()->isolateGapDynamics();
+        gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftModelState = gap->leftGapPt_->getModel()->getGapState();
-        Eigen::Vector4f rightModelState = gap->rightGapPt_->getModel()->getGapState();
+        Eigen::Vector4f leftModelState = gap->getLeftGapPt()->getModel()->getGapState();
+        Eigen::Vector4f rightModelState = gap->getRightGapPt()->getModel()->getGapState();
 
         // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
         // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
 
-        // ROS_INFO_STREAM("   gap->leftGapPt_->getModel()->getRobotVel(): " << gap->leftGapPt_->getModel()->getRobotVel());
-        // ROS_INFO_STREAM("   gap->rightGapPt_->getModel()->getRobotVel(): " << gap->rightGapPt_->getModel()->getRobotVel());
+        // ROS_INFO_STREAM("   gap->getLeftGapPt()->getModel()->getRobotVel(): " << gap->getLeftGapPt()->getModel()->getRobotVel());
+        // ROS_INFO_STREAM("   gap->getRightGapPt()->getModel()->getRobotVel(): " << gap->getRightGapPt()->getModel()->getRobotVel());
 
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)

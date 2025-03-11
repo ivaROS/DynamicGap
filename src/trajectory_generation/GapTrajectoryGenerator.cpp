@@ -50,12 +50,12 @@ namespace dynamic_gap
             return traj;
         }
 
-        selectedGap->leftGapPt_->getModel()->isolateGapDynamics();
-        selectedGap->rightGapPt_->getModel()->isolateGapDynamics();
+        selectedGap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        selectedGap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = selectedGap->leftGapPt_->getModel()->getGapState();
-        Eigen::Vector4f rightGapState = selectedGap->rightGapPt_->getModel()->getGapState();
-        Eigen::Vector2f initialGoal = selectedGap->goal_.getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
+        Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getGapState();
+        Eigen::Vector2f initialGoal = selectedGap->getGoal()->getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
 
         float leftVelX = leftGapState[2];
         float leftVelY = leftGapState[3];
@@ -98,7 +98,7 @@ namespace dynamic_gap
                                     rightGapPtVel,
                                     goalPtVel);
 
-            float t_max = std::min(selectedGap->gapLifespan_, cfg_->traj.integrate_maxt);
+            float t_max = std::min(selectedGap->getGapLifespan(), cfg_->traj.integrate_maxt);
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     purePursuit, x, 0.0f, t_max, 
@@ -115,7 +115,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
 
             // For PN, we will drive at terminal Goal, so pass it on to know when to stop                
-            Eigen::Vector2f terminalGoal = selectedGap->goal_.getTermGoalPos();  // (selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+            Eigen::Vector2f terminalGoal = selectedGap->getGoal()->getTermGoalPos();  // (selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoal[0] << ", " << terminalGoal[1] << ")"); 
 
@@ -123,10 +123,10 @@ namespace dynamic_gap
 
             robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoal[0], initialGoal[1]};
             
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->gapLifespan_); 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->gamma_intercept_goal); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->getGapLifespan()); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->getGammaInterceptGoal()); 
 
-            ParallelNavigation parallelNavigation(selectedGap->gamma_intercept_goal, 
+            ParallelNavigation parallelNavigation(selectedGap->getGammaInterceptGoal(), 
                                                     cfg_->rbt.vx_absmax,
                                                     cfg_->rbt.r_inscr,
                                                     leftGapPtVel,
@@ -134,7 +134,7 @@ namespace dynamic_gap
                                                     goalPtVel,
                                                     terminalGoal);
 
-            float t_max = std::min(selectedGap->gapLifespan_, cfg_->traj.integrate_maxt);
+            float t_max = std::min(selectedGap->getGapLifespan(), cfg_->traj.integrate_maxt);
 
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     parallelNavigation, x, 0.0f, t_max, 

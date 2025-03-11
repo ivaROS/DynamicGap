@@ -63,11 +63,11 @@ namespace dynamic_gap
         float xRight = (rightRange) * cos(rightTheta);
         float yRight = (rightRange) * sin(rightTheta);
 
-        gap->leftGapPt_->getModel()->isolateGapDynamics();
-        gap->rightGapPt_->getModel()->isolateGapDynamics();
+        gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
+        Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getGapState();
 
         // ROS_INFO_STREAM("    [convertRadialGap()]");            
         // ROS_INFO_STREAM("        pre-RGC gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
@@ -97,7 +97,7 @@ namespace dynamic_gap
             if (pivotSideSpeed < pivotSideSpeedThresh)
             {
                 // ROS_INFO_STREAM("   manipulating left model");
-                gap->leftGapPt_->getModel()->setManip(); // manipulating left point, so set vel to 0
+                gap->getLeftGapPt()->getModel()->setManip(); // manipulating left point, so set vel to 0
             } else
             {
                 // ROS_INFO_STREAM("   pivot side speed too high: " << rightGapState.tail(2).norm());
@@ -114,7 +114,7 @@ namespace dynamic_gap
             if (pivotSideSpeed < pivotSideSpeedThresh)
             {
                 // ROS_INFO_STREAM("   manipulating right model");
-                gap->rightGapPt_->getModel()->setManip(); // manipulating right point, so set vel to 0
+                gap->getRightGapPt()->getModel()->setManip(); // manipulating right point, so set vel to 0
             } else
             {
                 // ROS_INFO_STREAM("   pivot side speed too high: " << leftGapState.tail(2).norm());
@@ -241,14 +241,14 @@ namespace dynamic_gap
             newLeftRange = pivotedPtRange;
             newRightIdx = nearIdx;
             newRightRange = nearRange;
-            gap->leftGapPt_->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->getLeftGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
         } else 
         {
             newLeftIdx = nearIdx;
             newLeftRange = nearRange;
             newRightIdx = pivotedPtIdx;
             newRightRange = pivotedPtRange;
-            gap->rightGapPt_->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->getRightGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
         }
 
         gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);
@@ -256,8 +256,7 @@ namespace dynamic_gap
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);
 
-        gap->rgc_ = true;
-
+        gap->setRGC();
 
         // ROS_INFO_STREAM("        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
         // ROS_INFO_STREAM_NAMED("GapManipulator",  "post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
