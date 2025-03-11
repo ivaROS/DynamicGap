@@ -73,10 +73,10 @@ namespace dynamic_gap
 
                 globalGoalWithin = otherGap.globalGoalWithin;
 
-                t_intercept_left = otherGap.t_intercept_left;
-                t_intercept_right = otherGap.t_intercept_right;
-                gamma_intercept_left = otherGap.gamma_intercept_left;
-                gamma_intercept_right = otherGap.gamma_intercept_right;
+                // t_intercept_left = otherGap.t_intercept_left;
+                // t_intercept_right = otherGap.t_intercept_right;
+                // gamma_intercept_left = otherGap.gamma_intercept_left;
+                // gamma_intercept_right = otherGap.gamma_intercept_right;
                 gamma_intercept_goal = otherGap.gamma_intercept_goal;
 
                 end_condition = otherGap.end_condition;
@@ -520,11 +520,11 @@ namespace dynamic_gap
 
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */
 
-            float t_intercept_left = 0.0; /**< Intercept time for left gap point */
-            float gamma_intercept_left = 0.0; /**< Intercept angle for left gap point */
+            // float t_intercept_left = 0.0; /**< Intercept time for left gap point */
+            // float gamma_intercept_left = 0.0; /**< Intercept angle for left gap point */
 
-            float t_intercept_right = 0.0; /**< Intercept time for right gap point */
-            float gamma_intercept_right = 0.0; /**< Intercept angle for right gap point */
+            // float t_intercept_right = 0.0; /**< Intercept time for right gap point */
+            // float gamma_intercept_right = 0.0; /**< Intercept angle for right gap point */
 
             float t_intercept_goal = 0.0;  /**< Intercept time for gap goal point */
             float gamma_intercept_goal = 0.0; /**< Intercept angle for gap goal point */

@@ -393,8 +393,8 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_left: " << gamma_intercept_left); 
 
-        gap->t_intercept_left = t_intercept_left;
-        gap->gamma_intercept_left = gamma_intercept_left;
+        // gap->t_intercept_left = t_intercept_left;
+        // gap->gamma_intercept_left = gamma_intercept_left;
 
         ///////////////////////////////
         // Evaluating right gap point //
@@ -411,8 +411,8 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_right: " << gamma_intercept_right); 
 
-        gap->t_intercept_right = t_intercept_right;
-        gap->gamma_intercept_right = gamma_intercept_right;
+        // gap->t_intercept_right = t_intercept_right;
+        // gap->gamma_intercept_right = gamma_intercept_right;
 
         // set target position to gap goal
         Eigen::Vector2f p_target(gap->goal.x_, gap->goal.y_);
