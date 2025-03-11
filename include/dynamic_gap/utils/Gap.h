@@ -16,19 +16,19 @@ namespace dynamic_gap
     class Gap
     {
         public:
+            // , const float & minSafeDist_
             Gap(const std::string & frame, 
                 const int & rightIdx, 
                 const float & rangeRight, 
-                const bool & radial, 
-                const float & minSafeDist_) : 
+                const bool & radial) : 
                 frame_(frame), 
                 rightIdx_(rightIdx), 
                 rightRange_(rangeRight), 
-                radial_(radial), 
-                minSafeDist_(minSafeDist_)
+                radial_(radial)
+                // minSafeDist_(minSafeDist_)
             {
-                extendedGapOrigin_ << 0.0, 0.0;
-                termExtendedGapOrigin_ << 0.0, 0.0;
+                // extendedGapOrigin_ << 0.0, 0.0;
+                // termExtendedGapOrigin_ << 0.0, 0.0;
 
                 // Here, you can define what type of model you want to use
                 leftGapPtModel_ = new RotatingFrameCartesianKalmanFilter();
@@ -38,7 +38,7 @@ namespace dynamic_gap
 
                 if (frame.empty())
                 {
-                    ROS_WARN_STREAM("Gap frame is empty");
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap frame is empty");
                 }
             };
 
@@ -46,9 +46,9 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
                 gapLifespan_ = otherGap.gapLifespan_;
-                minSafeDist_ = otherGap.minSafeDist_;
-                extendedGapOrigin_ = otherGap.extendedGapOrigin_;
-                termExtendedGapOrigin_ = otherGap.termExtendedGapOrigin_;
+                // minSafeDist_ = otherGap.minSafeDist_;
+                // extendedGapOrigin_ = otherGap.extendedGapOrigin_;
+                // termExtendedGapOrigin_ = otherGap.termExtendedGapOrigin_;
 
                 frame_ = otherGap.frame_;
 
@@ -424,11 +424,11 @@ namespace dynamic_gap
                 return rightType_;
             }
 
-            /**
-            * \brief Getter for initial minimum safe distance for gap
-            * \return initial minimum safe distance for gap
-            */
-            float getMinSafeDist() { return minSafeDist_; }
+            // /**
+            // * \brief Getter for initial minimum safe distance for gap
+            // * \return initial minimum safe distance for gap
+            // */
+            // float getMinSafeDist() { return minSafeDist_; }
 
             /** 
             * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
@@ -480,10 +480,10 @@ namespace dynamic_gap
 
             float gapLifespan_ = 5.0; /**< Gap lifespan over prediction horizon */
 
-            float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
+            // float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
 
-            Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
-            Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
+            // Eigen::Vector2f extendedGapOrigin_; /**< current extended gap origin point */
+            // Eigen::Vector2f termExtendedGapOrigin_; /**< terminal extended gap origin point */
 
             std::string frame_ = ""; /**< Frame ID for gap */
             

@@ -18,7 +18,53 @@ namespace dynamic_gap
         public:
             GapPoint(const int & idx, const float & range)
             {
+                orig.idx_ = idx;
+                orig.range_ = range;
+            }
 
+            void setOrigIdx(const int & idx)
+            {
+                orig.idx_ = idx;
+            }
+
+            void setOrigRange(const float & range)
+            {
+                orig.range_ = range;
+            }
+
+            int getOrigIdx() const
+            {
+                return orig.idx_;
+            }
+
+            float getOrigRange() const
+            {
+                return orig.range_;
+            }
+
+            void setManipIdx(const int & idx)
+            {
+                manip.idx_ = idx;
+            }
+
+            void setManipRange(const float & range)
+            {
+                manip.range_ = range;
+            }
+
+            int getManipIdx() const
+            {
+                return manip.idx_;
+            }
+
+            float getManipRange() const
+            {
+                return manip.range_;
+            }
+
+            void setModel(Estimator * model)
+            {
+                model_ = model;
             }
 
         private:

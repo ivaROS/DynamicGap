@@ -107,7 +107,7 @@ namespace dynamic_gap
             if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
             {
                 // initializing a radial gap
-                Gap * gap = new Gap(frame, it - 1, prevRange, true, minScanDist_);
+                Gap * gap = new Gap(frame, it - 1, prevRange, true); // , minScanDist_
                 gap->addLeftInformation(it, currRange);
 
                 rawGaps.push_back(gap);
@@ -122,7 +122,7 @@ namespace dynamic_gap
                 {
                     withinSweptGap = false;                    
                     // ROS_INFO_STREAM_NAMED("GapDetector", "    gap ending: infinity to finite");
-                    Gap * gap = new Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+                    Gap * gap = new Gap(frame, gapRIdx, gapRDist, false); // , minScanDist_
                     gap->addLeftInformation(it, currRange);
 
                     //std::cout << "candidate swept gap from (" << gapRIdx << ", " << gapRDist << "), to (" << it << ", " << scan_dist << ")" << std::endl;
@@ -154,7 +154,7 @@ namespace dynamic_gap
         if (withinSweptGap) 
         {
             // // ROS_INFO_STREAM_NAMED("GapDetector", "    catching last gap");
-            Gap * gap = new Gap(frame, gapRIdx, gapRDist, false, minScanDist_);
+            Gap * gap = new Gap(frame, gapRIdx, gapRDist, false); // , minScanDist_
             gap->addLeftInformation(fullScanRayCount_ - 1, *(scan_.ranges.end() - 1));
             
             // // ROS_INFO_STREAM_NAMED("GapDetector", "gapRIdx: " << gapRIdx << ", gapRDist: " << gapRDist);
