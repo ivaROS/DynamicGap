@@ -56,11 +56,11 @@ namespace dynamic_gap
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */        
 
-            struct GapPoint 
+            struct PropagatedGapPoint 
             {
                 public:
-                    GapPoint(Estimator * model, const int & scanIdx, const bool & isLeft) : model_(model), scanIdx_(scanIdx), isLeft_(isLeft), isRight_(!isLeft) {}
-                    // GapPoint(Estimator * model, const int & scanIdx, const int & ungapID) : model_(model), scanIdx_(scanIdx), ungapID_(ungapID) {}
+                    PropagatedGapPoint(Estimator * model, const int & scanIdx, const bool & isLeft) : model_(model), scanIdx_(scanIdx), isLeft_(isLeft), isRight_(!isLeft) {}
+                    // PropagatedGapPoint(Estimator * model, const int & scanIdx, const int & ungapID) : model_(model), scanIdx_(scanIdx), ungapID_(ungapID) {}
 
                     void propagate(const float & stept) 
                     { 
@@ -69,7 +69,7 @@ namespace dynamic_gap
                         reset();
                     }
 
-                    ~GapPoint() 
+                    ~PropagatedGapPoint() 
                     {
                         // do not want to delete model
                     }
@@ -107,15 +107,15 @@ namespace dynamic_gap
                     bool isAssignedToGap_ = false; // update
             };
 
-            struct GapPointComparator
+            struct PropagatedGapPointComparator
             {
-                bool operator() (GapPoint * lhs, GapPoint * rhs) const
+                bool operator() (PropagatedGapPoint * lhs, PropagatedGapPoint * rhs) const
                 {
                     return lhs->getScanIdx() < rhs->getScanIdx();
                 }
             };
 
-            std::vector<GapPoint *> gapPoints_;
+            std::vector<PropagatedGapPoint *> gapPoints_;
         
         };
 }

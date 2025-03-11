@@ -171,7 +171,7 @@ namespace dynamic_gap
         convertGapsToGapPoints(gaps);
 
         // 2. Sort gap points by bearing
-        std::sort(gapPoints_.begin(), gapPoints_.end(), GapPointComparator());
+        std::sort(gapPoints_.begin(), gapPoints_.end(), PropagatedGapPointComparator());
 
         // 3. Assign Ungap IDs to gap points
         assignUnGapIDsToGapPoints();
@@ -188,7 +188,7 @@ namespace dynamic_gap
             }
 
             // 6. Re-sort by bearing
-            std::sort(gapPoints_.begin(), gapPoints_.end(), GapPointComparator());
+            std::sort(gapPoints_.begin(), gapPoints_.end(), PropagatedGapPointComparator());
 
             ROS_INFO_STREAM_NAMED("GapFeasibility", "       Gap points: ");
             for (int i = 0; i < gapPoints_.size(); i++)
@@ -208,7 +208,7 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "           looping for outer gap point " << i);
 
-                GapPoint * gapPtI = gapPoints_.at(i);
+                PropagatedGapPoint * gapPtI = gapPoints_.at(i);
 
                 if (gapPtI->isAssignedToGap()) // skip if point is already assigned to a gap
                 {
@@ -224,7 +224,7 @@ namespace dynamic_gap
                         int j = (i + adder) % gapPoints_.size();
                         ROS_INFO_STREAM_NAMED("GapFeasibility", "                   looping for inner gap point " << j);
                      
-                        GapPoint * gapPtJ = gapPoints_.at(j);
+                        PropagatedGapPoint * gapPtJ = gapPoints_.at(j);
 
                         if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
                         {
@@ -256,7 +256,7 @@ namespace dynamic_gap
                         int j = (i + adder) % gapPoints_.size();
                         ROS_INFO_STREAM_NAMED("GapFeasibility", "                   looping for inner gap point " << j);
                      
-                        GapPoint * gapPtJ = gapPoints_.at(j);
+                        PropagatedGapPoint * gapPtJ = gapPoints_.at(j);
 
                         if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
                         {
@@ -294,7 +294,7 @@ namespace dynamic_gap
         }
 
         // delete gap points
-        for (GapPoint * gapPt : gapPoints_)
+        for (PropagatedGapPoint * gapPt : gapPoints_)
         {
             delete gapPt;
         }
@@ -312,7 +312,7 @@ namespace dynamic_gap
             int rightGapPtIdx = theta2idx(rightGapPtTheta);
 
             if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new GapPoint(gap->rightGapPtModel_, rightGapPtIdx, false));
+                gapPoints_.push_back(new PropagatedGapPoint(gap->rightGapPtModel_, rightGapPtIdx, false));
             else
                 ROS_WARN_STREAM_NAMED("GapFeasibility", "        right gap pt idx out of bounds");
 
@@ -322,7 +322,7 @@ namespace dynamic_gap
             int leftGapPtIdx = theta2idx(leftGapPtTheta);
 
             if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new GapPoint(gap->leftGapPtModel_, leftGapPtIdx, true));
+                gapPoints_.push_back(new PropagatedGapPoint(gap->leftGapPtModel_, leftGapPtIdx, true));
             else
                 ROS_WARN_STREAM_NAMED("GapFeasibility", "        left gap pt idx out of bounds");
             }
