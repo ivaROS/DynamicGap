@@ -63,11 +63,11 @@ namespace dynamic_gap
         float xRight = (rightRange) * cos(rightTheta);
         float yRight = (rightRange) * sin(rightTheta);
 
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
         // ROS_INFO_STREAM("    [convertRadialGap()]");            
         // ROS_INFO_STREAM("        pre-RGC gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
@@ -97,7 +97,7 @@ namespace dynamic_gap
             if (pivotSideSpeed < pivotSideSpeedThresh)
             {
                 // ROS_INFO_STREAM("   manipulating left model");
-                gap->leftGapPtModel_->setManip(); // manipulating left point, so set vel to 0
+                gap->leftGapPt_->getModel()->setManip(); // manipulating left point, so set vel to 0
             } else
             {
                 // ROS_INFO_STREAM("   pivot side speed too high: " << rightGapState.tail(2).norm());
@@ -114,7 +114,7 @@ namespace dynamic_gap
             if (pivotSideSpeed < pivotSideSpeedThresh)
             {
                 // ROS_INFO_STREAM("   manipulating right model");
-                gap->rightGapPtModel_->setManip(); // manipulating right point, so set vel to 0
+                gap->rightGapPt_->getModel()->setManip(); // manipulating right point, so set vel to 0
             } else
             {
                 // ROS_INFO_STREAM("   pivot side speed too high: " << leftGapState.tail(2).norm());
@@ -241,14 +241,14 @@ namespace dynamic_gap
             newLeftRange = pivotedPtRange;
             newRightIdx = nearIdx;
             newRightRange = nearRange;
-            gap->leftGapPtModel_->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->leftGapPt_->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
         } else 
         {
             newLeftIdx = nearIdx;
             newLeftRange = nearRange;
             newRightIdx = pivotedPtIdx;
             newRightRange = pivotedPtRange;
-            gap->rightGapPtModel_->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->rightGapPt_->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
         }
 
         gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);

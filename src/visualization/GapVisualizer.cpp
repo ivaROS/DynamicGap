@@ -378,17 +378,17 @@ namespace dynamic_gap
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftModelState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightModelState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftModelState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightModelState = gap->rightGapPt_->getModel()->getGapState();
 
         // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
         // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
 
-        // ROS_INFO_STREAM("   gap->leftGapPtModel_->getRobotVel(): " << gap->leftGapPtModel_->getRobotVel());
-        // ROS_INFO_STREAM("   gap->rightGapPtModel_->getRobotVel(): " << gap->rightGapPtModel_->getRobotVel());
+        // ROS_INFO_STREAM("   gap->leftGapPt_->getModel()->getRobotVel(): " << gap->leftGapPt_->getModel()->getRobotVel());
+        // ROS_INFO_STREAM("   gap->rightGapPt_->getModel()->getRobotVel(): " << gap->rightGapPt_->getModel()->getRobotVel());
 
         Eigen::Vector2f gapVel(0.0, 0.0);
         if (left)

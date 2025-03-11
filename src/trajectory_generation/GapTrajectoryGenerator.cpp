@@ -50,11 +50,11 @@ namespace dynamic_gap
             return traj;
         }
 
-        selectedGap->leftGapPtModel_->isolateGapDynamics();
-        selectedGap->rightGapPtModel_->isolateGapDynamics();
+        selectedGap->leftGapPt_->getModel()->isolateGapDynamics();
+        selectedGap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = selectedGap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = selectedGap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = selectedGap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = selectedGap->rightGapPt_->getModel()->getGapState();
         Eigen::Vector2f initialGoal = selectedGap->goal_.getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
 
         float leftVelX = leftGapState[2];

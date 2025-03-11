@@ -31,11 +31,11 @@ namespace dynamic_gap
         Eigen::Vector2f leftPt(xLeft, yLeft);
         Eigen::Vector2f rightPt(xRight, yRight);
 
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");

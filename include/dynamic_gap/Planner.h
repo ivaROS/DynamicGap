@@ -425,13 +425,13 @@ namespace dynamic_gap
             int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
             int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 
-            Eigen::Vector4f currentLeftGapPtState; /**< State for estimator of current gap's left point */
-            Eigen::Vector4f currentRightGapPtState; /**< State for estimator of current gap's right point */
+            // Eigen::Vector4f currentLeftGapPtState; /**< State for estimator of current gap's left point */
+            // Eigen::Vector4f currentRightGapPtState; /**< State for estimator of current gap's right point */
 
-            float currentInterceptTime_ = 0.0; /**< Intercept time for current gap */
-            float currentMinSafeDist_ = 0.0; /**< Minimum safe distance for current gap */
+            // float currentInterceptTime_ = 0.0; /**< Intercept time for current gap */
+            // float currentMinSafeDist_ = 0.0; /**< Minimum safe distance for current gap */
 
-            bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
+            // bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
 
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 

@@ -43,22 +43,22 @@ namespace dynamic_gap
         for (const Gap * rawGap : rawGaps)
         {
             // left
-            rawGap->leftGapPtModel_->isolateGapDynamics();
-            float leftGapPtTheta = rawGap->leftGapPtModel_->getGapBearing();
+            rawGap->leftGapPt_->getModel()->isolateGapDynamics();
+            float leftGapPtTheta = rawGap->leftGapPt_->getModel()->getGapBearing();
             int leftGapPtIdx = theta2idx(leftGapPtTheta);
 
             if (leftGapPtIdx >= 0 && leftGapPtIdx < scan.ranges.size())
-                rawModels.insert(std::pair<int, Estimator *>(leftGapPtIdx, rawGap->leftGapPtModel_));
+                rawModels.insert(std::pair<int, Estimator *>(leftGapPtIdx, rawGap->leftGapPt_->getModel()));
             else
                 ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        left gap pt idx out of bounds");
 
             // right
-            rawGap->rightGapPtModel_->isolateGapDynamics();
-            float rightGapPtTheta = rawGap->rightGapPtModel_->getGapBearing();
+            rawGap->rightGapPt_->getModel()->isolateGapDynamics();
+            float rightGapPtTheta = rawGap->rightGapPt_->getModel()->getGapBearing();
             int rightGapPtIdx = theta2idx(rightGapPtTheta);
 
             if (rightGapPtIdx >= 0 && rightGapPtIdx < scan.ranges.size())
-                rawModels.insert(std::pair<int, Estimator *>(rightGapPtIdx, rawGap->rightGapPtModel_));
+                rawModels.insert(std::pair<int, Estimator *>(rightGapPtIdx, rawGap->rightGapPt_->getModel()));
             else
                 ROS_WARN_STREAM_NAMED("DynamicScanPropagator", "        right gap pt idx out of bounds");
 

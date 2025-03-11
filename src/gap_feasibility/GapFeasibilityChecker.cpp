@@ -14,8 +14,8 @@ namespace dynamic_gap
 
         Eigen::Vector2f crossingPt(0.0, 0.0);
 
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
         float thetaLeft = idx2theta(gap->LIdx());
         float thetaRight = idx2theta(gap->RIdx());
@@ -36,8 +36,8 @@ namespace dynamic_gap
         
         //std::cout << "initial beta left: (" << leftBearingVect[0] << ", " << leftBearingVect[1] << "), initial beta right: (" << rightBearingVect[0] << ", " << rightBearingVect[1] << "), initial beta center: (" << centralBearingVect[0] << ", " << centralBearingVect[1] << ")" << std::endl;
         
-        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
         // ROS_INFO_STREAM("gap category: " << gap->getCategory());
         ROS_INFO_STREAM_NAMED("GapFeasibility", "       Starting frozen cartesian left: " << leftGapState[0] << ", " << leftGapState[1] << ", " << leftGapState[2] << ", " << leftGapState[3]); 
@@ -63,13 +63,13 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t: " << t);
 
             // propagate left point
-            gap->leftGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
+            gap->leftGapPt_->getModel()->gapStatePropagate(cfg_->traj.integrate_stept);
 
             // propagate right point
-            gap->rightGapPtModel_->gapStatePropagate(cfg_->traj.integrate_stept);
+            gap->rightGapPt_->getModel()->gapStatePropagate(cfg_->traj.integrate_stept);
 
-            leftGapState = gap->leftGapPtModel_->getGapState();
-            rightGapState = gap->rightGapPtModel_->getGapState();
+            leftGapState = gap->leftGapPt_->getModel()->getGapState();
+            rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       leftGapState: " << leftGapState.transpose());
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       rightGapState: " << rightGapState.transpose());
@@ -101,8 +101,8 @@ namespace dynamic_gap
             // END CONDITION 1: GAP CROSSING //
             ///////////////////////////////////
             
-            thetaLeft = gap->leftGapPtModel_->getGapBearing();
-            thetaRight = gap->rightGapPtModel_->getGapBearing();
+            thetaLeft = gap->leftGapPt_->getModel()->getGapBearing();
+            thetaRight = gap->rightGapPt_->getModel()->getGapBearing();
             // ROS_INFO_STREAM_NAMED("GapFeasibility", "thetaLeft: " << thetaLeft << ", thetaRight: " << thetaRight);
             leftBearingVect = leftGapState.head(2).normalized();
             rightBearingVect = rightGapState.head(2).normalized();
@@ -170,15 +170,15 @@ namespace dynamic_gap
     {    
         // ROS_INFO_STREAM("                   [rewindGapPoints()]");
 
-        Eigen::Vector4f rewindLeftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rewindRightGapState = gap->rightGapPtModel_->getGapState();        
+        Eigen::Vector4f rewindLeftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rewindRightGapState = gap->rightGapPt_->getModel()->getGapState();        
 
         Eigen::Vector2f leftRewindPt, rightRewindPt, leftBearingVect, rightBearingVect;
         float leftToRightAngle = 0.0;
 
         // instantiate model rewind states
-        gap->leftGapPtModel_->setRewindState();
-        gap->rightGapPtModel_->setRewindState();
+        gap->leftGapPt_->getModel()->setRewindState();
+        gap->rightGapPt_->getModel()->setRewindState();
         // do rewindPropagate
 
         bool leftSideOpening = (getGapBearingRateOfChange(rewindLeftGapState) > 0.0);
@@ -190,13 +190,13 @@ namespace dynamic_gap
             // ROS_INFO_STREAM("                       tRewind: " << tRewind);
 
             // Rewind left gap point
-            gap->leftGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
+            gap->leftGapPt_->getModel()->rewindPropagate(-1 * cfg_->traj.integrate_stept); // resetting model we used before, not good
             
             // Rewind right gap point
-            gap->rightGapPtModel_->rewindPropagate(-1 * cfg_->traj.integrate_stept);
+            gap->rightGapPt_->getModel()->rewindPropagate(-1 * cfg_->traj.integrate_stept);
 
-            rewindLeftGapState = gap->leftGapPtModel_->getRewindGapState();
-            rewindRightGapState = gap->rightGapPtModel_->getRewindGapState();  
+            rewindLeftGapState = gap->leftGapPt_->getModel()->getRewindGapState();
+            rewindRightGapState = gap->rightGapPt_->getModel()->getRewindGapState();  
 
             leftRewindPt = rewindLeftGapState.head(2);
             rightRewindPt = rewindRightGapState.head(2);           
@@ -258,11 +258,11 @@ namespace dynamic_gap
 
         /*
 
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
         ROS_INFO_STREAM("                       leftGapState: " << leftGapState.transpose()); 
         ROS_INFO_STREAM("                       rightGapState: " << rightGapState.transpose()); 
@@ -362,11 +362,11 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM_NAMED("GapFeasibility", "                [parallelNavigationFeasibilityCheck()]"); 
 
-        gap->leftGapPtModel_->isolateGapDynamics();
-        gap->rightGapPtModel_->isolateGapDynamics();
+        gap->leftGapPt_->getModel()->isolateGapDynamics();
+        gap->rightGapPt_->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->leftGapPtModel_->getGapState();
-        Eigen::Vector4f rightGapState = gap->rightGapPtModel_->getGapState();
+        Eigen::Vector4f leftGapState = gap->leftGapPt_->getModel()->getGapState();
+        Eigen::Vector4f rightGapState = gap->rightGapPt_->getModel()->getGapState();
 
         // Eigen::Vector2f leftGapPtPos = leftGapState.head(2);
         Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
