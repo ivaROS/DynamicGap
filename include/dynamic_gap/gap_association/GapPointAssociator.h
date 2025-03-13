@@ -30,8 +30,8 @@ namespace dynamic_gap
 			* \param previousGaps previous set of gaps
 			* \return distance matrix: 2D matrix with entries that represent distance between gap points at corresponding indices 
 			*/		
-			std::vector<std::vector<float>> obtainDistMatrix(const std::vector<Gap *> & currentGaps, 
-															const std::vector<Gap *> & previousGaps);
+			std::vector<std::vector<float>> populateDistMatrix(const std::vector<Gap *> & currentGaps, 
+																const std::vector<Gap *> & previousGaps);
 			
 			/**
 			* \brief Function for handling the transfer of gap estimator models from previous gaps to current gaps
@@ -54,6 +54,9 @@ namespace dynamic_gap
 							const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs);
 
 		private:
+
+			float calculateDistance(const std::vector<float> & currentGapPoint,
+									const std::vector<float> & previousGapPoint);
 
 			/**
 			* \brief Populate vector of gap points for a set of gaps

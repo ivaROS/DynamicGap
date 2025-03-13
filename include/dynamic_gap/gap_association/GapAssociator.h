@@ -30,11 +30,12 @@ namespace dynamic_gap
 			* \param previousGaps previous set of gaps
 			* \return distance matrix: 2D matrix with entries that represent distance between gap points at corresponding indices 
 			*/		
-			std::vector<std::vector<float>> obtainDistMatrix(const std::vector<Gap *> & currentGaps, 
+			std::vector<std::vector<float>> populateDistMatrix(const std::vector<Gap *> & currentGaps, 
 															const std::vector<Gap *> & previousGaps);
 			
-
 		private:
+
+			float calculateDistance(Gap * currentGap, Gap * previousGap);
 
 			/**
 			* \brief Populate vector of gap points for a set of gaps
@@ -43,8 +44,6 @@ namespace dynamic_gap
 			*/			
 			std::vector< std::vector<float>> obtainGapPoints(const std::vector<Gap *> & gaps);
 
-			std::vector< std::vector<float>> previousGapPoints; /**< sequence of points within previous gaps */
-			std::vector< std::vector<float>> currentGapPoints; /**< sequence of points within current gaps */
 			const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
 			float assocThresh; /**<  maximum distance threshold for which we will consider an association between models valid */
 	};

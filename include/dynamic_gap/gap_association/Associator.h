@@ -34,6 +34,16 @@ namespace dynamic_gap
 			*/				
 			std::vector<int> associate(const std::vector< std::vector<float> > & distMatrix);
 			
+			/**
+			* \brief Populate distance matrix between points in current gaps and points in previous gaps.
+			* 
+			* \param currentGaps current set of gaps
+			* \param previousGaps previous set of gaps
+			* \return distance matrix: 2D matrix with entries that represent distance between gap points at corresponding indices 
+			*/		
+			virtual std::vector<std::vector<float>> populateDistMatrix(const std::vector<Gap *> & currentGaps, 
+					        										    const std::vector<Gap *> & previousGaps) = 0;
+
         protected:
 
             /**
