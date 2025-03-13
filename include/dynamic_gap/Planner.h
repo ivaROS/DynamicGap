@@ -23,7 +23,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/gap_estimation/GapAssociator.h>
+#include <dynamic_gap/gap_association/GapAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
 #include <dynamic_gap/gap_propagation/GapPropagator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
