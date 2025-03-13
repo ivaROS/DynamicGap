@@ -60,7 +60,7 @@ namespace dynamic_gap
             {
                 bool operator() (PropagatedGapPoint * lhs, PropagatedGapPoint * rhs) const
                 {
-                    return lhs->getScanIdx() < rhs->getScanIdx();
+                    return lhs->getModel()->getGapBearing() < rhs->getModel()->getGapBearing();
                 }
             };
 

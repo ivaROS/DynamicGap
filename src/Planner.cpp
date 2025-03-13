@@ -1500,8 +1500,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             Gap * gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap->RIdx() << " to "  << gap->LIdx() << 
-                                                ", left model: " << gap->getLeftGapPt()->getModel()->getID() << 
-                                                ", rightGapPtModel: " << gap->getRightGapPt()->getModel()->getID());
+                                                ", left model ID: " << gap->getLeftGapPt()->getModel()->getID() << 
+                                                ", right model ID: " << gap->getRightGapPt()->getModel()->getID());
             Eigen::Vector4f left_state = gap->getLeftGapPt()->getModel()->getState();
             gap->getLCartesian(x, y);            
             ROS_INFO_STREAM_NAMED("Planner", "        left point: (" << x << ", " << y << "), left model: (" << left_state.transpose() << ")");

@@ -175,6 +175,15 @@ namespace dynamic_gap
             gapTubes_.at(0).at(i) = new Gap(*gaps.at(i));
         }
 
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "       Gaps at time " << 0.0 << ": ");
+        for (int i = 0; i < gapTubes_.at(0).size(); i++)
+        {
+            Gap * gap = gapTubes_.at(0).at(i);
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "           gap " << i << ": ");
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "               left point:" << gap->getLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "               right point:" << gap->getRPosition().transpose());
+        }
+
         // 1. Turn gaps into gap points
         convertGapsToGapPoints(gaps);
 
@@ -205,7 +214,7 @@ namespace dynamic_gap
             for (int i = 0; i < gapPoints_.size(); i++)
             {
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "           gap point " << i);
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "               scan idx: " << gapPoints_.at(i)->getScanIdx());
+                // ROS_INFO_STREAM_NAMED("GapFeasibility", "               scan idx: " << gapPoints_.at(i)->getScanIdx());
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "               model state: " << gapPoints_.at(i)->getModel()->getGapState().transpose());
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "               model ID: " << gapPoints_.at(i)->getModel()->getID());
                 ROS_INFO_STREAM_NAMED("GapFeasibility", "               ungapID: " << gapPoints_.at(i)->getUngapID());
@@ -306,6 +315,16 @@ namespace dynamic_gap
                     ROS_WARN_STREAM_NAMED("GapFeasibility", "        gap point is not left or right");
                 }
             }
+
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "       Gaps at time " << t_iplus1 << ": ");
+            for (int i = 0; i < gapTubes_.at(futureTimeIdx).size(); i++)
+            {
+                Gap * gap = gapTubes_.at(futureTimeIdx).at(i);
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "           gap " << i << ": ");
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               left point:" << gap->getLPosition().transpose());
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "               right point:" << gap->getRPosition().transpose());
+            }
+
             t_i = t_iplus1;
         }
 
@@ -333,23 +352,25 @@ namespace dynamic_gap
         {
             // right
             gap->getRightGapPt()->getModel()->isolateGapDynamics();
-            float rightGapPtTheta = gap->getRightGapPt()->getModel()->getGapBearing();
-            int rightGapPtIdx = theta2idx(rightGapPtTheta);
+            // float rightGapPtTheta = gap->getRightGapPt()->getModel()->getGapBearing();
+            // int rightGapPtIdx = theta2idx(rightGapPtTheta);
+            // int rightGapPtIdx = gap->RIdx();
 
-            if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), gap->getFrame(), rightGapPtIdx, false));
-            else
-                ROS_WARN_STREAM_NAMED("GapFeasibility", "        right gap pt idx out of bounds");
+            // if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
+            gapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), gap->getFrame(), false));
+            // else
+                // ROS_WARN_STREAM_NAMED("GapFeasibility", "        right gap pt idx out of bounds");
 
             // left
             gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-            float leftGapPtTheta = gap->getLeftGapPt()->getModel()->getGapBearing();
-            int leftGapPtIdx = theta2idx(leftGapPtTheta);
+            // float leftGapPtTheta = gap->getLeftGapPt()->getModel()->getGapBearing();
+            // int leftGapPtIdx = theta2idx(leftGapPtTheta);
+            // int leftGapPtIdx = gap->LIdx();
 
-            if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
-                gapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), gap->getFrame(), leftGapPtIdx, true));
-            else
-                ROS_WARN_STREAM_NAMED("GapFeasibility", "        left gap pt idx out of bounds");
+            // if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
+                gapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), gap->getFrame(), true));
+            // else
+                // ROS_WARN_STREAM_NAMED("GapFeasibility", "        left gap pt idx out of bounds");
         }
     }
 

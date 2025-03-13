@@ -18,6 +18,7 @@ namespace dynamic_gap
 
     static int half_num_scan = 256; /**< Half of total rays in scan */
     static float angle_increment = (2*M_PI) / (2*half_num_scan - 1); /**< Angular increment of scan */
+    static float inv_angle_increment = (2*half_num_scan - 1) / (2*M_PI); /**< Inverse angular increment of scan */
 
     static Eigen::Matrix2f Rpi2 = (Eigen::Matrix2f() << 0.0, -1.0, 1.0, 0.0).finished(); /**< Rotation matrix for pi/2 */
  
@@ -127,7 +128,7 @@ namespace dynamic_gap
         // assert(idx >= 0);
         // assert(idx < 2*half_num_scan);
         
-        return ((float) idx - half_num_scan) * angle_increment;
+        return float(idx - half_num_scan) * angle_increment;
     }
 
     /**
@@ -144,7 +145,23 @@ namespace dynamic_gap
         // assert(theta >= -M_PI);
         // assert(theta <= M_PI);
 
-        return int(std::round((theta + M_PI) / angle_increment));
+        float theta_shift = theta_wrap + M_PI;
+
+        float raw_idx = theta_shift * inv_angle_increment;
+
+        // if raw_idx is halfway, add small bump to ensure rounding to nearest integer
+        // if (std::abs(raw_idx - std::round(raw_idx) - 0.5) < eps)
+        // {
+        //     ROS_INFO_STREAM_NAMED("Gap", "theta2idx raw_idx is halfway");
+        //     raw_idx += 0.01;
+        // }
+            //     raw_idx += eps;
+
+            
+        ROS_INFO_STREAM_NAMED("Gap", "theta2idx raw_idx: " << raw_idx);
+        ROS_INFO_STREAM_NAMED("Gap", "theta2idx std::round(raw_idx): " << std::round(raw_idx));
+
+        return int(std::round(raw_idx));
     }
 
     /**

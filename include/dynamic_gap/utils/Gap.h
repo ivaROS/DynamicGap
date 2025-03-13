@@ -84,6 +84,10 @@ namespace dynamic_gap
                     leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
                     rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
 
+                    // initializing convex polar gap coordinates to raw ones
+                    leftGapPt_->initManipPoint();
+                    rightGapPt_->initManipPoint();
+
                     // radial_ = radial;
                     // rightType_ = rightType;
                     setRadial();
@@ -242,6 +246,10 @@ namespace dynamic_gap
             * \param y y-position for right gap point
             */
             void getManipulatedRCartesian(float &x, float &y) const { rightGapPt_->getManipCartesian(x, y); }
+
+            Eigen::Vector2f getLPosition() const { return leftGapPt_->getOrigCartesian(); }
+
+            Eigen::Vector2f getRPosition() const { return rightGapPt_->getOrigCartesian(); }
 
             /**
             * \brief Getter for initial manipulated left gap point in Cartesian frame

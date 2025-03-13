@@ -52,8 +52,15 @@ namespace dynamic_gap
             // Run before manipulation
             GapPoint(const PropagatedGapPoint & propagatedGapPoint)
             {
+                ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
+
+                ROS_INFO_STREAM_NAMED("Gap", "  getGapState: " << propagatedGapPoint.getModel()->getGapState().transpose());
+
                 orig.idx_ = theta2idx(propagatedGapPoint.getModel()->getGapBearing());
                 orig.range_ = propagatedGapPoint.getModel()->getGapRange();
+
+                ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
 
                 // Here, you can define what type of model you want to use
                 model_ = new RotatingFrameCartesianKalmanFilter();
@@ -213,6 +220,10 @@ namespace dynamic_gap
 
             void getOrigCartesian(float &x, float &y) const
             {
+                ROS_INFO_STREAM_NAMED("Gap", "getOrigCartesian");
+                ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+                
                 float theta = idx2theta(orig.idx_);
                 x = (orig.range_) * std::cos(theta);
                 y = (orig.range_) * std::sin(theta);
@@ -224,6 +235,14 @@ namespace dynamic_gap
                 x = (manip.range_) * std::cos(theta);
                 y = (manip.range_) * std::sin(theta);
             }            
+
+            Eigen::Vector2f getOrigCartesian() const
+            {
+                float x = 0.0, y = 0.0;
+                getOrigCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
+            }
 
             Eigen::Vector2f getManipCartesian() const
             {

@@ -153,7 +153,7 @@ namespace dynamic_gap
         this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
-        this->xTilde_ = model.xFrozen_.head(2);
+        this->xTilde_ = model.xTilde_;
 
         this->R_k_ = model.R_k_;
         this->R_temp_ = model.R_temp_;
