@@ -16,9 +16,13 @@ namespace dynamic_gap
 
     static float eps = std::numeric_limits<float>::min(); /**< Infinitesimal epsilon value */
 
+    static float TWO_M_PI = 2*M_PI; /**< 2 * pi */
+    static float M_PI_OVER_TWO = M_PI / 2.0; /**< pi / 2 */
+    static float M_PI_OVER_FOUR = M_PI / 4.0; /**< pi / 4 */
+
     static int half_num_scan = 256; /**< Half of total rays in scan */
-    static float angle_increment = (2*M_PI) / (2*half_num_scan - 1); /**< Angular increment of scan */
-    static float inv_angle_increment = (2*half_num_scan - 1) / (2*M_PI); /**< Inverse angular increment of scan */
+    static float angle_increment = (TWO_M_PI) / (2*half_num_scan - 1); /**< Angular increment of scan */
+    static float inv_angle_increment = (2*half_num_scan - 1) / (TWO_M_PI); /**< Inverse angular increment of scan */
 
     static Eigen::Matrix2f Rpi2 = (Eigen::Matrix2f() << 0.0, -1.0, 1.0, 0.0).finished(); /**< Rotation matrix for pi/2 */
  
@@ -96,14 +100,14 @@ namespace dynamic_gap
         if (theta >= -M_PI && theta < M_PI) 
             return theta;
 
-        float multiplier = std::floor(theta / (2.0 * M_PI));
-        float normalized_theta = theta - multiplier * 2.0 * M_PI;
+        float multiplier = std::floor(theta / TWO_M_PI);
+        float normalized_theta = theta - multiplier * TWO_M_PI;
         
         if (normalized_theta >= M_PI) 
-            normalized_theta -= 2.0 * M_PI;
+            normalized_theta -= TWO_M_PI;
         
         if (normalized_theta < -M_PI) 
-            normalized_theta += 2.0 * M_PI;
+            normalized_theta += TWO_M_PI;
 
         return normalized_theta;
     }
@@ -221,7 +225,7 @@ namespace dynamic_gap
         if (leftToRightAngle < 0) 
         {
             // ROS_INFO_STREAM("wrapping " << leftToRightAngle);
-            leftToRightAngle += 2*M_PI; 
+            leftToRightAngle += TWO_M_PI; 
         }
 
         return leftToRightAngle;
@@ -332,7 +336,7 @@ namespace dynamic_gap
     inline float timeTaken(const std::chrono::steady_clock::time_point & startTime)
     {
         float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
-        float timeTakenInSeconds = timeTakenInMilliseconds / 1.0e6;
+        float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
         return timeTakenInSeconds;
     }
 }

@@ -102,5 +102,6 @@ namespace dynamic_gap
             ros::Publisher gapModelsPublisher; /**< Publisher for gap models */
 
             int gapSpanResoln = 2;
+            float invGapSpanResoln = 0.5;
     };
 }

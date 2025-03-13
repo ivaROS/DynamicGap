@@ -37,7 +37,7 @@ namespace dynamic_gap
         std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 
         int64_t timeElapsed = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime_).count();
-        double timeElapsedSec = timeElapsed / 1e6;
+        double timeElapsedSec = timeElapsed * 1.0e-6;
 
         // Pure linear
         // if (timeElapsedSec < 5)
@@ -65,13 +65,13 @@ namespace dynamic_gap
         float ptTwoTime = 6.0;
         if (timeElapsedSec < ptOneTime)
         {
-            float desTheta = (M_PI / 2) + (M_PI / 4) * std::sin(timeElapsedSec * (2 * M_PI / ptOneTime)); // should go from 0.0 to pi/4
+            float desTheta = (M_PI_OVER_TWO) + (M_PI_OVER_FOUR) * std::sin(timeElapsedSec * (TWO_M_PI / ptOneTime)); // should go from 0.0 to pi/4
             cmdVel.linear.x = 0.75f;
             cmdVel.linear.y = 0.0f;
             cmdVel.angular.z = 1.0 * (desTheta - currYaw);
         } else if (timeElapsedSec < (ptOneTime + ptTwoTime))
         {
-            float desTheta = (M_PI / 2) - (M_PI / 4) * std::sin((timeElapsedSec - ptOneTime) * (2 * M_PI / ptTwoTime));
+            float desTheta = (M_PI_OVER_TWO) - (M_PI_OVER_FOUR) * std::sin((timeElapsedSec - ptOneTime) * (TWO_M_PI / ptTwoTime));
             cmdVel.linear.x = -0.75f;
             cmdVel.linear.y = 0.0;
             cmdVel.angular.z = 1.0 * (desTheta - currYaw);

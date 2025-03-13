@@ -23,7 +23,7 @@ namespace dynamic_gap
         Eigen::Vector2f prevLeftBearingVect = leftBearingVect;        
         Eigen::Vector2f prevRightBearingVect = rightBearingVect;
 
-        float thetaCenter = (thetaLeft - (leftToRightAngle / 2.0));
+        float thetaCenter = (thetaLeft - (0.5 * leftToRightAngle));
 
         float prevLeftToRightAngle = leftToRightAngle;
         

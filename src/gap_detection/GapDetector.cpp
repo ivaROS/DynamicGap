@@ -38,7 +38,7 @@ namespace dynamic_gap
 
     bool GapDetector::sweptGapSizeCheck(Gap * gap)
     {
-        bool largeGap = gap->LIdx() - gap->RIdx() > (3 * halfScanRayCount_ / 2);
+        bool largeGap = gap->LIdx() - gap->RIdx() > (3 * (0.5 * halfScanRayCount_));
         bool canRobotFit = gap->getGapEuclideanDist() > 3 * cfg_->rbt.r_inscr;
         
         return largeGap || canRobotFit;
@@ -82,7 +82,7 @@ namespace dynamic_gap
         fullScanRayCount_ = scan_.ranges.size();
         ROS_WARN_STREAM_COND_NAMED(fullScanRayCount_ != cfg_->scan.full_scan, "GapDetector", "Scan is wrong size, should be " << cfg_->scan.full_scan);
 
-        halfScanRayCount_ = float(fullScanRayCount_ / 2);
+        halfScanRayCount_ = float(0.5 * fullScanRayCount_);
 
         minScanDist_ = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
         maxScanDist_ = *std::max_element(scan_.ranges.begin(), scan_.ranges.end());

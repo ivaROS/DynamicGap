@@ -181,7 +181,7 @@ namespace dynamic_gap
             if (gapIdxSpan < 0)
                 gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
 
-            int num_segments = gapIdxSpan / gapSpanResoln + 1;
+            int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
             float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
             float midGapDist = rightRange;
@@ -282,7 +282,7 @@ namespace dynamic_gap
 
             // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
 
-            int num_segments = gapIdxSpan / gapSpanResoln + 1;
+            int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
             float distIncrement = (leftRange - rightRange) / num_segments;
             int midGapIdx = rightIdx; //  + viz_offset;
             float midGapDist = rightRange;

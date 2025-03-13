@@ -377,13 +377,14 @@ namespace dynamic_gap
 
                             float time_diff_num = (interpTwist.header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
                             float time_diff_denom = (vectorI.at(timeJUpperBoundIthIdx).header.stamp - vectorI.at(timeJLowerBoundIthIdx).header.stamp).toSec();
+                            float time_diff = time_diff_num / time_diff_denom;
 
                             interpTwist.twist.linear.x = vectorI.at(timeJLowerBoundIthIdx).twist.linear.x +
-                                                            linear_x_diff * time_diff_num / time_diff_denom; 
+                                                            linear_x_diff * time_diff; 
                             interpTwist.twist.linear.y = vectorI.at(timeJLowerBoundIthIdx).twist.linear.y +
-                                                            linear_y_diff * time_diff_num / time_diff_denom; 
+                                                            linear_y_diff * time_diff; 
                             interpTwist.twist.angular.z = vectorI.at(timeJLowerBoundIthIdx).twist.angular.z +
-                                                            angular_z_diff * time_diff_num / time_diff_denom;
+                                                            angular_z_diff * time_diff;
 
                             vectorI.insert(vectorI.begin() + timeJUpperBoundIthIdx, interpTwist);
                         }

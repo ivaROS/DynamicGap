@@ -238,7 +238,7 @@ namespace dynamic_gap
         Q_2_ = A_ * Q_1_ + Q_1_ * A_.transpose();
         Q_3_ = A_ * Q_2_ + Q_2_ * A_.transpose();
 
-        dQ_ = (Q_1_ * dt) + (Q_2_ * dt * dt / 2.0) + (Q_3_ * dt * dt * dt / 6.0);
+        dQ_ = (Q_1_ * dt) + (0.50 * Q_2_ * dt * dt) + (0.16666666666 * Q_3_ * dt * dt * dt);
     }
 
     void RotatingFrameCartesianKalmanFilter::update(const Eigen::Vector2f & measurement, 

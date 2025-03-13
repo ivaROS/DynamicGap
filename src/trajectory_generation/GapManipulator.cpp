@@ -297,8 +297,8 @@ namespace dynamic_gap
         float alpha_left = std::asin(cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / leftPt.norm() );
         float alpha_right = std::asin(cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / rightPt.norm() );
 
-        float beta_left = (M_PI / 2) - alpha_left;
-        float beta_right = (M_PI / 2) - alpha_right;
+        float beta_left = (M_PI_OVER_TWO) - alpha_left;
+        float beta_right = (M_PI_OVER_TWO) - alpha_right;
 
         float r_infl_left = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / sin(beta_left);
         float r_infl_right = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio / sin(beta_right);

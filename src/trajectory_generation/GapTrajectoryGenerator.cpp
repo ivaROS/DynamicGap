@@ -63,8 +63,8 @@ namespace dynamic_gap
         float rightVelX = rightGapState[2];
         float rightVelY = rightGapState[3];
 
-        float gapGoalVelX = (leftVelX + rightVelX) / 2.;
-        float gapGoalVelY = (leftVelY + rightVelY) / 2.;
+        float gapGoalVelX = 0.5 * (leftVelX + rightVelX);
+        float gapGoalVelY = 0.5 * (leftVelY + rightVelY);
 
         Eigen::Vector2f leftGapPtVel(leftVelX, leftVelY);
         Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
@@ -143,7 +143,7 @@ namespace dynamic_gap
 
 
         Trajectory traj(path, pathTiming);
-        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() / 1.0e6;
+        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
         return traj;
             

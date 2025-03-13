@@ -108,8 +108,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("GapAssociator", "pair (" << i << ", " << association.at(i) << ")");
             if (i >= 0 && association.at(i) >= 0) 
 			{
-                currentGapIdx = int(std::floor(pair.at(0) / 2.0));
-                previousGapIdx = int(std::floor(pair.at(1) / 2.0));
+                currentGapIdx = int(std::floor(0.5 * pair.at(0)));
+                previousGapIdx = int(std::floor(0.5 * pair.at(1)));
 
                 if (pair.at(0) % 2 == 0) // curr left
 				{
@@ -153,7 +153,7 @@ namespace dynamic_gap
     	geometry_msgs::TwistStamped lastRbtVel = (!intermediateRbtVels.empty()) ? intermediateRbtVels.back() : geometry_msgs::TwistStamped();
 	    geometry_msgs::TwistStamped lastRbtAcc = (!intermediateRbtAccs.empty()) ? intermediateRbtAccs.back() : geometry_msgs::TwistStamped();
 
-		int currentGapIdx = int(std::floor(i / 2.0));
+		int currentGapIdx = int(std::floor(0.5 * i));
 
 		if (i % 2 == 0) 
 		{   // curr left
@@ -172,8 +172,8 @@ namespace dynamic_gap
 									 const std::vector<Gap *> & previousGaps)
 	{
 		// // ROS_INFO_STREAM_NAMED("GapAssociator", "					[handOffModel()]");
-		int currentGapIdx = int(std::floor(pair.at(0) / 2.0));
-		int previousGapIdx = int(std::floor(pair.at(1) / 2.0));
+		int currentGapIdx = int(std::floor(0.5 * pair.at(0)));
+		int previousGapIdx = int(std::floor(0.5 * pair.at(1)));
 		// // ROS_INFO_STREAM_NAMED("GapAssociator", "					currentGapIdx: " << currentGapIdx << ", previousGapIdx: " << previousGapIdx);
 
 		if (pair.at(0) % 2 == 0)  // curr left
@@ -250,7 +250,7 @@ namespace dynamic_gap
 					// ROS_INFO_STREAM_NAMED("GapAssociator", "			checking association distance");
 
 					// checking if current gap pt has association under distance threshold
-					bool assoc_idx_in_range = previousGaps.size() > int(std::floor(pair.at(1) / 2.0));
+					bool assoc_idx_in_range = previousGaps.size() > int(std::floor(0.5 * pair.at(1)));
 
 					bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
 					validAssociation = assoc_dist_in_thresh;

@@ -75,11 +75,11 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 1: gap mid point");
 
-            float centerTheta = leftTheta - (leftToRightAngle / 2.0);
-            float centerRange = (leftRange + rightRange) / 2.;
+            float centerTheta = leftTheta - (0.5 * leftToRightAngle);
+            float centerRange = 0.5 * (leftRange + rightRange);
             Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
                                         centerRange * std::sin(centerTheta));
-            Eigen::Vector2f centerVel = ((leftGapState.tail(2) + rightGapState.tail(2)) / 2.);
+            Eigen::Vector2f centerVel = 0.5 * (leftGapState.tail(2) + rightGapState.tail(2));
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
 

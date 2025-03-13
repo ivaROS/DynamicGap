@@ -359,7 +359,7 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate) 
     {
-        Gap * gap = gaps[int(idx / 2.0)];
+        Gap * gap = gaps[int(0.5 * idx)];
 
         float rX = 0.0, rY = 0.0;
         if (idx % 2 == 0) 

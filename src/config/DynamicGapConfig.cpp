@@ -87,7 +87,7 @@ namespace dynamic_gap
         scan.angle_max = incomingScan.angle_max;
         scan.full_scan = incomingScan.ranges.size();
         scan.full_scan_f = float(scan.full_scan);
-        scan.half_scan = scan.full_scan / 2;
+        scan.half_scan = 0.5 * scan.full_scan;
         scan.half_scan_f = float(scan.half_scan);        
         scan.angle_increment = (2 * M_PI) / (scan.full_scan_f - 1);
 

@@ -296,10 +296,9 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
                 // ROS_INFO_STREAM_NAMED("Gap", "   checkRightRange: " << checkRightRange);
 
-                float resoln = M_PI / half_num_scan;
-                float gapAngle = (checkLeftIdx - checkRightIdx) * resoln;
+                float gapAngle = (checkLeftIdx - checkRightIdx) * angle_increment;
                 if (gapAngle < 0)
-                    gapAngle += 2*M_PI;
+                    gapAngle += TWO_M_PI;
 
                 // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearRange = rightType_ ? checkRightRange : checkLeftRange;
@@ -333,9 +332,9 @@ namespace dynamic_gap
                 float checkRightRange = rightGapPt_->getOrigRange(); // rightRange_;
 
                 float resoln = M_PI / half_num_scan;
-                float gapAngle = (checkLeftIdx - checkRightIdx) * resoln;
+                float gapAngle = (checkLeftIdx - checkRightIdx) * angle_increment;
                 if (gapAngle < 0)
-                    gapAngle += 2*M_PI;
+                    gapAngle += TWO_M_PI;
 
                 return sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
             }
