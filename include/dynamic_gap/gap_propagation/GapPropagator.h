@@ -14,6 +14,7 @@
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 
+#include <dynamic_gap/gap_association/GapAssociator.h>
 
 namespace dynamic_gap 
 {
@@ -25,7 +26,9 @@ namespace dynamic_gap
     class GapPropagator 
     {
         public: 
-            GapPropagator(const DynamicGapConfig& cfg) { cfg_ = &cfg; };
+            GapPropagator(const DynamicGapConfig& cfg) { cfg_ = &cfg; gapAssociator_ = new GapAssociator(cfg); };
+
+            ~GapPropagator() { delete gapAssociator_; }
 
             /**
             * \brief Set terminal range and bearing values for gap based on 
@@ -37,6 +40,9 @@ namespace dynamic_gap
             void propagateGapPointsV2(const std::vector<Gap *> & gaps);
 
         private:
+            void runGapAssociation(const std::vector<Gap *> & currentGaps, 
+                                    const std::vector<Gap *> & previousGaps);
+
             void convertGapsToGapPoints(const std::vector<Gap *> & gaps);
 
             void assignUnGapIDsToGapPoints();
@@ -67,6 +73,10 @@ namespace dynamic_gap
             std::vector<PropagatedGapPoint *> gapPoints_;
 
             std::vector<std::vector<Gap *>> gapTubes_;
-        
+
+            GapAssociator * gapAssociator_ = NULL; /**< Gap point associator */
+            std::vector<std::vector<float>> distMatrix_; /**< Distance matrix for gaps */
+            std::vector<int> assocation_; /**< Association vector for gaps */
+
         };
 }

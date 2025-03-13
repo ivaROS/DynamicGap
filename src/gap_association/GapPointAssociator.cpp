@@ -53,16 +53,16 @@ namespace dynamic_gap
 	std::vector<std::vector<float>> GapPointAssociator::populateDistMatrix(const std::vector<Gap *> & currentGaps, 
 																			const std::vector<Gap *> & previousGaps) 
 	{
-		std::vector<std::vector<float>> distMatrix(currentGaps.size(), std::vector<float>(previousGaps.size()));
+		std::vector<std::vector<float>> distMatrix(2 * currentGaps.size(), std::vector<float>(2 * previousGaps.size()));
 		
 		std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
 
 		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
 		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "getting previous points:");
-		// previousGapPoints = obtainGapPoints(previousGaps);
+		previousGapPoints = obtainGapPoints(previousGaps);
 		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "getting current points:");
-		// currentGapPoints = obtainGapPoints(currentGaps);
+		currentGapPoints = obtainGapPoints(currentGaps);
 		
 		//std::cout << "dist matrix size: " << distMatrix.size() << ", " << distMatrix.at(0).size() << std::endl;
 		// populate distance matrix
@@ -74,7 +74,7 @@ namespace dynamic_gap
 				//std::cout << i << ", " << j <<std::endl;
 
 				distMatrix.at(i).at(j) = calculateDistance(currentGapPoints.at(i),
-															previousGapPoints.at(i));
+															previousGapPoints.at(j));
 				// ROS_INFO_STREAM_NAMED("GapPointAssociator",distMatrix.at(i).at(j) << ", ");
 			}
 			// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "" << std::endl;
@@ -87,7 +87,7 @@ namespace dynamic_gap
 		return distMatrix;
 	}
 
-	float calculateDistance(const std::vector<float> & currentGapPoint,
+	float GapPointAssociator::calculateDistance(const std::vector<float> & currentGapPoint,
 							const std::vector<float> & previousGapPoint)
 	{
 		float pointToPointDistSq = 0.0;

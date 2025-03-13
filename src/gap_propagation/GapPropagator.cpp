@@ -210,55 +210,55 @@ namespace dynamic_gap
             // 6. Re-sort by bearing
             std::sort(gapPoints_.begin(), gapPoints_.end(), PropagatedGapPointComparator());
 
-            ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap points: ");
-            for (int i = 0; i < gapPoints_.size(); i++)
-            {
-                ROS_INFO_STREAM_NAMED("GapPropagator", "           gap point " << i);
-                // ROS_INFO_STREAM_NAMED("GapPropagator", "               scan idx: " << gapPoints_.at(i)->getScanIdx());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               model state: " << gapPoints_.at(i)->getModel()->getGapState().transpose());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               model ID: " << gapPoints_.at(i)->getModel()->getID());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               ungapID: " << gapPoints_.at(i)->getUngapID());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               is left: " << gapPoints_.at(i)->isLeft());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               is right: " << gapPoints_.at(i)->isRight());
-            }
+            // ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap points: ");
+            // for (int i = 0; i < gapPoints_.size(); i++)
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "           gap point " << i);
+            //     // ROS_INFO_STREAM_NAMED("GapPropagator", "               scan idx: " << gapPoints_.at(i)->getScanIdx());
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "               model state: " << gapPoints_.at(i)->getModel()->getGapState().transpose());
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "               model ID: " << gapPoints_.at(i)->getModel()->getID());
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "               ungapID: " << gapPoints_.at(i)->getUngapID());
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "               is left: " << gapPoints_.at(i)->isLeft());
+            //     ROS_INFO_STREAM_NAMED("GapPropagator", "               is right: " << gapPoints_.at(i)->isRight());
+            // }
 
             // 7. Generate gaps
-            ROS_INFO_STREAM_NAMED("GapPropagator", "       Generating gaps ...");
+            // ROS_INFO_STREAM_NAMED("GapPropagator", "       Generating gaps ...");
             for (int i = 0; i < gapPoints_.size(); i++) // outer loop through points
             {
-                ROS_INFO_STREAM_NAMED("GapPropagator", "           looping for outer gap point " << i);
+                // ROS_INFO_STREAM_NAMED("GapPropagator", "           looping for outer gap point " << i);
 
                 PropagatedGapPoint * gapPtI = gapPoints_.at(i);
 
                 if (gapPtI->isAssignedToGap()) // skip if point is already assigned to a gap
                 {
-                    ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is already assigned to a gap, continuing...");
+                    // ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is already assigned to a gap, continuing...");
                     continue;
                 }
 
                 if (gapPtI->isRight()) // checking for open gap (right to left)
                 {
-                    ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is right, looping for open gap");
+                    // ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is right, looping for open gap");
                     for (int adder = 1; adder < gapPoints_.size(); adder++) // inner loop through points
                     {
                         int j = (i + adder) % gapPoints_.size();
-                        ROS_INFO_STREAM_NAMED("GapPropagator", "                   looping for inner gap point " << j);
+                        // ROS_INFO_STREAM_NAMED("GapPropagator", "                   looping for inner gap point " << j);
                      
                         PropagatedGapPoint * gapPtJ = gapPoints_.at(j);
 
                         if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
                         {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap point is already assigned to a gap, continuing...");
+                            // ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap point is already assigned to a gap, continuing...");
                             continue;
                         }
 
                         if (gapPtJ->isRight())
                         {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       found a better right gap point, breaking...");
+                            // ROS_INFO_STREAM_NAMED("GapPropagator", "                       found a better right gap point, breaking...");
                             break;
                         } else
                         {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating an open gap from pt " << i << " to pt " << j);
+                            // ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating an open gap from pt " << i << " to pt " << j);
                             // Create an open gap
                             gapPtI->assignToGap();
                             gapPtJ->assignToGap();
@@ -272,29 +272,29 @@ namespace dynamic_gap
                     }
                 } else if (gapPtI->isLeft()) // checking for reversed gap
                 {
-                    ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is right, looping for reversed gap");
+                    // ROS_INFO_STREAM_NAMED("GapPropagator", "               gap point is right, looping for reversed gap");
                     for (int adder = 1; adder < gapPoints_.size(); adder++) // inner loop through points
                     {                        
                         int j = (i + adder) % gapPoints_.size();
-                        ROS_INFO_STREAM_NAMED("GapPropagator", "                   looping for inner gap point " << j);
+                        // ROS_INFO_STREAM_NAMED("GapPropagator", "                   looping for inner gap point " << j);
                      
                         PropagatedGapPoint * gapPtJ = gapPoints_.at(j);
 
                         if (gapPtJ->isAssignedToGap()) // skip if point is already assigned to a gap
                         {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap point is already assigned to a gap, continuing...");                        
+                            // ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap point is already assigned to a gap, continuing...");                        
                             continue;
                         }
 
                         if (gapPtJ->isLeft())
                         {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       found a better right gap point, breaking...");
+                            // ROS_INFO_STREAM_NAMED("GapPropagator", "                       found a better right gap point, breaking...");
                             break;
                         } else
                         {
                             if (gapPtJ->getUngapID() != gapPtI->getUngapID())
                             {
-                                ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating a reversed gap from pt " << i << " to pt " << j);                         
+                                // ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating a reversed gap from pt " << i << " to pt " << j);                         
                                 // Create a reversed gap
                                 gapPtI->assignToGap();
                                 gapPtJ->assignToGap();
@@ -306,13 +306,13 @@ namespace dynamic_gap
                                 break;
                             } else
                             {
-                                ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap points form an ungap, continuing...");
+                                // ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap points form an ungap, continuing...");
                             }
                         }
                     }
                 } else
                 {
-                    ROS_WARN_STREAM_NAMED("GapPropagator", "        gap point is not left or right");
+                    // ROS_WARN_STREAM_NAMED("GapPropagator", "        gap point is not left or right");
                 }
             }
 
@@ -326,6 +326,7 @@ namespace dynamic_gap
             }
 
             // 8. Perform gap association
+            runGapAssociation(gapTubes_.at(futureTimeIdx), gapTubes_.at(futureTimeIdx - 1));
 
             t_i = t_iplus1;
         }
@@ -346,6 +347,14 @@ namespace dynamic_gap
         }
 
         return;
+    }
+
+    void GapPropagator::runGapAssociation(const std::vector<Gap *> & currentGaps, 
+                                            const std::vector<Gap *> & previousGaps)
+    {
+        distMatrix_ = gapAssociator_->populateDistMatrix(currentGaps, previousGaps);
+        assocation_ = gapAssociator_->associate(distMatrix_);
+        gapAssociator_->assignModels(assocation_, distMatrix_, currentGaps, previousGaps);
     }
 
     void GapPropagator::convertGapsToGapPoints(const std::vector<Gap *> & gaps)
