@@ -23,7 +23,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/gap_association/GapAssociator.h>
+#include <dynamic_gap/gap_association/GapPointAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
 #include <dynamic_gap/gap_propagation/GapPropagator.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
@@ -465,7 +465,7 @@ namespace dynamic_gap
             GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
             GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
             TrajectoryController * trajController_ = NULL; /**< Trajectory controller */
-            GapAssociator * gapAssociator_ = NULL; /**< Gap associator */
+            GapPointAssociator * gapPointAssociator_ = NULL; /**< Gap associator */
             GapFeasibilityChecker * gapFeasibilityChecker_ = NULL; /**< Gap feasibility checker */
             GapPropagator * gapPropagator_ = NULL; /**< Gap propagator */
 

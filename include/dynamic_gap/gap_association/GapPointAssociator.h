@@ -13,13 +13,13 @@ namespace dynamic_gap
 	* to obtain a minimum distance pairing between gaps and subsequently
 	* pass off gap estimator models.
     */	
-	class GapAssociator : public Associator
+	class GapPointAssociator : public Associator
 	{
 		public:
 			/**
 			* \brief Constructor with nodehandle and cfg
 			*/
-			GapAssociator(const DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
+			GapPointAssociator(const DynamicGapConfig& cfg) {cfg_ = &cfg; assocThresh = cfg_->gap_assoc.assoc_thresh; };
 			
 			void updateParams(const EstimationParameters & estParams);
 

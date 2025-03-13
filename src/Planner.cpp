@@ -17,7 +17,7 @@ namespace dynamic_gap
         delete tfListener_;
         
         delete gapDetector_;
-        delete gapAssociator_;
+        delete gapPointAssociator_;
         delete gapVisualizer_;
 
         delete globalPlanManager_;
@@ -64,7 +64,7 @@ namespace dynamic_gap
 
         // Initialize everything
         gapDetector_ = new GapDetector(cfg_);
-        gapAssociator_ = new GapAssociator(cfg_);
+        gapPointAssociator_ = new GapPointAssociator(cfg_);
 
         globalPlanManager_ = new GlobalPlanManager(cfg_);
 
@@ -134,7 +134,7 @@ namespace dynamic_gap
 
     void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
     {
-        gapAssociator_->updateParams(estParams);
+        gapPointAssociator_->updateParams(estParams);
         trajController_->updateParams(ctrlParams);
     }
 
@@ -234,9 +234,9 @@ namespace dynamic_gap
         //////// RAW GAP ASSOCIATION ////////
         /////////////////////////////////////
         std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
-        rawDistMatrix_ = gapAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
-        rawAssocation_ = gapAssociator_->associateGaps(rawDistMatrix_);
-        gapAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
+        rawDistMatrix_ = gapPointAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
+        rawAssocation_ = gapPointAssociator_->associateGaps(rawDistMatrix_);
+        gapPointAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                     currRawGaps_, prevRawGaps_, 
                                     currentModelIdx_, tCurrentFilterUpdate,
                                     intermediateRbtVels, intermediateRbtAccs);
@@ -270,9 +270,9 @@ namespace dynamic_gap
         //////// SIMPLIFIED GAP ASSOCIATION ////////
         ////////////////////////////////////////////
         std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
-        simpDistMatrix_ = gapAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
-        simpAssociation_ = gapAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
-        gapAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
+        simpDistMatrix_ = gapPointAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
+        simpAssociation_ = gapPointAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
+        gapPointAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                     currSimplifiedGaps_, prevSimplifiedGaps_, 
                                     currentModelIdx_, tCurrentFilterUpdate,
                                     intermediateRbtVels, intermediateRbtAccs);
