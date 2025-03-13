@@ -12,7 +12,7 @@ namespace dynamic_gap
     */
     class TrajectoryVisualizer : public Visualizer
     {
-        using Visualizer::Visualizer;
+        // using Visualizer::Visualizer;
         
         public: 
             TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);

@@ -16,7 +16,7 @@ namespace dynamic_gap
     */
     class GapVisualizer : public Visualizer
     {
-        using Visualizer::Visualizer;
+        // using Visualizer::Visualizer;
         public: 
             GapVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 

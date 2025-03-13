@@ -12,7 +12,7 @@ namespace dynamic_gap
     */
     class GoalVisualizer : public Visualizer
     {
-        using Visualizer::Visualizer;
+        // using Visualizer::Visualizer;
 
         public: 
             GoalVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
