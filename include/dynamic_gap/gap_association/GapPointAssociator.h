@@ -34,13 +34,6 @@ namespace dynamic_gap
 															const std::vector<Gap *> & previousGaps);
 			
 			/**
-			* \brief Obtain minimum distance association between current gap points and previous gap points 
-			* \param distMatrix populated distance matrix
-			* \return minimum distance association
-			*/				
-			std::vector<int> associateGaps(const std::vector< std::vector<float> > & distMatrix);
-			
-			/**
 			* \brief Function for handling the transfer of gap estimator models from previous gaps to current gaps
 			* \param association minimum distance association
 			* \param distMatrix populated distance matrix

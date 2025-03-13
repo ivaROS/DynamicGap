@@ -235,7 +235,7 @@ namespace dynamic_gap
         /////////////////////////////////////
         std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
         rawDistMatrix_ = gapPointAssociator_->obtainDistMatrix(currRawGaps_, prevRawGaps_);
-        rawAssocation_ = gapPointAssociator_->associateGaps(rawDistMatrix_);
+        rawAssocation_ = gapPointAssociator_->associate(rawDistMatrix_);
         gapPointAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
                                     currRawGaps_, prevRawGaps_, 
                                     currentModelIdx_, tCurrentFilterUpdate,
@@ -271,7 +271,7 @@ namespace dynamic_gap
         ////////////////////////////////////////////
         std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
         simpDistMatrix_ = gapPointAssociator_->obtainDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
-        simpAssociation_ = gapPointAssociator_->associateGaps(simpDistMatrix_); // must finish this and therefore change the association
+        simpAssociation_ = gapPointAssociator_->associate(simpDistMatrix_); // must finish this and therefore change the association
         gapPointAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
                                     currSimplifiedGaps_, prevSimplifiedGaps_, 
                                     currentModelIdx_, tCurrentFilterUpdate,

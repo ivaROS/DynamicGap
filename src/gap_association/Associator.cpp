@@ -14,6 +14,41 @@
 namespace dynamic_gap 
 {
 
+
+	//////////////////////////////////////////////////////////
+	// 	Everything below this was taken from                //
+	// https://github.com/mcximing/hungarian-algorithm-cpp  //
+	//////////////////////////////////////////////////////////
+
+	std::vector<int> Associator::associate(const std::vector< std::vector<float> > & distMatrix) 
+	{
+		std::vector<int> association;
+
+		// try
+		// {
+
+		// NEW ASSIGNMENT OBTAINED
+		std::chrono::steady_clock::time_point associateStartTime = std::chrono::steady_clock::now();
+
+		// std::cout << "obtaining new assignment" << std::endl;
+		if (distMatrix.size() > 0 && distMatrix.at(0).size() > 0) 
+		{
+			//std::cout << "solving" << std::endl;
+			float cost = Solve(distMatrix, association);
+			//std::cout << "done solving" << std::endl;
+		}
+
+		// float associateTime = timeTaken(associateStartTime);
+		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "associate time taken: " << associateTime << " seconds for " << currentGapPoints.size() << " gaps");
+		
+		// } catch (...)
+		// {
+		// 	ROS_WARN_STREAM_NAMED("GapPointAssociator", "associate failed");			
+		// }
+
+		return association;
+    }
+
 	//********************************************************//
 	// A single function wrapper for solving assignment problem.
 	//********************************************************//

@@ -51,7 +51,7 @@ namespace dynamic_gap
 	}
 
 	std::vector<std::vector<float>> GapPointAssociator::obtainDistMatrix(const std::vector<Gap *> & currentGaps, 
-																	const std::vector<Gap *> & previousGaps) 
+																		const std::vector<Gap *> & previousGaps) 
 	{
 		std::vector<std::vector<float>> distMatrix(2 * currentGaps.size(), std::vector<float>(2 * previousGaps.size()));
 		
@@ -311,39 +311,4 @@ namespace dynamic_gap
 		// }
 	}
         
-
-	//////////////////////////////////////////////////////////
-	// 	Everything below this was taken from                //
-	// https://github.com/mcximing/hungarian-algorithm-cpp  //
-	//////////////////////////////////////////////////////////
-
-	std::vector<int> GapPointAssociator::associateGaps(const std::vector< std::vector<float> > & distMatrix) 
-	{
-		std::vector<int> association;
-
-		// try
-		// {
-
-		// NEW ASSIGNMENT OBTAINED
-		std::chrono::steady_clock::time_point associateGapsStartTime = std::chrono::steady_clock::now();
-
-		// std::cout << "obtaining new assignment" << std::endl;
-		if (distMatrix.size() > 0 && distMatrix.at(0).size() > 0) 
-		{
-			//std::cout << "solving" << std::endl;
-			float cost = Solve(distMatrix, association);
-			//std::cout << "done solving" << std::endl;
-		}
-
-		// float associateGapsTime = timeTaken(associateGapsStartTime);
-		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "associateGaps time taken: " << associateGapsTime << " seconds for " << currentGapPoints.size() << " gaps");
-		
-		// } catch (...)
-		// {
-		// 	ROS_WARN_STREAM_NAMED("GapPointAssociator", "associateGaps failed");			
-		// }
-
-		return association;
-    }
-	
 }

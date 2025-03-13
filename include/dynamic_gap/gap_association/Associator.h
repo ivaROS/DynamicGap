@@ -27,6 +27,13 @@ namespace dynamic_gap
 
             Associator(const DynamicGapConfig& cfg) { };
 
+			/**
+			* \brief Obtain minimum distance association between current gap points and previous gap points 
+			* \param distMatrix populated distance matrix
+			* \return minimum distance association
+			*/				
+			std::vector<int> associate(const std::vector< std::vector<float> > & distMatrix);
+			
         protected:
 
             /**
