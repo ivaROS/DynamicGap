@@ -38,7 +38,7 @@ namespace dynamic_gap
 
     bool GapDetector::sweptGapSizeCheck(Gap * gap)
     {
-        bool largeGap = gap->LIdx() - gap->RIdx() > (3 * (0.5 * halfScanRayCount_));
+        bool largeGap = gap->LIdx() - gap->RIdx() > (1.5 * halfScanRayCount_);
         bool canRobotFit = gap->getGapEuclideanDist() > 3 * cfg_->rbt.r_inscr;
         
         return largeGap || canRobotFit;
@@ -76,7 +76,7 @@ namespace dynamic_gap
         // try
         // {
 
-        // ROS_INFO_STREAM_NAMED("GapDetector", "[gapDetection()]");
+        ROS_INFO_STREAM_NAMED("GapDetector", "[gapDetection()]");
         scan_ = *scanPtr.get();
         // get half scan value
         fullScanRayCount_ = scan_.ranges.size();
@@ -86,7 +86,7 @@ namespace dynamic_gap
 
         minScanDist_ = *std::min_element(scan_.ranges.begin(), scan_.ranges.end());
         maxScanDist_ = *std::max_element(scan_.ranges.begin(), scan_.ranges.end());
-        // ROS_INFO_STREAM_NAMED("GapDetector", "gapDetection min_dist: " << minScanDist_);
+        ROS_INFO_STREAM_NAMED("GapDetector", "gapDetection min_dist: " << minScanDist_);
 
         std::string frame = scan_.header.frame_id;
         // starting the left point of the gap at front facing value
@@ -102,7 +102,7 @@ namespace dynamic_gap
         for (unsigned int it = 1; it < fullScanRayCount_; ++it)
         {
             currRange = scan_.ranges.at(it);
-            // // ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRange);
+            // ROS_INFO_STREAM_NAMED("GapDetector", "    iter: " << it << ", dist: " << currRange);
 
             if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
             {
@@ -112,7 +112,7 @@ namespace dynamic_gap
 
                 rawGaps.push_back(gap);
 
-                // ROS_INFO_STREAM_NAMED("GapDetector", "    adding radial gap from: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");
+                ROS_INFO_STREAM_NAMED("GapDetector", "    adding radial gap from: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");
             }
 
             // Either previous distance finite and current distance infinite or vice-versa, 
@@ -131,7 +131,7 @@ namespace dynamic_gap
                     if (sweptGapSizeCheck(gap)) 
                     {
                         //std::cout << "adding candidate swept gap" << std::endl;
-                        // ROS_INFO_STREAM_NAMED("GapDetector", "    adding swept gap from: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");                
+                        ROS_INFO_STREAM_NAMED("GapDetector", "    adding swept gap from: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");                
                         rawGaps.push_back(gap);
                     } else
                     {
@@ -140,7 +140,7 @@ namespace dynamic_gap
                 }
                 else // signals the beginning of a gap
                 {
-                    // ROS_INFO_STREAM_NAMED("GapDetector", "gap starting: finite to infinity");
+                    ROS_INFO_STREAM_NAMED("GapDetector", "gap starting: finite to infinity");
                     gapRIdx = it - 1;
                     gapRDist = prevRange;
                     withinSweptGap = true;
@@ -165,7 +165,7 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM_NAMED("GapDetector", "    adding candidate last gap");
                 rawGaps.push_back(gap);
-                // ROS_INFO_STREAM_NAMED("GapDetector", "adding last gap: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");                
+                ROS_INFO_STREAM_NAMED("GapDetector", "adding last gap: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");                
             } else 
             {
                 delete gap;
@@ -181,7 +181,7 @@ namespace dynamic_gap
             // delete first gap
             delete *rawGaps.begin();
             rawGaps.erase(rawGaps.begin());
-            // ROS_INFO_STREAM_NAMED("GapDetector", "revising last gap: (" << rawGaps.back()->RIdx() << ", " << rawGaps.back()->RRange() << "), to (" << rawGaps.back()->LIdx() << ", " << rawGaps.back()->LRange() << ")");                
+            ROS_INFO_STREAM_NAMED("GapDetector", "revising last gap: (" << rawGaps.back()->RIdx() << ", " << rawGaps.back()->RRange() << "), to (" << rawGaps.back()->LIdx() << ", " << rawGaps.back()->LRange() << ")");                
         }
         
         // if terminal_goal within laserscan and not within a gap, create a gap

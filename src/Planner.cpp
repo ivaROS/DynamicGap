@@ -804,9 +804,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running goToGoal");
 
                 goToGoalTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
-                                                                    currentRbtVel_, 
-                                                                    globalGoalRobotFrame_,
-                                                                    true);
+                                                                        currentRbtVel_, 
+                                                                        globalGoalRobotFrame_,
+                                                                        true);
                 goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj, true);
                 trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans);
                 goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0));
@@ -816,9 +816,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // Run pursuit guidance behavior
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running pursuit guidance");
             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectory(gaps.at(i), rbtPoseInSensorFrame_, 
-                                                                        currentRbtVel_, 
-                                                                        globalGoalRobotFrame_,
-                                                                        false);
+                                                                            currentRbtVel_, 
+                                                                            globalGoalRobotFrame_,
+                                                                            false);
 
             pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj, true);
             trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans);
@@ -1194,12 +1194,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                            GAP POINT PROPAGATION (v2)                            //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(planningGaps);
-        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
+        // std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
+        // propagateGapPointsV2(planningGaps);
+        // float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
+        // // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
+        // // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
 
         //////////////////////////////////////////////////////////////////////////////////////

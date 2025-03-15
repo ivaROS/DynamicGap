@@ -328,6 +328,8 @@ namespace dynamic_gap
             // 8. Perform gap association
             runGapAssociation(gapTubes_.at(futureTimeIdx), gapTubes_.at(futureTimeIdx - 1));
 
+            // 9 . Analyze associations
+
             t_i = t_iplus1;
         }
 
