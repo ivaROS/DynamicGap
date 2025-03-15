@@ -40,10 +40,10 @@ namespace dynamic_gap
             * \return trajectory through gap
             */
             Trajectory generateTrajectory(Gap * selectedGap, 
-                                                        const geometry_msgs::PoseStamped & currPose, 
-                                                        const geometry_msgs::TwistStamped & currVel,
-                                                        const geometry_msgs::PoseStamped & globalGoalRobotFrame,
-                                                        const bool & runGoToGoal);
+                                            const geometry_msgs::PoseStamped & currPose, 
+                                            const geometry_msgs::TwistStamped & currVel,
+                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame,
+                                            const bool & runGoToGoal);
 
             /**
             * \brief generate trajectory for idling in place

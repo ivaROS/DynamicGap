@@ -168,17 +168,17 @@ namespace dynamic_gap
         gapPoints_.clear();
 
         gapTubes_.clear();
-        gapTubes_.resize(int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1);
-        gapTubes_.at(0).resize(gaps.size());
+        // gapTubes_.resize(int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1);
+        gapTubes_.resize(gaps.size());
         for (int i = 0; i < gaps.size(); i++)
         {
-            gapTubes_.at(0).at(i) = new Gap(*gaps.at(i));
+            gapTubes_.at(i) = new GapTube(gaps.at(i));
         }
 
         ROS_INFO_STREAM_NAMED("GapPropagator", "       Gaps at time " << 0.0 << ": ");
-        for (int i = 0; i < gapTubes_.at(0).size(); i++)
+        for (int i = 0; i < gaps.size(); i++)
         {
-            Gap * gap = gapTubes_.at(0).at(i);
+            Gap * gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("GapPropagator", "           gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "               left point:" << gap->getLPosition().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "               right point:" << gap->getRPosition().transpose());
@@ -195,8 +195,11 @@ namespace dynamic_gap
 
         // 4. Propagate gap points loop
         float t_i = 0.0, t_iplus1 = 0.0;
-        for (int futureTimeIdx = 1; futureTimeIdx < gapTubes_.size(); futureTimeIdx++) 
+        int numSteps = int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1;
+        for (int futureTimeIdx = 1; futureTimeIdx < numSteps; futureTimeIdx++) 
         {        
+            std::vector<Gap *> futureGaps;
+
             t_iplus1 = t_i + cfg_->traj.integrate_stept;        
 
             ROS_INFO_STREAM_NAMED("GapPropagator", "       t: " << t_iplus1);
@@ -264,8 +267,8 @@ namespace dynamic_gap
                             gapPtJ->assignToGap();
 
                             // Create a gap
-                            gapTubes_.at(futureTimeIdx).push_back(new Gap(gapPtI->getFrame(),
-                                                                            *gapPtJ, *gapPtI));
+                            futureGaps.push_back(new Gap(gapPtI->getFrame(),
+                                                            *gapPtJ, *gapPtI, t_iplus1, true));
 
                             break;
                         }
@@ -300,8 +303,8 @@ namespace dynamic_gap
                                 gapPtJ->assignToGap();
 
                                 // Create a gap
-                                gapTubes_.at(futureTimeIdx).push_back(new Gap(gapPtI->getFrame(),
-                                                                                *gapPtI, *gapPtJ));
+                                futureGaps.push_back(new Gap(gapPtI->getFrame(),
+                                                        *gapPtI, *gapPtJ, t_iplus1, false));
 
                                 break;
                             } else
@@ -317,18 +320,26 @@ namespace dynamic_gap
             }
 
             ROS_INFO_STREAM_NAMED("GapPropagator", "       Gaps at time " << t_iplus1 << ": ");
-            for (int i = 0; i < gapTubes_.at(futureTimeIdx).size(); i++)
+            for (int i = 0; i < futureGaps.size(); i++)
             {
-                Gap * gap = gapTubes_.at(futureTimeIdx).at(i);
+                Gap * gap = futureGaps.at(i);
                 ROS_INFO_STREAM_NAMED("GapPropagator", "           gap " << i << ": ");
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               left point:" << gap->getLPosition().transpose());
-                ROS_INFO_STREAM_NAMED("GapPropagator", "               right point:" << gap->getRPosition().transpose());
+                ROS_INFO_STREAM_NAMED("GapPropagator", "                left point:" << gap->getLPosition().transpose());
+                ROS_INFO_STREAM_NAMED("GapPropagator", "                right point:" << gap->getRPosition().transpose());
+                ROS_INFO_STREAM_NAMED("GapPropagator", "                gap available: " << gap->isAvailable());
             }
 
             // 8. Perform gap association
-            runGapAssociation(gapTubes_.at(futureTimeIdx), gapTubes_.at(futureTimeIdx - 1));
+            // runGapAssociation(gapTubes_.at(futureTimeIdx), gapTubes_.at(futureTimeIdx - 1));
 
             // 9 . Analyze associations
+
+            // 10. Delete gaps we don't need
+
+            for (Gap * gap : futureGaps)
+            {
+                delete gap;
+            }
 
             t_i = t_iplus1;
         }
@@ -340,13 +351,13 @@ namespace dynamic_gap
         }
 
         // delete gap tubes
-        for (std::vector<Gap *> gapTube : gapTubes_)
-        {
-            for (Gap * gap : gapTube)
-            {
-                delete gap;
-            }
-        }
+        // for (std::vector<Gap *> gapTube : gapTubes_)
+        // {
+        //     for (Gap * gap : gapTube)
+        //     {
+        //         delete gap;
+        //     }
+        // }
 
         return;
     }
@@ -356,7 +367,7 @@ namespace dynamic_gap
     {
         distMatrix_ = gapAssociator_->populateDistMatrix(currentGaps, previousGaps);
         assocation_ = gapAssociator_->associate(distMatrix_);
-        gapAssociator_->assignModels(assocation_, distMatrix_, currentGaps, previousGaps);
+        gapAssociator_->assignGaps(assocation_, distMatrix_, currentGaps, previousGaps);
     }
 
     void GapPropagator::convertGapsToGapPoints(const std::vector<Gap *> & gaps)
@@ -400,6 +411,8 @@ namespace dynamic_gap
             {
                 gapPoints_.at(i)->setUngapID(i);
                 gapPoints_.at(nextIdx)->setUngapID(i);
+
+                // set gap point states
             }
         }
     }

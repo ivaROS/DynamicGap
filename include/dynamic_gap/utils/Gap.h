@@ -32,6 +32,8 @@ namespace dynamic_gap
                 leftGapPt_ = new GapPoint(-1, -1.0); // temp values
                 rightGapPt_ = new GapPoint(rightIdx, rangeRight);
 
+                gapStart_ = 0.0;
+
                 goal_ = new GapGoal();
 
                 if (frame.empty())
@@ -56,6 +58,8 @@ namespace dynamic_gap
                 radial_ = otherGap.radial_;
                 rightType_ = otherGap.rightType_;
 
+                gapStart_ = otherGap.gapStart_;
+
                 // deep copy for new points
                 leftGapPt_ = new GapPoint(*otherGap.leftGapPt_);
                 rightGapPt_ = new GapPoint(*otherGap.rightGapPt_);
@@ -75,14 +79,19 @@ namespace dynamic_gap
 
             Gap(const std::string & frame,
                 const PropagatedGapPoint & leftPropagatedGapPoint,
-                const PropagatedGapPoint & rightPropagatedGapPoint)
+                const PropagatedGapPoint & rightPropagatedGapPoint,
+                const float & gapStart,
+                const bool & available)
             {
                 if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
                 {
                     frame_ = frame;
+                    available_ = available;
 
                     leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
                     rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
+
+                    gapStart_ = gapStart;
 
                     // initializing convex polar gap coordinates to raw ones
                     leftGapPt_->initManipPoint();
@@ -368,6 +377,8 @@ namespace dynamic_gap
             */
             bool isRGC() const { return rgc_; }
 
+            bool isAvailable() const { return available_; }
+
             GapGoal * getGoal() const { return goal_; }
 
             void setGlobalGoalWithin() { globalGoalWithin = true; }
@@ -382,6 +393,7 @@ namespace dynamic_gap
         private:
             std::string frame_ = ""; /**< Frame ID for gap */
 
+            float gapStart_ = -1.0; /**< Gap start time */
             float gapLifespan_ = -1.0; /**< Gap lifespan over prediction horizon */
 
             int end_condition_ = UNSET; 
@@ -399,6 +411,8 @@ namespace dynamic_gap
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */
 
             bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
+
+            bool available_ = false; /**< flag for if gap is available */
 
             GapGoal * goal_ = NULL; /**< Gap goal */
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */

@@ -69,12 +69,12 @@ namespace dynamic_gap
 		return pointToPointDist;
 	}
 
-    void GapAssociator::assignModels(const std::vector<int> & association, 
-                                        const std::vector< std::vector<float> > & distMatrix, 
-                                        const std::vector<Gap *> & currentGaps, 
-                                        const std::vector<Gap *> & previousGaps)
+    void GapAssociator::assignGaps(const std::vector<int> & association, 
+									const std::vector< std::vector<float> > & distMatrix, 
+									const std::vector<Gap *> & currentGaps, 
+									const std::vector<Gap *> & previousGaps)
     {
-        ROS_INFO_STREAM_NAMED("GapAssociator", "	[assignModels()]");
+        ROS_INFO_STREAM_NAMED("GapAssociator", "	[assignGaps()]");
 
         for (int i = 0; i < currentGaps.size(); i++) 
 		{
@@ -85,29 +85,52 @@ namespace dynamic_gap
 				// ROS_INFO_STREAM_NAMED("GapAssociator", "			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 				if (association.at(i) >= 0) // clause 2: association existence check
 				{
+					Gap * currentGap = currentGaps.at(pair.at(0));
+					Gap * previousGap = previousGaps.at(pair.at(1));
+	
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGaps.at(i)->getLPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGaps.at(i)->getRPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "				previous gap: ");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGaps.at(pair.at(1))->getLPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGaps.at(pair.at(1))->getRPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getLPosition().transpose() << ")");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << currentGap->getLeftGapPt()->getModel()->getID() << ")");
+					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGap->getRPosition().transpose() << ")");
+					ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << currentGap->getRightGapPt()->getModel()->getID() << ")");
+					ROS_INFO_STREAM_NAMED("GapAssociator", "				previous gap: ");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGap->getLPosition().transpose() << ")");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << previousGap->getLeftGapPt()->getModel()->getID() << ")");                    
+					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGap->getRPosition().transpose() << ")");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << previousGap->getRightGapPt()->getModel()->getID() << ")");                    
+					ROS_INFO_STREAM_NAMED("GapAssociator", "				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
                         	
 					// ROS_INFO_STREAM_NAMED("GapAssociator", "			checking association distance");
 
 					// checking if current gap pt has association under distance threshold
-					bool assoc_idx_in_range = previousGaps.size() > pair.at(1);
+					// bool assoc_idx_in_range = previousGaps.size() > pair.at(1);
 
-					bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
-					validAssociation = assoc_dist_in_thresh;
+					// bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
+					// validAssociation = assoc_dist_in_thresh;
 
-					if (validAssociation) 
+					if (currentGap->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
+						currentGap->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
 					{
-						ROS_INFO_STREAM_NAMED("GapAssociator", "				association meets distance threshold");
+						ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have same model IDs! No need to do anything");
 					} else
 					{
-                        ROS_INFO_STREAM_NAMED("GapAssociator", "				association does not meet distance threshold");
+						ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have different model IDs! Need to update");
+
+						// set lifespan for previous gap
+
+						// find previous gap in gap tubes
+
+						// append previous gap
 					}
+
+					
+
+					// if (validAssociation) 
+					// {
+					// } else
+					// {
+                    //     ROS_INFO_STREAM_NAMED("GapAssociator", "				association does not meet distance threshold");
+					// }
 				} else // instantiate new model
 				{
 					ROS_INFO_STREAM_NAMED("GapAssociator", "			current gap not associated");

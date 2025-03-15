@@ -11,6 +11,7 @@
 #include <Eigen/Geometry>
 
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/GapTube.h>
 #include <dynamic_gap/utils/Utils.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 
@@ -72,7 +73,7 @@ namespace dynamic_gap
 
             std::vector<PropagatedGapPoint *> gapPoints_;
 
-            std::vector<std::vector<Gap *>> gapTubes_;
+            std::vector<GapTube *> gapTubes_;
 
             GapAssociator * gapAssociator_ = NULL; /**< Gap point associator */
             std::vector<std::vector<float>> distMatrix_; /**< Distance matrix for gaps */
