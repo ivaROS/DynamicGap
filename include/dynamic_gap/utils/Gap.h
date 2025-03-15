@@ -213,6 +213,7 @@ namespace dynamic_gap
                 rightGapPt_->initManipPoint();
 
                 setRadial();
+                setRightType();
             }
 
             void setGapLifespan(const float & gapLifespan) { gapLifespan_ = gapLifespan; }
