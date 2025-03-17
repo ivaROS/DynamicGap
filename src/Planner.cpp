@@ -1197,18 +1197,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
         //////////////////////////////////////////////////////////////////////////////////////
-        //                            GAP POINT PROPAGATION (v2)                            //
-        //////////////////////////////////////////////////////////////////////////////////////
-
-        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(planningGaps);
-        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
-
-
-        //////////////////////////////////////////////////////////////////////////////////////
         //                                  GAP MANIPULATION                                //
         //////////////////////////////////////////////////////////////////////////////////////
 
@@ -1218,6 +1206,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float avgGapManipulationTimeTaken = computeAverageTimeTaken(gapManipulationTimeTaken, GAP_MANIP);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation for " << gapCount << " gaps took " << gapManipulationTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation average time: " << avgGapManipulationTimeTaken << " seconds (" << (1.0 / avgGapManipulationTimeTaken) << " Hz) ]");
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                            GAP POINT PROPAGATION (v2)                            //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
+        propagateGapPointsV2(manipulatedGaps);
+        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
+        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
+        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
         ///////////////////////////
         // GAP FEASIBILITY CHECK //
