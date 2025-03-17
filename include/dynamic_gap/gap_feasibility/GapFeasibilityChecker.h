@@ -30,18 +30,13 @@ namespace dynamic_gap
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
             /**
-            * \brief Set terminal range and bearing values for gap based on 
-            * where gap crossed
-            * \param gap incoming gap whose points we want to propagate
-            */                 
-            void propagateGapPoints(Gap * gap);
-
-            /**
             * \brief Check gap lifespan against pursuit guidance kinematics to
             * determine the gap's feasibility
             * \param gap incoming gap whose feasibility we want to evaluate
             */   
             bool pursuitGuidanceAnalysis(Gap * gap);
+
+            bool pursuitGuidanceAnalysisV2(Gap * gap);
 
         private:
             /**
@@ -66,6 +61,8 @@ namespace dynamic_gap
                                         const Eigen::Vector4f & rightCrossPt);
 
             bool parallelNavigationFeasibilityCheck(Gap * gap);
+
+            bool parallelNavigationFeasibilityCheckV2(Gap * gap);
 
             void parallelNavigationHelper(const Eigen::Vector2f & p_target, 
                                             const Eigen::Vector2f & v_target, 

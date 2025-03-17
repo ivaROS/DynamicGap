@@ -111,7 +111,7 @@ namespace dynamic_gap
 							tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
 						{
 							previousTubeIdx = k;
-							tube->getMostRecentGap()->setGapLifespan(t_current);
+							tube->getMostRecentGap()->updateGapLifespan(t_current);
 							break;
 						}
 					}

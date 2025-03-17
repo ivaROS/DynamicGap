@@ -214,7 +214,8 @@ namespace dynamic_gap
             std::vector<Gap *> gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
                                                         bool & isCurrentGapFeasible);
 
-            
+            std::vector<GapTube *> gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
+                                                            bool & isCurrentGapFeasible);         
 
             /**
             * \brief Function for propagating current gap points/models forward in time

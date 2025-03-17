@@ -98,6 +98,13 @@ namespace dynamic_gap
 
                     gapStart_ = gapStart;
 
+                    // check if closing or opening
+                    Eigen::Vector4f leftState = leftGapPt_->getModel()->getGapState();
+                    float leftBetaDot = (leftState[0] * leftState[3] - leftState[1] * leftState[2]) / (leftState[0] * leftState[0] + leftState[1] * leftState[1]);
+
+                    Eigen::Vector4f rightState = rightGapPt_->getModel()->getGapState();
+                    bool rightBetaDot = (rightState[0] * rightState[3] - rightState[1] * rightState[2]) / (rightState[0] * rightState[0] + rightState[1] * rightState[1]);
+
                     // initializing convex polar gap coordinates to raw ones
                     // leftGapPt_->initManipPoint();
                     // rightGapPt_->initManipPoint();
@@ -231,6 +238,8 @@ namespace dynamic_gap
             }
 
             void setGapLifespan(const float & gapLifespan) { gapLifespan_ = gapLifespan; }
+
+            void updateGapLifespan(const float & t_current) { gapLifespan_ = t_current - gapStart_; }
 
             float getGapLifespan() const { return gapLifespan_; }
 
@@ -418,6 +427,8 @@ namespace dynamic_gap
             GapPoint * leftGapPt_ = NULL; /**< Left gap point */
             GapPoint * rightGapPt_ = NULL; /**< Right gap point */
             
+            bool opening_ = false; /**< Opening gap identifier */
+
             bool radial_ = false; /**< Initial gap radial characteristic identifier */
             
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */

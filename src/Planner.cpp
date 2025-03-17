@@ -797,6 +797,64 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return feasibleGaps;
     }
 
+    std::vector<GapTube *> Planner::gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
+                                                                bool & isCurrentGapFeasible)                                             
+    {
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "[gapSetFeasibilityCheckV2()]");
+
+        std::vector<GapTube *> feasibleGapTubes;
+
+        // boost::mutex::scoped_lock gapset(gapMutex_);        
+        // std::vector<GapTube *> feasibleGaps;
+
+        // grabbing the current set of gaps
+
+        int currentLeftGapPtModelID = getCurrentLeftGapPtModelID();
+        int currentRightGapPtModelID = getCurrentRightGapPtModelID();
+        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
+
+        isCurrentGapFeasible = false;
+
+        bool isGapFeasible = false;
+
+        for (int i = 0; i < gapTubes.size(); i++)
+        {
+            GapTube * gapTube = gapTubes.at(i);
+            bool isTubeFeasible = true;
+            ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for tube " << i);
+            for (size_t j = 0; i < gapTube->size(); j++) 
+            {
+                bool isGapFeasible = false;
+
+                Gap * gap = gapTube->at(j);
+                ROS_INFO_STREAM_NAMED("GapFeasibility", "       gap " << j);
+    
+                // run pursuit guidance analysis on gap to determine feasibility
+                isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap);
+
+                if (gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
+                    gap->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID) 
+                {
+                    isCurrentGapFeasible = true;
+                }
+
+                if (!isGapFeasible)
+                {
+                    isTubeFeasible = false;
+                    break;
+                }
+            }
+    
+            if (isTubeFeasible) 
+            {                    
+                feasibleGapTubes.push_back(gapTube); // shallow copy
+            }        
+
+        }
+
+        return feasibleGapTubes;
+    }
+
     void Planner::generateGapTrajs(std::vector<Gap *> & gaps, 
                                     std::vector<Trajectory> & generatedTrajs,
                                     std::vector<std::vector<float>> & pathPoseCosts,
@@ -1255,7 +1313,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                           GAP FEASIBILITY CHECK (v2)                             //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        gapFeasibilityCheckV2(gapTubes);
+        bool isCurrentGapFeasibleDummy = false;
+        gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                            GAP FEASIBILITY CHECK                                 //
