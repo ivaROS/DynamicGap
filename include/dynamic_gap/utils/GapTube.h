@@ -18,6 +18,10 @@ namespace dynamic_gap
 
             ~GapTube()
             {
+                for (Gap * gap : tube_)
+                {
+                    delete gap;
+                }
                 tube_.clear();
             }
 
@@ -29,6 +33,11 @@ namespace dynamic_gap
             Gap * getMostRecentGap()
             {
                 return tube_.back();
+            }
+
+            std::vector<Gap *> getTube()
+            {
+                return tube_;
             }
 
         private:

@@ -239,10 +239,10 @@ namespace dynamic_gap
 
             for (Gap * gap : previousGaps)
             {
-                // if (gap->getSafeToDelete())
-                // {
-                delete gap;
-                // }
+                if (gap->getSafeToDelete())
+                {
+                    delete gap;
+                }
             }
             previousGaps.clear();
             previousGaps = currentGaps;
@@ -252,10 +252,10 @@ namespace dynamic_gap
 
         for (Gap * gap : previousGaps)
         {
-            // if (gap->getSafeToDelete())
-            // {
-            delete gap;
-            // }
+            if (gap->getSafeToDelete())
+            {
+                delete gap;
+            }
         }
 
 
@@ -267,6 +267,7 @@ namespace dynamic_gap
         //////////////
 
         // delete gap tubes
+        // all gaps in here should be intact still, all other gaps should have gotten deleted
         for (GapTube * tube : gapTubes_)
         {
             delete tube;

@@ -80,89 +80,85 @@ namespace dynamic_gap
 
         for (int i = 0; i < currentGaps.size(); i++) 
 		{
+			Gap * currentGap = currentGaps.at(i);
+		
 			bool validAssociation = false;
+		
 			if (i < association.size()) // clause 1: previous gaps size
 			{
 				std::vector<int> pair{i, association.at(i)};	
 				// ROS_INFO_STREAM_NAMED("GapAssociator", "			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 				if (association.at(i) >= 0) // clause 2: association existence check
 				{
+					currentGap->setSafeToDelete();
+			// 		Gap * previousGap = previousGaps.at(pair.at(1));
 
-					Gap * currentGap = currentGaps.at(pair.at(0));
-					Gap * previousGap = previousGaps.at(pair.at(1));
+			// 		// find tube for previous gap
+			// 		int previousTubeIdx = -1;
+			// 		for (int k = 0; k < gapTubes.size(); k++)
+			// 		{
+			// 			GapTube * tube = gapTubes.at(k);
+			// 			if (tube->getMostRecentGap()->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
+			// 				tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
+			// 			{
+			// 				previousTubeIdx = k;
+			// 				break;
+			// 			}
+			// 		}
 
-					// find tube for previous gap
-					// int previousTubeIdx = -1;
-					// for (int k = 0; k < gapTubes.size(); k++)
-					// {
-					// 	GapTube * tube = gapTubes.at(k);
-					// 	if (tube->getMostRecentGap()->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
-					// 		tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
-					// 	{
-					// 		previousTubeIdx = k;
-					// 		break;
-					// 	}
-					// }
+			// 		if (previousTubeIdx < 0)
+			// 		{
+			// 			ROS_WARN_STREAM_NAMED("GapAssociator", "				previous gap not found in gap tubes");
+			// 			// ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
+			// 			// throw std::runtime_error("previous gap not found in gap tubes");
+			// 		}
 
-					// if (previousTubeIdx < 0)
-					// {
-					// 	ROS_WARN_STREAM_NAMED("GapAssociator", "				previous gap not found in gap tubes");
-					// 	ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
-					// 	throw std::runtime_error("previous gap not found in gap tubes");
-					// }
+			// 		GapTube * previousGapTube = gapTubes.at(previousTubeIdx);
 
-					// GapTube * previousGapTube = gapTubes.at(previousTubeIdx);
+			// 		// set lifespan for previous gap
+			// 		previousGap->setGapLifespan(t_current);
 
-
-					// set lifespan for previous gap
-					previousGap->setGapLifespan(t_current);
-
-					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getLPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << currentGap->getLeftGapPt()->getModel()->getID() << ")");
-					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGap->getRPosition().transpose() << ")");
-					ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << currentGap->getRightGapPt()->getModel()->getID() << ")");
-					ROS_INFO_STREAM_NAMED("GapAssociator", "				previous gap: ");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGap->getLPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << previousGap->getLeftGapPt()->getModel()->getID() << ")");                    
-					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGap->getRPosition().transpose() << ")");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << previousGap->getRightGapPt()->getModel()->getID() << ")");                    
-					ROS_INFO_STREAM_NAMED("GapAssociator", "				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
+            //         ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getLPosition().transpose() << ")");
+            //         ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << currentGap->getLeftGapPt()->getModel()->getID() << ")");
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGap->getRPosition().transpose() << ")");
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << currentGap->getRightGapPt()->getModel()->getID() << ")");
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "				previous gap: ");
+            //         ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGap->getLPosition().transpose() << ")");
+            //         ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << previousGap->getLeftGapPt()->getModel()->getID() << ")");                    
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGap->getRPosition().transpose() << ")");
+            //         ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << previousGap->getRightGapPt()->getModel()->getID() << ")");                    
+			// 		ROS_INFO_STREAM_NAMED("GapAssociator", "				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
                         	
-					// ROS_INFO_STREAM_NAMED("GapAssociator", "			checking association distance");
+			// 		// ROS_INFO_STREAM_NAMED("GapAssociator", "			checking association distance");
 
-					// checking if current gap pt has association under distance threshold
-					// bool assoc_idx_in_range = previousGaps.size() > pair.at(1);
-
-					// bool assoc_dist_in_thresh = (distMatrix.at(pair.at(0)).at(pair.at(1)) <= assocThresh);
-					// validAssociation = assoc_dist_in_thresh;
-
-					if (currentGap->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
-						currentGap->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
-					{
-						ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have same model IDs! No need to do anything");
+			// 		if (currentGap->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
+			// 			currentGap->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
+			// 		{
+			// 			ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have same model IDs! No need to do anything");
 						
-						currentGap->setSafeToDelete();
-					} else
-					{
-						ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have different model IDs! Need to update");
+			// 			// currentGap->setSafeToDelete();
+			// 		} else
+			// 		{
+			// 			ROS_INFO_STREAM_NAMED("GapAssociator", "				gap points have different model IDs! Need to update");
 
-						// find previous gap in gap tubes
+			// 			// find previous gap in gap tubes
 
-						// append previous gap
+			// 			// append previous gap
 						
-						// previousGapTube->addGap(currentGap);
-					}
+			// 			// previousGapTube->addGap(currentGap);
+			// 		}
 
 				} else // instantiate new model
 				{
 					ROS_INFO_STREAM_NAMED("GapAssociator", "			current gap not associated");
+					currentGap->setSafeToDelete();
 				}
 			} else
 			{
 				ROS_INFO_STREAM_NAMED("GapAssociator", "			association does not exist");
+				currentGap->setSafeToDelete();
 			}
 		}        
     }
-
 }
