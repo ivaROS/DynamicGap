@@ -62,6 +62,11 @@ namespace dynamic_gap
                 return tube_.size();
             }
 
+            Gap * at(const int & idx)
+            {
+                return tube_.at(idx);
+            }
+
         private:
             std::vector<Gap *> tube_;
     };

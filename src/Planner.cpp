@@ -643,7 +643,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         trajController_->updateEgoCircle(scan_);
     }
 
-    void Planner::propagateGapPointsV2(const std::vector<Gap *> & planningGaps)
+    void Planner::propagateGapPointsV2(const std::vector<Gap *> & planningGaps,
+                                        std::vector<GapTube *> & gapTubes)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
         ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPointsV2()]");
@@ -662,7 +663,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
-        gapPropagator_->propagateGapPointsV2(planningGaps, gapTubes_);
+        gapPropagator_->propagateGapPointsV2(planningGaps, gapTubes);
 
         return;
     }
@@ -733,6 +734,29 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
 
         return manipulatedGaps;
+    }
+
+    void Planner::gapGoalPlacementV2(std::vector<GapTube *> & gapTubes) 
+    {
+        ROS_INFO_STREAM_NAMED("GapGoalPlacement", "[gapGoalPlacement()]");
+
+        for (int i = 0; i < gapTubes.size(); i++)
+        {
+            GapTube * gapTube = gapTubes.at(i);
+            for (int j = 0; j < gapTube->size(); j++)
+            {
+                Gap * gap = gapTube->at(j);
+
+                bool placeGoalBeyondGap = (j == (gapTube->size() - 1) && gap->isAvailable());
+
+                // should use manipulate points to set gaps
+                gapGoalPlacer_->setGapGoalV2(gap, 
+                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                                globalGoalRobotFrame_,
+                                                placeGoalBeyondGap);                    
+            }
+        }
+        return;
     }
 
     std::vector<Gap *> Planner::gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
@@ -1175,6 +1199,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
+        // Gap Tubes
+        std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
+
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
         int gapCount = planningGaps.size();
@@ -1212,15 +1239,28 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
 
         std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(manipulatedGaps);
+        propagateGapPointsV2(manipulatedGaps, gapTubes);
         float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
         // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
         // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
-        ///////////////////////////
-        // GAP FEASIBILITY CHECK //
-        ///////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                              GAP MANIPULATION                                    //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        gapGoalPlacementV2(gapTubes);
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                           GAP FEASIBILITY CHECK (v2)                             //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        gapFeasibilityCheckV2(gapTubes);
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                            GAP FEASIBILITY CHECK                                 //
+        //////////////////////////////////////////////////////////////////////////////////////
+
         bool isCurrentGapFeasible = false;
         std::vector<Gap *> feasibleGaps;
         std::chrono::steady_clock::time_point feasibilityStartTime = std::chrono::steady_clock::now();
@@ -1245,9 +1285,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         gapCount = feasibleGaps.size();
 
-        /////////////////////////////
-        // FUTURE SCAN PROPAGATION //
-        /////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                              FUTURE SCAN PROPAGATION                             //
+        //////////////////////////////////////////////////////////////////////////////////////
         std::vector<sensor_msgs::LaserScan> futureScans;
         std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
         if (cfg_.planning.future_scan_propagation)
@@ -1266,9 +1306,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation for " << gapCount << " gaps took " << scanPropagationTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation average time: " << avgScanPropagationTimeTaken << " seconds (" << (1.0 / avgScanPropagationTimeTaken) << " Hz) ]");
     
-        ///////////////////////////////////////////
-        // GAP TRAJECTORY GENERATION AND SCORING //
-        ///////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                          GAP TRAJECTORY GENERATION AND SCORING                   //
+        //////////////////////////////////////////////////////////////////////////////////////
         std::vector<Trajectory> trajs;
         std::vector<std::vector<float>> pathPoseCosts; 
         std::vector<float> pathTerminalPoseCosts; 
@@ -1279,9 +1319,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
     
-        //////////////////////////////
-        // GAP TRAJECTORY SELECTION //
-        //////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                               GAP TRAJECTORY SELECTION                           //
+        //////////////////////////////////////////////////////////////////////////////////////
+
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
         int lowestCostTrajIdx = pickTraj(trajs, pathPoseCosts, pathTerminalPoseCosts);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
@@ -1289,11 +1330,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection for " << gapCount << " gaps took " << pickTrajTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection average time: " << avgPickTrajTimeTaken << " seconds (" << (1.0 / avgPickTrajTimeTaken) << " Hz) ]");
     
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                              GAP TRAJECTORY COMPARISON                           //
+        //////////////////////////////////////////////////////////////////////////////////////
+
         if (lowestCostTrajIdx >= 0) 
         {
-            ///////////////////////////////
-            // GAP TRAJECTORY COMPARISON //
-            ///////////////////////////////
             std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
             Gap * incomingGap = nullptr;
@@ -1343,11 +1385,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             delete copiedRawGap;
 
         // delete gap tubes
-        for (GapTube * tube : gapTubes_)
+        for (GapTube * tube : gapTubes)
         {
             delete tube;
         }
-        gapTubes_.clear();
 
         return;
     }

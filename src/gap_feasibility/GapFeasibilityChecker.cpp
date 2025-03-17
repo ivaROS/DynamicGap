@@ -212,7 +212,7 @@ namespace dynamic_gap
 
         // float eps = 0.00001;
 
-        float scaling_factor = 0.99;
+        // float scaling_factor = 0.99;
 
         Eigen::Vector2f p_target = p_target_init;
         Eigen::Vector2f v_target = v_target_init;

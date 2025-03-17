@@ -212,7 +212,9 @@ namespace dynamic_gap
             * \return set of feasible gaps
             */
             std::vector<Gap *> gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
-                                                                    bool & isCurrentGapFeasible);
+                                                        bool & isCurrentGapFeasible);
+
+            
 
             /**
             * \brief Function for propagating current gap points/models forward in time
@@ -226,7 +228,8 @@ namespace dynamic_gap
             * \param planningGaps set of gaps we will use to plan
             * \return set of propagated gaps we will use to plan
             */
-            void propagateGapPointsV2(const std::vector<Gap *> & planningGaps);
+            void propagateGapPointsV2(const std::vector<Gap *> & planningGaps,
+                                        std::vector<GapTube *> & gapTubes);
 
             /**
             * \brief Function for performing gap manipulation steps
@@ -249,6 +252,8 @@ namespace dynamic_gap
                                     std::vector<std::vector<float>> & pathPoseScores,
                                     std::vector<float> & pathTerminalPoseScores,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans);
+
+            void gapGoalPlacementV2(std::vector<GapTube *> & gapTubes);
 
             /**
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
@@ -425,9 +430,6 @@ namespace dynamic_gap
             std::vector<Gap *> currSimplifiedGaps_; /**< Current set of simplified gaps */
             std::vector<Gap *> prevRawGaps_; /**< Previous set of raw gaps */
             std::vector<Gap *> prevSimplifiedGaps_; /**< Previous set of simplified gaps */
-
-            // Gap Tubes
-            std::vector<GapTube *> gapTubes_; /**< Set of gap tubes */
 
             int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
             int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
