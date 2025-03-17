@@ -1175,6 +1175,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
 
+        std::vector<Gap *> dummyGaps = deepCopyCurrentSimplifiedGaps();
+
         std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
 
         int gapCount = planningGaps.size();
@@ -1195,7 +1197,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
 
         std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(planningGaps);
+        propagateGapPointsV2(dummyGaps);
         float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
         // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");

@@ -21,6 +21,11 @@ namespace dynamic_gap
                 tube_.push_back(gap);
             }
 
+            Gap * getMostRecentGap()
+            {
+                return tube_.back();
+            }
+
         private:
             std::vector<Gap *> tube_;
     };

@@ -6,6 +6,8 @@
 
 #include <dynamic_gap/gap_association/Associator.h>
 
+#include <dynamic_gap/utils/GapTube.h>
+
 namespace dynamic_gap
 {
     /** 
@@ -49,7 +51,9 @@ namespace dynamic_gap
 			void assignGaps(const std::vector<int> & association, 
 							const std::vector< std::vector<float> > & distMatrix, 
 							const std::vector<Gap *> & currentGaps, 
-							const std::vector<Gap *> & previousGaps);
+							const std::vector<Gap *> & previousGaps,
+							std::vector<GapTube *> & gapTubes,
+							const float & t_current);
 
 		private:
 
