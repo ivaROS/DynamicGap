@@ -90,7 +90,16 @@ namespace dynamic_gap
 				// ROS_INFO_STREAM_NAMED("GapAssociator", "			pair (" << pair.at(0) << ", " << pair.at(1) << ")");
 				if (association.at(i) >= 0) // clause 2: association existence check
 				{
-					currentGap->setSafeToDelete();
+					// currentGap->setSafeToDelete();
+					if (gapTubes.size() > 0)
+					{
+						// gapTubes.at(0)->addGap(currentGap);
+						currentGap->setSafeToDelete();
+					} else
+					{
+						currentGap->setSafeToDelete();
+					}
+
 			// 		Gap * previousGap = previousGaps.at(pair.at(1));
 
 			// 		// find tube for previous gap

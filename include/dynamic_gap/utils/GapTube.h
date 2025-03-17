@@ -12,7 +12,6 @@ namespace dynamic_gap
         public:
             GapTube(Gap * gap)
             {
-                tube_.clear();
                 tube_.push_back(gap);
             }
 
