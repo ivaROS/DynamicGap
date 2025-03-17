@@ -54,10 +54,10 @@ namespace dynamic_gap
 
 	float GapAssociator::calculateDistance(Gap * currentGap, Gap * previousGap)
 	{
-        Eigen::Vector2f currentGapLeftPt = currentGap->getLPosition();
-        Eigen::Vector2f previousGapLeftPt = previousGap->getLPosition();
-        Eigen::Vector2f currentGapRightPt = currentGap->getRPosition();
-        Eigen::Vector2f previousGapRightPt = previousGap->getRPosition();
+        Eigen::Vector2f currentGapLeftPt = currentGap->getManipulatedLPosition();
+        Eigen::Vector2f previousGapLeftPt = previousGap->getManipulatedLPosition();
+        Eigen::Vector2f currentGapRightPt = currentGap->getManipulatedRPosition();
+        Eigen::Vector2f previousGapRightPt = previousGap->getManipulatedRPosition();
 
 		// float pointToPointDistSq = 0.0;
 
@@ -124,14 +124,14 @@ namespace dynamic_gap
 					}
 
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getLPosition().transpose() << ")");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getManipulatedLPosition().transpose() << ")");
                     ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << currentGap->getLeftGapPt()->getModel()->getID() << ")");
-					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGap->getRPosition().transpose() << ")");
+					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << currentGap->getManipulatedRPosition().transpose() << ")");
 					ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << currentGap->getRightGapPt()->getModel()->getID() << ")");
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				previous gap: ");
-                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGap->getLPosition().transpose() << ")");
+                    ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << previousGap->getManipulatedLPosition().transpose() << ")");
                     ROS_INFO_STREAM_NAMED("GapAssociator", "					left ID: (" << previousGap->getLeftGapPt()->getModel()->getID() << ")");                    
-					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGap->getRPosition().transpose() << ")");
+					ROS_INFO_STREAM_NAMED("GapAssociator", "					right point: (" << previousGap->getManipulatedRPosition().transpose() << ")");
                     ROS_INFO_STREAM_NAMED("GapAssociator", "					right ID: (" << previousGap->getRightGapPt()->getModel()->getID() << ")");                    
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				association distance: " << distMatrix.at(pair.at(0)).at(pair.at(1)));
                         	

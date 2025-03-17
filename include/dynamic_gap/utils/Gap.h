@@ -99,8 +99,8 @@ namespace dynamic_gap
                     gapStart_ = gapStart;
 
                     // initializing convex polar gap coordinates to raw ones
-                    leftGapPt_->initManipPoint();
-                    rightGapPt_->initManipPoint();
+                    // leftGapPt_->initManipPoint();
+                    // rightGapPt_->initManipPoint();
 
                     // radial_ = radial;
                     // rightType_ = rightType;

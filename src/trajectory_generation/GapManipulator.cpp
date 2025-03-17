@@ -84,8 +84,8 @@ namespace dynamic_gap
         float nearTheta = 0.0, farTheta = 0.0;
         float signedNomPivotAngle = 0.0;
 
-        float pivotSideSpeed;
-        float pivotSideSpeedThresh = 0.25;
+        // float pivotSideSpeed;
+        // float pivotSideSpeedThresh = 0.25;
         if (right) 
         {
             nearIdx = rightIdx;
@@ -93,8 +93,8 @@ namespace dynamic_gap
             farIdx = leftIdx;
             farRange = leftRange;
             signedNomPivotAngle = nomPivotAngle;
-            pivotSideSpeed = rightGapState.tail(2).norm();
-            if (pivotSideSpeed < pivotSideSpeedThresh)
+            // pivotSideSpeed = rightGapState.tail(2).norm();
+            if (gap->getLeftGapPt()->getUngapID() < 0) // if left point is not part of ungap, we can manipulate it 
             {
                 // ROS_INFO_STREAM("   manipulating left model");
                 gap->getLeftGapPt()->getModel()->setManip(); // manipulating left point, so set vel to 0
@@ -110,8 +110,8 @@ namespace dynamic_gap
             nearRange = leftRange;
             farRange = rightRange;
             signedNomPivotAngle = -nomPivotAngle;
-            pivotSideSpeed = leftGapState.tail(2).norm();
-            if (pivotSideSpeed < pivotSideSpeedThresh)
+            // pivotSideSpeed = leftGapState.tail(2).norm();
+            if (gap->getRightGapPt()->getUngapID() < 0) // if right point is not part of ungap, we can manipulate it
             {
                 // ROS_INFO_STREAM("   manipulating right model");
                 gap->getRightGapPt()->getModel()->setManip(); // manipulating right point, so set vel to 0
@@ -248,7 +248,7 @@ namespace dynamic_gap
             newLeftRange = nearRange;
             newRightIdx = pivotedPtIdx;
             newRightRange = pivotedPtRange;
-            gap->getRightGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->getRightGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating right point
         }
 
         gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);
@@ -345,6 +345,9 @@ namespace dynamic_gap
             inflatedLeftIdx++;
 
         gap->setManipPoints(inflatedLeftIdx, inflatedRightIdx, inflatedLeftRange, inflatedRightRange);
+
+        gap->getLeftGapPt()->getModel()->setNewPosition(inflatedLeftTheta, inflatedLeftRange); // manipulating left point
+        gap->getRightGapPt()->getModel()->setNewPosition(inflatedRightTheta, inflatedRightRange); // manipulating right point
 
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);

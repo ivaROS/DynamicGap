@@ -106,6 +106,7 @@ namespace dynamic_gap
         this->P_k_plus_ = model.P_k_plus_;
 
         this->xFrozen_ = model.xFrozen_;
+        this->xManipFrozen_ = model.xManipFrozen_;
         this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
@@ -138,10 +139,10 @@ namespace dynamic_gap
         this->modelID_ = model.modelID_;  // keeping the same for now ...
         this->side_ = model.side_;
 
-        // We have been propagating xFrozen_ forward in time, so we will use that as our new x_hat_kmin1_plus_
-        this->x_hat_kmin1_plus_ = model.xFrozen_;
-        this->x_hat_k_minus_ = model.xFrozen_;
-        this->x_hat_k_plus_ = model.xFrozen_;
+        // We have been propagating xManipFrozen_ forward in time, so we will use that as our new x_hat_kmin1_plus_
+        this->x_hat_kmin1_plus_ = model.xManipFrozen_;
+        this->x_hat_k_minus_ = model.xManipFrozen_;
+        this->x_hat_k_plus_ = model.xManipFrozen_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -150,6 +151,7 @@ namespace dynamic_gap
         this->P_k_plus_ = model.P_k_plus_;
 
         this->xFrozen_ = model.xFrozen_;
+        this->xManipFrozen_ = model.xManipFrozen_;
         this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
@@ -396,14 +398,14 @@ namespace dynamic_gap
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
         } 
 
-        if (manip_)
-        {
-            // // ROS_INFO_STREAM("        manipulated model");
-            state[0] = manipPosition[0];
-            state[1] = manipPosition[1];
-            state[2] = 0.0 - lastRbtVel_.twist.linear.x;
-            state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
-        }        
+        // if (manip_)
+        // {
+        //     // // ROS_INFO_STREAM("        manipulated model");
+        //     state[0] = manipPosition[0];
+        //     state[1] = manipPosition[1];
+        //     state[2] = 0.0 - lastRbtVel_.twist.linear.x;
+        //     state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
+        // }        
 
         return state;  
     }    

@@ -24,6 +24,7 @@ namespace dynamic_gap
                 // Do NOT want to initialize model here
             }
 
+            // Only meant to be run during gap detection
             GapPoint(const int & idx, const float & range)
             {
                 orig.idx_ = idx;
@@ -34,6 +35,7 @@ namespace dynamic_gap
                 // model_ = new PerfectEstimator();
             }
 
+            //
             GapPoint(const GapPoint & otherGapPoint)
             {
                 orig.idx_ = otherGapPoint.orig.idx_;
@@ -61,6 +63,14 @@ namespace dynamic_gap
 
                 ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
                 ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+
+                ROS_INFO_STREAM_NAMED("Gap", "  getManipGapState: " << propagatedGapPoint.getModel()->getManipGapState().transpose());
+
+                manip.idx_ = theta2idx(propagatedGapPoint.getModel()->getManipGapBearing());
+                manip.range_ = propagatedGapPoint.getModel()->getManipGapRange();
+
+                ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
+                ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
 
                 // Here, you can define what type of model you want to use
                 model_ = new RotatingFrameCartesianKalmanFilter();

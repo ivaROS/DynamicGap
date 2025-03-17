@@ -1355,12 +1355,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // right
             planningGap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-            gapPtStates.push_back(planningGap->getRightGapPt()->getModel()->getState());
+            gapPtStates.push_back(planningGap->getRightGapPt()->getModel()->getGapState());
 
             // left
             planningGap->getLeftGapPt()->getModel()->isolateGapDynamics();
 
-            gapPtStates.push_back(planningGap->getLeftGapPt()->getModel()->getState());
+            gapPtStates.push_back(planningGap->getLeftGapPt()->getModel()->getGapState());
         }
 
         // for each point, check if it is an ungap point

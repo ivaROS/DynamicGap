@@ -381,7 +381,7 @@ namespace dynamic_gap
 
                             // Create a gap
                             currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
-                                                    *propagatedGapPtI, *propagatedGapPtJ, t_iplus1, false));
+                                                            *propagatedGapPtI, *propagatedGapPtJ, t_iplus1, false));
 
                             break;
                         } else
@@ -416,6 +416,7 @@ namespace dynamic_gap
         {
             // right
             gap->getRightGapPt()->getModel()->isolateGapDynamics();
+            gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
             // float rightGapPtTheta = gap->getRightGapPt()->getModel()->getGapBearing();
             // int rightGapPtIdx = theta2idx(rightGapPtTheta);
             // int rightGapPtIdx = gap->RIdx();
@@ -430,6 +431,7 @@ namespace dynamic_gap
 
             // left
             gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+            gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
             // float leftGapPtTheta = gap->getLeftGapPt()->getModel()->getGapBearing();
             // int leftGapPtIdx = theta2idx(leftGapPtTheta);
             // int leftGapPtIdx = gap->LIdx();

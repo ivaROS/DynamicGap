@@ -36,6 +36,8 @@ namespace dynamic_gap
             Eigen::Vector4f xFrozen_; /**< Non-relative gap-only state */
             Eigen::Vector4f xRewind_;/**< Rewound non-relative gap-only state */
 
+            Eigen::Vector4f xManipFrozen_; /**< Non-relative gap-only state */
+
             Eigen::Matrix<float, 4, 2> G_k_; /**< Kalman gain at step k */
             Eigen::Vector2f xTilde_; /**< Current sensor measurement */
 
@@ -405,10 +407,22 @@ namespace dynamic_gap
             Eigen::Vector4f getGapState() { return xFrozen_; }
 
             /**
+            * \brief Getter function for manipulated gap-only state
+            * \return manipulated gap-only state
+            */
+            Eigen::Vector4f getManipGapState() { return xManipFrozen_; }
+
+            /**
             * \brief Getter function for non-relative estimator position. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator position
             */               
             Eigen::Vector2f getGapPosition() { return xFrozen_.head(2); }
+
+            /**
+            * \brief Getter function for manipulated gap-only position
+            * \return manipulated gap-only position
+            */
+            Eigen::Vector2f getManipGapPosition() { return xManipFrozen_.head(2); }
 
             /**
             * \brief Getter function for non-relative estimator bearing. Should be run AFTER isolateGapDynamics().
@@ -422,6 +436,17 @@ namespace dynamic_gap
             }
 
             /**
+            * \brief Getter function for manipulated gap-only bearing
+            * \return manipulated gap-only bearing
+            */
+            float getManipGapBearing() const
+            {
+                Eigen::Vector2f gapPosition = xManipFrozen_.head(2); 
+                float gapTheta = std::atan2(gapPosition[1], gapPosition[0]);
+                return gapTheta;
+            }
+
+            /**
             *\brief Getter function for non-relative estimator range. Should be run AFTER isolateGapDynamics().
             * \return non-relative (gap) estimator range
             */
@@ -432,6 +457,16 @@ namespace dynamic_gap
                 return gapRange;
             }
 
+            /**
+            * \brief Getter function for manipulated gap-only range
+            * \return manipulated gap-only range
+            */
+            float getManipGapRange() const
+            {
+                Eigen::Vector2f gapPosition = xManipFrozen_.head(2); 
+                float gapRange = gapPosition.norm();
+                return gapRange;
+            }
 
             /**
             * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().
@@ -479,6 +514,31 @@ namespace dynamic_gap
                 xFrozen_[3] += lastRbtVel_.twist.linear.y;
             }
 
+            void isolateManipGapDynamics()
+            {
+                xManipFrozen_ = getState();
+            
+                if (manip_)
+                {
+                    // setting position to manipulated position
+                    xManipFrozen_[0] = manipPosition[0];
+                    xManipFrozen_[1] = manipPosition[1];
+
+                    // update cartesian
+                    xManipFrozen_[2] = 0.0 - lastRbtVel_.twist.linear.x;
+                    xManipFrozen_[3] = 0.0 - lastRbtVel_.twist.linear.y;
+                } else
+                {
+                    // fixing position (otherwise can get bugs)
+                    xManipFrozen_[0] = xTilde_[0];
+                    xManipFrozen_[1] = xTilde_[1];
+
+                    // update cartesian
+                    xManipFrozen_[2] += lastRbtVel_.twist.linear.x;
+                    xManipFrozen_[3] += lastRbtVel_.twist.linear.y;
+                }
+            }
+
             /**
             * \brief Function for initializing rewound gap-only state
             */ 
@@ -509,6 +569,31 @@ namespace dynamic_gap
                 xFrozenProp_[2] = xFrozen_[2] + (relLinAcc[0] + xFrozen_[3]*egoAngVel)*dt;
                 xFrozenProp_[3] = xFrozen_[3] + (relLinAcc[1] - xFrozen_[2]*egoAngVel)*dt;
                 xFrozen_ = xFrozenProp_;                 
+            }
+
+           /**
+            * \brief Function for propagating manipulated gap-only state forward in time
+            * \param dt timestep to propagate forward
+            */ 
+            void manipGapStatePropagate(const float & dt)
+            {
+                Eigen::Vector4f xManipFrozenProp_;     
+                xManipFrozenProp_ << 0.0, 0.0, 0.0, 0.0;
+
+                Eigen::Vector2f egoLinVel(0.0, 0.0); 
+                float egoAngVel = 0.0;
+                Eigen::Vector2f egoLinAcc(0.0, 0.0); // "frozen" robot
+                Eigen::Vector2f gapLinAcc(0.0, 0.0); // constant velocity assumption
+
+                Eigen::Vector2f relLinAcc = gapLinAcc - egoLinAcc;
+
+                // discrete euler update of state (ignoring rbt acceleration, set as 0)
+                xManipFrozenProp_[0] = xManipFrozen_[0] + (xManipFrozen_[2] + xManipFrozen_[1]*egoAngVel)*dt;
+                xManipFrozenProp_[1] = xManipFrozen_[1] + (xManipFrozen_[3] - xManipFrozen_[0]*egoAngVel)*dt;
+                xManipFrozenProp_[2] = xManipFrozen_[2] + (relLinAcc[0] + xManipFrozen_[3]*egoAngVel)*dt;
+                xManipFrozenProp_[3] = xManipFrozen_[3] + (relLinAcc[1] - xManipFrozen_[2]*egoAngVel)*dt;
+                xManipFrozen_ = xManipFrozenProp_;
+                
             }
 
             /**

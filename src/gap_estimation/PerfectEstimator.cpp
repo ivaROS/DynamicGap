@@ -5,6 +5,7 @@ namespace dynamic_gap
     PerfectEstimator::PerfectEstimator() 
     {
         xFrozen_ << 0.0, 0.0, 0.0, 0.0;
+        xManipFrozen_ << 0.0, 0.0, 0.0, 0.0;
     }
 
     void PerfectEstimator::initialize(const std::string & side, const int & modelID,
