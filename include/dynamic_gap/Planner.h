@@ -426,6 +426,9 @@ namespace dynamic_gap
             std::vector<Gap *> prevRawGaps_; /**< Previous set of raw gaps */
             std::vector<Gap *> prevSimplifiedGaps_; /**< Previous set of simplified gaps */
 
+            // Gap Tubes
+            std::vector<GapTube *> gapTubes_; /**< Set of gap tubes */
+
             int currentLeftGapPtModelID = -1; /**< Model ID for estimator of current gap's left point */
             int currentRightGapPtModelID = -1; /**< Model ID for estimator of current gap's right point */
 

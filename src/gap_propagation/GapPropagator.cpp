@@ -161,7 +161,8 @@ namespace dynamic_gap
         return;
     }
 
-    void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & manipulatedGaps) 
+    void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & manipulatedGaps,
+                                            std::vector<GapTube *> & gapTubes) 
     {
         ROS_INFO_STREAM_NAMED("GapPropagator", "   [GapPropagator::propagateGapPointsV2()]");
 
@@ -171,9 +172,9 @@ namespace dynamic_gap
             propagatedGaps.push_back(new Gap(*manipulatedGap));
 
         // create gap tubes
-        gapTubes_.resize(propagatedGaps.size());
+        gapTubes.resize(propagatedGaps.size());
         for (int i = 0; i < propagatedGaps.size(); i++)
-            gapTubes_.at(i) = new GapTube(propagatedGaps.at(i));
+            gapTubes.at(i) = new GapTube(propagatedGaps.at(i));
 
         ROS_INFO_STREAM_NAMED("GapPropagator", "       (Manipulated) Gaps at time " << 0.0 << ": ");
         for (int i = 0; i < manipulatedGaps.size(); i++)
@@ -233,7 +234,7 @@ namespace dynamic_gap
             getGaps(currentGaps, t_iplus1);
 
             // 8. Perform gap association
-            runGapAssociation(currentGaps, previousGaps, t_iplus1);
+            runGapAssociation(currentGaps, previousGaps, t_iplus1, gapTubes);
 
             // 9. Delete gaps we don't need
 
@@ -260,23 +261,15 @@ namespace dynamic_gap
 
 
         // print out gap tubes
-        for (int i = 0; i < gapTubes_.size(); i++)
+        for (int i = 0; i < gapTubes.size(); i++)
         {
-            ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap tube " << i << " (size " << gapTubes_.at(i)->size() << "): ");
-            gapTubes_.at(i)->print();
+            ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap tube " << i << " (size " << gapTubes.at(i)->size() << "): ");
+            gapTubes.at(i)->print();
         }
 
         //////////////
         // CLEAN UP //
         //////////////
-
-        // delete gap tubes
-        // all gaps in here should be intact still, all other gaps should have gotten deleted
-        for (GapTube * tube : gapTubes_)
-        {
-            delete tube;
-        }
-        gapTubes_.clear();
 
         // delete gap points
         for (PropagatedGapPoint * propagatedGapPt : propagatedGapPoints_)
@@ -290,11 +283,12 @@ namespace dynamic_gap
 
     void GapPropagator::runGapAssociation(const std::vector<Gap *> & currentGaps, 
                                             const std::vector<Gap *> & previousGaps,
-                                            const float & t_iplus1)
+                                            const float & t_iplus1,
+                                            std::vector<GapTube *> & gapTubes)
     {
         distMatrix_ = gapAssociator_->populateDistMatrix(currentGaps, previousGaps);
         assocation_ = gapAssociator_->associate(distMatrix_);
-        gapAssociator_->assignGaps(assocation_, distMatrix_, currentGaps, previousGaps, gapTubes_, t_iplus1);
+        gapAssociator_->assignGaps(assocation_, distMatrix_, currentGaps, previousGaps, gapTubes, t_iplus1);
     }
 
     void GapPropagator::getGaps(std::vector<Gap *> & currentGaps,

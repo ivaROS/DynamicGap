@@ -662,7 +662,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
-        gapPropagator_->propagateGapPointsV2(planningGaps);
+        gapPropagator_->propagateGapPointsV2(planningGaps, gapTubes_);
 
         return;
     }
@@ -1341,6 +1341,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // delete set of planning gaps
         for (Gap * copiedRawGap : copiedRawGaps)
             delete copiedRawGap;
+
+        // delete gap tubes
+        for (GapTube * tube : gapTubes_)
+        {
+            delete tube;
+        }
+        gapTubes_.clear();
 
         return;
     }

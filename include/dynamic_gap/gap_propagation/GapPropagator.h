@@ -38,15 +38,16 @@ namespace dynamic_gap
             */                 
             void propagateGapPoints(Gap * gap);
 
-            void propagateGapPointsV2(const std::vector<Gap *> & gaps);
-
+            void propagateGapPointsV2(const std::vector<Gap *> & gaps,
+                                        std::vector<GapTube *> & gapTubes);
         private:
             void getGaps(std::vector<Gap *> & currentGaps,
                             const float & t_iplus1);
 
             void runGapAssociation(const std::vector<Gap *> & currentGaps, 
                                     const std::vector<Gap *> & previousGaps,
-                                    const float & t_iplus1);
+                                    const float & t_iplus1,
+                                    std::vector<GapTube *> & gapTubes);
 
             void convertGapsToGapPoints(const std::vector<Gap *> & gaps);
 
@@ -76,8 +77,6 @@ namespace dynamic_gap
             };
 
             std::vector<PropagatedGapPoint *> propagatedGapPoints_;
-
-            std::vector<GapTube *> gapTubes_;
 
             GapAssociator * gapAssociator_ = NULL; /**< Gap point associator */
             std::vector<std::vector<float>> distMatrix_; /**< Distance matrix for gaps */
