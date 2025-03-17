@@ -24,6 +24,24 @@ namespace dynamic_gap
                 tube_.clear();
             }
 
+            void print()
+            {
+                Gap * gap;
+                for (int i = 0; i < tube_.size(); i++)
+                {
+                    ROS_INFO_STREAM_NAMED("GapTube", "           Gap " << i << ": ");
+                    gap = tube_.at(i);
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      start time: " << gap->getGapStart());
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      end time: " << gap->getGapLifespan());
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      left point:" << gap->getLPosition().transpose());
+                    ROS_INFO_STREAM_NAMED("GapTube", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      right point:" << gap->getRPosition().transpose());
+                    ROS_INFO_STREAM_NAMED("GapTube", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      gap available: " << gap->isAvailable());
+                }
+
+            }
+
             void addGap(Gap * gap)
             {
                 tube_.push_back(new Gap(*gap)); // deep copy
@@ -37,6 +55,11 @@ namespace dynamic_gap
             std::vector<Gap *> getTube()
             {
                 return tube_;
+            }
+
+            int size()
+            {
+                return tube_.size();
             }
 
         private:

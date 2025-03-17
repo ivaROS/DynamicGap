@@ -181,9 +181,9 @@ namespace dynamic_gap
             Gap * gap = gaps.at(i);
             ROS_INFO_STREAM_NAMED("GapPropagator", "           gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                left point:" << gap->getLPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapAssociator", "		        left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		        left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
             ROS_INFO_STREAM_NAMED("GapPropagator", "                right point:" << gap->getRPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapAssociator", "				right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");            
+            ROS_INFO_STREAM_NAMED("GapPropagator", "				right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");            
         }
 
         // 1. Turn gaps into gap points
@@ -260,7 +260,11 @@ namespace dynamic_gap
 
 
         // print out gap tubes
-
+        for (int i = 0; i < gapTubes_.size(); i++)
+        {
+            ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap tube " << i << " (size " << gapTubes_.at(i)->size() << "): ");
+            gapTubes_.at(i)->print();
+        }
 
         //////////////
         // CLEAN UP //
@@ -399,9 +403,9 @@ namespace dynamic_gap
             // gap->setSafeToDelete();
             ROS_INFO_STREAM_NAMED("GapPropagator", "                    gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        left point:" << gap->getLPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapAssociator", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        right point:" << gap->getRPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapAssociator", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        gap available: " << gap->isAvailable());
         }        
     }

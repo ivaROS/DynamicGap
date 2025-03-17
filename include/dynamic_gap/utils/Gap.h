@@ -49,6 +49,8 @@ namespace dynamic_gap
             //          Gap Propagation
             //          Gap Feasibility Analysis
             //          Gap Manipulation
+
+            // ALSO Running during gap propagation now!!
             Gap(const Gap & otherGap)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
@@ -59,6 +61,9 @@ namespace dynamic_gap
                 rightType_ = otherGap.rightType_;
 
                 gapStart_ = otherGap.gapStart_;
+                gapLifespan_ = otherGap.gapLifespan_;
+
+                available_ = otherGap.available_;
 
                 // deep copy for new points
                 leftGapPt_ = new GapPoint(*otherGap.leftGapPt_);
@@ -393,6 +398,8 @@ namespace dynamic_gap
             // void setSafeToDelete() { safe_to_delete_ = true; }
             // bool getSafeToDelete() const { return safe_to_delete_; }
 
+            float getGapStart() const { return gapStart_; }
+
         private:
             std::string frame_ = ""; /**< Frame ID for gap */
 
@@ -417,7 +424,7 @@ namespace dynamic_gap
 
             bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
-            bool available_ = false; /**< flag for if gap is available */
+            bool available_ = true; /**< flag for if gap is available */
 
             GapGoal * goal_ = NULL; /**< Gap goal */
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */

@@ -111,6 +111,7 @@ namespace dynamic_gap
 							tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
 						{
 							previousTubeIdx = k;
+							tube->getMostRecentGap()->setGapLifespan(t_current);
 							break;
 						}
 					}
@@ -121,11 +122,6 @@ namespace dynamic_gap
 						// ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
 						// throw std::runtime_error("previous gap not found in gap tubes");
 					}
-
-					GapTube * previousGapTube = gapTubes.at(previousTubeIdx);
-
-					// set lifespan for previous gap
-					previousGap->setGapLifespan(t_current);
 
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
                     ROS_INFO_STREAM_NAMED("GapAssociator", "					left point: (" << currentGap->getLPosition().transpose() << ")");
@@ -154,7 +150,7 @@ namespace dynamic_gap
 						// find previous gap in gap tubes
 
 						// append previous gap
-						
+						GapTube * previousGapTube = gapTubes.at(previousTubeIdx);						
 						previousGapTube->addGap(currentGap);
 					}
 
