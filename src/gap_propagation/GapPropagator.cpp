@@ -167,7 +167,6 @@ namespace dynamic_gap
 
         // deep copy of gaps
         std::vector<Gap *> propagatedGaps;
-
         for (Gap * gap : gaps)
             propagatedGaps.push_back(new Gap(*gap));
 
@@ -201,8 +200,8 @@ namespace dynamic_gap
         assignUnGapIDsToGapPoints();
 
         // 4. Propagate gap points loop
-        // std::vector<Gap *> previousGaps = gaps; // SHALLOW COPY
-        // std::vector<Gap *> currentGaps;
+        std::vector<Gap *> previousGaps = propagatedGaps; // SHALLOW COPY
+        std::vector<Gap *> currentGaps;
 
         float t_i = 0.0, t_iplus1 = 0.0;
         int numSteps = int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1;
@@ -235,33 +234,33 @@ namespace dynamic_gap
 
             // 7. Generate gaps
             // ROS_INFO_STREAM_NAMED("GapPropagator", "       Generating gaps ...");
-            // getGaps(currentGaps, t_iplus1);
+            getGaps(currentGaps, t_iplus1);
 
             // 8. Perform gap association
             // runGapAssociation(currentGaps, previousGaps, t_iplus1);
 
             // 9. Delete gaps we don't need
 
-            // for (Gap * gap : previousGaps)
-            // {
-            //     // if (gap->getSafeToDelete())
-            //     // {
-            //     delete gap;
-            //     // }
-            // }
-            // previousGaps.clear();
-            // previousGaps = currentGaps;
+            for (Gap * gap : previousGaps)
+            {
+                // if (gap->getSafeToDelete())
+                // {
+                delete gap;
+                // }
+            }
+            previousGaps.clear();
+            previousGaps = currentGaps;
 
             t_i = t_iplus1;
         }
 
-        // for (Gap * gap : previousGaps)
-        // {
-        //     // if (gap->getSafeToDelete())
-        //     // {
-        //     delete gap;
-        //     // }
-        // }
+        for (Gap * gap : previousGaps)
+        {
+            // if (gap->getSafeToDelete())
+            // {
+            delete gap;
+            // }
+        }
 
 
         // print out gap tubes
@@ -272,6 +271,11 @@ namespace dynamic_gap
         // for (GapTube * tube : gapTubes_)
         // {
         //     delete tube;
+        // }
+
+        // for (Gap * gap : propagatedGaps)
+        // {
+        //     delete gap;
         // }
 
         // delete gap points
