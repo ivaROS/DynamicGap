@@ -31,7 +31,7 @@ namespace dynamic_gap
 
         if (traj.getPathRbtFrame().header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawCurrentTrajectory] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawCurrentTrajectory] Trajectory frame_id is empty");
             return;
         }
 
@@ -70,7 +70,7 @@ namespace dynamic_gap
 
         if (cfg_->robot_frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawPlanningLoopIdx] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawPlanningLoopIdx] Trajectory frame_id is empty");
             return; 
         }
 
@@ -108,7 +108,7 @@ namespace dynamic_gap
 
         if (path.header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawTrajectorySwitchCount] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawTrajectorySwitchCount] Trajectory frame_id is empty");
             return; 
         }
 
@@ -135,11 +135,11 @@ namespace dynamic_gap
         clearMarkerArrayPublisher(globalPlanPublisher);
 
         if (globalPlan.empty()) 
-            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
+            ROS_WARN_STREAM_NAMED("Visualizer", "Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
 
         if (globalPlan.at(0).header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawGlobalPlan] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGlobalPlan] Trajectory frame_id is empty");
             return;
         }
 
@@ -183,7 +183,7 @@ namespace dynamic_gap
 
         if (trajs.size() == 0)
         {
-            ROS_WARN_STREAM("no trajectories to visualize");
+            ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
             return;
         }
         
@@ -194,7 +194,7 @@ namespace dynamic_gap
 
         if (traj.getPathRbtFrame().header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawGapTrajectories] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapTrajectories] Trajectory frame_id is empty");
             return;
         }
 
@@ -262,7 +262,7 @@ namespace dynamic_gap
                         
             if (path.header.frame_id.empty())
             {
-                ROS_WARN_STREAM("[drawGapTrajectoryPoseScores] Trajectory frame_id is empty");
+                ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapTrajectoryPoseScores] Trajectory frame_id is empty");
                 return;
             }
 
@@ -305,13 +305,13 @@ namespace dynamic_gap
 
         if (globalPlanSnippet.empty())             // Should be safe with this check
         {
-            ROS_WARN_STREAM("Goal Selector Returned Trajectory Size " << globalPlanSnippet.size() << " < 1");
+            ROS_WARN_STREAM_NAMED("Visualizer", "Goal Selector Returned Trajectory Size " << globalPlanSnippet.size() << " < 1");
             return;
         }    
         
         if (globalPlanSnippet.at(0).header.frame_id.empty())
         {
-            ROS_WARN_STREAM("[drawRelevantGlobalPlanSnippet] Trajectory frame_id is empty");
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawRelevantGlobalPlanSnippet] Trajectory frame_id is empty");
             return;
         }
 

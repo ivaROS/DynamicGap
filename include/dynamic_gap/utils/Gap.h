@@ -390,8 +390,8 @@ namespace dynamic_gap
             void setGammaInterceptGoal(const float & gamma_intercept_goal) { gammaInterceptGoal_ = gamma_intercept_goal; }
             float getGammaInterceptGoal() const { return gammaInterceptGoal_; }
 
-            void setSafeToDelete() { safe_to_delete_ = true; }
-            bool getSafeToDelete() const { return safe_to_delete_; }
+            // void setSafeToDelete() { safe_to_delete_ = true; }
+            // bool getSafeToDelete() const { return safe_to_delete_; }
 
         private:
             std::string frame_ = ""; /**< Frame ID for gap */
@@ -401,7 +401,7 @@ namespace dynamic_gap
 
             int end_condition_ = UNSET; 
 
-            bool safe_to_delete_ = false; /**< Flag for if gap is safe to delete */
+            // bool safe_to_delete_ = false; /**< Flag for if gap is safe to delete */
 
             // float minSafeDist_ = 0.0; /**< minimum safe distance for current gap */
 

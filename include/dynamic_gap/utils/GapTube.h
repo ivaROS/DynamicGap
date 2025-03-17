@@ -12,7 +12,7 @@ namespace dynamic_gap
         public:
             GapTube(Gap * gap)
             {
-                tube_.push_back(gap);
+                tube_.push_back(new Gap(*gap)); // deep copy
             }
 
             ~GapTube()
@@ -26,7 +26,7 @@ namespace dynamic_gap
 
             void addGap(Gap * gap)
             {
-                tube_.push_back(gap);
+                tube_.push_back(new Gap(*gap)); // deep copy
             }
 
             Gap * getMostRecentGap()

@@ -239,10 +239,10 @@ namespace dynamic_gap
 
             for (Gap * gap : previousGaps)
             {
-                if (gap->getSafeToDelete())
-                {
+                // if (gap->getSafeToDelete())
+                // {
                     delete gap;
-                }
+                // }
             }
             previousGaps.clear();
             previousGaps = currentGaps;
@@ -252,10 +252,10 @@ namespace dynamic_gap
 
         for (Gap * gap : previousGaps)
         {
-            if (gap->getSafeToDelete())
-            {
+            // if (gap->getSafeToDelete())
+            // {
                 delete gap;
-            }
+            // }
         }
 
 
@@ -396,7 +396,7 @@ namespace dynamic_gap
         for (int i = 0; i < currentGaps.size(); i++)
         {
             Gap * gap = currentGaps.at(i);
-            gap->setSafeToDelete();
+            // gap->setSafeToDelete();
             ROS_INFO_STREAM_NAMED("GapPropagator", "                    gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        left point:" << gap->getLPosition().transpose());
             ROS_INFO_STREAM_NAMED("GapAssociator", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
