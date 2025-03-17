@@ -12,10 +12,12 @@ namespace dynamic_gap
         public:
             PropagatedGapPoint(Estimator * model, 
                                 const std::string & frame,
+                                const int & ungapID,
                                 // const int & scanIdx, 
                                 const bool & isLeft) : 
-                                frame_(frame),
                                 model_(model), 
+                                frame_(frame),
+                                ungapID_(ungapID),
                                 // scanIdx_(scanIdx), 
                                 isLeft_(isLeft), 
                                 isRight_(!isLeft) 

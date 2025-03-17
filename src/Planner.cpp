@@ -1180,6 +1180,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         int gapCount = planningGaps.size();
 
         //////////////////////////////////////////////////////////////////////////////////////
+        //                                      ATTACH UNGAP IDS                            //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        attachUngapIDs(planningGaps);
+
+        //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP POINT PROPAGATION                               //
         //////////////////////////////////////////////////////////////////////////////////////
 
@@ -1338,6 +1344,68 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             delete copiedRawGap;
 
         return;
+    }
+
+    void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps)
+    {
+        std::vector<Eigen::Vector4f> gapPtStates;
+
+        // get list of points
+        for (const Gap * planningGap : planningGaps)
+        {
+            // right
+            planningGap->getRightGapPt()->getModel()->isolateGapDynamics();
+
+            gapPtStates.push_back(planningGap->getRightGapPt()->getModel()->getState());
+
+            // left
+            planningGap->getLeftGapPt()->getModel()->isolateGapDynamics();
+
+            gapPtStates.push_back(planningGap->getLeftGapPt()->getModel()->getState());
+        }
+
+        // for each point, check if it is an ungap point
+        for (int i = 0; i < gapPtStates.size(); i++)
+        {
+            Eigen::Vector4f ptIState = gapPtStates.at(i);
+
+            int nextIdx = (i + 1) % gapPtStates.size();
+            Eigen::Vector4f ptJState = gapPtStates.at(nextIdx);
+
+            if (isUngap(ptIState, ptJState))
+            {
+                if (i % 2 == 0) // attach ungap id to the point
+                {
+                    planningGaps.at(i / 2)->getRightGapPt()->setUngapID(i / 2);
+                    planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(i / 2);
+                } else
+                {
+                    planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(i / 2);
+                    planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(i / 2);
+                }
+            }
+        }
+    }
+
+    bool Planner::isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState)
+    {
+        Eigen::Vector2f ptIPos = ptIState.head(2);
+        Eigen::Vector2f ptJPos = ptJState.head(2);
+
+        Eigen::Vector2f ptIVel = ptIState.tail(2);
+        Eigen::Vector2f ptJVel = ptJState.tail(2);
+
+        // check if distance between points is less than 4 * r_inscr * inf_ratio
+        bool distCheck = (ptIPos - ptJPos).norm() < 4 * cfg_.rbt.r_inscr * cfg_.traj.inf_ratio;
+
+        // // check if speed of points is greater than 0.10
+        bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
+
+        // // run angle check on LHS and RHS model velocities
+        float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
+        bool angleCheck = (vectorProj > 0.0);
+
+        return (distCheck && speedCheck && angleCheck);
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,

@@ -193,7 +193,7 @@ namespace dynamic_gap
         std::sort(propagatedGapPoints_.begin(), propagatedGapPoints_.end(), PropagatedGapPointComparator());
 
         // 3. Assign Ungap IDs to gap points
-        assignUnGapIDsToGapPoints();
+        // assignUnGapIDsToGapPoints();
 
         // 4. Propagate gap points loop
         std::vector<Gap *> previousGaps = propagatedGaps; // SHALLOW COPY
@@ -421,7 +421,10 @@ namespace dynamic_gap
             // int rightGapPtIdx = gap->RIdx();
 
             // if (rightGapPtIdx >= 0 && rightGapPtIdx < cfg_->scan.full_scan)
-            propagatedGapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), gap->getFrame(), false));
+            propagatedGapPoints_.push_back(new PropagatedGapPoint(gap->getRightGapPt()->getModel(), 
+                                                                    gap->getFrame(), 
+                                                                    gap->getRightGapPt()->getUngapID(),        
+                                                                    false));
             // else
                 // ROS_WARN_STREAM_NAMED("GapPropagator", "        right gap pt idx out of bounds");
 
@@ -432,51 +435,54 @@ namespace dynamic_gap
             // int leftGapPtIdx = gap->LIdx();
 
             // if (leftGapPtIdx >= 0 && leftGapPtIdx < cfg_->scan.full_scan)
-                propagatedGapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), gap->getFrame(), true));
+            propagatedGapPoints_.push_back(new PropagatedGapPoint(gap->getLeftGapPt()->getModel(), 
+                                                                    gap->getFrame(), 
+                                                                    gap->getLeftGapPt()->getUngapID(),
+                                                                    true));
             // else
                 // ROS_WARN_STREAM_NAMED("GapPropagator", "        left gap pt idx out of bounds");
         }
     }
 
-    void GapPropagator::assignUnGapIDsToGapPoints()
-    {
-        for (int i = 0; i < propagatedGapPoints_.size(); i++)
-        {
-            Eigen::Vector4f ptIState = propagatedGapPoints_.at(i)->getModel()->getGapState();
+    // void GapPropagator::assignUnGapIDsToGapPoints()
+    // {
+    //     for (int i = 0; i < propagatedGapPoints_.size(); i++)
+    //     {
+    //         Eigen::Vector4f ptIState = propagatedGapPoints_.at(i)->getModel()->getGapState();
 
-            int nextIdx = (i + 1) % propagatedGapPoints_.size();
-            Eigen::Vector4f ptJState = propagatedGapPoints_.at(nextIdx)->getModel()->getGapState();
+    //         int nextIdx = (i + 1) % propagatedGapPoints_.size();
+    //         Eigen::Vector4f ptJState = propagatedGapPoints_.at(nextIdx)->getModel()->getGapState();
 
-            if (isUngap(ptIState, ptJState))
-            {
-                propagatedGapPoints_.at(i)->setUngapID(i);
-                propagatedGapPoints_.at(nextIdx)->setUngapID(i);
+    //         if (isUngap(ptIState, ptJState))
+    //         {
+    //             propagatedGapPoints_.at(i)->setUngapID(i);
+    //             propagatedGapPoints_.at(nextIdx)->setUngapID(i);
 
-                // set gap point states
-            }
-        }
-    }
+    //             // set gap point states
+    //         }
+    //     }
+    // }
 
-    bool GapPropagator::isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState)
-    {
-        Eigen::Vector2f ptIPos = ptIState.head(2);
-        Eigen::Vector2f ptJPos = ptJState.head(2);
+    // bool GapPropagator::isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState)
+    // {
+    //     Eigen::Vector2f ptIPos = ptIState.head(2);
+    //     Eigen::Vector2f ptJPos = ptJState.head(2);
 
-        Eigen::Vector2f ptIVel = ptIState.tail(2);
-        Eigen::Vector2f ptJVel = ptJState.tail(2);
+    //     Eigen::Vector2f ptIVel = ptIState.tail(2);
+    //     Eigen::Vector2f ptJVel = ptJState.tail(2);
 
-        // check if distance between points is less than 4 * r_inscr * inf_ratio
-        bool distCheck = (ptIPos - ptJPos).norm() < 4 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
+    //     // check if distance between points is less than 4 * r_inscr * inf_ratio
+    //     bool distCheck = (ptIPos - ptJPos).norm() < 4 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio;
 
-        // // check if speed of points is greater than 0.10
-        bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
+    //     // // check if speed of points is greater than 0.10
+    //     bool speedCheck = (ptIVel.norm() >= 0.10 && ptJVel.norm() >= 0.10);
 
-        // // run angle check on LHS and RHS model velocities
-        float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
-        bool angleCheck = (vectorProj > 0.0);
+    //     // // run angle check on LHS and RHS model velocities
+    //     float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
+    //     bool angleCheck = (vectorProj > 0.0);
 
-        return (distCheck && speedCheck && angleCheck);
-    }
+    //     return (distCheck && speedCheck && angleCheck);
+    // }
 
     ////////
     // v1 //

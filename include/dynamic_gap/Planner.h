@@ -138,6 +138,10 @@ namespace dynamic_gap
 
         private:
 
+            void attachUngapIDs(const std::vector<Gap *> & planningGaps);
+
+            bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
+
             /**
             * \brief Function for updating the gap models
             * \param gaps set of gaps whose models we are updating

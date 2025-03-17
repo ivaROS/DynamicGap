@@ -50,9 +50,9 @@ namespace dynamic_gap
 
             void convertGapsToGapPoints(const std::vector<Gap *> & gaps);
 
-            void assignUnGapIDsToGapPoints();
+            // void assignUnGapIDsToGapPoints();
 
-            bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
+            // bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
 
             /**
             * \brief Rewind crossed gap to find last point in time in which

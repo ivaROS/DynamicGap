@@ -258,7 +258,20 @@ namespace dynamic_gap
                 manip.range_ = orig.range_;
             }
 
+            void setUngapID(const int & ungapID)
+            {
+                ungapID_ = ungapID;
+            }
+
+            int getUngapID() const
+            {
+                return ungapID_;
+            }
+
         private:
+
+            int ungapID_ = -1; // set one time at init
+
 
             /**
             * \brief Parameters of original form of gap
