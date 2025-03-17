@@ -92,26 +92,26 @@ namespace dynamic_gap
 					Gap * previousGap = previousGaps.at(pair.at(1));
 
 					// find tube for previous gap
-					int previousTubeIdx = -1;
-					for (int k = 0; k < gapTubes.size(); k++)
-					{
-						GapTube * tube = gapTubes.at(k);
-						if (tube->getMostRecentGap()->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
-							tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
-						{
-							previousTubeIdx = k;
-							break;
-						}
-					}
+					// int previousTubeIdx = -1;
+					// for (int k = 0; k < gapTubes.size(); k++)
+					// {
+					// 	GapTube * tube = gapTubes.at(k);
+					// 	if (tube->getMostRecentGap()->getLeftGapPt()->getModel()->getID() == previousGap->getLeftGapPt()->getModel()->getID() &&
+					// 		tube->getMostRecentGap()->getRightGapPt()->getModel()->getID() == previousGap->getRightGapPt()->getModel()->getID())
+					// 	{
+					// 		previousTubeIdx = k;
+					// 		break;
+					// 	}
+					// }
 
-					if (previousTubeIdx < 0)
-					{
-						ROS_WARN_STREAM_NAMED("GapAssociator", "				previous gap not found in gap tubes");
-						ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
-						throw std::runtime_error("previous gap not found in gap tubes");
-					}
+					// if (previousTubeIdx < 0)
+					// {
+					// 	ROS_WARN_STREAM_NAMED("GapAssociator", "				previous gap not found in gap tubes");
+					// 	ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
+					// 	throw std::runtime_error("previous gap not found in gap tubes");
+					// }
 
-					GapTube * previousGapTube = gapTubes.at(previousTubeIdx);
+					// GapTube * previousGapTube = gapTubes.at(previousTubeIdx);
 
 
 					// set lifespan for previous gap
@@ -151,7 +151,7 @@ namespace dynamic_gap
 
 						// append previous gap
 						
-						previousGapTube->addGap(currentGap);
+						// previousGapTube->addGap(currentGap);
 					}
 
 				} else // instantiate new model

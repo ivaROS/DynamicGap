@@ -233,7 +233,7 @@ namespace dynamic_gap
             getGaps(currentGaps, t_iplus1);
 
             // 8. Perform gap association
-            // runGapAssociation(currentGaps, previousGaps, t_iplus1);
+            runGapAssociation(currentGaps, previousGaps, t_iplus1);
 
             // 9. Delete gaps we don't need
 
@@ -262,7 +262,10 @@ namespace dynamic_gap
         // print out gap tubes
 
 
-        // CLEAN UP
+        //////////////
+        // CLEAN UP //
+        //////////////
+
         // delete gap tubes
         for (GapTube * tube : gapTubes_)
         {
