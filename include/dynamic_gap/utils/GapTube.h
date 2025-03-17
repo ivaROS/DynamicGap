@@ -16,6 +16,11 @@ namespace dynamic_gap
                 tube_.push_back(gap);
             }
 
+            ~GapTube()
+            {
+                tube_.clear();
+            }
+
             void addGap(Gap * gap)
             {
                 tube_.push_back(gap);

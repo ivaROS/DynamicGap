@@ -170,14 +170,10 @@ namespace dynamic_gap
         for (Gap * gap : gaps)
             propagatedGaps.push_back(new Gap(*gap));
 
-        propagatedGapPoints_.clear();
-
-        // gapTubes_.clear();
-        // gapTubes_.resize(gaps.size());
-        // for (int i = 0; i < gaps.size(); i++)
-        // {
-        //     gapTubes_.at(i) = new GapTube(gaps.at(i));
-        // }
+        // create gap tubes
+        gapTubes_.resize(propagatedGaps.size());
+        for (int i = 0; i < propagatedGaps.size(); i++)
+            gapTubes_.at(i) = new GapTube(propagatedGaps.at(i));
 
         ROS_INFO_STREAM_NAMED("GapPropagator", "       Gaps at time " << 0.0 << ": ");
         for (int i = 0; i < gaps.size(); i++)
@@ -268,21 +264,18 @@ namespace dynamic_gap
 
         // CLEAN UP
         // delete gap tubes
-        // for (GapTube * tube : gapTubes_)
-        // {
-        //     delete tube;
-        // }
-
-        // for (Gap * gap : propagatedGaps)
-        // {
-        //     delete gap;
-        // }
+        for (GapTube * tube : gapTubes_)
+        {
+            delete tube;
+        }
+        gapTubes_.clear();
 
         // delete gap points
         for (PropagatedGapPoint * propagatedGapPt : propagatedGapPoints_)
         {
             delete propagatedGapPt;
         }
+        propagatedGapPoints_.clear();
 
         return;
     }
