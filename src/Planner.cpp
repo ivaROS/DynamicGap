@@ -751,14 +751,22 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                 Gap * gap = gapTube->at(j);
 
-                bool placeGoalBeyondGap = (j == (gapTube->size() - 1) && gap->isAvailable());
+                if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
+                {
+                    // place goal inside gap
+                } else if (!gap->isAvailable())
+                {
+                    // place goal inside gap
+                } else
+                {
+                    // place goal beyond gap
+                    // should use manipulate points to set gaps
+                    gapGoalPlacer_->setGapGoalV2(gap, 
+                        globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                        globalGoalRobotFrame_);                    
+}
+                }
 
-                // should use manipulate points to set gaps
-                gapGoalPlacer_->setGapGoalV2(gap, 
-                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                                                globalGoalRobotFrame_,
-                                                placeGoalBeyondGap);                    
-            }
         }
         return;
     }

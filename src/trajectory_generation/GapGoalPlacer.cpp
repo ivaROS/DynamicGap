@@ -134,8 +134,7 @@ namespace dynamic_gap
 
     void GapGoalPlacer::setGapGoalV2(Gap * gap, 
                                         const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
-                                        const geometry_msgs::PoseStamped & globalGoalRobotFrame,
-                                        const bool & placeGoalBeyondGap) 
+                                        const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
     {
         ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "          [setGapGoalV2()]");
 
@@ -207,7 +206,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << centerPt[0] << ", " << centerPt[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = (placeGoalBeyondGap ? 1.0 : -1.0) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
+            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
 
             Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
 
@@ -242,7 +241,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = (placeGoalBeyondGap ? 1.0 : -1.0) * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
+            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
 
             Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
