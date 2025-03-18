@@ -29,7 +29,26 @@ namespace dynamic_gap
     {
         public:
             GapTrajectoryGenerator(const DynamicGapConfig& cfg) { cfg_ = &cfg; };
-            
+
+            Trajectory generateGoToGoalTrajectoryV2(Gap * selectedGap, 
+                                                    const geometry_msgs::PoseStamped & currPose, 
+                                                    const geometry_msgs::TwistStamped & currVel,
+                                                    const geometry_msgs::PoseStamped & globalGoalRobotFrame);
+
+            /**
+            * \brief generate local collision-free trajectory through gap
+            * \param selectedGap gap through which trajectory will be generated
+            * \param currPose current robot pose
+            * \param currVel current robot velocity
+            * \param globalGoalRobotFrame global goal in the robot frame
+            * \param runGoToGoal boolean for if go to goal trajectory method should be run
+            * \return trajectory through gap
+            */
+            Trajectory generateTrajectoryV2(Gap * selectedGap, 
+                                            const geometry_msgs::PoseStamped & currPose, 
+                                            const geometry_msgs::TwistStamped & currVel,
+                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame);
+
             /**
             * \brief generate local collision-free trajectory through gap
             * \param selectedGap gap through which trajectory will be generated

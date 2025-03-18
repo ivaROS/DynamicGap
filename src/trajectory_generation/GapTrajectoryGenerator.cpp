@@ -2,6 +2,150 @@
 
 namespace dynamic_gap 
 {
+    Trajectory GapTrajectoryGenerator::generateGoToGoalTrajectoryV2(Gap * selectedGap, 
+                                                                    const geometry_msgs::PoseStamped & currPose, 
+                                                                    const geometry_msgs::TwistStamped & currVel,
+                                                                    const geometry_msgs::PoseStamped & globalGoalRobotFrame)
+    {
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running go to goal");                
+
+        geometry_msgs::PoseArray path;
+        std::vector<float> pathTiming;
+
+        std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+
+        path.header.stamp = currPose.header.stamp;
+        TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
+        path.header.frame_id = cfg_->sensor_frame_id;
+
+        Eigen::Vector4f rbtState(currPose.pose.position.x, 
+                                    currPose.pose.position.y,
+                                    0.0, 
+                                    0.0);
+
+        // get gap points in cartesian
+        float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+        selectedGap->getManipulatedLCartesian(xLeft, yLeft);
+        selectedGap->getManipulatedRCartesian(xRight, yRight);
+
+        robotAndGapState x = {rbtState[0], rbtState[1], 
+                                xLeft, yLeft, 
+                                xRight, yRight, 
+                                globalGoalRobotFrame.pose.position.x, 
+                                globalGoalRobotFrame.pose.position.y};
+    
+                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "Goal to Goal");
+        GoToGoal goToGoal(cfg_->rbt.vx_absmax);
+        boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
+                                        goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, logger);
+        Trajectory traj(path, pathTiming);
+        float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
+        return traj;
+    }
+
+    Trajectory GapTrajectoryGenerator::generateTrajectoryV2(Gap * selectedGap, 
+                                                            const geometry_msgs::PoseStamped & currPose, 
+                                                            const geometry_msgs::TwistStamped & currVel,
+                                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
+    {
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        [generateTrajectory()]");
+
+        geometry_msgs::PoseArray path;
+        std::vector<float> pathTiming;
+
+        std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+
+        path.header.stamp = currPose.header.stamp;
+        TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
+        path.header.frame_id = cfg_->sensor_frame_id;
+
+        Eigen::Vector4f rbtState(currPose.pose.position.x, 
+                                    currPose.pose.position.y,
+                                    0.0, 
+                                    0.0);
+
+        // get gap points in cartesian
+        float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+        selectedGap->getManipulatedLCartesian(xLeft, yLeft);
+        selectedGap->getManipulatedRCartesian(xRight, yRight);
+
+        Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getManipGapState();
+        Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getManipGapState();
+        Eigen::Vector2f initialGoal = selectedGap->getGoal()->getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
+        Eigen::Vector2f goalPtVel = selectedGap->getGoal()->getOrigGoalVel(); // (selectedGap->goal.vx_, selectedGap->goal.vy_);
+
+        Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
+        Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
+
+        float leftVelX = leftGapPtVel[0];
+        float leftVelY = leftGapPtVel[1];
+
+        float rightVelX = rightGapPtVel[0];
+        float rightVelY = rightGapPtVel[1];
+
+        float gapGoalVelX = goalPtVel[0];
+        float gapGoalVelY = goalPtVel[1];
+
+        // Eigen::Vector2f goalPtVel(gapGoalVelX, gapGoalVelY);
+
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point velocity: (" << leftVelX << ", " << leftVelY << "), initial right gap point velocity: (" << rightVelX << ", " << rightVelY << ")"); 
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal: (" << initialGoal[0] << ", " << initialGoal[1] << ")"); 
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
+
+        if (cfg_->planning.pursuit_guidance_method == 0) // pure pursuit
+        {
+            throw std::runtime_error("Pure pursuit not implemented");
+
+        } else // parallel navigation
+        {
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running pursuit guidance");                
+
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial left gap point velocity: (" << leftVelX << ", " << leftVelY << "), initial right gap point velocity: (" << rightVelX << ", " << rightVelY << ")"); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal: (" << initialGoal[0] << ", " << initialGoal[1] << ")"); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            initial goal velocity: (" << gapGoalVelX << ", " << gapGoalVelY << ")"); 
+
+            // For PN, we will drive at terminal Goal, so pass it on to know when to stop                
+            Eigen::Vector2f terminalGoal = selectedGap->getGoal()->getTermGoalPos();  // (selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            actual terminal goal: (" << terminalGoal[0] << ", " << terminalGoal[1] << ")"); 
+
+            // // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "pre-integration, x: " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3]);
+
+            robotAndGapState x = {rbtState[0], rbtState[1], xLeft, yLeft, xRight, yRight, initialGoal[0], initialGoal[1]};
+            
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept time: " << selectedGap->getGapLifespan()); 
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            intercept angle: " << selectedGap->getGammaInterceptGoal()); 
+
+            ParallelNavigation parallelNavigation(selectedGap->getGammaInterceptGoal(), 
+                                                    cfg_->rbt.vx_absmax,
+                                                    cfg_->rbt.r_inscr,
+                                                    leftGapPtVel,
+                                                    rightGapPtVel,
+                                                    goalPtVel,
+                                                    terminalGoal);
+
+            float t_max = std::min(selectedGap->getGapLifespan(), cfg_->traj.integrate_maxt);
+
+            boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
+                                                    parallelNavigation, x, 0.0f, t_max, 
+                                                    cfg_->traj.integrate_stept, logger);
+        }
+
+
+        Trajectory traj(path, pathTiming);
+        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
+        // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
+        return traj;
+    }
+
+
     Trajectory GapTrajectoryGenerator::generateTrajectory(Gap * selectedGap, 
                                                             const geometry_msgs::PoseStamped & currPose, 
                                                             const geometry_msgs::TwistStamped & currVel,

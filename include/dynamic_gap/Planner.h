@@ -254,6 +254,21 @@ namespace dynamic_gap
                                     std::vector<float> & pathTerminalPoseScores,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans);
 
+            /**
+            * \brief Function for generating candidate trajectories through the current set of gaps
+            * \param gaps incoming set of gaps through which we want to generate trajectories
+            * \param generatedTrajs set of generated trajectories
+            * \param pathPoseScores set of posewise scores for all paths
+            * \param pathTerminalPoseScores set of terminal pose scores for all paths
+            * \param futureScans set of propagated scans to use during scoring
+            * \return Vector of pose-wise scores for the generated trajectories
+            */
+            void generateGapTrajsV2(std::vector<GapTube *> & gapTubes, 
+                                    std::vector<Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseScores,
+                                    std::vector<float> & pathTerminalPoseScores,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
+
             void gapGoalPlacementV2(std::vector<GapTube *> & gapTubes);
 
             /**
