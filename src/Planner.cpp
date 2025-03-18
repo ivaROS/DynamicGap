@@ -872,15 +872,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     isCurrentGapFeasible = true;
                 }
 
-                startPt = gap->getGoal()->getTermGoalPos();
-
                 if (!isGapFeasible)
                 {
                     isTubeFeasible = false;
                     break;
                 } else
                 {
-                    startPt = gap->getGoal()->getTermGoalPos();
+                    float gammaIntercept = gap->getGammaInterceptGoal();
+                    Eigen::Vector2f trajDir(cos(gammaIntercept), sin(gammaIntercept));
+                    startPt = gap->getGapLifespan() * trajDir; 
+                    // startPt = gap->getGoal()->getTermGoalPos();
                 }
             }
     
