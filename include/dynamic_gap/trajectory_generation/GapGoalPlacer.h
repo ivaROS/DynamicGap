@@ -42,6 +42,12 @@ namespace dynamic_gap
                                 const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
                                 const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
 
+            void setGapGoalFromPriorV2(Gap * gap,
+                                        Gap * priorGap);
+                                                     
+            void setGapGoalFromNextV2(Gap * gap,
+                                        Gap * nextGap);
+
         private:
 
             /**

@@ -51,7 +51,7 @@ namespace dynamic_gap
                 model_->transfer(*otherGapPoint.model_);
             }
 
-            // Run before manipulation
+            // Run after manipulation
             GapPoint(const PropagatedGapPoint & propagatedGapPoint)
             {
                 ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");

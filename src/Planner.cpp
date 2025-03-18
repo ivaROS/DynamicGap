@@ -753,20 +753,39 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                 if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
                 {
+                    ROS_INFO_STREAM_NAMED("Planner", "          next gap unavailable, placing goal inside");
+
+                    Gap * nextGap = gapTube->at(j+1);
+
                     // place goal inside gap
-                } else if (!gap->isAvailable())
+                    gapGoalPlacer_->setGapGoalFromNextV2(gap, nextGap);   
+
+                } else if (!gap->isAvailable()) // if curr gap is not available (should mean that previous gap existed)
                 {
+                    ROS_INFO_STREAM_NAMED("Planner", "          current gap unavailable, placing goal inside");
+
+                    if ( (j-1) < 0)
+                    {
+                        ROS_WARN_STREAM_NAMED("Planner", "       gap " << j << " is not available and no previous gap exists");
+                        continue;
+                    }
+
+                    Gap * priorGap = gapTube->at(j-1);
                     // place goal inside gap
+
+                    gapGoalPlacer_->setGapGoalFromPriorV2(gap, priorGap);
+
                 } else
                 {
+                    ROS_INFO_STREAM_NAMED("Planner", "          current gap available, placing goal beyond");
+
                     // place goal beyond gap
                     // should use manipulate points to set gaps
                     gapGoalPlacer_->setGapGoalV2(gap, 
                         globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
                         globalGoalRobotFrame_);                    
-}
                 }
-
+            }
         }
         return;
     }

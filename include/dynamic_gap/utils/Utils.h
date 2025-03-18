@@ -200,7 +200,7 @@ namespace dynamic_gap
     * \return signed angle from left gap point to right gap point
     */
     inline float getSignedLeftToRightAngle(const Eigen::Vector2f & leftVect, 
-                                    const Eigen::Vector2f & rightVect) 
+                                            const Eigen::Vector2f & rightVect) 
     {
         float determinant = leftVect[1]*rightVect[0] - leftVect[0]*rightVect[1];
         float dotProduct = leftVect[0]*rightVect[0] + leftVect[1]*rightVect[1];

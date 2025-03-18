@@ -166,24 +166,16 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM_NAMED("GapPropagator", "   [GapPropagator::propagateGapPointsV2()]");
 
-        // deep copy of gaps
-        std::vector<Gap *> propagatedGaps;
-        for (Gap * manipulatedGap : manipulatedGaps)
-            propagatedGaps.push_back(new Gap(*manipulatedGap));
-
-        // create gap tubes
-        gapTubes.resize(propagatedGaps.size());
-        for (int i = 0; i < propagatedGaps.size(); i++)
-            gapTubes.at(i) = new GapTube(propagatedGaps.at(i));
-
         ROS_INFO_STREAM_NAMED("GapPropagator", "       (Manipulated) Gaps at time " << 0.0 << ": ");
         for (int i = 0; i < manipulatedGaps.size(); i++)
         {
             Gap * manipulatedGap = manipulatedGaps.at(i);
             ROS_INFO_STREAM_NAMED("GapPropagator", "           gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                left point:" << manipulatedGap->getManipulatedLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                left vel: " << manipulatedGap->getManipulatedLVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "		        left ID: (" << manipulatedGap->getLeftGapPt()->getModel()->getID() << ")");                        
             ROS_INFO_STREAM_NAMED("GapPropagator", "                right point:" << manipulatedGap->getManipulatedRPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                right vel: " << manipulatedGap->getManipulatedRVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "				right ID: (" << manipulatedGap->getRightGapPt()->getModel()->getID() << ")");            
         }
 
@@ -193,14 +185,24 @@ namespace dynamic_gap
         // 2. Sort gap points by bearing
         std::sort(propagatedGapPoints_.begin(), propagatedGapPoints_.end(), PropagatedGapPointComparator());
 
-        // 3. Assign Ungap IDs to gap points
-        // assignUnGapIDsToGapPoints();
+        std::vector<Gap *> currentGaps;
+        float t_i = 0.0, t_iplus1 = 0.0;
+
+        // create set of gaps at t=0.0
+        // std::vector<Gap *> propagatedGaps;
+        // for (Gap * manipulatedGap : manipulatedGaps)
+        //     propagatedGaps.push_back(new Gap(*manipulatedGap));
+
+        getGaps(currentGaps, t_iplus1);
+
+        // create gap tubes
+        gapTubes.resize(currentGaps.size());
+        for (int i = 0; i < currentGaps.size(); i++)
+            gapTubes.at(i) = new GapTube(currentGaps.at(i));
 
         // 4. Propagate gap points loop
-        std::vector<Gap *> previousGaps = propagatedGaps; // SHALLOW COPY
-        std::vector<Gap *> currentGaps;
+        std::vector<Gap *> previousGaps = currentGaps; // SHALLOW COPY
 
-        float t_i = 0.0, t_iplus1 = 0.0;
         int numSteps = int(cfg_->traj.integrate_maxt/cfg_->traj.integrate_stept) + 1;
         for (int futureTimeIdx = 1; futureTimeIdx < numSteps; futureTimeIdx++) 
         {        
@@ -397,8 +399,10 @@ namespace dynamic_gap
             // gap->setSafeToDelete();
             ROS_INFO_STREAM_NAMED("GapPropagator", "                    gap " << i << ": ");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        left point:" << gap->getManipulatedLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        left vel:" << gap->getManipulatedLVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        right point:" << gap->getManipulatedRPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        right vel:" << gap->getManipulatedRVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        gap available: " << gap->isAvailable());
         }        

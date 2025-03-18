@@ -475,6 +475,13 @@ namespace dynamic_gap
             Eigen::Vector2f getGapVelocity() { return xFrozen_.tail(2); }
 
             /**
+            * \brief Getter function for non-relative estimator velocity. Should be run AFTER isolateGapDynamics().
+            * \return non-relative (gap) estimator velocity
+            */               
+            Eigen::Vector2f getManipGapVelocity() { return xManipFrozen_.tail(2); }
+
+
+            /**
             * \brief Getter function for rewound non-relative estimator state
             * \return rewound non-relative (gap) estimator state
             */  
@@ -590,8 +597,8 @@ namespace dynamic_gap
                 // discrete euler update of state (ignoring rbt acceleration, set as 0)
                 xManipFrozenProp_[0] = xManipFrozen_[0] + (xManipFrozen_[2] + xManipFrozen_[1]*egoAngVel)*dt;
                 xManipFrozenProp_[1] = xManipFrozen_[1] + (xManipFrozen_[3] - xManipFrozen_[0]*egoAngVel)*dt;
-                xManipFrozenProp_[2] = xManipFrozen_[2] + (relLinAcc[0] + xManipFrozen_[3]*egoAngVel)*dt;
-                xManipFrozenProp_[3] = xManipFrozen_[3] + (relLinAcc[1] - xManipFrozen_[2]*egoAngVel)*dt;
+                xManipFrozenProp_[2] = xManipFrozen_[2];
+                xManipFrozenProp_[3] = xManipFrozen_[3];
                 xManipFrozen_ = xManipFrozenProp_;
                 
             }

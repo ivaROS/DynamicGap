@@ -126,7 +126,7 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->manip_ = false; // will set to true if we do need to manip
+        this->manip_ = model.manip_; // will set to true if we do need to manip
 
         return;
     }
@@ -171,7 +171,7 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->manip_ = false; // will set to true if we do need to manip
+        this->manip_ = model.manip_; // will set to true if we do need to manip
 
         return;
     }

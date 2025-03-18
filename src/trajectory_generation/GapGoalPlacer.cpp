@@ -131,6 +131,101 @@ namespace dynamic_gap
         }      
     }
 
+    void GapGoalPlacer::setGapGoalFromPriorV2(Gap * gap,
+                                                Gap * priorGap)
+    {
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "          [setGapGoalFromPriorV2()]");
+
+        int leftIdx = gap->manipLeftIdx();
+        int rightIdx = gap->manipRightIdx();
+        float leftRange = gap->manipLeftRange();
+        float rightRange = gap->manipRightRange();
+
+        // gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+        // gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+
+        // Eigen::Vector4f leftManipGapState = gap->getLeftGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f rightManipGapState = gap->getRightGapPt()->getModel()->getManipGapState();
+
+        // Eigen::Vector2f leftPt = leftManipGapState.head(2);
+        // Eigen::Vector2f leftVel = leftManipGapState.tail(2);
+        // Eigen::Vector2f rightPt = rightManipGapState.head(2);
+        // Eigen::Vector2f rightVel = rightManipGapState.tail(2);
+
+        Eigen::Vector2f leftPt = gap->getManipulatedLPosition();
+        Eigen::Vector2f leftVel = gap->getManipulatedLVelocity();
+        Eigen::Vector2f rightPt = gap->getManipulatedRPosition();
+        Eigen::Vector2f rightVel = gap->getManipulatedRVelocity();
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap cart points, left: (" << leftPt.transpose() << ") , right: (" << rightPt.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap cart vels, left: (" << leftVel.transpose() << ") , right: (" << rightVel.transpose() << ")");
+
+        Eigen::Vector2f priorGapGoalPos = priorGap->getGoal()->getOrigGoalPos();
+        Eigen::Vector2f priorGapGoalVel = priorGap->getGoal()->getOrigGoalVel();
+        float priorGapLifespan = priorGap->getGapLifespan();
+
+        Eigen::Vector2f gapGoalPos = priorGapGoalPos + priorGapGoalVel * priorGapLifespan;
+        Eigen::Vector2f gapGoalVel(0.0, 0.0);
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              priorGapGoalPos: (" << priorGapGoalPos.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              priorGapGoalVel: (" << priorGapGoalVel.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              priorGapLifespan: " << priorGapLifespan);
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gapGoalPos: (" << gapGoalPos.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gapGoalVel: (" << gapGoalVel.transpose() << ")");
+
+        gap->getGoal()->setOrigGoalPos( gapGoalPos );
+        gap->getGoal()->setOrigGoalVel( gapGoalVel );
+    }
+
+    void GapGoalPlacer::setGapGoalFromNextV2(Gap * gap,
+                                                Gap * nextGap)
+    {
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "          [setGapGoalFromNextV2()]");
+
+        int leftIdx = nextGap->manipLeftIdx();
+        int rightIdx = nextGap->manipRightIdx();
+        float leftRange = nextGap->manipLeftRange();
+        float rightRange = nextGap->manipRightRange();
+
+        float leftTheta = idx2theta(leftIdx);
+        float rightTheta = idx2theta(rightIdx);
+
+        Eigen::Vector2f leftPt = nextGap->getManipulatedLPosition();
+        Eigen::Vector2f leftVel = nextGap->getManipulatedLVelocity();
+        Eigen::Vector2f rightPt = nextGap->getManipulatedRPosition();
+        Eigen::Vector2f rightVel = nextGap->getManipulatedRVelocity();
+
+        float leftToRightAngle = getSignedLeftToRightAngle(leftPt, rightPt); // we want this to be able to be negative
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              nextGap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              nextGap cart points, left: (" << leftPt.transpose() << ") , right: (" << rightPt.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              nextGap cart vels, left: (" << leftVel.transpose() << ") , right: (" << rightVel.transpose() << ")");
+
+        float centerTheta = leftTheta - (0.5 * leftToRightAngle);
+        float minRange = std::min(leftRange, rightRange);
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              centerTheta: " << centerTheta);
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              minRange: " << minRange);
+
+        Eigen::Vector2f gapGoalPos = minRange * Eigen::Vector2f(std::cos(centerTheta), std::sin(centerTheta));
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gapGoalPos: (" << gapGoalPos.transpose() << ")");
+
+        Eigen::Vector2f gapGoalRadialOffset = - 2.0 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * gapGoalPos.normalized();
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gapGoalRadialOffset: (" << gapGoalRadialOffset.transpose() << ")");
+
+        Eigen::Vector2f inflatedGapGoalPos = gapGoalPos + gapGoalRadialOffset;
+
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflatedGapGoalPos: (" << inflatedGapGoalPos.transpose() << ")");
+
+        Eigen::Vector2f gapGoalVel(0.0, 0.0);
+
+        gap->getGoal()->setOrigGoalPos( inflatedGapGoalPos );
+        gap->getGoal()->setOrigGoalVel( gapGoalVel );
+    }
 
     void GapGoalPlacer::setGapGoalV2(Gap * gap, 
                                         const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
@@ -146,22 +241,20 @@ namespace dynamic_gap
         float leftTheta = idx2theta(leftIdx);
         float rightTheta = idx2theta(rightIdx);
 
-        float xLeft = (leftRange) * cos(leftTheta);
-        float yLeft = (leftRange) * sin(leftTheta);
-        float xRight = (rightRange) * cos(rightTheta);
-        float yRight = (rightRange) * sin(rightTheta);
+        // gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+        // gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
 
-        Eigen::Vector2f leftPt(xLeft, yLeft);
-        Eigen::Vector2f rightPt(xRight, yRight);
+        // Eigen::Vector4f leftManipGapState = gap->getLeftGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f rightManipGapState = gap->getRightGapPt()->getModel()->getManipGapState();
 
-        gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
-        gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
-
-        Eigen::Vector4f leftManipGapState = gap->getLeftGapPt()->getModel()->getManipGapState();
-        Eigen::Vector4f rightManipGapState = gap->getRightGapPt()->getModel()->getManipGapState();
+        Eigen::Vector2f leftPt = gap->getManipulatedLPosition();
+        Eigen::Vector2f leftVel = gap->getManipulatedLVelocity();
+        Eigen::Vector2f rightPt = gap->getManipulatedRPosition();
+        Eigen::Vector2f rightVel = gap->getManipulatedRVelocity();
 
         ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
-        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap cart points, left: (" << leftPt.transpose() << ") , right: (" << rightPt.transpose() << ")");
+        ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              gap cart vels, left: (" << leftVel.transpose() << ") , right: (" << rightVel.transpose() << ")");
 
         float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
@@ -190,7 +283,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              global goal within gap");
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              goal: " << globalGoalRobotFrameVector[0] << 
-                                                    ", " << globalGoalRobotFrameVector[1]);
+                                                                        ", " << globalGoalRobotFrameVector[1]);
 
         }
 
@@ -202,20 +295,18 @@ namespace dynamic_gap
             float centerRange = 0.5 * (leftRange + rightRange);
             Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
                                         centerRange * std::sin(centerTheta));
-            Eigen::Vector2f centerVel = 0.5 * (leftManipGapState.tail(2) + rightManipGapState.tail(2));
+            Eigen::Vector2f centerVel = 0.5 * (leftVel + rightVel);
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << centerPt[0] << ", " << centerPt[1]);                 
 
             Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
-
             Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
-
-            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
+            Eigen::Vector2f scaledCenterVel = centerVel * (inflatedCenterPt.norm() / centerPt.norm()); // scale by r?
 
             gap->getGoal()->setOrigGoalPos(inflatedCenterPt);
-            gap->getGoal()->setOrigGoalVel(centerVel);
-            // gap->setGoal(inflatedCenterPt);
-            // gap->setGoalVel(centerVel);
+            gap->getGoal()->setOrigGoalVel(scaledCenterVel); 
+            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
+
         } else
         {
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              Option 2: global path local waypoint biased");
@@ -237,7 +328,7 @@ namespace dynamic_gap
 
             float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
             Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
-            Eigen::Vector2f biasedGapVel = leftManipGapState.tail(2) + (rightManipGapState.tail(2) - leftManipGapState.tail(2)) * leftToGapGoalAngle / leftToRightAngle;
+            Eigen::Vector2f biasedGapVel = leftVel + (rightVel - leftVel) * leftToGapGoalAngle / leftToRightAngle;
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
@@ -245,10 +336,13 @@ namespace dynamic_gap
 
             Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
+            Eigen::Vector2f inflatedBiasedPt = inflatedBiasedGapGoal + gapGoalRadialOffset;
+            Eigen::Vector2f scaledBiasedVel = biasedGapVel * (inflatedBiasedPt.norm() / inflatedBiasedGapGoal.norm()); // scale by r?
 
-            gap->getGoal()->setOrigGoalPos(inflatedBiasedGapGoal);
-            gap->getGoal()->setOrigGoalVel(biasedGapVel);
+            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated goal: " << inflatedBiasedPt[0] << ", " << inflatedBiasedPt[1]);                 
+
+            gap->getGoal()->setOrigGoalPos(inflatedBiasedPt);
+            gap->getGoal()->setOrigGoalVel(scaledBiasedVel);
             // gap->setGoal(inflatedBiasedGapGoal);
             // gap->setGoalVel(biasedGapVel);
         }      

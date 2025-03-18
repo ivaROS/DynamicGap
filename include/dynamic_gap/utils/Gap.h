@@ -98,13 +98,6 @@ namespace dynamic_gap
 
                     gapStart_ = gapStart;
 
-                    // check if closing or opening
-                    Eigen::Vector4f leftState = leftGapPt_->getModel()->getGapState();
-                    float leftBetaDot = (leftState[0] * leftState[3] - leftState[1] * leftState[2]) / (leftState[0] * leftState[0] + leftState[1] * leftState[1]);
-
-                    Eigen::Vector4f rightState = rightGapPt_->getModel()->getGapState();
-                    bool rightBetaDot = (rightState[0] * rightState[3] - rightState[1] * rightState[2]) / (rightState[0] * rightState[0] + rightState[1] * rightState[1]);
-
                     // initializing convex polar gap coordinates to raw ones
                     // leftGapPt_->initManipPoint();
                     // rightGapPt_->initManipPoint();
@@ -286,6 +279,19 @@ namespace dynamic_gap
             * \return Initial manipulated right gap point in Cartesian frame
             */
             Eigen::Vector2f getManipulatedRPosition() const { return rightGapPt_->getManipCartesian(); }
+
+            /**
+            * \brief Getter for initial manipulated left gap point in Cartesian frame
+            * \return Initial manipulated left gap point in Cartesian frame
+            */
+            Eigen::Vector2f getManipulatedLVelocity() const { return leftGapPt_->getModel()->getManipGapVelocity(); }
+
+            /**
+            * \brief Getter for initial manipulated right gap point in Cartesian frame
+            * \return Initial manipulated right gap point in Cartesian frame
+            */
+            Eigen::Vector2f getManipulatedRVelocity() const { return rightGapPt_->getModel()->getManipGapVelocity(); }
+
 
             void setRightType() { rightType_ = rightGapPt_->getOrigRange() < leftGapPt_->getOrigRange(); }
 
