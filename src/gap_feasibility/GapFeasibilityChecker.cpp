@@ -24,7 +24,7 @@ namespace dynamic_gap
         }
     }
     
-    bool GapFeasibilityChecker::pursuitGuidanceAnalysisV2(Gap * gap)
+    bool GapFeasibilityChecker::pursuitGuidanceAnalysisV2(Gap * gap, const Eigen::Vector2f & startPt)
     {
         // check what method we are using
         if (cfg_->planning.pursuit_guidance_method == 0)
@@ -36,7 +36,7 @@ namespace dynamic_gap
         } else
         {
             // parallel navigation
-            return parallelNavigationFeasibilityCheckV2(gap);
+            return parallelNavigationFeasibilityCheckV2(gap, startPt);
         }
     }    
 
@@ -82,9 +82,9 @@ namespace dynamic_gap
     //     }
     // }
 
-    bool GapFeasibilityChecker::parallelNavigationFeasibilityCheckV2(Gap * gap)
+    bool GapFeasibilityChecker::parallelNavigationFeasibilityCheckV2(Gap * gap, const Eigen::Vector2f & startPt)
     {
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                [parallelNavigationFeasibilityCheckV2()]"); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                [parallelNavigationFeasibilityCheckV2()]"); 
 
         gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
         gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
@@ -106,16 +106,16 @@ namespace dynamic_gap
         // Evaluating left gap point //
         ///////////////////////////////
         
-        float t_intercept_left = 0.0;
-        float gamma_intercept_left = 0.0;
-        parallelNavigationHelper(gap->getManipulatedLPosition(), 
-                                    leftGapPtVel, 
-                                    cfg_->rbt.vx_absmax,
-                                    t_intercept_left, 
-                                    gamma_intercept_left);
+        // float t_intercept_left = 0.0;
+        // float gamma_intercept_left = 0.0;
+        // parallelNavigationHelper(gap->getManipulatedLPosition(), 
+        //                             leftGapPtVel, 
+        //                             cfg_->rbt.vx_absmax,
+        //                             t_intercept_left, 
+        //                             gamma_intercept_left);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_left: " << gamma_intercept_left); 
+        // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_left: " << t_intercept_left); 
+        // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_left: " << gamma_intercept_left); 
 
         // gap->t_intercept_left = t_intercept_left;
         // gap->gamma_intercept_left = gamma_intercept_left;
@@ -124,28 +124,31 @@ namespace dynamic_gap
         // Evaluating right gap point //
         ///////////////////////////////
 
-        float t_intercept_right = 0.0;
-        float gamma_intercept_right = 0.0;
-        parallelNavigationHelper(gap->getManipulatedRPosition(), 
-                                    rightGapPtVel, 
-                                    cfg_->rbt.vx_absmax,
-                                    t_intercept_right, 
-                                    gamma_intercept_right);
+        // float t_intercept_right = 0.0;
+        // float gamma_intercept_right = 0.0;
+        // parallelNavigationHelper(gap->getManipulatedRPosition(), 
+        //                             rightGapPtVel, 
+        //                             cfg_->rbt.vx_absmax,
+        //                             t_intercept_right, 
+        //                             gamma_intercept_right);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_right: " << gamma_intercept_right); 
+        // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_right: " << t_intercept_right); 
+        // ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_right: " << gamma_intercept_right); 
 
         // gap->t_intercept_right = t_intercept_right;
         // gap->gamma_intercept_right = gamma_intercept_right;
 
         // set target position to gap goal
-        Eigen::Vector2f p_target = gap->getGoal()->getOrigGoalPos();  // (gap->goal.x_, gap->goal.y_);
+        Eigen::Vector2f goalPt = gap->getGoal()->getOrigGoalPos();
+        Eigen::Vector2f p_target = goalPt - startPt;  // (gap->goal.x_, gap->goal.y_);
 
         // set target velocity to mean of left and right gap points
         Eigen::Vector2f v_target = gap->getGoal()->getOrigGoalVel(); // (gap->goal.vx_, gap->goal.vy_);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       p_target: " << p_target.transpose()); 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       v_target: " << v_target.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       startPt: " << startPt.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       goalPt: " << goalPt.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       p_target: " << p_target.transpose()); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       v_target: " << v_target.transpose()); 
 
         float t_intercept_goal = 0.0;
         float gamma_intercept_goal = 0.0;
@@ -155,30 +158,30 @@ namespace dynamic_gap
                                     t_intercept_goal, 
                                     gamma_intercept_goal);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal); 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gamma_intercept_goal: " << gamma_intercept_goal); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       t_intercept_goal: " << t_intercept_goal); 
+        ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       gamma_intercept_goal: " << gamma_intercept_goal); 
 
         if (isnan(t_intercept_goal) || isnan(gamma_intercept_goal)) // can happen if K < 1
         {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->getGapLifespan()); 
+            ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                    gap is not feasible! t_intercept: " << t_intercept_goal << ", gap lifespan: " << gap->getGapLifespan()); 
             return false;
         // } else if (!gap->isRGC() && 
         //             gap->getEndCondition() == SHUT && 
         //             t_intercept_goal > gap->getGapLifespan())
         // {
-        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is not feasible!");
-        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                       t_intercept_goal: " << t_intercept_goal);
-        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gap lifespan: " << gap->getGapLifespan()); 
-        //     ROS_INFO_STREAM_NAMED("GapFeasibility", "                       gap end condition: " << gap->getEndCondition()); 
+        //     ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                    gap is not feasible!");
+        //     ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       t_intercept_goal: " << t_intercept_goal);
+        //     ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       gap lifespan: " << gap->getGapLifespan()); 
+        //     ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                       gap end condition: " << gap->getEndCondition()); 
 
         //     return false;
         } else
         {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "                    gap is feasible! t_intercept_left: " 
-                                                                           << t_intercept_left << 
-                                                                            ", t_intercept_right: " << 
-                                                                            t_intercept_right << 
-                                                                            ", t_intercept_goal: " << 
+            ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                    gap is feasible! " 
+                                                                        //    << t_intercept_left << 
+                                                                            // ", t_intercept_right: " << 
+                                                                            // t_intercept_right << 
+                                                                            << ", t_intercept_goal: " << 
                                                                             t_intercept_goal << 
                                                                             ", gap lifespan: " << gap->getGapLifespan()); 
             

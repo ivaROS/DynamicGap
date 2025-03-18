@@ -647,20 +647,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                         std::vector<GapTube *> & gapTubes)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPointsV2()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[propagateGapPointsV2()]");
 
         if (planningGaps.empty())
         {
-            ROS_WARN_STREAM_NAMED("GapFeasibility", "    planningGaps is empty, returning");
+            ROS_WARN_STREAM_NAMED("Planner", "    planningGaps is empty, returning");
             return;
         }
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current raw gaps:");
-        printGapModels(currRawGaps_);
+        // ROS_INFO_STREAM_NAMED("Planner", "    current raw gaps:");
+        // printGapModels(currRawGaps_);
         checkGapModels(currRawGaps_);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current simplified gaps:");
-        printGapModels(planningGaps);
+        // ROS_INFO_STREAM_NAMED("Planner", "    current simplified gaps:");
+        // printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
         gapPropagator_->propagateGapPointsV2(planningGaps, gapTubes);
@@ -671,25 +671,25 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     void Planner::propagateGapPoints(const std::vector<Gap *> & planningGaps)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "[propagateGapPoints()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[propagateGapPoints()]");
 
         if (planningGaps.empty())
         {
-            ROS_WARN_STREAM_NAMED("GapFeasibility", "    planningGaps is empty, returning");
+            ROS_WARN_STREAM_NAMED("Planner", "    planningGaps is empty, returning");
             return;
         }
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current raw gaps:");
+        ROS_INFO_STREAM_NAMED("Planner", "    current raw gaps:");
         printGapModels(currRawGaps_);
         checkGapModels(currRawGaps_);
 
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current simplified gaps:");
+        ROS_INFO_STREAM_NAMED("Planner", "    current simplified gaps:");
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
         for (size_t i = 0; i < planningGaps.size(); i++) 
         {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "   gap " << i);
+            ROS_INFO_STREAM_NAMED("Planner", "   gap " << i);
             // propagate gap forward in time to determine lifespan
             gapPropagator_->propagateGapPoints(planningGaps.at(i));
         }
@@ -738,13 +738,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     void Planner::gapGoalPlacementV2(std::vector<GapTube *> & gapTubes) 
     {
-        ROS_INFO_STREAM_NAMED("GapGoalPlacement", "[gapGoalPlacement()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[gapGoalPlacementV2()]");
 
         for (int i = 0; i < gapTubes.size(); i++)
         {
+            ROS_INFO_STREAM_NAMED("Planner", "    tube " << i);
+
             GapTube * gapTube = gapTubes.at(i);
             for (int j = 0; j < gapTube->size(); j++)
             {
+                ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
+
                 Gap * gap = gapTube->at(j);
 
                 bool placeGoalBeyondGap = (j == (gapTube->size() - 1) && gap->isAvailable());
@@ -763,21 +767,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                         bool & isCurrentGapFeasible)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "[gapSetFeasibilityCheck()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheck()]");
         std::vector<Gap *> feasibleGaps;
 
         // grabbing the current set of gaps
 
         int currentLeftGapPtModelID = getCurrentLeftGapPtModelID();
         int currentRightGapPtModelID = getCurrentRightGapPtModelID();
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
+        ROS_INFO_STREAM_NAMED("Planner", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
         isCurrentGapFeasible = false;
 
         bool isGapFeasible = false;
         for (size_t i = 0; i < manipulatedGaps.size(); i++) 
         {
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for gap " << i);
+            ROS_INFO_STREAM_NAMED("Planner", "    feasibility check for gap " << i);
 
             // run pursuit guidance analysis on gap to determine feasibility
             isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysis(manipulatedGaps.at(i));
@@ -800,7 +804,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     std::vector<GapTube *> Planner::gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
                                                                 bool & isCurrentGapFeasible)                                             
     {
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "[gapSetFeasibilityCheckV2()]");
+        ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheckV2()]");
 
         std::vector<GapTube *> feasibleGapTubes;
 
@@ -811,7 +815,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         int currentLeftGapPtModelID = getCurrentLeftGapPtModelID();
         int currentRightGapPtModelID = getCurrentRightGapPtModelID();
-        ROS_INFO_STREAM_NAMED("GapFeasibility", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
+        ROS_INFO_STREAM_NAMED("Planner", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
         isCurrentGapFeasible = false;
 
@@ -821,16 +825,19 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             GapTube * gapTube = gapTubes.at(i);
             bool isTubeFeasible = true;
-            ROS_INFO_STREAM_NAMED("GapFeasibility", "    feasibility check for tube " << i);
-            for (size_t j = 0; i < gapTube->size(); j++) 
+            ROS_INFO_STREAM_NAMED("Planner", "    feasibility check for tube " << i);
+
+            Eigen::Vector2f startPt(0.0, 0.0);
+
+            for (int j = 0; j < gapTube->size(); j++) 
             {
                 bool isGapFeasible = false;
 
                 Gap * gap = gapTube->at(j);
-                ROS_INFO_STREAM_NAMED("GapFeasibility", "       gap " << j);
+                ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
     
                 // run pursuit guidance analysis on gap to determine feasibility
-                isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap);
+                isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap, startPt);
 
                 if (gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
                     gap->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID) 
@@ -838,10 +845,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     isCurrentGapFeasible = true;
                 }
 
+                startPt = gap->getGoal()->getTermGoalPos();
+
                 if (!isGapFeasible)
                 {
                     isTubeFeasible = false;
                     break;
+                } else
+                {
+                    startPt = gap->getGoal()->getTermGoalPos();
                 }
             }
     
@@ -1660,7 +1672,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             if (!checkModelState(left_state) || !checkModelState(right_state))
             {
-                ROS_WARN_STREAM_NAMED("GapFeasibility", "    model state is not OK, returning");
+                ROS_WARN_STREAM_NAMED("Planner", "    model state is not OK, returning");
                 return;
             }
         }

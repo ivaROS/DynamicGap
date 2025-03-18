@@ -36,7 +36,7 @@ namespace dynamic_gap
             */   
             bool pursuitGuidanceAnalysis(Gap * gap);
 
-            bool pursuitGuidanceAnalysisV2(Gap * gap);
+            bool pursuitGuidanceAnalysisV2(Gap * gap, const Eigen::Vector2f & startPt);
 
         private:
             /**
@@ -62,7 +62,7 @@ namespace dynamic_gap
 
             bool parallelNavigationFeasibilityCheck(Gap * gap);
 
-            bool parallelNavigationFeasibilityCheckV2(Gap * gap);
+            bool parallelNavigationFeasibilityCheckV2(Gap * gap, const Eigen::Vector2f & startPt);
 
             void parallelNavigationHelper(const Eigen::Vector2f & p_target, 
                                             const Eigen::Vector2f & v_target, 

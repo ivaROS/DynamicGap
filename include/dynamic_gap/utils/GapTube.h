@@ -32,10 +32,10 @@ namespace dynamic_gap
                     ROS_INFO_STREAM_NAMED("GapTube", "           Gap " << i << ": ");
                     gap = tube_.at(i);
                     ROS_INFO_STREAM_NAMED("GapTube", "                      start time: " << gap->getGapStart());
-                    ROS_INFO_STREAM_NAMED("GapTube", "                      end time: " << gap->getGapLifespan());
-                    ROS_INFO_STREAM_NAMED("GapTube", "                      left point:" << gap->getLPosition().transpose());
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      lifespan: " << gap->getGapLifespan());
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      left point:" << gap->getManipulatedLPosition().transpose());
                     ROS_INFO_STREAM_NAMED("GapTube", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
-                    ROS_INFO_STREAM_NAMED("GapTube", "                      right point:" << gap->getRPosition().transpose());
+                    ROS_INFO_STREAM_NAMED("GapTube", "                      right point:" << gap->getManipulatedRPosition().transpose());
                     ROS_INFO_STREAM_NAMED("GapTube", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
                     ROS_INFO_STREAM_NAMED("GapTube", "                      gap available: " << gap->isAvailable());
                 }
@@ -64,6 +64,12 @@ namespace dynamic_gap
 
             Gap * at(const int & idx)
             {
+                if (idx < 0 || idx >= tube_.size())
+                {
+                    ROS_WARN_STREAM_NAMED("GapTube", "Index out of bounds");
+                    return nullptr;
+                }
+
                 return tube_.at(idx);
             }
 
