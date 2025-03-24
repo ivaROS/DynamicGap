@@ -1161,7 +1161,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         for (size_t i = 0; i < ungaps.size(); i++) 
         {
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    generating traj for gap: " << i);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    generating traj for un-gap: " << i);
             // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
             
             // Run go to goal behavior
@@ -1192,6 +1192,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             traj.setPathOdomFrame(ungapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
             generatedTrajs.push_back(traj);
         }
+
+        // trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
+        trajVisualizer_->drawUngapTrajectories(generatedTrajs);        
 
         return;
     }

@@ -16,6 +16,7 @@ namespace dynamic_gap
 
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
+        ungapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_ungap_trajectories", 10);
 
         // globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
         globalPlanSnippetPublisher = nh.advertise<visualization_msgs::MarkerArray>("relevant_global_plan_snippet", 10);
@@ -297,6 +298,56 @@ namespace dynamic_gap
         }
         trajPoseScoresPublisher.publish(trajPoseScoresMarkerArray);
     }
+
+    void TrajectoryVisualizer::drawUngapTrajectories(const std::vector<Trajectory> & trajs) 
+    {
+        // First, clearing topic.
+        clearMarkerArrayPublisher(ungapTrajectoriesPublisher);
+
+        if (trajs.size() == 0)
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
+            return;
+        }
+        
+        visualization_msgs::MarkerArray ungapTrajMarkerArray;
+        visualization_msgs::Marker ungapTrajMarker;
+
+        Trajectory traj = trajs.at(0);
+
+        if (traj.getPathRbtFrame().header.frame_id.empty())
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapTrajectories] Trajectory frame_id is empty");
+            return;
+        }
+
+        // The above makes this safe
+        ungapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
+        ungapTrajMarker.header.stamp = traj.getPathRbtFrame().header.stamp;
+        ungapTrajMarker.ns = "allTraj";
+        ungapTrajMarker.type = visualization_msgs::Marker::ARROW;
+        ungapTrajMarker.action = visualization_msgs::Marker::ADD;
+        ungapTrajMarker.scale.x = 0.1;
+        ungapTrajMarker.scale.y = 0.04; // 0.01;
+        ungapTrajMarker.scale.z = 0.0001;
+        ungapTrajMarker.color.a = 1;
+        ungapTrajMarker.color.b = 0.75;
+        ungapTrajMarker.color.g = 0.75;
+        ungapTrajMarker.lifetime = ros::Duration(0);
+
+        for (const Trajectory & traj : trajs) 
+        {
+            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+            for (const geometry_msgs::Pose & pose : path.poses) 
+            {
+                ungapTrajMarker.id = int (ungapTrajMarkerArray.markers.size());
+                ungapTrajMarker.pose = pose;
+                ungapTrajMarkerArray.markers.push_back(ungapTrajMarker);
+            }
+        }
+        ungapTrajectoriesPublisher.publish(ungapTrajMarkerArray);
+    }
+
 
     void TrajectoryVisualizer::drawRelevantGlobalPlanSnippet(const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet) 
     {

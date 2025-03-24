@@ -25,6 +25,8 @@ namespace dynamic_gap
             */
             void drawGapTrajectories(const std::vector<Trajectory> & trajs);
 
+            void drawUngapTrajectories(const std::vector<Trajectory> & trajs);
+
             /**
             * \brief Visualize pose-wise scores along candidate trajectories
             * \param trajs set of trajectories whose pose-wise scores we want to visualize
@@ -63,6 +65,7 @@ namespace dynamic_gap
 
             ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
             ros::Publisher gapTrajectoriesPublisher; /**< Publisher for gap trajectories */
+            ros::Publisher ungapTrajectoriesPublisher; /**< Publisher for un-gap trajectories */
             ros::Publisher trajPoseScoresPublisher; /**< Publisher for gap trajectory pose-wise scores */
             ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */
             ros::Publisher globalPlanPublisher; /**< Publisher for global plan */

@@ -412,6 +412,14 @@ Visualization Manager:
                 {}
               Queue Size: 100
               Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/candidate_ungap_trajectories
+              Name: MarkerArray
+              Namespaces:
+                allTraj: true
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
@@ -668,10 +676,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 50.64695358276367
+      Scale: 120.44617462158203
       Target Frame: rto/base_link
-      X: 4.5385918617248535
-      Y: 0.06790941953659058
+      X: 2.4098293781280518
+      Y: -0.509476363658905
     Saved: ~
 Window Geometry:
   Displays:
