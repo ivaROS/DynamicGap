@@ -263,6 +263,11 @@ namespace dynamic_gap
                                     std::vector<float> & pathTerminalPoseScores,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans);
 
+            void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseCosts,
+                                    std::vector<float> & pathTerminalPoseCosts,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
+
             /**
             * \brief Function for generating candidate trajectories through the current set of gaps
             * \param gaps incoming set of gaps through which we want to generate trajectories

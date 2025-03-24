@@ -1028,25 +1028,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 generatedTrajs.push_back(traj);
 
             }
-        }
-
-
-        // push back idling trajectory as another option
-        std::vector<float> idlingPoseCosts;
-        float idlingTerminalPoseCost, idlingCost;
-
-        Trajectory idlingTrajectory;
-        idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
-        
-        trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans);
-        idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
-
-        pathPoseCosts.push_back(idlingPoseCosts);
-        pathTerminalPoseCosts.push_back(idlingTerminalPoseCost);
-
-        idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-        generatedTrajs.push_back(idlingTrajectory);            
+        }        
 
         trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
@@ -1121,24 +1103,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
             traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
             generatedTrajs.push_back(traj);
-        }
-
-        // push back idling trajectory as another option
-        std::vector<float> idlingPoseCosts;
-        float idlingTerminalPoseCost, idlingCost;
-
-        Trajectory idlingTrajectory;
-        idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
-        
-        trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans);
-        idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        idlingCost: " << idlingCost);
-
-        pathPoseCosts.push_back(idlingPoseCosts);
-        pathTerminalPoseCosts.push_back(idlingTerminalPoseCost);
-
-        idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-        generatedTrajs.push_back(idlingTrajectory);            
+        }    
 
         trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
         trajVisualizer_->drawGapTrajectories(generatedTrajs);
@@ -1195,6 +1160,35 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
         trajVisualizer_->drawUngapTrajectories(generatedTrajs);        
+
+        return;
+    }
+
+    void Planner::generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
+                                        std::vector<std::vector<float>> & pathPoseCosts,
+                                        std::vector<float> & pathTerminalPoseCosts,
+                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    {
+        boost::mutex::scoped_lock gapset(gapMutex_);
+
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateIdlingTraj()]");
+
+        // push back idling trajectory as another option
+        std::vector<float> idlingPoseCosts;
+        float idlingTerminalPoseCost, idlingCost;
+
+        Trajectory idlingTrajectory;
+        idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
+        
+        trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans);
+        idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        idlingCost: " << idlingCost);
+
+        pathPoseCosts.push_back(idlingPoseCosts);
+        pathTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+
+        idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
+        generatedTrajs.push_back(idlingTrajectory);        
 
         return;
     }
@@ -1659,7 +1653,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsStartTime, TRAJ_GEN);
         // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
         // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-    
+
         //////////////////////////////////////////////////////////////////////////////////////
         //                          GAP TRAJECTORY GENERATION AND SCORING                   //
         //////////////////////////////////////////////////////////////////////////////////////
@@ -1668,6 +1662,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         std::vector<float> pathTerminalPoseCosts; 
         // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
         generateGapTrajs(feasibleGaps, trajs, pathPoseCosts, pathTerminalPoseCosts, futureScans);
+        
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        generateIdlingTraj(trajs, pathPoseCosts, pathTerminalPoseCosts, futureScans);         
+        
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
