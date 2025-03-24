@@ -1119,7 +1119,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateGapTrajs()]");
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateUngapTrajs()]");
         
         pathPoseCosts = std::vector<std::vector<float>>(ungaps.size());
         pathTerminalPoseCosts = std::vector<float>(ungaps.size());
@@ -1193,7 +1193,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    int Planner::pickTraj(const std::vector<Trajectory> & trajs, 
+    int Planner::pickTraj(const std::vector<Trajectory> & allTrajs, 
                           const std::vector<std::vector<float>> & pathPoseCosts, 
                           const std::vector<float> & pathTerminalPoseCosts) 
     {
@@ -1204,32 +1204,33 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         int lowestCostTrajIdx = -1;        
         
         // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << paths.size());
-        if (trajs.size() == 0)
+        if (allTrajs.size() == 0)
         {
             ROS_WARN_STREAM_NAMED("Planner", "No traj synthesized");
             return -1;
         }
 
-        if (trajs.size() != pathPoseCosts.size())
+        if (allTrajs.size() != pathPoseCosts.size() ||
+            allTrajs.size() != pathTerminalPoseCosts.size())
         {
-            ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << trajs.size() << " != pathPoseCosts =" << pathPoseCosts.size());
+            ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << allTrajs.size() << " != pathPoseCosts =" << pathPoseCosts.size());
             return -1;
         }
 
         // poses here are in odom frame 
-        std::vector<float> pathCosts(trajs.size());
+        std::vector<float> pathCosts(allTrajs.size());
 
         // evaluate gap trajectories
-        for (size_t i = 0; i < trajs.size(); i++) 
+        for (size_t i = 0; i < allTrajs.size(); i++) 
         {
             // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
             pathCosts.at(i) = pathTerminalPoseCosts.at(i) + std::accumulate(pathPoseCosts.at(i).begin(), 
                                                                             pathPoseCosts.at(i).end(), float(0));
             
-            pathCosts.at(i) = trajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathCosts.at(i);
+            pathCosts.at(i) = allTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathCosts.at(i);
             
-            ROS_INFO_STREAM_NAMED("Planner", "    for gap " << i << " (length: " << trajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(i));
+            ROS_INFO_STREAM_NAMED("Planner", "    for gap " << i << " (length: " << allTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(i));
         }
 
         auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
@@ -1676,6 +1677,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     
         // Aggregate trajs/costs
 
+        ROS_INFO_STREAM_NAMED("Planner", "       trajs size: " << trajs.size() << ", otherTrajs size: " << otherTrajs.size());
+
         std::vector<Trajectory> allTrajs = trajs;
         allTrajs.insert(allTrajs.end(), otherTrajs.begin(), otherTrajs.end());
 
@@ -1712,10 +1715,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 trajFlag = 0;
                 incomingGap = feasibleGaps.at(lowestCostTrajIdx);
 
-            } else // comparing to idling traj
+            } else if (lowestCostTrajIdx >= feasibleGaps.size() && lowestCostTrajIdx < (allTrajs.size() - 1)) // comparing to un-gap traj
             {
-                ROS_INFO_STREAM_NAMED("Planner", "       comparing to other trajectory");
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
                 trajFlag = 1;               
+            } else if (lowestCostTrajIdx == (allTrajs.size() - 1))
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
+                trajFlag = 2;         
+            } else
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
             }
 
             incomingTraj = allTrajs.at(lowestCostTrajIdx);
@@ -1883,7 +1893,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
         geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
 
-        if (trajFlag == 1) // idling
+        if (trajFlag == 2) // idling
         {
             ROS_INFO_STREAM_NAMED("Planner", "planner opting to idle, no trajectory chosen.");
             rawCmdVel = geometry_msgs::Twist();
