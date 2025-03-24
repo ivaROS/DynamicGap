@@ -275,6 +275,8 @@ namespace dynamic_gap
 
             void gapGoalPlacementV2(std::vector<GapTube *> & gapTubes);
 
+            void ungapGoalPlacement(const std::vector<Ungap *> & recedingUngaps);
+
             /**
             * \brief Function for selecting the best trajectory out of the set of recently generated trajectories
             * \param trajs set of recently generated trajectories

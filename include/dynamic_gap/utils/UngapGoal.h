@@ -1,12 +1,12 @@
 namespace dynamic_gap
 {
     /** 
-    * \brief Class for a gap goal
+    * \brief Class for a un-gap goal
     */
-    class GapGoal
+    class UngapGoal
     {
         public:
-            GapGoal() 
+            UngapGoal() 
             {
                 origGoalPos_ = Eigen::Vector2f(0.0, 0.0);
                 origGoalVel_ = Eigen::Vector2f(0.0, 0.0);

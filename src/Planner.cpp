@@ -790,6 +790,44 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
+    void Planner::ungapGoalPlacement(const std::vector<Ungap *> & recedingUngaps)
+    {
+
+        for (Ungap * ungap : recedingUngaps)
+        {
+            ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
+            ungap->getRightUngapPt()->getModel()->isolateGapDynamics();
+
+            Eigen::Vector4f leftState = ungap->getLeftUngapPt()->getModel()->getGapState();
+            Eigen::Vector4f rightState = ungap->getRightUngapPt()->getModel()->getGapState();
+
+            // calculate avg point and diameter
+            Eigen::Vector2f leftPos = leftState.head(2);
+            Eigen::Vector2f rightPos = rightState.head(2);
+            Eigen::Vector2f avgPos = 0.5 * (leftPos + rightPos);
+            float diameter = (rightPos - leftPos).norm();
+            float radius = 0.5 * diameter;
+
+            Eigen::Vector2f leftVel = leftState.tail(2);
+            Eigen::Vector2f rightVel = rightState.tail(2);
+            Eigen::Vector2f avgVel = 0.5 * (leftVel + rightVel);
+
+            // Get worst case point using radius
+            Eigen::Vector2f ungapRadialOffset = avgPos.normalized() * radius;
+            Eigen::Vector2f worstCaseUngapPt = avgPos - ungapRadialOffset;
+
+            // Inflate inwards by radius
+            Eigen::Vector2f gapGoalRadialOffset = avgPos.normalized() * cfg_.rbt.r_inscr * cfg_.traj.inf_ratio;
+            Eigen::Vector2f inflatedCenterPt = worstCaseUngapPt - gapGoalRadialOffset;
+
+            // set
+            ungap->getGoal()->setOrigGoalPos(inflatedCenterPt);
+            ungap->getGoal()->setOrigGoalVel(avgVel);   
+        }
+
+        return;
+    }
+
     std::vector<Gap *> Planner::gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
                                                         bool & isCurrentGapFeasible)                                             
     {
@@ -1455,6 +1493,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
 
         // gapGoalPlacementV2(gapTubes);
+
+        ungapGoalPlacement(recedingUngaps);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                           GAP FEASIBILITY CHECK (v2)                             //
