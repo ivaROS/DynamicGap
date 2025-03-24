@@ -70,6 +70,7 @@ add_library(${PROJECT_NAME}
   src/global_plan_management/GlobalPlanManager.cpp
   src/scan_processing/DynamicScanPropagator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
+  src/trajectory_generation/UngapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
   src/trajectory_generation/GapGoalPlacer.cpp
   src/trajectory_evaluation/TrajectoryEvaluator.cpp

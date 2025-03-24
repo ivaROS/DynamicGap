@@ -22,7 +22,6 @@
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Utils.h>
-#include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 
 #include <thread>
 #include <chrono>

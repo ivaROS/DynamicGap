@@ -36,6 +36,8 @@
 #include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
 #include <dynamic_gap/trajectory_generation/GapGoalPlacer.h>
+#include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
+#include <dynamic_gap/trajectory_generation/UngapTrajectoryGenerator.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 #include <dynamic_gap/ungap_feasibility/UngapFeasibilityChecker.h>
@@ -256,6 +258,21 @@ namespace dynamic_gap
             * \return Vector of pose-wise scores for the generated trajectories
             */
             void generateGapTrajs(std::vector<Gap *> & gaps, 
+                                    std::vector<Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseScores,
+                                    std::vector<float> & pathTerminalPoseScores,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
+
+            /**
+            * \brief Function for generating candidate trajectories through the current set of gaps
+            * \param gaps incoming set of gaps through which we want to generate trajectories
+            * \param generatedTrajs set of generated trajectories
+            * \param pathPoseScores set of posewise scores for all paths
+            * \param pathTerminalPoseScores set of terminal pose scores for all paths
+            * \param futureScans set of propagated scans to use during scoring
+            * \return Vector of pose-wise scores for the generated trajectories
+            */
+            void generateUngapTrajs(std::vector<Ungap *> & ungaps, 
                                     std::vector<Trajectory> & generatedTrajs,
                                     std::vector<std::vector<float>> & pathPoseScores,
                                     std::vector<float> & pathTerminalPoseScores,
@@ -497,6 +514,7 @@ namespace dynamic_gap
             DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
             GapGoalPlacer * gapGoalPlacer_ = NULL; /**< Gap goal placer */
             GapTrajectoryGenerator * gapTrajGenerator_ = NULL; /**< Gap trajectory generator */
+            UngapTrajectoryGenerator * ungapTrajGenerator_ = NULL; /**< Ungap trajectory generator */
             GapManipulator * gapManipulator_ = NULL; /**< Gap manipulator */
             TrajectoryController * trajController_ = NULL; /**< Trajectory controller */
             GapPointAssociator * gapPointAssociator_ = NULL; /**< Gap associator */
