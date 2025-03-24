@@ -311,10 +311,7 @@ namespace dynamic_gap
             */
             int pickTraj(const std::vector<Trajectory> & trajs, 
                             const std::vector<std::vector<float>> & pathPoseCosts, 
-                            const std::vector<float> & pathTerminalPoseCosts,
-                            const std::vector<Trajectory> & otherTrajs, 
-                            const std::vector<std::vector<float>> & otherPathPoseCosts, 
-                            const std::vector<float> & otherPathTerminalPoseCosts);
+                            const std::vector<float> & pathTerminalPoseCosts);
 
             /**
             * \brief Helper function for switching to a new trajectory
