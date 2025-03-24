@@ -282,7 +282,6 @@ namespace dynamic_gap
 
             int ungapID_ = -1; // set one time at init
 
-
             /**
             * \brief Parameters of original form of gap
             */        
