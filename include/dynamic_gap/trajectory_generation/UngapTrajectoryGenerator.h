@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <math.h>
-#include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Ungap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/trajectory_generation/TrajectorySynthesisMethods.h>
@@ -30,11 +30,6 @@ namespace dynamic_gap
         public:
             UngapTrajectoryGenerator(const DynamicGapConfig& cfg) { cfg_ = &cfg; };
 
-            Trajectory generateGoToGoalTrajectoryV2(Gap * selectedGap, 
-                                                    const geometry_msgs::PoseStamped & currPose, 
-                                                    const geometry_msgs::TwistStamped & currVel,
-                                                    const geometry_msgs::PoseStamped & globalGoalRobotFrame);
-
             /**
             * \brief generate local collision-free trajectory through gap
             * \param selectedGap gap through which trajectory will be generated
@@ -44,32 +39,9 @@ namespace dynamic_gap
             * \param runGoToGoal boolean for if go to goal trajectory method should be run
             * \return trajectory through gap
             */
-            Trajectory generateTrajectoryV2(Gap * selectedGap, 
+            Trajectory generateTrajectory(Ungap * selectedUngap, 
                                             const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,
-                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame);
-
-            /**
-            * \brief generate local collision-free trajectory through gap
-            * \param selectedGap gap through which trajectory will be generated
-            * \param currPose current robot pose
-            * \param currVel current robot velocity
-            * \param globalGoalRobotFrame global goal in the robot frame
-            * \param runGoToGoal boolean for if go to goal trajectory method should be run
-            * \return trajectory through gap
-            */
-            Trajectory generateTrajectory(Gap * selectedGap, 
-                                            const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,
-                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame,
-                                            const bool & runGoToGoal);
-
-            /**
-            * \brief generate trajectory for idling in place
-            * \param rbtPoseInOdomFrame robot pose in odometry frame
-            * \return trajectory through gap
-            */
-            Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+                                            const geometry_msgs::TwistStamped & currVel);
 
             /**
             * \brief helper function for transforming trajectory from source frame to destination frame
@@ -89,7 +61,7 @@ namespace dynamic_gap
             * \return post-processed trajectory
             */                       
             Trajectory processTrajectory(const Trajectory & traj,
-                                                        const bool & prune);
+                                            const bool & prune);
 
         private: 
 
