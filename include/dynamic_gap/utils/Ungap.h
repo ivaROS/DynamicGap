@@ -38,8 +38,13 @@ namespace dynamic_gap
 
             UngapPoint * getLeftUngapPt() const { return leftUngapPt_; }
             UngapPoint * getRightUngapPt() const { return rightUngapPt_; }
-
             UngapGoal * getGoal() const { return goal_; }
+
+            void setTInterceptGoal(const float & t_intercept_goal) { tInterceptGoal_ = t_intercept_goal; }
+            float getTInterceptGoal() const { return tInterceptGoal_; }
+
+            void setGammaInterceptGoal(const float & gamma_intercept_goal) { gammaInterceptGoal_ = gamma_intercept_goal; }
+            float getGammaInterceptGoal() const { return gammaInterceptGoal_; }
 
 
         private:
@@ -48,5 +53,8 @@ namespace dynamic_gap
             UngapGoal * goal_ = NULL; /**< Gap goal */
             UngapPoint * leftUngapPt_;
             UngapPoint * rightUngapPt_;
+
+            float tInterceptGoal_ = 0.0;  /**< Intercept time for gap goal point */
+            float gammaInterceptGoal_ = 0.0; /**< Intercept angle for gap goal point */
     };
 }

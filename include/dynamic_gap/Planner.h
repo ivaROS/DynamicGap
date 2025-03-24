@@ -38,6 +38,7 @@
 #include <dynamic_gap/trajectory_generation/GapGoalPlacer.h>
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
+#include <dynamic_gap/ungap_feasibility/UngapFeasibilityChecker.h>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -217,6 +218,8 @@ namespace dynamic_gap
             */
             std::vector<Gap *> gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
                                                         bool & isCurrentGapFeasible);
+
+            void ungapSetFeasibilityCheck(const std::vector<Ungap *> & recedingUngaps);
 
             std::vector<GapTube *> gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
                                                             bool & isCurrentGapFeasible);         
@@ -499,6 +502,8 @@ namespace dynamic_gap
             GapPointAssociator * gapPointAssociator_ = NULL; /**< Gap associator */
             GapFeasibilityChecker * gapFeasibilityChecker_ = NULL; /**< Gap feasibility checker */
             GapPropagator * gapPropagator_ = NULL; /**< Gap propagator */
+
+            UngapFeasibilityChecker * ungapFeasibilityChecker_ = NULL; /**< Ungap feasibility checker */
 
             // Status
             bool hasGlobalGoal_ = false; /**< Indicator for if planner's global goal has been set */

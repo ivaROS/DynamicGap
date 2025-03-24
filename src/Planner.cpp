@@ -33,6 +33,8 @@ namespace dynamic_gap
 
         delete gapGoalPlacer_;
 
+        delete ungapFeasibilityChecker_;
+
         delete dynamicScanPropagator_;
 
         delete trajEvaluator_;
@@ -86,6 +88,8 @@ namespace dynamic_gap
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
         goalVisualizer_ = new GoalVisualizer(nh_, cfg_);
         trajVisualizer_ = new TrajectoryVisualizer(nh_, cfg_);
+
+        ungapFeasibilityChecker_ = new UngapFeasibilityChecker(cfg_);
 
         // TF Lookup setup
         tfListener_ = new tf2_ros::TransformListener(tfBuffer_);        
@@ -638,6 +642,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         gapManipulator_->updateEgoCircle(scan_);
         gapGoalPlacer_->updateEgoCircle(scan_);
         gapFeasibilityChecker_->updateEgoCircle(scan_);
+        ungapFeasibilityChecker_->updateEgoCircle(scan_);
         dynamicScanPropagator_->updateEgoCircle(scan_);
         trajEvaluator_->updateEgoCircle(scan_);
         trajController_->updateEgoCircle(scan_);
@@ -865,6 +870,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             
         return feasibleGaps;
     }
+
+    void Planner::ungapSetFeasibilityCheck(const std::vector<Ungap *> & recedingUngaps)
+    {
+        for (size_t i = 0; i < recedingUngaps.size(); i++) 
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "    feasibility check for ungap " << i);
+
+            // run pursuit guidance analysis on ungap to calculate gamma (feasibility not really a thing here)
+            ungapFeasibilityChecker_->pursuitGuidanceAnalysis(recedingUngaps.at(i));
+
+        }
+
+        return;
+    }       
 
     std::vector<GapTube *> Planner::gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
                                                                 bool & isCurrentGapFeasible)                                             
@@ -1502,6 +1521,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // bool isCurrentGapFeasibleDummy = false;
         // gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                         UNGAP FEASIBILITY CHECK                                  //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        ungapSetFeasibilityCheck(recedingUngaps);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                            GAP FEASIBILITY CHECK                                 //
