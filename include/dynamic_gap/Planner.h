@@ -310,8 +310,11 @@ namespace dynamic_gap
             * \return index of the highest score trajectory
             */
             int pickTraj(const std::vector<Trajectory> & trajs, 
-                            const std::vector<std::vector<float>> & pathPoseScores, 
-                            const std::vector<float> & pathTerminalPoseScores);
+                            const std::vector<std::vector<float>> & pathPoseCosts, 
+                            const std::vector<float> & pathTerminalPoseCosts,
+                            const std::vector<Trajectory> & otherTrajs, 
+                            const std::vector<std::vector<float>> & otherPathPoseCosts, 
+                            const std::vector<float> & otherPathTerminalPoseCosts);
 
             /**
             * \brief Helper function for switching to a new trajectory
