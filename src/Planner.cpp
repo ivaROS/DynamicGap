@@ -1396,6 +1396,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
+        std::vector<Ungap *> ungaps;
 
         // Gap Tubes
         std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
@@ -1408,7 +1409,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                                      ATTACH UNGAP IDS                            //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        attachUngapIDs(planningGaps);
+        attachUngapIDs(planningGaps, ungaps);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP POINT PROPAGATION                               //
@@ -1436,25 +1437,25 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                            GAP POINT PROPAGATION (v2)                            //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(manipulatedGaps, gapTubes);
-        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
+        // std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
+        // propagateGapPointsV2(manipulatedGaps, gapTubes);
+        // float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
+        // // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
         // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP MANIPULATION                                    //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        gapGoalPlacementV2(gapTubes);
+        // gapGoalPlacementV2(gapTubes);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                           GAP FEASIBILITY CHECK (v2)                             //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        bool isCurrentGapFeasibleDummy = false;
-        gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
+        // bool isCurrentGapFeasibleDummy = false;
+        // gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                            GAP FEASIBILITY CHECK                                 //
@@ -1509,11 +1510,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
         //                        GAP TRAJECTORY GENERATION AND SCORING (V2)                //
         //////////////////////////////////////////////////////////////////////////////////////
-        std::vector<Trajectory> dummyTrajs;
-        std::vector<std::vector<float>> dummyPathPoseCosts; 
-        std::vector<float> dummyPathTerminalPoseCosts; 
+        // std::vector<Trajectory> dummyTrajs;
+        // std::vector<std::vector<float>> dummyPathPoseCosts; 
+        // std::vector<float> dummyPathTerminalPoseCosts; 
         // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        generateGapTrajsV2(gapTubes, dummyTrajs, dummyPathPoseCosts, dummyPathTerminalPoseCosts, futureScans);
+        // generateGapTrajsV2(gapTubes, dummyTrajs, dummyPathPoseCosts, dummyPathTerminalPoseCosts, futureScans);
         // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
         // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
         // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
@@ -1598,6 +1599,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         for (Gap * copiedRawGap : copiedRawGaps)
             delete copiedRawGap;
 
+        for (Ungap * ungap : ungaps)
+            delete ungap;
+
         // delete gap tubes
         for (GapTube * tube : gapTubes)
         {
@@ -1607,7 +1611,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps)
+    void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps,
+                                    std::vector<Ungap *> & ungaps)
     {
         std::vector<Eigen::Vector4f> gapPtStates;
 
@@ -1635,14 +1640,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             if (isUngap(ptIState, ptJState))
             {
+                int ungapID = i / 2;
                 if (i % 2 == 0) // attach ungap id to the point
                 {
-                    planningGaps.at(i / 2)->getRightGapPt()->setUngapID(i / 2);
-                    planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(i / 2);
+                    planningGaps.at(i / 2)->getRightGapPt()->setUngapID(ungapID);
+                    planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(ungapID);
+                    ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(), 
+                                                planningGaps.at(nextIdx / 2)->getLeftGapPt(),
+                                                ungapID));
                 } else
                 {
-                    planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(i / 2);
-                    planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(i / 2);
+                    planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(ungapID);
+                    planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(ungapID);
+                    ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(), 
+                                                planningGaps.at(i / 2)->getLeftGapPt(),
+                                                ungapID));
                 }
             }
         }

@@ -20,6 +20,7 @@
 // #include <std_msgs/Header.h>
 #include <nav_msgs/Odometry.h>
 
+#include <dynamic_gap/utils/Ungap.h>
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
@@ -138,7 +139,8 @@ namespace dynamic_gap
 
         private:
 
-            void attachUngapIDs(const std::vector<Gap *> & planningGaps);
+            void attachUngapIDs(const std::vector<Gap *> & planningGaps,
+                                        std::vector<Ungap *> & ungaps);
 
             bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
 
