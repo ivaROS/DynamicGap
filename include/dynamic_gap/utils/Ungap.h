@@ -21,21 +21,25 @@ namespace dynamic_gap
         public:
             Ungap( GapPoint * leftGapPt, GapPoint * rightGapPt, const int & ungapID)
             {
-                left = new UngapPoint(*leftGapPt);
-                right = new UngapPoint(*rightGapPt);
+                leftUngapPt_ = new UngapPoint(*leftGapPt);
+                rightUngapPt_ = new UngapPoint(*rightGapPt);
                 ungapID_ = ungapID;
             }
 
             ~Ungap()
             {
-                delete left;
-                delete right;
+                delete leftUngapPt_;
+                delete rightUngapPt_;
             }
+
+            UngapPoint * getLeftUngapPt() const { return leftUngapPt_; }
+            UngapPoint * getRightUngapPt() const { return rightUngapPt_; }
+
 
         private:
             int ungapID_ = -1; // set one time at init
 
-            UngapPoint * left;
-            UngapPoint * right;
+            UngapPoint * leftUngapPt_;
+            UngapPoint * rightUngapPt_;
     };
 }

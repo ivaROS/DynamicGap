@@ -144,6 +144,8 @@ namespace dynamic_gap
 
             bool isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState);
 
+            std::vector<Ungap *> pruneApproachingUngaps(const std::vector<Ungap *> & ungaps);
+
             /**
             * \brief Function for updating the gap models
             * \param gaps set of gaps whose models we are updating

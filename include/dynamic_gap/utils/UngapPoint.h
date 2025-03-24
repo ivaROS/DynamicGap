@@ -42,6 +42,11 @@ namespace dynamic_gap
                 delete model_;
             }
 
+            Estimator * getModel() const
+            {
+                return model_;
+            }            
+
         private:
 
             /**

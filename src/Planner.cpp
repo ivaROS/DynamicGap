@@ -1410,6 +1410,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
 
         attachUngapIDs(planningGaps, ungaps);
+        
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                              PRUNE APPROACHING UNGAPS                            //
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        std::vector<Ungap *> recedingUngaps = pruneApproachingUngaps(ungaps);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP POINT PROPAGATION                               //
@@ -1679,6 +1685,38 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         bool angleCheck = (vectorProj > 0.0);
 
         return (distCheck && speedCheck && angleCheck);
+    }
+
+    std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> & ungaps)
+    {
+        std::vector<Ungap *> recedingUngaps;
+
+        for (int i = 0; i < ungaps.size(); i++)
+        {
+            Ungap * ungap = ungaps.at(i);
+
+            ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
+            ungap->getRightUngapPt()->getModel()->isolateGapDynamics();
+
+            Eigen::Vector4f leftState = ungap->getLeftUngapPt()->getModel()->getGapState();
+            Eigen::Vector4f rightState = ungap->getRightUngapPt()->getModel()->getGapState();
+
+            Eigen::Vector2f leftPos = leftState.head(2);
+            Eigen::Vector2f rightPos = rightState.head(2);
+
+            Eigen::Vector2f avgPos = (leftPos + rightPos) / 2;
+
+            Eigen::Vector2f leftVel = leftState.tail(2);
+            Eigen::Vector2f rightVel = rightState.tail(2);
+
+            Eigen::Vector2f avgVel = (leftVel + rightVel) / 2;
+
+            if (avgPos.dot(avgVel) > 0)
+                recedingUngaps.push_back(ungap);
+        }
+
+
+        return recedingUngaps;
     }
 
     geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
