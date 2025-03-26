@@ -309,9 +309,17 @@ namespace dynamic_gap
             * \param pathTerminalPoseScores set of terminal pose scores for all paths
             * \return index of the highest score trajectory
             */
-            int pickTraj(const std::vector<Trajectory> & trajs, 
-                            const std::vector<std::vector<float>> & pathPoseCosts, 
-                            const std::vector<float> & pathTerminalPoseCosts);
+            void pickTraj(int & trajFlag,
+                            int & lowestCostTrajIdx,
+                            const std::vector<Trajectory> & gapTrajs, 
+                            const std::vector<std::vector<float>> & gapTrajPoseCosts, 
+                            const std::vector<float> & gapTrajTerminalPoseCosts,
+                            const std::vector<Trajectory> & ungapTrajs, 
+                            const std::vector<std::vector<float>> & ungapTrajPoseCosts, 
+                            const std::vector<float> & ungapTrajTerminalPoseCosts,                          
+                            const std::vector<Trajectory> & idlingTrajs, 
+                            const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
+                            const std::vector<float> & idlingTrajTerminalPoseCosts);
 
             /**
             * \brief Helper function for switching to a new trajectory
@@ -572,8 +580,14 @@ namespace dynamic_gap
             float totalScanPropagationTimeTaken = 0.0f; /**< Total time taken for scan propagation */
             int scanPropagationCalls = 0; /**< Total number of calls for scan propagation */
 
+            float totalGenerateUngapTrajTimeTaken = 0.0f; /**< Total time taken for un-gap trajectory synthesis */
+            int generateUngapTrajCalls = 0; /**< Total number of calls for un-gap trajetory synthesis */
+
             float totalGenerateGapTrajTimeTaken = 0.0f; /**< Total time taken for gap trajectory synthesis */
             int generateGapTrajCalls = 0; /**< Total number of calls for gap trajetory synthesis */
+
+            float totalGenerateIdlingTrajTimeTaken = 0.0f; /**< Total time taken for idling trajectory synthesis */
+            int generateIdlingTrajCalls = 0; /**< Total number of calls for idling trajetory synthesis */
 
             float totalSelectGapTrajTimeTaken = 0.0f; /**< Total time taken for trajectory selection */
             int selectGapTrajCalls = 0; /**< Total number of calls for trajectory selection */

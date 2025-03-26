@@ -37,14 +37,22 @@ namespace dynamic_gap
                             GAP_MANIP = 6,
                             GAP_FEAS = 7,
                             SCAN_PROP = 8,
-                            TRAJ_GEN = 9,
-                            TRAJ_PICK = 10,
-                            TRAJ_COMP = 11,
-                            PLAN = 12,
-                            FEEBDACK = 13,
-                            PO = 14,
-                            CONTROL = 15
+                            UNGAP_TRAJ_GEN = 9,
+                            GAP_TRAJ_GEN = 10,
+                            IDLING_TRAJ_GEN = 11,
+                            TRAJ_PICK = 12,
+                            TRAJ_COMP = 13,
+                            PLAN = 14,
+                            FEEBDACK = 15,
+                            PO = 16,
+                            CONTROL = 17
                             };
+
+    enum trajFlags {    NONE = -1,
+                        GAP = 0,
+                        UNGAP = 1,
+                        IDLING = 2
+                        };
 
     enum gapEndConditions { UNSET = -1, 
                             COLLISION = 0, 
@@ -162,8 +170,8 @@ namespace dynamic_gap
             //     raw_idx += eps;
 
             
-        ROS_INFO_STREAM_NAMED("Gap", "theta2idx raw_idx: " << raw_idx);
-        ROS_INFO_STREAM_NAMED("Gap", "theta2idx std::round(raw_idx): " << std::round(raw_idx));
+        // ROS_INFO_STREAM_NAMED("Gap", "theta2idx raw_idx: " << raw_idx);
+        // ROS_INFO_STREAM_NAMED("Gap", "theta2idx std::round(raw_idx): " << std::round(raw_idx));
 
         return int(std::round(raw_idx));
     }

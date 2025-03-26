@@ -29,7 +29,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -74,10 +74,10 @@ Visualization Manager:
         map:
           odom:
             {}
-        rto/odom:
-          rto/base_link:
-            rto/hokuyo_link:
-              {}
+          rto/odom:
+            rto/base_link:
+              rto/hokuyo_link:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -113,7 +113,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -252,6 +252,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
+        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -340,7 +341,8 @@ Visualization Manager:
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                {}
+                simp: true
+                simp_tmin1: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -356,7 +358,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -364,7 +366,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -376,7 +378,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -392,7 +394,7 @@ Visualization Manager:
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -404,19 +406,19 @@ Visualization Manager:
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/relevant_global_plan_snippet
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -455,7 +457,7 @@ Visualization Manager:
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
-            {}
+            planning_loop_idx: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -675,10 +677,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 120.44617462158203
+      Scale: 117.00230407714844
       Target Frame: rto/base_link
-      X: 2.4098293781280518
-      Y: -0.509476363658905
+      X: 3.1921303272247314
+      Y: -0.24750424921512604
     Saved: ~
 Window Geometry:
   Displays:

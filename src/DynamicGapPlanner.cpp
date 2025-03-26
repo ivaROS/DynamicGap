@@ -63,7 +63,11 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
-        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "computeVelocityCommands cmdVel: " << cmdVel);
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "computeVelocityCommands cmdVel: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                linear: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                  x: " << cmdVel.linear.x << ", y: " << cmdVel.linear.y << ", z: " << cmdVel.linear.z);
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                angular: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                  x: " << cmdVel.angular.x << ", y: " << cmdVel.angular.y << ", z: " << cmdVel.angular.z);
 
         // TODO: just hardcoding this now, need to revise
         bool success = 1;

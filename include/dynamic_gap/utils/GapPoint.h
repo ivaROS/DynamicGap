@@ -230,9 +230,9 @@ namespace dynamic_gap
 
             void getOrigCartesian(float &x, float &y) const
             {
-                ROS_INFO_STREAM_NAMED("Gap", "getOrigCartesian");
-                ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
-                ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+                // ROS_INFO_STREAM_NAMED("Gap", "getOrigCartesian");
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
                 
                 float theta = idx2theta(orig.idx_);
                 x = (orig.range_) * std::cos(theta);

@@ -955,17 +955,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     }
 
     void Planner::generateGapTrajsV2(std::vector<GapTube *> & gapTubes, 
-                                        std::vector<Trajectory> & generatedTrajs,
-                                        std::vector<std::vector<float>> & pathPoseCosts,
-                                        std::vector<float> & pathTerminalPoseCosts,
+                                        std::vector<Trajectory> & gapTrajs,
+                                        std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                        std::vector<float> & gapTrajTerminalPoseCosts,
                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajs()]");
         
-        pathPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
-        pathTerminalPoseCosts = std::vector<float>(gapTubes.size());
+        gapTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
+        gapTrajTerminalPoseCosts = std::vector<float>(gapTubes.size());
 
         for (int i = 0; i < gapTubes.size(); i++)
         {
@@ -1014,40 +1014,40 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost)
                 {
                     traj = goToGoalTraj;
-                    pathPoseCosts.at(i) = goToGoalPoseCosts;
-                    pathTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
+                    gapTrajPoseCosts.at(i) = goToGoalPoseCosts;
+                    gapTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
                 } else
                 {
                     traj = pursuitGuidanceTraj;
-                    pathPoseCosts.at(i) = pursuitGuidancePoseCosts;
-                    pathTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
+                    gapTrajPoseCosts.at(i) = pursuitGuidancePoseCosts;
+                    gapTrajTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
                 }
     
                 // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                 traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
-                generatedTrajs.push_back(traj);
+                gapTrajs.push_back(traj);
 
             }
         }        
 
-        trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
-        trajVisualizer_->drawGapTrajectories(generatedTrajs);
+        trajVisualizer_->drawGapTrajectoryPoseScores(gapTrajs, gapTrajPoseCosts);
+        trajVisualizer_->drawGapTrajectories(gapTrajs);
 
         return;
     }
 
     void Planner::generateGapTrajs(std::vector<Gap *> & gaps, 
-                                    std::vector<Trajectory> & generatedTrajs,
-                                    std::vector<std::vector<float>> & pathPoseCosts,
-                                    std::vector<float> & pathTerminalPoseCosts,
+                                    std::vector<Trajectory> & gapTrajs,
+                                    std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                    std::vector<float> & gapTrajTerminalPoseCosts,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateGapTrajs()]");
         
-        pathPoseCosts = std::vector<std::vector<float>>(gaps.size());
-        pathTerminalPoseCosts = std::vector<float>(gaps.size());
+        gapTrajPoseCosts = std::vector<std::vector<float>>(gaps.size());
+        gapTrajTerminalPoseCosts = std::vector<float>(gaps.size());
 
         for (size_t i = 0; i < gaps.size(); i++) 
         {
@@ -1091,38 +1091,38 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost)
             {
                 traj = goToGoalTraj;
-                pathPoseCosts.at(i) = goToGoalPoseCosts;
-                pathTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
+                gapTrajPoseCosts.at(i) = goToGoalPoseCosts;
+                gapTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
             } else
             {
                 traj = pursuitGuidanceTraj;
-                pathPoseCosts.at(i) = pursuitGuidancePoseCosts;
-                pathTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
+                gapTrajPoseCosts.at(i) = pursuitGuidancePoseCosts;
+                gapTrajTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
             }
 
             // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
             traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
-            generatedTrajs.push_back(traj);
+            gapTrajs.push_back(traj);
         }    
 
-        trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
-        trajVisualizer_->drawGapTrajectories(generatedTrajs);
+        trajVisualizer_->drawGapTrajectoryPoseScores(gapTrajs, gapTrajPoseCosts);
+        trajVisualizer_->drawGapTrajectories(gapTrajs);
 
         return;
     }
 
     void Planner::generateUngapTrajs(std::vector<Ungap *> & ungaps, 
-                                        std::vector<Trajectory> & generatedTrajs,
-                                        std::vector<std::vector<float>> & pathPoseCosts,
-                                        std::vector<float> & pathTerminalPoseCosts,
+                                        std::vector<Trajectory> & ungapTrajs,
+                                        std::vector<std::vector<float>> & ungapTrajPoseCosts,
+                                        std::vector<float> & ungapTrajTerminalPoseCosts,
                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[generateUngapTrajs()]");
         
-        pathPoseCosts = std::vector<std::vector<float>>(ungaps.size());
-        pathTerminalPoseCosts = std::vector<float>(ungaps.size());
+        ungapTrajPoseCosts = std::vector<std::vector<float>>(ungaps.size());
+        ungapTrajTerminalPoseCosts = std::vector<float>(ungaps.size());
 
         for (size_t i = 0; i < ungaps.size(); i++) 
         {
@@ -1150,23 +1150,23 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
             traj = pursuitGuidanceTraj;
-            pathPoseCosts.at(i) = pursuitGuidancePoseCosts;
-            pathTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
+            ungapTrajPoseCosts.at(i) = pursuitGuidancePoseCosts;
+            ungapTrajTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
 
             // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
             traj.setPathOdomFrame(ungapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
-            generatedTrajs.push_back(traj);
+            ungapTrajs.push_back(traj);
         }
 
-        // trajVisualizer_->drawGapTrajectoryPoseScores(generatedTrajs, pathPoseCosts);
-        trajVisualizer_->drawUngapTrajectories(generatedTrajs);        
+        // trajVisualizer_->drawGapTrajectoryPoseScores(ungapTrajs, ungapTrajPoseCosts);
+        trajVisualizer_->drawUngapTrajectories(ungapTrajs);        
 
         return;
     }
 
-    void Planner::generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
-                                        std::vector<std::vector<float>> & pathPoseCosts,
-                                        std::vector<float> & pathTerminalPoseCosts,
+    void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
+                                        std::vector<std::vector<float>> & idlingTrajPoseCosts,
+                                        std::vector<float> & idlingTrajTerminalPoseCosts,
                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
@@ -1184,59 +1184,111 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        idlingCost: " << idlingCost);
 
-        pathPoseCosts.push_back(idlingPoseCosts);
-        pathTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+        idlingTrajPoseCosts.push_back(idlingPoseCosts);
+        idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-        generatedTrajs.push_back(idlingTrajectory);        
+        idlingTrajs.push_back(idlingTrajectory);        
 
         return;
     }
 
-    int Planner::pickTraj(const std::vector<Trajectory> & allTrajs, 
-                          const std::vector<std::vector<float>> & pathPoseCosts, 
-                          const std::vector<float> & pathTerminalPoseCosts) 
+    void Planner::pickTraj(int & trajFlag,
+                            int & lowestCostTrajIdx,
+                            const std::vector<Trajectory> & gapTrajs, 
+                            const std::vector<std::vector<float>> & gapTrajPoseCosts, 
+                            const std::vector<float> & gapTrajTerminalPoseCosts,
+                            const std::vector<Trajectory> & ungapTrajs, 
+                            const std::vector<std::vector<float>> & ungapTrajPoseCosts, 
+                            const std::vector<float> & ungapTrajTerminalPoseCosts,                          
+                            const std::vector<Trajectory> & idlingTrajs, 
+                            const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
+                            const std::vector<float> & idlingTrajTerminalPoseCosts)
+                           
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("Planner", "[pickTraj()]");
         
-        int lowestCostTrajIdx = -1;        
+        // int lowestCostTrajIdx = -1;        
         
         // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << paths.size());
-        if (allTrajs.size() == 0)
+        if (gapTrajs.size() == 0)
         {
             ROS_WARN_STREAM_NAMED("Planner", "No traj synthesized");
-            return -1;
+            trajFlag = NONE;
+            return;
         }
 
-        if (allTrajs.size() != pathPoseCosts.size() ||
-            allTrajs.size() != pathTerminalPoseCosts.size())
+        if (gapTrajs.size() != gapTrajPoseCosts.size() ||
+            gapTrajs.size() != gapTrajTerminalPoseCosts.size())
         {
-            ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << allTrajs.size() << " != pathPoseCosts =" << pathPoseCosts.size());
-            return -1;
+            ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << gapTrajs.size() << 
+                                                " != gapTrajPoseCosts =" << gapTrajPoseCosts.size());
+            trajFlag = NONE;
+            return;
         }
 
         // poses here are in odom frame 
-        std::vector<float> pathCosts(allTrajs.size());
+        int numGapTrajs = gapTrajs.size();
+        int numUngapTrajs = ungapTrajs.size();
+        int numIdlingTrajs = idlingTrajs.size();
+        std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs);
 
         // evaluate gap trajectories
-        for (size_t i = 0; i < allTrajs.size(); i++) 
+        int runningTrajIdx = 0;
+        for (size_t i = 0; i < gapTrajs.size(); i++) 
         {
             // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
-            pathCosts.at(i) = pathTerminalPoseCosts.at(i) + std::accumulate(pathPoseCosts.at(i).begin(), 
-                                                                            pathPoseCosts.at(i).end(), float(0));
+            pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(gapTrajPoseCosts.at(i).begin(), 
+                                                                                gapTrajPoseCosts.at(i).end(), float(0));
             
-            pathCosts.at(i) = allTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : pathCosts.at(i);
+            pathCosts.at(runningTrajIdx) = gapTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                                                                                                pathCosts.at(runningTrajIdx);
             
-            ROS_INFO_STREAM_NAMED("Planner", "    for gap " << i << " (length: " << allTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(i));
+            ROS_INFO_STREAM_NAMED("Planner", "    for gap " << i << " (length: " << gapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
+        
+            runningTrajIdx++;
         }
 
-        auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
-        lowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
+        // evaluate ungap trajectories
+        for (size_t i = 0; i < ungapTrajs.size(); i++) 
+        {
+            // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
-        if (pathCosts.at(lowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
+            pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), 
+                                                                                                ungapTrajPoseCosts.at(i).end(), float(0));
+            
+            pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                                                                                                    pathCosts.at(runningTrajIdx);
+            
+            ROS_INFO_STREAM_NAMED("Planner", "    for ungap " << i << " (length: " << ungapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
+        
+            runningTrajIdx++;
+        }
+
+        // evaluate idling trajectory
+        for (size_t i = 0; i < idlingTrajs.size(); i++) 
+        {
+            // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
+
+            pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), 
+                                                                                                idlingTrajPoseCosts.at(i).end(), float(0));
+            
+            pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                                                                                                    pathCosts.at(runningTrajIdx);
+            
+            ROS_INFO_STREAM_NAMED("Planner", "    for idling " << i << " (length: " << idlingTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
+        
+            runningTrajIdx++;
+        }
+
+        // selecting best trajectory
+        auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
+        int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
+
+        if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
         {    
             ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
             ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
@@ -1245,11 +1297,30 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
             }
             ROS_INFO_STREAM_NAMED("Planner", "------------------");
+
+            trajFlag = NONE;
+            // do not update candidateLowestCostTrajIdx
+            return;
         }
 
-        ROS_INFO_STREAM_NAMED("Planner", "    picking traj: " << lowestCostTrajIdx);
+        if (candidateLowestCostTrajIdx > 0 && candidateLowestCostTrajIdx < numGapTrajs)
+        {
+            lowestCostTrajIdx = candidateLowestCostTrajIdx;
+            trajFlag = GAP;
+            ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
+        } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
+        {
+            lowestCostTrajIdx = candidateLowestCostTrajIdx - numGapTrajs;
+            trajFlag = UNGAP;
+            ROS_INFO_STREAM_NAMED("Planner", "    picking ungap traj: " << lowestCostTrajIdx);
+        } else if (candidateLowestCostTrajIdx >= (numGapTrajs + numUngapTrajs) && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs + numIdlingTrajs))
+        {
+            lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
+            trajFlag = IDLING;
+            ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
+        }
 
-        return lowestCostTrajIdx;
+        return;
     }
 
     Trajectory Planner::changeTrajectoryHelper(Gap * incomingGap, 
@@ -1412,11 +1483,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                                 float(0));
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    reduced current trajectory received a subcost of: " << reducedCurrentPathSubCost);
 
-        // std::vector<std::vector<float>> pathPoseCosts(2);
-        // pathPoseCosts.at(0) = incomingPathPoseCosts;
-        // pathPoseCosts.at(1) = currentPathPoseCosts;
-
-        
         if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
         {
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
@@ -1641,59 +1707,63 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
         // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
     
-
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
-        //////////////////////////////////////////////////////////////////////////////////////
-        std::vector<Trajectory> otherTrajs;
-        std::vector<std::vector<float>> otherPathPoseCosts; 
-        std::vector<float> otherPathTerminalPoseCosts; 
-        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        generateUngapTrajs(recedingUngaps, otherTrajs, otherPathPoseCosts, otherPathTerminalPoseCosts, futureScans);
-        // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsStartTime, TRAJ_GEN);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-
         //////////////////////////////////////////////////////////////////////////////////////
         //                          GAP TRAJECTORY GENERATION AND SCORING                   //
         //////////////////////////////////////////////////////////////////////////////////////
-        std::vector<Trajectory> trajs;
-        std::vector<std::vector<float>> pathPoseCosts; 
-        std::vector<float> pathTerminalPoseCosts; 
-        // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        generateGapTrajs(feasibleGaps, trajs, pathPoseCosts, pathTerminalPoseCosts, futureScans);
-        
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
-        //////////////////////////////////////////////////////////////////////////////////////
-
-        generateIdlingTraj(otherTrajs, otherPathPoseCosts, otherPathTerminalPoseCosts, futureScans);         
-        
+        std::vector<Trajectory> gapTrajs;
+        std::vector<std::vector<float>> gapTrajPoseCosts; 
+        std::vector<float> gapTrajTerminalPoseCosts; 
+        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
+        generateGapTrajs(feasibleGaps, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
         float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
+        float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, GAP_TRAJ_GEN);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
     
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
+        //////////////////////////////////////////////////////////////////////////////////////
+        std::vector<Trajectory> ungapTrajs;
+        std::vector<std::vector<float>> ungapTrajPoseCosts; 
+        std::vector<float> ungapTrajTerminalPoseCosts; 
+        std::chrono::steady_clock::time_point generateUngapTrajsStartTime = std::chrono::steady_clock::now();
+        generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
+        float generateUngapTrajsTimeTaken = timeTaken(generateUngapTrajsStartTime);
+        float avgGenerateUngapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsTimeTaken, UNGAP_TRAJ_GEN);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << recedingUngaps.size() << " un-gaps took " << generateUngapTrajsTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateUngapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateUngapTrajsTimeTaken) << " Hz) ]");
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
+        //////////////////////////////////////////////////////////////////////////////////////
+        std::vector<Trajectory> idlingTrajs;
+        std::vector<std::vector<float>> idlingPathPoseCosts; 
+        std::vector<float> idlingPathTerminalPoseCosts; 
+        std::chrono::steady_clock::time_point generateIdlingTrajsStartTime = std::chrono::steady_clock::now();
+        generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+        float generateIdlingTrajsTimeTaken = timeTaken(generateIdlingTrajsStartTime);
+        float avgGenerateIdlingTrajsTimeTaken = computeAverageTimeTaken(generateIdlingTrajsTimeTaken, IDLING_TRAJ_GEN);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation took " << generateIdlingTrajsTimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation average time: " << avgGenerateIdlingTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateIdlingTrajsTimeTaken) << " Hz) ]");
+    
         // Aggregate trajs/costs
 
-        ROS_INFO_STREAM_NAMED("Planner", "       trajs size: " << trajs.size() << ", otherTrajs size: " << otherTrajs.size());
-
-        std::vector<Trajectory> allTrajs = trajs;
-        allTrajs.insert(allTrajs.end(), otherTrajs.begin(), otherTrajs.end());
-
-        std::vector<std::vector<float>> allPathPoseCosts = pathPoseCosts;
-        allPathPoseCosts.insert(allPathPoseCosts.end(), otherPathPoseCosts.begin(), otherPathPoseCosts.end());
-
-        std::vector<float> allPathTerminalPoseCosts = pathTerminalPoseCosts;
-        allPathTerminalPoseCosts.insert(allPathTerminalPoseCosts.end(), otherPathTerminalPoseCosts.begin(), otherPathTerminalPoseCosts.end());
+        ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
+        ROS_INFO_STREAM_NAMED("Planner", "       gap trajs size: " << gapTrajs.size());
+        ROS_INFO_STREAM_NAMED("Planner", "       idling gap trajs size: " << idlingTrajs.size());
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                               GAP TRAJECTORY SELECTION                           //
         //////////////////////////////////////////////////////////////////////////////////////
 
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
-        int lowestCostTrajIdx = pickTraj(allTrajs, allPathPoseCosts, allPathTerminalPoseCosts);
+        int lowestCostTrajIdx = -1;
+        trajFlag = -1;
+        
+        pickTraj(trajFlag, lowestCostTrajIdx, 
+                    gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                    ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+                    idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
         float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
         float avgPickTrajTimeTaken = computeAverageTimeTaken(pickTrajTimeTaken, TRAJ_PICK);
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection for " << gapCount << " gaps took " << pickTrajTimeTaken << " seconds]");
@@ -1703,32 +1773,31 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                              GAP TRAJECTORY COMPARISON                           //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        if (lowestCostTrajIdx >= 0) 
+        if (trajFlag != NONE) 
         {
             std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
             Gap * incomingGap = nullptr;
             Trajectory incomingTraj;
-            if (lowestCostTrajIdx < feasibleGaps.size()) // comparing to traj within one of the gaps
+
+            if (trajFlag == GAP) // comparing to traj within one of the gaps
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
-                trajFlag = 0;
                 incomingGap = feasibleGaps.at(lowestCostTrajIdx);
-
-            } else if (lowestCostTrajIdx >= feasibleGaps.size() && lowestCostTrajIdx < (allTrajs.size() - 1)) // comparing to un-gap traj
+                incomingTraj = gapTrajs.at(lowestCostTrajIdx);
+            } else if (trajFlag == UNGAP) // comparing to un-gap traj
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
-                trajFlag = 1;               
-            } else if (lowestCostTrajIdx == (allTrajs.size() - 1))
+                incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
+            } else if (trajFlag == IDLING)
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
-                trajFlag = 2;         
+                incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
             } else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
             }
 
-            incomingTraj = allTrajs.at(lowestCostTrajIdx);
 
             chosenTraj = compareToCurrentTraj(incomingGap,
                                                 incomingTraj,           
@@ -1893,12 +1962,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
         geometry_msgs::Pose currPoseOdomFrame = currPoseStampedOdomFrame.pose;
 
-        if (trajFlag == 2) // idling
+        if (trajFlag == IDLING) // idling
         {
             ROS_INFO_STREAM_NAMED("Planner", "planner opting to idle, no trajectory chosen.");
             rawCmdVel = geometry_msgs::Twist();
             return rawCmdVel;                
-        } else if (localTrajectory.poses.size() == 0) // OBSTACLE AVOIDANCE CONTROL 
+        } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL 
         { 
             ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
             rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
@@ -1912,7 +1981,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
         { 
             rawCmdVel = mpcTwist_;
-        } else if (cfg_.ctrl.feedback_ctrl) // FEEDBACK CONTROL 
+        } else if (cfg_.ctrl.feedback_ctrl && (trajFlag == UNGAP || trajFlag == GAP)) // FEEDBACK CONTROL 
         {
             ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
 
@@ -2052,7 +2121,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
         
-        if (trajFlag == 0 && !keepPlanning && !cfg_.ctrl.man_ctrl) 
+        if (trajFlag >= 0 && !keepPlanning && !cfg_.ctrl.man_ctrl) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_INFO_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
@@ -2133,11 +2202,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 scanPropagationCalls++;
                 averageTimeTaken = (totalScanPropagationTimeTaken / scanPropagationCalls);
                 break;    
-            case TRAJ_GEN:
+            case GAP_TRAJ_GEN:
                 totalGenerateGapTrajTimeTaken += timeTaken;
                 generateGapTrajCalls++;
                 averageTimeTaken = (totalGenerateGapTrajTimeTaken / generateGapTrajCalls);
                 break;
+            case UNGAP_TRAJ_GEN:
+                totalGenerateUngapTrajTimeTaken += timeTaken;
+                generateUngapTrajCalls++;
+                averageTimeTaken = (totalGenerateUngapTrajTimeTaken / generateUngapTrajCalls);
+                break;
+            case IDLING_TRAJ_GEN:
+                totalGenerateIdlingTrajTimeTaken += timeTaken;
+                generateIdlingTrajCalls++;
+                averageTimeTaken = (totalGenerateIdlingTrajTimeTaken / generateIdlingTrajCalls);
+                break;                                
             case TRAJ_PICK:
                 totalSelectGapTrajTimeTaken += timeTaken;
                 selectGapTrajCalls++;
