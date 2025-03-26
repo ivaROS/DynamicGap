@@ -1303,7 +1303,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return;
         }
 
-        if (candidateLowestCostTrajIdx > 0 && candidateLowestCostTrajIdx < numGapTrajs)
+        if (candidateLowestCostTrajIdx >= 0 && candidateLowestCostTrajIdx < numGapTrajs)
         {
             lowestCostTrajIdx = candidateLowestCostTrajIdx;
             trajFlag = GAP;
@@ -1318,6 +1318,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
             trajFlag = IDLING;
             ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
+        } else
+        {
+            ROS_WARN_STREAM_NAMED("Planner", "    trajFlag not set");
         }
 
         return;
@@ -1578,6 +1581,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         int gapCount = planningGaps.size();
 
+        if (gapCount == 0)
+        {
+            ROS_WARN_STREAM_NAMED("Planner", "No gaps to plan for");
+            chosenTraj = Trajectory();
+            trajFlag = NONE;
+            return;
+        }
+
         //////////////////////////////////////////////////////////////////////////////////////
         //                                      ATTACH UNGAP IDS                            //
         //////////////////////////////////////////////////////////////////////////////////////
@@ -1758,7 +1769,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
         int lowestCostTrajIdx = -1;
-        trajFlag = -1;
+        trajFlag = NONE;
         
         pickTraj(trajFlag, lowestCostTrajIdx, 
                     gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,

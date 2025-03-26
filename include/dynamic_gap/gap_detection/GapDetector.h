@@ -78,7 +78,7 @@ namespace dynamic_gap
             * \param gap queried gap
             * \return boolean if gap should be classified as swept
             */
-            bool sweptGapSizeCheck(Gap * gap);
+            bool sweptGapSizeCheck(const int & leftIdx, const float & leftRange, const int & rightIdx, const float & rightRange);
 
             /**
             * \brief Checking if gap should be classified as radial 

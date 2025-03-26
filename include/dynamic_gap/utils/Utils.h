@@ -278,6 +278,27 @@ namespace dynamic_gap
         return dist;
     }
 
+    /** 
+    * \brief Calculates the euclidean distance between the left and right gap points using the law of cosines
+    * \return distance between left and right gap points
+    */
+    inline float getGapEuclideanDist(const int & leftIdx, const float & leftRange, const int & rightIdx, const float & rightRange) 
+    {
+        int checkLeftIdx = leftIdx; // leftGapPt_->getOrigIdx(); // 
+        int checkRightIdx = rightIdx; // rightGapPt_->getOrigIdx(); // ;
+
+        float checkLeftRange = leftRange; // leftGapPt_->getOrigRange(); // 
+        float checkRightRange = rightRange; // rightGapPt_->getOrigRange(); // 
+
+        float resoln = M_PI / half_num_scan;
+        float gapAngle = (checkLeftIdx - checkRightIdx) * angle_increment;
+        if (gapAngle < 0)
+            gapAngle += TWO_M_PI;
+
+        return sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
+    }
+
+
     //////////////////////////////
     //       FUNCTIONS          // 
     //////////////////////////////
