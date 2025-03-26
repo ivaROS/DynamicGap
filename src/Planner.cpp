@@ -1371,10 +1371,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     Trajectory Planner::compareToCurrentTraj(Gap * incomingGap,
                                                 const Trajectory & incomingTraj,
-                                                // const std::vector<Gap *> & feasibleGaps, 
-                                                // const std::vector<Trajectory> & trajs,
-                                                // const int & lowestCostTrajIdx,
-                                                // const int & trajFlag,
                                                 const bool & isIncomingGapFeasible,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans) // bool isIncomingGapAssociated,
     {
@@ -1877,7 +1873,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             int nextIdx = (i + 1) % gapPtStates.size();
             Eigen::Vector4f ptJState = gapPtStates.at(nextIdx);
 
-            if (isUngap(ptIState, ptJState))
+            int ptIGapID = i / 2;
+            int ptJGapID = nextIdx / 2;
+
+            if (ptIGapID != ptJGapID && isUngap(ptIState, ptJState))
             {
                 int ungapID = i / 2;
                 if (i % 2 == 0) // attach ungap id to the point
@@ -1917,7 +1916,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
         bool angleCheck = (vectorProj > 0.0);
 
-        return (distCheck && speedCheck && angleCheck);
+        return distCheck; // (distCheck && speedCheck && angleCheck);
     }
 
     std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> & ungaps)
