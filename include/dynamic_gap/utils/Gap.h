@@ -269,6 +269,19 @@ namespace dynamic_gap
             Eigen::Vector2f getRPosition() const { return rightGapPt_->getOrigCartesian(); }
 
             /**
+            * \brief Getter for initial left gap velocity in Cartesian frame
+            * \return Initial left gap velocity in Cartesian frame
+            */
+            Eigen::Vector2f getLVelocity() const { return leftGapPt_->getModel()->getGapVelocity(); }
+
+            /**
+            * \brief Getter for initial right gap velocity in Cartesian frame
+            * \return Initial right gap velocity in Cartesian frame
+            */
+            Eigen::Vector2f getRVelocity() const { return rightGapPt_->getModel()->getGapVelocity(); }
+
+
+            /**
             * \brief Getter for initial manipulated left gap point in Cartesian frame
             * \return Initial manipulated left gap point in Cartesian frame
             */
@@ -291,7 +304,6 @@ namespace dynamic_gap
             * \return Initial manipulated right gap point in Cartesian frame
             */
             Eigen::Vector2f getManipulatedRVelocity() const { return rightGapPt_->getModel()->getManipGapVelocity(); }
-
 
             void setRightType() { rightType_ = rightGapPt_->getOrigRange() < leftGapPt_->getOrigRange(); }
 

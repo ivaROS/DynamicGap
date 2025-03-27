@@ -184,7 +184,7 @@ namespace dynamic_gap
 
         if (trajs.size() == 0)
         {
-            ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
+            // ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
             return;
         }
         
@@ -306,7 +306,7 @@ namespace dynamic_gap
 
         if (trajs.size() == 0)
         {
-            ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
+            // ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
             return;
         }
         

@@ -94,13 +94,8 @@ namespace dynamic_gap
             farRange = leftRange;
             signedNomPivotAngle = nomPivotAngle;
             // pivotSideSpeed = rightGapState.tail(2).norm();
-            if (gap->getLeftGapPt()->getUngapID() < 0) // if left point is not part of ungap, we can manipulate it 
+            if (gap->getLeftGapPt()->getUngapID() >= 0) // if left point is part of ungap, we do not want to manipulate it 
             {
-                // ROS_INFO_STREAM("   manipulating left model");
-                gap->getLeftGapPt()->getModel()->setManip(); // manipulating left point, so set vel to 0
-            } else
-            {
-                // ROS_INFO_STREAM("   pivot side speed too high: " << rightGapState.tail(2).norm());
                 return;
             }
         } else 
@@ -111,13 +106,8 @@ namespace dynamic_gap
             farRange = rightRange;
             signedNomPivotAngle = -nomPivotAngle;
             // pivotSideSpeed = leftGapState.tail(2).norm();
-            if (gap->getRightGapPt()->getUngapID() < 0) // if right point is not part of ungap, we can manipulate it
+            if (gap->getRightGapPt()->getUngapID() >= 0) // if right point is part of ungap, we do not want to manipulate it
             {
-                // ROS_INFO_STREAM("   manipulating right model");
-                gap->getRightGapPt()->getModel()->setManip(); // manipulating right point, so set vel to 0
-            } else
-            {
-                // ROS_INFO_STREAM("   pivot side speed too high: " << leftGapState.tail(2).norm());
                 return;                
             }
         }
@@ -242,6 +232,7 @@ namespace dynamic_gap
             newRightIdx = nearIdx;
             newRightRange = nearRange;
             gap->getLeftGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->getLeftGapPt()->getModel()->setRGC(); // manipulating left point, so set vel to 0
         } else 
         {
             newLeftIdx = nearIdx;
@@ -249,6 +240,7 @@ namespace dynamic_gap
             newRightIdx = pivotedPtIdx;
             newRightRange = pivotedPtRange;
             gap->getRightGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating right point
+            gap->getRightGapPt()->getModel()->setRGC(); // manipulating right point, so set vel to 0
         }
 
         gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);

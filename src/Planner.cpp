@@ -678,25 +678,25 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     void Planner::propagateGapPoints(const std::vector<Gap *> & planningGaps)                                             
     {
         boost::mutex::scoped_lock gapset(gapMutex_);        
-        ROS_INFO_STREAM_NAMED("Planner", "[propagateGapPoints()]");
+        ROS_INFO_STREAM_NAMED("GapPropagator", "[propagateGapPoints()]");
 
         if (planningGaps.empty())
         {
-            ROS_WARN_STREAM_NAMED("Planner", "    planningGaps is empty, returning");
+            ROS_WARN_STREAM_NAMED("GapPropagator", "    planningGaps is empty, returning");
             return;
         }
 
-        ROS_INFO_STREAM_NAMED("Planner", "    current raw gaps:");
+        ROS_INFO_STREAM_NAMED("GapPropagator", "    current raw gaps:");
         printGapModels(currRawGaps_);
         checkGapModels(currRawGaps_);
 
-        ROS_INFO_STREAM_NAMED("Planner", "    current simplified gaps:");
+        ROS_INFO_STREAM_NAMED("GapPropagator", "    current simplified gaps:");
         printGapModels(planningGaps);
         checkGapModels(planningGaps);
 
         for (size_t i = 0; i < planningGaps.size(); i++) 
         {
-            ROS_INFO_STREAM_NAMED("Planner", "   gap " << i);
+            ROS_INFO_STREAM_NAMED("GapPropagator", "   gap " << i);
             // propagate gap forward in time to determine lifespan
             gapPropagator_->propagateGapPoints(planningGaps.at(i));
         }
@@ -802,6 +802,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         for (Ungap * ungap : recedingUngaps)
         {
+            // Use original points, not manipulated
             ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
             ungap->getRightUngapPt()->getModel()->isolateGapDynamics();
 
@@ -1623,18 +1624,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                            GAP POINT PROPAGATION (v2)                            //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        // std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        // propagateGapPointsV2(manipulatedGaps, gapTubes);
-        // float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-        // // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
+        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
+        propagateGapPointsV2(manipulatedGaps, gapTubes);
+        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
+        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
+        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP MANIPULATION                                    //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        // gapGoalPlacementV2(gapTubes);
+        gapGoalPlacementV2(gapTubes);
 
         ungapGoalPlacement(recedingUngaps);
 
@@ -1642,8 +1643,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                           GAP FEASIBILITY CHECK (v2)                             //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        // bool isCurrentGapFeasibleDummy = false;
-        // gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
+        bool isCurrentGapFeasibleDummy = false;
+        gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                         UNGAP FEASIBILITY CHECK                                  //
@@ -1921,10 +1922,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> & ungaps)
     {
+        ROS_INFO_STREAM_NAMED("Planner", "[pruneApproachingUngaps()]");
+
         std::vector<Ungap *> recedingUngaps;
 
+        ROS_INFO_STREAM_NAMED("Planner", "       pruning ungaps ...");
         for (int i = 0; i < ungaps.size(); i++)
         {
+            ROS_INFO_STREAM_NAMED("Planner", "          ungap " << i);
             Ungap * ungap = ungaps.at(i);
 
             ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
@@ -1938,13 +1943,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             Eigen::Vector2f avgPos = (leftPos + rightPos) / 2;
 
+            ROS_INFO_STREAM_NAMED("Planner", "          avgPos: " << avgPos.transpose());
+
             Eigen::Vector2f leftVel = leftState.tail(2);
             Eigen::Vector2f rightVel = rightState.tail(2);
 
             Eigen::Vector2f avgVel = (leftVel + rightVel) / 2;
 
+            ROS_INFO_STREAM_NAMED("Planner", "          avgVel: " << avgVel.transpose());
+
             if (avgPos.dot(avgVel) > 0)
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "          ungap is receding, adding");
                 recedingUngaps.push_back(ungap);
+            }        
         }
 
 
@@ -2131,7 +2143,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
         
-        if (trajFlag >= 0 && !keepPlanning && !cfg_.ctrl.man_ctrl) 
+        if ((trajFlag == GAP || trajFlag == UNGAP) && !keepPlanning && !cfg_.ctrl.man_ctrl) 
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_INFO_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");

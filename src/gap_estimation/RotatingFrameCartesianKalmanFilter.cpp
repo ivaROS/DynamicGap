@@ -126,7 +126,7 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->manip_ = model.manip_; // will set to true if we do need to manip
+        this->rgc_ = model.rgc_; // will set to true if we do need to manip
 
         return;
     }
@@ -171,7 +171,7 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->manip_ = model.manip_; // will set to true if we do need to manip
+        this->rgc_ = model.rgc_; // will set to true if we do need to manip
 
         return;
     }
@@ -396,16 +396,7 @@ namespace dynamic_gap
             // // ROS_INFO_STREAM("        new model");
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
-        } 
-
-        // if (manip_)
-        // {
-        //     // // ROS_INFO_STREAM("        manipulated model");
-        //     state[0] = manipPosition[0];
-        //     state[1] = manipPosition[1];
-        //     state[2] = 0.0 - lastRbtVel_.twist.linear.x;
-        //     state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
-        // }        
+        }     
 
         return state;  
     }    

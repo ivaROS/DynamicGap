@@ -58,7 +58,7 @@ namespace dynamic_gap
             ros::Time tStart_; /**< time of model initialization */
             ros::Time tLastUpdate_; /**< time of last model update */
 
-            bool manip_ = false; /**< Flag for if gap model is attached to manipulated point  */
+            bool rgc_ = false; /**< Flag for if gap model is attached to converted radial gap point  */
             Eigen::Vector2f manipPosition; /**< Manipulated gap point position */
 
             /**
@@ -525,21 +525,18 @@ namespace dynamic_gap
             {
                 xManipFrozen_ = getState();
             
-                if (manip_)
+                // setting position to manipulated position
+                xManipFrozen_[0] = manipPosition[0];
+                xManipFrozen_[1] = manipPosition[1];
+                
+                // setting velocity to manipulated velocity
+                if (rgc_)
                 {
-                    // setting position to manipulated position
-                    xManipFrozen_[0] = manipPosition[0];
-                    xManipFrozen_[1] = manipPosition[1];
-
                     // update cartesian
-                    xManipFrozen_[2] = 0.0 - lastRbtVel_.twist.linear.x;
-                    xManipFrozen_[3] = 0.0 - lastRbtVel_.twist.linear.y;
+                    xManipFrozen_[2] = 0.0;
+                    xManipFrozen_[3] = 0.0;
                 } else
                 {
-                    // fixing position (otherwise can get bugs)
-                    xManipFrozen_[0] = xTilde_[0];
-                    xManipFrozen_[1] = xTilde_[1];
-
                     // update cartesian
                     xManipFrozen_[2] += lastRbtVel_.twist.linear.x;
                     xManipFrozen_[3] += lastRbtVel_.twist.linear.y;
@@ -627,7 +624,7 @@ namespace dynamic_gap
                 xRewind_ = xRewindProp_; 
             }
 
-            void setManip() { manip_ = true; }
+            void setRGC() { rgc_ = true; }
             
             void setNewPosition(const float & newTheta, const float & newRange) 
             { 

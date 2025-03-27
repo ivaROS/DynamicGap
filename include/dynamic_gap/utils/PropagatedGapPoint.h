@@ -24,6 +24,9 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
                 // ROS_INFO_STREAM_NAMED("Gap", "  scanIdx: " << scanIdx);
+                ROS_INFO_STREAM_NAMED("Gap", " orig state: " << model_->getGapState().transpose());
+                ROS_INFO_STREAM_NAMED("Gap", " manip state: " << model_->getManipGapState().transpose());
+
             }
             // PropagatedGapPoint(Estimator * model, const int & scanIdx, const int & ungapID) : model_(model), scanIdx_(scanIdx), ungapID_(ungapID) {}
 
@@ -70,11 +73,23 @@ namespace dynamic_gap
                 isAssignedToGap_ = false; 
             }
 
-            // void setScanIdx(const int & scanIdx) 
-            // { 
-            //     scanIdx_ = scanIdx; 
-            //     ROS_INFO_STREAM_NAMED("Gap", "  setting scanIdx: " << scanIdx_);
-            // }
+            /**
+            * \brief Parameters of original form of gap
+            */        
+            struct Orig
+            {
+                int idx_ = -1; /**< Original gap point index */
+                float range_ = -1.0; /**< Original gap point range */
+            } orig;
+
+            /**
+            * \brief Parameters of manipulated form of gap
+            */
+            struct Manip
+            {
+                int idx_ = -1; /**< Manipulated gap point index */
+                float range_ = -1.0; /**< Manipulated gap point range */
+            } manip;
 
             Estimator * model_ = NULL;
             int ungapID_ = -1; // set one time at init

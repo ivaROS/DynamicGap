@@ -170,13 +170,33 @@ namespace dynamic_gap
         for (int i = 0; i < manipulatedGaps.size(); i++)
         {
             Gap * manipulatedGap = manipulatedGaps.at(i);
+
+            manipulatedGap->getLeftGapPt()->getModel()->isolateGapDynamics();
+            manipulatedGap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+            manipulatedGap->getRightGapPt()->getModel()->isolateGapDynamics();
+            manipulatedGap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+
             ROS_INFO_STREAM_NAMED("GapPropagator", "           gap " << i << ": ");
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                left point:" << manipulatedGap->getManipulatedLPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                left vel: " << manipulatedGap->getManipulatedLVelocity().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "		        left ID: (" << manipulatedGap->getLeftGapPt()->getModel()->getID() << ")");                        
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                right point:" << manipulatedGap->getManipulatedRPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                right vel: " << manipulatedGap->getManipulatedRVelocity().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "				right ID: (" << manipulatedGap->getRightGapPt()->getModel()->getID() << ")");            
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                left model:");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            ID: " << manipulatedGap->getLeftGapPt()->getModel()->getID());                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            gap state: " << manipulatedGap->getLeftGapPt()->getModel()->getGapState().transpose());                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            manip gap state: " << manipulatedGap->getLeftGapPt()->getModel()->getManipGapState().transpose());                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                left point:");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    orig: " << manipulatedGap->getLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    manip: " << manipulatedGap->getManipulatedLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                left vel: ");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    orig: " << manipulatedGap->getLVelocity().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    manip: " << manipulatedGap->getManipulatedLVelocity().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                right model:");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            ID: " << manipulatedGap->getRightGapPt()->getModel()->getID());                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            gap state: " << manipulatedGap->getRightGapPt()->getModel()->getGapState().transpose());                        
+            ROS_INFO_STREAM_NAMED("GapPropagator", "		            manip gap state: " << manipulatedGap->getRightGapPt()->getModel()->getManipGapState().transpose());                                                
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                right point:");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    orig:" << manipulatedGap->getRPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    manip:" << manipulatedGap->getManipulatedRPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                right vel: ");
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    orig: " << manipulatedGap->getRVelocity().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                    manip: " << manipulatedGap->getManipulatedRVelocity().transpose());
         }
 
         // 1. Turn gaps into gap points
@@ -413,8 +433,8 @@ namespace dynamic_gap
         for (const Gap * gap : gaps)
         {
             // right
-            gap->getRightGapPt()->getModel()->isolateGapDynamics();
-            gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+            // gap->getRightGapPt()->getModel()->isolateGapDynamics();
+            // gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
             // float rightGapPtTheta = gap->getRightGapPt()->getModel()->getGapBearing();
             // int rightGapPtIdx = theta2idx(rightGapPtTheta);
             // int rightGapPtIdx = gap->RIdx();
@@ -428,8 +448,8 @@ namespace dynamic_gap
                 // ROS_WARN_STREAM_NAMED("GapPropagator", "        right gap pt idx out of bounds");
 
             // left
-            gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-            gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+            // gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+            // gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
             // float leftGapPtTheta = gap->getLeftGapPt()->getModel()->getGapBearing();
             // int leftGapPtIdx = theta2idx(leftGapPtTheta);
             // int leftGapPtIdx = gap->LIdx();
