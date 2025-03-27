@@ -418,11 +418,11 @@ namespace dynamic_gap
             Gap * gap = currentGaps.at(i);
             // gap->setSafeToDelete();
             ROS_INFO_STREAM_NAMED("GapPropagator", "                    gap " << i << ": ");
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                        left point:" << gap->getManipulatedLPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                        left vel:" << gap->getManipulatedLVelocity().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        manip left point:" << gap->getManipulatedLPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        manip left vel:" << gap->getManipulatedLVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "		                left ID: (" << gap->getLeftGapPt()->getModel()->getID() << ")");                        
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                        right point:" << gap->getManipulatedRPosition().transpose());
-            ROS_INFO_STREAM_NAMED("GapPropagator", "                        right vel:" << gap->getManipulatedRVelocity().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        manip right point:" << gap->getManipulatedRPosition().transpose());
+            ROS_INFO_STREAM_NAMED("GapPropagator", "                        manip right vel:" << gap->getManipulatedRVelocity().transpose());
             ROS_INFO_STREAM_NAMED("GapPropagator", "				        right ID: (" << gap->getRightGapPt()->getModel()->getID() << ")");
             ROS_INFO_STREAM_NAMED("GapPropagator", "                        gap available: " << gap->isAvailable());
         }        

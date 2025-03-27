@@ -54,23 +54,23 @@ namespace dynamic_gap
             // Run after manipulation
             GapPoint(const PropagatedGapPoint & propagatedGapPoint)
             {
-                ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
+                // ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
 
-                ROS_INFO_STREAM_NAMED("Gap", "  getGapState: " << propagatedGapPoint.getModel()->getGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", "  getGapState: " << propagatedGapPoint.getModel()->getGapState().transpose());
 
                 orig.idx_ = theta2idx(propagatedGapPoint.getModel()->getGapBearing());
                 orig.range_ = propagatedGapPoint.getModel()->getGapRange();
 
-                ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
-                ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
 
-                ROS_INFO_STREAM_NAMED("Gap", "  getManipGapState: " << propagatedGapPoint.getModel()->getManipGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", "  getManipGapState: " << propagatedGapPoint.getModel()->getManipGapState().transpose());
 
                 manip.idx_ = theta2idx(propagatedGapPoint.getModel()->getManipGapBearing());
                 manip.range_ = propagatedGapPoint.getModel()->getManipGapRange();
 
-                ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
-                ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
 
                 // Here, you can define what type of model you want to use
                 model_ = new RotatingFrameCartesianKalmanFilter();

@@ -22,21 +22,21 @@ namespace dynamic_gap
                                 isLeft_(isLeft), 
                                 isRight_(!isLeft) 
             {
-                ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
+                // ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
                 // ROS_INFO_STREAM_NAMED("Gap", "  scanIdx: " << scanIdx);
-                ROS_INFO_STREAM_NAMED("Gap", " orig state: " << model_->getGapState().transpose());
-                ROS_INFO_STREAM_NAMED("Gap", " manip state: " << model_->getManipGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", " orig state: " << model_->getGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", " manip state: " << model_->getManipGapState().transpose());
 
             }
             // PropagatedGapPoint(Estimator * model, const int & scanIdx, const int & ungapID) : model_(model), scanIdx_(scanIdx), ungapID_(ungapID) {}
 
             void propagate(const float & stept) 
             { 
-                ROS_INFO_STREAM_NAMED("Gap", " pre-propagate manip state: " << model_->getManipGapState().transpose());
-                ROS_INFO_STREAM_NAMED("Gap", "  propagating manip gap point...");
+                // ROS_INFO_STREAM_NAMED("Gap", " pre-propagate manip state: " << model_->getManipGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", "  propagating manip gap point...");
                 model_->gapStatePropagate(stept);
                 model_->manipGapStatePropagate(stept); 
-                ROS_INFO_STREAM_NAMED("Gap", " post-propagate manip state: " << model_->getManipGapState().transpose());
+                // ROS_INFO_STREAM_NAMED("Gap", " post-propagate manip state: " << model_->getManipGapState().transpose());
 
                 // setScanIdx(theta2idx(model_->getGapBearing()));                    
                 reset();
