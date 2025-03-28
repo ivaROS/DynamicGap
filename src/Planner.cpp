@@ -965,6 +965,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajsV2()]");
         
+        gapTubeTrajs = std::vector<Trajectory>(gapTubes.size());
         gapTubeTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
         gapTubeTrajTerminalPoseCosts = std::vector<float>(gapTubes.size());
 
@@ -1085,7 +1086,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 }
             }
 
-            gapTubeTrajs.push_back(runningTraj);
+            gapTubeTrajs.at(i) = runningTraj;
             gapTubeTrajPoseCosts.at(i) = runningPoseCosts;
             gapTubeTrajTerminalPoseCosts.at(i) = runningTerminalPoseCost;     
             
@@ -1650,7 +1651,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
-        std::vector<Ungap *> ungaps;
+        std::vector<Ungap *> ungaps, recedingUngaps;
 
         // Gap Tubes
         std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
@@ -1667,17 +1668,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return;
         }
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                                      ATTACH UNGAP IDS                            //
-        //////////////////////////////////////////////////////////////////////////////////////
+        if (cfg_.planning.gap_prop == 1)
+        {
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                                      ATTACH UNGAP IDS                            //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        attachUngapIDs(planningGaps, ungaps);
-        
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                              PRUNE APPROACHING UNGAPS                            //
-        //////////////////////////////////////////////////////////////////////////////////////
+            attachUngapIDs(planningGaps, ungaps);
+            
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                              PRUNE APPROACHING UNGAPS                            //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        std::vector<Ungap *> recedingUngaps = pruneApproachingUngaps(ungaps);
+            recedingUngaps = pruneApproachingUngaps(ungaps);
+        }
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP POINT PROPAGATION                               //
@@ -1701,37 +1705,41 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation for " << gapCount << " gaps took " << gapManipulationTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation average time: " << avgGapManipulationTimeTaken << " seconds (" << (1.0 / avgGapManipulationTimeTaken) << " Hz) ]");
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                            GAP POINT PROPAGATION (v2)                            //
-        //////////////////////////////////////////////////////////////////////////////////////
 
-        std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
-        propagateGapPointsV2(manipulatedGaps, gapTubes);
-        float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
+        if (cfg_.planning.gap_prop == 1)
+        {
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                            GAP POINT PROPAGATION (v2)                            //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                              GAP MANIPULATION                                    //
-        //////////////////////////////////////////////////////////////////////////////////////
+            std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
+            propagateGapPointsV2(manipulatedGaps, gapTubes);
+            float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
+            // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
-        gapGoalPlacementV2(gapTubes);
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                              GAP MANIPULATION                                    //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        ungapGoalPlacement(recedingUngaps);
+            gapGoalPlacementV2(gapTubes);
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                           GAP FEASIBILITY CHECK (v2)                             //
-        //////////////////////////////////////////////////////////////////////////////////////
+            ungapGoalPlacement(recedingUngaps);
 
-        bool isCurrentGapFeasibleDummy = false;
-        gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                           GAP FEASIBILITY CHECK (v2)                             //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                         UNGAP FEASIBILITY CHECK                                  //
-        //////////////////////////////////////////////////////////////////////////////////////
+            bool isCurrentGapFeasibleDummy = false;
+            gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasibleDummy);
 
-        ungapSetFeasibilityCheck(recedingUngaps);
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                         UNGAP FEASIBILITY CHECK                                  //
+            //////////////////////////////////////////////////////////////////////////////////////
+
+            ungapSetFeasibilityCheck(recedingUngaps);
+        }
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                            GAP FEASIBILITY CHECK                                 //
@@ -1782,60 +1790,65 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation for " << gapCount << " gaps took " << scanPropagationTimeTaken << " seconds]");
         ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation average time: " << avgScanPropagationTimeTaken << " seconds (" << (1.0 / avgScanPropagationTimeTaken) << " Hz) ]");
     
-
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                        GAP TRAJECTORY GENERATION AND SCORING (V2)                //
-        //////////////////////////////////////////////////////////////////////////////////////
-        std::vector<Trajectory> gapTubeTrajs;
-        std::vector<std::vector<float>> gapTubeTrajPoseCosts; 
-        std::vector<float> gapTubeTrajTerminalPoseCosts; 
-        // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        generateGapTrajsV2(gapTubes, gapTubeTrajs, gapTubeTrajPoseCosts, gapTubeTrajTerminalPoseCosts, futureScans);
-        // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-    
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                          GAP TRAJECTORY GENERATION AND SCORING                   //
-        //////////////////////////////////////////////////////////////////////////////////////
         std::vector<Trajectory> gapTrajs;
         std::vector<std::vector<float>> gapTrajPoseCosts; 
-        std::vector<float> gapTrajTerminalPoseCosts; 
-        std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        generateGapTrajs(feasibleGaps, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
-        float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, GAP_TRAJ_GEN);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
-        ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-    
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
-        //////////////////////////////////////////////////////////////////////////////////////
+        std::vector<float> gapTrajTerminalPoseCosts;
+
         std::vector<Trajectory> ungapTrajs;
         std::vector<std::vector<float>> ungapTrajPoseCosts; 
         std::vector<float> ungapTrajTerminalPoseCosts; 
-        std::chrono::steady_clock::time_point generateUngapTrajsStartTime = std::chrono::steady_clock::now();
-        generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
-        float generateUngapTrajsTimeTaken = timeTaken(generateUngapTrajsStartTime);
-        float avgGenerateUngapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsTimeTaken, UNGAP_TRAJ_GEN);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << recedingUngaps.size() << " un-gaps took " << generateUngapTrajsTimeTaken << " seconds]");
-        ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateUngapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateUngapTrajsTimeTaken) << " Hz) ]");
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
-        //////////////////////////////////////////////////////////////////////////////////////
         std::vector<Trajectory> idlingTrajs;
         std::vector<std::vector<float>> idlingPathPoseCosts; 
         std::vector<float> idlingPathTerminalPoseCosts; 
-        std::chrono::steady_clock::time_point generateIdlingTrajsStartTime = std::chrono::steady_clock::now();
-        generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-        float generateIdlingTrajsTimeTaken = timeTaken(generateIdlingTrajsStartTime);
-        float avgGenerateIdlingTrajsTimeTaken = computeAverageTimeTaken(generateIdlingTrajsTimeTaken, IDLING_TRAJ_GEN);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation took " << generateIdlingTrajsTimeTaken << " seconds]");
-        ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation average time: " << avgGenerateIdlingTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateIdlingTrajsTimeTaken) << " Hz) ]");
-    
-        // Aggregate trajs/costs
+
+        if (cfg_.planning.gap_prop == 1)
+        {
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                        GAP TRAJECTORY GENERATION AND SCORING (V2)                //
+            //////////////////////////////////////////////////////////////////////////////////////
+
+            // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
+            generateGapTrajsV2(gapTubes, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
+            // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
+            // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
+            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
+            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
+        
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
+            //////////////////////////////////////////////////////////////////////////////////////
+
+            std::chrono::steady_clock::time_point generateUngapTrajsStartTime = std::chrono::steady_clock::now();
+            generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
+            float generateUngapTrajsTimeTaken = timeTaken(generateUngapTrajsStartTime);
+            float avgGenerateUngapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsTimeTaken, UNGAP_TRAJ_GEN);
+            ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << recedingUngaps.size() << " un-gaps took " << generateUngapTrajsTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateUngapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateUngapTrajsTimeTaken) << " Hz) ]");
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
+            //////////////////////////////////////////////////////////////////////////////////////
+
+            std::chrono::steady_clock::time_point generateIdlingTrajsStartTime = std::chrono::steady_clock::now();
+            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            float generateIdlingTrajsTimeTaken = timeTaken(generateIdlingTrajsStartTime);
+            float avgGenerateIdlingTrajsTimeTaken = computeAverageTimeTaken(generateIdlingTrajsTimeTaken, IDLING_TRAJ_GEN);
+            ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation took " << generateIdlingTrajsTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation average time: " << avgGenerateIdlingTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateIdlingTrajsTimeTaken) << " Hz) ]");
+        } else
+        {
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                          GAP TRAJECTORY GENERATION AND SCORING                   //
+            //////////////////////////////////////////////////////////////////////////////////////
+ 
+            std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
+            generateGapTrajs(feasibleGaps, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
+            float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
+            float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, GAP_TRAJ_GEN);
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
+            ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
+        }
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
         ROS_INFO_STREAM_NAMED("Planner", "       gap trajs size: " << gapTrajs.size());
@@ -1872,21 +1885,41 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             if (trajFlag == GAP) // comparing to traj within one of the gaps
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
+                if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= gapTrajs.size() || lowestCostTrajIdx >= feasibleGaps.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
                 incomingGap = feasibleGaps.at(lowestCostTrajIdx);
                 incomingTraj = gapTrajs.at(lowestCostTrajIdx);
             } else if (trajFlag == UNGAP) // comparing to un-gap traj
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
+                if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= ungapTrajs.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost ungap trajectory index out of bounds");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
                 incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
             } else if (trajFlag == IDLING)
             {
                 ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
+                if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= idlingTrajs.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost idling trajectory index out of bounds");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
                 incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
             } else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
             }
-
 
             chosenTraj = compareToCurrentTraj(incomingGap,
                                                 incomingTraj,           

@@ -44,7 +44,7 @@ namespace dynamic_gap
             void getGaps(std::vector<Gap *> & currentGaps,
                             const float & t_iplus1);
 
-            void runGapAssociation(const std::vector<Gap *> & currentGaps, 
+            bool runGapAssociation(const std::vector<Gap *> & currentGaps, 
                                     const std::vector<Gap *> & previousGaps,
                                     const float & t_iplus1,
                                     std::vector<GapTube *> & gapTubes);

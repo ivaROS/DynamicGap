@@ -71,6 +71,12 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("Trajectory", "Appending trajectory");
 
+                ROS_INFO_STREAM_NAMED("Trajectory", "current path rbt frame");
+                for (int i = 0; i < pathRbtFrame_.poses.size(); i++)
+                {
+                    ROS_INFO_STREAM_NAMED("Trajectory", "time: " << pathTiming_[i] << ", pose " << i << ": " << pathRbtFrame_.poses[i].position.x << ", " << pathRbtFrame_.poses[i].position.y);
+                }
+
                 geometry_msgs::PoseArray otherPathRbtFrame = otherTraj.getPathRbtFrame();
                 geometry_msgs::PoseArray otherPathOdomFrame = otherTraj.getPathOdomFrame();
                 std::vector<float> otherPathTiming = otherTraj.getPathTiming();
@@ -83,12 +89,17 @@ namespace dynamic_gap
 
                 if (otherPathRbtFrame.poses.size() > 1)
                 {
+
+                    // append path timing
+                    float lastTime = pathTiming_.back();
+
+                    ROS_INFO_STREAM_NAMED("Trajectory", "last time: " << lastTime);
+
                     // start one in to not repeat last of previous trajectory
                     pathRbtFrame_.poses.insert(pathRbtFrame_.poses.end(), otherPathRbtFrame.poses.begin() + 1, otherPathRbtFrame.poses.end());
                     pathOdomFrame_.poses.insert(pathOdomFrame_.poses.end(), otherPathOdomFrame.poses.begin() + 1, otherPathOdomFrame.poses.end());
                     
-                    // append path timing
-                    float lastTime = pathTiming_.back();
+
                     for (int i = 0; i < otherPathTiming.size(); i++)
                         otherPathTiming[i] += lastTime;
 

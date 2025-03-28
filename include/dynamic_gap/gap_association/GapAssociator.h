@@ -48,7 +48,7 @@ namespace dynamic_gap
 			* \param intermediateRbtVels sequence of ego-robot velocities received since last model update
 			* \param intermediateRbtAccs sequence of ego-robot accelerations received since last model update
 			*/				
-			void assignGaps(const std::vector<int> & association, 
+			bool assignGaps(const std::vector<int> & association, 
 							const std::vector< std::vector<float> > & distMatrix, 
 							const std::vector<Gap *> & currentGaps, 
 							const std::vector<Gap *> & previousGaps,
