@@ -5,6 +5,7 @@ namespace dynamic_gap
     PerfectEstimator::PerfectEstimator() 
     {
         xFrozen_ << 0.0, 0.0, 0.0, 0.0;
+        xManipFrozen_ << 0.0, 0.0, 0.0, 0.0;
     }
 
     void PerfectEstimator::initialize(const std::string & side, const int & modelID,
@@ -14,7 +15,7 @@ namespace dynamic_gap
     {
         this->side_ = side;
         this->modelID_ = modelID;
-        ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "    initialize model: " << modelID_);
 
         this->xTilde_ << gapPtX, gapPtY;
 
@@ -29,7 +30,7 @@ namespace dynamic_gap
         this->side_ = incomingModel.side_;
         this->modelID_ = incomingModel.modelID_;
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "        transfer model: " << modelID_);
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -56,13 +57,19 @@ namespace dynamic_gap
         return;
     }
 
-    void PerfectEstimator::update(const Eigen::Vector2f & measurement, 
-                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
-                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
-                                 const std::vector<geometry_msgs::Pose> & agentPoses,
-                                 const std::vector<geometry_msgs::Vector3Stamped> & agentVels,
-                                 const ros::Time & tUpdate) 
+    // For transferring an existing model state to a new model
+    void PerfectEstimator::transferFromPropagatedGapPoint(const Estimator & incomingModel)
     {
+        throw std::runtime_error("PerfectEstimator::transferFromPropagatedGapPoint not implemented"); 
+    }
+
+    void PerfectEstimator::update(const Eigen::Vector2f & measurement, 
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
+                                    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs, 
+                                    const std::map<std::string, geometry_msgs::Pose> & agentPoses,
+                                    const std::map<std::string, geometry_msgs::Vector3Stamped> & agentVels,
+                                    const ros::Time & tUpdate)
+        {
         
         agentPoses_ = agentPoses;
         agentVels_ = agentVels;
@@ -87,20 +94,20 @@ namespace dynamic_gap
 
         if (intermediateRbtVels_.size() != intermediateRbtAccs_.size())
         {
-            ROS_INFO_STREAM_NAMED("GapEstimation", "intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "intermediateRbtVels_ is of size " << intermediateRbtVels_.size() << " while intermediateRbtAccs_ is of size " << intermediateRbtAccs_.size());
             return;
         }
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "update for model " << getID()); // << ", life_time: " << life_time << ", dt: " << dt << ", inter_dt: " << inter_dt);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_kmin1_plus_: " << x_hat_kmin1_plus_[0] << ", " << x_hat_kmin1_plus_[1] << ", " << x_hat_kmin1_plus_[2] << ", " << x_hat_kmin1_plus_[3]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "current_rbt_vel, x_lin: " << lastRbtVel_.twist.linear.x << ", y_lin: " << lastRbtVel_.twist.linear.y << ", z_ang: " << lastRbtVel_.twist.angular.z);
 
         processEgoRobotVelsAndAccs(tUpdate);
 
         xTilde_ = measurement;
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
-        ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego vel: " << lastRbtVel_.twist.linear.x << ", " << lastRbtVel_.twist.linear.y << ", angular ego vel: " << lastRbtVel_.twist.angular.z);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "linear ego acceleration: " << lastRbtAcc_.twist.linear.x << ", " << lastRbtAcc_.twist.linear.y << ", angular ego acc: " << lastRbtAcc_.twist.angular.z);
 
         x_hat_k_plus_ = updateStateFromEnv();
 
@@ -114,8 +121,8 @@ namespace dynamic_gap
         if (intermediateRbtAccs_.size() > 0)
             lastRbtAcc_ = intermediateRbtAccs_.back();
 
-        ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
-        ROS_INFO_STREAM_NAMED("GapEstimation", "-----------");
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "x_hat_k_plus_: " << x_hat_k_plus_[0] << ", " << x_hat_k_plus_[1] << ", " << x_hat_k_plus_[2] << ", " << x_hat_k_plus_[3]);       
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "-----------");
 
         return;
     }    
@@ -127,8 +134,8 @@ namespace dynamic_gap
         Eigen::Vector4f return_x = x_hat_k_plus_;
 
         
-        ROS_INFO_STREAM_NAMED("GapEstimation", "updating ground truth cartesian state");
-        // ROS_INFO_STREAM_NAMED("GapEstimation", "xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
+        // ROS_INFO_STREAM_NAMED("GapEstimation", "updating ground truth cartesian state");
+        // // ROS_INFO_STREAM_NAMED("GapEstimation", "xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
 
         return_x[0] = xTilde_[0];
@@ -136,36 +143,38 @@ namespace dynamic_gap
         
         float robot_i_odom_dist = 0.0;
         float min_dist = std::numeric_limits<float>::infinity();
-        int min_idx = -1;
-        for (int i = 0; i < agentPoses_.size(); i++) 
+        std::string min_key = "N/A";
+        std::map<std::string, geometry_msgs::Pose>::iterator itr;
+        for (itr = agentPoses_.begin(); itr != agentPoses_.end(); ++itr) 
         {
-            robot_i_odom_dist = sqrt(pow(agentPoses_[i].position.x - x_hat_kmin1_plus_[0], 2) + 
-                                     pow(agentPoses_[i].position.y - x_hat_kmin1_plus_[1], 2));
+            geometry_msgs::Pose agentPose = itr->second;
+            robot_i_odom_dist = sqrt(pow(agentPose.position.x - x_hat_kmin1_plus_[0], 2) + 
+                                     pow(agentPose.position.y - x_hat_kmin1_plus_[1], 2));
             
             if (robot_i_odom_dist < min_dist) 
             {
                 min_dist = robot_i_odom_dist;
-                min_idx = i;
+                min_key = itr->first;
             }
         }
         
-        ROS_INFO_STREAM_COND_NAMED(agentPoses_.size() > 0, "GapEstimation", "closest odom: " << agentPoses_[min_idx].position.x << ", " << agentPoses_[min_idx].position.y);
+        ROS_INFO_STREAM_COND_NAMED(agentPoses_.size() > 0, "GapEstimation", "closest odom: " << agentPoses_[min_key].position.x << ", " 
+                                                                                             << agentPoses_[min_key].position.y);
         
-        float min_dist_thresh = 0.4;
         if (min_dist < min_dist_thresh) 
         {    
-            ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to odom");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to odom");
             
             
             // xTilde_[0] = agentPoses_[min_idx].position.x;
             // xTilde_[1] = agentPoses_[min_idx].position.y;
             // return_x[0] = xTilde_[0];
             // return_x[1] = xTilde_[1];
-            return_x[2] = agentVels_[min_idx].vector.x - lastRbtVel_.twist.linear.x;
-            return_x[3] = agentVels_[min_idx].vector.y - lastRbtVel_.twist.linear.y;
+            return_x[2] = agentVels_[min_key].vector.x - lastRbtVel_.twist.linear.x;
+            return_x[3] = agentVels_[min_key].vector.y - lastRbtVel_.twist.linear.y;
         } else 
         {    
-            ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to nothing");
+            // ROS_INFO_STREAM_NAMED("GapEstimation", "attaching to nothing");
             
             return_x[2] = 0.0 - lastRbtVel_.twist.linear.x;
             return_x[3] = 0.0 - lastRbtVel_.twist.linear.y;         

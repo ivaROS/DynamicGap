@@ -18,7 +18,6 @@
   <!-- <depend>sensor_msgs</depend> -->
   <depend>roscpp</depend>
   <depend>rospy</depend>
-  <!-- <depend>std_msgs</depend> -->
   <depend>pluginlib</depend>
   <depend>nav_core</depend>
   <depend>mod_tb_scan</depend>
@@ -30,5 +29,6 @@
   <export>
     <!-- Other tools can request additional information be placed here -->
     <nav_core plugin="${prefix}/dg_plugin.xml" />
+    <mbf_costmap_core plugin="${prefix}/dg_plugin.xml"/>
   </export>
 </package>

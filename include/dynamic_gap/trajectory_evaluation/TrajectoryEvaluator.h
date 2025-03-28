@@ -7,18 +7,16 @@
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
 #include <numeric>
-// #include <map>
-// #include <visualization_msgs/MarkerArray.h>
-// #include <visualization_msgs/Marker.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/shared_ptr.hpp>
-// #include <omp.h>
+
 #include <boost/thread/mutex.hpp>
-// #include "tf/transform_datatypes.h"
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -32,7 +30,7 @@ namespace dynamic_gap
     class TrajectoryEvaluator
     {
         public:
-            TrajectoryEvaluator(ros::NodeHandle & nh, const dynamic_gap::DynamicGapConfig& cfg);
+            TrajectoryEvaluator(const DynamicGapConfig& cfg);
 
             /**
             * \brief receive new laser scan and update member variable accordingly
@@ -54,7 +52,7 @@ namespace dynamic_gap
             * \brief Function for evaluating pose-wise scores along candidate trajectory
             * \param traj candidate trajectory to score
             */
-            void evaluateTrajectory(const dynamic_gap::Trajectory & traj,
+            void evaluateTrajectory(const Trajectory & traj,
                                     std::vector<float> & posewiseCosts,
                                     float & terminalPoseCost,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans);

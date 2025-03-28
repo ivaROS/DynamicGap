@@ -2,16 +2,15 @@
 
 namespace dynamic_gap
 {
-    GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg)
+    GoalVisualizer::GoalVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
         globalGoalPublisher = nh.advertise<visualization_msgs::Marker>("global_goal", 10);
         globalPathLocalWaypointPublisher = nh.advertise<visualization_msgs::Marker>("goals", 10);
         gapGoalsPublisher = nh.advertise<visualization_msgs::Marker>("gap_goals", 10);
-        gapGoalsFigPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goals_fig", 10);
 
         gapGoalsColor.r = 1.0;
-        gapGoalsColor.g = 1.0;
+        gapGoalsColor.g = 0.0;
         gapGoalsColor.b = 0.0;
         gapGoalsColor.a = 1;
 
@@ -33,9 +32,19 @@ namespace dynamic_gap
 
     void GoalVisualizer::drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame)
     {
+        // First, clearing topic.
+        clearMarkerPublisher(globalGoalPublisher);
+
         visualization_msgs::Marker globalGoalMarker;
+
+        if (globalGoalOdomFrame.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGlobalGoal] Global goal frame_id is empty");
+            return;
+        }
+
         globalGoalMarker.header.frame_id = globalGoalOdomFrame.header.frame_id;
-        globalGoalMarker.header.stamp = ros::Time::now();
+        globalGoalMarker.header.stamp = globalGoalOdomFrame.header.stamp;
         globalGoalMarker.ns = "global_goal";
         globalGoalMarker.id = 0;
         globalGoalMarker.type = visualization_msgs::Marker::SPHERE;
@@ -53,12 +62,22 @@ namespace dynamic_gap
 
     void GoalVisualizer::drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint)
     {
+        // First, clearing topic.
+        clearMarkerPublisher(globalPathLocalWaypointPublisher);
+
         visualization_msgs::Marker globalPathLocalWaypointMarker;
+
+        if (globalPathLocalWaypoint.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGlobalPathLocalWaypoint] Global path local waypoint frame_id is empty");
+            return;
+        }
+
         globalPathLocalWaypointMarker.header.frame_id = globalPathLocalWaypoint.header.frame_id;
-        globalPathLocalWaypointMarker.header.stamp = ros::Time::now();
+        globalPathLocalWaypointMarker.header.stamp = globalPathLocalWaypoint.header.stamp;
         globalPathLocalWaypointMarker.ns = "local_goal";
         globalPathLocalWaypointMarker.id = 0;
-        globalPathLocalWaypointMarker.type = visualization_msgs::Marker::CYLINDER;
+        globalPathLocalWaypointMarker.type = visualization_msgs::Marker::SPHERE;
         globalPathLocalWaypointMarker.action = visualization_msgs::Marker::ADD;
         globalPathLocalWaypointMarker.pose.position.x = globalPathLocalWaypoint.pose.position.x;
         globalPathLocalWaypointMarker.pose.position.y = globalPathLocalWaypoint.pose.position.y;
@@ -66,123 +85,79 @@ namespace dynamic_gap
         globalPathLocalWaypointMarker.pose.orientation.w = 1;
         globalPathLocalWaypointMarker.scale.x = 0.1;
         globalPathLocalWaypointMarker.scale.y = 0.1;
-        globalPathLocalWaypointMarker.scale.z = 0.001;
+        globalPathLocalWaypointMarker.scale.z = 0.1;
         globalPathLocalWaypointMarker.color = globalPathLocalWaypointColor;
         globalPathLocalWaypointPublisher.publish(globalPathLocalWaypointMarker);
     }
 
-    void GoalVisualizer::drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps) 
+    void GoalVisualizer::drawGapGoals(const std::vector<Gap *> & gaps) 
     {
         // First, clearing topic.
-        visualization_msgs::MarkerArray clearMarkerArray;
-        visualization_msgs::Marker clearMarker;
-        clearMarker.id = 0;
-        clearMarker.ns = "gap_goal";
-        clearMarker.action = visualization_msgs::Marker::DELETEALL;
-        clearMarkerArray.markers.push_back(clearMarker);
-        // gapGoalsPublisher.publish(clearMarker);
-        gapGoalsFigPublisher.publish(clearMarkerArray);
+        clearMarkerPublisher(gapGoalsPublisher);
 
-        visualization_msgs::MarkerArray gapGoalsMarkerArray;
-        // visualization_msgs::Marker gapGoalsMarker;
-        drawGapGoals(gapGoalsMarkerArray, gaps, false);
+        // visualization_msgs::MarkerArray gapGoalsMarkerArray;
+        visualization_msgs::Marker gapGoalsMarker;
+        drawGapGoals(gapGoalsMarker, gaps, false);
 
-        // for (dynamic_gap::Gap * gap : gaps) 
-        // {
-        //     //drawGapGoal(gapGoalsMarkerArray, gap, true);
-        //     drawGapGoal(gapGoalsMarkerArray, gap, false);
-        // }
-        // gapGoalsPublisher.publish(gapGoalsMarkerArray);
-        // gapGoalsPublisher.publish(gapGoalsMarker);
-        
-        gapGoalsFigPublisher.publish(gapGoalsMarkerArray);
+        gapGoalsPublisher.publish(gapGoalsMarker);
+
         return;
     }
 
-    void GoalVisualizer::drawGapGoals(visualization_msgs::MarkerArray & markerArray, 
-                                        const std::vector<dynamic_gap::Gap *> & gaps, 
+    void GoalVisualizer::drawGapGoals(visualization_msgs::Marker & marker, 
+                                        const std::vector<Gap *> & gaps, 
                                         const bool & initial) 
     {
-        ROS_INFO_STREAM("[drawGapGoal()]");
+        ROS_INFO_STREAM_NAMED("Visualizer", "[drawGapGoals()]");
 
         if (gaps.size() == 0)
             return;
 
-        visualization_msgs::Marker marker;
-
-        for (dynamic_gap::Gap * gap : gaps) 
+        if (gaps[0]->getFrame().empty())
         {
-            marker.header.frame_id = gap->frame_;
-            marker.header.stamp = ros::Time();
-            marker.id = markerArray.markers.size();
-            marker.ns = "gap_goal";
-            marker.type = visualization_msgs::Marker::CYLINDER;
-            marker.action = visualization_msgs::Marker::ADD;     
-            marker.scale.x = 0.1;
-            marker.scale.y = 0.1;
-            marker.scale.z = 0.001;
-            marker.color = gapGoalsColor;
-            marker.lifetime = ros::Duration(0);
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapGoals] Gap frame is empty");
+            return;
+        }
 
-            // marker.header.frame_id = gap->frame_;
+        marker.header.stamp = ros::Time();
+        marker.ns = "gap_goal";
+        marker.header.frame_id = gaps[0]->getFrame();
+
+        marker.type = visualization_msgs::Marker::SPHERE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;     
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0;
+        marker.pose.orientation.y = 0;
+        marker.pose.orientation.z = 0;
+        marker.pose.orientation.w = 1;
+
+        marker.scale.x = 0.1;
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+
+        marker.color = gapGoalsColor;
+
+        for (Gap * gap : gaps) 
+        {
+            // marker.header.frame_id = gap->getFrame();
 
             geometry_msgs::Point p;
             if (initial) 
             {
-                p.x = gap->goal.x_;
-                p.y = gap->goal.y_;
-                ROS_INFO_STREAM("visualizing initial goal: " << gap->goal.x_ << ", " << gap->goal.y_);
+                p.x = gap->getGoal()->getOrigGoalPosX(); // gap->goal.x_;
+                p.y = gap->getGoal()->getOrigGoalPosY(); // gap->goal.y_;
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing initial goal: " << p.x << ", " << p.y);
             } else 
             {
-                p.x = gap->terminalGoal.x_;
-                p.y = gap->terminalGoal.y_; 
-                ROS_INFO_STREAM("visualizing terminal goal: " << gap->terminalGoal.x_ << ", " << gap->terminalGoal.y_);
+                p.x = gap->getGoal()->getTermGoalPosX(); // gap->terminalGoal.x_;
+                p.y = gap->getGoal()->getTermGoalPosY(); // gap->terminalGoal.y_; 
+                ROS_INFO_STREAM_NAMED("Visualizer", "visualizing terminal goal: " << p.x << ", " << p.y);
             }
 
-            marker.pose.position.x = p.x;
-            marker.pose.position.y = p.y;
-            marker.pose.position.z = 0.0;
-            marker.pose.orientation.x = 0;
-            marker.pose.orientation.y = 0;
-            marker.pose.orientation.z = 0;
-            marker.pose.orientation.w = 1;
-
-            markerArray.markers.push_back(marker);
+            marker.points.push_back(p);
         }
     }
-
-    /*
-    void GoalVisualizer::drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-                                     dynamic_gap::Gap * gap, const bool & initial) 
-    {
-        visualization_msgs::Marker gapGoalMarker;
-        gapGoalMarker.header.frame_id = gap->frame_;
-        // std::cout << "g frame in draw gap goal: " << gap->frame_ << std::endl;
-        gapGoalMarker.header.stamp = ros::Time::now();
-        gapGoalMarker.ns = "gap_goal";
-        gapGoalMarker.id = int (gapGoalsMarkerArray.markers.size());
-        gapGoalMarker.type = visualization_msgs::Marker::CYLINDER;
-        gapGoalMarker.action = visualization_msgs::Marker::ADD;
-        if (initial) 
-        {
-            gapGoalMarker.pose.position.x = gap->goal.x_;
-            gapGoalMarker.pose.position.y = gap->goal.y_;
-            gapGoalMarker.color = gapGoalsColor;
-            //ROS_INFO_STREAM("visualizing initial goal: " << gap->goal.x << ", " << gap->goal.y);
-        } else 
-        {
-            gapGoalMarker.pose.position.x = gap->terminalGoal.x_;
-            gapGoalMarker.pose.position.y = gap->terminalGoal.y_; 
-            gapGoalMarker.color = gapGoalsColor;
-            // ROS_INFO_STREAM("visualizing terminal goal: " << gap->terminalGoal.x << ", " << gap->terminalGoal.y);
-        }
-        gapGoalMarker.pose.position.z = 0.0001;
-        gapGoalMarker.pose.orientation.w = 1;
-        gapGoalMarker.scale.x = 0.1;
-        gapGoalMarker.scale.y = 0.1;
-        gapGoalMarker.scale.z = 0.000001;
-        gapGoalMarker.lifetime = ros::Duration(0);
-        gapGoalsMarkerArray.markers.push_back(gapGoalMarker);
-    }
-    */
 }

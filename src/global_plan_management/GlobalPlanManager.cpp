@@ -2,11 +2,6 @@
 
 namespace dynamic_gap 
 {    
-    GlobalPlanManager::GlobalPlanManager(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg) 
-    {
-        cfg_ = &cfg;
-    }
-
     void GlobalPlanManager::updateGlobalPathMapFrame(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame) 
     {
         // Incoming plan is in map frame
@@ -32,12 +27,12 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("running generateGlobalPathLocalWaypoint");
         // getting snippet of global trajectory in robot frame (snippet is whatever part of global trajectory is within laser scan)
-        std::vector<geometry_msgs::PoseStamped> globalPlanSnipperRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
+        std::vector<geometry_msgs::PoseStamped> globalPlanSnippetRobotFrame = getVisibleGlobalPlanSnippetRobotFrame(map2rbt);
         
-        if (globalPlanSnipperRobotFrame.size() < 1) // relevant global plan snippet
+        if (globalPlanSnippetRobotFrame.size() < 1) // relevant global plan snippet
             return;
 
-        globalPathLocalWaypointRobotFrame_ = globalPlanSnipperRobotFrame.back();
+        globalPathLocalWaypointRobotFrame_ = globalPlanSnippetRobotFrame.back();
     }
 
     std::vector<geometry_msgs::PoseStamped> GlobalPlanManager::getVisibleGlobalPlanSnippetRobotFrame(const geometry_msgs::TransformStamped & map2rbt) 
@@ -65,7 +60,7 @@ namespace dynamic_gap
         {
             planPoseNorms.at(i) = poseNorm(globalPlan.at(i)); // calculating distance to robot at each step of plan
             scanDistsAtPlanIndices.at(i) = calculateScanRangesAtPlanIndices(globalPlan.at(i));
-            scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (cfg_->rbt.r_inscr / 2.0)) - planPoseNorms.at(i);
+            scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (0.5 * cfg_->rbt.r_inscr)) - planPoseNorms.at(i);
         }
 
         // Find closest pose to robot to start the global plan snippet
@@ -96,7 +91,7 @@ namespace dynamic_gap
     int GlobalPlanManager::poseIdxInScan(const geometry_msgs::PoseStamped & pose) 
     {
         float orientation = getPoseOrientation(pose);
-        int index = theta2idx(orientation); // float(orientation + M_PI) / (scan_.get()->angle_increment);
+        int index = theta2idx(orientation);
         return index;
     }
 

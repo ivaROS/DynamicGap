@@ -3,6 +3,8 @@
 
 #include <dynamic_gap/visualization/Visualizer.h>
 
+#include <geometry_msgs/PoseStamped.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -10,16 +12,16 @@ namespace dynamic_gap
     */
     class GoalVisualizer : public Visualizer
     {
-        using Visualizer::Visualizer;
+        // using Visualizer::Visualizer;
 
         public: 
-            GoalVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            GoalVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief Visualize set of gap goals
             * \param gaps set of gaps whose goals we want to visualize
             */
-            void drawGapGoals(const std::vector<dynamic_gap::Gap *> & gaps);
+            void drawGapGoals(const std::vector<Gap *> & gaps);
 
             /**
             * \brief Visualize global path local waypoint
@@ -27,21 +29,21 @@ namespace dynamic_gap
             */
             void drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint);
         
+            /**
+            * \brief Visualize global goal
+            * \param globalGoalOdomFrame global goal in odom frame
+            */
             void drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame);
 
         private: 
-            // /**
-            // * \brief Visualize a single gap goal 
-            // * \param gapGoalsMarkerArray marker array to add gap goal marker to
-            // * \param gap gap whose goal we want to visualize
-            // * \param initial boolean for if we want to visualize the gap's initial goal or terminal goal
-            // */        
-            // void drawGapGoal(visualization_msgs::MarkerArray & gapGoalsMarkerArray, 
-            //                  dynamic_gap::Gap * gap, 
-            //                  const bool & initial);
-
-            void drawGapGoals(visualization_msgs::MarkerArray & marker, 
-                                const std::vector<dynamic_gap::Gap *> & gaps, 
+            /**
+            * \brief Visualize set of gap goals
+            * \param marker marker to visualize
+            * \param gaps set of gaps to visualize
+            * \param initial flag for visualizing initial or terminal gap goals
+            */
+            void drawGapGoals(visualization_msgs::Marker & marker, 
+                                const std::vector<Gap *> & gaps, 
                                 const bool & initial);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */

@@ -7,6 +7,8 @@
     <arg name="controller_freq" default="$(optenv GM_PARAM_CONTROLLER_FREQ 5)"/>
     <arg name="use_recovery_behaviors" default="false"/>
 
+    <arg name="model" default="tb2" />
+
     <!-- run robot-->
     <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
 
@@ -33,51 +35,53 @@
     <!-- run planner-->
     <!-- map scan and odom topics-->
 
-  <arg name="projection_operator" default="true"/>
+    <arg name="projection_operator" default="true"/>
 
-  <arg name="debug" default="false" />
+    <arg name="debug" default="false" />
 
-  <arg name="xterm_prefix" value="xterm -e gdb -ex run --args" />
-  <arg name="valgrind_prefix" value="valgrind --leak-check=full" />
+    <arg name="xterm_prefix" value="xterm -e gdb -ex run --args" />
+    <arg name="valgrind_prefix" value="valgrind --leak-check=full" />
 
-  <arg name="debug_prefix" value="" unless="$(arg debug)"/>
-  <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
+    <arg name="debug_prefix" value="" unless="$(arg debug)"/>
+    <arg name="debug_prefix" value="xterm -e gdb -ex run --args" if="$(arg debug)"/>
 
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
-      <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
-      
-      <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="global_costmap"/>
-      <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="local_costmap"/>
-      <rosparam file="$(find dynamic_gap)/params/local_costmap_params.yaml" command="load"/>
-      <rosparam file="$(find dynamic_gap)/params/global_costmap_params.yaml" command="load"/>
-      
-      <rosparam file="$(find dynamic_gap)/params/move_base_params.yaml" command="load"/>
-      <rosparam file="$(find dynamic_gap)/params/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
-      <rosparam file="$(find dynamic_gap)/params/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log" clear_params="true" launch-prefix="$(arg debug_prefix)">
+        <param name="base_local_planner" value="dynamic_gap/DynamicGapPlanner" />      
+        
+        <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="global_costmap"/>
+        <rosparam file="$(find dynamic_gap)/params/common_costmap_params.yaml" command="load" ns="local_costmap"/>
+        <rosparam file="$(find dynamic_gap)/params/local_costmap_params.yaml" command="load"/>
+        <rosparam file="$(find dynamic_gap)/params/global_costmap_params.yaml" command="load"/>
+        
+        <rosparam file="$(find dynamic_gap)/params/move_base_params.yaml" command="load"/>
+        <rosparam file="$(find dynamic_gap)/params/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
+        <rosparam file="$(find dynamic_gap)/params/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
 
-      <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
+        <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 
-      <param name="controller_frequency" value="$(arg controller_freq)" />
-      <param name="planner_frequency" value="$(arg global_planning_freq)"/>
+        <param name="controller_frequency" value="$(arg controller_freq)" />
+        <param name="planner_frequency" value="$(arg global_planning_freq)"/>
 
-      <remap from="/cmd_vel" to="/mobile_base/commands/velocity"/>
+        <param name="model" value="$(arg model)" />
 
-      <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
-      <param name="DynamicGapPlanner/odom_frame_id" value="odom"/>
-      <param name="DynamicGapPlanner/robot_frame_id" value="base_footprint"/>
-      <param name="DynamicGapPlanner/sensor_frame_id" value="laser"/>
+        <remap from="/cmd_vel" to="/mobile_base/commands/velocity"/>
 
-      <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
+        <param name="DynamicGapPlanner/map_frame_id" value="known_map"/>
+        <param name="DynamicGapPlanner/odom_frame_id" value="odom"/>
+        <param name="DynamicGapPlanner/robot_frame_id" value="base_footprint"/>
+        <param name="DynamicGapPlanner/sensor_frame_id" value="laser"/>
 
-      <param name="DynamicGapPlanner/num_agents" value="0" />
-      <param name="global_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
-      <param name="global_costmap/robot_base_frame" value="base_footprint" />
+        <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
 
-      <param name="local_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
-      <param name="local_costmap/robot_base_frame" value="base_footprint" />
-      
-  </node>
+        <param name="DynamicGapPlanner/num_agents" value="0" />
+        <param name="global_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
+        <param name="global_costmap/robot_base_frame" value="base_footprint" />
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
+        <param name="local_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
+        <param name="local_costmap/robot_base_frame" value="base_footprint" />
+        
+    </node>
+
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dynamic_gap)/rviz/dgap.rviz" />
 
 </launch>

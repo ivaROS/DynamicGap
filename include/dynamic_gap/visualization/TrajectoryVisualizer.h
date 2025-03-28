@@ -2,6 +2,9 @@
 
 #include <dynamic_gap/visualization/Visualizer.h>
 
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -9,26 +12,36 @@ namespace dynamic_gap
     */
     class TrajectoryVisualizer : public Visualizer
     {
-        using Visualizer::Visualizer;
+        // using Visualizer::Visualizer;
         
         public: 
-            TrajectoryVisualizer(ros::NodeHandle& nh, const dynamic_gap::DynamicGapConfig& cfg);
+            TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
+
+            void drawCurrentTrajectory(const Trajectory & traj);
 
             /**
             * \brief Visualize set of candidate trajectories through gaps
             * \param trajs set of trajectories to visualize
             */
-            void drawGapTrajectories(const std::vector<dynamic_gap::Trajectory> & trajs);
+            void drawGapTrajectories(const std::vector<Trajectory> & trajs);
+
+            void drawGapTubeTrajectories(const std::vector<Trajectory> & trajs);
+
+            void drawUngapTrajectories(const std::vector<Trajectory> & trajs);
 
             /**
             * \brief Visualize pose-wise scores along candidate trajectories
             * \param trajs set of trajectories whose pose-wise scores we want to visualize
             * \param trajPoseScores pose-wise scores to visualize
             */
-            void drawGapTrajectoryPoseScores(const std::vector<dynamic_gap::Trajectory> & trajs,
+            void drawGapTrajectoryPoseScores(const std::vector<Trajectory> & trajs,
                                                 const std::vector<std::vector<float>> & trajPoseScores);
 
-            void drawPlanningLoopIdx(const int & trajSwitchIndex);
+            /**
+            * \brief Visualize counter for planning loop
+            * \param planningLoopIdx counter for planning loop
+            */
+            void drawPlanningLoopIdx(const int & planningLoopIdx);
 
             /**
             * \brief Visualize occurrence of a trajectory switch for planner
@@ -36,7 +49,7 @@ namespace dynamic_gap
             * \param chosenTraj new trajectory that planner is switching to
             */
             void drawTrajectorySwitchCount(const int & trajSwitchIndex, 
-                                            const dynamic_gap::Trajectory & chosenTraj);
+                                            const Trajectory & chosenTraj);
 
             /**
             * \brief Visualize global plan we are using within local planner
@@ -54,7 +67,10 @@ namespace dynamic_gap
 
             std::vector<std_msgs::ColorRGBA> gapwiseColors; /**< Map from gap namespace to color for visualization */
 
+            ros::Publisher currentTrajectoryPublisher_; /**< ROS publisher for currently tracked trajectory */
             ros::Publisher gapTrajectoriesPublisher; /**< Publisher for gap trajectories */
+            ros::Publisher gapTubeTrajectoriesPublisher; /**< Publisher for gap tube trajectories */
+            ros::Publisher ungapTrajectoriesPublisher; /**< Publisher for un-gap trajectories */
             ros::Publisher trajPoseScoresPublisher; /**< Publisher for gap trajectory pose-wise scores */
             ros::Publisher trajSwitchIdxPublisher; /**< Publisher for planner trajectory switch count */
             ros::Publisher globalPlanPublisher; /**< Publisher for global plan */
