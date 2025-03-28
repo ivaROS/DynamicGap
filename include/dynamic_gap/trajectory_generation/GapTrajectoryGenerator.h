@@ -72,6 +72,15 @@ namespace dynamic_gap
             Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
 
             /**
+            * \brief generate trajectory for idling in place
+            * \param rbtPoseInOdomFrame robot pose in odometry frame
+            * \return trajectory through gap
+            */
+            Trajectory generateIdlingTrajectoryV2(Gap * gap,
+                                                    const geometry_msgs::PoseStamped & currPose, 
+                                                    const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+
+            /**
             * \brief helper function for transforming trajectory from source frame to destination frame
             * \param path path that is to be transformed
             * \param transform transform to apply to path
@@ -89,7 +98,9 @@ namespace dynamic_gap
             * \return post-processed trajectory
             */                       
             Trajectory processTrajectory(const Trajectory & traj,
-                                                        const bool & prune);
+                                            const geometry_msgs::PoseStamped & currPose, 
+                                            const geometry_msgs::TwistStamped & currVel,                
+                                            const bool & prune);
 
         private: 
 

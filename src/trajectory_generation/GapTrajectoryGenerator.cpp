@@ -327,6 +327,37 @@ namespace dynamic_gap
         return idlingTrajectory;
     }
 
+
+    Trajectory GapTrajectoryGenerator::generateIdlingTrajectoryV2(Gap * gap,
+                                                                    const geometry_msgs::PoseStamped & currPose, 
+                                                                    const geometry_msgs::PoseStamped & rbtPoseInOdomFrame)
+    {
+        geometry_msgs::PoseArray idlingPath;
+
+        idlingPath.header.stamp = rbtPoseInOdomFrame.header.stamp;
+        idlingPath.header.frame_id = cfg_->sensor_frame_id;
+
+        std::vector<float> idlingPathTiming;
+        geometry_msgs::Pose idlePose;
+
+        float t_max = std::min(gap->getGapLifespan(), cfg_->traj.integrate_maxt);
+
+        // put slightly in direction of heading so there's no angular error
+        float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame.pose.orientation);
+
+        for (float t = cfg_->traj.integrate_stept; t <= t_max; t += cfg_->traj.integrate_stept) 
+        {
+            idlePose.position.x = currPose.pose.position.x + 0.01 * std::cos(rbtPoseOrientation);
+            idlePose.position.y = currPose.pose.position.y + 0.01 * std::sin(rbtPoseOrientation);
+            idlePose.orientation = rbtPoseInOdomFrame.pose.orientation;
+            idlingPath.poses.push_back(idlePose);
+            idlingPathTiming.push_back(t);
+        }
+
+        Trajectory idlingTrajectory(idlingPath, idlingPathTiming);
+        return idlingTrajectory;
+    }
+
     // Transform local trajectory between two frames of choice
     geometry_msgs::PoseArray GapTrajectoryGenerator::transformPath(const geometry_msgs::PoseArray & path,
                                                                     const geometry_msgs::TransformStamped & transform)
@@ -362,14 +393,30 @@ namespace dynamic_gap
     }
 
     Trajectory GapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
+                                                            const geometry_msgs::PoseStamped & currPose, 
+                                                            const geometry_msgs::TwistStamped & currVel,
                                                             const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
         std::vector<float> rawPathTiming = traj.getPathTiming();
         
+        // remove any poses that go beyond the max scan range
+        for (int i = 0; i < rawPath.poses.size(); i++)
+        {
+            geometry_msgs::Pose pose = rawPath.poses[i];
+            float poseDist = std::sqrt(std::pow(pose.position.x, 2) + std::pow(pose.position.y, 2));
+            if (poseDist > (cfg_->scan.range_max - cfg_->rbt.r_inscr * cfg_->traj.inf_ratio))
+            {
+                rawPath.poses.erase(rawPath.poses.begin() + i);
+                rawPathTiming.erase(rawPathTiming.begin() + i);
+
+                i--;
+            }
+        }
+
         geometry_msgs::Pose originPose;
-        originPose.position.x = 0;
-        originPose.position.y = 0;
+        originPose.position.x = currPose.pose.position.x;
+        originPose.position.y = currPose.pose.position.y;
         originPose.position.z = 0;
         originPose.orientation.x = 0;
         originPose.orientation.y = 0;
@@ -428,6 +475,25 @@ namespace dynamic_gap
             processedPath.poses.at(idx-1).orientation.z = q.z();
             processedPath.poses.at(idx-1).orientation.w = q.w();
         }
+
+        // Fix rotation for last pose
+        if (processedPath.poses.size() > 1)
+        {
+            processedPose = processedPath.poses.back();
+            prevProcessedPose = processedPath.poses.at(processedPath.poses.size() - 2);
+            poseToPoseDiffX = processedPose.position.x - prevProcessedPose.position.x;
+            poseToPoseDiffY = processedPose.position.y - prevProcessedPose.position.y;
+            poseToPoseDiffTheta = std::atan2(poseToPoseDiffY, poseToPoseDiffX);
+            q = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+                Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+                Eigen::AngleAxisf(poseToPoseDiffTheta, Eigen::Vector3f::UnitZ());
+            q.normalize();
+            processedPath.poses.back().orientation.x = q.x();
+            processedPath.poses.back().orientation.y = q.y();
+            processedPath.poses.back().orientation.z = q.z();
+            processedPath.poses.back().orientation.w = q.w();
+        }
+        
 
         Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;

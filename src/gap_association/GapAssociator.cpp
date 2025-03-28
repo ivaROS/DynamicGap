@@ -118,9 +118,11 @@ namespace dynamic_gap
 
 					if (previousTubeIdx < 0)
 					{
-						ROS_WARN_STREAM_NAMED("GapAssociator", "				previous gap not found in gap tubes");
-						// ROS_INFO_STREAM_NAMED("GapAssociator", " 				previous gap not found in gap tubes");
+						ROS_WARN_STREAM_NAMED("GapAssociator", "				gap not found in previous gap tubes");
+						ROS_INFO_STREAM_NAMED("GapAssociator", " 				gap not found in previous gap tubes");
+
 						// throw std::runtime_error("previous gap not found in gap tubes");
+						continue;
 					}
 
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
@@ -149,9 +151,12 @@ namespace dynamic_gap
 
 						// find previous gap in gap tubes
 
-						// append previous gap
-						GapTube * previousGapTube = gapTubes.at(previousTubeIdx);						
-						previousGapTube->addGap(currentGap);
+						// append previous gap (but only if we have time for it to exist)
+						if (t_current < cfg_->traj.integrate_maxt)
+						{
+							GapTube * previousGapTube = gapTubes.at(previousTubeIdx);						
+							previousGapTube->addGap(currentGap);
+						}
 					}
 
 				} else // instantiate new model

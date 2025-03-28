@@ -253,7 +253,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -342,7 +341,8 @@ Visualization Manager:
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                {}
+                simp: true
+                simp_tmin1: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -358,7 +358,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -366,7 +366,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -378,7 +378,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -394,7 +394,7 @@ Visualization Manager:
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -418,7 +418,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -457,7 +457,7 @@ Visualization Manager:
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
-            {}
+            planning_loop_idx: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -640,6 +640,14 @@ Visualization Manager:
           Value: false
       Enabled: false
       Name: Potential Gap
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/candidate_tube_trajectories
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -677,10 +685,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 117.00230407714844
+      Scale: 81.40380096435547
       Target Frame: rto/base_link
-      X: 3.1921303272247314
-      Y: -0.24750424921512604
+      X: 0.2235894501209259
+      Y: -0.47001755237579346
     Saved: ~
 Window Geometry:
   Displays:

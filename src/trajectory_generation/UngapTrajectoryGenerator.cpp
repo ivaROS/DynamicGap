@@ -137,14 +137,16 @@ namespace dynamic_gap
     }
 
     Trajectory UngapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
+                                                            const geometry_msgs::PoseStamped & currPose, 
+                                                            const geometry_msgs::TwistStamped & currVel,        
                                                             const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
         std::vector<float> rawPathTiming = traj.getPathTiming();
         
         geometry_msgs::Pose originPose;
-        originPose.position.x = 0;
-        originPose.position.y = 0;
+        originPose.position.x = currPose.pose.position.x;
+        originPose.position.y = currPose.pose.position.y;
         originPose.position.z = 0;
         originPose.orientation.x = 0;
         originPose.orientation.y = 0;

@@ -61,6 +61,8 @@ namespace dynamic_gap
             * \return post-processed trajectory
             */                       
             Trajectory processTrajectory(const Trajectory & traj,
+                                            const geometry_msgs::PoseStamped & currPose, 
+                                            const geometry_msgs::TwistStamped & currVel,                
                                             const bool & prune);
 
         private: 

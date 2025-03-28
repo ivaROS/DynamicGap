@@ -16,6 +16,7 @@ namespace dynamic_gap
 
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
+        gapTubeTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_tube_trajectories", 10);
         ungapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_ungap_trajectories", 10);
 
         // globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
@@ -224,6 +225,55 @@ namespace dynamic_gap
             }
         }
         gapTrajectoriesPublisher.publish(gapTrajMarkerArray);
+    }
+
+    void TrajectoryVisualizer::drawGapTubeTrajectories(const std::vector<Trajectory> & trajs) 
+    {
+        // First, clearing topic.
+        clearMarkerArrayPublisher(gapTubeTrajectoriesPublisher);
+
+        if (trajs.size() == 0)
+        {
+            // ROS_WARN_STREAM_NAMED("Visualizer", "no trajectories to visualize");
+            return;
+        }
+        
+        visualization_msgs::MarkerArray gapTrajMarkerArray;
+        visualization_msgs::Marker gapTrajMarker;
+
+        Trajectory traj = trajs.at(0);
+
+        if (traj.getPathRbtFrame().header.frame_id.empty())
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGapTubeTrajectories] Trajectory frame_id is empty");
+            return;
+        }
+
+        // The above makes this safe
+        gapTrajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
+        gapTrajMarker.header.stamp = traj.getPathRbtFrame().header.stamp;
+        gapTrajMarker.ns = "allTraj";
+        gapTrajMarker.type = visualization_msgs::Marker::ARROW;
+        gapTrajMarker.action = visualization_msgs::Marker::ADD;
+        gapTrajMarker.scale.x = 0.1;
+        gapTrajMarker.scale.y = 0.04; // 0.01;
+        gapTrajMarker.scale.z = 0.0001;
+        gapTrajMarker.color.a = 1;
+        gapTrajMarker.color.b = 0.5;
+        gapTrajMarker.color.g = 1.0;
+        gapTrajMarker.lifetime = ros::Duration(0);
+
+        for (const Trajectory & traj : trajs) 
+        {
+            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+            for (const geometry_msgs::Pose & pose : path.poses) 
+            {
+                gapTrajMarker.id = int (gapTrajMarkerArray.markers.size());
+                gapTrajMarker.pose = pose;
+                gapTrajMarkerArray.markers.push_back(gapTrajMarker);
+            }
+        }
+        gapTubeTrajectoriesPublisher.publish(gapTrajMarkerArray);
     }
 
     void TrajectoryVisualizer::drawGapTrajectoryPoseScores(const std::vector<Trajectory> & trajs, 
