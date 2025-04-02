@@ -321,6 +321,7 @@ namespace dynamic_gap
                             const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
                             const std::vector<float> & idlingTrajTerminalPoseCosts);
 
+            // Gap * incomingGap,                                              
             /**
             * \brief Helper function for switching to a new trajectory
             * \param incomingGap incoming gap to switch to
@@ -328,10 +329,10 @@ namespace dynamic_gap
             * \param switchToIncoming boolean for if planner is to switch to the incoming trajectory
             * \return trajectory that planner will switch to
             */
-            Trajectory changeTrajectoryHelper(Gap * incomingGap, 
-                                                            const Trajectory & incomingTraj, 
-                                                            const bool & switchToIncoming);
+            Trajectory changeTrajectoryHelper(const Trajectory & incomingTraj, 
+                                                const bool & switchToIncoming);
 
+            // Gap * incomingGap,
             /**
             * \brief Compare incoming highest scoring trajectory to the trajectory that the
             * robot is currently following to determine if robot should switch to the incoming trajectory
@@ -343,13 +344,12 @@ namespace dynamic_gap
             * \param futureScans set of propagated scans to use during scoring
             * \return the trajectory that the robot will track
             */
-            Trajectory compareToCurrentTraj(Gap * incomingGap,
-                                            const Trajectory & incomingTraj,
+            Trajectory compareToCurrentTraj(const Trajectory & incomingTraj,
                                             // const std::vector<Gap *> & feasibleGaps, 
                                             // const std::vector<Trajectory> & trajs,
                                             // const int & lowestCostTrajIdx,
                                             // const int & trajFlag,
-                                            const bool & isIncomingGapFeasible,
+                                            // const bool & isIncomingGapFeasible,
                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**

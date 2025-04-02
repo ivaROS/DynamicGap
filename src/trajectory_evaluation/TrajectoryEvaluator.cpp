@@ -24,7 +24,8 @@ namespace dynamic_gap
     void TrajectoryEvaluator::evaluateTrajectory(const Trajectory & traj,
                                                 std::vector<float> & posewiseCosts,
                                                 float & terminalPoseCost,
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans) 
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                                const int & scanIdx) 
     {    
         try
         {
@@ -53,7 +54,7 @@ namespace dynamic_gap
 
 
                 // std::cout << "regular range at " << i << ": ";
-                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
+                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i + scanIdx)); //  / posewiseCosts.size()
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
             }
             float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
