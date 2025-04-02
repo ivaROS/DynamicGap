@@ -26,32 +26,50 @@ namespace dynamic_gap
                                                 float & terminalPoseCost,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {    
-        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
-        // Requires LOCAL FRAME
-
-        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
-        std::vector<float> pathTiming = traj.getPathTiming();
-        
-        posewiseCosts = std::vector<float>(path.poses.size());
-
-        for (int i = 0; i < posewiseCosts.size(); i++) 
+        try
         {
-            // std::cout << "regular range at " << i << ": ";
-            posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
-        }
-        float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
-        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             pose-wise cost: " << totalTrajCost);
 
-        if (posewiseCosts.size() > 0) 
-        {
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
+            // Requires LOCAL FRAME
+
+            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+            std::vector<float> pathTiming = traj.getPathTiming();
+            
+            posewiseCosts = std::vector<float>(path.poses.size());
+
+            for (int i = 0; i < posewiseCosts.size(); i++) 
+            {
+                if (i >= futureScans.size()) 
+                {
+                    ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
+                    break;
+                }
+
+                if (i >= path.poses.size()) 
+                {
+                    ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << path.poses.size());
+                    break;
+                }
+
+
+                // std::cout << "regular range at " << i << ": ";
+                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)); //  / posewiseCosts.size()
+                ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
+            }
+            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             pose-wise cost: " << totalTrajCost);
+
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(*std::prev(path.poses.end()));
+            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
+            
+            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
+        } catch (const std::out_of_range& e) 
+        {
+            ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            evaluateTrajectory out of range exception: " << e.what());
         }
         
-        // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         return;
     }
 
