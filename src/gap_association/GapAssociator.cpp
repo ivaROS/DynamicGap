@@ -20,7 +20,7 @@ namespace dynamic_gap
 
 		std::vector<std::vector<float>> distMatrix(currentGaps.size(), std::vector<float>(previousGaps.size()));
 		
-		std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
 
 		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;

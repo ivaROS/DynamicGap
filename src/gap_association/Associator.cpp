@@ -28,7 +28,7 @@ namespace dynamic_gap
 		// {
 
 		// NEW ASSIGNMENT OBTAINED
-		std::chrono::steady_clock::time_point associateStartTime = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point associateStartTime = std::chrono::steady_clock::now();
 
 		// std::cout << "obtaining new assignment" << std::endl;
 		if (distMatrix.size() > 0 && distMatrix.at(0).size() > 0) 

@@ -200,7 +200,6 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Scan", "[laserScanCB()]");
         ROS_INFO_STREAM_NAMED("Scan", "       timestamp: " << scan->header.stamp);
 
-        // std::chrono::steady_clock::time_point scanStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(SCAN);
         /////////////////////////////////////
         //////// SCAN PRE-PROCESSING ////////
@@ -233,20 +232,13 @@ namespace dynamic_gap
         ///////////////////////////////
         //////// GAP DETECTION ////////
         ///////////////////////////////
-        // std::chrono::steady_clock::time_point gapDetectionStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_DET);
         currRawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
         timeKeeper_->stopTimer(GAP_DET);
 
-        // float gapDetectionTimeTaken = timeTaken(gapDetectionStartTime);
-        // float avgGapDetectionTimeTaken = computeAverageTimeTaken(gapDetectionTimeTaken, GAP_DET);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection for " << currRawGaps_.size() << " gaps took " << gapDetectionTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Gap Detection average time: " << avgGapDetectionTimeTaken << " seconds (" << (1.0 / avgGapDetectionTimeTaken) << " Hz) ]");
-
         /////////////////////////////////////
         //////// RAW GAP ASSOCIATION ////////
         /////////////////////////////////////
-        // std::chrono::steady_clock::time_point rawGapAssociationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_ASSOC);
         rawDistMatrix_ = gapPointAssociator_->populateDistMatrix(currRawGaps_, prevRawGaps_);
         rawAssocation_ = gapPointAssociator_->associate(rawDistMatrix_);
@@ -255,40 +247,25 @@ namespace dynamic_gap
                                     currentModelIdx_, tCurrentFilterUpdate,
                                     intermediateRbtVels, intermediateRbtAccs);
         timeKeeper_->stopTimer(GAP_ASSOC);
-        // float rawGapAssociationTimeTaken = timeTaken(rawGapAssociationStartTime);
-        // float avgRawGapAssociationTimeTaken = computeAverageTimeTaken(rawGapAssociationTimeTaken, GAP_ASSOC);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association for " << currRawGaps_.size() << " gaps took " << rawGapAssociationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Association average time: " << avgRawGapAssociationTimeTaken << " seconds (" << (1.0 / avgRawGapAssociationTimeTaken) << " Hz) ]");
 
         ////////////////////////////////////
         //////// RAW GAP ESTIMATION ////////
         ////////////////////////////////////
-        // std::chrono::steady_clock::time_point rawGapEstimationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currRawGaps_, intermediateRbtVels, 
                         intermediateRbtAccs, tCurrentFilterUpdate);
         timeKeeper_->stopTimer(GAP_EST);
-        // float rawGapEstimationTimeTaken = timeTaken(rawGapEstimationStartTime);
-        // float avgRawGapEstimationTimeTaken = computeAverageTimeTaken(rawGapEstimationTimeTaken, GAP_EST);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation for " << currRawGaps_.size() << " gaps took " << rawGapEstimationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Raw Gap Estimation average time: " << avgRawGapEstimationTimeTaken << " seconds (" << (1.0 / avgRawGapEstimationTimeTaken) << " Hz) ]");
 
         ////////////////////////////////////
         //////// GAP SIMPLIFICATION ////////
         ////////////////////////////////////       
-        // std::chrono::steady_clock::time_point gapSimplificationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_SIMP);
         currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
         timeKeeper_->stopTimer(GAP_SIMP);
-        // float gapSimplificationTimeTaken = timeTaken(gapSimplificationStartTime);
-        // float avgGapSimplificationTimeTaken = computeAverageTimeTaken(gapSimplificationTimeTaken, GAP_SIMP);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification for " << currSimplifiedGaps_.size() << " gaps took " << gapSimplificationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Gap Simplification average time: " << avgGapSimplificationTimeTaken << " seconds (" << (1.0 / avgGapSimplificationTimeTaken) << " Hz) ]");
 
         ////////////////////////////////////////////
         //////// SIMPLIFIED GAP ASSOCIATION ////////
         ////////////////////////////////////////////
-        // std::chrono::steady_clock::time_point simpGapAssociationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_ASSOC);
         simpDistMatrix_ = gapPointAssociator_->populateDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
         simpAssociation_ = gapPointAssociator_->associate(simpDistMatrix_); // must finish this and therefore change the association
@@ -297,23 +274,14 @@ namespace dynamic_gap
                                     currentModelIdx_, tCurrentFilterUpdate,
                                     intermediateRbtVels, intermediateRbtAccs);
         timeKeeper_->stopTimer(GAP_ASSOC);
-        // float simpGapAssociationTimeTaken = timeTaken(simpGapAssociationStartTime);
-        // float avgSimpGapAssociationTimeTaken = computeAverageTimeTaken(simpGapAssociationTimeTaken, GAP_ASSOC);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association for " << currSimplifiedGaps_.size() << " gaps took " << simpGapAssociationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Association average time: " << avgSimpGapAssociationTimeTaken << " seconds (" << (1.0 / avgSimpGapAssociationTimeTaken) << " Hz) ]");
 
         ///////////////////////////////////////////
         //////// SIMPLIFIED GAP ESTIMATION ////////
         ///////////////////////////////////////////     
-        // std::chrono::steady_clock::time_point simpGapEstimationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                         intermediateRbtAccs, tCurrentFilterUpdate);
         timeKeeper_->stopTimer(GAP_EST);
-        // float simpGapEstimationTimeTaken = timeTaken(simpGapEstimationStartTime);
-        // float avgSimpGapEstimationTimeTaken = computeAverageTimeTaken(simpGapEstimationTimeTaken, GAP_EST);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation for " << currRawGaps_.size() << " gaps took " << simpGapEstimationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Simplified Gap Estimation average time: " << avgSimpGapEstimationTimeTaken << " seconds (" << (1.0 / avgSimpGapEstimationTimeTaken) << " Hz) ]");
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
         gapVisualizer_->drawGapsModels(currRawGaps_);
@@ -353,10 +321,6 @@ namespace dynamic_gap
         tPreviousModelUpdate_ = tCurrentFilterUpdate;
 
         timeKeeper_->stopTimer(SCAN);
-        // float scanTimeTaken = timeTaken(scanStartTime);
-        // float avgScanTimeTaken = computeAverageTimeTaken(scanTimeTaken, SCAN);
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Scan Processing took " << scanTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "      [Scan Processing average time: " << avgScanTimeTaken << " seconds (" << (1.0 / avgScanTimeTaken) << " Hz) ]");
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
@@ -1708,7 +1672,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // Gap Tubes
         std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
 
-        // std::chrono::steady_clock::time_point planningLoopStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(PLAN);
 
         int gapCount = planningGaps.size();
@@ -1751,14 +1714,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                                  GAP MANIPULATION                                //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        // std::chrono::steady_clock::time_point manipulateGapsStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(GAP_MANIP);
         std::vector<Gap *> manipulatedGaps = manipulateGaps(planningGaps);
         timeKeeper_->stopTimer(GAP_MANIP);
-        // float gapManipulationTimeTaken = timeTaken(manipulateGapsStartTime);
-        // float avgGapManipulationTimeTaken = computeAverageTimeTaken(gapManipulationTimeTaken, GAP_MANIP);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation for " << gapCount << " gaps took " << gapManipulationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Manipulation average time: " << avgGapManipulationTimeTaken << " seconds (" << (1.0 / avgGapManipulationTimeTaken) << " Hz) ]");
 
         bool isCurrentTubeFeasible = false;
 
@@ -1768,14 +1726,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                            GAP POINT PROPAGATION (v2)                            //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // std::chrono::steady_clock::time_point gapPropagateV2StartTime = std::chrono::steady_clock::now();
             timeKeeper_->startTimer(GAP_PROP);
             propagateGapPointsV2(manipulatedGaps, gapTubes);
             timeKeeper_->stopTimer(GAP_PROP);
-            // float gapPropagateV2TimeTaken = timeTaken(gapPropagateV2StartTime);
-            // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateV2TimeTaken, GAP_PROP);
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) for " << gapCount << " gaps took " << gapPropagateV2TimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation (v2) average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                              GAP MANIPULATION                                    //
@@ -1832,7 +1785,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                              FUTURE SCAN PROPAGATION                             //
         //////////////////////////////////////////////////////////////////////////////////////
         std::vector<sensor_msgs::LaserScan> futureScans;
-        // std::chrono::steady_clock::time_point scanPropagationStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(SCAN_PROP);
         if (cfg_.planning.future_scan_propagation)
         {
@@ -1846,11 +1798,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
         }
         timeKeeper_->stopTimer(SCAN_PROP);
-        // float scanPropagationTimeTaken = timeTaken(scanPropagationStartTime);
-        // float avgScanPropagationTimeTaken = computeAverageTimeTaken(scanPropagationTimeTaken, SCAN_PROP);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation for " << gapCount << " gaps took " << scanPropagationTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Future Scan Propagation average time: " << avgScanPropagationTimeTaken << " seconds (" << (1.0 / avgScanPropagationTimeTaken) << " Hz) ]");
-    
+
         std::vector<Trajectory> gapTrajs;
         std::vector<std::vector<float>> gapTrajPoseCosts; 
         std::vector<float> gapTrajTerminalPoseCosts;
@@ -1869,40 +1817,25 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                        GAP TRAJECTORY GENERATION AND SCORING (V2)                //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
             timeKeeper_->startTimer(GAP_TRAJ_GEN);
             generateGapTrajsV2(gapTubes, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
             timeKeeper_->stopTimer(GAP_TRAJ_GEN);
-            // float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-            // float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, TRAJ_GEN);
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation (v2) average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-        
+
             //////////////////////////////////////////////////////////////////////////////////////
             //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // std::chrono::steady_clock::time_point generateUngapTrajsStartTime = std::chrono::steady_clock::now();
             timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
             generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
             timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
-            // float generateUngapTrajsTimeTaken = timeTaken(generateUngapTrajsStartTime);
-            // float avgGenerateUngapTrajsTimeTaken = computeAverageTimeTaken(generateUngapTrajsTimeTaken, UNGAP_TRAJ_GEN);
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation for " << recedingUngaps.size() << " un-gaps took " << generateUngapTrajsTimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Ungap Trajectory Generation average time: " << avgGenerateUngapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateUngapTrajsTimeTaken) << " Hz) ]");
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // std::chrono::steady_clock::time_point generateIdlingTrajsStartTime = std::chrono::steady_clock::now();
             timeKeeper_->startTimer(IDLING_TRAJ_GEN);
             generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
             timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
-            // float generateIdlingTrajsTimeTaken = timeTaken(generateIdlingTrajsStartTime);
-            // float avgGenerateIdlingTrajsTimeTaken = computeAverageTimeTaken(generateIdlingTrajsTimeTaken, IDLING_TRAJ_GEN);
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation took " << generateIdlingTrajsTimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Idling Trajectory Generation average time: " << avgGenerateIdlingTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateIdlingTrajsTimeTaken) << " Hz) ]");
         } 
         // else
         // {
@@ -1926,7 +1859,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                               GAP TRAJECTORY SELECTION                           //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        // std::chrono::steady_clock::time_point pickTrajStartTime = std::chrono::steady_clock::now();
         timeKeeper_->startTimer(TRAJ_PICK);
         int lowestCostTrajIdx = -1;
         trajFlag = NONE;
@@ -1936,11 +1868,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
                     idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
         timeKeeper_->stopTimer(TRAJ_PICK);
-        // float pickTrajTimeTaken = timeTaken(pickTrajStartTime);
-        // float avgPickTrajTimeTaken = computeAverageTimeTaken(pickTrajTimeTaken, TRAJ_PICK);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection for " << gapCount << " gaps took " << pickTrajTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Selection average time: " << avgPickTrajTimeTaken << " seconds (" << (1.0 / avgPickTrajTimeTaken) << " Hz) ]");
-    
+
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP TRAJECTORY COMPARISON                           //
         //////////////////////////////////////////////////////////////////////////////////////
@@ -1948,7 +1876,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (trajFlag != NONE) 
         {
             timeKeeper_->startTimer(TRAJ_COMP);
-            // std::chrono::steady_clock::time_point compareToCurrentTrajStartTime = std::chrono::steady_clock::now();
 
             // Gap * incomingGap = nullptr;
             Trajectory incomingTraj;
@@ -2015,20 +1942,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                 futureScans); // incomingGap, isCurrentGapFeasible,
 
             timeKeeper_->stopTimer(TRAJ_COMP);
-            // float compareToCurrentTrajTimeTaken = timeTaken(compareToCurrentTrajStartTime);
-            // float avgCompareToCurrentTrajTimeTaken = computeAverageTimeTaken(compareToCurrentTrajTimeTaken, TRAJ_COMP);        
-
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison for " << gapCount << " gaps took " << compareToCurrentTrajTimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Comparison average time: " << avgCompareToCurrentTrajTimeTaken << " seconds (" << (1.0 / avgCompareToCurrentTrajTimeTaken) << " Hz) ]");
         } 
 
         timeKeeper_->stopTimer(PLAN);
-        // float planningLoopTimeTaken = timeTaken(planningLoopStartTime);
-        // float avgPlanningLoopTimeTaken = computeAverageTimeTaken(planningLoopTimeTaken, PLAN);        
-        // float avgNumberGaps = computeAverageNumberGaps(gapCount);
-
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop for " << gapCount << " gaps took " << planningLoopTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average time: " << avgPlanningLoopTimeTaken << " seconds (" << (1.0 / avgPlanningLoopTimeTaken) << " Hz) ]");
 
         // delete set of planning gaps
         for (Gap * planningGap : planningGaps)
@@ -2171,7 +2087,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
         timeKeeper_->startTimer(CONTROL);
-        // std::chrono::steady_clock::time_point controlStartTime = std::chrono::steady_clock::now();
         
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
@@ -2203,7 +2118,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
             // rawCmdVel = trajController_->manualControlLawKeyboard();
             // rawCmdVel = trajController_->manualControlLawReconfig();
-            rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
+            // rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
         } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
         { 
             rawCmdVel = mpcTwist_;
@@ -2222,34 +2137,19 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
-            // std::chrono::steady_clock::time_point feedbackControlStartTime = std::chrono::steady_clock::now();
             timeKeeper_->startTimer(FEEBDACK);
             rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
             timeKeeper_->stopTimer(FEEBDACK);
-            // float feedbackControlTimeTaken = timeTaken(feedbackControlStartTime);
-            // float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");
-            // ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control average time: " << avgFeedbackControlTimeTaken << " seconds (" << (1.0 / avgFeedbackControlTimeTaken) << " Hz) ]");        
         } else
         {
             ROS_ERROR_STREAM_NAMED("Controller", "No control method selected");
         }
 
         timeKeeper_->startTimer(PO);
-        // std::chrono::steady_clock::time_point projOpStartTime = std::chrono::steady_clock::now();
         cmdVel = trajController_->processCmdVel(rawCmdVel,
                                                 rbtPoseInSensorFrame_, 
                                                 currentRbtVel_, currentRbtAcc_); 
         timeKeeper_->stopTimer(PO);
-        // float projOpTimeTaken = timeTaken(projOpStartTime);
-        // float avgProjOpTimeTaken = computeAverageTimeTaken(projOpTimeTaken, PO);        
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Projection Operator took " << projOpTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Projection Operator average time: " << avgProjOpTimeTaken << " seconds (" << (1.0 / avgProjOpTimeTaken) << " Hz) ]");        
-
-        // float controlTimeTaken = timeTaken(controlStartTime);
-        // float avgControlTimeTaken = computeAverageTimeTaken(controlTimeTaken, CONTROL);        
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Control Loop took " << controlTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Control Loop average time: " << avgControlTimeTaken << " seconds (" << (1.0 / avgControlTimeTaken) << " Hz) ]");        
 
         timeKeeper_->stopTimer(CONTROL);
 

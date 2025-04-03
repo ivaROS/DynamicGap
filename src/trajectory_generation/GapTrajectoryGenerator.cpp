@@ -14,7 +14,7 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running go to goal");                
 
-            std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
             path.header.stamp = currPose.header.stamp;
             TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
@@ -64,7 +64,7 @@ namespace dynamic_gap
         geometry_msgs::PoseArray path;
         std::vector<float> pathTiming;
 
-        std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
         path.header.stamp = currPose.header.stamp;
         TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
@@ -150,7 +150,7 @@ namespace dynamic_gap
 
 
         Trajectory traj(path, pathTiming);
-        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
+        // float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
         return traj;
     }
@@ -170,7 +170,7 @@ namespace dynamic_gap
         // try 
         // {   
 
-        std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
         path.header.stamp = currPose.header.stamp;
         TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
@@ -297,7 +297,7 @@ namespace dynamic_gap
 
 
         Trajectory traj(path, pathTiming);
-        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
+        // float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
         // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
         return traj;
             
@@ -373,7 +373,7 @@ namespace dynamic_gap
         {
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            running go to goal");                
 
-            std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
             path.header.stamp = rbtPoseInSensorFrame.header.stamp;
             TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
