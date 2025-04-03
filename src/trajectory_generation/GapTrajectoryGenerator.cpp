@@ -43,7 +43,7 @@ namespace dynamic_gap
             GoToGoal goToGoal(cfg_->rbt.vx_absmax);
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                             goToGoal, x, 0.0f, t_max, cfg_->traj.integrate_stept, logger);
-            float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
+            // float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
         } catch (const std::out_of_range& e) 
         {
@@ -199,7 +199,7 @@ namespace dynamic_gap
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
             goToGoal, x, 0.0f, cfg_->traj.integrate_maxt, cfg_->traj.integrate_stept, logger);
             Trajectory traj(path, pathTiming);
-            float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
+            // float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
             return traj;
         }
@@ -405,7 +405,7 @@ namespace dynamic_gap
                                                     idling, x, 0.0f, t_max, 
                                                     cfg_->traj.integrate_stept, logger);
 
-            float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
+            // float generateTrajectoryTime = timeTaken(generateTrajectoryStartTime);
             
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "            generateTrajectory (g2g) time taken: " << generateTrajectoryTime << " seconds");                
         } catch (const std::out_of_range& e) 

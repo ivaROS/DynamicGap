@@ -152,22 +152,22 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: rto Local Costmap
       Topic: /rto/move_base_flex/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: rto Global Costmap
       Topic: /rto/move_base_flex/global_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 1
       Class: spencer_tracking_rviz_plugin/TrackedPersons
       Color: 130; 130; 130
@@ -340,7 +340,8 @@ Visualization Manager:
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                {}
+                simp: true
+                simp_tmin1: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -356,7 +357,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_models: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -364,7 +365,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -392,7 +393,7 @@ Visualization Manager:
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -416,7 +417,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -455,7 +456,7 @@ Visualization Manager:
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
-            {}
+            planning_loop_idx: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -643,7 +644,7 @@ Visualization Manager:
       Marker Topic: /rto/candidate_tube_trajectories
       Name: MarkerArray
       Namespaces:
-        {}
+        allTraj: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -683,10 +684,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 22.87799644470215
+      Scale: 58.15463638305664
       Target Frame: rto/base_link
-      X: 1.4033056497573853
-      Y: -2.4389302730560303
+      X: 4.353934288024902
+      Y: 0.7164255380630493
     Saved: ~
 Window Geometry:
   Displays:

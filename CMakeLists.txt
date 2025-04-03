@@ -81,6 +81,7 @@ add_library(${PROJECT_NAME}
   src/visualization/TrajectoryVisualizer.cpp
   src/Planner.cpp
   src/DynamicGapPlanner.cpp
+  src/TimeKeeper.cpp
   ) 
 
 target_link_libraries(${PROJECT_NAME}

@@ -46,7 +46,7 @@ namespace dynamic_gap
 		}
 
 
-		float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
+		// float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
 		// // ROS_INFO_STREAM_NAMED("GapAssociator", "populateDistMatrix time taken: " << populateDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
 		
 		return distMatrix;
