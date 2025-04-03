@@ -3,8 +3,7 @@
 namespace dynamic_gap 
 {
     Trajectory UngapTrajectoryGenerator::generateTrajectory(Ungap * selectedUngap, 
-                                                            const geometry_msgs::PoseStamped & currPose, 
-                                                            const geometry_msgs::TwistStamped & currVel) 
+                                                            const geometry_msgs::PoseStamped & currPose) 
     {
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "        [generateTrajectory()]");
 
@@ -50,6 +49,10 @@ namespace dynamic_gap
         Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
         Eigen::Vector2f goalPtVel(gapGoalVelX, gapGoalVelY);
 
+        float rbtSpeed = goalPtVel.norm();
+
+        selectedUngap->setRbtSpeed(rbtSpeed);
+
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
@@ -81,7 +84,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            intercept angle: " << selectedUngap->getGammaInterceptGoal()); 
 
         ParallelNavigation parallelNavigation(selectedUngap->getGammaInterceptGoal(), 
-                                                cfg_->rbt.vx_absmax,
+                                                rbtSpeed,
                                                 cfg_->rbt.r_inscr,
                                                 leftGapPtVel,
                                                 rightGapPtVel,
@@ -138,7 +141,6 @@ namespace dynamic_gap
 
     Trajectory UngapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
                                                             const geometry_msgs::PoseStamped & currPose, 
-                                                            const geometry_msgs::TwistStamped & currVel,        
                                                             const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();

@@ -73,7 +73,8 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist constantVelocityControlLaw(const geometry_msgs::Pose & current, 
-                                                            const geometry_msgs::Pose & desired);
+                                                            const geometry_msgs::Pose & desired,
+                                                            const float & desiredSpeed);
 
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits

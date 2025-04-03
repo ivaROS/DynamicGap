@@ -1222,12 +1222,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             // Run pursuit guidance behavior
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        running pursuit guidance");
-            pursuitGuidanceTraj = ungapTrajGenerator_->generateTrajectory(ungaps.at(i), rbtPoseInSensorFrame_, 
-                                                                            currentRbtVel_);
+            pursuitGuidanceTraj = ungapTrajGenerator_->generateTrajectory(ungaps.at(i), 
+                                                                            rbtPoseInSensorFrame_);
 
             pursuitGuidanceTraj = ungapTrajGenerator_->processTrajectory(pursuitGuidanceTraj, 
                                                                             rbtPoseInSensorFrame_,
-                                                                            currentRbtVel_,
                                                                             true);
             trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, 
                                                 pursuitGuidancePoseCosts, 
@@ -1957,6 +1956,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     trajFlag = NONE;
                     return;
                 }
+                Ungap * incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
+                ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
                 incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
             } else if (trajFlag == IDLING)
             {
@@ -2181,8 +2182,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
 
+            float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
+
             std::chrono::steady_clock::time_point feedbackControlStartTime = std::chrono::steady_clock::now();
-            rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose);
+            rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
             float feedbackControlTimeTaken = timeTaken(feedbackControlStartTime);
             float avgFeedbackControlTimeTaken = computeAverageTimeTaken(feedbackControlTimeTaken, FEEBDACK);        
             ROS_INFO_STREAM_NAMED("Timing", "       [Feedback Control took " << feedbackControlTimeTaken << " seconds]");

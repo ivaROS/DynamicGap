@@ -40,8 +40,7 @@ namespace dynamic_gap
             * \return trajectory through gap
             */
             Trajectory generateTrajectory(Ungap * selectedUngap, 
-                                            const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel);
+                                            const geometry_msgs::PoseStamped & currPose);
 
             /**
             * \brief helper function for transforming trajectory from source frame to destination frame
@@ -62,7 +61,6 @@ namespace dynamic_gap
             */                       
             Trajectory processTrajectory(const Trajectory & traj,
                                             const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,                
                                             const bool & prune);
 
         private: 

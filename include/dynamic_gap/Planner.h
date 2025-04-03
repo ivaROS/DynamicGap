@@ -552,6 +552,8 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< Intermediate robot velocities between last model update and upcoming model update */
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
+            float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
+                
             // Timekeeping
             float totalGapDetectionTimeTaken = 0.0f; /**< Total time taken for gap detection */
             int gapDetectionCalls = 0; /**< Total number of calls for gap detection */

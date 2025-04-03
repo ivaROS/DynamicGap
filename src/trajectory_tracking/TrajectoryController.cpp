@@ -229,7 +229,8 @@ namespace dynamic_gap
     }
 
     geometry_msgs::Twist TrajectoryController::constantVelocityControlLaw(const geometry_msgs::Pose & current, 
-                                                                            const geometry_msgs::Pose & desired) 
+                                                                            const geometry_msgs::Pose & desired,
+                                                                            const float & desiredSpeed) 
     { 
         ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLaw()]");
         // Setup Vars
@@ -265,7 +266,7 @@ namespace dynamic_gap
         Eigen::Vector2f error(errorX, errorY);
         Eigen::Vector2f errorDir = epsilonDivide(error, error.norm());
 
-        Eigen::Vector2f constantVelocityCommand = cfg_->rbt.vx_absmax * errorDir;
+        Eigen::Vector2f constantVelocityCommand = desiredSpeed * errorDir;
 
         float velLinXFeedback = constantVelocityCommand[0];
         float velLinYFeedback = constantVelocityCommand[1];
