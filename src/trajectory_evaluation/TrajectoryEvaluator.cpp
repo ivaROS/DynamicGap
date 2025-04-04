@@ -57,8 +57,8 @@ namespace dynamic_gap
                 posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i + scanIdx)); //  / posewiseCosts.size()
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
             }
-            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             pose-wise cost: " << totalTrajCost);
+            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());

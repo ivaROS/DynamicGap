@@ -26,8 +26,13 @@ namespace dynamic_gap
                 const float & rangeRight, 
                 const bool & radial)
             {
+                ROS_INFO_STREAM_NAMED("Gap", "gap main constructor");
                 frame_ = frame;
                 radial_ = radial;
+
+                ROS_INFO_STREAM_NAMED("Gap", "  rightIdx: " << rightIdx);
+                ROS_INFO_STREAM_NAMED("Gap", "  rangeRight: " << rangeRight);
+                ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
 
                 leftGapPt_ = new GapPoint(-1, -1.0); // temp values
                 rightGapPt_ = new GapPoint(rightIdx, rangeRight);
@@ -53,7 +58,7 @@ namespace dynamic_gap
             // ALSO Running during gap propagation now!!
             Gap(const Gap & otherGap)
             {
-                // ROS_INFO_STREAM_NAMED("Gap", "in copy constructor");
+                ROS_INFO_STREAM_NAMED("Gap", "gap copy constructor");
                 // gapLifespan_ = otherGap.gapLifespan_;
 
                 frame_ = otherGap.frame_;
@@ -70,6 +75,10 @@ namespace dynamic_gap
                 rightGapPt_ = new GapPoint(*otherGap.rightGapPt_);
 
                 goal_ = new GapGoal();
+
+                ROS_INFO_STREAM_NAMED("Gap", "  leftGapPt_: " << leftGapPt_->getOrigIdx());
+                ROS_INFO_STREAM_NAMED("Gap", "  rightGapPt_: " << rightGapPt_->getOrigIdx());
+                ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
 
                 // globalGoalWithin = otherGap.globalGoalWithin;
 
@@ -88,6 +97,8 @@ namespace dynamic_gap
                 const float & gapStart,
                 const bool & available)
             {
+                ROS_INFO_STREAM_NAMED("Gap", "gap propagated point constructor");
+
                 if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
                 {
                     frame_ = frame;
@@ -107,14 +118,16 @@ namespace dynamic_gap
                     setRadial();
                     setRightType();
 
+                    ROS_INFO_STREAM_NAMED("Gap", "  leftGapPt_: " << leftGapPt_->getOrigIdx());
+                    ROS_INFO_STREAM_NAMED("Gap", "  rightGapPt_: " << rightGapPt_->getOrigIdx());
+                    ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
+    
                     goal_ = new GapGoal();
                 }
                 else
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap points are not left and right");
                 }
-
-
             }
 
             ~Gap() 
@@ -326,39 +339,39 @@ namespace dynamic_gap
             */
             void setRadial()
             {
-                // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
+                ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
                 int checkLeftIdx = leftGapPt_->getOrigIdx(); // leftIdx_;
                 int checkRightIdx = rightGapPt_->getOrigIdx(); // rightIdx_;
 
                 float checkLeftRange = leftGapPt_->getOrigRange(); // leftRange_;
                 float checkRightRange = rightGapPt_->getOrigRange(); // rightRange_;
 
-                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
-                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftRange: " << checkLeftRange);
-                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
-                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightRange: " << checkRightRange);
+                ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
+                ROS_INFO_STREAM_NAMED("Gap", "   checkLeftRange: " << checkLeftRange);
+                ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
+                ROS_INFO_STREAM_NAMED("Gap", "   checkRightRange: " << checkRightRange);
 
                 float gapAngle = (checkLeftIdx - checkRightIdx) * angle_increment;
                 if (gapAngle < 0)
                     gapAngle += TWO_M_PI;
 
-                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
+                ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearRange = rightType_ ? checkRightRange : checkLeftRange;
                 // law of cosines
                 float leftPtToRightPtDist = sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
                 // law of sines
                 float farSideAngle = asin(epsilonDivide(nearRange, leftPtToRightPtDist) * sin(gapAngle));
                 
-                // ROS_INFO_STREAM_NAMED("Gap", "nearRange: " << nearRange);
-                // ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
+                ROS_INFO_STREAM_NAMED("Gap", "nearRange: " << nearRange);
+                ROS_INFO_STREAM_NAMED("Gap", "leftPtToRightPtDist: " << leftPtToRightPtDist);
                 // ROS_INFO_STREAM_NAMED("Gap", "small angle: " << farSideAngle);
 
-                // ROS_INFO_STREAM_NAMED("Gap", "   farSideAngle: " << farSideAngle);
+                ROS_INFO_STREAM_NAMED("Gap", "   farSideAngle: " << farSideAngle);
                 // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearSideAngle = (M_PI - farSideAngle - gapAngle);
-                // ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
+                ROS_INFO_STREAM_NAMED("Gap", "   nearSideAngle: " << nearSideAngle);
 
-                radial_ = nearSideAngle > (0.75 * M_PI);
+                radial_ = nearSideAngle > (0.60 * M_PI);
             }
 
             std::string getFrame() const { return frame_; }

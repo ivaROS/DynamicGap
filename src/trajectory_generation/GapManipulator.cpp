@@ -47,8 +47,13 @@ namespace dynamic_gap
 
     void GapManipulator::convertRadialGap(Gap * gap) 
     {
-        if (!gap->isRadial()) 
+        ROS_INFO_STREAM_NAMED("GapManipulator", "    [convertRadialGap()]");
+
+        if (!gap->isRadial())
+        {
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        gap is not radial, no conversion needed");
             return;
+        }
 
         sensor_msgs::LaserScan desScan = *scan_.get();
         int leftIdx = gap->manipLeftIdx();
@@ -69,7 +74,6 @@ namespace dynamic_gap
         Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getGapState();
         Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getGapState();
 
-        // ROS_INFO_STREAM("    [convertRadialGap()]");            
         // ROS_INFO_STREAM("        pre-RGC gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
         // // ROS_INFO_STREAM("pre-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
 
@@ -96,6 +100,7 @@ namespace dynamic_gap
             // pivotSideSpeed = rightGapState.tail(2).norm();
             if (gap->getLeftGapPt()->getUngapID() >= 0) // if left point is part of ungap, we do not want to manipulate it 
             {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        left part is part of ungap, no conversion needed");
                 return;
             }
         } else 
@@ -108,6 +113,7 @@ namespace dynamic_gap
             // pivotSideSpeed = leftGapState.tail(2).norm();
             if (gap->getRightGapPt()->getUngapID() >= 0) // if right point is part of ungap, we do not want to manipulate it
             {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        right part is part of ungap, no conversion needed");
                 return;                
             }
         }

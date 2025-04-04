@@ -322,8 +322,10 @@ namespace dynamic_gap
             trajPoseScoresMarker.pose.position = lastTrajPose.position;
             trajPoseScoresMarker.pose.orientation = lastTrajPose.orientation;
 
+            float score = std::accumulate(trajPoseScores.at(i).begin(), trajPoseScores.at(i).end(), float(0)) / trajPoseScores.at(i).size();
+
             std::stringstream stream;
-            stream << std::fixed << std::setprecision(2) << "SCORE: " << std::accumulate(trajPoseScores.at(i).begin(), trajPoseScores.at(i).end(), float(0));
+            stream << std::fixed << std::setprecision(2) << "SCORE: " << score;
 
             trajPoseScoresMarker.text = stream.str();
 
