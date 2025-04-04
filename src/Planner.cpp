@@ -908,7 +908,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // run pursuit guidance analysis on gap to determine feasibility
                 isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap, startPt);
 
-                if (gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
+                if (j == 0 &&
+                    gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
                     gap->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID) 
                 {
                     isCurrentGapFeasible = true;
@@ -1328,7 +1329,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(gapTrajPoseCosts.at(i).begin(), 
                                                                                                 gapTrajPoseCosts.at(i).end(), float(0));
                 
-                pathCosts.at(runningTrajIdx) = gapTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                pathCosts.at(runningTrajIdx) = gapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
                                                                                                     pathCosts.at(runningTrajIdx);
                 
                 ROS_INFO_STREAM_NAMED("Planner", "    for gap tube " << i << " (length: " << gapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
@@ -1344,7 +1345,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), 
                                                                                                     ungapTrajPoseCosts.at(i).end(), float(0));
                 
-                pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
                                                                                                         pathCosts.at(runningTrajIdx);
                 
                 ROS_INFO_STREAM_NAMED("Planner", "    for ungap " << i << " (length: " << ungapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
@@ -1360,7 +1361,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), 
                                                                                                     idlingTrajPoseCosts.at(i).end(), float(0));
                 
-                pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() == 0 ? std::numeric_limits<float>::infinity() : 
+                pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
                                                                                                         pathCosts.at(runningTrajIdx);
                 
                 ROS_INFO_STREAM_NAMED("Planner", "    for idling " << i << " (length: " << idlingTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
@@ -1415,24 +1416,26 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    // Gap * incomingGap,                                          
     Trajectory Planner::changeTrajectoryHelper(const Trajectory & incomingTraj, 
-                                                const bool & switchToIncoming) 
+                                                const bool & switchToIncoming,
+                                                const int & trajFlag,
+                                                Gap * incomingGap) 
     {
         // publishToMpc_ = true;
         
         if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
-            // if (incomingGap) // actual trajectory
-            // {
-            //     setCurrentLeftGapPtModelID(incomingGap->getLeftGapPt()->getModel());
-            //     setCurrentRightGapPtModelID(incomingGap->getRightGapPt()->getModel());
-            // } else // idling trajectory
-            // {
-            //     setCurrentLeftGapPtModelID(nullptr);
-            //     setCurrentRightGapPtModelID(nullptr);
-            // }
+
+            if (trajFlag == GAP && incomingGap) // gap trajectory
+            {
+                setCurrentLeftGapPtModelID(incomingGap->getLeftGapPt()->getModel());
+                setCurrentRightGapPtModelID(incomingGap->getRightGapPt()->getModel());
+            } else // ungap or idling trajectory
+            {
+                setCurrentLeftGapPtModelID(nullptr);
+                setCurrentRightGapPtModelID(nullptr);
+            }
 
             trajVisualizer_->drawCurrentTrajectory(incomingTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
@@ -1447,8 +1450,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             Trajectory emptyTraj(emptyPath, emptyPathTiming);
 
             setCurrentTraj(emptyTraj);
-            // setCurrentLeftGapPtModelID(nullptr);
-            // setCurrentRightGapPtModelID(nullptr);
+            
+            setCurrentLeftGapPtModelID(nullptr);
+            setCurrentRightGapPtModelID(nullptr);
 
             trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
@@ -1458,10 +1462,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }        
     }
 
-    // Gap * incomingGap,
-    // const bool & isIncomingGapFeasible,
     Trajectory Planner::compareToCurrentTraj(const Trajectory & incomingTraj,
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans) // bool isIncomingGapAssociated,
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                                const int & trajFlag,
+                                                Gap * incomingGap,
+                                                const bool & isIncomingGapFeasible) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
@@ -1472,8 +1477,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         try
         {
-
-
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapPtModelID() << ", current right gap index: " << getCurrentRightGapPtModelID());
 
             // ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapPtModelID() << ", " << getCurrentRightGapPtModelID());
@@ -1518,18 +1521,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path is of length zero, " << incomingPathStatus);                
-                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             } 
 
-            ///////////////////////////////////////////////////////////////////////////////////
-            //  Enact a trajectory switch if the currently executing path is empty (size: 0) //
-            ///////////////////////////////////////////////////////////////////////////////////
-            // if (!isIncomingGapFeasible) 
-            // {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
-            //                                                     ": current gap is not feasible, " << incomingPathStatus);                
-            //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
-            // } 
+            ///////////////////////////////////////////////////////////////////////////////
+            //  Enact a trajectory switch if the currently executing gap is not feasible //
+            ///////////////////////////////////////////////////////////////////////////////
+            if (!isIncomingGapFeasible) 
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
+                                                                ": current gap is not feasible, " << incomingPathStatus);                
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            } 
 
             // Transform current traj into most recent robot frame to score against the current scan
             geometry_msgs::PoseArray updatedCurrentPathRobotFrame = gapTrajGenerator_->transformPath(currentTraj.getPathOdomFrame(), odom2rbt_);
@@ -1554,7 +1557,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": old path length less than 2, " << incomingPathStatus);
 
-                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1579,15 +1582,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
                                                             ": current trajectory is of cost infinity," << incomingPathStatus);
-                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
             
-            if (incomingPathCost < reducedCurrentPathSubCost) 
-            {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
-                                                            ": incoming trajectory is lower score");
-                changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
-            }
+            // if (incomingPathCost < reducedCurrentPathSubCost) 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+            //                                                 ": incoming trajectory is lower score");
+            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+            // }
             
             
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
@@ -1718,7 +1721,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         std::vector<Gap *> manipulatedGaps = manipulateGaps(planningGaps);
         timeKeeper_->stopTimer(GAP_MANIP);
 
-        bool isCurrentTubeFeasible = false;
+        bool isCurrentGapFeasible = false;
 
         if (cfg_.planning.gap_prop == 1)
         {
@@ -1743,7 +1746,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //////////////////////////////////////////////////////////////////////////////////////
 
             timeKeeper_->startTimer(GAP_FEAS);
-            gapSetFeasibilityCheckV2(gapTubes, isCurrentTubeFeasible);
+            gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasible);
             timeKeeper_->stopTimer(GAP_FEAS);
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -1877,7 +1880,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             timeKeeper_->startTimer(TRAJ_COMP);
 
-            // Gap * incomingGap = nullptr;
+            Gap * incomingGap = nullptr;
+            Ungap * incomingUngap = nullptr;
             Trajectory incomingTraj;
 
             if (trajFlag == GAP) // comparing to traj within one of the gaps
@@ -1907,7 +1911,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 //     return;
                 // }
 
-                // incomingGap = feasibleGaps.at(lowestCostTrajIdx);
+                incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
                 incomingTraj = gapTrajs.at(lowestCostTrajIdx);
             } else if (trajFlag == UNGAP) // comparing to un-gap traj
             {
@@ -1919,7 +1923,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     trajFlag = NONE;
                     return;
                 }
-                Ungap * incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
+                incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
                 ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
                 incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
             } else if (trajFlag == IDLING)
@@ -1939,7 +1943,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             chosenTraj = compareToCurrentTraj(incomingTraj,           
-                                                futureScans); // incomingGap, isCurrentGapFeasible,
+                                                futureScans,
+                                                trajFlag,
+                                                incomingGap,
+                                                isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
 
             timeKeeper_->stopTimer(TRAJ_COMP);
         } 
@@ -1976,12 +1983,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             // right
             planningGap->getRightGapPt()->getModel()->isolateGapDynamics();
-
             gapPtStates.push_back(planningGap->getRightGapPt()->getModel()->getGapState());
 
             // left
             planningGap->getLeftGapPt()->getModel()->isolateGapDynamics();
-
             gapPtStates.push_back(planningGap->getLeftGapPt()->getModel()->getGapState());
         }
 
@@ -2036,7 +2041,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
         bool angleCheck = (vectorProj > 0.0);
 
-        return distCheck; // (distCheck && speedCheck && angleCheck);
+        return (distCheck && speedCheck && angleCheck); // distCheck; // 
     }
 
     std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> & ungaps)

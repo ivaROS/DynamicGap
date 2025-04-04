@@ -322,7 +322,6 @@ namespace dynamic_gap
                             const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
                             const std::vector<float> & idlingTrajTerminalPoseCosts);
 
-            // Gap * incomingGap,                                              
             /**
             * \brief Helper function for switching to a new trajectory
             * \param incomingGap incoming gap to switch to
@@ -331,7 +330,9 @@ namespace dynamic_gap
             * \return trajectory that planner will switch to
             */
             Trajectory changeTrajectoryHelper(const Trajectory & incomingTraj, 
-                                                const bool & switchToIncoming);
+                                                const bool & switchToIncoming,
+                                                const int & trajFlag,
+                                                Gap * incomingGap);
 
             // Gap * incomingGap,
             /**
@@ -349,9 +350,11 @@ namespace dynamic_gap
                                             // const std::vector<Gap *> & feasibleGaps, 
                                             // const std::vector<Trajectory> & trajs,
                                             // const int & lowestCostTrajIdx,
-                                            // const int & trajFlag,
                                             // const bool & isIncomingGapFeasible,
-                                            const std::vector<sensor_msgs::LaserScan> & futureScans);
+                                            const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                            const int & trajFlag,
+                                            Gap * incomingGap,
+                                            const bool & isIncomingGapFeasible);
 
             /**
             * \brief Function for getting index of closest pose in trajectory
