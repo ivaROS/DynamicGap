@@ -20,7 +20,7 @@ namespace dynamic_gap
 
 		std::vector<std::vector<float>> distMatrix(currentGaps.size(), std::vector<float>(previousGaps.size()));
 		
-		std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
 
 		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
@@ -46,7 +46,7 @@ namespace dynamic_gap
 		}
 
 
-		float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
+		// float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
 		// // ROS_INFO_STREAM_NAMED("GapAssociator", "populateDistMatrix time taken: " << populateDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
 		
 		return distMatrix;
@@ -69,7 +69,7 @@ namespace dynamic_gap
 		return pointToPointDist;
 	}
 
-    void GapAssociator::assignGaps(const std::vector<int> & association, 
+    bool GapAssociator::assignGaps(const std::vector<int> & association, 
 									const std::vector< std::vector<float> > & distMatrix, 
 									const std::vector<Gap *> & currentGaps, 
 									const std::vector<Gap *> & previousGaps,
@@ -77,6 +77,8 @@ namespace dynamic_gap
 									const float & t_current)
     {
         ROS_INFO_STREAM_NAMED("GapAssociator", "            [assignGaps()]");
+
+		bool weird = false;
 
         for (int i = 0; i < currentGaps.size(); i++) 
 		{
@@ -116,13 +118,16 @@ namespace dynamic_gap
 						}
 					}
 
-					if (previousTubeIdx < 0)
+					if (previousTubeIdx < 0 || previousTubeIdx >= gapTubes.size())
 					{
-						ROS_WARN_STREAM_NAMED("GapAssociator", "				gap not found in previous gap tubes");
-						ROS_INFO_STREAM_NAMED("GapAssociator", " 				gap not found in previous gap tubes");
+						ROS_WARN_STREAM_NAMED("GapAssociator", "				gap (" << previousGap->getLeftGapPt()->getModel()->getID() << ", " << 
+																							previousGap->getRightGapPt()->getModel()->getID() << ") not found in previous gap tubes");
+						ROS_INFO_STREAM_NAMED("GapAssociator", " 				gap (" << previousGap->getLeftGapPt()->getModel()->getID() << ", " << 
+																							previousGap->getRightGapPt()->getModel()->getID() << ") not found in previous gap tubes");
+						weird = true;
 
 						// throw std::runtime_error("previous gap not found in gap tubes");
-						continue;
+						// return; // 
 					}
 
 					ROS_INFO_STREAM_NAMED("GapAssociator", "				current gap: "); 
@@ -154,8 +159,11 @@ namespace dynamic_gap
 						// append previous gap (but only if we have time for it to exist)
 						if (t_current < cfg_->traj.integrate_maxt)
 						{
-							GapTube * previousGapTube = gapTubes.at(previousTubeIdx);						
-							previousGapTube->addGap(currentGap);
+							if (!weird)
+							{
+								GapTube * previousGapTube = gapTubes.at(previousTubeIdx);						
+								previousGapTube->addGap(currentGap);
+							}
 						}
 					}
 
@@ -169,6 +177,8 @@ namespace dynamic_gap
 				ROS_INFO_STREAM_NAMED("GapAssociator", "			association does not exist");
 				// currentGap->setSafeToDelete();
 			}
-		}        
+		}   
+		
+		return weird;
     }
 }

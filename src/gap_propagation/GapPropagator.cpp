@@ -256,7 +256,7 @@ namespace dynamic_gap
             getGaps(currentGaps, t_iplus1);
 
             // 8. Perform gap association
-            runGapAssociation(currentGaps, previousGaps, t_iplus1, gapTubes);
+            bool weird = runGapAssociation(currentGaps, previousGaps, t_iplus1, gapTubes);
 
             // 9. Delete gaps we don't need
 
@@ -271,6 +271,12 @@ namespace dynamic_gap
             previousGaps = currentGaps;
 
             t_i = t_iplus1;
+
+            if (weird)
+            {
+                ROS_WARN_STREAM_NAMED("GapPropagator", "       Weird gap association, breaking out of loop");
+                break;
+            }
         }
 
         for (Gap * gap : previousGaps)
@@ -303,14 +309,16 @@ namespace dynamic_gap
         return;
     }
 
-    void GapPropagator::runGapAssociation(const std::vector<Gap *> & currentGaps, 
+    bool GapPropagator::runGapAssociation(const std::vector<Gap *> & currentGaps, 
                                             const std::vector<Gap *> & previousGaps,
                                             const float & t_iplus1,
                                             std::vector<GapTube *> & gapTubes)
     {
         distMatrix_ = gapAssociator_->populateDistMatrix(currentGaps, previousGaps);
         assocation_ = gapAssociator_->associate(distMatrix_);
-        gapAssociator_->assignGaps(assocation_, distMatrix_, currentGaps, previousGaps, gapTubes, t_iplus1);
+        bool weird = gapAssociator_->assignGaps(assocation_, distMatrix_, currentGaps, previousGaps, gapTubes, t_iplus1);
+
+        return weird;
     }
 
     void GapPropagator::getGaps(std::vector<Gap *> & currentGaps,

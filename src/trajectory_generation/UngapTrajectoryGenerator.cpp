@@ -3,15 +3,14 @@
 namespace dynamic_gap 
 {
     Trajectory UngapTrajectoryGenerator::generateTrajectory(Ungap * selectedUngap, 
-                                                            const geometry_msgs::PoseStamped & currPose, 
-                                                            const geometry_msgs::TwistStamped & currVel) 
+                                                            const geometry_msgs::PoseStamped & currPose) 
     {
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "        [generateTrajectory()]");
 
         geometry_msgs::PoseArray path;
         std::vector<float> pathTiming;
 
-        std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
         path.header.stamp = currPose.header.stamp;
         TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
@@ -50,6 +49,10 @@ namespace dynamic_gap
         Eigen::Vector2f rightGapPtVel(rightVelX, rightVelY);
         Eigen::Vector2f goalPtVel(gapGoalVelX, gapGoalVelY);
 
+        float rbtSpeed = goalPtVel.norm();
+
+        selectedUngap->setRbtSpeed(rbtSpeed);
+
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            initial robot pos: (" << rbtState[0] << ", " << rbtState[1] << ")");
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            inital robot velocity: " << rbtState[2] << ", " << rbtState[3] << ")");
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            initial left gap point: (" << xLeft << ", " << yLeft << "), initial right point: (" << xRight << ", " << yRight << ")"); 
@@ -81,7 +84,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            intercept angle: " << selectedUngap->getGammaInterceptGoal()); 
 
         ParallelNavigation parallelNavigation(selectedUngap->getGammaInterceptGoal(), 
-                                                cfg_->rbt.vx_absmax,
+                                                rbtSpeed,
                                                 cfg_->rbt.r_inscr,
                                                 leftGapPtVel,
                                                 rightGapPtVel,
@@ -96,7 +99,7 @@ namespace dynamic_gap
 
 
         Trajectory traj(path, pathTiming);
-        float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
+        // float generateTrajectoryTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - generateTrajectoryStartTime).count() * 1.0e-6;
         // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            generateTrajectory (pursuit guidance) time taken: " << generateTrajectoryTime << " seconds");
         return traj;
             
@@ -138,7 +141,6 @@ namespace dynamic_gap
 
     Trajectory UngapTrajectoryGenerator::processTrajectory(const Trajectory & traj,
                                                             const geometry_msgs::PoseStamped & currPose, 
-                                                            const geometry_msgs::TwistStamped & currVel,        
                                                             const bool & prune)
     {
         geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();

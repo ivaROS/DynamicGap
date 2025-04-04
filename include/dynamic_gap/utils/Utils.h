@@ -5,7 +5,7 @@
 #include <Eigen/Geometry>
 #include <vector>
 #include <tf/tf.h>
-#include <chrono>
+// #include <chrono>
 
 namespace dynamic_gap 
 {
@@ -27,26 +27,6 @@ namespace dynamic_gap
     static Eigen::Matrix2f Rpi2 = (Eigen::Matrix2f() << 0.0, -1.0, 1.0, 0.0).finished(); /**< Rotation matrix for pi/2 */
  
     static Eigen::Matrix2f Rnegpi2 = (Eigen::Matrix2f() << 0.0, 1.0, -1.0, 0.0).finished(); /**< Rotation matrix for -pi/2 */
-
-    enum planningStepIdxs { GAP_DET = 0, 
-                            GAP_SIMP = 1, 
-                            GAP_ASSOC = 2, 
-                            GAP_EST = 3,
-                            SCAN = 4,
-                            GAP_PROP = 5,
-                            GAP_MANIP = 6,
-                            GAP_FEAS = 7,
-                            SCAN_PROP = 8,
-                            UNGAP_TRAJ_GEN = 9,
-                            GAP_TRAJ_GEN = 10,
-                            IDLING_TRAJ_GEN = 11,
-                            TRAJ_PICK = 12,
-                            TRAJ_COMP = 13,
-                            PLAN = 14,
-                            FEEBDACK = 15,
-                            PO = 16,
-                            CONTROL = 17
-                            };
 
     enum trajFlags {    NONE = -1,
                         GAP = 0,
@@ -351,21 +331,5 @@ namespace dynamic_gap
     inline Eigen::Vector2d epsilonDivide(const Eigen::Vector2d & numerator, const double & denominator)
     {
         return numerator / (denominator + eps); 
-    }
-
-    //////////////////////////////
-    //          TIMING          //
-    //////////////////////////////
-
-    /**
-    * \brief Calculate time that has elapsed in seconds since given start time
-    * \param startTime start time
-    * \return elapsed time in seconds
-    */
-    inline float timeTaken(const std::chrono::steady_clock::time_point & startTime)
-    {
-        float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
-        float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
-        return timeTakenInSeconds;
     }
 }

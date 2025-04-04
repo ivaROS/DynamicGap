@@ -46,6 +46,8 @@ namespace dynamic_gap
             void setGammaInterceptGoal(const float & gamma_intercept_goal) { gammaInterceptGoal_ = gamma_intercept_goal; }
             float getGammaInterceptGoal() const { return gammaInterceptGoal_; }
 
+            void setRbtSpeed(const float & rbt_speed) { rbtSpeed_ = rbt_speed; }
+            float getRbtSpeed() const { return rbtSpeed_; }
 
         private:
             int ungapID_ = -1; // set one time at init
@@ -56,5 +58,7 @@ namespace dynamic_gap
 
             float tInterceptGoal_ = 0.0;  /**< Intercept time for gap goal point */
             float gammaInterceptGoal_ = 0.0; /**< Intercept angle for gap goal point */
+
+            float rbtSpeed_ = 0.0; /**< Ungap speed */
     };
 }

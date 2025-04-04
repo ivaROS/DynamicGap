@@ -24,7 +24,7 @@
 #include <dynamic_gap/utils/Utils.h>
 
 #include <thread>
-#include <chrono>
+// #include <chrono>
 
 namespace dynamic_gap 
 {
@@ -64,7 +64,7 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist manualControlLawReconfig();
 
-            geometry_msgs::Twist manualControlLawPrescribed(const geometry_msgs::Pose & current);
+            // geometry_msgs::Twist manualControlLawPrescribed(const geometry_msgs::Pose & current);
 
             /**
             * \brief Control law for trajectory tracking
@@ -73,7 +73,8 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist constantVelocityControlLaw(const geometry_msgs::Pose & current, 
-                                                            const geometry_msgs::Pose & desired);
+                                                            const geometry_msgs::Pose & desired,
+                                                            const float & desiredSpeed);
 
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
@@ -176,6 +177,6 @@ namespace dynamic_gap
 
             ControlParameters ctrlParams_; /**< Control parameters for gap control */
 
-            std::chrono::steady_clock::time_point startTime_; /**< Start time */
+            // std::chrono::steady_clock::time_point startTime_; /**< Start time */
     };
 }

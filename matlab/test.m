@@ -1,4 +1,0 @@
-rosinit
-
-
-rosshutdown

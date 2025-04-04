@@ -55,7 +55,7 @@ namespace dynamic_gap
 	{
 		std::vector<std::vector<float>> distMatrix(2 * currentGaps.size(), std::vector<float>(2 * previousGaps.size()));
 		
-		std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point populateDistMatrixStartTime = std::chrono::steady_clock::now();
 
 		//std::cout << "number of current gaps: " << currentGaps.size() << std::endl;
 		//std::cout << "number of previous gaps: " << previousGaps.size() << std::endl;
@@ -81,7 +81,7 @@ namespace dynamic_gap
 		}
 
 
-		float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
+		// float populateDistMatrixTime = timeTaken(populateDistMatrixStartTime);
 		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "populateDistMatrix time taken: " << populateDistMatrixTime << " seconds for " << currentGapPoints.size() << " gaps");
 		
 		return distMatrix;
@@ -230,7 +230,7 @@ namespace dynamic_gap
 		// {
 
 		// ROS_INFO_STREAM_NAMED("GapPointAssociator", "[assignModels()]");
-		std::chrono::steady_clock::time_point assignModelsStartTime = std::chrono::steady_clock::now();
+		// std::chrono::steady_clock::time_point assignModelsStartTime = std::chrono::steady_clock::now();
 		// initializing models for current gaps
 		// float gapPtX, gapPtY;
 
@@ -294,7 +294,7 @@ namespace dynamic_gap
 			
 		// }
 
-		float assignModelsTime = timeTaken(assignModelsStartTime);
+		// float assignModelsTime = timeTaken(assignModelsStartTime);
 		// // ROS_INFO_STREAM_NAMED("GapPointAssociator", "assignModels time taken: " << assignModelsTime << " seconds for " << currentGaps.size() << " gaps");
 	
 		// } catch (...)

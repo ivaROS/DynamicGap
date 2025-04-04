@@ -249,6 +249,46 @@ namespace dynamic_gap
         }        
     };
 
+
+    /**
+    * \brief Structure for generating trajectories that idle
+    */    
+    struct Idling
+    {
+
+        Idling(const float & vRbtLinMax) {}
+
+        /**
+        * \brief () operator for AHPF that updates trajectory state
+        * \param x trajectory state
+        * \param dxdt trajectory state rate of change
+        * \param t current timestep
+        */
+        void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
+        {
+            if (t == 0.0)
+            {
+                // nudge robot forward a bit
+                dxdt[0] = 0.01;
+                dxdt[1] = 0.01;
+            } else
+            {
+                dxdt[0] = 0.0;
+                dxdt[1] = 0.0;
+            }
+            
+            dxdt[2] = 0.0;
+            dxdt[3] = 0.0;
+            dxdt[4] = 0.0;
+            dxdt[5] = 0.0;
+            dxdt[6] = 0.0;
+            dxdt[7] = 0.0;            
+
+            return;
+        }
+    
+    };
+
     /**
     * \brief Structure for logging trajectories and recording their contents
     */

@@ -42,6 +42,7 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <dynamic_gap/gap_feasibility/GapFeasibilityChecker.h>
 #include <dynamic_gap/ungap_feasibility/UngapFeasibilityChecker.h>
+#include <dynamic_gap/TimeKeeper.h>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -324,6 +325,7 @@ namespace dynamic_gap
                             const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
                             const std::vector<float> & idlingTrajTerminalPoseCosts);
 
+            // Gap * incomingGap,                                              
             /**
             * \brief Helper function for switching to a new trajectory
             * \param incomingGap incoming gap to switch to
@@ -331,10 +333,10 @@ namespace dynamic_gap
             * \param switchToIncoming boolean for if planner is to switch to the incoming trajectory
             * \return trajectory that planner will switch to
             */
-            Trajectory changeTrajectoryHelper(Gap * incomingGap, 
-                                                            const Trajectory & incomingTraj, 
-                                                            const bool & switchToIncoming);
+            Trajectory changeTrajectoryHelper(const Trajectory & incomingTraj, 
+                                                const bool & switchToIncoming);
 
+            // Gap * incomingGap,
             /**
             * \brief Compare incoming highest scoring trajectory to the trajectory that the
             * robot is currently following to determine if robot should switch to the incoming trajectory
@@ -346,13 +348,12 @@ namespace dynamic_gap
             * \param futureScans set of propagated scans to use during scoring
             * \return the trajectory that the robot will track
             */
-            Trajectory compareToCurrentTraj(Gap * incomingGap,
-                                            const Trajectory & incomingTraj,
+            Trajectory compareToCurrentTraj(const Trajectory & incomingTraj,
                                             // const std::vector<Gap *> & feasibleGaps, 
                                             // const std::vector<Trajectory> & trajs,
                                             // const int & lowestCostTrajIdx,
                                             // const int & trajFlag,
-                                            const bool & isIncomingGapFeasible,
+                                            // const bool & isIncomingGapFeasible,
                                             const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
@@ -423,19 +424,6 @@ namespace dynamic_gap
             * \param gaps current set of gaps
             */
             void checkGapModels(const std::vector<Gap *> & gaps);
-
-            /**
-            * \brief Helper function for computing average computation times for planning
-            * \param timeTaken time taken for particular step
-            * \param planningStepIdx index for particular step
-            */
-            float computeAverageTimeTaken(const float & timeTaken, const int & planningStepIdx);
-
-            /**
-            * \brief Helper function for computing average number of gaps planned over per planning loop
-            * \param numGaps number of gaps planned over per planning loop
-            */
-            float computeAverageNumberGaps(const int & numGaps);
 
             boost::mutex gapMutex_; /**< Current set of gaps mutex */
             DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
@@ -539,6 +527,8 @@ namespace dynamic_gap
 
             UngapFeasibilityChecker * ungapFeasibilityChecker_ = NULL; /**< Ungap feasibility checker */
 
+            TimeKeeper * timeKeeper_ = NULL; /**< Time keeper */
+
             // Status
             bool hasGlobalGoal_ = false; /**< Indicator for if planner's global goal has been set */
             bool initialized_ = false; /**< Indicator for if planner has been initialized */
@@ -555,61 +545,7 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtVels_; /**< Intermediate robot velocities between last model update and upcoming model update */
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
-            // Timekeeping
-            float totalGapDetectionTimeTaken = 0.0f; /**< Total time taken for gap detection */
-            int gapDetectionCalls = 0; /**< Total number of calls for gap detection */
-
-            float totalGapSimplificationTimeTaken = 0.0f; /**< Total time taken for gap simplification */
-            int gapSimplificationCalls = 0; /**< Total number of calls for gap simplification */
-
-            float totalGapAssociationCheckTimeTaken = 0.0f; /**< Total time taken for gap association */
-            int gapAssociationCheckCalls = 0; /**< Total number of calls for gap association */
-
-            float totalGapEstimationTimeTaken = 0.0f; /**< Total time taken for gap estimation */
-            int gapEstimationCalls = 0; /**< Total number of calls for gap estimation */
-
-            float totalScanningTimeTaken = 0.0f; /**< Total time taken for scan loop */
-            int scanningLoopCalls = 0; /**< Total number of calls for scan loop */
-
-            float totalGapPropagationTimeTaken = 0.0f; /**< Total time taken for gap propagation */
-            int gapPropagationCalls = 0; /**< Total number of calls for gap propagation */
-
-            float totalGapManipulationTimeTaken = 0.0f; /**< Total time taken for gap manipulation */
-            int gapManipulationCalls = 0; /**< Total number of calls for gap manipulation */
-
-            float totalGapFeasibilityCheckTimeTaken = 0.0f; /**< Total time taken for gap feasibility analysis */
-            int gapFeasibilityCheckCalls = 0; /**< Total number of calls for gap feasibility analysis */
-
-            float totalScanPropagationTimeTaken = 0.0f; /**< Total time taken for scan propagation */
-            int scanPropagationCalls = 0; /**< Total number of calls for scan propagation */
-
-            float totalGenerateUngapTrajTimeTaken = 0.0f; /**< Total time taken for un-gap trajectory synthesis */
-            int generateUngapTrajCalls = 0; /**< Total number of calls for un-gap trajetory synthesis */
-
-            float totalGenerateGapTrajTimeTaken = 0.0f; /**< Total time taken for gap trajectory synthesis */
-            int generateGapTrajCalls = 0; /**< Total number of calls for gap trajetory synthesis */
-
-            float totalGenerateIdlingTrajTimeTaken = 0.0f; /**< Total time taken for idling trajectory synthesis */
-            int generateIdlingTrajCalls = 0; /**< Total number of calls for idling trajetory synthesis */
-
-            float totalSelectGapTrajTimeTaken = 0.0f; /**< Total time taken for trajectory selection */
-            int selectGapTrajCalls = 0; /**< Total number of calls for trajectory selection */
-
-            float totalCompareToCurrentTrajTimeTaken = 0.0f; /**< Total time taken for trajectory comparison */
-            int compareToCurrentTrajCalls = 0; /**< Total number of calls for trajectory comparison */
-
-            float totalPlanningTimeTaken = 0.0f; /**< Total time taken for planning loop */
-            int planningLoopCalls = 0; /**< Total number of calls for planning loop */
-
-            float totalFeedbackControlTimeTaken = 0.0f; /**< Total time taken for feedback control */
-            int feedbackControlCalls = 0; /**< Total number of calls for feedback control */
-
-            float totalProjectionOperatorTimeTaken = 0.0f; /**< Total time taken for projection operator */
-            int projectionOperatorCalls = 0; /**< Total number of calls for projection operator */
-
-            float totalControlTimeTaken = 0.0f; /**< Total time taken for control loop */
-            int controlCalls = 0; /**< Total number of calls for control loop */
-
-            int totalNumGaps = 0; /**< Total number of gaps planned over during deployment */
+            float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
+                
     };
 }
