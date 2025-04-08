@@ -1,7 +1,7 @@
 #include <dynamic_gap/DynamicGapPlanner.h>
 
 // MBF return codes
-#include <mbf_msgs/ExePathResult.h>
+// #include <mbf_msgs/ExePathResult.h>
 
 // pluginlib macros
 #include <pluginlib/class_list_macros.h>
@@ -101,7 +101,8 @@ namespace dynamic_gap
         if (planner_.isGoalReached())
         {
             cmd_vel.twist = geometry_msgs::Twist();
-            return mbf_msgs::ExePathResult::SUCCESS;
+            return 0;
+            // return mbf_msgs::ExePathResult::SUCCESS;
         }
 
         geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame(), trajFlag);
@@ -133,10 +134,11 @@ namespace dynamic_gap
         *         MAP_ERROR         = 117  # The map is not running properly
         *         STOPPED           = 118  # The controller execution has been stopped rigorously
         */
-        if (acceptedCmdVel)
-            return mbf_msgs::ExePathResult::SUCCESS;
-        else
-            return mbf_msgs::ExePathResult::FAILURE;
+        return 0;
+        // if (acceptedCmdVel)
+        //     return mbf_msgs::ExePathResult::SUCCESS;
+        // else
+        //     return mbf_msgs::ExePathResult::FAILURE;
     }
 
     bool DynamicGapPlanner::isGoalReached()

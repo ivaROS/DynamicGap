@@ -110,7 +110,7 @@ namespace dynamic_gap
         // Robot laser scan message subscriber
         laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
 
-        pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
+        // pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
         // Visualization Setup
 
@@ -509,50 +509,50 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
     }
 
-    void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
-    {
-        // ROS_INFO_STREAM("pedOdomCB()");        
+    // void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
+    // {
+    //     // ROS_INFO_STREAM("pedOdomCB()");        
         
-        if (!haveTFs_)
-            return;
+    //     if (!haveTFs_)
+    //         return;
 
-        for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
-        {
-            pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
-            std::string source_frame = agentIState.header.frame_id; 
+    //     for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
+    //     {
+    //         pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
+    //         std::string source_frame = agentIState.header.frame_id; 
 
-            // transforming Odometry message from map_static to robotN
-            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, 
-                                                                                            source_frame, 
-                                                                                            ros::Time(0));
-            geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
-            geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
+    //         // transforming Odometry message from map_static to robotN
+    //         geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, 
+    //                                                                                         source_frame, 
+    //                                                                                         ros::Time(0));
+    //         geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
+    //         geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
 
-            agentPoseMsgFrame.header = agentIState.header;
-            agentPoseMsgFrame.pose = agentIState.pose;
-            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
+    //         agentPoseMsgFrame.header = agentIState.header;
+    //         agentPoseMsgFrame.pose = agentIState.pose;
+    //         // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
-            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-            tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
+    //         //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+    //         tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
-            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
+    //         // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
 
-            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
+    //         // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
+    //         currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
 
-            // std::cout << "in agentOdomCB" << std::endl;
-            // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
-            agentVelMsgFrame.header = agentIState.header;
-            // agentVelMsgFrame.header.frame_id = source_frame; // TODO: determine if frame for position is same as frame for velocity
-            agentVelMsgFrame.vector = agentIState.twist.linear;
-            // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
-            tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
-            // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
+    //         // std::cout << "in agentOdomCB" << std::endl;
+    //         // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
+    //         agentVelMsgFrame.header = agentIState.header;
+    //         // agentVelMsgFrame.header.frame_id = source_frame; // TODO: determine if frame for position is same as frame for velocity
+    //         agentVelMsgFrame.vector = agentIState.twist.linear;
+    //         // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
+    //         tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
+    //         // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
-            currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
+    //         currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
         
-        }
-    }
+    //     }
+    // }
 
     bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {

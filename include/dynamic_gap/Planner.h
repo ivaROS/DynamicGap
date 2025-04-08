@@ -55,8 +55,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/circular_buffer.hpp>
 
-#include <pedsim_msgs/AgentStates.h>
-#include <pedsim_msgs/AgentState.h>
+// #include <pedsim_msgs/AgentStates.h>
+// #include <pedsim_msgs/AgentState.h>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -179,11 +179,11 @@ namespace dynamic_gap
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                                 const ros::Time & tCurrentFilterUpdate);
 
-            /**
-            * \brief Call back function for other agent odometry messages
-            * \param agentOdomMsg incoming agent odometry message
-            */
-            void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
+            // /**
+            // * \brief Call back function for other agent odometry messages
+            // * \param agentOdomMsg incoming agent odometry message
+            // */
+            // void pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& agentOdomMsg);
 
             // /**
             // * \brief Call back function for MPC output

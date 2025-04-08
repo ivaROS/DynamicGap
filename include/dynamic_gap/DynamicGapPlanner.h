@@ -4,7 +4,7 @@
 #include <ros/console.h>
 
 // move_base_flex
-#include <mbf_costmap_core/costmap_controller.h>
+// #include <mbf_costmap_core/costmap_controller.h>
 #include <nav_core/base_local_planner.h>
 
 // #include <navfn/navfn_ros.h>
@@ -33,7 +33,7 @@ namespace dynamic_gap
     * \brief Class that we will write as our local path planner 
     * plugin for the move_base package
     */
-    class DynamicGapPlanner : public nav_core::BaseLocalPlanner, public mbf_costmap_core::CostmapController
+    class DynamicGapPlanner : public nav_core::BaseLocalPlanner // , public mbf_costmap_core::CostmapController
     {
         public: 
 
