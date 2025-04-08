@@ -119,6 +119,11 @@ namespace dynamic_gap
             */
             std::vector<float> getPathTiming() const { return pathTiming_; }
 
+            int size() const
+            {
+                return pathRbtFrame_.poses.size();
+            }
+
         private:
             geometry_msgs::PoseArray pathRbtFrame_; /**< trajectory path in robot frame */
             geometry_msgs::PoseArray pathOdomFrame_; /**< trajectory path in odom frame */

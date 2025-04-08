@@ -13,7 +13,6 @@ Panels:
         - /Dynamic Gap1/Marker1
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
-        - /LaserScan1
         - /Pose1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
@@ -460,6 +459,14 @@ Visualization Manager:
             {}
           Queue Size: 100
           Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /rto/candidate_tube_trajectories
+          Name: MarkerArray
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
@@ -640,14 +647,6 @@ Visualization Manager:
           Value: false
       Enabled: false
       Name: Potential Gap
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /rto/candidate_tube_trajectories
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -729,10 +728,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 75.6684799194336
+      Scale: 35.140750885009766
       Target Frame: rto/base_link
-      X: 2.4655346870422363
-      Y: 1.347442388534546
+      X: 6.391218662261963
+      Y: -3.267670154571533
     Saved: ~
 Window Geometry:
   Displays:

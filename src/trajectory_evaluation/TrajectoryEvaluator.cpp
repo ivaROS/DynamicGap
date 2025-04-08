@@ -38,27 +38,27 @@ namespace dynamic_gap
             
             posewiseCosts = std::vector<float>(path.poses.size());
 
+            if (path.poses.size() > futureScans.size()) 
+            {
+                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
+                return;
+            }
+
+            if (posewiseCosts.size() != path.poses.size()) 
+            {
+                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << path.poses.size());
+                return;
+            }
+
+
             for (int i = 0; i < posewiseCosts.size(); i++) 
             {
-                if (i >= futureScans.size()) 
-                {
-                    ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
-                    break;
-                }
-
-                if (i >= path.poses.size()) 
-                {
-                    ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << path.poses.size());
-                    break;
-                }
-
-
                 // std::cout << "regular range at " << i << ": ";
                 posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i + scanIdx)); //  / posewiseCosts.size()
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
             }
-            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0));
-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             pose-wise cost: " << totalTrajCost);
+            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
