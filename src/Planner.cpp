@@ -1310,8 +1310,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             
             // int lowestCostTrajIdx = -1;        
             
+            int totalTrajCount = ungapTrajs.size() + gapTrajs.size() + idlingTrajs.size();
+
+
             // ROS_INFO_STREAM_NAMED("pg_trajCount", "pg_trajCount, " << paths.size());
-            if (gapTrajs.size() == 0)
+            if (totalTrajCount == 0)
             {
                 ROS_WARN_STREAM_NAMED("Planner", "No traj synthesized");
                 trajFlag = NONE;
@@ -1339,6 +1342,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
+                if (gapTrajs.at(i).getPathRbtFrame().poses.size() == 0)
+                    ROS_WARN_STREAM_NAMED("Planner", " Gap trajectory is empty!");
+
                 pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(gapTrajPoseCosts.at(i).begin(), gapTrajPoseCosts.at(i).end(), float(0)) / gapTrajPoseCosts.at(i).size();
                 
                 pathCosts.at(runningTrajIdx) = gapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
@@ -1354,6 +1360,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
+                if (ungapTrajs.at(i).getPathRbtFrame().poses.size() == 0)
+                    ROS_WARN_STREAM_NAMED("Planner", " Ungap trajectory is empty!");
+
+
                 pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), ungapTrajPoseCosts.at(i).end(), float(0)) / ungapTrajPoseCosts.at(i).size();
                 
                 pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
@@ -1368,6 +1378,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             for (size_t i = 0; i < idlingTrajs.size(); i++) 
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
+
+                if (idlingTrajs.at(i).getPathRbtFrame().poses.size() == 0)
+                    ROS_WARN_STREAM_NAMED("Planner", " Idling trajectory is empty!");
 
                 pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), idlingTrajPoseCosts.at(i).end(), float(0)) / idlingTrajPoseCosts.at(i).size();
                 

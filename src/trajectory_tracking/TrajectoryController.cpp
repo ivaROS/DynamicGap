@@ -272,7 +272,7 @@ namespace dynamic_gap
         Eigen::Vector2f constantVelocityCommand = desiredSpeed * errorDir;
 
         float velLinXFeedback = constantVelocityCommand[0];
-        float velLinYFeedback = constantVelocityCommand[1];
+        float velLinYFeedback = 0.0; // constantVelocityCommand[1];
         float velAngFeedback = cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
