@@ -389,21 +389,21 @@ namespace dynamic_gap
     }
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+                                 const sensor_msgs::Imu::ConstPtr & rbtAccelMsg)
     {
         // ROS_INFO_STREAM("jointPoseAccCB");
 
         // odom coming in wrt rto/odom frame
         // velocity coming in wrt rto/odom frame
 
-        if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
-            ROS_WARN_STREAM("Odom msg header frame (for ego-robot pose) " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
+        // if (rbtOdomMsg->header.frame_id != cfg_.odom_frame_id)
+        //     ROS_WARN_STREAM("Odom msg header frame (for ego-robot pose) " << rbtOdomMsg->header.frame_id << " not same as cfg odom frame:" << cfg_.odom_frame_id);
 
-        if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
-            ROS_WARN_STREAM("Odom msg child frame (for ego-robot velocity) " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+        // if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
+        //     ROS_WARN_STREAM("Odom msg child frame (for ego-robot velocity) " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
         
-        if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
-            ROS_WARN_STREAM("Accel msg header frame (for ego-robot acceleration) " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
+        // if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
+        //     ROS_WARN_STREAM("Accel msg header frame (for ego-robot acceleration) " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
 
         // acceleration coming in wrt rto/base_link frame
 
@@ -430,7 +430,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
         }
 
-        currentRbtAcc_ = *rbtAccelMsg;
+        currentRbtAcc_.header = rbtAccelMsg->header;
+        currentRbtAcc_.twist.linear = rbtAccelMsg->linear_acceleration; 
+        currentRbtAcc_.twist.angular = rbtAccelMsg->angular_velocity; 
+        
         if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
         {
             // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");

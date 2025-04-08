@@ -8,8 +8,8 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("Planner", "Setting nh to: " << "~/" << name);
 
-        std::string model;
-        nh.param("/model", model, model); // Must write as "/model" with leading slash
+        std::string model = "tb2";
+        // nh.param("model", model, model); // Must write as "/model" with leading slash
 
         if (model == "tb2")
         {

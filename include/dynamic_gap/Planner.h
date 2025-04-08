@@ -203,7 +203,7 @@ namespace dynamic_gap
             * \param rbtAccelMsg incoming robot acceleration message
             */
             void jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg);
+                                const sensor_msgs::Imu::ConstPtr & rbtAccelMsg);
 
             /**
             * \brief Function for updating all tf transform at the beginning of every planning cycle
@@ -442,9 +442,9 @@ namespace dynamic_gap
             std::vector<ros::Subscriber> agentPoseSubs_; /**< Subscribers for agent poses */
 
             message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */
-            message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+            message_filters::Subscriber<sensor_msgs::Imu> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
 
-            typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
+            typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, sensor_msgs::Imu> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
             typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
             boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
 

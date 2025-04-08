@@ -18,7 +18,6 @@ Panels:
         - /Dynamic Gap1/Models1/MarkerArray1
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray1
-        - /Dynamic Gap1/Trajectories1/PoseArray1
         - /Dynamic Gap1/Trajectories1/Marker1
         - /Marker1
         - /Axes2
@@ -43,7 +42,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -179,7 +178,7 @@ Visualization Manager:
               Marker Topic: /simp_gaps
               Name: Marker
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -207,7 +206,7 @@ Visualization Manager:
               Marker Topic: /gap_models
               Name: MarkerArray
               Namespaces:
-                gap_models: true
+                {}
               Queue Size: 100
               Value: true
           Enabled: true
@@ -219,43 +218,9 @@ Visualization Manager:
               Marker Topic: /candidate_trajectories
               Name: MarkerArray
               Namespaces:
-                allTraj: true
+                {}
               Queue Size: 100
               Value: true
-            - Alpha: 1
-              Arrow Length: 0.30000001192092896
-              Axes Length: 0.30000001192092896
-              Axes Radius: 0.009999999776482582
-              Class: rviz/PoseArray
-              Color: 32; 74; 135
-              Enabled: true
-              Head Length: 0.07000000029802322
-              Head Radius: 0.029999999329447746
-              Name: PoseArray
-              Queue Size: 10
-              Shaft Length: 0.23000000417232513
-              Shaft Radius: 0.009999999776482582
-              Shape: Arrow (Flat)
-              Topic: /curr_exec_dg_traj
-              Unreliable: false
-              Value: true
-            - Alpha: 1
-              Arrow Length: 0.10000000149011612
-              Axes Length: 0.30000001192092896
-              Axes Radius: 0.009999999776482582
-              Class: rviz/PoseArray
-              Color: 255; 25; 0
-              Enabled: false
-              Head Length: 0.07000000029802322
-              Head Radius: 0.029999999329447746
-              Name: PoseArray
-              Queue Size: 10
-              Shaft Length: 0.23000000417232513
-              Shaft Radius: 0.009999999776482582
-              Shape: Arrow (Flat)
-              Topic: /relevant_global_plan_snippet
-              Unreliable: false
-              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /trajectory_switch
@@ -272,6 +237,14 @@ Visualization Manager:
                 {}
               Queue Size: 100
               Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /curr_exec_dg_traj
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /planning_loop_idx

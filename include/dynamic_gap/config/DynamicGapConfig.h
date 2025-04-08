@@ -28,9 +28,9 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 1.0; /**< Maximum angular speed for robot */            
+                float vx_absmax = 0.25; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.25; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 0.25; /**< Maximum angular speed for robot */            
             } rbt;
 
             /**
@@ -46,8 +46,8 @@ namespace dynamic_gap
                 int full_scan = 512; /**< Total ray count in scan (integer) */
                 float full_scan_f = 512.; /**< Total ray count in scan (float) */
                 float angle_increment = (2 * M_PI) / (full_scan_f - 1); /**< Angular increment between consecutive scan indices */
-                float range_min = 0.03; /**< Minimum detectable range in scan */
-                float range_max = -1e10; /**< Maximum detectable range in scan */
+                float range_min = 0.0; /**< Minimum detectable range in scan */
+                float range_max = 4.99; /**< Maximum detectable range in scan */
             } scan;
 
             /**
@@ -115,7 +115,7 @@ namespace dynamic_gap
                 float max_pose_to_scan_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
                 float Q = 1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
                 float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
-                float inf_ratio = 1.5; /**< Inflation ratio for planner */
+                float inf_ratio = 1.21; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
             } traj;            
 
@@ -136,7 +136,8 @@ namespace dynamic_gap
             struct ProjectionParam 
             {
                 float k_po_x = 1.0; /**< Proportional gain in x-direction for projection operator */
-                float r_unity = 0.5; /**< Robot to environment distance at which projection operator takes on a value of 1 */
+                float k_po_theta = 1.0; /**< Proportional gain for yaw for projection operator */                
+                float r_unity = 0.35; /**< Robot to environment distance at which projection operator takes on a value of 1 */
                 float r_zero = 1.0; /**< Robot to environment distance at which projection operator takes on a value of 0 */
             } projection;
 
