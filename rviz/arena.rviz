@@ -13,7 +13,6 @@ Panels:
         - /Dynamic Gap1/Marker1
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
-        - /LaserScan1
         - /Pose1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
@@ -31,7 +30,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -76,10 +75,10 @@ Visualization Manager:
         map:
           odom:
             {}
-          rto/odom:
-            rto/base_link:
-              rto/hokuyo_link:
-                {}
+        rto/odom:
+          rto/base_link:
+            rto/hokuyo_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -115,7 +114,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -154,12 +153,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: rto Local Costmap
       Topic: /rto/move_base_flex/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
