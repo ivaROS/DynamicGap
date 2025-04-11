@@ -139,7 +139,8 @@ namespace dynamic_gap
 
         initialized_ = true;
 
-        prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+        // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+        prevIdlingTime_ = std::chrono::steady_clock::now();
 
         return true;
     }
@@ -1535,7 +1536,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
 
-            prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+            // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+
+            if (prevTrajFlag_ != IDLING && trajFlag == IDLING)
+            {
+                prevIdlingTime_ = std::chrono::steady_clock::now(); 
+            }
+            prevTrajFlag_ = trajFlag;
+
 
             return incomingTraj;  
         } else 
@@ -1554,7 +1562,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
 
-            prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+            prevTrajFlag_ = -1;
+            // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
 
             return emptyTraj;
         }        
@@ -1564,7 +1573,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                                                 const int & trajFlag,
                                                 Gap * incomingGap,
-                                                const bool & isIncomingGapFeasible) // bool isIncomingGapAssociated,
+                                                const bool & isCurrentGapFeasible) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
@@ -1623,7 +1632,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ///////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing gap is not feasible //
             ///////////////////////////////////////////////////////////////////////////////
-            if (!isIncomingGapFeasible) 
+            if (!isCurrentGapFeasible) 
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current gap is not feasible, " << incomingPathStatus);                
@@ -1679,17 +1688,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
             
-            std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 
-            float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevTrajSwitchTime_).count();
-            float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
+            // float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevTrajSwitchTime_).count();
+            // float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
 
-            if (timeTakenInSeconds > currentTraj.getPathTiming().back()) 
-            {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
-                                                            ": current trajectory has been tracked for " << timeTakenInSeconds << " seconds, " << incomingPathStatus);
-                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            }
+            // if (timeTakenInSeconds > currentTraj.getPathTiming().back()) 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+            //                                                 ": current trajectory has been tracked for " << timeTakenInSeconds << " seconds, " << incomingPathStatus);
+            //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            // }
 
             // if planner has been idling for longer than maxt and incoming score is better
 
@@ -1948,10 +1957,23 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+
+            float timeIdlingInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevIdlingTime_).count();
+            float timeIdlingInSeconds = timeIdlingInMilliseconds * 1.0e-6;
+
+            
+            if (prevTrajFlag_ == IDLING && timeIdlingInSeconds >= cfg_.traj.integrate_maxt) 
+            {   
+                ROS_WARN_STREAM_NAMED("Planner", "Idling time is greater than maxt, not generating idling trajs");
+            } else
+            {
+                timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+                generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+                timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            }
         } 
+
         // else
         // {
         //     //////////////////////////////////////////////////////////////////////////////////////
@@ -2346,6 +2368,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     void Planner::reset()
     {
         setCurrentTraj(Trajectory());
+
+        // changeTrajectoryHelper(Trajectory(), 
+        //                         false,
+        //                         NONE,
+        //                         nullptr);
+
+        // hasGlobalGoal_ = false; 
+        // hasLaserScan_ = false;
+
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
         setCurrentLeftGapPtModelID(nullptr);

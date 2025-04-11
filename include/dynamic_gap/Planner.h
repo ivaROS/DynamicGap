@@ -488,7 +488,9 @@ namespace dynamic_gap
 
             // bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
 
-            std::chrono::steady_clock::time_point prevTrajSwitchTime_; /**< Time step of previous trajectory switch */
+            // std::chrono::steady_clock::time_point prevTrajSwitchTime_; /**< Time step of previous trajectory switch */
+            std::chrono::steady_clock::time_point prevIdlingTime_; 
+            int prevTrajFlag_ = -1; /**< Previous trajectory flag */
 
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 

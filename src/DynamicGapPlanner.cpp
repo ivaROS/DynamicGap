@@ -100,6 +100,10 @@ namespace dynamic_gap
 
         if (planner_.isGoalReached())
         {
+            ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "Goal reached, stopping robot");
+
+            // planner_.reset();
+
             cmd_vel.twist = geometry_msgs::Twist();
             return mbf_msgs::ExePathResult::SUCCESS;
         }

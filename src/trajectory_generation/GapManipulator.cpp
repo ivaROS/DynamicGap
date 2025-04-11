@@ -256,8 +256,8 @@ namespace dynamic_gap
 
         gap->setRGC();
 
-        // ROS_INFO_STREAM("        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
-        // ROS_INFO_STREAM_NAMED("GapManipulator",  "post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
     }
 
     bool GapManipulator::inflateGapSides(Gap * gap) 
@@ -336,7 +336,7 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed, new points in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
 
-            return false;
+            return true;
         }
 
         if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");

@@ -137,7 +137,7 @@ namespace dynamic_gap
         clearMarkerArrayPublisher(globalPlanPublisher);
 
         if (globalPlan.empty()) 
-            ROS_WARN_STREAM_NAMED("Visualizer", "Goal Selector Returned Trajectory Size " << globalPlan.size() << " < 1");
+            ROS_WARN_STREAM_NAMED("Visualizer", "Goal Selector Returned Trajectory Size 0");
 
         if (globalPlan.at(0).header.frame_id.empty())
         {

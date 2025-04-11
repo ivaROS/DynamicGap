@@ -391,8 +391,6 @@ namespace dynamic_gap
         projOpMarker.color.b = 0.0;
         projOpMarker.lifetime = ros::Duration(0);
 
-        ROS_INFO_STREAM_NAMED("Controller", "   projOpMarker: " << projOpMarker);
-
         projOpPublisher_.publish(projOpMarker);
     }
 
