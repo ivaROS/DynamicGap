@@ -139,6 +139,8 @@ namespace dynamic_gap
 
         initialized_ = true;
 
+        prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+
         return true;
     }
 
@@ -1533,6 +1535,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
 
+            prevTrajSwitchTime_ = std::chrono::steady_clock::now();
+
             return incomingTraj;  
         } else 
         {
@@ -1549,6 +1553,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
+
+            prevTrajSwitchTime_ = std::chrono::steady_clock::now();
 
             return emptyTraj;
         }        
@@ -1673,6 +1679,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
             
+            std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+
+            float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevTrajSwitchTime_).count();
+            float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
+
+            if (timeTakenInSeconds > currentTraj.getPathTiming().back()) 
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+                                                            ": current trajectory has been tracked for " << timeTakenInSeconds << " seconds, " << incomingPathStatus);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            }
+
+            // if planner has been idling for longer than maxt and incoming score is better
+
             // if (incomingPathCost < reducedCurrentPathSubCost) 
             // {
             //     ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
