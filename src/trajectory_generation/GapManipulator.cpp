@@ -336,7 +336,7 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed, new points in polar. left: (" << inflatedLeftIdx << ", " << inflatedLeftRange << "), right: (" << inflatedRightIdx << ", " << inflatedRightRange << ")");
 
-            return true;
+            return false;
         }
 
         if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");
