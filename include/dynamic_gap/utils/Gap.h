@@ -34,6 +34,18 @@ namespace dynamic_gap
                 // ROS_INFO_STREAM_NAMED("Gap", "  rangeRight: " << rangeRight);
                 // ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
 
+                if (! checkPtIdx(rightIdx))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right index is not valid: " << rightIdx);
+                    rightIdx = 0;
+                }
+
+                if (! checkPtRange(rangeRight))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right range is not valid: " << rangeRight);
+                    rangeRight = 0.0;
+                }
+
                 leftGapPt_ = new GapPoint(-1, -1.0); // temp values
                 rightGapPt_ = new GapPoint(rightIdx, rangeRight);
 

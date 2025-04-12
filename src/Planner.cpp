@@ -723,6 +723,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 if (!valid)
                 {
                     ROS_WARN_STREAM_NAMED("GapManipulator", "    invalid gap after manipulation " << i);
+                    continue;
                 }
 
                 if (success)
@@ -1957,21 +1958,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 
-            float timeIdlingInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevIdlingTime_).count();
-            float timeIdlingInSeconds = timeIdlingInMilliseconds * 1.0e-6;
+            // float timeIdlingInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevIdlingTime_).count();
+            // float timeIdlingInSeconds = timeIdlingInMilliseconds * 1.0e-6;
 
             
-            if (prevTrajFlag_ == IDLING && timeIdlingInSeconds >= cfg_.traj.integrate_maxt) 
-            {   
-                ROS_WARN_STREAM_NAMED("Planner", "Idling time is greater than maxt, not generating idling trajs");
-            } else
-            {
-                timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-                generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-                timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
-            }
+            // if (prevTrajFlag_ == IDLING && timeIdlingInSeconds >= cfg_.traj.integrate_maxt) 
+            // {   
+            //     ROS_WARN_STREAM_NAMED("Planner", "Idling time is greater than maxt, not generating idling trajs");
+            // } else
+            // {
+            //     timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+                // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            // }
         } 
 
         // else

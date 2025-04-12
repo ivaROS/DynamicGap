@@ -30,6 +30,17 @@ namespace dynamic_gap
                 orig.idx_ = idx;
                 orig.range_ = range;
 
+                if (! checkPtIdx(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 1]: Gap index is not valid: " << orig.idx_);
+                    orig.idx_ = 0;
+                }
+                if (! checkPtRange(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 1]: Gap range is not valid: " << orig.range_);
+                    orig.range_ = 0.0;
+                }
+
                 // Here, you can define what type of model you want to use
                 model_ = new RotatingFrameCartesianKalmanFilter();
                 // model_ = new PerfectEstimator();
@@ -41,8 +52,32 @@ namespace dynamic_gap
                 orig.idx_ = otherGapPoint.orig.idx_;
                 orig.range_ = otherGapPoint.orig.range_;
 
+                if (! checkPtIdx(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap index is not valid: " << orig.idx_);
+                    orig.idx_ = 0;
+                }
+
+                if (! checkPtRange(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap range is not valid: " << orig.range_);
+                    orig.range_ = 0.0;
+                }
+
                 manip.idx_ = otherGapPoint.manip.idx_;
                 manip.range_ = otherGapPoint.manip.range_;
+
+                if (! checkPtIdx(manip.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap index is not valid: " << manip.idx_);
+                    manip.idx_ = 0;
+                }
+
+                if (! checkPtRange(manip.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap range is not valid: " << manip.range_);
+                    manip.range_ = 0.0;
+                }
 
                 // Deep copy of models
                 model_ = new RotatingFrameCartesianKalmanFilter();
@@ -61,6 +96,13 @@ namespace dynamic_gap
                 orig.idx_ = theta2idx(propagatedGapPoint.getModel()->getGapBearing());
                 orig.range_ = propagatedGapPoint.getModel()->getGapRange();
 
+                if (! checkOrigPoint())
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 3]: Gap point is not valid: " << orig.idx_ << ", " << orig.range_);
+                    orig.idx_ = 0;
+                    orig.range_ = 0.0;
+                }
+
                 // ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
                 // ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
 
@@ -68,6 +110,13 @@ namespace dynamic_gap
 
                 manip.idx_ = theta2idx(propagatedGapPoint.getModel()->getManipGapBearing());
                 manip.range_ = propagatedGapPoint.getModel()->getManipGapRange();
+
+                if (! checkManipPoint())
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 3]: Gap point is not valid: " << manip.idx_ << ", " << manip.range_);
+                    manip.idx_ = 0;
+                    manip.range_ = 0.0;
+                }
 
                 // ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
                 // ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
