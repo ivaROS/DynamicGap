@@ -1408,10 +1408,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
-                if (gapTrajs.at(i).getPathRbtFrame().poses.size() < 2)
-                {
-                    ROS_WARN_STREAM_NAMED("Planner", "gap traj " << i << " has < 2 poses");
-                }
+                // if (gapTrajs.at(i).getPathRbtFrame().poses.size() < 2)
+                // {
+                //     ROS_WARN_STREAM_NAMED("Planner", "gap traj " << i << " has < 2 poses");
+                // }
 
                 pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(gapTrajPoseCosts.at(i).begin(), gapTrajPoseCosts.at(i).end(), float(0)) / gapTrajPoseCosts.at(i).size();
                 

@@ -22,8 +22,10 @@ namespace dynamic_gap
         public:
             // , const float & minSafeDist_
             Gap(const std::string & frame, 
+                const int & leftIdx,
+                const float & leftRange,
                 const int & rightIdx, 
-                const float & rangeRight, 
+                const float & rightRange, 
                 const bool & radial)
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "gap main constructor");
@@ -31,27 +33,36 @@ namespace dynamic_gap
                 radial_ = radial;
 
                 // ROS_INFO_STREAM_NAMED("Gap", "  rightIdx: " << rightIdx);
-                // ROS_INFO_STREAM_NAMED("Gap", "  rangeRight: " << rangeRight);
+                // ROS_INFO_STREAM_NAMED("Gap", "  rightRange: " << rightRange);
                 // ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
 
                 if (! checkPtIdx(rightIdx))
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right index is not valid: " << rightIdx);
-                    rightIdx = 0;
+                    // ROS_INFO_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right index is not valid: " << rightIdx);
+                    // rightIdx = 0;
                 }
 
-                if (! checkPtRange(rangeRight))
+                if (! checkPtRange(rightRange))
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right range is not valid: " << rangeRight);
-                    rangeRight = 0.0;
+                    ROS_WARN_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right range is not valid: " << rightRange);
+                    // ROS_INFO_STREAM_NAMED("Gap", "[Gap constructor 1]: Gap right range is not valid: " << rightRange);
+                    // rightRange = 0.0;
                 }
 
-                leftGapPt_ = new GapPoint(-1, -1.0); // temp values
-                rightGapPt_ = new GapPoint(rightIdx, rangeRight);
+                leftGapPt_ = new GapPoint(leftIdx, leftRange); // temp values
+                rightGapPt_ = new GapPoint(rightIdx, rightRange);
 
                 gapStart_ = 0.0;
 
                 goal_ = new GapGoal();
+
+                // initializing convex polar gap coordinates to raw ones
+                leftGapPt_->initManipPoint();
+                rightGapPt_->initManipPoint();
+
+                setRadial();
+                setRightType();
 
                 if (frame.empty())
                 {
