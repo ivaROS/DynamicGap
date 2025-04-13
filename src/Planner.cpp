@@ -1576,7 +1576,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                 Gap * incomingGap,
                                                 const bool & isCurrentGapFeasible) // bool isIncomingGapAssociated,
     {
-        ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "[compareToCurrentTraj()]");
+        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
         
         // Gap * incomingGap = (trajFlag == 0 ? feasibleGaps.at(lowestCostTrajIdx) : nullptr);
@@ -1594,13 +1594,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //////////////////////////////////////////////////////////////////////////////
             geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformPath(incomingTraj.getPathOdomFrame(), odom2rbt_);
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating incoming trajectory");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
             float incomingPathTerminalPoseCost;
             trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
 
             float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    incoming trajectory received a cost of: " << incomingPathCost);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
             
 
             ///////////////////////////////////////////////////////////////////////
@@ -1625,7 +1625,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             bool isCurrentPathEmpty = currentTraj.getPathRbtFrame().poses.size() == 0;
             if (isCurrentPathEmpty) 
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path is of length zero, " << incomingPathStatus);                
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             } 
@@ -1635,7 +1635,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ///////////////////////////////////////////////////////////////////////////////
             if (!isCurrentGapFeasible) 
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current gap is not feasible, " << incomingPathStatus);                
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             } 
@@ -1660,7 +1660,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             
             if (reducedCurrentPathRobotFrame.poses.size() < 2) 
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ <<  
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": old path length less than 2, " << incomingPathStatus);
 
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
@@ -1669,22 +1669,22 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Compare the costs of the incoming trajectory with the cost of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            int poseCheckCount = std::min(incomingTraj.getPathRbtFrame().poses.size(), reducedCurrentPathRobotFrame.poses.size());
-            incomingPathCost = std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.begin() + poseCheckCount, float(0)) / poseCheckCount;
+            // int poseCheckCount = std::min(incomingTraj.getPathRbtFrame().poses.size(), reducedCurrentPathRobotFrame.poses.size());
+            // incomingPathCost = std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / poseCheckCount;
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    re-evaluating incoming trajectory received a subcost of: " << incomingPathCost);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    evaluating current trajectory");            
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    re-evaluating incoming trajectory received a subcost of: " << incomingPathCost);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating current trajectory");            
             
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, 0);
-            float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.begin() + poseCheckCount, float(0)) / poseCheckCount;
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "    reduced current trajectory received a subcost of: " << reducedCurrentPathSubCost);
+            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
+            float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory received a subcost of: " << reducedCurrentPathSubCost);
 
             if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory change " << trajectoryChangeCount_ << 
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
                                                             ": current trajectory is of cost infinity," << incomingPathStatus);
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
@@ -1711,7 +1711,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // }
             
             
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        trajectory maintain");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory maintain");
             // currentTrajectoryPublisher_.publish(currentTraj.getPathRbtFrame());
             trajVisualizer_->drawCurrentTrajectory(reducedCurrentTraj);
 
@@ -1719,11 +1719,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         } catch (const std::out_of_range& e) 
         {
-            ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "        compareToCurrentTraj() out of range exception: " << e.what());
+            ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "        compareToCurrentTraj() out of range exception: " << e.what());
             return currentTraj;
         } catch (const std::exception & e)
         {
-            ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "        compareToCurrentTraj() exception: " << e.what());
+            ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "        compareToCurrentTraj() exception: " << e.what());
             return currentTraj;
         }
     }

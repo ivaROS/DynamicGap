@@ -120,7 +120,7 @@ namespace dynamic_gap
                 const float & gapStart,
                 const bool & available)
             {
-                ROS_INFO_STREAM_NAMED("Gap", "gap propagated point constructor");
+                // ROS_INFO_STREAM_NAMED("Gap", "gap propagated point constructor");
 
                 if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
                 {
@@ -362,33 +362,33 @@ namespace dynamic_gap
             */
             void setRadial()
             {
-                ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
+                // ROS_INFO_STREAM_NAMED("Gap", "setRadial:");
                 int checkLeftIdx = leftGapPt_->getOrigIdx(); // leftIdx_;
                 int checkRightIdx = rightGapPt_->getOrigIdx(); // rightIdx_;
 
                 float checkLeftRange = leftGapPt_->getOrigRange(); // leftRange_;
                 float checkRightRange = rightGapPt_->getOrigRange(); // rightRange_;
 
-                ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
-                ROS_INFO_STREAM_NAMED("Gap", "   checkLeftRange: " << checkLeftRange);
-                ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
-                ROS_INFO_STREAM_NAMED("Gap", "   checkRightRange: " << checkRightRange);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftIdx: " << checkLeftIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkLeftRange: " << checkLeftRange);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightIdx: " << checkRightIdx);
+                // ROS_INFO_STREAM_NAMED("Gap", "   checkRightRange: " << checkRightRange);
 
                 float gapAngle = (checkLeftIdx - checkRightIdx) * angle_increment;
                 if (gapAngle < 0)
                     gapAngle += TWO_M_PI;
 
-                ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
+                // ROS_INFO_STREAM_NAMED("Gap", "   gapAngle: " << gapAngle);
                 float nearRange = rightType_ ? checkRightRange : checkLeftRange;
 
                 // law of cosines
                 float pt1 = pow(checkRightRange, 2) + pow(checkLeftRange, 2);
                 float pt2 = 2 * checkRightRange * checkLeftRange * cos(gapAngle);
                 float leftPtToRightPtDist = sqrt(pt1 - pt2);
-                ROS_INFO_STREAM_NAMED("Gap", "   pt1: " << pt1);
-                ROS_INFO_STREAM_NAMED("Gap", "   pt2: " << pt2);
-                ROS_INFO_STREAM_NAMED("Gap", "   cos(gapAngle): " << cos(gapAngle));
-                ROS_INFO_STREAM_NAMED("Gap", "   leftPtToRightPtDist: " << leftPtToRightPtDist);
+                // ROS_INFO_STREAM_NAMED("Gap", "   pt1: " << pt1);
+                // ROS_INFO_STREAM_NAMED("Gap", "   pt2: " << pt2);
+                // ROS_INFO_STREAM_NAMED("Gap", "   cos(gapAngle): " << cos(gapAngle));
+                // ROS_INFO_STREAM_NAMED("Gap", "   leftPtToRightPtDist: " << leftPtToRightPtDist);
                 
                 // law of sines
                 float farSideAngle = asin(epsilonDivide(nearRange, leftPtToRightPtDist) * sin(gapAngle));
