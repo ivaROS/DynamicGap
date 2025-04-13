@@ -21,7 +21,7 @@ namespace dynamic_gap
             * \brief Visualize set of gap goals
             * \param gaps set of gaps whose goals we want to visualize
             */
-            void drawGapGoals(const std::vector<Gap *> & gaps);
+            void drawGapGoals(const std::vector<GapTube *> & gapTubes);
 
             /**
             * \brief Visualize global path local waypoint
@@ -43,7 +43,7 @@ namespace dynamic_gap
             * \param initial flag for visualizing initial or terminal gap goals
             */
             void drawGapGoals(visualization_msgs::Marker & marker, 
-                                const std::vector<Gap *> & gaps, 
+                                const std::vector<GapTube *> & gapTubes, 
                                 const bool & initial);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */

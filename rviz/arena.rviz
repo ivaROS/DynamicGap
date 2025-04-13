@@ -5,16 +5,12 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Dynamic Gap1
-        - /Dynamic Gap1/Scans1
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
-        - /Dynamic Gap1/Gaps1/MarkerArray1
+        - /Dynamic Gap1/Gaps1/Marker4
         - /Dynamic Gap1/Trajectories1/MarkerArray4
-        - /Dynamic Gap1/Tracking1
-        - /Dynamic Gap1/Marker1
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
-        - /Pose1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -370,6 +366,14 @@ Visualization Manager:
                 gap_goal: true
               Queue Size: 100
               Value: true
+            - Class: rviz/Marker
+              Enabled: true
+              Marker Topic: /rto/global_path_local_waypoint
+              Name: Marker
+              Namespaces:
+                local_goal: true
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: Gaps
         - Class: rviz/Group
@@ -419,6 +423,14 @@ Visualization Manager:
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/candidate_tube_trajectories
+              Name: MarkerArray
+              Namespaces:
                 allTraj: true
               Queue Size: 100
               Value: true
@@ -459,14 +471,6 @@ Visualization Manager:
           Name: Marker
           Namespaces:
             planning_loop_idx: true
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /rto/candidate_tube_trajectories
-          Name: MarkerArray
-          Namespaces:
-            allTraj: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -732,8 +736,8 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Scale: 80.92051696777344
       Target Frame: rto/base_link
-      X: 3.0010640621185303
-      Y: 0.21688346564769745
+      X: 0.8256959915161133
+      Y: 0.5105459690093994
     Saved: ~
 Window Geometry:
   Displays:

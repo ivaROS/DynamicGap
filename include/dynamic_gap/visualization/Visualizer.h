@@ -10,6 +10,7 @@
 
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/GapTube.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
 
