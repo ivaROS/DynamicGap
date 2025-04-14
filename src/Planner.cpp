@@ -1225,11 +1225,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                             rbtPoseInSensorFrame_,
                                                                             currentRbtVel_,
                                                                             true);
-            trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, 
+            trajEvaluator_->evaluateUngapTrajectory(pursuitGuidanceTraj, 
                                                 pursuitGuidancePoseCosts, 
                                                 pursuitGuidanceTerminalPoseCost, 
                                                 futureScans,
-                                                0);
+                                                ungaps.at(i));
             pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0));
             ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 

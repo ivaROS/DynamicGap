@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
+#include <dynamic_gap/utils/Ungap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <vector>
@@ -57,6 +58,12 @@ namespace dynamic_gap
                                     float & terminalPoseCost,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     dynamic_gap::Gap* gap = nullptr);
+
+            void evaluateUngapTrajectory(const Trajectory & traj,
+                std::vector<float> & posewiseCosts,
+                float & terminalPoseCost,
+                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                dynamic_gap::Ungap* ungap = nullptr);
             
             float relativeVelocityCost(Eigen::Vector2f relativeVel,
                 Eigen::Vector2f relativeGapPos,

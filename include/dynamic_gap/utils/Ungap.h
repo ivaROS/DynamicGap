@@ -45,6 +45,7 @@ namespace dynamic_gap
 
             void setGammaInterceptGoal(const float & gamma_intercept_goal) { gammaInterceptGoal_ = gamma_intercept_goal; }
             float getGammaInterceptGoal() const { return gammaInterceptGoal_; }
+            int getUngapID() { return ungapID_; }
 
 
         private:
