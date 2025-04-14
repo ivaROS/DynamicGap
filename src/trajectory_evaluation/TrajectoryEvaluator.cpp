@@ -39,6 +39,8 @@ namespace dynamic_gap
         bool leftGapPtIsDynamic = false; 
         bool rightGapPtIsDynamic = false; 
         
+        if(cfg_->planning.social_cost_function == 1)
+        {
         if(gap)
         {
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
@@ -95,6 +97,7 @@ namespace dynamic_gap
         
     // }
         }
+    }
 
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         std::vector<float> pathTiming = traj.getPathTiming();
@@ -103,7 +106,7 @@ namespace dynamic_gap
 
         float leftGapPtCost = 0; 
         float rightGapPtCost = 0; 
-        float relVelWeight = .1; //TODO: add this to cfg
+        float weight = cfg_->planning.social_cost_weight; 
 
 
         for (int i = 0; i < posewiseCosts.size(); i++) 
@@ -141,11 +144,11 @@ namespace dynamic_gap
             }
 
             // std::cout << "regular range at " << i << ": ";
-            posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)) + relVelWeight * leftGapPtCost + relVelWeight * rightGapPtCost; ; //  / posewiseCosts.size()
+            posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)) + weight * leftGapPtCost + weight * rightGapPtCost; ; //  / posewiseCosts.size()
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
 
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", " social score: " <<  relVelWeight * leftGapPtCost + relVelWeight * rightGapPtCost);
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", " social score: " <<  weight * leftGapPtCost + weight * rightGapPtCost);
 
 
         }
@@ -183,10 +186,16 @@ namespace dynamic_gap
         bool leftUngapPtIsDynamic = false; 
         bool rightUngapPtIsDynamic = false; 
 
+        if(cfg_->planning.social_cost_function == 1)
+        {
         if(ungap)
         {
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "ungap->getUngapID()");
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",ungap->getUngapID());
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "ungap->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",ungap->getUngapID());
+
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator","cfg_.planning.social_cost_function");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",cfg_->planning.social_cost_function);
+
 
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightUngapPt()->getUngapID()");
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",ungap->getRightUngapPt()->getUngapID());
@@ -240,6 +249,7 @@ namespace dynamic_gap
 
         // }
         }
+    }
 
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         std::vector<float> pathTiming = traj.getPathTiming();
@@ -248,7 +258,7 @@ namespace dynamic_gap
 
         float leftUngapPtCost = 0; 
         float rightUngapPtCost = 0; 
-        float relVelWeight = .1; //TODO: add this to cfg
+        float weight = cfg_->planning.social_cost_weight; 
 
 
         for (int i = 0; i < posewiseCosts.size(); i++) 
@@ -286,11 +296,11 @@ namespace dynamic_gap
         }
 
         // std::cout << "regular range at " << i << ": ";
-        posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)) + relVelWeight * leftUngapPtCost + relVelWeight * rightUngapPtCost; ; //  / posewiseCosts.size()
+        posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i)) + weight * leftUngapPtCost + weight * rightUngapPtCost; ; //  / posewiseCosts.size()
         ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
 
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", " ungap social score: " <<  relVelWeight * leftUngapPtCost + relVelWeight * rightUngapPtCost);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", " ungap social score: " <<  weight * leftUngapPtCost + weight * rightUngapPtCost);
 
 
         }
