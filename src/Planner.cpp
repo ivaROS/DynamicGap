@@ -730,9 +730,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 {
                     ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
                     
-                    gapGoalPlacer_->setGapGoal(planningGaps.at(i), 
-                                                globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                                                globalGoalRobotFrame_);                    
+                    // gapGoalPlacer_->setGapGoal(planningGaps.at(i), 
+                    //                             globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                    //                             globalGoalRobotFrame_);                    
 
                     manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
                 }
