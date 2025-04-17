@@ -1787,6 +1787,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return;
         }
 
+        timeKeeper_->startTimer(PLAN);
+
         trajVisualizer_->drawPlanningLoopIdx(timeKeeper_->getPlanningLoopCalls());
 
         isGoalReached();
@@ -1797,8 +1799,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // Gap Tubes
         std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
-
-        timeKeeper_->startTimer(PLAN);
 
         int gapCount = planningGaps.size();
 
@@ -2087,8 +2087,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             timeKeeper_->stopTimer(TRAJ_COMP);
         } 
 
-        timeKeeper_->stopTimer(PLAN);
-
         // delete set of planning gaps
         for (Gap * planningGap : planningGaps)
             delete planningGap;
@@ -2105,6 +2103,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             delete tube;
         }
+
+        timeKeeper_->stopTimer(PLAN);
+        timeKeeper_->computeAverageNumberGaps(gapCount);
 
         return;
     }
@@ -2250,12 +2251,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             if (!haveTFs_)
                 return cmdVel;
 
-            if (localTrajectory.poses.size() == 0)
-            {
-                ROS_WARN_STREAM_NAMED("Controller", "No trajectory to follow");
-                return cmdVel;
-            }
-            
             // Know Current Pose
             geometry_msgs::PoseStamped currPoseStRobotFrame;
             currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
@@ -2272,7 +2267,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 return rawCmdVel;                
             } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL 
             { 
-                ROS_INFO_STREAM_NAMED("Planner", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
+                ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
+                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+                return rawCmdVel;
+            } else if (localTrajectory.poses.size() == 0) 
+            {
+                ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
                 rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 return rawCmdVel;
             } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
