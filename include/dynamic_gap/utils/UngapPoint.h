@@ -24,10 +24,12 @@ namespace dynamic_gap
                 // Do NOT want to initialize model here
             }
 
-            UngapPoint(const GapPoint & gapPoint)
+            UngapPoint(const GapPoint & gapPoint, const int & ungapID)
             {
                 orig.idx_ = gapPoint.getOrigIdx();
                 orig.range_ = gapPoint.getOrigRange();
+
+                ungapID_ = ungapID;
 
                 // Here, you can define what type of model you want to use
                 // Deep copy of models
@@ -48,6 +50,8 @@ namespace dynamic_gap
             }            
 
         private:
+
+            int ungapID_ = -1;
 
             /**
             * \brief Parameters of original form of gap

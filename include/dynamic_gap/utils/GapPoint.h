@@ -79,6 +79,8 @@ namespace dynamic_gap
                     manip.range_ = 0.0;
                 }
 
+                ungapID_ = otherGapPoint.ungapID_;
+
                 // Deep copy of models
                 model_ = new RotatingFrameCartesianKalmanFilter();
                 // model_ = new PerfectEstimator();
@@ -117,6 +119,8 @@ namespace dynamic_gap
                     manip.idx_ = 0;
                     manip.range_ = 0.0;
                 }
+
+                ungapID_ = propagatedGapPoint.getUngapID();
 
                 // ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
                 // ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
@@ -319,6 +323,7 @@ namespace dynamic_gap
 
             void setUngapID(const int & ungapID)
             {
+                ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
                 ungapID_ = ungapID;
             }
 

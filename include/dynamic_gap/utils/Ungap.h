@@ -22,9 +22,9 @@ namespace dynamic_gap
         public:
             Ungap( GapPoint * leftGapPt, GapPoint * rightGapPt, const int & ungapID)
             {
-                leftUngapPt_ = new UngapPoint(*leftGapPt);
-                rightUngapPt_ = new UngapPoint(*rightGapPt);
                 ungapID_ = ungapID;
+                leftUngapPt_ = new UngapPoint(*leftGapPt, ungapID);
+                rightUngapPt_ = new UngapPoint(*rightGapPt, ungapID);
 
                 goal_ = new UngapGoal();
             }
