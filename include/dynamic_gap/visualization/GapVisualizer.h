@@ -38,7 +38,7 @@ namespace dynamic_gap
             * \brief Visualize set of gap models
             * \param gaps set of gaps whose models we want to visualize
             */
-            void drawGapsModels(const std::vector<Gap *> & gaps);
+            void drawGapsModels(const std::vector<Gap *> & gaps, const std::string & ns);
 
         private:
             /**
@@ -99,7 +99,8 @@ namespace dynamic_gap
             ros::Publisher simpGapsPublisher; /**< Publisher for simplified gaps */
             ros::Publisher manipGapsPublisher; /**< Publisher for manipulated gaps */
             ros::Publisher navigableGapsPublisher; /**< Publisher for navigable gaps */
-            ros::Publisher gapModelsPublisher; /**< Publisher for gap models */
+            ros::Publisher rawGapModelsPublisher; /**< Publisher for raw gap models */
+            ros::Publisher simpGapModelsPublisher; /**< Publisher for simp gap models */
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;

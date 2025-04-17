@@ -16,9 +16,10 @@ namespace dynamic_gap
         manipGapsPublisher = nh.advertise<visualization_msgs::Marker>("manip_gaps", 10);
         navigableGapsPublisher = nh.advertise<visualization_msgs::Marker>("reachable_gaps", 10);
         
-        gapModelsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_models", 10);
-        
-        std_msgs::ColorRGBA rawInitial, rawTerminal, 
+        rawGapModelsPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gap_models", 10);
+        simpGapModelsPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_models", 10);
+
+        std_msgs::ColorRGBA rawInitial, rawTerminal, rawTmin1, 
                             simpInitial, simpTerminal, simpTmin1,
                             manipInitial, manipTerminal, 
                             reachable, 
@@ -27,6 +28,11 @@ namespace dynamic_gap
 
         // Raw gaps
         std::vector<double> rawGapColorTriplet = {1.0, 0.0, 0.0};
+        rawTmin1.a = 0.5;
+        rawTmin1.r = rawGapColorTriplet[0];
+        rawTmin1.g = rawGapColorTriplet[1];
+        rawTmin1.b = rawGapColorTriplet[2];         
+        
         rawInitial.a = 1.0;
         rawInitial.r = rawGapColorTriplet[0];
         rawInitial.g = rawGapColorTriplet[1];
@@ -84,6 +90,7 @@ namespace dynamic_gap
         gapSplines.b = 0;
 
         // colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw", raw));
+        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw_tmin1", rawTmin1));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw_initial", rawInitial));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("raw_terminal", rawTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("simp_tmin1", simpTmin1));
@@ -137,7 +144,7 @@ namespace dynamic_gap
 
         std::string fullNamespace = ns;
         
-        if (fullNamespace == "simp_tmin1")
+        if (fullNamespace == "simp_tmin1" || fullNamespace ==  "raw_tmin1")
         {
             marker.id = 0;
         } else
@@ -145,6 +152,7 @@ namespace dynamic_gap
             fullNamespace.append("_initial");
             marker.id = 1;
         } 
+
         // if (initial)
         //     fullNamespace.append("_initial");
         // else
@@ -317,17 +325,29 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("[drawManipGap] end");
     }
 
-    void GapVisualizer::drawGapsModels(const std::vector<Gap *> & gaps) 
+    void GapVisualizer::drawGapsModels(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
-        // First, clearing topic.
-        clearMarkerArrayPublisher(gapModelsPublisher);
 
         visualization_msgs::MarkerArray gapModelMarkerArray; // , gap_vel_error_arr , gap_pos_GT_arr, gap_vel_GT_arr;
         for (Gap * gap : gaps) 
         {
-            drawGapModels(gapModelMarkerArray, gap, "gap_models"); // gap_vel_error_arr
+            drawGapModels(gapModelMarkerArray, gap, ns); // gap_vel_error_arr
         }
-        gapModelsPublisher.publish(gapModelMarkerArray);
+
+        if (ns.find("raw") != std::string::npos) 
+        {
+            // First, clearing topic.
+            clearMarkerArrayPublisher(rawGapModelsPublisher);
+
+            rawGapModelsPublisher.publish(gapModelMarkerArray);
+        } else if (ns.find("simp") != std::string::npos) 
+        {
+            // First, clearing topic.
+            clearMarkerArrayPublisher(simpGapModelsPublisher);
+
+            simpGapModelsPublisher.publish(gapModelMarkerArray);
+        }
+        // gapModelsPublisher.publish(gapModelMarkerArray);
     }
 
     void GapVisualizer::drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray,
@@ -370,6 +390,18 @@ namespace dynamic_gap
             return;
         }
         
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");
+
+        auto colorIter = colorMap.find(fullNamespace);
+        if (colorIter == colorMap.end()) 
+        {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+
+        modelMarker.color = colorIter->second;
+
         // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->getFrame();
         modelMarker.header.stamp = ros::Time();
@@ -426,9 +458,9 @@ namespace dynamic_gap
         modelMarker.scale.y = 0.1;
         modelMarker.scale.z = 0.000001;
 
-        modelMarker.color.a = 1.0;
-        modelMarker.color.r = 1.0;
-        modelMarker.color.b = 1.0;
+        // modelMarker.color.a = 1.0;
+        // modelMarker.color.r = 1.0;
+        // modelMarker.color.b = 1.0;
         modelMarker.lifetime = ros::Duration(0);
     }
 }

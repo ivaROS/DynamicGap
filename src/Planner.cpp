@@ -287,10 +287,11 @@ namespace dynamic_gap
         timeKeeper_->stopTimer(GAP_EST);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
-        gapVisualizer_->drawGapsModels(currRawGaps_);
+        gapVisualizer_->drawGaps(prevRawGaps_, std::string("raw_tmin1"));
+        gapVisualizer_->drawGapsModels(currRawGaps_, std::string("raw"));
         gapVisualizer_->drawGaps(currSimplifiedGaps_, std::string("simp"));
-        gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
-        gapVisualizer_->drawGapsModels(currSimplifiedGaps_);
+        // gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
+        gapVisualizer_->drawGapsModels(currSimplifiedGaps_, std::string("simp"));
 
         hasLaserScan_ = true;
         
