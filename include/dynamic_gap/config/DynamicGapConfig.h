@@ -64,6 +64,8 @@ namespace dynamic_gap
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 int halt_size = 5; /**< Size of command velocity buffer */
+                int social_cost_function = 0; /**< 0 - old without cost function, 1 - new */
+                int social_cost_weight = .1; /**< weight for social cost during pose evaluation for traj selection */
             } planning;            
 
             /**

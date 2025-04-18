@@ -47,7 +47,12 @@ namespace dynamic_gap
             Estimator * getModel() const
             {
                 return model_;
-            }            
+            }
+            
+            int getUngapID() const
+            {
+                return ungapID_;
+            }
 
         private:
 
