@@ -10,7 +10,9 @@ Panels:
         - /Dynamic Gap1/Gaps1/Marker1
         - /Dynamic Gap1/Gaps1/MarkerArray2
         - /Dynamic Gap1/Gaps1/Marker4
+        - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray4
+        - /Dynamic Gap1/Tracking1
         - /Axes2
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
@@ -329,14 +331,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/raw_gaps
               Name: Marker
               Namespaces:
-                raw: true
-                raw_tmin1: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/simp_gaps
@@ -346,13 +347,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/manip_gaps
               Name: Marker
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/raw_gap_models
@@ -362,21 +363,21 @@ Visualization Manager:
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/simp_gap_models
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/gap_goals
               Name: Marker
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/global_path_local_waypoint
@@ -410,7 +411,7 @@ Visualization Manager:
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -434,7 +435,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -442,10 +443,10 @@ Visualization Manager:
               Marker Topic: /rto/candidate_tube_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
-          Enabled: false
+          Enabled: true
           Name: Trajectories
         - Class: rviz/Group
           Displays:
@@ -454,7 +455,7 @@ Visualization Manager:
               Marker Topic: /rto/po_dir
               Name: Marker
               Namespaces:
-                {}
+                "": true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -474,36 +475,36 @@ Visualization Manager:
               Topic: /rto/mpc_input
               Unreliable: false
               Value: false
-          Enabled: false
+          Enabled: true
           Name: Tracking
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
-            {}
+            planning_loop_idx: true
           Queue Size: 100
-          Value: false
+          Value: true
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
       Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: rto/base_link
       Show Trail: false
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: odom
       Show Trail: false
-      Value: false
+      Value: true
     - Class: rviz/Group
       Displays:
         - Class: rviz/Marker
@@ -745,10 +746,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 109.69115447998047
+      Scale: 92.71495056152344
       Target Frame: rto/base_link
-      X: 0.3463898003101349
-      Y: -0.5741531252861023
+      X: 3.762315273284912
+      Y: -0.0782759040594101
     Saved: ~
 Window Geometry:
   Displays:
