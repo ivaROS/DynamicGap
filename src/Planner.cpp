@@ -763,16 +763,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                     Gap * gap = gapTube->at(j);
 
-                    if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
-                    {
-                        ROS_INFO_STREAM_NAMED("Planner", "          next gap unavailable, placing goal inside");
-
-                        Gap * nextGap = gapTube->at(j+1);
-
-                        // place goal inside gap
-                        gapGoalPlacer_->setGapGoalFromNextV2(gap, nextGap);   
-
-                    } else if (!gap->isAvailable()) // if curr gap is not available (should mean that previous gap existed)
+                    if (!gap->isAvailable()) // if curr gap is not available (should mean that previous gap existed)
                     {
                         ROS_INFO_STREAM_NAMED("Planner", "          current gap unavailable, placing goal inside");
 
@@ -787,15 +778,27 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                         gapGoalPlacer_->setGapGoalFromPriorV2(gap, priorGap);
 
-                    } else
+                    } else // curr gap is available
                     {
-                        ROS_INFO_STREAM_NAMED("Planner", "          current gap available, placing goal beyond");
+                        if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
+                        {
+                            ROS_INFO_STREAM_NAMED("Planner", "          next gap unavailable, placing goal inside");
 
-                        // place goal beyond gap
-                        // should use manipulate points to set gaps
-                        gapGoalPlacer_->setGapGoalV2(gap, 
-                            globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                            globalGoalRobotFrame_);                    
+                            Gap * nextGap = gapTube->at(j+1);
+
+                            // place goal inside gap
+                            gapGoalPlacer_->setGapGoalFromNextV2(gap, nextGap);   
+
+                        } else
+                        {
+                            ROS_INFO_STREAM_NAMED("Planner", "          current gap available, placing goal beyond");
+
+                            // place goal beyond gap
+                            // should use manipulate points to set gaps
+                            gapGoalPlacer_->setGapGoalV2(gap, 
+                                                            globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                                            globalGoalRobotFrame_);          
+                        }          
                     }
                 }
             }
@@ -1039,6 +1042,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     Gap * gap = gapTube->at(j);
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "         gap: " << j);
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "             scanIdx: " << scanIdx);
+
                     // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
                     
                     // Run go to goal behavior
@@ -1116,6 +1121,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     currPose.header.stamp = traj.getPathRbtFrame().header.stamp += ros::Duration(trajDuration);
 
                     // append traj
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        appending trajectory piece...");
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        traj size: " << traj.getPathRbtFrame().poses.size());
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running traj size: " << runningTraj.getPathRbtFrame().poses.size());
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pose costs size: " << poseCosts.size());
+                    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pose costs size: " << runningPoseCosts.size());
                     if (j == 0)
                     {
                         runningTraj = traj;
@@ -1125,11 +1135,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     {
                         runningTraj.appendTraj(traj);
                         // append costs
-                        runningPoseCosts.insert(runningPoseCosts.end(), poseCosts.begin(), poseCosts.end());
+                        runningPoseCosts.insert(runningPoseCosts.end(), poseCosts.begin() + 1, poseCosts.end());
                         runningTerminalPoseCost = terminalPoseCost; //  += terminalPoseCost;
                     }
 
-                    scanIdx = traj.getPathRbtFrame().poses.size() - 1;
+                    scanIdx = runningTraj.getPathRbtFrame().poses.size() - 1;
                 }
 
                 gapTubeTrajs.at(i) = runningTraj;
@@ -2013,80 +2023,86 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //                              GAP TRAJECTORY COMPARISON                           //
         //////////////////////////////////////////////////////////////////////////////////////
 
-        if (trajFlag != NONE) 
+        // if (trajFlag != NONE) 
+        // {
+
+        timeKeeper_->startTimer(TRAJ_COMP);
+
+        Gap * incomingGap = nullptr;
+        Ungap * incomingUngap = nullptr;
+        Trajectory incomingTraj;
+
+        if (trajFlag == GAP) // comparing to traj within one of the gaps
         {
-            timeKeeper_->startTimer(TRAJ_COMP);
-
-            Gap * incomingGap = nullptr;
-            Ungap * incomingUngap = nullptr;
-            Trajectory incomingTraj;
-
-            if (trajFlag == GAP) // comparing to traj within one of the gaps
+            ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
+            if (lowestCostTrajIdx < 0)
             {
-                ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
-                if (lowestCostTrajIdx < 0)
-                {
-                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index is negative");
-                    chosenTraj = Trajectory();
-                    trajFlag = NONE;
-                    return;
-                }
-
-                if (lowestCostTrajIdx >= gapTrajs.size())
-                {
-                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for gapTrajs");
-                    chosenTraj = Trajectory();
-                    trajFlag = NONE;
-                    return;
-                }
-
-                // if (lowestCostTrajIdx >= feasibleGaps.size())
-                // {
-                //     ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for feasibleGaps");
-                //     chosenTraj = Trajectory();
-                //     trajFlag = NONE;
-                //     return;
-                // }
-
-                incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
-                incomingTraj = gapTrajs.at(lowestCostTrajIdx);
-            } else if (trajFlag == UNGAP) // comparing to un-gap traj
-            {
-                ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
-                if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= ungapTrajs.size())
-                {
-                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost ungap trajectory index out of bounds");
-                    chosenTraj = Trajectory();
-                    trajFlag = NONE;
-                    return;
-                }
-                incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
-                ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
-                incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
-            } else if (trajFlag == IDLING)
-            {
-                ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
-                if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= idlingTrajs.size())
-                {
-                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost idling trajectory index out of bounds");
-                    chosenTraj = Trajectory();
-                    trajFlag = NONE;
-                    return;
-                }
-                incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
-            } else
-            {
-                ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
+                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index is negative");
+                chosenTraj = Trajectory();
+                trajFlag = NONE;
+                return;
             }
 
-            chosenTraj = compareToCurrentTraj(incomingTraj,           
-                                                futureScans,
-                                                trajFlag,
-                                                incomingGap,
-                                                isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
+            if (lowestCostTrajIdx >= gapTrajs.size())
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for gapTrajs");
+                chosenTraj = Trajectory();
+                trajFlag = NONE;
+                return;
+            }
 
-            timeKeeper_->stopTimer(TRAJ_COMP);
-        } 
+            // if (lowestCostTrajIdx >= feasibleGaps.size())
+            // {
+            //     ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for feasibleGaps");
+            //     chosenTraj = Trajectory();
+            //     trajFlag = NONE;
+            //     return;
+            // }
+
+            incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
+            incomingTraj = gapTrajs.at(lowestCostTrajIdx);
+        } else if (trajFlag == UNGAP) // comparing to un-gap traj
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
+            if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= ungapTrajs.size())
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost ungap trajectory index out of bounds");
+                chosenTraj = Trajectory();
+                trajFlag = NONE;
+                return;
+            }
+            incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
+            ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
+            incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
+        } else if (trajFlag == IDLING)
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
+            if (lowestCostTrajIdx < 0 || lowestCostTrajIdx >= idlingTrajs.size())
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost idling trajectory index out of bounds");
+                chosenTraj = Trajectory();
+                trajFlag = NONE;
+                return;
+            }
+            incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
+        } else if (trajFlag == NONE)
+        {
+            ROS_INFO_STREAM_NAMED("Planner", "       comparing to none trajectory");
+            chosenTraj = Trajectory();
+            trajFlag = NONE;
+        } else
+        {
+            ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
+        }
+
+        chosenTraj = compareToCurrentTraj(incomingTraj,           
+                                            futureScans,
+                                            trajFlag,
+                                            incomingGap,
+                                            isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
+
+        timeKeeper_->stopTimer(TRAJ_COMP);
+        // } 
 
         // delete set of planning gaps
         for (Gap * planningGap : planningGaps)

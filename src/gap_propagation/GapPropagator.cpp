@@ -393,7 +393,11 @@ namespace dynamic_gap
                         break;
                     } else
                     {
-                        if (propagatedGapPtJ->getUngapID() != propagatedGapPtI->getUngapID())
+                        if (propagatedGapPtJ->getUngapID() >= 0 && propagatedGapPtI->getUngapID() >= 0 &&
+                            propagatedGapPtJ->getUngapID() == propagatedGapPtI->getUngapID())
+                        {
+                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap points form an ungap (j ID: " << propagatedGapPtJ->getUngapID() << ", i ID: " << propagatedGapPtI->getUngapID() << "), continuing...");
+                        } else
                         {
                             ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating a reversed gap from pt " << i << " to pt " << j);                         
                             // Create a reversed gap
@@ -404,10 +408,7 @@ namespace dynamic_gap
                             currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
                                                             *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, false)); // (j, i): current left/right
 
-                            break;
-                        } else
-                        {
-                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       gap points form an ungap, continuing...");
+                            break;                            
                         }
                     }
                 }

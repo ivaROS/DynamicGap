@@ -131,8 +131,8 @@ namespace dynamic_gap
         */
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "t: " << t);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   x: " << x[0] << ", " << x[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "t: " << t);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   x: " << x[0] << ", " << x[1]);
 
             n_gamma_intercept_ << std::cos(gammaIntercept_), std::sin(gammaIntercept_);
 
@@ -152,7 +152,7 @@ namespace dynamic_gap
             if (rbtToTerminalGoal_.norm() < 0.25 ||
                 (rbtPos_.norm() > leftGapPos_.norm() && rbtPos_.norm() > rightGapPos_.norm()))
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   prematured stop");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   prematured stop");
                 // stop trajectory prematurely
                 dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
                 dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
