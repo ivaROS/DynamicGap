@@ -51,7 +51,9 @@ namespace dynamic_gap
             Estimator * getModel() const { return model_; }
 
             void setUngapID(const int & ungapID) { ungapID_ = ungapID; }
+
             int getUngapID() { return ungapID_; }
+            int getUngapID() const { return ungapID_; }
 
             // int getScanIdx() { return scanIdx_; }
             // int getScanIdx() const { return scanIdx_; }

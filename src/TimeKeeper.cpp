@@ -20,7 +20,7 @@ namespace dynamic_gap
     {
         totalNumGaps += gapCount;
         float avgNumberGaps = (totalNumGaps / (float) planningLoopCalls);
-        ROS_INFO_STREAM_NAMED("Timing", "       [Planning Loop average number of gaps: " << avgNumberGaps << "]");
+        ROS_INFO_STREAM_NAMED("Timing", "      [Planning Loop average number of gaps: " << avgNumberGaps << "]");
 
         return avgNumberGaps;
     }

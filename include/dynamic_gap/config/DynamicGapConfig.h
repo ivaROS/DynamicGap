@@ -92,7 +92,7 @@ namespace dynamic_gap
             */
             struct GapAssociation 
             {
-                float assoc_thresh = 0.50; /**< Distance threshold for gap association */
+                float assoc_thresh = 1.0; /**< Distance threshold for gap association */
             } gap_assoc;           
 
             /**

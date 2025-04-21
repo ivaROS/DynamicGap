@@ -58,6 +58,44 @@ namespace dynamic_gap
     //         CHECKING         // 
     //////////////////////////////
 
+    inline bool checkPtIdx(const int & idx)
+    {
+        // check for negative index
+        if (idx < 0)
+            return false;
+
+        // check for out of bounds index
+        if (idx >= 2*half_num_scan)
+            return false;
+
+        // check for nan
+        if (std::isnan(idx))
+            return false;
+
+        // check for inf
+        if (std::isinf(idx))
+            return false;
+
+        return true;
+    }
+
+    inline bool checkPtRange(const float & range)
+    {
+        // check for negative range
+        if (range < 0.0)
+            return false;
+
+        // check for nan
+        if (std::isnan(range))
+            return false;
+
+        // check for inf
+        if (std::isinf(range))
+            return false;
+
+        return true;
+    }
+
     inline bool checkModelState(const Eigen::Vector4f & state)
     {
         // check for nan

@@ -109,8 +109,8 @@ namespace dynamic_gap
             if (radialGapSizeCheck(currRange, prevRange, scan_.angle_increment)) 
             {
                 // initializing a radial gap
-                Gap * gap = new Gap(frame, currIdx - 1, prevRange, true); // , minScanDist_
-                gap->addLeftInformation(currIdx, currRange);
+                Gap * gap = new Gap(frame, currIdx, currRange, currIdx - 1, prevRange, true); // , minScanDist_
+                // gap->addLeftInformation();
 
                 rawGaps.push_back(gap);
 
@@ -130,8 +130,8 @@ namespace dynamic_gap
                     // Max: added first condition for if gap is sufficiently large. E.g. if agent directly behind robot, can get big gap but L/R points are close together
                     if (sweptGapSizeCheck(currIdx, currRange, gapRIdx, gapRDist)) 
                     {
-                        Gap * gap = new Gap(frame, gapRIdx, gapRDist, false); // , minScanDist_
-                        gap->addLeftInformation(currIdx, currRange);
+                        Gap * gap = new Gap(frame, currIdx, currRange, gapRIdx, gapRDist, false); // , minScanDist_
+                        // gap->addLeftInformation();
     
                         //std::cout << "adding candidate swept gap" << std::endl;
                         ROS_INFO_STREAM_NAMED("GapDetector", "    adding swept gap from: (" << gap->RIdx() << ", " << gap->RRange() << "), to (" << gap->LIdx() << ", " << gap->LRange() << ")");                
@@ -163,8 +163,8 @@ namespace dynamic_gap
             // // ROS_INFO_STREAM_NAMED("GapDetector", "gap side dist: " << gap_dist_side);
             if (sweptGapSizeCheck(last_scan_idx, last_scan_range, gapRIdx, gapRDist)) 
             {
-                Gap * gap = new Gap(frame, gapRIdx, gapRDist, false); // , minScanDist_
-                gap->addLeftInformation(last_scan_idx, last_scan_range);
+                Gap * gap = new Gap(frame, last_scan_idx, last_scan_range, gapRIdx, gapRDist, false); // , minScanDist_
+                // gap->addLeftInformation();
                                 
                 // ROS_INFO_STREAM_NAMED("GapDetector", "    adding candidate last gap");
                 rawGaps.push_back(gap);

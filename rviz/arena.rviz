@@ -4,16 +4,18 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Dynamic Gap1
         - /Dynamic Gap1/Scans1
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
         - /Dynamic Gap1/Gaps1/MarkerArray1
+        - /Dynamic Gap1/Gaps1/MarkerArray2
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray4
-        - /Dynamic Gap1/Marker1
+        - /Dynamic Gap1/Tracking1
+        - /Axes2
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
-        - /Pose1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -30,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -42,12 +44,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: true
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /map
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz/TF
       Enabled: true
       Filter (blacklist): ""
@@ -59,12 +61,6 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
-        rto/base_link:
-          Value: true
-        rto/hokuyo_link:
-          Value: true
-        rto/odom:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: Transform
@@ -75,10 +71,6 @@ Visualization Manager:
         map:
           odom:
             {}
-          rto/odom:
-            rto/base_link:
-              rto/hokuyo_link:
-                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -114,7 +106,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -153,12 +145,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: rto Local Costmap
       Topic: /rto/move_base_flex/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -253,7 +245,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        world: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -280,7 +272,7 @@ Visualization Manager:
               Color: 239; 41; 41
               Color Transformer: FlatColor
               Decay Time: 0
-              Enabled: true
+              Enabled: false
               Invert Rainbow: false
               Max Color: 239; 41; 41
               Min Color: 0; 0; 0
@@ -295,7 +287,7 @@ Visualization Manager:
               Unreliable: false
               Use Fixed Frame: true
               Use rainbow: true
-              Value: true
+              Value: false
             - Alpha: 1
               Autocompute Intensity Bounds: true
               Autocompute Value Bounds:
@@ -308,7 +300,7 @@ Visualization Manager:
               Color: 255; 255; 255
               Color Transformer: Intensity
               Decay Time: 0
-              Enabled: true
+              Enabled: false
               Invert Rainbow: false
               Max Color: 239; 41; 41
               Min Color: 114; 159; 207
@@ -323,7 +315,7 @@ Visualization Manager:
               Unreliable: false
               Use Fixed Frame: true
               Use rainbow: true
-              Value: true
+              Value: false
           Enabled: true
           Name: Scans
         - Class: rviz/Group
@@ -337,37 +329,45 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/manip_gaps
               Name: Marker
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /rto/raw_gap_models
+              Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /rto/gap_models
+              Marker Topic: /rto/simp_gap_models
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
-              Enabled: true
-              Marker Topic: /rto/gap_goals
+              Enabled: false
+              Marker Topic: /rto/global_path_local_waypoint
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
           Enabled: true
           Name: Gaps
         - Class: rviz/Group
@@ -420,18 +420,26 @@ Visualization Manager:
                 {}
               Queue Size: 100
               Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/candidate_tube_trajectories
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/po_dir
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Alpha: 1
               Arrow Length: 0.30000001192092896
               Axes Length: 0.30000001192092896
@@ -449,20 +457,12 @@ Visualization Manager:
               Topic: /rto/mpc_input
               Unreliable: false
               Value: false
-          Enabled: false
+          Enabled: true
           Name: Tracking
         - Class: rviz/Marker
           Enabled: true
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /rto/candidate_tube_trajectories
-          Name: MarkerArray
           Namespaces:
             {}
           Queue Size: 100
@@ -680,7 +680,7 @@ Visualization Manager:
       Axes Radius: 0.10000000149011612
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
       Name: Pose
@@ -690,6 +690,14 @@ Visualization Manager:
       Shape: Arrow
       Topic: /rto/current_subgoal
       Unreliable: false
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/gap_goals
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -718,7 +726,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -12.565027236938477
+      Angle: -12.56502914428711
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -728,10 +736,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 35.140750885009766
+      Scale: 78.1150131225586
       Target Frame: rto/base_link
-      X: 6.391218662261963
-      Y: -3.267670154571533
+      X: 1.7876085042953491
+      Y: 0.6548556089401245
     Saved: ~
 Window Geometry:
   Displays:

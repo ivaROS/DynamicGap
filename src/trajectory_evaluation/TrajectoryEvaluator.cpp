@@ -53,9 +53,9 @@ namespace dynamic_gap
 
             for (int i = 0; i < posewiseCosts.size(); i++) 
             {
+                ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
-                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(i + scanIdx)); //  / posewiseCosts.size()
-                ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " score: " << posewiseCosts.at(i));
+                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
             }
             float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
@@ -84,8 +84,7 @@ namespace dynamic_gap
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
-    float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose,
-                                      const sensor_msgs::LaserScan scan_k) 
+    float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         // sensor_msgs::LaserScan scan = *scan_.get();
@@ -111,7 +110,7 @@ namespace dynamic_gap
         float cost = chapterCost(*iter);
         //std::cout << *iter << ", regular cost: " << cost << std::endl;
         ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            robot pose: " << pose.position.x << ", " << pose.position.y << 
-                                                        ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", static cost: " << cost);
+                                                        ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", cost: " << cost);
         return cost;
     }
 

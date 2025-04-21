@@ -216,26 +216,26 @@ namespace dynamic_gap
             */
             void updateEgoCircle();
 
-            /**
-            * \brief Function for evaluating the feasibility of a set of gaps
-            * \param manipulatedGaps set of manipulated gaps which we will evaluate for feasibility
-            * \param isCurrentGapFeasible boolean for if the gap the robot is currently traveling through is feasible
-            * \return set of feasible gaps
-            */
-            std::vector<Gap *> gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
-                                                        bool & isCurrentGapFeasible);
-
-            void ungapSetFeasibilityCheck(const std::vector<Ungap *> & recedingUngaps);
+            // /**
+            // * \brief Function for evaluating the feasibility of a set of gaps
+            // * \param manipulatedGaps set of manipulated gaps which we will evaluate for feasibility
+            // * \param isCurrentGapFeasible boolean for if the gap the robot is currently traveling through is feasible
+            // * \return set of feasible gaps
+            // */
+            // std::vector<Gap *> gapSetFeasibilityCheck(const std::vector<Gap *> & manipulatedGaps, 
+            //                                             bool & isCurrentGapFeasible);
 
             std::vector<GapTube *> gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
                                                             bool & isCurrentGapFeasible);         
 
-            /**
-            * \brief Function for propagating current gap points/models forward in time
-            * \param planningGaps set of gaps we will use to plan 
-            * \return set of propagated gaps we will use to plan
-            */
-            void propagateGapPoints(const std::vector<Gap *> & planningGaps);            
+            void ungapSetFeasibilityCheck(const std::vector<Ungap *> & recedingUngaps);
+
+            // /**
+            // * \brief Function for propagating current gap points/models forward in time
+            // * \param planningGaps set of gaps we will use to plan 
+            // * \return set of propagated gaps we will use to plan
+            // */
+            // void propagateGapPoints(const std::vector<Gap *> & planningGaps);            
             
             /**
             * \brief Function for propagating current gap points/models forward in time (v2)
@@ -252,20 +252,20 @@ namespace dynamic_gap
             */
             std::vector<Gap *> manipulateGaps(const std::vector<Gap *> & planningGaps);
 
-            /**
-            * \brief Function for generating candidate trajectories through the current set of gaps
-            * \param gaps incoming set of gaps through which we want to generate trajectories
-            * \param generatedTrajs set of generated trajectories
-            * \param pathPoseScores set of posewise scores for all paths
-            * \param pathTerminalPoseScores set of terminal pose scores for all paths
-            * \param futureScans set of propagated scans to use during scoring
-            * \return Vector of pose-wise scores for the generated trajectories
-            */
-            void generateGapTrajs(std::vector<Gap *> & gaps, 
-                                    std::vector<Trajectory> & generatedTrajs,
-                                    std::vector<std::vector<float>> & pathPoseScores,
-                                    std::vector<float> & pathTerminalPoseScores,
-                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
+            // /**
+            // * \brief Function for generating candidate trajectories through the current set of gaps
+            // * \param gaps incoming set of gaps through which we want to generate trajectories
+            // * \param generatedTrajs set of generated trajectories
+            // * \param pathPoseScores set of posewise scores for all paths
+            // * \param pathTerminalPoseScores set of terminal pose scores for all paths
+            // * \param futureScans set of propagated scans to use during scoring
+            // * \return Vector of pose-wise scores for the generated trajectories
+            // */
+            // void generateGapTrajs(std::vector<Gap *> & gaps, 
+            //                         std::vector<Trajectory> & generatedTrajs,
+            //                         std::vector<std::vector<float>> & pathPoseScores,
+            //                         std::vector<float> & pathTerminalPoseScores,
+            //                         const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
                                     std::vector<std::vector<float>> & pathPoseCosts,
@@ -490,6 +490,10 @@ namespace dynamic_gap
             // float currentMinSafeDist_ = 0.0; /**< Minimum safe distance for current gap */
 
             // bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
+
+            // std::chrono::steady_clock::time_point prevTrajSwitchTime_; /**< Time step of previous trajectory switch */
+            std::chrono::steady_clock::time_point prevIdlingTime_; 
+            int prevTrajFlag_ = -1; /**< Previous trajectory flag */
 
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 

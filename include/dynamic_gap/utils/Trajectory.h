@@ -89,7 +89,6 @@ namespace dynamic_gap
 
                 if (otherPathRbtFrame.poses.size() > 1)
                 {
-
                     // append path timing
                     float lastTime = pathTiming_.back();
 

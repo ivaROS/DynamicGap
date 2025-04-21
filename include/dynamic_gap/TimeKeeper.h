@@ -61,6 +61,12 @@ namespace dynamic_gap
 
             int getPlanningLoopCalls();
 
+            /**
+            * \brief Helper function for computing average number of gaps planned over per planning loop
+            * \param numGaps number of gaps planned over per planning loop
+            */
+            float computeAverageNumberGaps(const int & numGaps);
+
         private:
             /**
             * \brief Helper function for computing average computation times for planning
@@ -68,12 +74,6 @@ namespace dynamic_gap
             * \param planningStepIdx index for particular step
             */
             float computeAverageTimeTaken(const float & currTimeTaken, const int & planningStepIdx);
-
-            /**
-            * \brief Helper function for computing average number of gaps planned over per planning loop
-            * \param numGaps number of gaps planned over per planning loop
-            */
-            float computeAverageNumberGaps(const int & numGaps);
 
             /**
             * \brief Calculate time that has elapsed in seconds since given start time

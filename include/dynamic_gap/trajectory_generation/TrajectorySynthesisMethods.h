@@ -15,78 +15,78 @@ namespace dynamic_gap
 {
     typedef boost::array<float, 8> robotAndGapState; /**< state vector which includes 2D robot, left gap point, right gap point, and gap goal positions */
 
-    /**
-    * \brief Structure for generating trajectories with pure pursuit technique
-    */    
-    struct PurePursuit
-    {
-        float speedRobot_; /**< speed of robot */
-        float rInscr_; /**< inscribed radius of robot */
-        Eigen::Vector2f leftGapPtVel_, rightGapPtVel_; /**< left and right gap point velocities */
-        Eigen::Vector2f goalPtVel_; /**< gap goal point velocity */
+    // /**
+    // * \brief Structure for generating trajectories with pure pursuit technique
+    // */    
+    // struct PurePursuit
+    // {
+    //     float speedRobot_; /**< speed of robot */
+    //     float rInscr_; /**< inscribed radius of robot */
+    //     Eigen::Vector2f leftGapPtVel_, rightGapPtVel_; /**< left and right gap point velocities */
+    //     Eigen::Vector2f goalPtVel_; /**< gap goal point velocity */
 
-        PurePursuit(const float & speed_robot,
-                    const float & r_inscr,
-                    const Eigen::Vector2f & leftGapPtVel,
-                    const Eigen::Vector2f & rightGapPtVel,
-                    const Eigen::Vector2f & goalPtVel) : speedRobot_(speed_robot), 
-                                                            rInscr_(r_inscr),
-                                                            leftGapPtVel_(leftGapPtVel),
-                                                            rightGapPtVel_(rightGapPtVel),
-                                                            goalPtVel_(goalPtVel) {}
+    //     PurePursuit(const float & speed_robot,
+    //                 const float & r_inscr,
+    //                 const Eigen::Vector2f & leftGapPtVel,
+    //                 const Eigen::Vector2f & rightGapPtVel,
+    //                 const Eigen::Vector2f & goalPtVel) : speedRobot_(speed_robot), 
+    //                                                         rInscr_(r_inscr),
+    //                                                         leftGapPtVel_(leftGapPtVel),
+    //                                                         rightGapPtVel_(rightGapPtVel),
+    //                                                         goalPtVel_(goalPtVel) {}
 
-        /**
-        * \brief () operator for parallel navigation scheme that updates trajectory state
-        * \param x trajectory state
-        * \param dxdt trajectory state rate of change
-        * \param t current timestep
-        */
-        void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
-        {
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   rbt: (" << x[0] << ", " << x[1] << ")");
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   left: (" << x[2] << ", " << x[3] << ")");
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   right: (" << x[4] << ", " << x[5] << ")");
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   goal: (" << x[6] << ", " << x[7] << ")");
+    //     /**
+    //     * \brief () operator for parallel navigation scheme that updates trajectory state
+    //     * \param x trajectory state
+    //     * \param dxdt trajectory state rate of change
+    //     * \param t current timestep
+    //     */
+    //     void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
+    //     {
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t);
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   rbt: (" << x[0] << ", " << x[1] << ")");
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   left: (" << x[2] << ", " << x[3] << ")");
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   right: (" << x[4] << ", " << x[5] << ")");
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   goal: (" << x[6] << ", " << x[7] << ")");
 
-            Eigen::Vector2f rbtPos(x[0], x[1]);
-            Eigen::Vector2f leftGapPos(x[2], x[3]);
-            Eigen::Vector2f rightGapPos(x[4], x[5]);
-            Eigen::Vector2f goalPos(x[6], x[7]);
+    //         Eigen::Vector2f rbtPos(x[0], x[1]);
+    //         Eigen::Vector2f leftGapPos(x[2], x[3]);
+    //         Eigen::Vector2f rightGapPos(x[4], x[5]);
+    //         Eigen::Vector2f goalPos(x[6], x[7]);
 
-            Eigen::Vector2f rbtToGoal = goalPos - rbtPos;
-            Eigen::Vector2f n_rbtToGoal = rbtToGoal / rbtToGoal.norm();
+    //         Eigen::Vector2f rbtToGoal = goalPos - rbtPos;
+    //         Eigen::Vector2f n_rbtToGoal = rbtToGoal / rbtToGoal.norm();
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   n_rbtToGoal: " << n_rbtToGoal.transpose());
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   n_rbtToGoal: " << n_rbtToGoal.transpose());
 
-            Eigen::Vector2f robotVelocity = speedRobot_ * n_rbtToGoal;
+    //         Eigen::Vector2f robotVelocity = speedRobot_ * n_rbtToGoal;
 
 
-            // include some check for when robot has passed gap
-            //      v1: rbt vector is further than left pt vector and right pt vector [DONE]
-            //      v2: rbt vector is beyond range of gap arc at rbt's particular bearing (tricky because robot will leave gap slice)
+    //         // include some check for when robot has passed gap
+    //         //      v1: rbt vector is further than left pt vector and right pt vector [DONE]
+    //         //      v2: rbt vector is beyond range of gap arc at rbt's particular bearing (tricky because robot will leave gap slice)
 
-            if (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm())
-            {
-                // stop trajectory prematurely
-                dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
-                dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
+    //         if (rbtPos.norm() > leftGapPos.norm() && rbtPos.norm() > rightGapPos.norm())
+    //         {
+    //             // stop trajectory prematurely
+    //             dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
+    //             dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
 
-                return;
-            }
+    //             return;
+    //         }
 
-            dxdt[0] = robotVelocity[0];
-            dxdt[1] = robotVelocity[1];
-            dxdt[2] = leftGapPtVel_[0];
-            dxdt[3] = leftGapPtVel_[1];
-            dxdt[4] = rightGapPtVel_[0];
-            dxdt[5] = rightGapPtVel_[1];
-            dxdt[6] = goalPtVel_[0];
-            dxdt[7] = goalPtVel_[1];
+    //         dxdt[0] = robotVelocity[0];
+    //         dxdt[1] = robotVelocity[1];
+    //         dxdt[2] = leftGapPtVel_[0];
+    //         dxdt[3] = leftGapPtVel_[1];
+    //         dxdt[4] = rightGapPtVel_[0];
+    //         dxdt[5] = rightGapPtVel_[1];
+    //         dxdt[6] = goalPtVel_[0];
+    //         dxdt[7] = goalPtVel_[1];
 
-            return;
-        }
-    };
+    //         return;
+    //     }
+    // };
 
     /**
     * \brief Structure for generating trajectories with parallel navigation technique
@@ -131,8 +131,8 @@ namespace dynamic_gap
         */
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   x: " << x[0] << ", " << x[1]);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "t: " << t);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   x: " << x[0] << ", " << x[1]);
 
             n_gamma_intercept_ << std::cos(gammaIntercept_), std::sin(gammaIntercept_);
 
@@ -152,7 +152,7 @@ namespace dynamic_gap
             if (rbtToTerminalGoal_.norm() < 0.25 ||
                 (rbtPos_.norm() > leftGapPos_.norm() && rbtPos_.norm() > rightGapPos_.norm()))
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "   prematured stop");
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "   prematured stop");
                 // stop trajectory prematurely
                 dxdt[0] = 0.0; dxdt[1] = 0.0; dxdt[2] = 0.0; dxdt[3] = 0.0;
                 dxdt[4] = 0.0; dxdt[5] = 0.0; dxdt[6] = 0.0; dxdt[7] = 0.0;
@@ -200,12 +200,12 @@ namespace dynamic_gap
             rbtToGoalDistance_ = rbtToGoal_.norm();
             rbtVelDes_ << 0.0, 0.0;
 
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", rbtToGoalDistance: " << rbtToGoalDistance);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "t: " << t << ", x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13] << ", rbtToGoalDistance: " << rbtToGoalDistance);
 
             // we want to make it so once robot reaches gap, trajectory ends, even if goal keeps moving
             if (rbtToGoalDistance_ < 0.1) 
             {
-                // ROS_INFO_STREAM_NAMED("GapTrajectoryGenerator", "t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "t: " << t << ", stopping at x: " << x[0] << ", " << x[1] << ", goal: " << x[12] << ", " << x[13]);
                 rbtVelDes_(0) = 0;
                 rbtVelDes_(1) = 0;
 
@@ -304,7 +304,7 @@ namespace dynamic_gap
         {
             if (frame_.empty())
             {
-                ROS_WARN_STREAM_NAMED("GapTrajectoryGenerator", "TrajectoryLogger frame id is empty");
+                ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id is empty");
             }
         }
 
