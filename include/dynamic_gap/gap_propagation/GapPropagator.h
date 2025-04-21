@@ -31,12 +31,12 @@ namespace dynamic_gap
 
             ~GapPropagator() { delete gapAssociator_; }
 
-            /**
-            * \brief Set terminal range and bearing values for gap based on 
-            * where gap crossed
-            * \param gap incoming gap whose points we want to propagate
-            */                 
-            void propagateGapPoints(Gap * gap);
+            // /**
+            // * \brief Set terminal range and bearing values for gap based on 
+            // * where gap crossed
+            // * \param gap incoming gap whose points we want to propagate
+            // */                 
+            // void propagateGapPoints(Gap * gap);
 
             void propagateGapPointsV2(const std::vector<Gap *> & gaps,
                                         std::vector<GapTube *> & gapTubes);

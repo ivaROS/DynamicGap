@@ -34,7 +34,7 @@ namespace dynamic_gap
             * determine the gap's feasibility
             * \param gap incoming gap whose feasibility we want to evaluate
             */   
-            bool pursuitGuidanceAnalysis(Gap * gap);
+            // bool pursuitGuidanceAnalysis(Gap * gap);
 
             bool pursuitGuidanceAnalysisV2(Gap * gap, const Eigen::Vector2f & startPt);
 
@@ -60,7 +60,7 @@ namespace dynamic_gap
                                         const Eigen::Vector4f & leftCrossPt,
                                         const Eigen::Vector4f & rightCrossPt);
 
-            bool parallelNavigationFeasibilityCheck(Gap * gap);
+            // bool parallelNavigationFeasibilityCheck(Gap * gap);
 
             bool parallelNavigationFeasibilityCheckV2(Gap * gap, const Eigen::Vector2f & startPt);
 
@@ -70,12 +70,12 @@ namespace dynamic_gap
                                             float & t_intercept, 
                                             float & gamma_intercept);
 
-            bool purePursuitFeasibilityCheck(Gap * gap);
+            // bool purePursuitFeasibilityCheck(Gap * gap);
 
-            void purePursuitHelper(const Eigen::Vector2f & p_target, 
-                                    const Eigen::Vector2f & v_target, 
-                                    const float speed_robot,
-                                    float & t_intercept);
+            // void purePursuitHelper(const Eigen::Vector2f & p_target, 
+            //                         const Eigen::Vector2f & v_target, 
+            //                         const float speed_robot,
+            //                         float & t_intercept);
 
             const DynamicGapConfig* cfg_; /**< Planner hyperparameter config list */
 

@@ -22,15 +22,15 @@ namespace dynamic_gap
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
-            /**
-            * \brief algorithm for setting gap goal 
-            * \param gap queried gap
-            * \param globalPathLocalWaypointRobotFrame global path local waypoint in robot frame
-            * \param globalGoalRobotFrame global goal in robot frame
-            */
-            void setGapGoal(Gap * gap, 
-                            const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
-                            const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
+            // /**
+            // * \brief algorithm for setting gap goal 
+            // * \param gap queried gap
+            // * \param globalPathLocalWaypointRobotFrame global path local waypoint in robot frame
+            // * \param globalGoalRobotFrame global goal in robot frame
+            // */
+            // void setGapGoal(Gap * gap, 
+            //                 const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
+            //                 const geometry_msgs::PoseStamped & globalGoalRobotFrame); 
 
             /**
             * \brief algorithm for setting gap goal 

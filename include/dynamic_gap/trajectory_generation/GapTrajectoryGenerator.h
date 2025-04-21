@@ -49,27 +49,27 @@ namespace dynamic_gap
                                             const geometry_msgs::TwistStamped & currVel,
                                             const geometry_msgs::PoseStamped & globalGoalRobotFrame);
 
-            /**
-            * \brief generate local collision-free trajectory through gap
-            * \param selectedGap gap through which trajectory will be generated
-            * \param currPose current robot pose
-            * \param currVel current robot velocity
-            * \param globalGoalRobotFrame global goal in the robot frame
-            * \param runGoToGoal boolean for if go to goal trajectory method should be run
-            * \return trajectory through gap
-            */
-            Trajectory generateTrajectory(Gap * selectedGap, 
-                                            const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,
-                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame,
-                                            const bool & runGoToGoal);
+            // /**
+            // * \brief generate local collision-free trajectory through gap
+            // * \param selectedGap gap through which trajectory will be generated
+            // * \param currPose current robot pose
+            // * \param currVel current robot velocity
+            // * \param globalGoalRobotFrame global goal in the robot frame
+            // * \param runGoToGoal boolean for if go to goal trajectory method should be run
+            // * \return trajectory through gap
+            // */
+            // Trajectory generateTrajectory(Gap * selectedGap, 
+            //                                 const geometry_msgs::PoseStamped & currPose, 
+            //                                 const geometry_msgs::TwistStamped & currVel,
+            //                                 const geometry_msgs::PoseStamped & globalGoalRobotFrame,
+            //                                 const bool & runGoToGoal);
 
-            /**
-            * \brief generate trajectory for idling in place
-            * \param rbtPoseInOdomFrame robot pose in odometry frame
-            * \return trajectory through gap
-            */
-            Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+            // /**
+            // * \brief generate trajectory for idling in place
+            // * \param rbtPoseInOdomFrame robot pose in odometry frame
+            // * \return trajectory through gap
+            // */
+            // Trajectory generateIdlingTrajectory(const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
 
             /**
             * \brief generate trajectory for idling in place

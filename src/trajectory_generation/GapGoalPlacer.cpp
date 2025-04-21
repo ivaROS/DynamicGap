@@ -9,127 +9,127 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-    void GapGoalPlacer::setGapGoal(Gap * gap, 
-                                    const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
-                                    const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
-    {
-        ROS_INFO_STREAM_NAMED("GapGoalPlacer", "    [setGapGoal()]");
+    // void GapGoalPlacer::setGapGoal(Gap * gap, 
+    //                                 const geometry_msgs::PoseStamped & globalPathLocalWaypointRobotFrame, 
+    //                                 const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
+    // {
+    //     ROS_INFO_STREAM_NAMED("GapGoalPlacer", "    [setGapGoal()]");
 
-        int leftIdx = gap->manipLeftIdx();
-        int rightIdx = gap->manipRightIdx();
-        float leftRange = gap->manipLeftRange();
-        float rightRange = gap->manipRightRange();
+    //     int leftIdx = gap->manipLeftIdx();
+    //     int rightIdx = gap->manipRightIdx();
+    //     float leftRange = gap->manipLeftRange();
+    //     float rightRange = gap->manipRightRange();
 
-        float leftTheta = idx2theta(leftIdx);
-        float rightTheta = idx2theta(rightIdx);
+    //     float leftTheta = idx2theta(leftIdx);
+    //     float rightTheta = idx2theta(rightIdx);
 
-        float xLeft = (leftRange) * cos(leftTheta);
-        float yLeft = (leftRange) * sin(leftTheta);
-        float xRight = (rightRange) * cos(rightTheta);
-        float yRight = (rightRange) * sin(rightTheta);
+    //     float xLeft = (leftRange) * cos(leftTheta);
+    //     float yLeft = (leftRange) * sin(leftTheta);
+    //     float xRight = (rightRange) * cos(rightTheta);
+    //     float yRight = (rightRange) * sin(rightTheta);
 
-        Eigen::Vector2f leftPt(xLeft, yLeft);
-        Eigen::Vector2f rightPt(xRight, yRight);
+    //     Eigen::Vector2f leftPt(xLeft, yLeft);
+    //     Eigen::Vector2f rightPt(xRight, yRight);
 
-        gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-        gap->getRightGapPt()->getModel()->isolateGapDynamics();
+    //     gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+    //     gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getGapState();
-        Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getGapState();
+    //     Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getGapState();
+    //     Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getGapState();
 
-        ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
-        ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
+    //     ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap polar points, left: (" << leftIdx << ", " << leftRange << ") , right: (" << rightIdx << ", " << rightRange << ")");
+    //     ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        gap cart points, left: (" << xLeft << ", " << yLeft << ") , right: (" << xRight << ", " << yRight << ")");
 
-        float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
+    //     float leftToRightAngle = getSweptLeftToRightAngle(leftPt, rightPt);
 
-        Eigen::Vector2f globalGoalRobotFrameVector(globalGoalRobotFrame.pose.position.x, 
-                                globalGoalRobotFrame.pose.position.y);
+    //     Eigen::Vector2f globalGoalRobotFrameVector(globalGoalRobotFrame.pose.position.x, 
+    //                             globalGoalRobotFrame.pose.position.y);
 
-        float globalGoalTheta = std::atan2(globalGoalRobotFrameVector[1], globalGoalRobotFrameVector[0]);
-        float globalGoalIdx = theta2idx(globalGoalTheta); // std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
+    //     float globalGoalTheta = std::atan2(globalGoalRobotFrameVector[1], globalGoalRobotFrameVector[0]);
+    //     float globalGoalIdx = theta2idx(globalGoalTheta); // std::floor(goal_orientation*half_num_scan/M_PI + half_num_scan);
 
-        // ROS_INFO_STREAM("        global goal idx: " << globalGoalIdx << 
-                // ", global goal: (" << globalGoalRobotFrameVector[0] << 
-                //                  ", " << globalGoalRobotFrameVector[1] << ")");
+    //     // ROS_INFO_STREAM("        global goal idx: " << globalGoalIdx << 
+    //             // ", global goal: (" << globalGoalRobotFrameVector[0] << 
+    //             //                  ", " << globalGoalRobotFrameVector[1] << ")");
 
 
-        // Check if global goal is within current scan
-        //      - previously, we also checked if global goal was within *gap*,
-        //        but in a corridor or corner, the global goal will not always be contained
-        //        within one of our gaps. Therefore, we will perform a lazy check
-        //        to enable the planner to run g2g if the global goal is within the scan,
-        //        and then we can evaluate whether or not the path is fine later
-        if (checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
-        {                
-            // all we will do is mark it for later so we can run g2g policy on global goal.
-            // Still set mid point for pursuit guidance policy and feasibility check
-            gap->setGlobalGoalWithin();
+    //     // Check if global goal is within current scan
+    //     //      - previously, we also checked if global goal was within *gap*,
+    //     //        but in a corridor or corner, the global goal will not always be contained
+    //     //        within one of our gaps. Therefore, we will perform a lazy check
+    //     //        to enable the planner to run g2g if the global goal is within the scan,
+    //     //        and then we can evaluate whether or not the path is fine later
+    //     if (checkWaypointVisibility(leftPt, rightPt, globalGoalRobotFrameVector))
+    //     {                
+    //         // all we will do is mark it for later so we can run g2g policy on global goal.
+    //         // Still set mid point for pursuit guidance policy and feasibility check
+    //         gap->setGlobalGoalWithin();
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        global goal within gap");
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            goal: " << globalGoalRobotFrameVector[0] << 
-                                                    ", " << globalGoalRobotFrameVector[1]);
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        global goal within gap");
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            goal: " << globalGoalRobotFrameVector[0] << 
+    //                                                 ", " << globalGoalRobotFrameVector[1]);
 
-        }
+    //     }
 
-        if (leftToRightAngle < M_PI) // M_PI / 2,  M_PI / 4
-        {
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 1: gap mid point");
+    //     if (leftToRightAngle < M_PI) // M_PI / 2,  M_PI / 4
+    //     {
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 1: gap mid point");
 
-            float centerTheta = leftTheta - (0.5 * leftToRightAngle);
-            float centerRange = 0.5 * (leftRange + rightRange);
-            Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
-                                        centerRange * std::sin(centerTheta));
-            Eigen::Vector2f centerVel = 0.5 * (leftGapState.tail(2) + rightGapState.tail(2));
+    //         float centerTheta = leftTheta - (0.5 * leftToRightAngle);
+    //         float centerRange = 0.5 * (leftRange + rightRange);
+    //         Eigen::Vector2f centerPt(centerRange * std::cos(centerTheta),
+    //                                     centerRange * std::sin(centerTheta));
+    //         Eigen::Vector2f centerVel = 0.5 * (leftGapState.tail(2) + rightGapState.tail(2));
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << centerPt[0] << ", " << centerPt[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
+    //         Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
 
-            Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
+    //         Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedCenterPt[0] << ", " << inflatedCenterPt[1]);                 
 
-            gap->getGoal()->setOrigGoalPos(inflatedCenterPt);
-            gap->getGoal()->setOrigGoalVel(centerVel);
-            // gap->setGoal(inflatedCenterPt);
-            // gap->setGoalVel(centerVel);
-        } else
-        {
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 2: global path local waypoint biased");
+    //         gap->getGoal()->setOrigGoalPos(inflatedCenterPt);
+    //         gap->getGoal()->setOrigGoalVel(centerVel);
+    //         // gap->setGoal(inflatedCenterPt);
+    //         // gap->setGoalVel(centerVel);
+    //     } else
+    //     {
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "        Option 2: global path local waypoint biased");
 
-            Eigen::Vector2f globalPathLocalWaypointRobotFrameVector(globalPathLocalWaypointRobotFrame.pose.position.x, 
-                                                    globalPathLocalWaypointRobotFrame.pose.position.y);
-            float globalPathLocalWaypointTheta = std::atan2(globalPathLocalWaypointRobotFrameVector[1], globalPathLocalWaypointRobotFrameVector[0]);
+    //         Eigen::Vector2f globalPathLocalWaypointRobotFrameVector(globalPathLocalWaypointRobotFrame.pose.position.x, 
+    //                                                 globalPathLocalWaypointRobotFrame.pose.position.y);
+    //         float globalPathLocalWaypointTheta = std::atan2(globalPathLocalWaypointRobotFrameVector[1], globalPathLocalWaypointRobotFrameVector[0]);
 
-            float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalPathLocalWaypointRobotFrameVector);
-            float rightToWaypointAngle = getSweptLeftToRightAngle(rightPt, globalPathLocalWaypointRobotFrameVector);
+    //         float leftToWaypointAngle = getSweptLeftToRightAngle(leftPt, globalPathLocalWaypointRobotFrameVector);
+    //         float rightToWaypointAngle = getSweptLeftToRightAngle(rightPt, globalPathLocalWaypointRobotFrameVector);
 
-            float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalPathLocalWaypointTheta,
-                                            leftToRightAngle, leftToWaypointAngle, rightToWaypointAngle);
-            Eigen::Vector2f biasedGapGoalUnitNorm(std::cos(biasedGapGoalTheta), std::sin(biasedGapGoalTheta));
+    //         float biasedGapGoalTheta = setBiasedGapGoalTheta(leftTheta, rightTheta, globalPathLocalWaypointTheta,
+    //                                         leftToRightAngle, leftToWaypointAngle, rightToWaypointAngle);
+    //         Eigen::Vector2f biasedGapGoalUnitNorm(std::cos(biasedGapGoalTheta), std::sin(biasedGapGoalTheta));
 
-            float leftToGapGoalAngle = getSweptLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
+    //         float leftToGapGoalAngle = getSweptLeftToRightAngle(leftPt, biasedGapGoalUnitNorm); 
 
-            // float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
+    //         // float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
 
-            float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
-            Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
-            Eigen::Vector2f biasedGapVel = leftGapState.tail(2) + (rightGapState.tail(2) - leftGapState.tail(2)) * leftToGapGoalAngle / leftToRightAngle;
+    //         float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
+    //         Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
+    //         Eigen::Vector2f biasedGapVel = leftGapState.tail(2) + (rightGapState.tail(2) - leftGapState.tail(2)) * leftToGapGoalAngle / leftToRightAngle;
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
+    //         Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
 
-            Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
+    //         Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
+    //         ROS_INFO_STREAM_NAMED("GapGoalPlacer", "            inflated goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
 
-            gap->getGoal()->setOrigGoalPos(inflatedBiasedGapGoal);
-            gap->getGoal()->setOrigGoalVel(biasedGapVel);
-            // gap->setGoal(inflatedBiasedGapGoal);
-            // gap->setGoalVel(biasedGapVel);
-        }      
-    }
+    //         gap->getGoal()->setOrigGoalPos(inflatedBiasedGapGoal);
+    //         gap->getGoal()->setOrigGoalVel(biasedGapVel);
+    //         // gap->setGoal(inflatedBiasedGapGoal);
+    //         // gap->setGoalVel(biasedGapVel);
+    //     }      
+    // }
 
     void GapGoalPlacer::setGapGoalFromPriorV2(Gap * gap,
                                                 Gap * priorGap)
