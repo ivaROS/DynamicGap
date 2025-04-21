@@ -1904,7 +1904,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
-        goalVisualizer_->drawGapGoals(gapTubes);
+        goalVisualizer_->drawGapTubeGoals(gapTubes);
 
         // gapCount = feasibleGaps.size();
 

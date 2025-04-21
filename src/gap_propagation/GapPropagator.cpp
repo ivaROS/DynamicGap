@@ -367,7 +367,7 @@ namespace dynamic_gap
 
                         // Create a gap
                         currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
-                                                        *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, true));
+                                                        *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, true)); // (j, i): current left/right
 
                         break;
                     }
@@ -402,7 +402,7 @@ namespace dynamic_gap
 
                             // Create a gap
                             currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
-                                                            *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, false));
+                                                            *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, false)); // (j, i): current left/right
 
                             break;
                         } else
