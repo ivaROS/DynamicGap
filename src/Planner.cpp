@@ -1682,7 +1682,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             float reducedCurrentPathTerminalPoseCost;
             trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory received a subcost of: " << reducedCurrentPathSubCost);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
             if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
             {
