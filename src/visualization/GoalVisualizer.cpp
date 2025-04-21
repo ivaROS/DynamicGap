@@ -93,33 +93,35 @@ namespace dynamic_gap
     void GoalVisualizer::drawGapTubeGoals(const std::vector<GapTube *> & gapTubes) 
     {
         // First, clearing topic.
-        clearMarkerPublisher(gapGoalsPublisher);
+        clearMarkerArrayPublisher(gapGoalsPublisher);
 
         // visualization_msgs::MarkerArray gapGoalsMarkerArray;
         visualization_msgs::MarkerArray gapGoalsMarkerArray;
 
         for (int i = 0; i < gapTubes.size(); i++)
         {
+            ROS_INFO_STREAM_NAMED("GoalVisualizer", "    tube " << i);
             GapTube * gapTube = gapTubes.at(i);
 
-            drawGapTubeGoals(gapGoalsMarkerArray, gapTube);
+            for (int j = 0; j < gapTube->size(); j++)
+            {
+                ROS_INFO_STREAM_NAMED("GoalVisualizer", "       gap " << j);
+    
+                Gap * gap = gapTube->at(j);
+
+                int id = gapGoalsMarkerArray.markers.size();
+                visualization_msgs::Marker goalMarker;
+
+                drawGapGoal(goalMarker, gap, id);
+                gapGoalsMarkerArray.markers.push_back(goalMarker);
+            }
+
         }
 
         gapGoalsPublisher.publish(gapGoalsMarkerArray);
 
         return;
     }
-
-    void GoalVisualizer::drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube)
-    {
-        int id = gapGoalsMarkerArray.markers.size();
-
-        visualization_msgs::Marker goalMarker;
-
-        drawModel(goalMarker, gapTube, id);
-        gapGoalsMarkerArray.markers.push_back(goalMarker);
-    }
-
 
     // void GoalVisualizer::drawGapTubeGoals(visualization_msgs::Marker & marker, 
     //                                         const std::vector<GapTube *> & gapTubes) 
@@ -196,85 +198,55 @@ namespace dynamic_gap
     //     // ROS_INFO_STREAM_NAMED("Visualizer", "marker: " << marker);
     // }
 
-    void GoalVisualizer::drawModel(visualization_msgs::Marker & goalMarker, GapTube * gapTube, int & id) 
+    void GoalVisualizer::drawGapGoal(visualization_msgs::Marker & goalMarker, Gap * gap, int & id) 
     {
-    //     if (gap->getFrame().empty())
-    //     {
-    //         ROS_WARN_STREAM("[drawModel] Gap frame is empty");
-    //         return;
-    //     }
+        if (gap->getFrame().empty())
+        {
+            ROS_WARN_STREAM("[drawModel] Gap frame is empty");
+            return;
+        }
         
-    //     std::string fullNamespace = ns;
-    //     fullNamespace.append("_initial");
+        goalMarker.color = gapGoalsColor;
 
-    //     auto colorIter = colorMap.find(fullNamespace);
-    //     if (colorIter == colorMap.end()) 
-    //     {
-    //         ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-    //         return;
-    //     }
-
-    //     modelMarker.color = colorIter->second;
-
-    //     // ROS_INFO_STREAM("[drawModel()]");
-    //     modelMarker.header.frame_id = gap->getFrame();
-    //     modelMarker.header.stamp = ros::Time();
-    //     modelMarker.ns = ns;
-    //     modelMarker.id = id++;
-    //     modelMarker.type = visualization_msgs::Marker::ARROW;
-    //     modelMarker.action = visualization_msgs::Marker::ADD;
+        // ROS_INFO_STREAM("[drawModel()]");
+        goalMarker.header.frame_id = gap->getFrame();
+        goalMarker.header.stamp = ros::Time();
+        goalMarker.ns = "gap_goal";
+        goalMarker.id = id++;
+        goalMarker.type = visualization_msgs::Marker::ARROW;
+        goalMarker.action = visualization_msgs::Marker::ADD;
         
-    //     gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-    //     gap->getRightGapPt()->getModel()->isolateGapDynamics();
+        goalMarker.pose.position.x = gap->getGoal()->getOrigGoalPosX();
+        goalMarker.pose.position.y = gap->getGoal()->getOrigGoalPosY();
+        goalMarker.pose.position.z = 0.01;
 
-    //     Eigen::Vector4f leftModelState = gap->getLeftGapPt()->getModel()->getGapState();
-    //     Eigen::Vector4f rightModelState = gap->getRightGapPt()->getModel()->getGapState();
+        Eigen::Vector2f gapVel(gap->getGoal()->getOrigGoalVelX(), gap->getGoal()->getOrigGoalVelY());
 
-    //     // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
-    //     // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
+        float gapVelTheta;
+        if (gapVel.norm() < std::numeric_limits<float>::epsilon())
+        {
+            gapVelTheta = 0.0;
+        } else
+        {
+            gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
 
-    //     // ROS_INFO_STREAM("   gap->getLeftGapPt()->getModel()->getRobotVel(): " << gap->getLeftGapPt()->getModel()->getRobotVel());
-    //     // ROS_INFO_STREAM("   gap->getRightGapPt()->getModel()->getRobotVel(): " << gap->getRightGapPt()->getModel()->getRobotVel());
+        }
 
-    //     Eigen::Vector2f gapVel(0.0, 0.0);
-    //     if (left)
-    //     {
-    //         modelMarker.pose.position.x = leftModelState[0];
-    //         modelMarker.pose.position.y = leftModelState[1];
-    //         gapVel = leftModelState.tail(2);
-    //     } else
-    //     {
-    //         modelMarker.pose.position.x = rightModelState[0];
-    //         modelMarker.pose.position.y = rightModelState[1];            
-    //         gapVel << rightModelState.tail(2); 
-    //     }
-    //     modelMarker.pose.position.z = 0.01;
-
-    //     float gapVelTheta;
-    //     if (gapVel.norm() < std::numeric_limits<float>::epsilon())
-    //     {
-    //         gapVelTheta = 0.0;
-    //     } else
-    //     {
-    //         gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
-
-    //     }
-
-    //     tf2::Quaternion quat;
-    //     quat.setRPY(0.0, 0.0, gapVelTheta);
+        tf2::Quaternion quat;
+        quat.setRPY(0.0, 0.0, gapVelTheta);
         
-    //     modelMarker.pose.orientation.x = quat.getX();
-    //     modelMarker.pose.orientation.y = quat.getY();
-    //     modelMarker.pose.orientation.z = quat.getZ();
-    //     modelMarker.pose.orientation.w = quat.getW();
+        goalMarker.pose.orientation.x = quat.getX();
+        goalMarker.pose.orientation.y = quat.getY();
+        goalMarker.pose.orientation.z = quat.getZ();
+        goalMarker.pose.orientation.w = quat.getW();
 
-    //     modelMarker.scale.x = gapVel.norm() + 0.000001;
-    //     modelMarker.scale.y = 0.1;
-    //     modelMarker.scale.z = 0.000001;
+        goalMarker.scale.x = gapVel.norm() + 0.000001;
+        goalMarker.scale.y = 0.1;
+        goalMarker.scale.z = 0.000001;
 
-    //     // modelMarker.color.a = 1.0;
-    //     // modelMarker.color.r = 1.0;
-    //     // modelMarker.color.b = 1.0;
-    //     modelMarker.lifetime = ros::Duration(0);
+        // goalMarker.color.a = 1.0;
+        // goalMarker.color.r = 1.0;
+        // goalMarker.color.b = 1.0;
+        goalMarker.lifetime = ros::Duration(0);
     }    
 }

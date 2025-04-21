@@ -36,8 +36,8 @@ namespace dynamic_gap
             void drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame);
 
         private: 
-            void drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube);
-            void drawModel(visualization_msgs::Marker & goalMarker, GapTube * gapTube, int & id);
+            // void drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube);
+            void drawGapGoal(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */
             std_msgs::ColorRGBA terminalGapGoalsColor; /**< Color to visualize terminal gap goals with */
