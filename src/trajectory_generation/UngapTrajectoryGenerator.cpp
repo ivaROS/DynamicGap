@@ -182,7 +182,7 @@ namespace dynamic_gap
                 // // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
-        ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "leaving at : " << processedPoses.size());
+        // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "leaving at : " << processedPoses.size());
         
         geometry_msgs::PoseArray processedPath = rawPath;        
         processedPath.poses = processedPoses;
