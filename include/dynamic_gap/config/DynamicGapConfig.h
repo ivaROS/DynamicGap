@@ -100,8 +100,7 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
-                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
-                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */                
+                float rgc_angle = 1.0; /**< Rotation amount (radians) for RGC step  */              
                 bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
             } gap_manip;
 

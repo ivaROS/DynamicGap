@@ -52,8 +52,7 @@ namespace dynamic_gap
             nh.param("assoc_thresh", gap_assoc.assoc_thresh, gap_assoc.assoc_thresh);
 
             // Gap Manipulation
-            nh.param("epsilon1", gap_manip.epsilon1, gap_manip.epsilon1);
-            nh.param("epsilon2", gap_manip.epsilon2, gap_manip.epsilon2);
+            // nh.param("rgc_angle", gap_manip.rgc_angle, gap_manip.rgc_angle);
             nh.param("radial_extend", gap_manip.radial_extend, gap_manip.radial_extend);
 
             // Trajectory
