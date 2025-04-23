@@ -333,7 +333,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapManipulator", "        post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
     }
 
-    bool GapManipulator::inflateGapSides(Gap * gap) 
+    void GapManipulator::inflateGapSides(Gap * gap) 
     {
         // get points
 
@@ -383,7 +383,15 @@ namespace dynamic_gap
             if ( cfg_->rbt.r_inscr * inf_ratio > leftRange)
             {
                 ROS_WARN_STREAM_NAMED("GapManipulator", "        inflation ratio is too large, aborting");
-                return false;
+
+
+                gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+
+                // gap->getLeftGapPt()->getModel()->setNewPosition(inflatedLeftTheta, inflatedLeftRange); // manipulating left point
+                // gap->getRightGapPt()->getModel()->setNewPosition(inflatedRightTheta, inflatedRightRange); // manipulating right point
+        
+                return;
+                // return false;
             }
 
             float alpha_left = std::asin(cfg_->rbt.r_inscr * inf_ratio / leftPt.norm() );
@@ -459,7 +467,11 @@ namespace dynamic_gap
         if (! successful_inflation)
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed for good.");
-            return false;
+         
+            gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+         
+            return;
+            // return false;
         }
 
         if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");
@@ -500,6 +512,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("        post-inflate gap in polar. trailing left: (" << trailingLeftIdx << ", " << trailingLeftRange << "), trailing right: (" << trailingRightIdx << ", " << trailingRightRange << ")");
         // ROS_INFO_STREAM("        post-inflate gap in cart. trailing left: (" << xLeft << ", " << yLeft << "), trailing right: (" << xRight << ", " << yRight << ")");
 
-        return true;
+        return;
+        // return true;
     }
 }

@@ -687,7 +687,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // MANIPULATE POINTS AT T=0            
                 gapManipulator_->convertRadialGap(planningGaps.at(i));
 
-                bool success = gapManipulator_->inflateGapSides(planningGaps.at(i));
+                gapManipulator_->inflateGapSides(planningGaps.at(i)); // bool success = 
                 
                 bool valid = planningGaps.at(i)->checkPoints();
 
@@ -697,16 +697,16 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     continue;
                 }
 
-                if (success)
-                {
-                    ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
+                // if (success)
+                // {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
                     
                     // gapGoalPlacer_->setGapGoal(planningGaps.at(i), 
                     //                             globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
                     //                             globalGoalRobotFrame_);                    
 
-                    manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
-                }
+                manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
+                // }
             }
         } catch (const std::exception & e)
         {
@@ -739,6 +739,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                         if ( (j-1) < 0)
                         {
+                            ROS_INFO_STREAM_NAMED("Planner", "       gap " << j << " is not available and no previous gap exists");
                             ROS_WARN_STREAM_NAMED("Planner", "       gap " << j << " is not available and no previous gap exists");
                             continue;
                         }

@@ -205,7 +205,7 @@ namespace dynamic_gap
 
             geometry_msgs::PoseArray pathRbtFrame = runningTraj.getPathRbtFrame();
 
-            Eigen::Quaternionf desiredQ;
+            Eigen::Quaternionf desiredQ(0, 0, 0, 1);
             if (pathRbtFrame.poses.empty())
             {
                 ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "            running traj is empty for idling");

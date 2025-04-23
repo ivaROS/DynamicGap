@@ -323,7 +323,7 @@ namespace dynamic_gap
 
             void setUngapID(const int & ungapID)
             {
-                ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
+                // ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
                 ungapID_ = ungapID;
             }
 
