@@ -266,17 +266,8 @@ namespace dynamic_gap
         */
         void operator() (const robotAndGapState & x, robotAndGapState & dxdt, const float & t)
         {
-            if (t == 0.0)
-            {
-                // nudge robot forward a bit
-                dxdt[0] = 0.01;
-                dxdt[1] = 0.01;
-            } else
-            {
-                dxdt[0] = 0.0;
-                dxdt[1] = 0.0;
-            }
-            
+            dxdt[0] = 0.0;
+            dxdt[1] = 0.0;            
             dxdt[2] = 0.0;
             dxdt[3] = 0.0;
             dxdt[4] = 0.0;
@@ -295,17 +286,23 @@ namespace dynamic_gap
     struct TrajectoryLogger
     {
         geometry_msgs::PoseArray & path_; /**< resulting path of trajectory */
-        std::string frame_; /**< frame ID of trajectory */
         std::vector<float>& pathTiming_; /**< resulting path timing of trajectory */
+        std::string frame_; /**< frame ID of trajectory */
+        Eigen::Quaternionf q_; /**< quaternion of trajectory */
 
-        TrajectoryLogger(geometry_msgs::PoseArray & path, const std::string & frame, 
-                         std::vector<float> & pathTiming): 
-                         path_(path), frame_(frame), pathTiming_(pathTiming) 
+        TrajectoryLogger(geometry_msgs::PoseArray & path, std::vector<float> & pathTiming,
+                        const std::string & frame, const Eigen::Quaternionf & q) : 
+                         path_(path), frame_(frame), pathTiming_(pathTiming), q_(q)
         {
             if (frame_.empty())
             {
                 ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id is empty");
             }
+
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id: " << frame_);
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger q: " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w());
+
+
         }
 
         /**
@@ -322,10 +319,10 @@ namespace dynamic_gap
             pose.pose.position.y = x[1];
             pose.pose.position.z = 0;
 
-            pose.pose.orientation.x = 0;
-            pose.pose.orientation.y = 0;
-            pose.pose.orientation.z = 0;
-            pose.pose.orientation.w = 1;
+            pose.pose.orientation.x = q_.x();
+            pose.pose.orientation.y = q_.y();
+            pose.pose.orientation.z = q_.z();
+            pose.pose.orientation.w = q_.w();
             path_.poses.push_back(pose.pose);
 
             pathTiming_.push_back(t);

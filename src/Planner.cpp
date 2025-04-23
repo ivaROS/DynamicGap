@@ -958,7 +958,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generating traj for tube " << i);
 
                 geometry_msgs::PoseStamped currPose = rbtPoseInSensorFrame_;
-                geometry_msgs::TwistStamped currVel = currentRbtVel_;
+                // geometry_msgs::TwistStamped currVel = currentRbtVel_;
 
                 int scanIdx = 0;
 
@@ -994,12 +994,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
                         goToGoalTraj = gapTrajGenerator_->generateGoToGoalTrajectoryV2(gap, 
                                                                                         currPose, 
-                                                                                        currVel, 
+                                                                                        // currVel, 
                                                                                         globalGoalRobotFrame_);
-                        goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj, 
-                                                                            currPose,
-                                                                            currVel,
-                                                                            false);
+                        goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj); 
+                                                                            // currPose,
+                                                                            // currVel,
+                                                                            // false);
                         trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
 
@@ -1013,12 +1013,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
                         pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
                                                                                         currPose, 
-                                                                                        currVel, 
+                                                                                        // currVel, 
                                                                                         globalGoalRobotFrame_);
-                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj, 
-                                                                                    currPose,
-                                                                                    currVel,
-                                                                                    false);
+                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                                                                                    // currPose,
+                                                                                    // currVel,
+                                                                                    // false);
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
@@ -1026,8 +1026,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");
                         pursuitGuidanceTraj = gapTrajGenerator_->generateIdlingTrajectoryV2(gap, 
-                                                                                            currPose, 
-                                                                                            rbtPoseInOdomFrame_);
+                                                                                            currPose,
+                                                                                            runningTraj);
+                                                                                            // rbtPoseInOdomFrame_);
+                        // pursuitGuidanceTraj = gapTrajGenerator_->processIdlingTrajectory(pursuitGuidanceTraj,
+                        //                                                                     runningTraj);
+                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                                                                                    // currPose,
+                                                                                    // currVel,
+                                                                                    // false);
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
@@ -1178,54 +1185,53 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
-                                        std::vector<std::vector<float>> & idlingTrajPoseCosts,
-                                        std::vector<float> & idlingTrajTerminalPoseCosts,
-                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
-    {
-        try
-        {
-            boost::mutex::scoped_lock gapset(gapMutex_);
+    // void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
+    //                                     std::vector<std::vector<float>> & idlingTrajPoseCosts,
+    //                                     std::vector<float> & idlingTrajTerminalPoseCosts,
+    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    // {
+    //     try
+    //     {
+    //         boost::mutex::scoped_lock gapset(gapMutex_);
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
 
-            Gap * nullGap = nullptr;
-            Trajectory idlingTrajectory;
-            idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
-                                                                                rbtPoseInSensorFrame_, 
-                                                                                rbtPoseInOdomFrame_);
+    //         Gap * nullGap = nullptr;
+    //         Trajectory idlingTrajectory;
+    //         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
+    //                                                                             rbtPoseInSensorFrame_);
 
-            std::vector<float> idlingPoseCosts;
-            float idlingTerminalPoseCost, idlingCost;
+    //         std::vector<float> idlingPoseCosts;
+    //         float idlingTerminalPoseCost, idlingCost;
 
-            trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0);
+    //         trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0);
 
-            idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
+    //         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
 
-            idlingTrajPoseCosts.push_back(idlingPoseCosts);
-            idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+    //         idlingTrajPoseCosts.push_back(idlingPoseCosts);
+    //         idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
-            idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-            idlingTrajs.push_back(idlingTrajectory);    
+    //         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
+    //         idlingTrajs.push_back(idlingTrajectory);    
 
-            // // push back idling trajectory as another option
+    //         // // push back idling trajectory as another option
 
-            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
+    //         // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
             
-            // 
-            // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
-        } catch (const std::out_of_range & e)
-        {
-            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
-        } catch (const std::exception & e)
-        {
-            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
-        }
+    //         // 
+    //         // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
+    //         // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
+    //     } catch (const std::out_of_range & e)
+    //     {
+    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
+    //     } catch (const std::exception & e)
+    //     {
+    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
+    //     }
     
 
-        return;
-    }
+    //     return;
+    // }
 
     void Planner::pickTraj(int & trajFlag,
                             int & lowestCostTrajIdx,
