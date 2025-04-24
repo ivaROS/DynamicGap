@@ -215,6 +215,18 @@ namespace dynamic_gap
         return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 
                             1 - 2.0 * (quat.y * quat.y + quat.z * quat.z));
     }
+
+    inline Eigen::Matrix2f getRotMat(const float & theta)
+    {
+        Eigen::Matrix2f rotMat;
+        rotMat(0, 0) = std::cos(theta);
+        rotMat(0, 1) = -std::sin(theta);
+        rotMat(1, 0) = std::sin(theta);
+        rotMat(1, 1) = std::cos(theta);
+
+        return rotMat;
+    }
+
     //////////////////////////////
     //     ANGLE CONVERSIONS    // 
     //////////////////////////////
@@ -243,7 +255,7 @@ namespace dynamic_gap
     * \return angle swept from left gap point to right gap point
     */
     inline float getSweptLeftToRightAngle(const Eigen::Vector2f & leftVect,
-                                   const Eigen::Vector2f & rightVect) 
+                                            const Eigen::Vector2f & rightVect) 
     {
         float leftToRightAngle = getSignedLeftToRightAngle(leftVect, rightVect);
 
@@ -283,8 +295,8 @@ namespace dynamic_gap
     * \return distance from scan point to robot pose
     */
     inline float dist2Pose(const float & theta, 
-                    const float & range, 
-                    const geometry_msgs::Pose & pose) 
+                            const float & range, 
+                            const geometry_msgs::Pose & pose) 
     {
         // ego circle point in local frame, pose in local frame
         // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "   theta: " << theta << ", range: " << range);
@@ -315,7 +327,6 @@ namespace dynamic_gap
 
         return sqrt(pow(checkRightRange, 2) + pow(checkLeftRange, 2) - 2 * checkRightRange * checkLeftRange * cos(gapAngle));
     }
-
 
     //////////////////////////////
     //       FUNCTIONS          // 

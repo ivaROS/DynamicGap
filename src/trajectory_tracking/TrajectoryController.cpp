@@ -229,6 +229,75 @@ namespace dynamic_gap
         return cmdVel;
     }
 
+
+    geometry_msgs::Twist TrajectoryController::constantVelocityControlLawNonHolonomic(const geometry_msgs::Pose & current, 
+                                                                                        const geometry_msgs::Pose & desired,
+                                                                                        const float & desiredSpeed) 
+    { 
+        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomic()]");
+        // Setup Vars
+        boost::mutex::scoped_lock lock(scanMutex_);
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
+        geometry_msgs::Quaternion currOrient = current.orientation;
+        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+        float currYaw = quaternionToYaw(currQuat); 
+
+        // get current x,y,theta
+        geometry_msgs::Point currPosn = current.position;
+        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
+
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+
+        // obtaining RPY of desired orientation
+        geometry_msgs::Point desPosn = desired.position;
+        geometry_msgs::Quaternion desOrient = desired.orientation;
+        tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
+        float desYaw = quaternionToYaw(desQuat);
+
+        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desired.position.x << ", y: " << desired.position.y << ", yaw: "<< desYaw);
+
+        // get desired x,y,theta
+        Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
+
+        // get x,y,theta error
+        Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
+        float errorX = desPosn.x - currPosn.x; // errorMat.real()(0, 1);
+        float errorY = desPosn.y - currPosn.y; // errorMat.imag()(0, 1);
+        float errorTheta = std::arg(errorMat(0, 0));
+
+        Eigen::Vector2f error(errorX, errorY);
+        Eigen::Vector2f errorDir = epsilonDivide(error, error.norm());
+
+        float l = error.norm();
+
+        ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta << ", l: " << l);
+
+        Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
+
+        Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
+        nidMat(1, 1) = (1.0 / l);
+
+        Eigen::Vector2f nonholoVelocityCommand = nidMat * negRotMat * error;
+
+        // Eigen::Vector2f constantVelocityCommand = desiredSpeed * errorDir;
+
+        float velLinXFeedback = nonholoVelocityCommand[0];
+        float velAngFeedback = nonholoVelocityCommand[1];
+
+        ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
+        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
+        
+        cmdVel.linear.x = velLinXFeedback;
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = velAngFeedback;
+
+        return cmdVel; 
+
+    }
+
     geometry_msgs::Twist TrajectoryController::constantVelocityControlLaw(const geometry_msgs::Pose & current, 
                                                                             const geometry_msgs::Pose & desired,
                                                                             const float & desiredSpeed) 

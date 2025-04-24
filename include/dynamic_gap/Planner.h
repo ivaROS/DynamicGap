@@ -381,6 +381,10 @@ namespace dynamic_gap
             */
             void setCurrentTraj(const Trajectory & currentTraj) { currentTraj_ = currentTraj; }
 
+            void setCurrentTrajTrackingStartTime(const ros::Time & startTime) { currentTrajTrackingStartTime_ = startTime; }
+
+            void setCurrentTrajLifespan(const ros::Duration & lifespan) { currentTrajLifespan_ = lifespan; }
+
             /**
             * \brief Getter for current trajectory
             * \return trajectory that robot is currently tracking
@@ -489,8 +493,8 @@ namespace dynamic_gap
             // bool publishToMpc_ = false; /**< Flag for publishing trajectory to trigger MPC */
 
             // std::chrono::steady_clock::time_point prevTrajSwitchTime_; /**< Time step of previous trajectory switch */
-            std::chrono::steady_clock::time_point prevIdlingTime_; 
-            int prevTrajFlag_ = -1; /**< Previous trajectory flag */
+            // std::chrono::steady_clock::time_point prevIdlingTime_; 
+            // int prevTrajFlag_ = -1; /**< Previous trajectory flag */
 
             int currentModelIdx_ = 0; /**< Counter for instantiated models throughout planner's existence */
 
@@ -498,6 +502,8 @@ namespace dynamic_gap
 
             // Trajectories
             Trajectory currentTraj_; /**< Trajectory that robot is currently tracking */
+            ros::Time currentTrajTrackingStartTime_; /**< Time step of when robot started tracking current trajectory */
+            ros::Duration currentTrajLifespan_; /**< Duration of time that robot has been tracking current trajectory */
 
             int targetTrajectoryPoseIdx_ = 0; /**< Index of closest pose along the robot's current trajectory */
 

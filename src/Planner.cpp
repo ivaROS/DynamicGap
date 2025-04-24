@@ -140,7 +140,9 @@ namespace dynamic_gap
         initialized_ = true;
 
         // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
-        prevIdlingTime_ = std::chrono::steady_clock::now();
+        // prevIdlingTime_ = std::chrono::steady_clock::now();
+        currentTrajTrackingStartTime_ = ros::Time::now();
+        currentTrajLifespan_ = ros::Duration(0.0);
 
         return true;
     }
@@ -685,7 +687,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
                 // MANIPULATE POINTS AT T=0            
-                gapManipulator_->convertRadialGap(planningGaps.at(i));
+                gapManipulator_->convertRadialGap(planningGaps, i);
 
                 gapManipulator_->inflateGapSides(planningGaps.at(i)); // bool success = 
                 
@@ -1405,6 +1407,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
+            setCurrentTrajTrackingStartTime(ros::Time::now());
+            setCurrentTrajLifespan(ros::Duration(incomingTraj.getPathTiming().back() - incomingTraj.getPathTiming().front()));
 
             if (trajFlag == GAP && incomingGap) // gap trajectory
             {
@@ -1420,15 +1424,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
 
-            // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
-
-            if (prevTrajFlag_ != IDLING && trajFlag == IDLING)
-            {
-                prevIdlingTime_ = std::chrono::steady_clock::now(); 
-            }
-            prevTrajFlag_ = trajFlag;
-
-
             return incomingTraj;  
         } else 
         {
@@ -1438,6 +1433,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             Trajectory emptyTraj(emptyPath, emptyPathTiming);
 
             setCurrentTraj(emptyTraj);
+            setCurrentTrajTrackingStartTime(ros::Time::now());
+            setCurrentTrajLifespan(ros::Duration(0.0));
 
             setCurrentLeftGapPtModelID(nullptr);
             setCurrentRightGapPtModelID(nullptr);
@@ -1445,9 +1442,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
             trajectoryChangeCount_++;            
-
-            prevTrajFlag_ = -1;
-            // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
 
             return emptyTraj;
         }        
@@ -1555,13 +1549,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            //  Enact a trajectory switch if the we have been tracking the currently executing path for its entire lifespan  //
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+            ros::Duration currentTrajTrackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
+
+            if (currentTrajTrackingTime > currentTrajLifespan_)
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
+                                                                ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            }
+
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Compare the costs of the incoming trajectory with the cost of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            // int poseCheckCount = std::min(incomingTraj.getPathRbtFrame().poses.size(), reducedCurrentPathRobotFrame.poses.size());
-            // incomingPathCost = std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / poseCheckCount;
-
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    re-evaluating incoming trajectory received a subcost of: " << incomingPathCost);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating current trajectory");            
             
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
@@ -1814,21 +1816,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
-
-            // float timeIdlingInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevIdlingTime_).count();
-            // float timeIdlingInSeconds = timeIdlingInMilliseconds * 1.0e-6;
-
-            
-            // if (prevTrajFlag_ == IDLING && timeIdlingInSeconds >= cfg_.traj.integrate_maxt) 
-            // {   
-            //     ROS_WARN_STREAM_NAMED("Planner", "Idling time is greater than maxt, not generating idling trajs");
-            // } else
-            // {
-            //     timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
             // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-                // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
-            // }
+            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
         } 
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
@@ -1852,9 +1842,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP TRAJECTORY COMPARISON                           //
         //////////////////////////////////////////////////////////////////////////////////////
-
-        // if (trajFlag != NONE) 
-        // {
 
         timeKeeper_->startTimer(TRAJ_COMP);
 
@@ -1885,14 +1872,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 trajFlag = NONE;
                 return;
             }
-
-            // if (lowestCostTrajIdx >= feasibleGaps.size())
-            // {
-            //     ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for feasibleGaps");
-            //     chosenTraj = Trajectory();
-            //     trajFlag = NONE;
-            //     return;
-            // }
 
             incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
             incomingTraj = gapTrajs.at(lowestCostTrajIdx);
@@ -1938,7 +1917,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                             isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
 
         timeKeeper_->stopTimer(TRAJ_COMP);
-        // } 
 
         // delete set of planning gaps
         for (Gap * planningGap : planningGaps)
@@ -2153,7 +2131,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
                 timeKeeper_->startTimer(FEEBDACK);
-                rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                if (cfg_.planning.holonomic)
+                {
+                    rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                } else
+                {
+                    rawCmdVel = trajController_->constantVelocityControlLawNonHolonomic(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                }
                 timeKeeper_->stopTimer(FEEBDACK);
             } else
             {
