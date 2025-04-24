@@ -447,8 +447,8 @@ namespace dynamic_gap
 
                 gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
 
-                // gap->getLeftGapPt()->getModel()->setNewPosition(inflatedLeftTheta, inflatedLeftRange); // manipulating left point
-                // gap->getRightGapPt()->getModel()->setNewPosition(inflatedRightTheta, inflatedRightRange); // manipulating right point
+                gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
+                gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
         
                 return;
                 // return false;
@@ -530,6 +530,9 @@ namespace dynamic_gap
          
             gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
          
+            gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
+            gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
+    
             return;
             // return false;
         }

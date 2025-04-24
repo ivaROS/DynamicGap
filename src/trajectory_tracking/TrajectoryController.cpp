@@ -273,12 +273,14 @@ namespace dynamic_gap
 
         float l = error.norm();
 
+        float l_adj = 0.5 * l;
+
         ROS_INFO_STREAM_NAMED("Controller", "        errorX: " << errorX << ", errorY: " << errorY << ", errorTheta: " << errorTheta << ", l: " << l);
 
         Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
 
         Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
-        nidMat(1, 1) = (1.0 / l);
+        nidMat(1, 1) = (1.0 / l_adj);
 
         Eigen::Vector2f nonholoVelocityCommand = nidMat * negRotMat * error;
 
