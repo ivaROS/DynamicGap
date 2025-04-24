@@ -82,7 +82,7 @@ namespace dynamic_gap
             * \param desired desired robot pose
             * \return command velocity for robot
             */
-            geometry_msgs::Twist constantVelocityControlLawNonHolonomic(const geometry_msgs::Pose & current, 
+            geometry_msgs::Twist constantVelocityControlLawNonHolonomicLookahead(const geometry_msgs::Pose & current, 
                                                                         const geometry_msgs::Pose & desired,
                                                                         const float & desiredSpeed);                                                            
 

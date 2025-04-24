@@ -2136,7 +2136,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
                 } else
                 {
-                    rawCmdVel = trajController_->constantVelocityControlLawNonHolonomic(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                    rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
                 }
                 timeKeeper_->stopTimer(FEEBDACK);
             } else

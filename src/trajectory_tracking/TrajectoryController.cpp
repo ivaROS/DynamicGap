@@ -230,11 +230,11 @@ namespace dynamic_gap
     }
 
 
-    geometry_msgs::Twist TrajectoryController::constantVelocityControlLawNonHolonomic(const geometry_msgs::Pose & current, 
-                                                                                        const geometry_msgs::Pose & desired,
-                                                                                        const float & desiredSpeed) 
+    geometry_msgs::Twist TrajectoryController::constantVelocityControlLawNonHolonomicLookahead(const geometry_msgs::Pose & current, 
+                                                                                                const geometry_msgs::Pose & desired,
+                                                                                                const float & desiredSpeed) 
     { 
-        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomic()]");
+        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomicLookahead()]");
         // Setup Vars
         boost::mutex::scoped_lock lock(scanMutex_);
 
