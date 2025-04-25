@@ -38,7 +38,7 @@ namespace dynamic_gap
             * \brief Visualize set of gap models
             * \param gaps set of gaps whose models we want to visualize
             */
-            void drawGapsModels(const std::vector<Gap *> & gaps, const std::string & ns);
+            void drawGapModels(const std::vector<Gap *> & gaps, const std::string & ns);
 
         private:
             /**
@@ -79,9 +79,19 @@ namespace dynamic_gap
             * \param gap gap whose models we want to visualize
             * \param ns namespace of gap whose models we want to visualize
             */
-            void drawGapModels(visualization_msgs::MarkerArray & gapModelMarkerArray, 
-                               Gap * gap, 
-                               const std::string & ns);
+            void drawGapModelPositions(visualization_msgs::MarkerArray & gapModelMarkerArray, 
+                                        Gap * gap, 
+                                        const std::string & ns);
+
+            /**
+            * \brief Helper function for visualizing a single gap's left and right point models
+            * \param gapModelMarkerArray marker array to add gap point models to
+            * \param gap gap whose models we want to visualize
+            * \param ns namespace of gap whose models we want to visualize
+            */
+            void drawGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray, 
+                                        Gap * gap, 
+                                        const std::string & ns);
 
             /**
             * \brief Helper function for visualizing a single gap point model
@@ -91,11 +101,25 @@ namespace dynamic_gap
             * \param id ID for model marker
             * \param ns namespace of gap whose models we want to visualize
             */
-            void drawModel(visualization_msgs::Marker & modelMarker, 
-                            Gap * gap, 
-                            const bool & left, 
-                            int & id, 
-                            const std::string & ns);
+            void drawModelPosition(visualization_msgs::Marker & modelMarker, 
+                                    Gap * gap, 
+                                    const bool & left, 
+                                    int & id, 
+                                    const std::string & ns);
+
+            /**
+            * \brief Helper function for visualizing a single gap point model
+            * \param modelMarker marker for gap point model
+            * \param gap gap whose models we want to visualize
+            * \param left boolean for if we are visualizing left gap point model or right gap point model
+            * \param id ID for model marker
+            * \param ns namespace of gap whose models we want to visualize
+            */
+            void drawModelVelocity(visualization_msgs::Marker & modelMarker, 
+                                    Gap * gap, 
+                                    const bool & left, 
+                                    int & id, 
+                                    const std::string & ns);
 
             std::map<std::string, std_msgs::ColorRGBA> colorMap; /**< Map from gap namespace to color for visualization */
             std::vector<std_msgs::ColorRGBA> gapwiseColors; /**< Map from gap namespace to color for visualization */
@@ -108,8 +132,12 @@ namespace dynamic_gap
 
             ros::Publisher manipGapsPublisher; /**< Publisher for manipulated gaps */
             ros::Publisher navigableGapsPublisher; /**< Publisher for navigable gaps */
-            ros::Publisher rawGapModelsPublisher; /**< Publisher for raw gap models */
-            ros::Publisher simpGapModelsPublisher; /**< Publisher for simp gap models */
+
+            ros::Publisher rawGapModelPositionsPublisher; /**< Publisher for raw gap model positions */
+            ros::Publisher simpGapModelPositionsPublisher; /**< Publisher for simp gap model positions */
+            
+            ros::Publisher rawGapModelVelocitiesPublisher; /**< Publisher for raw gap model velocities */
+            ros::Publisher simpGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;

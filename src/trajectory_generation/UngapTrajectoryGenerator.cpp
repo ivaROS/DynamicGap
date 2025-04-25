@@ -13,7 +13,6 @@ namespace dynamic_gap
         // std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
 
         path.header.stamp = currPose.header.stamp;
-        TrajectoryLogger logger(path, cfg_->robot_frame_id, pathTiming);
         path.header.frame_id = cfg_->sensor_frame_id;
 
         Eigen::Vector4f rbtState(currPose.pose.position.x, 
@@ -82,6 +81,13 @@ namespace dynamic_gap
         
         ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            intercept time: " << selectedUngap->getTInterceptGoal()); 
         ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "            intercept angle: " << selectedUngap->getGammaInterceptGoal()); 
+
+        float desiredHeading = selectedUngap->getGammaInterceptGoal();
+        Eigen::Quaternionf desiredQ = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+                                        Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+                                        Eigen::AngleAxisf(desiredHeading, Eigen::Vector3f::UnitZ());
+
+        TrajectoryLogger logger(path, pathTiming, cfg_->robot_frame_id, desiredQ);
 
         ParallelNavigation parallelNavigation(selectedUngap->getGammaInterceptGoal(), 
                                                 rbtSpeed,
@@ -182,31 +188,31 @@ namespace dynamic_gap
                 // // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
-        ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "leaving at : " << processedPoses.size());
+        // ROS_INFO_STREAM_NAMED("UngapTrajectoryGenerator", "leaving at : " << processedPoses.size());
         
         geometry_msgs::PoseArray processedPath = rawPath;        
         processedPath.poses = processedPoses;
 
         // Fix rotation along local trajectory
-        geometry_msgs::Pose processedPose, prevProcessedPose;
-        Eigen::Quaternionf q;
-        float poseToPoseDiffTheta = 0.0;
-        for (int idx = 1; idx < processedPath.poses.size(); idx++)
-        {
-            processedPose = processedPath.poses.at(idx);
-            prevProcessedPose = processedPath.poses.at(idx-1);
-            poseToPoseDiffX = processedPose.position.x - prevProcessedPose.position.x;
-            poseToPoseDiffY = processedPose.position.y - prevProcessedPose.position.y;
-            poseToPoseDiffTheta = std::atan2(poseToPoseDiffY, poseToPoseDiffX);
-            q = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
-                Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-                Eigen::AngleAxisf(poseToPoseDiffTheta, Eigen::Vector3f::UnitZ());
-            q.normalize();
-            processedPath.poses.at(idx-1).orientation.x = q.x();
-            processedPath.poses.at(idx-1).orientation.y = q.y();
-            processedPath.poses.at(idx-1).orientation.z = q.z();
-            processedPath.poses.at(idx-1).orientation.w = q.w();
-        }
+        // geometry_msgs::Pose processedPose, prevProcessedPose;
+        // Eigen::Quaternionf q;
+        // float poseToPoseDiffTheta = 0.0;
+        // for (int idx = 1; idx < processedPath.poses.size(); idx++)
+        // {
+        //     processedPose = processedPath.poses.at(idx);
+        //     prevProcessedPose = processedPath.poses.at(idx-1);
+        //     poseToPoseDiffX = processedPose.position.x - prevProcessedPose.position.x;
+        //     poseToPoseDiffY = processedPose.position.y - prevProcessedPose.position.y;
+        //     poseToPoseDiffTheta = std::atan2(poseToPoseDiffY, poseToPoseDiffX);
+        //     q = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+        //         Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+        //         Eigen::AngleAxisf(poseToPoseDiffTheta, Eigen::Vector3f::UnitZ());
+        //     q.normalize();
+        //     processedPath.poses.at(idx-1).orientation.x = q.x();
+        //     processedPath.poses.at(idx-1).orientation.y = q.y();
+        //     processedPath.poses.at(idx-1).orientation.z = q.z();
+        //     processedPath.poses.at(idx-1).orientation.w = q.w();
+        // }
 
         Trajectory processedTrajectory(processedPath, processedPathTiming);
         return processedTrajectory;

@@ -37,16 +37,19 @@ namespace dynamic_gap
 
         private: 
             // void drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube);
-            void drawGapGoal(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
+
+            void drawGapGoalPosition(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
+            void drawGapGoalVelocity(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */
+            
             std_msgs::ColorRGBA terminalGapGoalsColor; /**< Color to visualize terminal gap goals with */
             std_msgs::ColorRGBA globalPathLocalWaypointColor; /**< Color to visualize global path local waypoint with */
             std_msgs::ColorRGBA globalGoalColor; /**< Color to visualize global goal with */
 
             ros::Publisher globalPathLocalWaypointPublisher; /**< Publisher for global path local waypoint */
-            ros::Publisher gapGoalsPublisher; /**< Publisher for gap goals */
-            ros::Publisher gapGoalsFigPublisher;
+            ros::Publisher gapGoalPositionsPublisher; /**< Publisher for gap goal positions */
+            ros::Publisher gapGoalVelocitiesPublisher; /**< Publisher for gap goal velocities */
             ros::Publisher globalGoalPublisher; /**< Publisher for global goal */
     };
 }

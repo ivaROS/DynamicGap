@@ -57,7 +57,8 @@ namespace dynamic_gap
             {
                 int gap_prop = 1; /**< 0 - old, 1 - new */
                 int pursuit_guidance_method = 1; /**< 0 - pure pursuit, 1 - parallel navigation */
-                bool heading = true; /**< Boolean for if robot tracks path headings or not */
+                bool heading = false; /**< Boolean for if robot tracks path headings or not */
+                bool holonomic = false; /**< Boolean for if robot is holonomic or not */
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
                 bool egocircle_prop_cheat = false; /**< Flag for enacting future scan propagation through cheating */
                 bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
@@ -100,8 +101,7 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
-                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
-                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */                
+                float rgc_angle = 1.0; /**< Rotation amount (radians) for RGC step  */              
                 bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
             } gap_manip;
 

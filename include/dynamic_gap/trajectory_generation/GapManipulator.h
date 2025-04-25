@@ -42,13 +42,13 @@ namespace dynamic_gap
             * \brief function for inflating gap radially and angularly to account for robot size
             * \param gap queried gap
             */            
-            bool inflateGapSides(Gap * gap);
+            void inflateGapSides(Gap * gap);
             
             /**
             * \brief function for convering radial gaps into swept gaps to allow maneuvering around corners
             * \param gap queried gap
             */                   
-            void convertRadialGap(Gap * gap);
+            void convertRadialGap(std::vector<Gap *> const & gaps, const int & gapIdx);
 
         private:
         
