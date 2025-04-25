@@ -87,6 +87,16 @@ namespace dynamic_gap
                                                                         const float & desiredSpeed);                                                            
 
             /**
+            * \brief Control law for trajectory tracking
+            * \param current current robot pose
+            * \param desired desired robot pose
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist constantVelocityControlLawNonHolonomicNID(const geometry_msgs::Pose & current, 
+                                                                            const geometry_msgs::Pose & desired,
+                                                                            const float & desiredSpeed);      
+
+            /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
             * \param rawCmdVel raw command velocity
@@ -186,6 +196,15 @@ namespace dynamic_gap
             float manualVelAngIncrement_; /**< Angular command velocity increment for manual control */
 
             ControlParameters ctrlParams_; /**< Control parameters for gap control */
+
+            geometry_msgs::Pose prevDesired_; /**< Previous desired robot pose */
+            ros::Time prevDesiredTime_; /**< Previous desired robot pose time */
+            float lambda_; /**< lambda value for CBF */
+            float lambdaInit_; /**< initial lambda value for CBF */
+            float epsilon_; /**< epsilon value for CBF */
+            float cp_ = 0.0; /**< proportional coefficient value for CBF */
+            float clambda_ = 0.0; /**< lambda coefficient value for CBF */
+
 
             // std::chrono::steady_clock::time_point startTime_; /**< Start time */
     };
