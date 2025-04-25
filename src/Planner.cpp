@@ -1847,17 +1847,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             recedingUngaps = pruneApproachingUngaps(ungaps);
         }
 
-        // //////////////////////////////////////////////////////////////////////////////////////
-        // //                              GAP POINT PROPAGATION                               //
-        // //////////////////////////////////////////////////////////////////////////////////////
-
-        // std::chrono::steady_clock::time_point gapPropagateStartTime = std::chrono::steady_clock::now();
-        // propagateGapPoints(planningGaps);
-        // float gapPropagateTimeTaken = timeTaken(gapPropagateStartTime);
-        // float avgGapPropagationTimeTaken = computeAverageTimeTaken(gapPropagateTimeTaken, GAP_PROP);
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation for " << gapCount << " gaps took " << gapPropagateTimeTaken << " seconds]");
-        // ROS_INFO_STREAM_NAMED("Timing", "       [Gap Propagation average time: " << avgGapPropagationTimeTaken << " seconds (" << (1.0 / avgGapPropagationTimeTaken) << " Hz) ]");
-
         //////////////////////////////////////////////////////////////////////////////////////
         //                                  GAP MANIPULATION                                //
         //////////////////////////////////////////////////////////////////////////////////////
@@ -1926,8 +1915,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
         goalVisualizer_->drawGapTubeGoals(gapTubes);
-
-        // gapCount = feasibleGaps.size();
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              FUTURE SCAN PROPAGATION                             //
@@ -1998,20 +1985,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // }
         } 
 
-        // else
-        // {
-        //     //////////////////////////////////////////////////////////////////////////////////////
-        //     //                          GAP TRAJECTORY GENERATION AND SCORING                   //
-        //     //////////////////////////////////////////////////////////////////////////////////////
- 
-        //     std::chrono::steady_clock::time_point generateGapTrajsStartTime = std::chrono::steady_clock::now();
-        //     generateGapTrajs(feasibleGaps, gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts, futureScans);
-        //     float generateGapTrajsTimeTaken = timeTaken(generateGapTrajsStartTime);
-        //     float avgGenerateGapTrajsTimeTaken = computeAverageTimeTaken(generateGapTrajsTimeTaken, GAP_TRAJ_GEN);
-        //     ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation for " << gapCount << " gaps took " << generateGapTrajsTimeTaken << " seconds]");
-        //     ROS_INFO_STREAM_NAMED("Timing", "       [Gap Trajectory Generation average time: " << avgGenerateGapTrajsTimeTaken << " seconds (" << (1.0 / avgGenerateGapTrajsTimeTaken) << " Hz) ]");
-        // }
-
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
         ROS_INFO_STREAM_NAMED("Planner", "       gap trajs size: " << gapTrajs.size());
         ROS_INFO_STREAM_NAMED("Planner", "       idling gap trajs size: " << idlingTrajs.size());
@@ -2033,9 +2006,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP TRAJECTORY COMPARISON                           //
         //////////////////////////////////////////////////////////////////////////////////////
-
-        // if (trajFlag != NONE) 
-        // {
 
         timeKeeper_->startTimer(TRAJ_COMP);
 
@@ -2106,14 +2076,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
         }
 
-        chosenTraj = compareToCurrentTraj(incomingTraj,           
-                                            futureScans,
-                                            trajFlag,
-                                            incomingGap,
-                                            isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
+        // chosenTraj = compareToCurrentTraj(incomingTraj,           
+        //                                     futureScans,
+        //                                     trajFlag,
+        //                                     incomingGap,
+        //                                     isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
 
-        timeKeeper_->stopTimer(TRAJ_COMP);
-        // } 
+        // timeKeeper_->stopTimer(TRAJ_COMP);
 
         // delete set of planning gaps
         for (Gap * planningGap : planningGaps)

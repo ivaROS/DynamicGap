@@ -111,7 +111,9 @@ namespace dynamic_gap
 
         geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame(), trajFlag);
 
-        cmd_vel.twist = cmdVelNoStamp;
+        // cmd_vel.twist = cmdVelNoStamp;
+
+        cmd_vel.twist.linear.x = 0.05;
 
         bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp, trajFlag);
 
