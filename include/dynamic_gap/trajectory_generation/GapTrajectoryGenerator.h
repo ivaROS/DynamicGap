@@ -32,7 +32,7 @@ namespace dynamic_gap
 
             Trajectory generateGoToGoalTrajectoryV2(Gap * selectedGap, 
                                                     const geometry_msgs::PoseStamped & currPose, 
-                                                    const geometry_msgs::TwistStamped & currVel,
+                                                    // const geometry_msgs::TwistStamped & currVel,
                                                     const geometry_msgs::PoseStamped & globalGoalRobotFrame);
 
             /**
@@ -46,7 +46,7 @@ namespace dynamic_gap
             */
             Trajectory generateTrajectoryV2(Gap * selectedGap, 
                                             const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,
+                                            // const geometry_msgs::TwistStamped & currVel,
                                             const geometry_msgs::PoseStamped & globalGoalRobotFrame);
 
             // /**
@@ -77,8 +77,9 @@ namespace dynamic_gap
             * \return trajectory through gap
             */
             Trajectory generateIdlingTrajectoryV2(Gap * gap,
-                                                    const geometry_msgs::PoseStamped & currPose, 
-                                                    const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
+                                                    const geometry_msgs::PoseStamped & currPose,
+                                                    const Trajectory & runningTraj);
+                                                    // const geometry_msgs::PoseStamped & rbtPoseInOdomFrame);
 
             /**
             * \brief helper function for transforming trajectory from source frame to destination frame
@@ -97,10 +98,13 @@ namespace dynamic_gap
             * \param prune flag for if you want to prune poses off of trajectory 
             * \return post-processed trajectory
             */                       
-            Trajectory processTrajectory(const Trajectory & traj,
-                                            const geometry_msgs::PoseStamped & currPose, 
-                                            const geometry_msgs::TwistStamped & currVel,                
-                                            const bool & prune);
+            Trajectory processTrajectory(const Trajectory & traj);
+                                            // const geometry_msgs::PoseStamped & currPose, 
+                                            // const geometry_msgs::TwistStamped & currVel,                
+                                            // const bool & prune);
+
+            // Trajectory processIdlingTrajectory(const Trajectory & traj,
+            //                                     const Trajectory & runningTraj);
 
         private: 
 

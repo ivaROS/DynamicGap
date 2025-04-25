@@ -8,10 +8,11 @@ Panels:
         - /Dynamic Gap1/Scans1
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
-        - /Dynamic Gap1/Gaps1/MarkerArray1
         - /Dynamic Gap1/Gaps1/MarkerArray2
+        - /Dynamic Gap1/Gaps1/MarkerArray3
+        - /Dynamic Gap1/Gaps1/MarkerArray4
+        - /Dynamic Gap1/Gaps1/MarkerArray6
         - /Dynamic Gap1/Trajectories1
-        - /Dynamic Gap1/Trajectories1/MarkerArray4
         - /Dynamic Gap1/Tracking1
         - /Axes2
         - /Potential Gap1/PoseArray1
@@ -61,6 +62,12 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
+        rto/base_link:
+          Value: true
+        rto/hokuyo_link:
+          Value: true
+        rto/odom:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: Transform
@@ -71,6 +78,10 @@ Visualization Manager:
         map:
           odom:
             {}
+        rto/odom:
+          rto/base_link:
+            rto/hokuyo_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -161,11 +172,11 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: false
-    - Alpha: 1
+    - Alpha: 0.6000000238418579
       Class: spencer_tracking_rviz_plugin/TrackedPersons
       Color: 130; 130; 130
       Color map offset: 0
-      Color transform: SRL Tracking Colors
+      Color transform: Constant color
       Delete after no. cycles: 100
       Enabled: true
       Excluded person IDs: ""
@@ -198,7 +209,7 @@ Visualization Manager:
       Style:
         Line width: 0.05000000074505806
         Scaling factor: 1
-        Value: Person meshes
+        Value: Bounding boxes
       Topic: /pedsim_visualizer/tracked_persons
       Unreliable: false
       Value: true
@@ -245,7 +256,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        {}
+        world: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -329,13 +340,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: true
               Marker Topic: /rto/manip_gaps
@@ -346,7 +357,15 @@ Visualization Manager:
               Value: true
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /rto/raw_gap_models
+              Marker Topic: /rto/raw_gap_model_positions
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /rto/raw_gap_model_velocities
               Name: MarkerArray
               Namespaces:
                 {}
@@ -354,7 +373,15 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /rto/simp_gap_models
+              Marker Topic: /rto/simp_gap_model_positions
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
                 {}
@@ -368,6 +395,22 @@ Visualization Manager:
                 {}
               Queue Size: 100
               Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/gap_goal_positions
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/gap_goal_velocities
+              Name: MarkerArray
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: Gaps
         - Class: rviz/Group
@@ -691,14 +734,6 @@ Visualization Manager:
       Topic: /rto/current_subgoal
       Unreliable: false
       Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /rto/gap_goals
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -736,10 +771,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 78.1150131225586
+      Scale: 71.8674545288086
       Target Frame: rto/base_link
-      X: 1.7876085042953491
-      Y: 0.6548556089401245
+      X: 1.961739420890808
+      Y: 0.00955488346517086
     Saved: ~
 Window Geometry:
   Displays:
