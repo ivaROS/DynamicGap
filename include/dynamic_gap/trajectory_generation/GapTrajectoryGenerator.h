@@ -103,6 +103,8 @@ namespace dynamic_gap
                                             // const geometry_msgs::TwistStamped & currVel,                
                                             // const bool & prune);
 
+            Trajectory pruneTrajectory(const Trajectory & traj);
+
             // Trajectory processIdlingTrajectory(const Trajectory & traj,
             //                                     const Trajectory & runningTraj);
 

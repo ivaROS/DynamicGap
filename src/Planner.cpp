@@ -1022,6 +1022,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currPose,
                                                                                     // currVel,
                                                                                     // false);
+                        
+                        // if (j == (gapTube->size() - 1))
+                        // {
+                        //     // prune trajectory
+                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
+                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        // }
+                        
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
@@ -1038,6 +1046,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currPose,
                                                                                     // currVel,
                                                                                     // false);
+                        // if (j == (gapTube->size() - 1))
+                        // {
+                        //     // prune trajectory
+                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (unavailable) traj");
+                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        // }
+
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
@@ -2160,9 +2175,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             timeKeeper_->startTimer(PO);
-            // cmdVel = trajController_->processCmdVel(rawCmdVel,
-            //                                         rbtPoseInSensorFrame_, 
-            //                                         currentRbtVel_, currentRbtAcc_); 
 
             if (cfg_.planning.holonomic)
             {
@@ -2195,9 +2207,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
-      
-            // leftModel->isolateGapDynamics();
-            // currentLeftGapPtState = leftModel->getGapState(); 
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
@@ -2210,10 +2219,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (rightModel) 
         {        
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
-            currentRightGapPtModelID = rightModel->getID();
-
-            // rightModel->isolateGapDynamics();
-            // currentRightGapPtState = rightModel->getGapState();             
+            currentRightGapPtModelID = rightModel->getID();          
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);

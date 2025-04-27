@@ -93,8 +93,6 @@ namespace dynamic_gap
         float nearTheta = 0.0, farTheta = 0.0;
         float signedNomPivotAngle = 0.0;
 
-        // float pivotSideSpeed;
-        // float pivotSideSpeedThresh = 0.25;
         if (right) 
         {
             nearIdx = rightIdx;
@@ -160,14 +158,20 @@ namespace dynamic_gap
         // just translation of near to far
         Eigen::Matrix3f nearToFarTranslationMatrix = nearPtTranslationMatrix.inverse() * farPtTranslationMatrix;
 
-
         // pivotedPtRotationMatrix: rotate vector from near point to far point by the desired angle
         ROS_INFO_STREAM_NAMED("GapManipulator", "        nearToFarTranslationMatrix: ");
         ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(0, 0) << ", " << nearToFarTranslationMatrix(0, 1) << ", " << nearToFarTranslationMatrix(0, 2));
         ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(1, 0) << ", " << nearToFarTranslationMatrix(1, 1) << ", " << nearToFarTranslationMatrix(1, 2));
         ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(2, 0) << ", " << nearToFarTranslationMatrix(2, 1) << ", " << nearToFarTranslationMatrix(2, 2));
         
-        Eigen::Matrix3f pivotedPtRotationMatrix = nearPtTranslationMatrix * nomPivotAngleRotationMatrix * nearToFarTranslationMatrix;
+        Eigen::Matrix3f rotatedNearToFarTranslationMatrix = nomPivotAngleRotationMatrix * nearToFarTranslationMatrix;
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        rotatedNearToFarTranslationMatrix: ");
+        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(0, 0) << ", " << rotatedNearToFarTranslationMatrix(0, 1) << ", " << rotatedNearToFarTranslationMatrix(0, 2));
+        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(1, 0) << ", " << rotatedNearToFarTranslationMatrix(1, 1) << ", " << rotatedNearToFarTranslationMatrix(1, 2));
+        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(2, 0) << ", " << rotatedNearToFarTranslationMatrix(2, 1) << ", " << rotatedNearToFarTranslationMatrix(2, 2));
+        
+        Eigen::Matrix3f pivotedPtRotationMatrix = nearPtTranslationMatrix * rotatedNearToFarTranslationMatrix;
         // ROS_INFO_STREAM_NAMED("GapManipulator",  "pivotedPtRotationMatrix: " << pivotedPtRotationMatrix);
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "        pivotedPtRotationMatrix: ");
@@ -240,61 +244,74 @@ namespace dynamic_gap
             }
         }
 
-        // // Search along current scan to from initial gap point to pivoted gap point
-        // // to obtain range value to assign to the pivoted gap point
-        // int scanSearchStartIdx = 0, scanSearchEndIdx = 0;
-        // if (right)
-        // {   
-        //     scanSearchStartIdx = leftIdx;
-        //     scanSearchEndIdx = nomPivotedIdx;
-        // } else
-        // {
-        //     scanSearchStartIdx = nomPivotedIdx;
-        //     scanSearchEndIdx = rightIdx;
-        // }
+        // Re-calculate pivots
 
-        // // ROS_INFO_STREAM("scanSearchStartIdx: " << scanSearchStartIdx << 
-        //                                         // ", scanSearchEndIdx: " << scanSearchEndIdx);
+        // Search along current scan to from initial gap point to pivoted gap point
+        // to obtain range value to assign to the pivoted gap point
+        int scanSearchStartIdx = 0, scanSearchEndIdx = 0;
+        if (right)
+        {   
+            scanSearchStartIdx = leftIdx;
+            scanSearchEndIdx = nomPivotedIdx;
+        } else
+        {
+            scanSearchStartIdx = nomPivotedIdx;
+            scanSearchEndIdx = rightIdx;
+        }
 
-        // // ROS_INFO_STREAM("wrapped scanSearchStartIdx: " << scanSearchStartIdx << ", wrapped scanSearchEndIdx: " << scanSearchEndIdx);
-        // int scanSearchSize = scanSearchEndIdx - scanSearchStartIdx;
+        // ROS_INFO_STREAM("scanSearchStartIdx: " << scanSearchStartIdx << 
+                                                // ", scanSearchEndIdx: " << scanSearchEndIdx);
 
-        // // what if search size == 0?
+        // ROS_INFO_STREAM("wrapped scanSearchStartIdx: " << scanSearchStartIdx << ", wrapped scanSearchEndIdx: " << scanSearchEndIdx);
+        int scanSearchSize = scanSearchEndIdx - scanSearchStartIdx;
 
-        // if (scanSearchSize <= 0)
-        //     scanSearchSize += cfg_->scan.full_scan; // int(2*gap->half_scan);
+        // what if search size == 0?
 
+        if (scanSearchSize <= 0)
+            scanSearchSize += cfg_->scan.full_scan; // int(2*gap->half_scan);
 
-        // int gapIdxSpan = (leftIdx - rightIdx);
-        // if (gapIdxSpan <= 0)
-        //     gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
-        // // // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
+        int gapIdxSpan = (leftIdx - rightIdx);
+        if (gapIdxSpan <= 0)
+            gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
+        // // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
 
-        // // using the law of cosines to find the index between init/final indices
-        // // that's shortest distance between near point and laser scan
-        // // // ROS_INFO_STREAM("ranges size: " << stored_scan_msgs.ranges.size());
-        // std::vector<float> nearPtToScanDists(scanSearchSize);
+        // using the law of cosines to find the index between init/final indices
+        // that's shortest distance between near point and laser scan
+        // // ROS_INFO_STREAM("ranges size: " << stored_scan_msgs.ranges.size());
+        std::vector<float> nearPtToScanDists(scanSearchSize);
 
-        // int checkIdx = 0;
-        // float checkRange = 0.0, checkIdxSpan = 0.0;
-        // for (int i = 0; i < nearPtToScanDists.size(); i++) 
-        // {
-        //     checkIdx = (i + scanSearchStartIdx) % cfg_->scan.full_scan; // int(2 * gap->half_scan);
-        //     checkRange = desScan.ranges.at(checkIdx);
-        //     checkIdxSpan = gapIdxSpan + (scanSearchSize - i);
-        //     nearPtToScanDists.at(i) = sqrt(pow(nearRange, 2) + pow(checkRange, 2) -
-        //                                 2.0 * nearRange * checkRange * cos(checkIdxSpan * cfg_->scan.angle_increment));
-        //     // // ROS_INFO_STREAM("checking idx: " << checkIdx << ", range of: " << range << ", diff in idx: " << checkIdxSpan << ", dist of " << dist.at(i));
-        // }
+        int checkIdx = 0;
+        float checkRange = 0.0, checkIdxSpan = 0.0;
+        for (int i = 0; i < nearPtToScanDists.size(); i++) 
+        {
+            checkIdx = (i + scanSearchStartIdx) % cfg_->scan.full_scan; // int(2 * gap->half_scan);
+            checkRange = desScan.ranges.at(checkIdx);
+            checkIdxSpan = gapIdxSpan + (scanSearchSize - i);
+            nearPtToScanDists.at(i) = sqrt(pow(nearRange, 2) + pow(checkRange, 2) -
+                                        2.0 * nearRange * checkRange * cos(checkIdxSpan * cfg_->scan.angle_increment));
+            // // ROS_INFO_STREAM("checking idx: " << checkIdx << ", range of: " << range << ", diff in idx: " << checkIdxSpan << ", dist of " << dist.at(i));
+        }
 
-        // auto minDistIter = std::min_element(nearPtToScanDists.begin(), nearPtToScanDists.end());
-        // int minDistIdx = (scanSearchStartIdx + std::distance(nearPtToScanDists.begin(), minDistIter)) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+        auto minDistIter = std::min_element(nearPtToScanDists.begin(), nearPtToScanDists.end());
+        int minDistIdx = (scanSearchStartIdx + std::distance(nearPtToScanDists.begin(), minDistIter)) % cfg_->scan.full_scan; // int(2*gap->half_scan);
         
-        // float minDistRange = *minDistIter;
-        
-        int pivotedPtIdx = nomPivotedIdx;
-        float pivotedPtTheta = idx2theta(pivotedPtIdx);
-        float pivotedPtRange = std::min(farRange, desScan.ranges.at(pivotedPtIdx));
+        float minDist = *minDistIter;
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDist << " at " << minDistIdx);         
+
+        Eigen::Vector2f rotatedNearToFarVector = rotatedNearToFarTranslationMatrix.col(2).head(2);
+        Eigen::Vector2f rotatedNearToFarDirection = rotatedNearToFarVector.normalized();    
+
+        Eigen::Vector2f nearPt = Eigen::Vector2f(nearRange * cos(nearTheta), nearRange * sin(nearTheta));
+        Eigen::Vector2f pivotedPt = nearPt + rotatedNearToFarDirection * minDist;
+
+        float pivotedPtTheta = std::atan2(pivotedPt[1], pivotedPt[0]);
+        int pivotedPtIdx = theta2idx(pivotedPtTheta);
+        float pivotedPtRange = pivotedPt.norm();
+
+        // int pivotedPtIdx = nomPivotedIdx;
+        // float pivotedPtTheta = idx2theta(pivotedPtIdx);
+        // float pivotedPtRange =  // std::min(farRange, desScan.ranges.at(pivotedPtIdx));
 
         // int pivotedPtIdx = minDistIdx;
         // float pivotedPtTheta = idx2theta(pivotedPtIdx);
@@ -303,7 +320,6 @@ namespace dynamic_gap
         
         // float minDistRange = *minDistIter;
 
-        // ROS_INFO_STREAM_NAMED("GapManipulator", "        from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDistRange << " at " << minDistIdx);         
 
         // // pivoting around near point, pointing towards far point or something?
 
