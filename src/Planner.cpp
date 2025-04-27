@@ -2145,9 +2145,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             timeKeeper_->startTimer(PO);
-            cmdVel = trajController_->processCmdVel(rawCmdVel,
-                                                    rbtPoseInSensorFrame_, 
-                                                    currentRbtVel_, currentRbtAcc_); 
+            // cmdVel = trajController_->processCmdVel(rawCmdVel,
+            //                                         rbtPoseInSensorFrame_, 
+            //                                         currentRbtVel_, currentRbtAcc_); 
+
+            if (cfg_.planning.holonomic)
+            {
+                cmdVel = trajController_->processCmdVel(rawCmdVel,
+                                                        rbtPoseInSensorFrame_); 
+            } else
+            {
+                cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                                                                    rawCmdVel,
+                                                                    rbtPoseInSensorFrame_); 
+            }
+
             timeKeeper_->stopTimer(PO);
 
             timeKeeper_->stopTimer(CONTROL);

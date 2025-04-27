@@ -34,7 +34,7 @@ namespace dynamic_gap
             // Planning Information
             nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
             nh.param("egocircle_prop_cheat", planning.egocircle_prop_cheat, planning.egocircle_prop_cheat);
-            nh.param("heading", planning.heading, planning.heading);
+            // nh.param("heading", planning.heading, planning.heading);
             nh.param("holonomic", planning.holonomic, planning.holonomic);
             // ROS_INFO_STREAM_NAMED("Planner", "       setting heading to " << planning.heading);
             nh.param("gap_feasibility_check", planning.gap_feasibility_check, planning.gap_feasibility_check);
