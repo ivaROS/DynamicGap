@@ -512,7 +512,7 @@ namespace dynamic_gap
             // Scans
             boost::shared_ptr<sensor_msgs::LaserScan const> scan_; /**< Current laser scan */
 
-            geometry_msgs::Twist mpcTwist_; /**< Command velocity output for MPC */
+            // geometry_msgs::Twist mpcTwist_; /**< Command velocity output for MPC */
 
             bool haveTFs_ = false; /**< Flag for if transforms have been received */
 

@@ -51,6 +51,12 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist obstacleAvoidanceControlLaw();
+
+            /**
+            * \brief Control law for pure obstacle avoidance
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist obstacleAvoidanceControlLawNonHolonomic();
             
             /**
             * \brief Control law for manual robot operation

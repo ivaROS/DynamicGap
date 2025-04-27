@@ -236,6 +236,51 @@ namespace dynamic_gap
         return cmdVel;
     }
 
+    /*
+    Taken from the code provided in stdr_simulator repo. Probably does not perform too well.
+    */
+    geometry_msgs::Twist TrajectoryController::obstacleAvoidanceControlLawNonHolonomic() 
+    {
+        ROS_INFO_STREAM_NAMED("Controller", "obstacle avoidance control");
+        float safeDirX = 0;
+        float safeDirZ = 0;                                   
+        
+        float scanRange = 0.0, scanTheta = 0.0;
+        for (int i = 0; i < scan_->ranges.size(); i++) 
+        {
+            scanRange = scan_->ranges.at(i);
+            scanTheta =  idx2theta(i);
+
+            safeDirX += epsilonDivide(-1.0 * std::cos(scanTheta), pow(scanRange, 2));
+            safeDirZ += epsilonDivide(-1.0 * std::sin(scanTheta), pow(scanRange, 2));
+        }
+
+        safeDirX /= scan_->ranges.size();
+        safeDirZ /= scan_->ranges.size();
+
+        ROS_INFO_STREAM_NAMED("Controller", "raw safe vels: x: " << safeDirX << ", z: " << safeDirZ);
+
+        // clipRobotVelocity(cmdVelX, cmdVelY, cmdVelTheta);
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+
+        float clippedCmdVelX = 0.0;
+        if (std::abs(safeDirX) < cfg_->rbt.vx_absmax)
+        {
+            clippedCmdVelX = safeDirX;
+        } else
+        {
+            clippedCmdVelX = cfg_->rbt.vx_absmax * epsilonDivide(safeDirX, std::abs(safeDirX));
+        }
+
+        cmdVel.linear.x = clippedCmdVelX;
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, safeDirZ));
+
+        ROS_INFO_STREAM_NAMED("Controller", "final safe vels: " << cmdVel.linear.x << ", " << cmdVel.angular.z);
+
+        return cmdVel;
+    }
 
     geometry_msgs::Twist TrajectoryController::constantVelocityControlLawNonHolonomicLookahead(const geometry_msgs::Pose & currentPoseOdomFrame, 
                                                                                                 const geometry_msgs::Pose & desiredPoseOdomFrame,
