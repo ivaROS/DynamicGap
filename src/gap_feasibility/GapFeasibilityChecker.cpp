@@ -86,17 +86,20 @@ namespace dynamic_gap
     {
         ROS_INFO_STREAM_NAMED("GapFeasibilityV2", "                [parallelNavigationFeasibilityCheckV2()]"); 
 
-        gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
-        gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+        // gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+        // gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
 
-        Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getManipGapState();
-        Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f leftGapState = gap->getLeftGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f rightGapState = gap->getRightGapPt()->getModel()->getManipGapState();
+
+        Eigen::Vector2f leftGapPtVel = gap->getManipulatedLVelocity();
+        Eigen::Vector2f rightGapPtVel = gap->getManipulatedRVelocity();
 
         // Eigen::Vector2f leftGapPtPos = leftGapState.head(2);
-        Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
+        // Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
 
         // Eigen::Vector2f rightGapPtPos = rightGapState.head(2);
-        Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
+        // Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
 
         // ROS_INFO_STREAM("                       leftGapState: " << leftGapState.transpose()); 
 

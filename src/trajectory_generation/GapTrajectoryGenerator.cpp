@@ -87,13 +87,13 @@ namespace dynamic_gap
         selectedGap->getManipulatedLCartesian(xLeft, yLeft);
         selectedGap->getManipulatedRCartesian(xRight, yRight);
 
-        Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getManipGapState();
-        Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getManipGapState();
         Eigen::Vector2f initialGoal = selectedGap->getGoal()->getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
         Eigen::Vector2f goalPtVel = selectedGap->getGoal()->getOrigGoalVel(); // (selectedGap->goal.vx_, selectedGap->goal.vy_);
 
-        Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
-        Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
+        Eigen::Vector2f leftGapPtVel = selectedGap->getManipulatedLVelocity(); // leftGapState.tail(2);
+        Eigen::Vector2f rightGapPtVel = selectedGap->getManipulatedRVelocity(); // rightGapState.tail(2);
 
         float leftVelX = leftGapPtVel[0];
         float leftVelY = leftGapPtVel[1];

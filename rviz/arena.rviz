@@ -14,6 +14,7 @@ Panels:
         - /Dynamic Gap1/Gaps1/MarkerArray6
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Tracking1
+        - /Axes1
         - /Axes2
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
@@ -33,7 +34,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -78,10 +79,10 @@ Visualization Manager:
         map:
           odom:
             {}
-        rto/odom:
-          rto/base_link:
-            rto/hokuyo_link:
-              {}
+          rto/odom:
+            rto/base_link:
+              rto/hokuyo_link:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -117,7 +118,7 @@ Visualization Manager:
       Marker Topic: /rto/visualize/model
       Name: rto MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -344,7 +345,7 @@ Visualization Manager:
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -352,7 +353,7 @@ Visualization Manager:
               Marker Topic: /rto/manip_gaps
               Name: Marker
               Namespaces:
-                {}
+                manip: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -376,7 +377,7 @@ Visualization Manager:
               Marker Topic: /rto/simp_gap_model_positions
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -384,7 +385,7 @@ Visualization Manager:
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -400,7 +401,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_goal_positions
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -408,7 +409,7 @@ Visualization Manager:
               Marker Topic: /rto/gap_goal_velocities
               Name: MarkerArray
               Namespaces:
-                {}
+                gap_goal: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -436,7 +437,7 @@ Visualization Manager:
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -468,7 +469,7 @@ Visualization Manager:
               Marker Topic: /rto/candidate_tube_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -480,7 +481,7 @@ Visualization Manager:
               Marker Topic: /rto/po_dir
               Name: Marker
               Namespaces:
-                {}
+                "": true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -507,7 +508,7 @@ Visualization Manager:
           Marker Topic: /rto/planning_loop_idx
           Name: Marker
           Namespaces:
-            {}
+            planning_loop_idx: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -515,7 +516,7 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Axes
       Enabled: true
-      Length: 1
+      Length: 0.25
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: rto/base_link
