@@ -56,15 +56,15 @@ namespace dynamic_gap
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
 
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.acc_topic: " << cfg_.acc_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.ped_topic: " << cfg_.ped_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.acc_topic: " << cfg_.acc_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.ped_topic: " << cfg_.ped_topic);
 
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
 
         // Initialize everything
         gapDetector_ = new GapDetector(cfg_);
@@ -163,14 +163,11 @@ namespace dynamic_gap
         float globalGoalOrientation = quaternionToYaw(globalGoalOdomFrame_.pose.orientation);
         float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
-        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.goal_tolerance &&
-                             globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
+        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.xy_global_goal_tolerance &&
+                             globalGoalAngDist < cfg_.goal.yaw_global_goal_tolerance;
         
         if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
-        // else
-        //     ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
-        //                                      ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
         return reachedGlobalGoal_;
     }
@@ -596,7 +593,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
         
-        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
+        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.xy_waypoint_tolerance)
             globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
         // Set new local goal to trajectory arbiter
