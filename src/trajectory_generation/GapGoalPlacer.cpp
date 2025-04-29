@@ -299,7 +299,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << centerPt[0] << ", " << centerPt[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
+            Eigen::Vector2f gapGoalRadialOffset = 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
             Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
             Eigen::Vector2f scaledCenterVel = centerVel * (inflatedCenterPt.norm() / centerPt.norm()); // scale by r?
 
@@ -332,7 +332,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 
-            Eigen::Vector2f gapGoalRadialOffset = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
+            Eigen::Vector2f gapGoalRadialOffset = 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * biasedGapGoal.normalized();
 
             Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
