@@ -1033,6 +1033,14 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currPose,
                                                                                     // currVel,
                                                                                     // false);
+                        
+                        // if (j == (gapTube->size() - 1))
+                        // {
+                        //     // prune trajectory
+                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
+                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        // }
+                        
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
@@ -1049,6 +1057,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currPose,
                                                                                     // currVel,
                                                                                     // false);
+                        // if (j == (gapTube->size() - 1))
+                        // {
+                        //     // prune trajectory
+                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (unavailable) traj");
+                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        // }
+
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
@@ -2108,12 +2123,27 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL 
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
-                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+                if (cfg_.planning.holonomic)
+                {
+                    rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+                } else
+                {
+                    rawCmdVel = trajController_->obstacleAvoidanceControlLawNonHolonomic();
+                }
+
                 return rawCmdVel;
             } else if (localTrajectory.poses.size() == 0) 
             {
                 ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
-                rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+                
+                if (cfg_.planning.holonomic)
+                {
+                    rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
+                } else
+                {
+                    rawCmdVel = trajController_->obstacleAvoidanceControlLawNonHolonomic();
+                }
+                
                 return rawCmdVel;
             } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
             {
@@ -2121,9 +2151,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 // rawCmdVel = trajController_->manualControlLawKeyboard();
                 // rawCmdVel = trajController_->manualControlLawReconfig();
                 // rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
-            } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
-            { 
-                rawCmdVel = mpcTwist_;
+            // } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
+            // { 
+            //     rawCmdVel = mpcTwist_;
             } else if (cfg_.ctrl.feedback_ctrl && (trajFlag == UNGAP || trajFlag == GAP)) // FEEDBACK CONTROL 
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
@@ -2154,9 +2184,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             timeKeeper_->startTimer(PO);
-            cmdVel = trajController_->processCmdVel(rawCmdVel,
-                                                    rbtPoseInSensorFrame_, 
-                                                    currentRbtVel_, currentRbtAcc_); 
+
+            if (cfg_.planning.holonomic)
+            {
+                cmdVel = trajController_->processCmdVel(rawCmdVel,
+                                                        rbtPoseInSensorFrame_); 
+            } else
+            {
+                cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                                                                    rawCmdVel,
+                                                                    rbtPoseInSensorFrame_); 
+            }
+
             timeKeeper_->stopTimer(PO);
 
             timeKeeper_->stopTimer(CONTROL);
@@ -2177,9 +2216,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
             currentLeftGapPtModelID = leftModel->getID(); 
-      
-            // leftModel->isolateGapDynamics();
-            // currentLeftGapPtState = leftModel->getGapState(); 
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
@@ -2193,10 +2229,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (rightModel) 
         {        
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
-            currentRightGapPtModelID = rightModel->getID();
-
-            // rightModel->isolateGapDynamics();
-            // currentRightGapPtState = rightModel->getGapState();             
+            currentRightGapPtModelID = rightModel->getID();          
         } else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);

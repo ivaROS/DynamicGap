@@ -299,8 +299,8 @@ namespace dynamic_gap
                 ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id is empty");
             }
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id: " << frame_);
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger q: " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w());
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id: " << frame_);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger q: " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w());
 
 
         }

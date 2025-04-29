@@ -87,13 +87,13 @@ namespace dynamic_gap
         selectedGap->getManipulatedLCartesian(xLeft, yLeft);
         selectedGap->getManipulatedRCartesian(xRight, yRight);
 
-        Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getManipGapState();
-        Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f leftGapState = selectedGap->getLeftGapPt()->getModel()->getManipGapState();
+        // Eigen::Vector4f rightGapState = selectedGap->getRightGapPt()->getModel()->getManipGapState();
         Eigen::Vector2f initialGoal = selectedGap->getGoal()->getOrigGoalPos(); // (selectedGap->goal.x_, selectedGap->goal.y_);
         Eigen::Vector2f goalPtVel = selectedGap->getGoal()->getOrigGoalVel(); // (selectedGap->goal.vx_, selectedGap->goal.vy_);
 
-        Eigen::Vector2f leftGapPtVel = leftGapState.tail(2);
-        Eigen::Vector2f rightGapPtVel = rightGapState.tail(2);
+        Eigen::Vector2f leftGapPtVel = selectedGap->getManipulatedLVelocity(); // leftGapState.tail(2);
+        Eigen::Vector2f rightGapPtVel = selectedGap->getManipulatedRVelocity(); // rightGapState.tail(2);
 
         float leftVelX = leftGapPtVel[0];
         float leftVelY = leftGapPtVel[1];
@@ -285,6 +285,50 @@ namespace dynamic_gap
         return transformedPath;
     }
 
+    Trajectory GapTrajectoryGenerator::pruneTrajectory(const Trajectory & traj)
+    {
+        geometry_msgs::PoseArray rawPath = traj.getPathRbtFrame();
+        std::vector<float> rawPathTiming = traj.getPathTiming();
+                
+        if (rawPath.poses.size() == 0)
+        {
+            ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "            pruneTrajectory: empty path");
+            return traj;
+        }
+            
+        geometry_msgs::PoseArray processedPath;
+        processedPath.header = rawPath.header;        
+
+        std::vector<geometry_msgs::Pose> processedPoses;
+        processedPoses.push_back(rawPath.poses.front());
+        std::vector<float> processedPathTiming;
+        processedPathTiming.push_back(rawPathTiming.front());
+
+        float poseToPoseDiffX = 0.0, poseToPoseDiffY = 0.0, poseToPoseDist = 0.0;
+        float poseToPoseDistThreshold = 0.1;
+        for (int i = 1; i < rawPath.poses.size(); i++) 
+        {
+            geometry_msgs::Pose rawPose = rawPath.poses[0];
+            poseToPoseDiffX = rawPose.position.x - processedPoses.back().position.x;
+            poseToPoseDiffY = rawPose.position.y - processedPoses.back().position.y;
+            poseToPoseDist = sqrt(pow(poseToPoseDiffX, 2) + pow(poseToPoseDiffY, 2));
+            if (poseToPoseDist > poseToPoseDistThreshold)
+            {
+                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
+                processedPoses.push_back(rawPose);
+                processedPathTiming.push_back(rawPathTiming.at(i));
+            } else 
+            {
+                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
+            }
+        }
+
+        processedPath.poses = processedPoses;
+
+        Trajectory processedTrajectory(processedPath, processedPathTiming);
+        return processedTrajectory;                    
+    }
+
     Trajectory GapTrajectoryGenerator::processTrajectory(const Trajectory & traj)
                                                             // const geometry_msgs::PoseStamped & currPose, 
                                                             // const geometry_msgs::TwistStamped & currVel,
@@ -334,23 +378,7 @@ namespace dynamic_gap
             // processedPoses.insert(processedPoses.end(), rawPath.poses.begin(), rawPath.poses.end());
             // processedPathTiming.insert(processedPathTiming.end(), rawPathTiming.begin(), rawPathTiming.end());
 
-            // float poseToPoseDistThreshold = 0.1;
-            // for (int i = 1; i < rawPath.poses.size(); i++) 
-            // {
-            //     geometry_msgs::Pose rawPose = rawPath.poses[i];
-            //     poseToPoseDiffX = rawPose.position.x - processedPoses.back().position.x;
-            //     poseToPoseDiffY = rawPose.position.y - processedPoses.back().position.y;
-            //     poseToPoseDist = sqrt(pow(poseToPoseDiffX, 2) + pow(poseToPoseDiffY, 2));
-            //     if (!prune || (prune && poseToPoseDist > poseToPoseDistThreshold))
-            //     {
-            //         // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
-            //         processedPoses.push_back(rawPose);
-            //         processedPathTiming.push_back(rawPathTiming.at(i));
-            //     } else 
-            //     {
-            //         // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
-            //     }
-            // }
+
             // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "leaving at : " << processedPoses.size());
             
             geometry_msgs::PoseArray processedPath = rawPath;        

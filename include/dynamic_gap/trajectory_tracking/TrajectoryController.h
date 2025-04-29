@@ -51,6 +51,12 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist obstacleAvoidanceControlLaw();
+
+            /**
+            * \brief Control law for pure obstacle avoidance
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist obstacleAvoidanceControlLawNonHolonomic();
             
             /**
             * \brief Control law for manual robot operation
@@ -96,6 +102,9 @@ namespace dynamic_gap
                                                                             const geometry_msgs::Pose & desired,
                                                                             const float & desiredSpeed);      
 
+            // , 
+            // const geometry_msgs::TwistStamped & currRbtVel, 
+            // const geometry_msgs::TwistStamped & currRbtAcc
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
@@ -106,10 +115,26 @@ namespace dynamic_gap
             * \return processed command velocity
             */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
-                                                const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                const geometry_msgs::TwistStamped & currRbtVel, 
-                                                const geometry_msgs::TwistStamped & currRbtAcc);
+                                                const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
             
+
+
+            // , 
+            // const geometry_msgs::TwistStamped & currRbtVel, 
+            // const geometry_msgs::TwistStamped & currRbtAcc                                                
+            /**
+            * \brief Apply post-processing steps to command velocity including robot kinematic limits
+            * along with last-resort safety modules such as projection operator or CBF
+            * \param rawCmdVel raw command velocity
+            * \param rbtPoseInSensorFrame robot pose in sensor frame
+            * \param currRbtVel current robot velocity
+            * \param currRbtAcc current robot acceleration
+            * \return processed command velocity
+            */
+            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & current,
+                                                            const geometry_msgs::Twist & rawCmdVel,
+                                                            const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
+
             /**
             * \brief Extract pose within target trajectory that we should track
             * \param currPose current robot pose
@@ -154,8 +179,8 @@ namespace dynamic_gap
             */
             void runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                         Eigen::Vector2f & cmdVelFeedback,
-                                        float & Psi, 
-                                        Eigen::Vector2f & dPsiDx,
+                                        // float & Psi, 
+                                        // Eigen::Vector2f & dPsiDx,
                                         float & velLinXSafe, 
                                         float & velLinYSafe,
                                         float & minDistTheta, 
@@ -166,7 +191,8 @@ namespace dynamic_gap
             * \param closestScanPtToRobot minimum distance scan point
             * \return projection operator function and gradient values (Psi and dPsiDx)
             */
-            Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
+            void calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot,
+                                                float & Psi, Eigen::Vector2f & dPsiDx);
 
             /**
             * \brief Function for visualizing projection operator output in RViz
