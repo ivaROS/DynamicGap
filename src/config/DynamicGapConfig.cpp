@@ -89,6 +89,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Parameters", "man_ctrl is: " << ctrl.man_ctrl);
             ROS_INFO_STREAM_NAMED("Parameters", "mpc_ctrl is: " << ctrl.mpc_ctrl);
             ROS_INFO_STREAM_NAMED("Parameters", "feedback_ctrl is: " << ctrl.feedback_ctrl);
+            ros_throw_param_load(nh, "ctrl_ahead_pose", ctrl.ctrl_ahead_pose);
 
             // Goal Param
             // nh.param("xy_goal_tolerance", goal.xy_global_goal_tolerance, goal.xy_global_goal_tolerance);
@@ -127,19 +128,6 @@ namespace dynamic_gap
 
             // nh.param("Q_f", traj.Q_f, traj.Q_f);
             ros_throw_param_load(nh, "Q_f", traj.Q_f);
-
-            // Control Params
-            // nh.param("k_fb_x",control.k_fb_x, control.k_fb_x);
-            // ros_throw_param_load(nh, "k_fb_x", control.k_fb_x);
-
-            // nh.param("k_fb_y",control.k_fb_y, control.k_fb_y);
-            // ros_throw_param_load(nh, "k_fb_y", control.k_fb_y);
-
-            // nh.param("k_fb_theta",control.k_fb_theta, control.k_fb_theta);
-            // ros_throw_param_load(nh, "k_fb_theta", control.k_fb_theta);
-
-            // nh.param("ctrl_ahead_pose",control.ctrl_ahead_pose, control.ctrl_ahead_pose);
-            ros_throw_param_load(nh, "ctrl_ahead_pose", control.ctrl_ahead_pose);
 
             // Projection Params
             // nh.param("k_po_x", projection.k_po_x, projection.k_po_x);

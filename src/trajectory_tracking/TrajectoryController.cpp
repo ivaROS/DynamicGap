@@ -461,7 +461,7 @@ namespace dynamic_gap
 
         float velLinXFeedback = constantVelocityCommand[0];
         float velLinYFeedback = constantVelocityCommand[1];
-        float velAngFeedback = 0.0; // cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
+        float velAngFeedback = 0.0; 
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desiredPoseOdomFrame.position.x << ", y: " << desiredPoseOdomFrame.position.y << ", yaw: "<< desYaw);
@@ -838,7 +838,7 @@ namespace dynamic_gap
         auto minimumDeviationIter = std::min_element(localTrajectoryDeviations.begin(), localTrajectoryDeviations.end());
         
         // go n steps ahead of pose with smallest difference
-        int targetPose = std::distance(localTrajectoryDeviations.begin(), minimumDeviationIter) + cfg_->control.ctrl_ahead_pose;
+        int targetPose = std::distance(localTrajectoryDeviations.begin(), minimumDeviationIter) + cfg_->ctrl.ctrl_ahead_pose;
 
         // make sure pose does note exceed trajectory size
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
