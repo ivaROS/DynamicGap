@@ -9,7 +9,69 @@
 
 namespace dynamic_gap 
 {
+    ///////////////////////////
+    // ROS PARAMETER LOADING //
+    ///////////////////////////
 
+    // inline void ros_throw_if(const bool & condition, const std::string & message)
+    // {
+    //     if (condition)
+    //     {
+    //         ROS_ERROR_STREAM_NAMED("Parameters", message);
+    //         throw std::runtime_error(message);
+    //     }
+    // }
+    
+    inline void ros_throw_param_load(const ros::NodeHandle & nh, const std::string & param_name, bool & param)
+    {
+        // format: key, value, default value
+
+        if (!nh.getParam(param_name, param))
+        {
+            ROS_ERROR_STREAM_NAMED("Parameters", "Couldn't find parameter: " << param_name);
+            throw std::runtime_error("Couldn't find parameter: " + param_name);
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("Parameters", "Loaded parameter: " << param_name << " = " << param);
+        }
+    }
+    
+    inline void ros_throw_param_load(const ros::NodeHandle & nh, const std::string & param_name, std::string & param)
+    {
+        if (!nh.getParam(param_name, param))
+        {
+            ROS_ERROR_STREAM_NAMED("Parameters", "Couldn't find parameter: " << param_name);
+            throw std::runtime_error("Couldn't find parameter: " + param_name);
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("Parameters", "Loaded parameter: " << param_name << " = " << param);
+        }
+    }
+
+    inline void ros_throw_param_load(const ros::NodeHandle & nh, const std::string & param_name, float & param)
+    {
+        if (!nh.getParam(param_name, param))
+        {
+            ROS_ERROR_STREAM_NAMED("Parameters", "Couldn't find parameter: " << param_name);
+            throw std::runtime_error("Couldn't find parameter: " + param_name);
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("Parameters", "Loaded parameter: " << param_name << " = " << param);
+        }
+    }
+
+    inline void ros_throw_param_load(const ros::NodeHandle & nh, const std::string & param_name, int & param)
+    {
+        if (!nh.getParam(param_name, param))
+        {
+            ROS_ERROR_STREAM_NAMED("Parameters", "Couldn't find parameter: " << param_name);
+            throw std::runtime_error("Couldn't find parameter: " + param_name);
+        } else
+        {
+            ROS_INFO_STREAM_NAMED("Parameters", "Loaded parameter: " << param_name << " = " << param);
+        }
+    }    
+    
     //////////////////////////////
     //        VARIABLES         //
     //////////////////////////////
