@@ -3,7 +3,7 @@ DynamicGapPlanner:
     yaw_goal_tolerance: 3.15 
     xy_goal_tolerance: .2
 
-    r_inscr:  0.20
+    r_inscr:  0.25
 
     ctrl_ahead_pose: 2
     k_fb_x: 2
@@ -18,10 +18,11 @@ DynamicGapPlanner:
     r_zero: 1.0
 
     scale: 1.0
-    integrate_maxt: 10
+    integrate_maxt: 5.0
     integrate_stept: 0.50
 
     projection_operator: True
+    holonomic: False
 
     debug_viz: True
     max_pose_to_scan_dist: 0.5

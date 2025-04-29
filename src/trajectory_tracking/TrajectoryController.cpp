@@ -606,7 +606,7 @@ namespace dynamic_gap
         Eigen::Vector2f safeErrorDirection(safeErrorX, safeErrorY);
         float l = safeErrorDirection.norm();
 
-        float l_adj = l; // 0.5 * l;
+        float l_adj = 0.5 * l;
 
         ROS_INFO_STREAM_NAMED("Controller", "        safeErrorDirection: " << safeErrorDirection.transpose() << ", l: " << l << ", l_adj: " << l);
 

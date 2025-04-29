@@ -28,9 +28,9 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 0.25; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 0.25; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 0.25; /**< Maximum angular speed for robot */            
+                float vx_absmax = 0.40; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.40; /**< Maximum linear speed in y-direction for robot */
+                float vang_absmax = 0.80; /**< Maximum angular speed for robot */            
             } rbt;
 
             /**
@@ -110,7 +110,7 @@ namespace dynamic_gap
             */
             struct Trajectory 
             {
-                float integrate_maxt = 10.0; /**< Trajectory generation time horizon (in seconds) */
+                float integrate_maxt = 5.0; /**< Trajectory generation time horizon (in seconds) */
                 float integrate_stept = 0.5; /**< Trajectory generation time step (in seconds) */
                 float max_pose_to_scan_dist = 0.5; /**< Minimum robot to environment distance for which we should penalize in trajectory scoring */
                 float Q = 1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
