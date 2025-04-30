@@ -8,43 +8,6 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-
-    // void GapManipulator::radialExtendGap(Gap * gap) 
-    // {
-    //     try
-    //     {
-    //         if (!cfg_->gap_manip.radial_extend)
-    //             return;
-
-    //         int leftIdx = gap->manipLeftIdx();
-    //         int rightIdx = gap->manipRightIdx();
-    //         float leftRange = gap->manipLeftRange();
-    //         float rightRange = gap->manipRightRange();
-
-    //         float leftTheta = idx2theta(leftIdx);
-    //         float rightTheta = idx2theta(rightIdx);
-    //         float xLeft = leftRange * cos(leftTheta);
-    //         float yLeft = leftRange * sin(leftTheta);
-    //         float xRight = rightRange * cos(rightTheta);
-    //         float yRight = rightRange * sin(rightTheta);
-            
-    //         Eigen::Vector2d leftPt(xLeft, yLeft);
-    //         Eigen::Vector2d rightPt(xRight, yRight);
-
-    //         // ROS_INFO_STREAM("    [radialExtendGap()]");
-    //         // ROS_INFO_STREAM("        pre-RE gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
-    //         // ROS_INFO_STREAM("        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
-            
-    //         float s = std::min(gap->getMinSafeDist(), cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
-
-    //         return;
-    //     } catch (...)
-    //     {
-    //         ROS_ERROR_STREAM_NAMED("GapManipulator", "radialGapExtension() failed");
-    //     }
-    // }
-
-
     void GapManipulator::convertRadialGap(std::vector<Gap *> const & gaps, const int & gapIdx) 
     {
         ROS_INFO_STREAM_NAMED("GapManipulator", "    [convertRadialGap()]");
@@ -191,80 +154,6 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("GapManipulator", "        nomPivotedIdx: " << nomPivotedIdx);
 
         // Clip pivoted theta to not overlap with adjacent gaps
-        if (right)
-        {
-            int nextGapIdx = (gapIdx + 1) % gaps.size();
-            Gap * adjGap = gaps.at(nextGapIdx);
-            int adjIdx = adjGap->manipRightIdx();
-            float adjTheta = idx2theta(adjIdx);
-            float adjRange = adjGap->manipRightRange();
-
-            if (std::abs(adjIdx - leftIdx) <= 1)
-            {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
-                return;
-            }
-
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
-
-            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(leftTheta), sin(leftTheta));
-            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(nomPivotedTheta), sin(nomPivotedTheta));
-            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
-
-            float adjGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(adjGapPtUnitNorm, originalPtUnitNorm);
-            float pivotedGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(pivotPtUnitNorm, originalPtUnitNorm);
-
-            if (adjGapPtToOriginalGapPtAngle <= pivotedGapPtToOriginalGapPtAngle)
-            {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (right), need to clip");
-
-                nomPivotedIdx = (adjIdx -1 + cfg_->scan.full_scan) % cfg_->scan.full_scan;
-                nomPivotedTheta = idx2theta(nomPivotedIdx);
-
-                pivotedPt = adjRange * Eigen::Vector2f(cos(nomPivotedTheta), sin(nomPivotedTheta));
-
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        new pivotedIdx: " << nomPivotedIdx);
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        new pivotedTheta: " << nomPivotedTheta);
-            }
-
-        } else
-        {
-            int prevGapIdx = (gapIdx - 1 + gaps.size()) % gaps.size();
-            Gap * adjGap = gaps.at(prevGapIdx);
-            int adjIdx = adjGap->manipLeftIdx();
-            float adjTheta = idx2theta(adjIdx);
-            float adjRange = adjGap->manipLeftRange();
-
-            if (std::abs(adjIdx - rightIdx) <= 1)
-            {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
-                return;
-            }
-
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
-
-            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(rightTheta), sin(rightTheta));
-            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(nomPivotedTheta), sin(nomPivotedTheta));
-            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
-
-            float originalGapPtToAdjGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, adjGapPtUnitNorm);
-            float originalGapPtToPivotedGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, pivotPtUnitNorm);
-
-            if (originalGapPtToAdjGapPtAngle <= originalGapPtToPivotedGapPtAngle)
-            {
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (left), need to clip");
-
-                nomPivotedIdx = (adjIdx + 1) % cfg_->scan.full_scan;
-                nomPivotedTheta = idx2theta(nomPivotedIdx);
-
-                pivotedPt = adjRange * Eigen::Vector2f(cos(nomPivotedTheta), sin(nomPivotedTheta));
-
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        new pivotedIdx: " << nomPivotedIdx);
-                ROS_INFO_STREAM_NAMED("GapManipulator", "        new pivotedTheta: " << nomPivotedTheta);
-            }
-        }
 
         // Search along current scan to from initial gap point to pivoted gap point
         // to obtain range value to assign to the pivoted gap point
@@ -344,6 +233,111 @@ namespace dynamic_gap
         float convertedPtTheta = std::atan2(convertedPt[1], convertedPt[0]);
         int convertedPtIdx = theta2idx(convertedPtTheta);
         float convertedPtRange = convertedPt.norm();
+
+        // Check for overlaps
+        if (right)
+        {
+            int nextGapIdx = (gapIdx + 1) % gaps.size();
+            Gap * adjGap = gaps.at(nextGapIdx);
+            int adjIdx = adjGap->manipRightIdx();
+            float adjTheta = idx2theta(adjIdx);
+            float adjRange = adjGap->manipRightRange();
+
+            if (std::abs(adjIdx - leftIdx) <= 1)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
+                return;
+            }
+
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
+
+            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(leftTheta), sin(leftTheta));
+            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(convertedPtTheta), sin(convertedPtTheta));
+            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
+
+            float adjGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(adjGapPtUnitNorm, originalPtUnitNorm);
+            float pivotedGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(pivotPtUnitNorm, originalPtUnitNorm);
+
+            if (adjGapPtToOriginalGapPtAngle <= pivotedGapPtToOriginalGapPtAngle)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (right), need to clip");
+
+                int clippedIdx = (adjIdx -1 + cfg_->scan.full_scan) % cfg_->scan.full_scan;
+                float clippedTheta = idx2theta(clippedIdx);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedIdx: " << clippedIdx);  
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedTheta: " << clippedTheta);
+
+                Eigen::Vector2f nearPtUnitNorm = Eigen::Vector2f(cos(nearTheta), sin(nearTheta));
+                Eigen::Vector2f clippedPtUnitNorm = Eigen::Vector2f(cos(clippedTheta), sin(clippedTheta));
+
+                float pivotPtToNearGapPtAngle = getSweptLeftToRightAngle(pivotPtUnitNorm, nearPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivotPtToNearGapPtAngle: " << pivotPtToNearGapPtAngle);
+
+                float clippedPtToNearGapPtAngle = getSweptLeftToRightAngle(clippedPtUnitNorm, nearPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedPtToNearGapPtAngle: " << clippedPtToNearGapPtAngle);
+
+                float clippedRange = convertedPtRange + (nearRange - convertedPtRange) * clippedPtToNearGapPtAngle / pivotPtToNearGapPtAngle;
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedRange: " << clippedRange);
+
+                convertedPtRange = clippedRange;
+                convertedPtIdx = clippedIdx;
+            }
+
+        } else
+        {
+            int prevGapIdx = (gapIdx - 1 + gaps.size()) % gaps.size();
+            Gap * adjGap = gaps.at(prevGapIdx);
+            int adjIdx = adjGap->manipLeftIdx();
+            float adjTheta = idx2theta(adjIdx);
+            float adjRange = adjGap->manipLeftRange();
+
+            if (std::abs(adjIdx - rightIdx) <= 1)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
+                return;
+            }
+
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
+
+            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(farTheta), sin(farTheta));
+            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(convertedPtTheta), sin(convertedPtTheta));
+            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
+
+            float originalGapPtToAdjGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, adjGapPtUnitNorm);
+            float originalGapPtToPivotedGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, pivotPtUnitNorm);
+
+            if (originalGapPtToAdjGapPtAngle <= originalGapPtToPivotedGapPtAngle)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (left), need to clip");
+
+                int clippedIdx = (adjIdx + 1) % cfg_->scan.full_scan;
+                float clippedTheta = idx2theta(clippedIdx);
+
+                Eigen::Vector2f nearPtUnitNorm = Eigen::Vector2f(cos(nearTheta), sin(nearTheta));
+                Eigen::Vector2f clippedPtUnitNorm = Eigen::Vector2f(cos(clippedTheta), sin(clippedTheta));
+
+                float nearGapPtToPivotPtAngle = getSweptLeftToRightAngle(nearPtUnitNorm, pivotPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        nearGapPtToPivotPtAngle: " << nearGapPtToPivotPtAngle);
+
+                float nearGapPtToClippedPtAngle = getSweptLeftToRightAngle(nearPtUnitNorm, clippedPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        nearGapPtToClippedPtAngle: " << nearGapPtToClippedPtAngle);
+
+                float clippedRange = nearRange + (convertedPtRange - nearRange) * nearGapPtToClippedPtAngle / nearGapPtToPivotPtAngle;
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedRange: " << clippedRange);
+
+                convertedPtRange = clippedRange;
+                convertedPtIdx = clippedIdx;               
+            }
+        }
 
         // int pivotedPtIdx = nomPivotedIdx;
         // float pivotedPtTheta = idx2theta(pivotedPtIdx);
