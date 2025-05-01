@@ -438,13 +438,13 @@ namespace dynamic_gap
             */
             bool isRightType() const { return rightType_; }
 
-            void setRGC() { rgc_ = true; }
+            // void setRGC() { rgc_ = true; }
 
-            /**
-            * \brief Getter for gap converted to swept gap condition
-            * \return Gap converted to swept gap condition
-            */
-            bool isRGC() const { return rgc_; }
+            // /**
+            // * \brief Getter for gap converted to swept gap condition
+            // * \return Gap converted to swept gap condition
+            // */
+            // bool isRGC() const { return rgc_; }
 
             bool isAvailable() const { return available_; }
 
@@ -488,7 +488,7 @@ namespace dynamic_gap
             
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */
 
-            bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
+            // bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
             bool available_ = true; /**< flag for if gap is available */
 

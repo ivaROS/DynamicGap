@@ -433,7 +433,7 @@ namespace dynamic_gap
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);
 
-        gap->setRGC();
+        // gap->setRGC();
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
         ROS_INFO_STREAM_NAMED("GapManipulator", "        post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");

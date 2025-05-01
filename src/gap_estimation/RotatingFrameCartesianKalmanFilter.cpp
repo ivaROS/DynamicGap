@@ -127,6 +127,7 @@ namespace dynamic_gap
         this->tLastUpdate_ = model.tLastUpdate_;
 
         this->rgc_ = model.rgc_; // will set to true if we do need to manip
+        this->ungap_ = model.ungap_; // will set to true if we do need to manip
 
         return;
     }
@@ -172,6 +173,7 @@ namespace dynamic_gap
         this->tLastUpdate_ = model.tLastUpdate_;
 
         this->rgc_ = model.rgc_; // will set to true if we do need to manip
+        this->ungap_ = model.ungap_; // will set to true if we do need to manip
 
         return;
     }

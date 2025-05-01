@@ -1989,14 +1989,22 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     if (i % 2 == 0) // attach ungap id to the point
                     {
                         planningGaps.at(i / 2)->getRightGapPt()->setUngapID(ungapID);
+                        planningGaps.at(i / 2)->getRightGapPt()->getModel()->setUngap();
+
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(ungapID);
+                        planningGaps.at(nextIdx / 2)->getLeftGapPt()->getModel()->setUngap();
+
                         ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(), 
                                                     planningGaps.at(nextIdx / 2)->getLeftGapPt(),
                                                     ungapID));
                     } else
                     {
                         planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(ungapID);
+                        planningGaps.at(i / 2)->getLeftGapPt()->getModel()->setUngap();
+
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(ungapID);
+                        planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->setUngap();
+                        
                         ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(), 
                                                     planningGaps.at(i / 2)->getLeftGapPt(),
                                                     ungapID));

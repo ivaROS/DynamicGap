@@ -59,6 +59,7 @@ namespace dynamic_gap
             ros::Time tLastUpdate_; /**< time of last model update */
 
             bool rgc_ = false; /**< Flag for if gap model is attached to converted radial gap point  */
+            bool ungap_ = false; /**< Flag for if gap model is attached to point that is attached to ungap */
             Eigen::Vector2f manipPosition; /**< Manipulated gap point position */
 
             /**
@@ -530,7 +531,7 @@ namespace dynamic_gap
                 xManipFrozen_[1] = manipPosition[1];
                 
                 // setting velocity to manipulated velocity
-                if (rgc_)
+                if (rgc_ || !ungap_)
                 {
                     // update cartesian
                     xManipFrozen_[2] = 0.0;
@@ -625,6 +626,8 @@ namespace dynamic_gap
             }
 
             void setRGC() { rgc_ = true; }
+
+            void setUngap() { ungap_ = true; }
             
             void setNewPosition(const float & newTheta, const float & newRange) 
             { 
