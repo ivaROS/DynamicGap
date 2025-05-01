@@ -182,9 +182,11 @@ namespace dynamic_gap
 
             ros::Publisher rawGapModelPositionsPublisher; /**< Publisher for raw gap model positions */
             ros::Publisher simpGapModelPositionsPublisher; /**< Publisher for simp gap model positions */
-            
+            ros::Publisher manipGapModelPositionsPublisher; /**< Publisher for simp gap model positions */
+
             ros::Publisher rawGapModelVelocitiesPublisher; /**< Publisher for raw gap model velocities */
             ros::Publisher simpGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
+            ros::Publisher manipGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;

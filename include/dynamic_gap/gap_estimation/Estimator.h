@@ -524,6 +524,8 @@ namespace dynamic_gap
 
             void isolateManipGapDynamics()
             {
+                ROS_INFO_STREAM_NAMED("Planner", "[isolateManipGapDynamics]");
+
                 xManipFrozen_ = getState();
             
                 // setting position to manipulated position
@@ -533,11 +535,13 @@ namespace dynamic_gap
                 // setting velocity to manipulated velocity
                 if (rgc_ || !ungap_)
                 {
+                    ROS_INFO_STREAM_NAMED("Planner", "[isolateManipGapDynamics] RGC or not ungap");
                     // update cartesian
                     xManipFrozen_[2] = 0.0;
                     xManipFrozen_[3] = 0.0;
                 } else
                 {
+                    ROS_INFO_STREAM_NAMED("Planner", "[isolateManipGapDynamics] not RGC and ungap");
                     // update cartesian
                     xManipFrozen_[2] += lastRbtVel_.twist.linear.x;
                     xManipFrozen_[3] += lastRbtVel_.twist.linear.y;

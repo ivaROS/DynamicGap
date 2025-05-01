@@ -1772,6 +1772,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
+        gapVisualizer_->drawManipGapModels(manipulatedGaps, std::string("manip"));
         goalVisualizer_->drawGapTubeGoals(gapTubes);
 
         // gapCount = feasibleGaps.size();
@@ -1956,6 +1957,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                     std::vector<Ungap *> & ungaps)
     {
+        ROS_INFO_STREAM_NAMED("Planner", "[attachUngapIDs()]");
+
         try
         {
             std::vector<Eigen::Vector4f> gapPtStates;
@@ -1988,6 +1991,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     int ungapID = i / 2;
                     if (i % 2 == 0) // attach ungap id to the point
                     {
+                        ROS_INFO_STREAM_NAMED("Planner", "  attaching ungap id: " << ungapID << " to");
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (i / 2) << " right point: " << planningGaps.at(i / 2)->getLeftGapPt()->getModel()->getGapState().transpose());
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (nextIdx / 2) << " left point: " << planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->getGapState().transpose());
+
                         planningGaps.at(i / 2)->getRightGapPt()->setUngapID(ungapID);
                         planningGaps.at(i / 2)->getRightGapPt()->getModel()->setUngap();
 
@@ -1999,6 +2006,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                     ungapID));
                     } else
                     {
+                        ROS_INFO_STREAM_NAMED("Planner", "  attaching ungap id: " << ungapID << " to");
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (i / 2) << " left point: " << planningGaps.at(i / 2)->getLeftGapPt()->getModel()->getGapState().transpose());
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (nextIdx / 2) << " right point: " << planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->getGapState().transpose());
+
                         planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(ungapID);
                         planningGaps.at(i / 2)->getLeftGapPt()->getModel()->setUngap();
 
