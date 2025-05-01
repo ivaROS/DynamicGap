@@ -342,13 +342,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: true
               Marker Topic: /rto/manip_gaps
@@ -374,22 +374,21 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/simp_gap_model_positions
               Name: MarkerArray
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                manip: true
-                simp: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/manip_gap_model_positions
@@ -467,13 +466,13 @@ Visualization Manager:
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/relevant_global_plan_snippet
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/candidate_ungap_trajectories

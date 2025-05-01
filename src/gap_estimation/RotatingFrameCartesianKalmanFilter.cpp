@@ -8,8 +8,8 @@ namespace dynamic_gap
               0.0, 1.0, 0.0, 0.0;
         H_transpose_ = H_.transpose();
         
-        Q_scalar = 0.1;
-        R_scalar = 0.5; // low value: velocities become very sensitive
+        Q_scalar = 0.01;
+        R_scalar = 0.01; // low value: velocities become very sensitive
 
         Q_temp_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,

@@ -1610,7 +1610,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // {
             //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
             //                                                 ": incoming trajectory is lower score");
-            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             // }
             
             
