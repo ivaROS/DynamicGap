@@ -77,6 +77,7 @@ namespace dynamic_gap
                 bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
                 bool mpc_ctrl = false; /**< Flag for enacting MPC control */
                 bool feedback_ctrl = true; /**< Flag for enacting feedback control */
+                int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
             } ctrl;
 
             /**
@@ -119,17 +120,6 @@ namespace dynamic_gap
                 float inf_ratio = 1.21; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
             } traj;            
-
-            /**
-            * \brief Hyperparameters for trajectory tracking
-            */
-            struct ControlParams 
-            {
-                // float k_fb_x = 0.5; /**< Proportional feedback gain in x-direction */
-                // float k_fb_y = 0.5; /**< Proportional feedback gain in y-direction */
-                // float k_fb_theta = 0.8; /**< Proportional feedback for robot yaw */
-                int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
-            } control;
             
             /**
             * \brief Hyperparameters for projection operator

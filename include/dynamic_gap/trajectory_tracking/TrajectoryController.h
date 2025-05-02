@@ -93,19 +93,6 @@ namespace dynamic_gap
                                                                         const float & desiredSpeed);                                                            
 
             /**
-            * \brief Control law for trajectory tracking
-            * \param current current robot pose
-            * \param desired desired robot pose
-            * \return command velocity for robot
-            */
-            geometry_msgs::Twist constantVelocityControlLawNonHolonomicNID(const geometry_msgs::Pose & current, 
-                                                                            const geometry_msgs::Pose & desired,
-                                                                            const float & desiredSpeed);      
-
-            // , 
-            // const geometry_msgs::TwistStamped & currRbtVel, 
-            // const geometry_msgs::TwistStamped & currRbtAcc
-            /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
             * \param rawCmdVel raw command velocity
@@ -116,12 +103,7 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
                                                 const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
-            
-
-
-            // , 
-            // const geometry_msgs::TwistStamped & currRbtVel, 
-            // const geometry_msgs::TwistStamped & currRbtAcc                                                
+                                                         
             /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
@@ -131,7 +113,8 @@ namespace dynamic_gap
             * \param currRbtAcc current robot acceleration
             * \return processed command velocity
             */
-            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & current,
+            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
                                                             const geometry_msgs::Twist & rawCmdVel,
                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
 
@@ -213,6 +196,8 @@ namespace dynamic_gap
             ros::Publisher projOpPublisher_; /**< Projection operator publisher */
 
             float KFeedbackTheta_; /**< Proportional feedback gain for robot theta */
+
+            float l_; /**< Lookahead distance for nonholonomic control */
 
             float manualVelX_; /**< Linear command velocity in x-direction for manual control */
             float manualVelY_; /**< Linear command velocity in y-direction for manual control */
