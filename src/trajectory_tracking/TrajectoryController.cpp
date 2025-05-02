@@ -20,6 +20,8 @@ namespace dynamic_gap
         lambda_ = 0.5;
         epsilon_ = 0.01;
 
+        l_ = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; // error.norm();
+
         // startTime_ = std::chrono::steady_clock::now();
     }
 
@@ -323,101 +325,33 @@ namespace dynamic_gap
 
         Eigen::Vector2f error(errorX, errorY);
 
-        // Just storing desired displacement for now
-        cmdVel.linear.x = errorX;
-        cmdVel.linear.y = errorY;
-        cmdVel.angular.z = errorTheta;
-
-        return cmdVel; 
-    }
-
-    geometry_msgs::Twist TrajectoryController::constantVelocityControlLawNonHolonomicNID(const geometry_msgs::Pose & currentPoseOdomFrame, 
-                                                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
-                                                                                            const float & desiredSpeed)
-    {
-        ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomicNID()]");
-        // Setup Vars
-        // boost::mutex::scoped_lock lock(scanMutex_);
-
-        /*
-            THIS IS CURRENTLY NOT WORKING. NEEDS TO BE FIXED.
-        */
-
-
-        ros::Time desiredTime_ = ros::Time::now();
-        float lambdaDot = - clambda_ * (lambda_ - epsilon_);
-
-        if (currentPoseOdomFrame == prevDesired_)
-        {
-            ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomicNID()] no change in desired pose");
-            lambda_ += lambdaDot * (desiredTime_ - prevDesiredTime_).toSec();
-        } else
-        {
-            ROS_INFO_STREAM_NAMED("Controller", "    [constantVelocityControlLawNonHolonomicNID()] new desired pose");
-            lambda_ = lambdaInit_;
-        }
-
-        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-
-        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
-        geometry_msgs::Quaternion currOrient = currentPoseOdomFrame.orientation;
-        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
-        float currYaw = quaternionToYaw(currQuat); 
-
-        // get current x,y,theta
-        geometry_msgs::Point currPosn = currentPoseOdomFrame.position;
-        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
-
-        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
-
-        // obtaining RPY of desired orientation
-        geometry_msgs::Point desPosn = desiredPoseOdomFrame.position;
-        geometry_msgs::Quaternion desOrient = desiredPoseOdomFrame.orientation;
-        tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
-        float desYaw = quaternionToYaw(desQuat);
-
-        ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << currentPoseOdomFrame.position.x << ", y: " << currentPoseOdomFrame.position.y << ", yaw: "<< desYaw);
-
-        // get desired x,y,theta
-        Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
-
-        // get x,y,theta error
-        Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
-        float errorX = desPosn.x - currPosn.x; // errorMat.real()(0, 1);
-        float errorY = desPosn.y - currPosn.y; // errorMat.imag()(0, 1);
-        float errorTheta = std::arg(errorMat(0, 0));
-
-        Eigen::Vector2f error(errorX, errorY);
         Eigen::Vector2f errorDir = epsilonDivide(error, error.norm());
 
-        Eigen::Matrix2f lambdaRotMatInv;
-        lambdaRotMatInv(0, 0) = std::cos(lambda_);
-        lambdaRotMatInv(0, 1) = std::sin(lambda_);
-        lambdaRotMatInv(1, 0) = -std::sin(lambda_) / lambda_;
-        lambdaRotMatInv(1, 1) = std::cos(lambda_) / lambda_;
+        Eigen::Vector2f constantVelocityCommand = desiredSpeed * errorDir;
 
-        Eigen::Vector2f x(currPosn.x, currPosn.y);
-        Eigen::Vector2f rotMate1(std::cos(currYaw), std::sin(currYaw));
-        Eigen::Vector2f q = x + lambda_ * rotMate1;
+        // lookahead distance
 
-        Eigen::Vector2f xDesired(desPosn.x, desPosn.y);
+        // float l_adj = l; // 0.5 * l;
 
-        Eigen::Vector2f v = -cp_ * lambdaRotMatInv * (q - xDesired) - lambdaDot * Eigen::Vector2f(1.0, 0.0);     
+        ROS_INFO_STREAM_NAMED("Controller", "        error: " << error.transpose() << ", l: " << l_); //  << ", l_adj: " << l_adj
 
-        float velLinXFeedback = v[0]; // nonholoVelocityCommand[0];
-        float velAngFeedback = v[1]; // nonholoVelocityCommand[1];
+        Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
 
-        ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
-        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
-        
+        Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
+        nidMat(1, 1) = (1.0 / l_);
+
+        Eigen::Vector2f nonholoVelocityCommand = nidMat * negRotMat * constantVelocityCommand;
+
+        float velLinXFeedback = nonholoVelocityCommand[0];
+        float velLinYFeedback = 0.0;
+        float velAngFeedback = nonholoVelocityCommand[1];
+
+        // Just storing desired displacement for now
         cmdVel.linear.x = velLinXFeedback;
-        cmdVel.linear.y = 0.0;
+        cmdVel.linear.y = velLinYFeedback;
         cmdVel.angular.z = velAngFeedback;
 
-        prevDesired_ = currentPoseOdomFrame;
-        prevDesiredTime_ = desiredTime_;
-
-        return cmdVel;         
+        return cmdVel; 
     }
 
     geometry_msgs::Twist TrajectoryController::constantVelocityControlLaw(const geometry_msgs::Pose & currentPoseOdomFrame, 
@@ -463,7 +397,7 @@ namespace dynamic_gap
 
         float velLinXFeedback = constantVelocityCommand[0];
         float velLinYFeedback = constantVelocityCommand[1];
-        float velAngFeedback = 0.0; // cfg_->planning.heading * errorTheta * cfg_->control.k_fb_theta;
+        float velAngFeedback = 0.0; 
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desiredPoseOdomFrame.position.x << ", y: " << desiredPoseOdomFrame.position.y << ", yaw: "<< desYaw);
@@ -506,13 +440,11 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
             
-            // float Psi = 0.0;
-            // Eigen::Vector2f dPsiDx(0.0, 0.0);
             Eigen::Vector2f cmdVelFeedback(rawCmdVel.linear.x, rawCmdVel.linear.y);
 
             runProjectionOperator(rbtPoseInSensorFrame,
                                     cmdVelFeedback, velLinXSafe, velLinYSafe,
-                                    minRangeTheta, minRange); // Psi, dPsiDx, 
+                                    minRangeTheta, minRange);
             
         } else 
         {
@@ -542,11 +474,10 @@ namespace dynamic_gap
 
         return cmdVel;
     }
-
-    // const geometry_msgs::TwistStamped & currRbtVel, 
-    // const geometry_msgs::TwistStamped & currRbtAcc    
+  
     geometry_msgs::Twist TrajectoryController::processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
-                                                                            const geometry_msgs::Twist & rawCmdVel,
+                                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
+                                                                            const geometry_msgs::Twist & nonholoCmdVel,
                                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame) 
     {
         ROS_INFO_STREAM_NAMED("Controller", "    [processCmdVelNonHolonomic()]");
@@ -556,17 +487,50 @@ namespace dynamic_gap
         tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
         float currYaw = quaternionToYaw(currQuat); 
 
-        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+        // get current x,y,theta
+        geometry_msgs::Point currPosn = currentPoseOdomFrame.position;
+        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
 
-        float errorX = rawCmdVel.linear.x;
-        float errorY = rawCmdVel.linear.y;
-        float errorTheta = rawCmdVel.angular.z;
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+
+        // // obtaining RPY of desired orientation
+        // geometry_msgs::Point desPosn = desiredPoseOdomFrame.position;
+        // geometry_msgs::Quaternion desOrient = desiredPoseOdomFrame.orientation;
+        // tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
+        // float desYaw = quaternionToYaw(desQuat);
+
+        // ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desiredPoseOdomFrame.position.x << ", y: " << desiredPoseOdomFrame.position.y << ", yaw: "<< desYaw);
+
+        // // get desired x,y,theta
+        // Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
+
+        // // get x,y,theta error
+        // Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
+        // float errorX = desPosn.x - currPosn.x; // errorMat.real()(0, 1);
+        // float errorY = desPosn.y - currPosn.y; // errorMat.imag()(0, 1);
+        // float errorTheta = std::arg(errorMat(0, 0));
+
+        // Eigen::Vector2f error(errorX, errorY);
+
+        // float l = error.norm();
+
+        // float l_adj = l; // 0.5 * l;
+
+        // Map nonholonomic command velocities to holonomic command velocities
+        geometry_msgs::Twist holoCmdVel = geometry_msgs::Twist();
+        holoCmdVel.linear.x = nonholoCmdVel.linear.x;
+        holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
+        holoCmdVel.angular.z = 0.0;
+
+        // float errorX = rawCmdVel.linear.x;
+        // float errorY = rawCmdVel.linear.y;
+        // float errorTheta = rawCmdVel.angular.z;
 
         // ROS_INFO_STREAM_NAMED("Controller", rbtPoseInSensorFrame.pose);
         float minRangeTheta = 0;
         float minRange = 0;
 
-        ROS_INFO_STREAM_NAMED("Controller", "        feedback errors: x: " << errorX << ", y: " << errorY << ", theta: " << errorTheta);
+        // ROS_INFO_STREAM_NAMED("Controller", "        feedback errors: x: " << errorX << ", y: " << errorY << ", theta: " << errorTheta);
 
         // applies PO
         float velLinXSafe = 0.;
@@ -575,14 +539,11 @@ namespace dynamic_gap
         if (cfg_->planning.projection_operator)
         {
             ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
-            
-            // float Psi = 0.0;
-            // Eigen::Vector2f dPsiDx(0.0, 0.0);
-            Eigen::Vector2f cmdVelFeedback(errorX, errorY);
-            // Psi, dPsiDx, 
+
+            Eigen::Vector2f holoCmdVelVector(holoCmdVel.linear.x, holoCmdVel.linear.y);
 
             runProjectionOperator(rbtPoseInSensorFrame,
-                                    cmdVelFeedback, velLinXSafe, velLinYSafe,
+                                    holoCmdVelVector, velLinXSafe, velLinYSafe,
                                     minRangeTheta, minRange);
             
         } else 
@@ -598,28 +559,24 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("Controller", "        safe desired direction, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
 
-        float safeErrorX = errorX + weightedVelLinXSafe;
-        float safeErrorY = errorY + weightedVelLinYSafe; 
+        float safeErrorX = holoCmdVel.linear.x + weightedVelLinXSafe;
+        float safeErrorY = holoCmdVel.linear.y + weightedVelLinYSafe; 
 
         ROS_INFO_STREAM_NAMED("Controller", "        summed desired direction, v_x:" << safeErrorX << ", v_y: " << safeErrorY);
+        Eigen::Vector2f safeError(safeErrorX, safeErrorY);
 
-        Eigen::Vector2f safeErrorDirection(safeErrorX, safeErrorY);
-        float l = safeErrorDirection.norm();
-
-        float l_adj = 0.5 * l;
-
-        ROS_INFO_STREAM_NAMED("Controller", "        safeErrorDirection: " << safeErrorDirection.transpose() << ", l: " << l << ", l_adj: " << l);
-
-        Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
+        // Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
 
         Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
-        nidMat(1, 1) = (1.0 / l_adj);
+        nidMat(1, 1) = (1.0 / l_);
 
-        Eigen::Vector2f nonholoVelocityCommand = nidMat * negRotMat * safeErrorDirection;
+        Eigen::Vector2f nonholoVelocityCommand = nidMat * safeError; // negRotMat * 
 
-        float velLinXFeedback = nonholoVelocityCommand[0];
+
+
+        float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
         float velLinYFeedback = 0.0;
-        float velAngFeedback = nonholoVelocityCommand[1];
+        float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
 
         ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
@@ -633,16 +590,13 @@ namespace dynamic_gap
             clippedVelLinXFeedback = cfg_->rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
         }
 
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
         cmdVel.linear.x = clippedVelLinXFeedback;
         cmdVel.linear.y = 0.0;
         cmdVel.angular.z = std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, velAngFeedback));
 
         // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
         ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
-
-
-
-        // ROS_INFO_STREAM_NAMED("Controller", "ultimate command velocity: " << cmdVel.linear.x << ", " << cmdVel.linear.y << ", " << cmdVel.angular.z);
 
         return cmdVel;
     }
@@ -711,10 +665,10 @@ namespace dynamic_gap
 
     void TrajectoryController::runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                                      Eigen::Vector2f & cmdVelFeedback,
-                                                    //  float & Psi, Eigen::Vector2f & dPsiDx,
                                                      float & velLinXSafe, float & velLinYSafe,
                                                      float & minRangeTheta, float & minRange) 
-{
+    {
+        ROS_INFO_STREAM_NAMED("Controller", "        [runProjectionOperator()]");
         float Psi = 0.0;
         Eigen::Vector2f dPsiDx(0.0, 0.0);
 
@@ -734,7 +688,7 @@ namespace dynamic_gap
 
         minRange = minScanDists.at(minDistScanIdx);
 
-        ROS_INFO_STREAM_NAMED("Controller", "minDistScanIdx: " << minDistScanIdx << ", minRangeTheta: "<< minRangeTheta << ", minRange: " << minRange);
+        ROS_INFO_STREAM_NAMED("Controller", "           minDistScanIdx: " << minDistScanIdx << ", minRangeTheta: "<< minRangeTheta << ", minRange: " << minRange);
         // ROS_INFO_STREAM_NAMED("Controller", "min_x: " << min_x << ", min_y: " << min_y);
               
         Eigen::Vector2f closestScanPtToRobot(-minRange * std::cos(minRangeTheta), -minRange * std::sin(minRangeTheta));
@@ -751,17 +705,16 @@ namespace dynamic_gap
 
         // Psi = PsiDerAndPsi(2);
 
-        ROS_INFO_STREAM_NAMED("Controller", "Psi: " << Psi);
-        ROS_INFO_STREAM_NAMED("Controller", "dPsiDx: " << dPsiDx[0] << ", " << dPsiDx[1]);
-        ROS_INFO_STREAM_NAMED("Controller", "Dot product check: " << projOpDotProd);
-
+        ROS_INFO_STREAM_NAMED("Controller", "           Psi: " << Psi);
+        ROS_INFO_STREAM_NAMED("Controller", "           dPsiDx: " << dPsiDx[0] << ", " << dPsiDx[1]);
+        ROS_INFO_STREAM_NAMED("Controller", "           Dot product check: " << projOpDotProd);
 
         if (Psi >= 0 && projOpDotProd >= 0)
         {
             velLinXSafe = - Psi * projOpDotProd * normDPsiDx(0);
             velLinYSafe = - Psi * projOpDotProd * normDPsiDx(1);
-            ROS_INFO_STREAM_NAMED("Controller", "cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
         }
+        ROS_INFO_STREAM_NAMED("Controller", "           cmdVel_safe: " << velLinXSafe << ", " << velLinYSafe);
     }
 
     void TrajectoryController::calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot,
@@ -840,7 +793,7 @@ namespace dynamic_gap
         auto minimumDeviationIter = std::min_element(localTrajectoryDeviations.begin(), localTrajectoryDeviations.end());
         
         // go n steps ahead of pose with smallest difference
-        int targetPose = std::distance(localTrajectoryDeviations.begin(), minimumDeviationIter) + cfg_->control.ctrl_ahead_pose;
+        int targetPose = std::distance(localTrajectoryDeviations.begin(), minimumDeviationIter) + cfg_->ctrl.ctrl_ahead_pose;
 
         // make sure pose does note exceed trajectory size
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));

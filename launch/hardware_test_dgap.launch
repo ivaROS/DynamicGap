@@ -52,7 +52,7 @@
         
         <rosparam file="$(find dynamic_gap)/params/move_base_params.yaml" command="load"/>
         <rosparam file="$(find dynamic_gap)/params/global_planner_params.yaml" command="load" ns="GlobalPlanner"/>
-        <rosparam file="$(find dynamic_gap)/params/dynamicgap_local_planner_holonomic_params.yaml" command="load"/>
+        <rosparam file="$(find dynamic_gap)/params/dynamic_gap_turtlebot_params.yaml" command="load"/>
 
         <param name="recovery_behavior_enabled" value="false" unless="$(arg use_recovery_behaviors)"/>
 

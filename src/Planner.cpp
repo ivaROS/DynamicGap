@@ -56,15 +56,15 @@ namespace dynamic_gap
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
 
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.acc_topic: " << cfg_.acc_topic);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.ped_topic: " << cfg_.ped_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.acc_topic: " << cfg_.acc_topic);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.ped_topic: " << cfg_.ped_topic);
 
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
-        ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
 
         // Initialize everything
         gapDetector_ = new GapDetector(cfg_);
@@ -163,14 +163,11 @@ namespace dynamic_gap
         float globalGoalOrientation = quaternionToYaw(globalGoalOdomFrame_.pose.orientation);
         float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
-        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.goal_tolerance &&
-                             globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
+        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.xy_global_goal_tolerance &&
+                             globalGoalAngDist < cfg_.goal.yaw_global_goal_tolerance;
         
         if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
-        // else
-        //     ROS_INFO_STREAM_NAMED("Planner", "Distance from goal: " << globalGoalDist << 
-        //                                      ", Goal tolerance: " << cfg_.goal.goal_tolerance);
 
         return reachedGlobalGoal_;
     }
@@ -216,9 +213,10 @@ namespace dynamic_gap
 
         float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
 
-        if (minScanDist < cfg_.rbt.r_inscr)
+        if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
-            ROS_INFO_STREAM_NAMED("Scan", "       in collision!");
+            ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
+            ROS_WARN_STREAM_NAMED("Planner", "       in collision!");
             colliding_ = true;
             return;
         } else
@@ -596,7 +594,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
         
-        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
+        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.xy_waypoint_tolerance)
             globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
         // Set new local goal to trajectory arbiter
@@ -1034,12 +1032,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currVel,
                                                                                     // false);
                         
-                        // if (j == (gapTube->size() - 1))
-                        // {
-                        //     // prune trajectory
-                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
-                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
-                        // }
+                        if (j == (gapTube->size() - 1))
+                        {
+                            // prune trajectory
+                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
+                            pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        }
                         
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
@@ -1624,7 +1622,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // {
             //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
             //                                                 ": incoming trajectory is lower score");
-            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath);
+            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             // }
             
             
@@ -1786,6 +1784,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         // Have to run here because terminal gap goals are set during feasibility check
         gapVisualizer_->drawManipGaps(manipulatedGaps, std::string("manip"));
+        gapVisualizer_->drawManipGapModels(manipulatedGaps, std::string("manip"));
         goalVisualizer_->drawGapTubeGoals(gapTubes);
 
         //////////////////////////////////////////////////////////////////////////////////////
@@ -1968,6 +1967,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                     std::vector<Ungap *> & ungaps)
     {
+        ROS_INFO_STREAM_NAMED("Planner", "[attachUngapIDs()]");
+
         try
         {
             std::vector<Eigen::Vector4f> gapPtStates;
@@ -2000,15 +2001,31 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     int ungapID = i / 2;
                     if (i % 2 == 0) // attach ungap id to the point
                     {
+                        ROS_INFO_STREAM_NAMED("Planner", "  attaching ungap id: " << ungapID << " to");
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (i / 2) << " right point: " << planningGaps.at(i / 2)->getLeftGapPt()->getModel()->getGapState().transpose());
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (nextIdx / 2) << " left point: " << planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->getGapState().transpose());
+
                         planningGaps.at(i / 2)->getRightGapPt()->setUngapID(ungapID);
+                        planningGaps.at(i / 2)->getRightGapPt()->getModel()->setUngap();
+
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(ungapID);
+                        planningGaps.at(nextIdx / 2)->getLeftGapPt()->getModel()->setUngap();
+
                         ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(), 
                                                     planningGaps.at(nextIdx / 2)->getLeftGapPt(),
                                                     ungapID));
                     } else
                     {
+                        ROS_INFO_STREAM_NAMED("Planner", "  attaching ungap id: " << ungapID << " to");
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (i / 2) << " left point: " << planningGaps.at(i / 2)->getLeftGapPt()->getModel()->getGapState().transpose());
+                        ROS_INFO_STREAM_NAMED("Planner", "    gap" << (nextIdx / 2) << " right point: " << planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->getGapState().transpose());
+
                         planningGaps.at(i / 2)->getLeftGapPt()->setUngapID(ungapID);
+                        planningGaps.at(i / 2)->getLeftGapPt()->getModel()->setUngap();
+
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(ungapID);
+                        planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->setUngap();
+                        
                         ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(), 
                                                     planningGaps.at(i / 2)->getLeftGapPt(),
                                                     ungapID));
@@ -2176,6 +2193,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 } else
                 {
                     rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                
+                    cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                                                                        targetTrajectoryPose,
+                                                                        rawCmdVel,
+                                                                        rbtPoseInSensorFrame_); 
                 }
                 timeKeeper_->stopTimer(FEEBDACK);
             } else
@@ -2191,9 +2213,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                         rbtPoseInSensorFrame_); 
             } else
             {
-                cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
-                                                                    rawCmdVel,
-                                                                    rbtPoseInSensorFrame_); 
+                // running inside if statement
             }
 
             timeKeeper_->stopTimer(PO);

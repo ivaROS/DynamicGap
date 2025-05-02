@@ -21,9 +21,11 @@ namespace dynamic_gap
         
         rawGapModelPositionsPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gap_model_positions", 10);
         simpGapModelPositionsPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_positions", 10);
-        
+        manipGapModelPositionsPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gap_model_positions", 10);
+
         rawGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gap_model_velocities", 10);
         simpGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_velocities", 10);
+        manipGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gap_model_velocities", 10);
 
         std_msgs::ColorRGBA rawInitial, rawTerminal, rawTmin1, 
                             simpInitial, simpTerminal, simpTmin1,
@@ -251,114 +253,6 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("[drawGap] end");
     }
 
-    void GapVisualizer::drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
-    {
-        // First, clearing topic.
-        clearMarkerPublisher(manipGapsPublisher);
-
-        visualization_msgs::Marker marker;
-        drawManipGap(marker, gaps, ns); // , true);
-
-        manipGapsPublisher.publish(marker);
-    }
-
-    void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<Gap *> & gaps, 
-                                        const std::string & ns) // , const bool & initial)     
-    {
-        // ROS_INFO_STREAM("[drawManipGap] start");
-        // visualization_msgs::Marker marker;
-        marker.header.stamp = ros::Time();
-        marker.ns = ns;
-        marker.type = visualization_msgs::Marker::LINE_LIST;
-        marker.action = visualization_msgs::Marker::ADD;
-
-        marker.pose.position.x = 0.0;
-        marker.pose.position.y = 0.0;
-        marker.pose.position.z = 0.01;
-        marker.pose.orientation.x = 0.0;
-        marker.pose.orientation.y = 0.0;
-        marker.pose.orientation.z = 0.0;
-        marker.pose.orientation.w = 1.0;        
-
-        float thickness = 0.05;
-        marker.scale.x = thickness;     
-
-        std::string fullNamespace = ns;
-        fullNamespace.append("_initial");        
-        // if (initial)
-        //     fullNamespace.append("_initial");
-        // else
-        //     fullNamespace.append("_terminal");
-
-        // std::cout << "gap category: " << g.getCategory() << std::endl;
-        //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
-        auto colorIter = colorMap.find(fullNamespace);
-        if (colorIter == colorMap.end()) 
-        {
-            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-            return;
-        }
-
-        marker.color = colorIter->second;
-   
-        for (Gap * gap : gaps) 
-        {
-            if (gap->getFrame().empty())
-            {
-                ROS_WARN_STREAM("[drawManipGap] Gap frame is empty");
-                return;
-            }
-
-            marker.header.frame_id = gap->getFrame();
-
-            int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
-            int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
-            float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
-            float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
-
-            // ROS_INFO_STREAM("leftIdx: " << leftIdx << ", leftRange: " << leftRange);
-            // ROS_INFO_STREAM("rightIdx: " << rightIdx << ", rightRange: " << rightRange);
-
-            int gapIdxSpan = (leftIdx - rightIdx);
-            if (gapIdxSpan < 0)
-                gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
-
-            // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
-
-            int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
-            float distIncrement = (leftRange - rightRange) / num_segments;
-            int midGapIdx = rightIdx; //  + viz_offset;
-            float midGapDist = rightRange;
-
-            // ROS_INFO_STREAM("num_segments: " << num_segments);
-            // ROS_INFO_STREAM("distIncrement: " << distIncrement);
-            // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
-            // ROS_INFO_STREAM("midGapDist: " << midGapDist);
-
-            float midGapTheta = 0.0;
-            for (int i = 0; i < num_segments; i++)
-            {
-                geometry_msgs::Point p1;
-                midGapTheta = idx2theta(midGapIdx);
-                p1.x = midGapDist * cos(midGapTheta);
-                p1.y = midGapDist * sin(midGapTheta);
-                marker.points.push_back(p1);
-                
-                midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
-                midGapDist += distIncrement;
-
-                // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
-                // ROS_INFO_STREAM("midGapDist: " << midGapDist);
-
-                geometry_msgs::Point p2;
-                midGapTheta = idx2theta(midGapIdx);
-                p2.x = midGapDist * cos(midGapTheta);
-                p2.y = midGapDist * sin(midGapTheta);
-                marker.points.push_back(p2);
-            }
-        }
-        // ROS_INFO_STREAM("[drawManipGap] end");
-    }
 
     void GapVisualizer::drawGapModels(const std::vector<Gap *> & gaps, const std::string & ns) 
     {
@@ -492,7 +386,7 @@ namespace dynamic_gap
         // modelMarker.color.a = 1.0;
         // modelMarker.color.r = 1.0;
         // modelMarker.color.b = 1.0;
-        modelMarker.lifetime = ros::Duration(0);
+        // modelMarker.lifetime = ros::Duration(0);
     }
 
     void GapVisualizer::drawGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray,
@@ -591,6 +485,332 @@ namespace dynamic_gap
         // modelMarker.color.a = 1.0;
         // modelMarker.color.r = 1.0;
         // modelMarker.color.b = 1.0;
-        modelMarker.lifetime = ros::Duration(0);
+        // modelMarker.lifetime = ros::Duration(0);
+    }
+
+    void GapVisualizer::drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
+    {
+        // First, clearing topic.
+        clearMarkerPublisher(manipGapsPublisher);
+
+        visualization_msgs::Marker marker;
+        drawManipGap(marker, gaps, ns); // , true);
+
+        manipGapsPublisher.publish(marker);
+    }
+
+    void GapVisualizer::drawManipGap(visualization_msgs::Marker & marker, const std::vector<Gap *> & gaps, 
+                                        const std::string & ns) // , const bool & initial)     
+    {
+        // ROS_INFO_STREAM("[drawManipGap] start");
+        // visualization_msgs::Marker marker;
+        marker.header.stamp = ros::Time();
+        marker.ns = ns;
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.01;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;        
+
+        float thickness = 0.05;
+        marker.scale.x = thickness;     
+
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");        
+        // if (initial)
+        //     fullNamespace.append("_initial");
+        // else
+        //     fullNamespace.append("_terminal");
+
+        // std::cout << "gap category: " << g.getCategory() << std::endl;
+        //ROS_INFO_STREAM("ultimate local ns: " << fullNamespace);
+        auto colorIter = colorMap.find(fullNamespace);
+        if (colorIter == colorMap.end()) 
+        {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+
+        marker.color = colorIter->second;
+   
+        for (Gap * gap : gaps) 
+        {
+            if (gap->getFrame().empty())
+            {
+                ROS_WARN_STREAM("[drawManipGap] Gap frame is empty");
+                return;
+            }
+
+            marker.header.frame_id = gap->getFrame();
+
+            int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
+            int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
+            float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
+            float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
+
+            // ROS_INFO_STREAM("leftIdx: " << leftIdx << ", leftRange: " << leftRange);
+            // ROS_INFO_STREAM("rightIdx: " << rightIdx << ", rightRange: " << rightRange);
+
+            int gapIdxSpan = (leftIdx - rightIdx);
+            if (gapIdxSpan < 0)
+                gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
+
+            // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
+
+            int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
+            float distIncrement = (leftRange - rightRange) / num_segments;
+            int midGapIdx = rightIdx; //  + viz_offset;
+            float midGapDist = rightRange;
+
+            // ROS_INFO_STREAM("num_segments: " << num_segments);
+            // ROS_INFO_STREAM("distIncrement: " << distIncrement);
+            // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+            // ROS_INFO_STREAM("midGapDist: " << midGapDist);
+
+            float midGapTheta = 0.0;
+            for (int i = 0; i < num_segments; i++)
+            {
+                geometry_msgs::Point p1;
+                midGapTheta = idx2theta(midGapIdx);
+                p1.x = midGapDist * cos(midGapTheta);
+                p1.y = midGapDist * sin(midGapTheta);
+                marker.points.push_back(p1);
+                
+                midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+                midGapDist += distIncrement;
+
+                // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+                // ROS_INFO_STREAM("midGapDist: " << midGapDist);
+
+                geometry_msgs::Point p2;
+                midGapTheta = idx2theta(midGapIdx);
+                p2.x = midGapDist * cos(midGapTheta);
+                p2.y = midGapDist * sin(midGapTheta);
+                marker.points.push_back(p2);
+            }
+        }
+        // ROS_INFO_STREAM("[drawManipGap] end");
+    }
+
+
+    void GapVisualizer::drawManipGapModels(const std::vector<Gap *> & gaps, const std::string & ns) 
+    {
+        /////////////////////////////
+        // Draw gap goal positions //
+        /////////////////////////////
+        visualization_msgs::MarkerArray gapModelPositionMarkerArray;
+        for (Gap * gap : gaps) 
+        {
+            drawManipGapModelPositions(gapModelPositionMarkerArray, gap, ns);
+        }
+
+        // First, clearing topic.
+        clearMarkerArrayPublisher(manipGapModelPositionsPublisher);
+
+        manipGapModelPositionsPublisher.publish(gapModelPositionMarkerArray);
+
+        //////////////////////////////
+        // Draw gap goal velocities //
+        //////////////////////////////        
+        visualization_msgs::MarkerArray gapModelVelocityMarkerArray;
+        for (Gap * gap : gaps) 
+        {
+            drawManipGapModelVelocities(gapModelVelocityMarkerArray, gap, ns);
+        }
+
+        // First, clearing topic.
+        clearMarkerArrayPublisher(manipGapModelVelocitiesPublisher);
+
+        manipGapModelVelocitiesPublisher.publish(gapModelVelocityMarkerArray);
+    }
+
+    void GapVisualizer::drawManipGapModelPositions(visualization_msgs::MarkerArray & gapModelMarkerArray,
+                                                    Gap * gap, const std::string & ns)
+    {
+        int id = (int) gapModelMarkerArray.markers.size();
+        bool left = true;
+
+        visualization_msgs::Marker leftModelMarker, rightModelMarker;
+
+        drawManipModelPosition(leftModelMarker, gap, left, id, ns);
+        gapModelMarkerArray.markers.push_back(leftModelMarker);
+
+        drawManipModelPosition(rightModelMarker, gap, !left, id, ns);
+        gapModelMarkerArray.markers.push_back(rightModelMarker);
+    }
+
+
+    void GapVisualizer::drawManipModelPosition(visualization_msgs::Marker & modelMarker, 
+                                                Gap * gap, const bool & left, int & id, const std::string & ns) 
+    {
+        if (gap->getFrame().empty())
+        {
+            ROS_WARN_STREAM("[drawModel] Gap frame is empty");
+            return;
+        }
+        
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");
+
+        auto colorIter = colorMap.find(fullNamespace);
+        if (colorIter == colorMap.end()) 
+        {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+
+        modelMarker.color = colorIter->second;
+
+        // ROS_INFO_STREAM("[drawModel()]");
+        modelMarker.header.frame_id = gap->getFrame();
+        modelMarker.header.stamp = ros::Time();
+        modelMarker.ns = ns;
+        modelMarker.id = id++;
+        modelMarker.type = visualization_msgs::Marker::CYLINDER;
+        modelMarker.action = visualization_msgs::Marker::ADD;
+        
+        gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+        gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+
+        Eigen::Vector4f leftModelState = gap->getLeftGapPt()->getModel()->getManipGapState();
+        Eigen::Vector4f rightModelState = gap->getRightGapPt()->getModel()->getManipGapState();
+
+        // ROS_INFO_STREAM("   leftModelState: " << leftModelState.transpose());
+        // ROS_INFO_STREAM("   rightModelState: " << rightModelState.transpose());
+
+        // ROS_INFO_STREAM("   gap->getLeftGapPt()->getModel()->getRobotVel(): " << gap->getLeftGapPt()->getModel()->getRobotVel());
+        // ROS_INFO_STREAM("   gap->getRightGapPt()->getModel()->getRobotVel(): " << gap->getRightGapPt()->getModel()->getRobotVel());
+
+        Eigen::Vector2f gapVel(0.0, 0.0);
+        if (left)
+        {
+            modelMarker.pose.position.x = leftModelState[0];
+            modelMarker.pose.position.y = leftModelState[1];
+            gapVel = leftModelState.tail(2);
+        } else
+        {
+            modelMarker.pose.position.x = rightModelState[0];
+            modelMarker.pose.position.y = rightModelState[1];            
+            gapVel << rightModelState.tail(2); 
+        }
+        modelMarker.pose.position.z = 0.01;
+        
+        modelMarker.pose.orientation.x = 0.0;
+        modelMarker.pose.orientation.y = 0.0;
+        modelMarker.pose.orientation.z = 0.0;
+        modelMarker.pose.orientation.w = 1.0;
+
+        modelMarker.scale.x = 0.1;
+        modelMarker.scale.y = 0.1;
+        modelMarker.scale.z = 0.000001;
+
+        // modelMarker.color.a = 1.0;
+        // modelMarker.color.r = 1.0;
+        // modelMarker.color.b = 1.0;
+        // modelMarker.lifetime = ros::Duration(0);
+    }
+
+    void GapVisualizer::drawManipGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray,
+                                                    Gap * gap, const std::string & ns)
+    {
+        ROS_INFO_STREAM_NAMED("Visualizer", "[drawManipGapModelVelocities]");
+        int id = (int) gapModelMarkerArray.markers.size();
+        bool left = true;
+
+        visualization_msgs::Marker leftModelMarker, rightModelMarker;
+
+        drawManipModelVelocity(leftModelMarker, gap, left, id, ns);
+        gapModelMarkerArray.markers.push_back(leftModelMarker);
+
+        drawManipModelVelocity(rightModelMarker, gap, !left, id, ns);
+        gapModelMarkerArray.markers.push_back(rightModelMarker);
+    }
+
+
+    void GapVisualizer::drawManipModelVelocity(visualization_msgs::Marker & modelMarker, 
+                                                Gap * gap, const bool & left, int & id, const std::string & ns) 
+    {
+        ROS_INFO_STREAM_NAMED("Visualizer", "[drawManipModelVelocity]");
+
+        if (gap->getFrame().empty())
+        {
+            ROS_WARN_STREAM("[drawModel] Gap frame is empty");
+            return;
+        }
+        
+        std::string fullNamespace = ns;
+        fullNamespace.append("_initial");
+
+        auto colorIter = colorMap.find(fullNamespace);
+        if (colorIter == colorMap.end()) 
+        {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+
+        modelMarker.color = colorIter->second;
+
+        // ROS_INFO_STREAM("[drawModel()]");
+        modelMarker.header.frame_id = gap->getFrame();
+        modelMarker.header.stamp = ros::Time();
+        modelMarker.ns = ns;
+        modelMarker.id = id++;
+        modelMarker.type = visualization_msgs::Marker::ARROW;
+        modelMarker.action = visualization_msgs::Marker::ADD;
+        
+        gap->getLeftGapPt()->getModel()->isolateManipGapDynamics();
+        gap->getRightGapPt()->getModel()->isolateManipGapDynamics();
+
+        Eigen::Vector4f leftModelState = gap->getLeftGapPt()->getModel()->getManipGapState();
+        Eigen::Vector4f rightModelState = gap->getRightGapPt()->getModel()->getManipGapState();
+
+        ROS_INFO_STREAM_NAMED("Visualizer", "   leftModelState: " << leftModelState.transpose());
+        ROS_INFO_STREAM_NAMED("Visualizer", "   rightModelState: " << rightModelState.transpose());
+
+        // ROS_INFO_STREAM("   gap->getLeftGapPt()->getModel()->getRobotVel(): " << gap->getLeftGapPt()->getModel()->getRobotVel());
+        // ROS_INFO_STREAM("   gap->getRightGapPt()->getModel()->getRobotVel(): " << gap->getRightGapPt()->getModel()->getRobotVel());
+
+        Eigen::Vector2f gapVel(0.0, 0.0);
+        if (left)
+        {
+            modelMarker.pose.position.x = leftModelState[0];
+            modelMarker.pose.position.y = leftModelState[1];
+            gapVel = leftModelState.tail(2);
+        } else
+        {
+            modelMarker.pose.position.x = rightModelState[0];
+            modelMarker.pose.position.y = rightModelState[1];            
+            gapVel << rightModelState.tail(2); 
+        }
+        modelMarker.pose.position.z = 0.01;
+
+        float gapVelTheta;
+        if (gapVel.norm() < std::numeric_limits<float>::epsilon())
+        {
+            gapVelTheta = 0.0;
+        } else
+        {
+            gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
+
+        }
+
+        tf2::Quaternion quat;
+        quat.setRPY(0.0, 0.0, gapVelTheta);
+        
+        modelMarker.pose.orientation.x = quat.getX();
+        modelMarker.pose.orientation.y = quat.getY();
+        modelMarker.pose.orientation.z = quat.getZ();
+        modelMarker.pose.orientation.w = quat.getW();
+
+        modelMarker.scale.x = gapVel.norm() + 0.000001;
+        modelMarker.scale.y = 0.1;
+        modelMarker.scale.z = 0.000001;
+
+        // modelMarker.lifetime = ros::Duration(0);
     }
 }

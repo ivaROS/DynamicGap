@@ -308,18 +308,18 @@ namespace dynamic_gap
         float poseToPoseDistThreshold = 0.1;
         for (int i = 1; i < rawPath.poses.size(); i++) 
         {
-            geometry_msgs::Pose rawPose = rawPath.poses[0];
+            geometry_msgs::Pose rawPose = rawPath.poses[i];
             poseToPoseDiffX = rawPose.position.x - processedPoses.back().position.x;
             poseToPoseDiffY = rawPose.position.y - processedPoses.back().position.y;
             poseToPoseDist = sqrt(pow(poseToPoseDiffX, 2) + pow(poseToPoseDiffY, 2));
             if (poseToPoseDist > poseToPoseDistThreshold)
             {
-                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " kept at " << poseToPoseDist);
                 processedPoses.push_back(rawPose);
                 processedPathTiming.push_back(rawPathTiming.at(i));
             } else 
             {
-                // // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
+                // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "poseToPoseDist " << i << " cut at " << poseToPoseDist);
             }
         }
 
