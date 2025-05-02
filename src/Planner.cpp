@@ -215,7 +215,8 @@ namespace dynamic_gap
 
         if (minScanDist < cfg_.rbt.r_inscr)
         {
-            ROS_INFO_STREAM_NAMED("Scan", "       in collision!");
+            ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
+            ROS_WARN_STREAM_NAMED("Planner", "       in collision!");
             colliding_ = true;
             return;
         } else
@@ -2183,6 +2184,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 } else
                 {
                     rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                
+                    cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                                                                        targetTrajectoryPose,
+                                                                        rawCmdVel,
+                                                                        rbtPoseInSensorFrame_); 
                 }
                 timeKeeper_->stopTimer(FEEBDACK);
             } else
@@ -2198,9 +2204,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                         rbtPoseInSensorFrame_); 
             } else
             {
-                cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
-                                                                    rawCmdVel,
-                                                                    rbtPoseInSensorFrame_); 
+                // running inside if statement
             }
 
             timeKeeper_->stopTimer(PO);

@@ -131,7 +131,8 @@ namespace dynamic_gap
             * \param currRbtAcc current robot acceleration
             * \return processed command velocity
             */
-            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & current,
+            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
                                                             const geometry_msgs::Twist & rawCmdVel,
                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
 
