@@ -22,7 +22,7 @@ namespace dynamic_gap
 
         rawGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("raw_gap_model_velocities", 10);
         simpGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_velocities", 10);
-        manipGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_velocities", 10);
+        manipGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gap_model_velocities", 10);
 
         std_msgs::ColorRGBA rawInitial, rawTerminal, rawTmin1, 
                             simpInitial, simpTerminal, simpTmin1,
