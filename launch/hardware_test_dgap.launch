@@ -21,7 +21,6 @@
 	<node pkg="tf" type="static_transform_publisher" name="world_map_broadcaster" args="0 0 0 0 0 0 /world /map 1" />
     <node pkg="tf" type="static_transform_publisher" name="world2kmap" args="0 0 0 0 0 0  /map /known_map 1" />
     <node pkg="tf" type="static_transform_publisher" name="base2laser" args="0 0 0 0 0 0  /base_link /laser 1" />
-    <!-- <node pkg="tf" type="static_transform_publisher" name="base2modlaser" args="0 0 0 0 0 3.15149  /laser /mod_laser 1" /> -->
 
     <!-- map server, necessary for /move_base/make_plan service to work -->
     <node name="known_map" pkg="map_server" type="map_server" args="$(arg map_file)" required="true">
@@ -34,8 +33,6 @@
 
     <!-- run planner-->
     <!-- map scan and odom topics-->
-
-    <arg name="projection_operator" default="true"/>
 
     <arg name="debug" default="false" />
 
@@ -71,9 +68,6 @@
         <param name="DynamicGapPlanner/robot_frame_id" value="base_footprint"/>
         <param name="DynamicGapPlanner/sensor_frame_id" value="laser"/>
 
-        <param name="DynamicGapPlanner/projection_operator" value="$(arg projection_operator)"/>
-
-        <param name="DynamicGapPlanner/num_agents" value="0" />
         <param name="global_costmap/obstacle_layer/scan/topic" value="/mod_scan" />
         <param name="global_costmap/robot_base_frame" value="base_footprint" />
 
