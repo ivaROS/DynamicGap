@@ -301,6 +301,17 @@ namespace dynamic_gap
 
             Eigen::Vector2f gapGoalRadialOffset = 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio * centerPt.normalized();
             Eigen::Vector2f inflatedCenterPt = centerPt + gapGoalRadialOffset;
+
+            // check if goal is beyond scan
+            int centerIdx = theta2idx(centerTheta);
+            float centerRangeScan = scan_->ranges.at(centerIdx);
+            float inflatedCenterRangeScan = centerRangeScan - 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
+            if (inflatedCenterRangeScan < inflatedCenterPt.norm())
+            {
+                inflatedCenterPt = inflatedCenterRangeScan * centerPt.normalized();
+            }
+
+
             Eigen::Vector2f scaledCenterVel = centerVel * (inflatedCenterPt.norm() / centerPt.norm()); // scale by r?
 
             gap->getGoal()->setOrigGoalPos(inflatedCenterPt);
@@ -336,15 +347,21 @@ namespace dynamic_gap
 
             Eigen::Vector2f inflatedBiasedGapGoal = biasedGapGoal + gapGoalRadialOffset;
 
-            Eigen::Vector2f inflatedBiasedPt = inflatedBiasedGapGoal + gapGoalRadialOffset;
-            Eigen::Vector2f scaledBiasedVel = biasedGapVel * (inflatedBiasedPt.norm() / inflatedBiasedGapGoal.norm()); // scale by r?
+            // check if goal is beyond scan
+            int biasedGapGoalIdx = theta2idx(biasedGapGoalTheta);
+            float biasedGapGoalRangeScan = scan_->ranges.at(biasedGapGoalIdx);
+            float inflatedBiasedGapGoalRangeScan = biasedGapGoalRangeScan - 2 * cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; 
+            if (inflatedBiasedGapGoalRangeScan < inflatedBiasedGapGoal.norm())
+            {
+                inflatedBiasedGapGoal = inflatedBiasedGapGoalRangeScan * biasedGapGoal.normalized();
+            }
 
-            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated goal: " << inflatedBiasedPt[0] << ", " << inflatedBiasedPt[1]);                 
+            Eigen::Vector2f scaledBiasedVel = biasedGapVel * (inflatedBiasedGapGoal.norm() / biasedGapGoal.norm()); // scale by r?
 
-            gap->getGoal()->setOrigGoalPos(inflatedBiasedPt);
+            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              inflated biased gap goal: " << inflatedBiasedGapGoal[0] << ", " << inflatedBiasedGapGoal[1]);                 
+
+            gap->getGoal()->setOrigGoalPos(inflatedBiasedGapGoal);
             gap->getGoal()->setOrigGoalVel(scaledBiasedVel);
-            // gap->setGoal(inflatedBiasedGapGoal);
-            // gap->setGoalVel(biasedGapVel);
         }      
     }
     

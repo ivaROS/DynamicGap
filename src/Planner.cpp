@@ -213,7 +213,7 @@ namespace dynamic_gap
 
         float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
 
-        if (minScanDist < cfg_.rbt.r_inscr)
+        if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
             ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
             ROS_WARN_STREAM_NAMED("Planner", "       in collision!");
@@ -1021,12 +1021,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                                     // currVel,
                                                                                     // false);
                         
-                        // if (j == (gapTube->size() - 1))
-                        // {
-                        //     // prune trajectory
-                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
-                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
-                        // }
+                        if (j == (gapTube->size() - 1))
+                        {
+                            // prune trajectory
+                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
+                            pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        }
                         
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
