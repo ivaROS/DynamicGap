@@ -8,7 +8,7 @@ DynamicGapPlanner:
 
     # PlanningMode
     holonomic: false
-    projection_operator: true
+    projection_operator: false
     egocircle_prop_cheat: false
     gap_feasibility_check: true
     perfect_gap_models: false
