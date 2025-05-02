@@ -1,9 +1,10 @@
 DynamicGapPlanner:
     # Robot
-    robot_radius: 0.225 # m
-    max_vel_x: 1.0
-    max_vel_y: 1.0
-    max_vel_theta: 1.0
+    robot_radius: 0.25 # m
+    max_vel_x: 0.40
+    max_vel_y: 0.40
+    max_vel_theta: 0.8
+    max_range: 5.0 # m
 
     # PlanningMode
     holonomic: false

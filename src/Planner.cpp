@@ -163,8 +163,8 @@ namespace dynamic_gap
         float globalGoalOrientation = quaternionToYaw(globalGoalOdomFrame_.pose.orientation);
         float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
-        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.xy_global_goal_tolerance &&
-                             globalGoalAngDist < cfg_.goal.yaw_global_goal_tolerance;
+        reachedGlobalGoal_ = globalGoalDist < cfg_.goal.goal_tolerance &&
+                             globalGoalAngDist < cfg_.goal.yaw_goal_tolerance;
         
         if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
@@ -594,7 +594,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
         
-        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.xy_waypoint_tolerance)
+        if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.waypoint_tolerance)
             globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
         // Set new local goal to trajectory arbiter
