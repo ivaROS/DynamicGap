@@ -30,6 +30,7 @@
 #include <dynamic_gap/config/DynamicGapConfig.h>
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <dynamic_gap/visualization/GoalVisualizer.h>
+#include <dynamic_gap/visualization/PedVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
 #include <dynamic_gap/global_plan_management/GlobalPlanManager.h>
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
@@ -521,6 +522,7 @@ namespace dynamic_gap
 
             GapDetector * gapDetector_ = NULL; /**< Gap detector */
             GapVisualizer * gapVisualizer_ = NULL; /**< Gap visualizer */
+            PedVisualizer * pedVisualizer_ = NULL; /**< Pedestrian visualizer */
             GlobalPlanManager * globalPlanManager_ = NULL; /**< Goal selector */
             TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
             GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */

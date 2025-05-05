@@ -520,6 +520,8 @@ namespace dynamic_gap
         holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
         holoCmdVel.angular.z = 0.0;
 
+
+
         // float errorX = rawCmdVel.linear.x;
         // float errorY = rawCmdVel.linear.y;
         // float errorTheta = rawCmdVel.angular.z;
@@ -569,8 +571,6 @@ namespace dynamic_gap
         nidMat(1, 1) = (1.0 / l_);
 
         Eigen::Vector2f nonholoVelocityCommand = nidMat * safeError; // negRotMat * 
-
-
 
         float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
         float velLinYFeedback = 0.0;
