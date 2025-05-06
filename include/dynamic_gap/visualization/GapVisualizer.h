@@ -138,6 +138,7 @@ namespace dynamic_gap
             * \param ns namespace of gap whose models we want to visualize
             */
             void drawManipGapModelPositions(visualization_msgs::MarkerArray & gapModelMarkerArray, 
+                                            const int & gapIdx,
                                             Gap * gap, 
                                             const std::string & ns);
 
@@ -147,7 +148,8 @@ namespace dynamic_gap
             * \param gap gap whose models we want to visualize
             * \param ns namespace of gap whose models we want to visualize
             */
-            void drawManipGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray, 
+            void drawManipGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray,
+                                                const int & gapIdx,
                                                 Gap * gap, 
                                                 const std::string & ns);
 
@@ -160,6 +162,7 @@ namespace dynamic_gap
             * \param ns namespace of gap whose models we want to visualize
             */
             void drawManipModelPosition(visualization_msgs::Marker & modelMarker, 
+                                        const int & gapIdx,
                                         Gap * gap, 
                                         const bool & left, 
                                         int & id, 
@@ -174,6 +177,7 @@ namespace dynamic_gap
             * \param ns namespace of gap whose models we want to visualize
             */
             void drawManipModelVelocity(visualization_msgs::Marker & modelMarker, 
+                                        const int & gapIdx,
                                         Gap * gap, 
                                         const bool & left, 
                                         int & id, 
@@ -198,7 +202,5 @@ namespace dynamic_gap
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;
-
-            std::vector<std_msgs::ColorRGBA> visionColors_;
     };
 }

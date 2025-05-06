@@ -38,7 +38,7 @@ namespace dynamic_gap
         private: 
             // void drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube);
 
-            void drawGapGoalPosition(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
+            void drawGapGoalPosition(visualization_msgs::Marker & goalMarker, Gap * gap, int & id, const int & gapTubeIdx);
             void drawGapGoalVelocity(visualization_msgs::Marker & goalMarker, Gap * gap, int & id);
 
             std_msgs::ColorRGBA gapGoalsColor; /**< Color to visualize gap goals with */

@@ -106,31 +106,7 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_initial", manipInitial));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_terminal", manipTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable", reachable));
-        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
-
-        // vision colors
-        std_msgs::ColorRGBA visionColor;
-
-        visionColor.r = 24.0/255.0; visionColor.g = 217/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);
-        visionColor.r = 204.0/255.0; visionColor.g = 18/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);
-        visionColor.r = 25.0/255.0; visionColor.g = 83.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);
-        visionColor.r = 220.0/255.0; visionColor.g = 138.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);       
-        visionColor.r = 25.0/255.0; visionColor.g = 156.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);         
-        visionColor.r = 39.0/255.0; visionColor.g = 24.0/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);          
-        visionColor.r = 24.0/255.0; visionColor.g = 242.0/255.0; visionColor.b = 196.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);                     
-        visionColor.r = 7.0/255.0; visionColor.g = 93.0/255.0; visionColor.b = 94.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);     
-        visionColor.r = 105.0/255.0; visionColor.g = 183.0/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);          
-        visionColor.r = 44.0/255.0; visionColor.g = 115.0/255.0; visionColor.b = 133.0/255.0; visionColor.a = 1.0;
-        visionColors_.push_back(visionColor);                 
+        colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));        
     }
 
     void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
@@ -717,9 +693,12 @@ namespace dynamic_gap
         // Draw gap goal positions //
         /////////////////////////////
         visualization_msgs::MarkerArray gapModelPositionMarkerArray;
-        for (Gap * gap : gaps) 
+
+        for (int i = 0; i < gaps.size(); i++)
+        // for (Gap * gap : gaps) 
         {
-            drawManipGapModelPositions(gapModelPositionMarkerArray, gap, ns);
+            Gap * gap = gaps.at(i);
+            drawManipGapModelPositions(gapModelPositionMarkerArray, i, gap, ns);
         }
 
         // First, clearing topic.
@@ -731,9 +710,12 @@ namespace dynamic_gap
         // Draw gap goal velocities //
         //////////////////////////////        
         visualization_msgs::MarkerArray gapModelVelocityMarkerArray;
-        for (Gap * gap : gaps) 
+
+        for (int i = 0; i < gaps.size(); i++)
+        // for (Gap * gap : gaps) 
         {
-            drawManipGapModelVelocities(gapModelVelocityMarkerArray, gap, ns);
+            Gap * gap = gaps.at(i);
+            drawManipGapModelVelocities(gapModelVelocityMarkerArray, i, gap, ns);
         }
 
         // First, clearing topic.
@@ -743,23 +725,23 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawManipGapModelPositions(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                                    Gap * gap, const std::string & ns)
+                                                    const int & gapIdx, Gap * gap, const std::string & ns)
     {
         int id = (int) gapModelMarkerArray.markers.size();
         bool left = true;
 
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
 
-        drawManipModelPosition(leftModelMarker, gap, left, id, ns);
+        drawManipModelPosition(leftModelMarker, gapIdx, gap, left, id, ns);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
 
-        drawManipModelPosition(rightModelMarker, gap, !left, id, ns);
+        drawManipModelPosition(rightModelMarker, gapIdx, gap, !left, id, ns);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
     }
 
 
     void GapVisualizer::drawManipModelPosition(visualization_msgs::Marker & modelMarker, 
-                                                Gap * gap, const bool & left, int & id, const std::string & ns) 
+                                                const int & gapIdx, Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
         if (gap->getFrame().empty())
         {
@@ -767,17 +749,19 @@ namespace dynamic_gap
             return;
         }
         
-        std::string fullNamespace = ns;
-        fullNamespace.append("_initial");
+        // std::string fullNamespace = ns;
+        // fullNamespace.append("_initial");
 
-        auto colorIter = colorMap.find(fullNamespace);
-        if (colorIter == colorMap.end()) 
-        {
-            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-            return;
-        }
+        // auto colorIter = colorMap.find(fullNamespace);
+        // if (colorIter == colorMap.end()) 
+        // {
+        //     ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+        //     return;
+        // }
 
-        modelMarker.color = colorIter->second;
+        // modelMarker.color = colorIter->second;
+
+        modelMarker.color = visionColors_.at(gapIdx % visionColors_.size());
 
         // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->getFrame();
@@ -829,7 +813,7 @@ namespace dynamic_gap
     }
 
     void GapVisualizer::drawManipGapModelVelocities(visualization_msgs::MarkerArray & gapModelMarkerArray,
-                                                    Gap * gap, const std::string & ns)
+                                                    const int & gapIdx, Gap * gap, const std::string & ns)
     {
         ROS_INFO_STREAM_NAMED("Visualizer", "[drawManipGapModelVelocities]");
         int id = (int) gapModelMarkerArray.markers.size();
@@ -837,16 +821,16 @@ namespace dynamic_gap
 
         visualization_msgs::Marker leftModelMarker, rightModelMarker;
 
-        drawManipModelVelocity(leftModelMarker, gap, left, id, ns);
+        drawManipModelVelocity(leftModelMarker, gapIdx, gap, left, id, ns);
         gapModelMarkerArray.markers.push_back(leftModelMarker);
 
-        drawManipModelVelocity(rightModelMarker, gap, !left, id, ns);
+        drawManipModelVelocity(rightModelMarker, gapIdx, gap, !left, id, ns);
         gapModelMarkerArray.markers.push_back(rightModelMarker);
     }
 
 
     void GapVisualizer::drawManipModelVelocity(visualization_msgs::Marker & modelMarker, 
-                                                Gap * gap, const bool & left, int & id, const std::string & ns) 
+                                                const int & gapIdx, Gap * gap, const bool & left, int & id, const std::string & ns) 
     {
         ROS_INFO_STREAM_NAMED("Visualizer", "[drawManipModelVelocity]");
 
@@ -856,17 +840,19 @@ namespace dynamic_gap
             return;
         }
         
-        std::string fullNamespace = ns;
-        fullNamespace.append("_initial");
+        // std::string fullNamespace = ns;
+        // fullNamespace.append("_initial");
 
-        auto colorIter = colorMap.find(fullNamespace);
-        if (colorIter == colorMap.end()) 
-        {
-            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
-            return;
-        }
+        // auto colorIter = colorMap.find(fullNamespace);
+        // if (colorIter == colorMap.end()) 
+        // {
+        //     ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+        //     return;
+        // }
 
-        modelMarker.color = colorIter->second;
+        // modelMarker.color = colorIter->second;
+
+        modelMarker.color = visionColors_.at(gapIdx % visionColors_.size());
 
         // ROS_INFO_STREAM("[drawModel()]");
         modelMarker.header.frame_id = gap->getFrame();
@@ -909,7 +895,6 @@ namespace dynamic_gap
         } else
         {
             gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
-
         }
 
         tf2::Quaternion quat;

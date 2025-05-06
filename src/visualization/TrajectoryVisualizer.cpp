@@ -258,14 +258,19 @@ namespace dynamic_gap
         gapTrajMarker.scale.x = 0.1;
         gapTrajMarker.scale.y = 0.04; // 0.01;
         gapTrajMarker.scale.z = 0.0001;
-        gapTrajMarker.color.a = 1;
-        gapTrajMarker.color.b = 0.5;
-        gapTrajMarker.color.g = 1.0;
+        // gapTrajMarker.color.a = 1;
+        // gapTrajMarker.color.b = 0.5;
+        // gapTrajMarker.color.g = 1.0;
+        
         gapTrajMarker.lifetime = ros::Duration(0);
 
-        for (const Trajectory & traj : trajs) 
+        for (int i = 0; i < trajs.size(); i++)
         {
+            Trajectory traj = trajs.at(i);
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+
+            gapTrajMarker.color = visionColors_[i % visionColors_.size()];
+
             for (const geometry_msgs::Pose & pose : path.poses) 
             {
                 gapTrajMarker.id = int (gapTrajMarkerArray.markers.size());

@@ -117,7 +117,7 @@ namespace dynamic_gap
                 int id = gapGoalPositionsMarkerArray.markers.size();
                 visualization_msgs::Marker goalMarker;
 
-                drawGapGoalPosition(goalMarker, gap, id);
+                drawGapGoalPosition(goalMarker, gap, id, i);
                 gapGoalPositionsMarkerArray.markers.push_back(goalMarker);
             }
 
@@ -125,41 +125,41 @@ namespace dynamic_gap
 
         gapGoalPositionsPublisher.publish(gapGoalPositionsMarkerArray);
 
-        //////////////////////////////
-        // Draw gap goal velocities //
-        //////////////////////////////
-        // First, clearing topic.
-        clearMarkerArrayPublisher(gapGoalVelocitiesPublisher);
+        // //////////////////////////////
+        // // Draw gap goal velocities //
+        // //////////////////////////////
+        // // First, clearing topic.
+        // clearMarkerArrayPublisher(gapGoalVelocitiesPublisher);
 
-        // visualization_msgs::MarkerArray gapGoalsMarkerArray;
-        visualization_msgs::MarkerArray gapGoalVelocitiesMarkerArray;
+        // // visualization_msgs::MarkerArray gapGoalsMarkerArray;
+        // visualization_msgs::MarkerArray gapGoalVelocitiesMarkerArray;
 
-        for (int i = 0; i < gapTubes.size(); i++)
-        {
-            ROS_INFO_STREAM_NAMED("GoalVisualizer", "    tube " << i);
-            GapTube * gapTube = gapTubes.at(i);
+        // for (int i = 0; i < gapTubes.size(); i++)
+        // {
+        //     ROS_INFO_STREAM_NAMED("GoalVisualizer", "    tube " << i);
+        //     GapTube * gapTube = gapTubes.at(i);
 
-            for (int j = 0; j < gapTube->size(); j++)
-            {
-                ROS_INFO_STREAM_NAMED("GoalVisualizer", "       gap " << j);
+        //     for (int j = 0; j < gapTube->size(); j++)
+        //     {
+        //         ROS_INFO_STREAM_NAMED("GoalVisualizer", "       gap " << j);
     
-                Gap * gap = gapTube->at(j);
+        //         Gap * gap = gapTube->at(j);
 
-                int id = gapGoalVelocitiesMarkerArray.markers.size();
-                visualization_msgs::Marker goalMarker;
+        //         int id = gapGoalVelocitiesMarkerArray.markers.size();
+        //         visualization_msgs::Marker goalMarker;
 
-                drawGapGoalVelocity(goalMarker, gap, id);
-                gapGoalVelocitiesMarkerArray.markers.push_back(goalMarker);
-            }
+        //         drawGapGoalVelocity(goalMarker, gap, id);
+        //         gapGoalVelocitiesMarkerArray.markers.push_back(goalMarker);
+        //     }
 
-        }
+        // }
 
-        gapGoalVelocitiesPublisher.publish(gapGoalVelocitiesMarkerArray);
+        // gapGoalVelocitiesPublisher.publish(gapGoalVelocitiesMarkerArray);
 
         return;
     }
 
-    void GoalVisualizer::drawGapGoalPosition(visualization_msgs::Marker & goalMarker, Gap * gap, int & id) 
+    void GoalVisualizer::drawGapGoalPosition(visualization_msgs::Marker & goalMarker, Gap * gap, int & id, const int & gapTubeIdx) 
     {
         if (gap->getFrame().empty())
         {
@@ -167,7 +167,8 @@ namespace dynamic_gap
             return;
         }
         
-        goalMarker.color = gapGoalsColor;
+        // goalMarker.color = gapGoalsColor;
+        goalMarker.color = visionColors_.at(gapTubeIdx % visionColors_.size());
 
         // ROS_INFO_STREAM("[drawModel()]");
         goalMarker.header.frame_id = gap->getFrame();
@@ -177,25 +178,13 @@ namespace dynamic_gap
         goalMarker.type = visualization_msgs::Marker::CYLINDER;
         goalMarker.action = visualization_msgs::Marker::ADD;
         
-        goalMarker.pose.position.x = gap->getGoal()->getOrigGoalPosX();
-        goalMarker.pose.position.y = gap->getGoal()->getOrigGoalPosY();
+        goalMarker.pose.position.x = gap->getGoal()->getTermGoalPosX();
+        goalMarker.pose.position.y = gap->getGoal()->getTermGoalPosY();
         goalMarker.pose.position.z = 0.01;
         goalMarker.pose.orientation.x = 0.0;
         goalMarker.pose.orientation.y = 0.0;
         goalMarker.pose.orientation.z = 0.0;
         goalMarker.pose.orientation.w = 1.0;
-
-        Eigen::Vector2f gapVel(gap->getGoal()->getOrigGoalVelX(), gap->getGoal()->getOrigGoalVelY());
-
-        float gapVelTheta;
-        if (gapVel.norm() < std::numeric_limits<float>::epsilon())
-        {
-            gapVelTheta = 0.0;
-        } else
-        {
-            gapVelTheta = std::atan2(gapVel[1], gapVel[0]);
-
-        }
 
         goalMarker.scale.x = 0.1;
         goalMarker.scale.y = 0.1;
