@@ -24,6 +24,8 @@ namespace dynamic_gap
         simpGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_velocities", 10);
         manipGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gap_model_velocities", 10);
 
+        gapTubePublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_tubes", 10);
+
         std_msgs::ColorRGBA rawInitial, rawTerminal, rawTmin1, 
                             simpInitial, simpTerminal, simpTmin1,
                             manipInitial, manipTerminal, 
@@ -105,6 +107,30 @@ namespace dynamic_gap
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("manip_terminal", manipTerminal));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable", reachable));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));
+
+        // vision colors
+        std_msgs::ColorRGBA visionColor;
+
+        visionColor.r = 24.0/255.0; visionColor.g = 217/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);
+        visionColor.r = 204.0/255.0; visionColor.g = 18/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);
+        visionColor.r = 25.0/255.0; visionColor.g = 83.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);
+        visionColor.r = 220.0/255.0; visionColor.g = 138.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);       
+        visionColor.r = 25.0/255.0; visionColor.g = 156.0/255.0; visionColor.b = 255.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);         
+        visionColor.r = 39.0/255.0; visionColor.g = 24.0/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);          
+        visionColor.r = 24.0/255.0; visionColor.g = 242.0/255.0; visionColor.b = 196.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);                     
+        visionColor.r = 7.0/255.0; visionColor.g = 93.0/255.0; visionColor.b = 94.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);     
+        visionColor.r = 105.0/255.0; visionColor.g = 183.0/255.0; visionColor.b = 242.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);          
+        visionColor.r = 44.0/255.0; visionColor.g = 115.0/255.0; visionColor.b = 133.0/255.0; visionColor.a = 1.0;
+        visionColors_.push_back(visionColor);                 
     }
 
     void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
@@ -454,6 +480,125 @@ namespace dynamic_gap
         // modelMarker.color.r = 1.0;
         // modelMarker.color.b = 1.0;
         // modelMarker.lifetime = ros::Duration(0);
+    }
+
+    void GapVisualizer::drawGapTubes(const std::vector<GapTube *> & gapTubes)
+    {
+        ROS_INFO_STREAM_NAMED("GapVisualizer", "[drawGapTubes]");
+
+        clearMarkerArrayPublisher(gapTubePublisher);
+
+        visualization_msgs::MarkerArray gapTubeMarkerArray;
+        
+        ros::Time time = ros::Time::now();
+
+        std::string ns = "manip_initial";
+
+        auto colorIter = colorMap.find(ns);
+        if (colorIter == colorMap.end()) 
+        {
+            ROS_FATAL_STREAM("Visualization Color not found, return without drawing");
+            return;
+        }
+
+        for (int i = 0; i < gapTubes.size(); i++)
+        {
+            ROS_INFO_STREAM_NAMED("GapVisualizer", "    gapTube: " << i);
+
+            GapTube * gapTube = gapTubes.at(i);
+            int gapTubeSize = gapTube->size();
+
+            for (int j = 0; j < gapTubeSize; j++)
+            {
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        gap: " << j);
+
+                if (j > 0 && j < (gapTubeSize - 1))
+                {
+                    ROS_INFO_STREAM_NAMED("GapVisualizer", "        skipping ...");
+                    continue;
+                }
+
+                Gap * gap = gapTube->at(j);
+
+                // make a marker for each gap
+                visualization_msgs::Marker marker;
+
+                marker.header.frame_id = gap->getFrame();
+                marker.header.stamp = time;
+                marker.ns = ns;
+                marker.type = visualization_msgs::Marker::LINE_LIST;
+                marker.action = visualization_msgs::Marker::ADD;
+        
+                marker.pose.position.x = 0.0;
+                marker.pose.position.y = 0.0;
+                marker.pose.position.z = 0.0;
+                marker.pose.orientation.x = 0.0;
+                marker.pose.orientation.y = 0.0;
+                marker.pose.orientation.z = 0.0;
+                marker.pose.orientation.w = 1.0;        
+        
+                float thickness = 0.05;
+                marker.scale.x = thickness;     
+
+                float eps = 0.000000001;
+                marker.color = visionColors_.at(i % visionColors_.size());
+                marker.color.a = 1.0 - 0.5 * (float (j) / (float(gapTubeSize - 1) + eps));
+
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        color: " << marker.color.r << ", " << marker.color.g << ", " << marker.color.b << ", " << marker.color.a);
+    
+                int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
+                int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
+                float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
+                float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
+    
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        leftIdx: " << leftIdx << ", leftRange: " << leftRange);
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        rightIdx: " << rightIdx << ", rightRange: " << rightRange);
+    
+                int gapIdxSpan = (leftIdx - rightIdx);
+                if (gapIdxSpan < 0)
+                    gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
+    
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        gapIdxSpan: " << gapIdxSpan);
+    
+                int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
+                float distIncrement = (leftRange - rightRange) / num_segments;
+                int midGapIdx = rightIdx; //  + viz_offset;
+                float midGapDist = rightRange;
+    
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        num_segments: " << num_segments);
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        distIncrement: " << distIncrement);
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapIdx: " << midGapIdx);
+                ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapDist: " << midGapDist);
+    
+                float midGapTheta = 0.0;
+                for (int k = 0; k < num_segments; k++)
+                {
+                    geometry_msgs::Point p1;
+                    midGapTheta = idx2theta(midGapIdx);
+                    p1.x = midGapDist * cos(midGapTheta);
+                    p1.y = midGapDist * sin(midGapTheta);
+                    marker.points.push_back(p1);
+                    
+                    midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+                    midGapDist += distIncrement;
+    
+                    // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+                    // ROS_INFO_STREAM("midGapDist: " << midGapDist);
+    
+                    geometry_msgs::Point p2;
+                    midGapTheta = idx2theta(midGapIdx);
+                    p2.x = midGapDist * cos(midGapTheta);
+                    p2.y = midGapDist * sin(midGapTheta);
+                    marker.points.push_back(p2);
+                }                
+                
+                // marker.lifetime = ros::Duration(0);
+                marker.id = gapTubeMarkerArray.markers.size();
+                gapTubeMarkerArray.markers.push_back(marker);
+            }
+        }
+
+        gapTubePublisher.publish(gapTubeMarkerArray);        
     }
 
     void GapVisualizer::drawManipGaps(const std::vector<Gap *> & gaps, const std::string & ns) 

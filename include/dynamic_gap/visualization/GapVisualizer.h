@@ -46,7 +46,13 @@ namespace dynamic_gap
             * \param ns namespace of manipulated gap models to visualize
             */            
             void drawManipGapModels(const std::vector<Gap *> & gaps, const std::string & ns);
-                        
+
+            /**
+            * \brief Visualize set of gap tubes
+            * \param gapTubes set of gap tubes to visualize
+            */
+            void drawGapTubes(const std::vector<GapTube *> & gapTubes);            
+
         private:
             /**
             * \brief initialize gap visualizer
@@ -188,7 +194,11 @@ namespace dynamic_gap
             ros::Publisher simpGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
             ros::Publisher manipGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
 
+            ros::Publisher gapTubePublisher; /**< Publisher for gap tubes */
+
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;
+
+            std::vector<std_msgs::ColorRGBA> visionColors_;
     };
 }
