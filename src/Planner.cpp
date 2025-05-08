@@ -76,7 +76,7 @@ namespace dynamic_gap
 
         gapFeasibilityChecker_ = new GapFeasibilityChecker(cfg_);
 
-        gapPropagator_ = new GapPropagator(cfg_);
+        gapPropagator_ = new GapPropagator(nh_, cfg_);
 
         gapManipulator_ = new GapManipulator(cfg_);
 

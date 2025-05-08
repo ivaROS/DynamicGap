@@ -13,6 +13,7 @@ Panels:
         - /Dynamic Gap1/Gaps1/MarkerArray3
         - /Dynamic Gap1/Gaps1/MarkerArray4
         - /Dynamic Gap1/Gaps1/MarkerArray5
+        - /Dynamic Gap1/Gaps1/MarkerArray7
         - /Dynamic Gap1/Gaps1/MarkerArray8
         - /Dynamic Gap1/Trajectories1
         - /Dynamic Gap1/Trajectories1/MarkerArray4
@@ -245,7 +246,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -402,21 +402,21 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/gap_goal_positions
               Name: MarkerArray
               Namespaces:
-                gap_goal: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/gap_goal_velocities
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/gap_tubes
@@ -430,13 +430,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/candidate_trajectories
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/trajectory_switch
@@ -454,13 +454,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/entire_global_plan
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/relevant_global_plan_snippet
@@ -470,21 +470,21 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/candidate_ungap_trajectories
               Name: MarkerArray
               Namespaces:
-                allTraj: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/candidate_tube_trajectories
               Name: MarkerArray
               Namespaces:
-                allTraj: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
@@ -762,6 +762,14 @@ Visualization Manager:
       Name: Marker
       Namespaces:
         egorobot: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/propagated_gap_points
+      Name: MarkerArray
+      Namespaces:
+        propagated_gap_points: true
       Queue Size: 100
       Value: true
   Enabled: true

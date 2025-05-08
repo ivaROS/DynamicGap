@@ -216,7 +216,7 @@ namespace dynamic_gap
             float cp_ = 0.0; /**< proportional coefficient value for CBF */
             float clambda_ = 0.0; /**< lambda coefficient value for CBF */
 
-
+            ros::Publisher propagatedPointsPublisher_; /**< Publisher for propagated points */
             // std::chrono::steady_clock::time_point startTime_; /**< Start time */
     };
 }

@@ -3,10 +3,29 @@
 
 namespace dynamic_gap 
 {
+    GapPropagator::GapPropagator(ros::NodeHandle& nh, const DynamicGapConfig& cfg) 
+    {
+        cfg_ = &cfg; 
+        gapAssociator_ = new GapAssociator(cfg);
+    
+        propagatedPointsPublisher_ = nh.advertise<visualization_msgs::MarkerArray>("propagated_gap_points", 10);
+    }
+    
     void GapPropagator::propagateGapPointsV2(const std::vector<Gap *> & manipulatedGaps,
-                                            std::vector<GapTube *> & gapTubes) 
+                                                std::vector<GapTube *> & gapTubes) 
     {
         ROS_INFO_STREAM_NAMED("GapPropagator", "   [GapPropagator::propagateGapPointsV2()]");
+
+        // First, clearing topic.
+        visualization_msgs::MarkerArray clearMarkerArray;
+        visualization_msgs::Marker clearMarker;
+        clearMarker.id = 0;
+        clearMarker.ns =  "clear";
+        clearMarker.action = visualization_msgs::Marker::DELETEALL;
+        clearMarkerArray.markers.push_back(clearMarker);
+        propagatedPointsPublisher_.publish(clearMarkerArray);
+
+        visualization_msgs::MarkerArray markerArray;
 
         ROS_INFO_STREAM_NAMED("GapPropagator", "       (Manipulated) Gaps at time " << 0.0 << ": ");
         for (int i = 0; i < manipulatedGaps.size(); i++)
@@ -81,6 +100,9 @@ namespace dynamic_gap
             // 6. Re-sort by bearing
             std::sort(propagatedGapPoints_.begin(), propagatedGapPoints_.end(), PropagatedGapPointComparator());
 
+            // Visualize propagated gap points
+            visualizePropagatedGapPoints(markerArray, futureTimeIdx, numSteps);
+
             // ROS_INFO_STREAM_NAMED("GapPropagator", "       Gap points: ");
             // for (int i = 0; i < propagatedGapPoints_.size(); i++)
             // {
@@ -142,6 +164,8 @@ namespace dynamic_gap
         // CLEAN UP //
         //////////////
 
+        propagatedPointsPublisher_.publish(markerArray);
+
         // delete gap points
         for (PropagatedGapPoint * propagatedGapPt : propagatedGapPoints_)
         {
@@ -150,6 +174,56 @@ namespace dynamic_gap
         propagatedGapPoints_.clear();
 
         return;
+    }
+
+    void GapPropagator::visualizePropagatedGapPoints(visualization_msgs::MarkerArray & markerArray, const int & futureTimeIdx, const int & numSteps)
+    {
+
+        // make a marker for each gap
+        visualization_msgs::Marker marker;
+
+        marker.id = futureTimeIdx;
+
+        marker.header.frame_id = cfg_->robot_frame_id;
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "propagated_gap_points";
+        marker.type = visualization_msgs::Marker::POINTS;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;    
+    
+        float thickness = 0.1;
+        marker.scale.x = thickness; 
+        marker.scale.y = thickness;    
+
+        marker.color.r = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+
+        float eps = 0.000000001;
+        marker.color.a = 1.0 - 0.5 * (float (futureTimeIdx) / (float(numSteps - 1) + eps));
+
+        for (int i = 0; i < propagatedGapPoints_.size(); i++)
+        {
+            PropagatedGapPoint * propagatedGapPt = propagatedGapPoints_.at(i);
+
+            Eigen::Vector4f modelState = propagatedGapPt->getModel()->getManipGapState();
+            geometry_msgs::Point p;
+            p.x = modelState[0];
+            p.y = modelState[1];
+            p.z = 0.0000001;
+
+            marker.points.push_back(p);
+            marker.colors.push_back(marker.color);
+        }
+
+        markerArray.markers.push_back(marker);
     }
 
     bool GapPropagator::runGapAssociation(const std::vector<Gap *> & currentGaps, 
@@ -223,15 +297,26 @@ namespace dynamic_gap
                     } else
                     {
                         ROS_INFO_STREAM_NAMED("GapPropagator", "                       creating an open gap from pt " << i << " to pt " << j);
-                        // Create an open gap
-                        propagatedGapPtI->assignToGap();
-                        propagatedGapPtJ->assignToGap();
+                        
+                        if (propagatedGapPtJ->getUngapID() >= 0 && propagatedGapPtI->getUngapID() >= 0 &&
+                            propagatedGapPtJ->getUngapID() == propagatedGapPtI->getUngapID() && 
+                            propagatedGapPoints_.size() > 2)
+                        {
+                            ROS_INFO_STREAM_NAMED("GapPropagator", "                       ungap points form an gap (j ID: " << propagatedGapPtJ->getUngapID() << ", i ID: " << propagatedGapPtI->getUngapID() << "), but there are > 2 points");
+                            
+                        } else
+                        {
+                            // Create an open gap
+                            propagatedGapPtI->assignToGap();
+                            propagatedGapPtJ->assignToGap();
 
-                        // Create a gap
-                        currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
-                                                        *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, true)); // (j, i): current left/right
+                            // Create a gap
+                            currentGaps.push_back(new Gap(propagatedGapPtI->getFrame(),
+                                                            *propagatedGapPtJ, *propagatedGapPtI, t_iplus1, true)); // (j, i): current left/right
 
-                        break;
+                            break;
+                        }
+
                     }
                 }
             } else if (propagatedGapPtI->isLeft()) // checking for reversed gap
