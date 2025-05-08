@@ -20,7 +20,7 @@ namespace dynamic_gap
         delete gapPointAssociator_;
         delete gapVisualizer_;
 
-        delete pedVisualizer_;
+        delete agentVisualizer_;
 
         delete globalPlanManager_;
         delete goalVisualizer_;
@@ -93,7 +93,7 @@ namespace dynamic_gap
 
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
         goalVisualizer_ = new GoalVisualizer(nh_, cfg_);
-        pedVisualizer_ = new PedVisualizer(nh_, cfg_);
+        agentVisualizer_ = new AgentVisualizer(nh_, cfg_);
         trajVisualizer_ = new TrajectoryVisualizer(nh_, cfg_);
 
         ungapFeasibilityChecker_ = new UngapFeasibilityChecker(cfg_);
@@ -463,6 +463,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         rbtPoseOdomFrame.pose = rbtOdomMsg->pose.pose;
         rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
 
+        agentVisualizer_->drawEgoRobot(rbtPoseInOdomFrame_);
+
         // ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
 
         //--------------- VELOCITY -------------------//
@@ -518,7 +520,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
     {
-        ROS_INFO_STREAM_NAMED("Planner", "[pedOdomCB()]");   
+        // ROS_INFO_STREAM_NAMED("Planner", "[pedOdomCB()]");   
         
         if (!haveTFs_)
             return;
@@ -537,12 +539,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             agentPoseMsgFrame.header = agentIState.header;
             agentPoseMsgFrame.pose = agentIState.pose;
-            ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
+            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
             //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
             tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
             
-            ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
+            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
 
             // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
             currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
@@ -560,7 +562,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         
         }
 
-        pedVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
+        agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
     }
 
     bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)

@@ -11,12 +11,12 @@ namespace dynamic_gap
     /**
     * \brief Class for visualizing goal-related objects
     */
-    class PedVisualizer : public Visualizer
+    class AgentVisualizer : public Visualizer
     {
         // using Visualizer::Visualizer;
 
         public: 
-            PedVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
+            AgentVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             /**
             * \brief Draw pedestrian histories
@@ -27,11 +27,17 @@ namespace dynamic_gap
                                          const std::map<std::string, geometry_msgs::Vector3Stamped> & currentTrueAgentVels,
                                          const std::string & robot_frame);
 
+            void drawEgoRobot(const geometry_msgs::PoseStamped & poseStamped);
+
         private: 
 
             std_msgs::ColorRGBA pedColors; /**< Color of pedestrians */
 
+            std_msgs::ColorRGBA egoRobotColor; /**< Color of ego robot */
+
             ros::Publisher pedHistoryPublisher; /**< Publisher for agent histories */
+
+            ros::Publisher egoRobotMarkerPublisher; /**< Publisher for ego robot */
 
     };
 }

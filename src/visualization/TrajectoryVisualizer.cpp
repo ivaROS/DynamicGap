@@ -255,8 +255,8 @@ namespace dynamic_gap
         gapTrajMarker.ns = "allTraj";
         gapTrajMarker.type = visualization_msgs::Marker::ARROW;
         gapTrajMarker.action = visualization_msgs::Marker::ADD;
-        gapTrajMarker.scale.x = 0.1;
-        gapTrajMarker.scale.y = 0.04; // 0.01;
+        gapTrajMarker.scale.x = 0.2; // 0.1;
+        gapTrajMarker.scale.y = 0.08; // 0.04; // 0.01;
         gapTrajMarker.scale.z = 0.0001;
         // gapTrajMarker.color.a = 1;
         // gapTrajMarker.color.b = 0.5;
@@ -384,12 +384,13 @@ namespace dynamic_gap
         ungapTrajMarker.ns = "allTraj";
         ungapTrajMarker.type = visualization_msgs::Marker::ARROW;
         ungapTrajMarker.action = visualization_msgs::Marker::ADD;
-        ungapTrajMarker.scale.x = 0.1;
-        ungapTrajMarker.scale.y = 0.04; // 0.01;
+        ungapTrajMarker.scale.x = 0.2; // 0.1;
+        ungapTrajMarker.scale.y = 0.08; // 0.04; // 0.01;
         ungapTrajMarker.scale.z = 0.0001;
         ungapTrajMarker.color.a = 1;
-        ungapTrajMarker.color.b = 0.75;
-        ungapTrajMarker.color.g = 0.75;
+        ungapTrajMarker.color.r = 0.50;
+        ungapTrajMarker.color.b = 0.50;
+        ungapTrajMarker.color.g = 0.50;
         ungapTrajMarker.lifetime = ros::Duration(0);
 
         for (const Trajectory & traj : trajs) 

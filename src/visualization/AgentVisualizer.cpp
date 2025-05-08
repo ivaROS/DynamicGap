@@ -1,9 +1,9 @@
-#include <dynamic_gap/visualization/PedVisualizer.h>
+#include <dynamic_gap/visualization/AgentVisualizer.h>
 
 namespace dynamic_gap
 {   
 
-PedVisualizer::PedVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
+AgentVisualizer::AgentVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
 {
     pedHistoryPublisher = nh.advertise<visualization_msgs::MarkerArray>("pedestrian_histories", 10);
 
@@ -13,13 +13,20 @@ PedVisualizer::PedVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     pedColors.b = 0.50f;
     pedColors.a = 1.0f;
 
+    egoRobotMarkerPublisher = nh.advertise<visualization_msgs::Marker>("ego_robot_marker", 10);
+
+    egoRobotColor = std_msgs::ColorRGBA();
+    egoRobotColor.r = 0.0f;
+    egoRobotColor.g = 0.0f;
+    egoRobotColor.b = 0.0f;
+    egoRobotColor.a = 1.0f;
 }
 
-void PedVisualizer::drawPedestrianHistories(const std::map<std::string, geometry_msgs::Pose> & currentTrueAgentPoses,
+void AgentVisualizer::drawPedestrianHistories(const std::map<std::string, geometry_msgs::Pose> & currentTrueAgentPoses,
                                             const std::map<std::string, geometry_msgs::Vector3Stamped> & currentTrueAgentVels,
                                             const std::string & robot_frame)
 {
-    ROS_INFO_STREAM_NAMED("PedVisualizer", "[drawPedestrianHistories]");
+    // ROS_INFO_STREAM_NAMED("AgentVisualizer", "[drawPedestrianHistories]");
 
     visualization_msgs::MarkerArray pedHistoryMarkerArray;
 
@@ -30,9 +37,9 @@ void PedVisualizer::drawPedestrianHistories(const std::map<std::string, geometry
         const std::string & agentID = agent.first;
         const geometry_msgs::Pose & agentPose = agent.second;
 
-        ROS_INFO_STREAM_NAMED("PedVisualizer", "Agent ID: " << agentID);  
-        ROS_INFO_STREAM_NAMED("PedVisualizer", "Agent Pose: " << agentPose.position.x << ", " << agentPose.position.y << ", " << agentPose.position.z);
-        ROS_INFO_STREAM_NAMED("PedVisualizer", "Agent Orientation: " << agentPose.orientation.x << ", " << agentPose.orientation.y << ", " << agentPose.orientation.z << ", " << agentPose.orientation.w);
+        // ROS_INFO_STREAM_NAMED("AgentVisualizer", "Agent ID: " << agentID);  
+        // ROS_INFO_STREAM_NAMED("AgentVisualizer", "Agent Pose: " << agentPose.position.x << ", " << agentPose.position.y << ", " << agentPose.position.z);
+        // ROS_INFO_STREAM_NAMED("AgentVisualizer", "Agent Orientation: " << agentPose.orientation.x << ", " << agentPose.orientation.y << ", " << agentPose.orientation.z << ", " << agentPose.orientation.w);
 
         visualization_msgs::Marker pedHistoryMarker;
         pedHistoryMarker.header.frame_id = robot_frame;
@@ -50,8 +57,8 @@ void PedVisualizer::drawPedestrianHistories(const std::map<std::string, geometry
         // Set the lifetime of the marker
         // pedHistoryMarker.lifetime = ros::Duration(0.1); // 0.1 seconds
 
-        ROS_INFO_STREAM_NAMED("PedVisualizer", "Pedestrian Marker: ");
-        ROS_INFO_STREAM_NAMED("PedVisualizer", "        " << pedHistoryMarker);
+        // ROS_INFO_STREAM_NAMED("AgentVisualizer", "Pedestrian Marker: ");
+        // ROS_INFO_STREAM_NAMED("AgentVisualizer", "        " << pedHistoryMarker);
 
         // Add the marker to the array
         pedHistoryMarkerArray.markers.push_back(pedHistoryMarker);
@@ -76,6 +83,31 @@ void PedVisualizer::drawPedestrianHistories(const std::map<std::string, geometry
     pedHistoryPublisher.publish(pedHistoryMarkerArray);
 
     return;
+}
+
+
+void AgentVisualizer::drawEgoRobot(const geometry_msgs::PoseStamped & poseStamped)
+{
+    clearMarkerPublisher(egoRobotMarkerPublisher);
+
+    visualization_msgs::Marker marker;
+
+    marker.header = poseStamped.header;
+    marker.ns = "egorobot";
+    marker.type = visualization_msgs::Marker::CYLINDER;
+    marker.action = visualization_msgs::Marker::ADD;
+
+    marker.pose = poseStamped.pose;      
+
+    marker.scale.x = 0.45;
+    marker.scale.y = 0.45;     
+    marker.scale.z = 0.00000001;
+    
+    marker.id = 0;
+
+    marker.color = egoRobotColor;
+
+    egoRobotMarkerPublisher.publish(marker);
 }
 
 }

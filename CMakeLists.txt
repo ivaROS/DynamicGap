@@ -78,7 +78,7 @@ add_library(${PROJECT_NAME}
   src/ungap_feasibility/UngapFeasibilityChecker.cpp
   src/visualization/GapVisualizer.cpp
   src/visualization/GoalVisualizer.cpp
-  src/visualization/PedVisualizer.cpp
+  src/visualization/AgentVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
   src/Planner.cpp
   src/DynamicGapPlanner.cpp

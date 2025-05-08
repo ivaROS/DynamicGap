@@ -116,6 +116,7 @@ namespace dynamic_gap
 
             if (weird)
             {
+                ROS_INFO_STREAM_NAMED("GapPropagator", "       Weird gap association, breaking out of loop");
                 ROS_WARN_STREAM_NAMED("GapPropagator", "       Weird gap association, breaking out of loop");
                 break;
             }
