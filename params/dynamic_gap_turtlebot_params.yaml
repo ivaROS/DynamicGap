@@ -1,6 +1,6 @@
 DynamicGapPlanner:
     # Robot
-    robot_radius: 0.25 # m
+    robot_radius: 0.15 # m
     max_vel_x: 0.40
     max_vel_y: 0.40
     max_vel_theta: 0.8

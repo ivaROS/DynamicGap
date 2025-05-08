@@ -46,6 +46,8 @@ namespace dynamic_gap
             * \param ns namespace of manipulated gap models to visualize
             */            
             void drawManipGapModels(const std::vector<Gap *> & gaps, const std::string & ns);
+
+            void drawEgoRobot(const geometry_msgs::PoseStamped & poseStamped);
                         
         private:
             /**
@@ -191,6 +193,8 @@ namespace dynamic_gap
             ros::Publisher rawGapModelVelocitiesPublisher; /**< Publisher for raw gap model velocities */
             ros::Publisher simpGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
             ros::Publisher manipGapModelVelocitiesPublisher; /**< Publisher for simp gap model velocities */
+
+            ros::Publisher egoRobotMarkerPublisher;
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;

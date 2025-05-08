@@ -463,6 +463,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         rbtPoseOdomFrame.pose = rbtOdomMsg->pose.pose;
         rbtPoseInOdomFrame_ = rbtPoseOdomFrame;
 
+        gapVisualizer_->drawEgoRobot(rbtPoseInOdomFrame_);
+
         // ROS_INFO_STREAM("   rbtPoseInOdomFrame_: " << rbtPoseInOdomFrame_);
 
         //--------------- VELOCITY -------------------//

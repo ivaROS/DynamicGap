@@ -27,6 +27,8 @@ namespace dynamic_gap
         simpGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("simp_gap_model_velocities", 10);
         manipGapModelVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("manip_gap_model_velocities", 10);
 
+        egoRobotMarkerPublisher = nh.advertise<visualization_msgs::Marker>("ego_robot_marker", 10);
+
         std_msgs::ColorRGBA rawInitial, rawTerminal, rawTmin1, 
                             simpInitial, simpTerminal, simpTmin1,
                             manipInitial, manipTerminal, 
@@ -135,6 +137,33 @@ namespace dynamic_gap
         // (20, 235, 211)
         gapwiseColor.r = 20./255.; gapwiseColor.g = 235./255.; gapwiseColor.b = 211./255.;
         gapwiseColors.push_back(gapwiseColor);            
+    }
+
+    void GapVisualizer::drawEgoRobot(const geometry_msgs::PoseStamped & poseStamped)
+    {
+        clearMarkerPublisher(egoRobotMarkerPublisher);
+
+        visualization_msgs::Marker marker;
+
+        marker.header = poseStamped.header;
+        marker.ns = "egorobot";
+        marker.type = visualization_msgs::Marker::CYLINDER;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose = poseStamped.pose;      
+
+        marker.scale.x = 0.50;
+        marker.scale.y = 0.50;     
+        marker.scale.z = 0.000001;
+        
+        marker.id = 0;
+
+        marker.color.r = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+        marker.color.a = 1.0;
+
+        egoRobotMarkerPublisher.publish(marker);
     }
 
     void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
