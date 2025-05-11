@@ -349,8 +349,8 @@ namespace dynamic_gap
         modelMarker.pose.orientation.z = 0.0;
         modelMarker.pose.orientation.w = 1.0;
 
-        modelMarker.scale.x = 0.1;
-        modelMarker.scale.y = 0.1;
+        modelMarker.scale.x = 0.2;
+        modelMarker.scale.y = 0.2;
         modelMarker.scale.z = 0.000001;
 
         // modelMarker.color.a = 1.0;
@@ -477,99 +477,16 @@ namespace dynamic_gap
             return;
         }
 
+        ////////////////////////////////////
+        // Visualize all gaps in gap tube //
+        ////////////////////////////////////
+
         for (int i = 0; i < gapTubes.size(); i++)
         {
             ROS_INFO_STREAM_NAMED("GapVisualizer", "    gapTube: " << i);
 
             GapTube * gapTube = gapTubes.at(i);
             int gapTubeSize = gapTube->size();
-
-            //////////////////////////////////////////
-            // Visualize initial state of first gap //
-            //////////////////////////////////////////
-
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        gap: 0");
-
-            // Gap * gap = gapTube->at(0);
-
-            // // make a marker for each gap
-            // visualization_msgs::Marker marker;
-
-            // marker.header.frame_id = gap->getFrame();
-            // marker.header.stamp = time;
-            // marker.ns = ns;
-            // marker.type = visualization_msgs::Marker::LINE_LIST;
-            // marker.action = visualization_msgs::Marker::ADD;
-    
-            // marker.pose.position.x = 0.0;
-            // marker.pose.position.y = 0.0;
-            // marker.pose.position.z = 0.0;
-            // marker.pose.orientation.x = 0.0;
-            // marker.pose.orientation.y = 0.0;
-            // marker.pose.orientation.z = 0.0;
-            // marker.pose.orientation.w = 1.0;        
-    
-            // float thickness = 0.10;
-            // marker.scale.x = thickness;     
-
-            // marker.color = visionColors_.at(i % visionColors_.size());
-            // marker.color.a = 1.0;
-
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        color: " << marker.color.r << ", " << marker.color.g << ", " << marker.color.b << ", " << marker.color.a);
-
-            // int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
-            // int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
-            // float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
-            // float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
-
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        leftIdx: " << leftIdx << ", leftRange: " << leftRange);
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        rightIdx: " << rightIdx << ", rightRange: " << rightRange);
-
-            // int gapIdxSpan = (leftIdx - rightIdx);
-            // if (gapIdxSpan < 0)
-            //     gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
-
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        gapIdxSpan: " << gapIdxSpan);
-
-            // int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
-            // float distIncrement = (leftRange - rightRange) / num_segments;
-            // int midGapIdx = rightIdx; //  + viz_offset;
-            // float midGapDist = rightRange;
-
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        num_segments: " << num_segments);
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        distIncrement: " << distIncrement);
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapIdx: " << midGapIdx);
-            // ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapDist: " << midGapDist);
-
-            // float midGapTheta = 0.0;
-            // for (int k = 0; k < num_segments; k++)
-            // {
-            //     geometry_msgs::Point p1;
-            //     midGapTheta = idx2theta(midGapIdx);
-            //     p1.x = midGapDist * cos(midGapTheta);
-            //     p1.y = midGapDist * sin(midGapTheta);
-            //     marker.points.push_back(p1);
-                
-            //     midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
-            //     midGapDist += distIncrement;
-
-            //     // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
-            //     // ROS_INFO_STREAM("midGapDist: " << midGapDist);
-
-            //     geometry_msgs::Point p2;
-            //     midGapTheta = idx2theta(midGapIdx);
-            //     p2.x = midGapDist * cos(midGapTheta);
-            //     p2.y = midGapDist * sin(midGapTheta);
-            //     marker.points.push_back(p2);
-            // }                
-            
-            // // marker.lifetime = ros::Duration(0);
-            // marker.id = gapTubeMarkerArray.markers.size();
-            // gapTubeMarkerArray.markers.push_back(marker);
-
-            ////////////////////////////////////
-            // Visualize all gaps in gap tube //
-            ////////////////////////////////////
 
             for (int j = 0; j < gapTubeSize; j++)
             {
@@ -630,6 +547,15 @@ namespace dynamic_gap
                 float midGapTheta = 0.0;
                 for (int k = 0; k < num_segments; k++)
                 {
+                    if (!gap->isAvailable() && (k % 2 == 1))
+                    {
+                        // skip the middle point
+                        midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+                        midGapDist += distIncrement;
+                        continue;
+                    }
+
+
                     geometry_msgs::Point p1;
                     midGapTheta = idx2theta(midGapIdx);
                     p1.x = midGapDist * cos(midGapTheta);
@@ -653,100 +579,189 @@ namespace dynamic_gap
                 marker.id = gapTubeMarkerArray.markers.size();
                 gapTubeMarkerArray.markers.push_back(marker);
 
-                // //////////////////////////////////////////
-                // // Visualize terminal state of last gap //
-                // //////////////////////////////////////////
-
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        gap: " << (gapTubeSize - 1));
-
-                // marker = visualization_msgs::Marker();
-
-                // gap = gapTube->at(gapTubeSize - 1);
-
-                // marker.header.frame_id = gap->getFrame();
-                // marker.header.stamp = time;
-                // marker.ns = ns;
-                // marker.type = visualization_msgs::Marker::LINE_LIST;
-                // marker.action = visualization_msgs::Marker::ADD;
-        
-                // marker.pose.position.x = 0.0;
-                // marker.pose.position.y = 0.0;
-                // marker.pose.position.z = 0.0;
-                // marker.pose.orientation.x = 0.0;
-                // marker.pose.orientation.y = 0.0;
-                // marker.pose.orientation.z = 0.0;
-                // marker.pose.orientation.w = 1.0;        
-        
-                // marker.scale.x = thickness;     
-
-                // marker.color = visionColors_.at(i % visionColors_.size());
-                // marker.color.a = 0.5;
-
-                // Eigen::Vector2f leftGapPos = gap->getManipulatedLPosition();
-                // Eigen::Vector2f rightGapPos = gap->getManipulatedRPosition();
-                // Eigen::Vector2f leftGapVel = gap->getManipulatedLVelocity();
-                // Eigen::Vector2f rightGapVel = gap->getManipulatedRVelocity();
-
-                // float gapLifespan = gap->getGapLifespan();
-
-                // Eigen::Vector2f termLeftGapPos = leftGapPos + gapLifespan * leftGapVel;
-                // Eigen::Vector2f termRightGapPos = rightGapPos + gapLifespan * rightGapVel;
-
-                // float termLeftGapTheta = std::atan2(termLeftGapPos[1], termLeftGapPos[0]);
-                // float termRightGapTheta = std::atan2(termRightGapPos[1], termRightGapPos[0]);
-
-                // int termLeftIdx = theta2idx(termLeftGapTheta); // initial ?  : gap->manipTermLeftIdx();
-                // int termRightIdx = theta2idx(termRightGapTheta); // initial ?  : gap->manipTermRightIdx();
-                // float termLeftRange = termLeftGapPos.norm(); // initial ?  : gap->manipTermLeftRange();
-                // float termRightRange = termRightGapPos.norm(); // initial ?  : gap->manipTermRightRange();
-
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termLeftIdx: " << termLeftIdx << ", termLeftRange: " << termLeftRange);
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termRightIdx: " << termRightIdx << ", termRightRange: " << termRightRange);
-
-                // int termGapIdxSpan = (termLeftIdx - termRightIdx);
-                // if (termGapIdxSpan < 0)
-                // termGapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
-
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termGapIdxSpan: " << termGapIdxSpan);
-
-                // int term_num_segments = int(invGapSpanResoln * termGapIdxSpan) + 1;
-                // float termDistIncrement = (termLeftRange - termRightRange) / term_num_segments;
-                // int termMidGapIdx = termRightIdx; //  + viz_offset;
-                // float termMidGapDist = termRightRange;
-
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        term_num_segments: " << term_num_segments);
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termDistIncrement: " << termDistIncrement);
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termMidGapIdx: " << termMidGapIdx);
-                // ROS_INFO_STREAM_NAMED("GapVisualizer", "        termMidGapDist: " << termMidGapDist);
-
-                // float termMidGapTheta = 0.0;
-                // for (int k = 0; k < term_num_segments; k++)
-                // {
-                //     geometry_msgs::Point p1;
-                //     termMidGapTheta = idx2theta(termMidGapIdx);
-                //     p1.x = termMidGapDist * cos(termMidGapTheta);
-                //     p1.y = termMidGapDist * sin(termMidGapTheta);
-                //     marker.points.push_back(p1);
-                    
-                //     termMidGapIdx = (termMidGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
-                //     termMidGapDist += termDistIncrement;
-
-                //     // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
-                //     // ROS_INFO_STREAM("midGapDist: " << midGapDist);
-
-                //     geometry_msgs::Point p2;
-                //     termMidGapTheta = idx2theta(termMidGapIdx);
-                //     p2.x = termMidGapDist * cos(termMidGapTheta);
-                //     p2.y = termMidGapDist * sin(termMidGapTheta);
-                //     marker.points.push_back(p2);
-                // }                
-                
-                // // marker.lifetime = ros::Duration(0);
-                // marker.id = gapTubeMarkerArray.markers.size();
-                // gapTubeMarkerArray.markers.push_back(marker);
 
             }
         }
+
+        /////////////////////////////////////////////////////////////////////////
+        // Visualize initial state of first gap and terminal state of last gap //
+        /////////////////////////////////////////////////////////////////////////
+
+        // for (int i = 0; i < gapTubes.size(); i++)
+        // {
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "    gapTube: " << i);
+
+        //     GapTube * gapTube = gapTubes.at(i);
+        //     int gapTubeSize = gapTube->size();
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        gap: 0");
+
+        //     Gap * gap = gapTube->at(0);
+
+        //     // make a marker for each gap
+        //     visualization_msgs::Marker marker;
+
+        //     marker.header.frame_id = gap->getFrame();
+        //     marker.header.stamp = time;
+        //     marker.ns = ns;
+        //     marker.type = visualization_msgs::Marker::LINE_LIST;
+        //     marker.action = visualization_msgs::Marker::ADD;
+    
+        //     marker.pose.position.x = 0.0;
+        //     marker.pose.position.y = 0.0;
+        //     marker.pose.position.z = 0.0;
+        //     marker.pose.orientation.x = 0.0;
+        //     marker.pose.orientation.y = 0.0;
+        //     marker.pose.orientation.z = 0.0;
+        //     marker.pose.orientation.w = 1.0;        
+    
+        //     float thickness = 0.10;
+        //     marker.scale.x = thickness;     
+
+        //     marker.color = visionColors_.at(i % visionColors_.size());
+        //     marker.color.a = 1.0;
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        color: " << marker.color.r << ", " << marker.color.g << ", " << marker.color.b << ", " << marker.color.a);
+
+        //     int leftIdx = gap->manipLeftIdx(); // initial ?  : gap->manipTermLeftIdx();
+        //     int rightIdx = gap->manipRightIdx(); // initial ?  : gap->manipTermRightIdx();
+        //     float leftRange = gap->manipLeftRange(); // initial ?  : gap->manipTermLeftRange();
+        //     float rightRange = gap->manipRightRange(); // initial ?  : gap->manipTermRightRange();
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        leftIdx: " << leftIdx << ", leftRange: " << leftRange);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        rightIdx: " << rightIdx << ", rightRange: " << rightRange);
+
+        //     int gapIdxSpan = (leftIdx - rightIdx);
+        //     if (gapIdxSpan < 0)
+        //         gapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        gapIdxSpan: " << gapIdxSpan);
+
+        //     int num_segments = int(invGapSpanResoln * gapIdxSpan) + 1;
+        //     float distIncrement = (leftRange - rightRange) / num_segments;
+        //     int midGapIdx = rightIdx; //  + viz_offset;
+        //     float midGapDist = rightRange;
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        num_segments: " << num_segments);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        distIncrement: " << distIncrement);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapIdx: " << midGapIdx);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        midGapDist: " << midGapDist);
+
+        //     float midGapTheta = 0.0;
+        //     for (int k = 0; k < num_segments; k++)
+        //     {
+        //         geometry_msgs::Point p1;
+        //         midGapTheta = idx2theta(midGapIdx);
+        //         p1.x = midGapDist * cos(midGapTheta);
+        //         p1.y = midGapDist * sin(midGapTheta);
+        //         marker.points.push_back(p1);
+                
+        //         midGapIdx = (midGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+        //         midGapDist += distIncrement;
+
+        //         // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+        //         // ROS_INFO_STREAM("midGapDist: " << midGapDist);
+
+        //         geometry_msgs::Point p2;
+        //         midGapTheta = idx2theta(midGapIdx);
+        //         p2.x = midGapDist * cos(midGapTheta);
+        //         p2.y = midGapDist * sin(midGapTheta);
+        //         marker.points.push_back(p2);
+        //     }                
+            
+        //     // marker.lifetime = ros::Duration(0);
+        //     marker.id = gapTubeMarkerArray.markers.size();
+        //     gapTubeMarkerArray.markers.push_back(marker);
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        gap: " << (gapTubeSize - 1));
+
+        //     marker = visualization_msgs::Marker();
+
+        //     gap = gapTube->at(gapTubeSize - 1);
+
+        //     marker.header.frame_id = gap->getFrame();
+        //     marker.header.stamp = time;
+        //     marker.ns = ns;
+        //     marker.type = visualization_msgs::Marker::LINE_LIST;
+        //     marker.action = visualization_msgs::Marker::ADD;
+    
+        //     marker.pose.position.x = 0.0;
+        //     marker.pose.position.y = 0.0;
+        //     marker.pose.position.z = 0.0;
+        //     marker.pose.orientation.x = 0.0;
+        //     marker.pose.orientation.y = 0.0;
+        //     marker.pose.orientation.z = 0.0;
+        //     marker.pose.orientation.w = 1.0;        
+    
+        //     marker.scale.x = thickness;     
+
+        //     marker.color = visionColors_.at(i % visionColors_.size());
+        //     marker.color.a = 0.5;
+
+        //     Eigen::Vector2f leftGapPos = gap->getManipulatedLPosition();
+        //     Eigen::Vector2f rightGapPos = gap->getManipulatedRPosition();
+        //     Eigen::Vector2f leftGapVel = gap->getManipulatedLVelocity();
+        //     Eigen::Vector2f rightGapVel = gap->getManipulatedRVelocity();
+
+        //     float gapLifespan = gap->getGapLifespan();
+
+        //     Eigen::Vector2f termLeftGapPos = leftGapPos + gapLifespan * leftGapVel;
+        //     Eigen::Vector2f termRightGapPos = rightGapPos + gapLifespan * rightGapVel;
+
+        //     float termLeftGapTheta = std::atan2(termLeftGapPos[1], termLeftGapPos[0]);
+        //     float termRightGapTheta = std::atan2(termRightGapPos[1], termRightGapPos[0]);
+
+        //     int termLeftIdx = theta2idx(termLeftGapTheta); // initial ?  : gap->manipTermLeftIdx();
+        //     int termRightIdx = theta2idx(termRightGapTheta); // initial ?  : gap->manipTermRightIdx();
+        //     float termLeftRange = termLeftGapPos.norm(); // initial ?  : gap->manipTermLeftRange();
+        //     float termRightRange = termRightGapPos.norm(); // initial ?  : gap->manipTermRightRange();
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termLeftIdx: " << termLeftIdx << ", termLeftRange: " << termLeftRange);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termRightIdx: " << termRightIdx << ", termRightRange: " << termRightRange);
+
+        //     int termGapIdxSpan = (termLeftIdx - termRightIdx);
+        //     if (termGapIdxSpan < 0)
+        //     termGapIdxSpan += cfg_->scan.full_scan; // 2*gap->half_scan; // taking off int casting here
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termGapIdxSpan: " << termGapIdxSpan);
+
+        //     int term_num_segments = int(invGapSpanResoln * termGapIdxSpan) + 1;
+        //     float termDistIncrement = (termLeftRange - termRightRange) / term_num_segments;
+        //     int termMidGapIdx = termRightIdx; //  + viz_offset;
+        //     float termMidGapDist = termRightRange;
+
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        term_num_segments: " << term_num_segments);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termDistIncrement: " << termDistIncrement);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termMidGapIdx: " << termMidGapIdx);
+        //     ROS_INFO_STREAM_NAMED("GapVisualizer", "        termMidGapDist: " << termMidGapDist);
+
+        //     float termMidGapTheta = 0.0;
+        //     for (int k = 0; k < term_num_segments; k++)
+        //     {
+        //         geometry_msgs::Point p1;
+        //         termMidGapTheta = idx2theta(termMidGapIdx);
+        //         p1.x = termMidGapDist * cos(termMidGapTheta);
+        //         p1.y = termMidGapDist * sin(termMidGapTheta);
+        //         marker.points.push_back(p1);
+                
+        //         termMidGapIdx = (termMidGapIdx + gapSpanResoln) % cfg_->scan.full_scan; // int(2*gap->half_scan);
+        //         termMidGapDist += termDistIncrement;
+
+        //         // ROS_INFO_STREAM("midGapIdx: " << midGapIdx);
+        //         // ROS_INFO_STREAM("midGapDist: " << midGapDist);
+
+        //         geometry_msgs::Point p2;
+        //         termMidGapTheta = idx2theta(termMidGapIdx);
+        //         p2.x = termMidGapDist * cos(termMidGapTheta);
+        //         p2.y = termMidGapDist * sin(termMidGapTheta);
+        //         marker.points.push_back(p2);
+        //     }                
+            
+        //     // marker.lifetime = ros::Duration(0);
+        //     marker.id = gapTubeMarkerArray.markers.size();
+        //     gapTubeMarkerArray.markers.push_back(marker);
+
+        // }
 
         gapTubePublisher.publish(gapTubeMarkerArray);        
     }
@@ -976,8 +991,8 @@ namespace dynamic_gap
         modelMarker.pose.orientation.z = 0.0;
         modelMarker.pose.orientation.w = 1.0;
 
-        modelMarker.scale.x = 0.1;
-        modelMarker.scale.y = 0.1;
+        modelMarker.scale.x = 0.2;
+        modelMarker.scale.y = 0.2;
         modelMarker.scale.z = 0.000001;
 
         // modelMarker.color.a = 1.0;

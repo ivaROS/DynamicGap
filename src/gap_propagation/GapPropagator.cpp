@@ -187,7 +187,7 @@ namespace dynamic_gap
         marker.header.frame_id = cfg_->robot_frame_id;
         marker.header.stamp = ros::Time::now();
         marker.ns = "propagated_gap_points";
-        marker.type = visualization_msgs::Marker::POINTS;
+        marker.type = visualization_msgs::Marker::SPHERE_LIST;
         marker.action = visualization_msgs::Marker::ADD;
 
         marker.pose.position.x = 0.0;
@@ -201,6 +201,7 @@ namespace dynamic_gap
         float thickness = 0.1;
         marker.scale.x = thickness; 
         marker.scale.y = thickness;    
+        marker.scale.z = 0.0000001;
 
         marker.color.r = 0.0;
         marker.color.g = 0.0;

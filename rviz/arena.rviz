@@ -10,19 +10,21 @@ Panels:
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
         - /Dynamic Gap1/Gaps1/MarkerArray2
-        - /Dynamic Gap1/Gaps1/MarkerArray3
-        - /Dynamic Gap1/Gaps1/MarkerArray4
         - /Dynamic Gap1/Gaps1/MarkerArray5
         - /Dynamic Gap1/Gaps1/MarkerArray7
         - /Dynamic Gap1/Gaps1/MarkerArray8
+        - /Dynamic Gap1/Gaps1/MarkerArray9
+        - /Dynamic Gap1/Gaps1/MarkerArray10
         - /Dynamic Gap1/Trajectories1
-        - /Dynamic Gap1/Trajectories1/MarkerArray4
+        - /Dynamic Gap1/Trajectories1/MarkerArray3
+        - /Dynamic Gap1/Trajectories1/MarkerArray5
         - /Dynamic Gap1/Tracking1
         - /Axes1
         - /Axes2
         - /Potential Gap1/PoseArray1
         - /Potential Gap1/PoseArray4
         - /LaserScan1
+        - /Marker1
       Splitter Ratio: 0.32637855410575867
     Tree Height: 787
   - Class: rviz/Selection
@@ -425,18 +427,18 @@ Visualization Manager:
                 manip_initial: true
               Queue Size: 100
               Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/propagated_gap_points
+              Name: MarkerArray
+              Namespaces:
+                propagated_gap_points: true
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: Gaps
         - Class: rviz/Group
           Displays:
-            - Class: rviz/MarkerArray
-              Enabled: false
-              Marker Topic: /rto/candidate_trajectories
-              Name: MarkerArray
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/trajectory_switch
@@ -764,14 +766,6 @@ Visualization Manager:
         egorobot: true
       Queue Size: 100
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /rto/propagated_gap_points
-      Name: MarkerArray
-      Namespaces:
-        propagated_gap_points: true
-      Queue Size: 100
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -799,7 +793,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: -0.0049999775364995
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -809,10 +803,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 87.70723724365234
+      Scale: 82.09353637695312
       Target Frame: rto/base_link
-      X: 0.44480639696121216
-      Y: 0.010719437152147293
+      X: -0.6051706075668335
+      Y: 0.09311428666114807
     Saved: ~
 Window Geometry:
   Displays:
