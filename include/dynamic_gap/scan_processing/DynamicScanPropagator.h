@@ -7,6 +7,10 @@
 #include <sensor_msgs/LaserScan.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
 
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
+
 namespace dynamic_gap
 {    
     /**

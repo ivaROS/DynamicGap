@@ -263,6 +263,14 @@ Visualization Manager:
       Displays:
         - Class: rviz/Group
           Displays:
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/propagated_egocircle
+              Name: MarkerArray
+              Namespaces:
+                propagated_egocircle: true
+              Queue Size: 100
+              Value: true
             - Alpha: 1
               Autocompute Intensity Bounds: true
               Autocompute Value Bounds:
@@ -420,13 +428,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/gap_tubes
               Name: MarkerArray
               Namespaces:
-                manip_initial: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: true
               Marker Topic: /rto/propagated_gap_points
@@ -803,10 +811,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 82.09353637695312
+      Scale: 88.0296630859375
       Target Frame: rto/base_link
-      X: -0.6051706075668335
-      Y: 0.09311428666114807
+      X: -0.21646548807621002
+      Y: -0.13326548039913177
     Saved: ~
 Window Geometry:
   Displays:
