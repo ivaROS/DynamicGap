@@ -48,6 +48,16 @@ namespace dynamic_gap
                 return origGoalVel_;
             }
 
+            float getOrigGoalVelX() const
+            {
+                return origGoalVel_[0];
+            }
+
+            float getOrigGoalVelY() const
+            {
+                return origGoalVel_[1];
+            }
+
             float getTermGoalPosX() const
             {
                 return termGoalPos_[0];

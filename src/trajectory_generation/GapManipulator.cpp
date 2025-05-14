@@ -8,46 +8,11 @@ namespace dynamic_gap
         scan_ = scan;
     }
 
-
-    // void GapManipulator::radialExtendGap(Gap * gap) 
-    // {
-    //     try
-    //     {
-    //         if (!cfg_->gap_manip.radial_extend)
-    //             return;
-
-    //         int leftIdx = gap->manipLeftIdx();
-    //         int rightIdx = gap->manipRightIdx();
-    //         float leftRange = gap->manipLeftRange();
-    //         float rightRange = gap->manipRightRange();
-
-    //         float leftTheta = idx2theta(leftIdx);
-    //         float rightTheta = idx2theta(rightIdx);
-    //         float xLeft = leftRange * cos(leftTheta);
-    //         float yLeft = leftRange * sin(leftTheta);
-    //         float xRight = rightRange * cos(rightTheta);
-    //         float yRight = rightRange * sin(rightTheta);
-            
-    //         Eigen::Vector2d leftPt(xLeft, yLeft);
-    //         Eigen::Vector2d rightPt(xRight, yRight);
-
-    //         // ROS_INFO_STREAM("    [radialExtendGap()]");
-    //         // ROS_INFO_STREAM("        pre-RE gap in polar. left: (" << leftIdx << ", " << leftRange << "), right: (" << rightIdx << ", " << rightRange << ")");
-    //         // ROS_INFO_STREAM("        pre-RE gap in cart. left: (" << leftPt[0] << ", " << leftPt[1] << "), right: (" << rightPt[0] << ", " << rightPt[1] << ")");
-            
-    //         float s = std::min(gap->getMinSafeDist(), cfg_->rbt.r_inscr * cfg_->traj.inf_ratio);
-
-    //         return;
-    //     } catch (...)
-    //     {
-    //         ROS_ERROR_STREAM_NAMED("GapManipulator", "radialGapExtension() failed");
-    //     }
-    // }
-
-
-    void GapManipulator::convertRadialGap(Gap * gap) 
+    void GapManipulator::convertRadialGap(std::vector<Gap *> const & gaps, const int & gapIdx) 
     {
         ROS_INFO_STREAM_NAMED("GapManipulator", "    [convertRadialGap()]");
+
+        Gap * gap = gaps.at(gapIdx);
 
         sensor_msgs::LaserScan desScan = *scan_.get();
         int leftIdx = gap->manipLeftIdx();
@@ -84,15 +49,13 @@ namespace dynamic_gap
         // Rotate radial gap by an amount theta so that its width is visible
         
         // start with a nominal pivot angle, we will adjust this angle to find the actual theta that we pivot by
-        float nomPivotAngle = std::atan2(cfg_->gap_manip.epsilon2, cfg_->gap_manip.epsilon1) + 1e-3;
+        float nomPivotAngle = cfg_->gap_manip.rgc_angle; // std::atan2(cfg_->gap_manip.epsilon2, cfg_->gap_manip.epsilon1) + 1e-3;
         // // ROS_INFO_STREAM("theta to pivot: " << theta);
         int nearIdx = 0, farIdx = 0;
         float nearRange = 0.0, farRange = 0.0;
         float nearTheta = 0.0, farTheta = 0.0;
         float signedNomPivotAngle = 0.0;
 
-        // float pivotSideSpeed;
-        // float pivotSideSpeedThresh = 0.25;
         if (right) 
         {
             nearIdx = rightIdx;
@@ -125,60 +88,72 @@ namespace dynamic_gap
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "        signedNomPivotAngle: " << signedNomPivotAngle);
 
-        Eigen::Matrix3f nomPivotAngleRotationMatrix;
+        Eigen::Matrix2f nomPivotAngleRotationMatrix;
         // nomPivotAngleRotationMatrix: SE(3) matrix that represents desired rotation amount
-        nomPivotAngleRotationMatrix << cos(signedNomPivotAngle), -sin(signedNomPivotAngle), 0,
-                                        sin(signedNomPivotAngle), cos(signedNomPivotAngle), 0,
-                                        0, 0, 1;
+        nomPivotAngleRotationMatrix << cos(signedNomPivotAngle), -sin(signedNomPivotAngle),
+                                        sin(signedNomPivotAngle), cos(signedNomPivotAngle);
         
         // obtaining near and far theta values from indices
         nearTheta = idx2theta(nearIdx);
         farTheta = idx2theta(farIdx);   
 
-        Eigen::Matrix3f nearPtTranslationMatrix, farPtTranslationMatrix;
-        // nearPtTranslationMatrix, farPtTranslationMatrix: SE(2) matrices that represent translation from rbt origin to near and far points
-        nearPtTranslationMatrix << 1., 0., nearRange * cos(nearTheta),
-                                    0., 1., nearRange * sin(nearTheta),
-                                    0., 0., 1.;
+        Eigen::Vector2f nearPt(nearRange * cos(nearTheta), nearRange * sin(nearTheta));
+        Eigen::Vector2f farPt(farRange * cos(farTheta), farRange * sin(farTheta));
 
-        ROS_INFO_STREAM_NAMED("GapManipulator", "        nearPtTranslationMatrix: ");
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(0, 0) << ", " << nearPtTranslationMatrix(0, 1) << ", " << nearPtTranslationMatrix(0, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(1, 0) << ", " << nearPtTranslationMatrix(1, 1) << ", " << nearPtTranslationMatrix(1, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(2, 0) << ", " << nearPtTranslationMatrix(2, 1) << ", " << nearPtTranslationMatrix(2, 2));
+        // Eigen::Matrix3f nearPtTranslationMatrix, farPtTranslationMatrix;
+        // // nearPtTranslationMatrix, farPtTranslationMatrix: SE(2) matrices that represent translation from rbt origin to near and far points
+        // nearPtTranslationMatrix << 1., 0., nearRange * cos(nearTheta),
+        //                             0., 1., nearRange * sin(nearTheta),
+        //                             0., 0., 1.;
 
-        farPtTranslationMatrix  << 1., 0., farRange * cos(farTheta),
-                                    0., 1., farRange * sin(farTheta),
-                                    0., 0., 1.;
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "        nearPtTranslationMatrix: ");
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(0, 0) << ", " << nearPtTranslationMatrix(0, 1) << ", " << nearPtTranslationMatrix(0, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(1, 0) << ", " << nearPtTranslationMatrix(1, 1) << ", " << nearPtTranslationMatrix(1, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearPtTranslationMatrix(2, 0) << ", " << nearPtTranslationMatrix(2, 1) << ", " << nearPtTranslationMatrix(2, 2));
 
-        ROS_INFO_STREAM_NAMED("GapManipulator", "        farPtTranslationMatrix: ");
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(0, 0) << ", " << farPtTranslationMatrix(0, 1) << ", " << farPtTranslationMatrix(0, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(1, 0) << ", " << farPtTranslationMatrix(1, 1) << ", " << farPtTranslationMatrix(1, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(2, 0) << ", " << farPtTranslationMatrix(2, 1) << ", " << farPtTranslationMatrix(2, 2));
+        // farPtTranslationMatrix  << 1., 0., farRange * cos(farTheta),
+        //                             0., 1., farRange * sin(farTheta),
+        //                             0., 0., 1.;
+
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "        farPtTranslationMatrix: ");
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(0, 0) << ", " << farPtTranslationMatrix(0, 1) << ", " << farPtTranslationMatrix(0, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(1, 0) << ", " << farPtTranslationMatrix(1, 1) << ", " << farPtTranslationMatrix(1, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << farPtTranslationMatrix(2, 0) << ", " << farPtTranslationMatrix(2, 1) << ", " << farPtTranslationMatrix(2, 2));
 
         // just translation of near to far
-        Eigen::Matrix3f nearToFarTranslationMatrix = nearPtTranslationMatrix.inverse() * farPtTranslationMatrix;
-
+        // Eigen::Matrix3f nearToFarTranslationMatrix = nearPtTranslationMatrix.inverse() * farPtTranslationMatrix;
+        Eigen::Vector2f nearToFar = farPt - nearPt;
 
         // pivotedPtRotationMatrix: rotate vector from near point to far point by the desired angle
-        ROS_INFO_STREAM_NAMED("GapManipulator", "        nearToFarTranslationMatrix: ");
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(0, 0) << ", " << nearToFarTranslationMatrix(0, 1) << ", " << nearToFarTranslationMatrix(0, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(1, 0) << ", " << nearToFarTranslationMatrix(1, 1) << ", " << nearToFarTranslationMatrix(1, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(2, 0) << ", " << nearToFarTranslationMatrix(2, 1) << ", " << nearToFarTranslationMatrix(2, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "        nearToFarTranslationMatrix: ");
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(0, 0) << ", " << nearToFarTranslationMatrix(0, 1) << ", " << nearToFarTranslationMatrix(0, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(1, 0) << ", " << nearToFarTranslationMatrix(1, 1) << ", " << nearToFarTranslationMatrix(1, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << nearToFarTranslationMatrix(2, 0) << ", " << nearToFarTranslationMatrix(2, 1) << ", " << nearToFarTranslationMatrix(2, 2));
         
-        Eigen::Matrix3f pivotedPtRotationMatrix = nearPtTranslationMatrix * nomPivotAngleRotationMatrix * nearToFarTranslationMatrix;
+        Eigen::Vector2f rotatedNearToFar = nomPivotAngleRotationMatrix * nearToFar;
+
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "        rotatedNearToFarTranslationMatrix: ");
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(0, 0) << ", " << rotatedNearToFarTranslationMatrix(0, 1) << ", " << rotatedNearToFarTranslationMatrix(0, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(1, 0) << ", " << rotatedNearToFarTranslationMatrix(1, 1) << ", " << rotatedNearToFarTranslationMatrix(1, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << rotatedNearToFarTranslationMatrix(2, 0) << ", " << rotatedNearToFarTranslationMatrix(2, 1) << ", " << rotatedNearToFarTranslationMatrix(2, 2));
+        
+        Eigen::Vector2f pivotedPt = nearPt + rotatedNearToFar;
+        // Eigen::Matrix3f pivotedPtRotationMatrix = nearPtTranslationMatrix * rotatedNearToFarTranslationMatrix;
         // ROS_INFO_STREAM_NAMED("GapManipulator",  "pivotedPtRotationMatrix: " << pivotedPtRotationMatrix);
 
-        ROS_INFO_STREAM_NAMED("GapManipulator", "        pivotedPtRotationMatrix: ");
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(0, 0) << ", " << pivotedPtRotationMatrix(0, 1) << ", " << pivotedPtRotationMatrix(0, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(1, 0) << ", " << pivotedPtRotationMatrix(1, 1) << ", " << pivotedPtRotationMatrix(1, 2));
-        ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(2, 0) << ", " << pivotedPtRotationMatrix(2, 1) << ", " << pivotedPtRotationMatrix(2, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "        pivotedPtRotationMatrix: ");
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(0, 0) << ", " << pivotedPtRotationMatrix(0, 1) << ", " << pivotedPtRotationMatrix(0, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(1, 0) << ", " << pivotedPtRotationMatrix(1, 1) << ", " << pivotedPtRotationMatrix(1, 2));
+        // ROS_INFO_STREAM_NAMED("GapManipulator", "           " << pivotedPtRotationMatrix(2, 0) << ", " << pivotedPtRotationMatrix(2, 1) << ", " << pivotedPtRotationMatrix(2, 2));
 
         // Extracting theta and idx of pivoted point
-        float nomPivotedTheta = std::atan2(pivotedPtRotationMatrix(1, 2), pivotedPtRotationMatrix(0, 2));
+        float nomPivotedTheta = std::atan2(pivotedPt[1], pivotedPt[0]);
         int nomPivotedIdx = theta2idx(nomPivotedTheta);
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "        nomPivotedTheta: " << nomPivotedTheta);
         ROS_INFO_STREAM_NAMED("GapManipulator", "        nomPivotedIdx: " << nomPivotedIdx);
+
+        // Clip pivoted theta to not overlap with adjacent gaps
 
         // Search along current scan to from initial gap point to pivoted gap point
         // to obtain range value to assign to the pivoted gap point
@@ -201,12 +176,17 @@ namespace dynamic_gap
 
         // what if search size == 0?
 
-        if (scanSearchSize <= 0)
+        if (scanSearchSize == 0)
+        {
+            ROS_WARN_STREAM_NAMED("GapManipulator", "        scanSearchSize is 0, SHOULD NOT BE HAPPENING");
+            return;
+        } else if (scanSearchSize < 0)
+        {
             scanSearchSize += cfg_->scan.full_scan; // int(2*gap->half_scan);
-
+        }
 
         int gapIdxSpan = (leftIdx - rightIdx);
-        if (gapIdxSpan <= 0)
+        if (gapIdxSpan < 0)
             gapIdxSpan += cfg_->scan.full_scan; // int(2*gap->half_scan);
         // // ROS_INFO_STREAM("gapIdxSpan: " << gapIdxSpan);
 
@@ -230,14 +210,146 @@ namespace dynamic_gap
         auto minDistIter = std::min_element(nearPtToScanDists.begin(), nearPtToScanDists.end());
         int minDistIdx = (scanSearchStartIdx + std::distance(nearPtToScanDists.begin(), minDistIter)) % cfg_->scan.full_scan; // int(2*gap->half_scan);
         
-        int pivotedPtIdx = minDistIdx;
-        float pivotedPtTheta = idx2theta(pivotedPtIdx);
-        float pivotedPtRange = desScan.ranges.at(minDistIdx);
+        float minDist = *minDistIter;
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDist << " at " << minDistIdx);         
+
+        // Eigen::Vector2f rotatedNearToFarVector = rotatedNearToFarTranslationMatrix.col(2).head(2);
+        // Eigen::Vector2f rotatedNearToFarDirection = rotatedNearToFarVector.normalized();    
+
+        // Eigen::Vector2f nearPt = Eigen::Vector2f(nearRange * cos(nearTheta), nearRange * sin(nearTheta));
+        // Eigen::Vector2f pivotedPt = nearPt + rotatedNearToFarDirection * minDist;
+
+        Eigen::Vector2f adjustedNearToFar = pivotedPt - nearPt; 
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        adjustedNearToFar: " << adjustedNearToFar[0] << ", " << adjustedNearToFar[1]);
+        Eigen::Vector2f adjustedNearToFarDirection = adjustedNearToFar.normalized();
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        adjustedNearToFarDirection: " << adjustedNearToFarDirection[0] << ", " << adjustedNearToFarDirection[1]);
+
+        Eigen::Vector2f convertedPt = nearPt + adjustedNearToFarDirection * minDist;
+
+        ROS_INFO_STREAM_NAMED("GapManipulator", "        convertedPt: " << convertedPt[0] << ", " << convertedPt[1]);
+
+        float convertedPtTheta = std::atan2(convertedPt[1], convertedPt[0]);
+        int convertedPtIdx = theta2idx(convertedPtTheta);
+        float convertedPtRange = convertedPt.norm();
+
+        // Check for overlaps
+        if (right)
+        {
+            int nextGapIdx = (gapIdx + 1) % gaps.size();
+            Gap * adjGap = gaps.at(nextGapIdx);
+            int adjIdx = adjGap->manipRightIdx();
+            float adjTheta = idx2theta(adjIdx);
+            float adjRange = adjGap->manipRightRange();
+
+            if (std::abs(adjIdx - leftIdx) <= 1)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
+                return;
+            }
+
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
+
+            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(leftTheta), sin(leftTheta));
+            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(convertedPtTheta), sin(convertedPtTheta));
+            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
+
+            float adjGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(adjGapPtUnitNorm, originalPtUnitNorm);
+            float pivotedGapPtToOriginalGapPtAngle = getSweptLeftToRightAngle(pivotPtUnitNorm, originalPtUnitNorm);
+
+            if (adjGapPtToOriginalGapPtAngle <= pivotedGapPtToOriginalGapPtAngle)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (right), need to clip");
+
+                int clippedIdx = (adjIdx -1 + cfg_->scan.full_scan) % cfg_->scan.full_scan;
+                float clippedTheta = idx2theta(clippedIdx);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedIdx: " << clippedIdx);  
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedTheta: " << clippedTheta);
+
+                Eigen::Vector2f nearPtUnitNorm = Eigen::Vector2f(cos(nearTheta), sin(nearTheta));
+                Eigen::Vector2f clippedPtUnitNorm = Eigen::Vector2f(cos(clippedTheta), sin(clippedTheta));
+
+                float pivotPtToNearGapPtAngle = getSweptLeftToRightAngle(pivotPtUnitNorm, nearPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivotPtToNearGapPtAngle: " << pivotPtToNearGapPtAngle);
+
+                float clippedPtToNearGapPtAngle = getSweptLeftToRightAngle(clippedPtUnitNorm, nearPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedPtToNearGapPtAngle: " << clippedPtToNearGapPtAngle);
+
+                float clippedRange = convertedPtRange + (nearRange - convertedPtRange) * clippedPtToNearGapPtAngle / pivotPtToNearGapPtAngle;
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedRange: " << clippedRange);
+
+                convertedPtRange = clippedRange;
+                convertedPtIdx = clippedIdx;
+            }
+
+        } else
+        {
+            int prevGapIdx = (gapIdx - 1 + gaps.size()) % gaps.size();
+            Gap * adjGap = gaps.at(prevGapIdx);
+            int adjIdx = adjGap->manipLeftIdx();
+            float adjTheta = idx2theta(adjIdx);
+            float adjRange = adjGap->manipLeftRange();
+
+            if (std::abs(adjIdx - rightIdx) <= 1)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        adjacent gap is too close, no room to convert");
+                return;
+            }
+
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjIdx: " << adjIdx);
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        adjTheta: " << adjTheta);
+
+            Eigen::Vector2f originalPtUnitNorm = Eigen::Vector2f(cos(farTheta), sin(farTheta));
+            Eigen::Vector2f pivotPtUnitNorm = Eigen::Vector2f(cos(convertedPtTheta), sin(convertedPtTheta));
+            Eigen::Vector2f adjGapPtUnitNorm = Eigen::Vector2f(cos(adjTheta), sin(adjTheta));
+
+            float originalGapPtToAdjGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, adjGapPtUnitNorm);
+            float originalGapPtToPivotedGapPtAngle = getSweptLeftToRightAngle(originalPtUnitNorm, pivotPtUnitNorm);
+
+            if (originalGapPtToAdjGapPtAngle <= originalGapPtToPivotedGapPtAngle)
+            {
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        pivoted gap point overlaps with adjacent gap (left), need to clip");
+
+                int clippedIdx = (adjIdx + 1) % cfg_->scan.full_scan;
+                float clippedTheta = idx2theta(clippedIdx);
+
+                Eigen::Vector2f nearPtUnitNorm = Eigen::Vector2f(cos(nearTheta), sin(nearTheta));
+                Eigen::Vector2f clippedPtUnitNorm = Eigen::Vector2f(cos(clippedTheta), sin(clippedTheta));
+
+                float nearGapPtToPivotPtAngle = getSweptLeftToRightAngle(nearPtUnitNorm, pivotPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        nearGapPtToPivotPtAngle: " << nearGapPtToPivotPtAngle);
+
+                float nearGapPtToClippedPtAngle = getSweptLeftToRightAngle(nearPtUnitNorm, clippedPtUnitNorm);
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        nearGapPtToClippedPtAngle: " << nearGapPtToClippedPtAngle);
+
+                float clippedRange = nearRange + (convertedPtRange - nearRange) * nearGapPtToClippedPtAngle / nearGapPtToPivotPtAngle;
+
+                ROS_INFO_STREAM_NAMED("GapManipulator", "        clippedRange: " << clippedRange);
+
+                convertedPtRange = clippedRange;
+                convertedPtIdx = clippedIdx;               
+            }
+        }
+
+        // int pivotedPtIdx = nomPivotedIdx;
+        // float pivotedPtTheta = idx2theta(pivotedPtIdx);
+        // float pivotedPtRange =  // std::min(farRange, desScan.ranges.at(pivotedPtIdx));
+
+        // int pivotedPtIdx = minDistIdx;
+        // float pivotedPtTheta = idx2theta(pivotedPtIdx);
+        // float pivotedPtRange = desScan.ranges.at(minDistIdx);
 
         
         // float minDistRange = *minDistIter;
 
-        // ROS_INFO_STREAM_NAMED("GapManipulator", "        from " << scanSearchStartIdx << " to " << scanSearchEndIdx << ", min dist of " << minDistRange << " at " << minDistIdx);         
 
         // // pivoting around near point, pointing towards far point or something?
 
@@ -300,19 +412,19 @@ namespace dynamic_gap
         float newLeftIdx = 0.0, newRightIdx = 0.0, newLeftRange = 0.0, newRightRange = 0.0;
         if (right) 
         {
-            newLeftIdx = pivotedPtIdx;
-            newLeftRange = pivotedPtRange;
+            newLeftIdx = convertedPtIdx;
+            newLeftRange = convertedPtRange;
             newRightIdx = nearIdx;
             newRightRange = nearRange;
-            gap->getLeftGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating left point
+            gap->getLeftGapPt()->getModel()->setNewPosition(convertedPtTheta, convertedPtRange); // manipulating left point
             gap->getLeftGapPt()->getModel()->setRGC(); // manipulating left point, so set vel to 0
         } else 
         {
             newLeftIdx = nearIdx;
             newLeftRange = nearRange;
-            newRightIdx = pivotedPtIdx;
-            newRightRange = pivotedPtRange;
-            gap->getRightGapPt()->getModel()->setNewPosition(pivotedPtTheta, pivotedPtRange); // manipulating right point
+            newRightIdx = convertedPtIdx;
+            newRightRange = convertedPtRange;
+            gap->getRightGapPt()->getModel()->setNewPosition(convertedPtTheta, convertedPtRange); // manipulating right point
             gap->getRightGapPt()->getModel()->setRGC(); // manipulating right point, so set vel to 0
         }
 
@@ -321,13 +433,13 @@ namespace dynamic_gap
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);
 
-        gap->setRGC();
+        // gap->setRGC();
 
         ROS_INFO_STREAM_NAMED("GapManipulator", "        post-RGC gap in polar. left: (" << newLeftIdx << ", " << newLeftRange << "), right: (" << newRightIdx << ", " << newRightRange << ")");
         ROS_INFO_STREAM_NAMED("GapManipulator", "        post-AGC gap in cart. left: (" << xLeft << ", " << yLeft << "), right: (" << xRight << ", " << yRight << ")");
     }
 
-    bool GapManipulator::inflateGapSides(Gap * gap) 
+    void GapManipulator::inflateGapSides(Gap * gap) 
     {
         // get points
 
@@ -374,6 +486,20 @@ namespace dynamic_gap
             ///////////////////////
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflating gap sides with ratio: " << inf_ratio);
     
+            if ( cfg_->rbt.r_inscr * inf_ratio > leftRange)
+            {
+                ROS_WARN_STREAM_NAMED("GapManipulator", "        inflation ratio is too large, aborting");
+
+
+                gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+
+                gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
+                gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
+        
+                return;
+                // return false;
+            }
+
             float alpha_left = std::asin(cfg_->rbt.r_inscr * inf_ratio / leftPt.norm() );
             float alpha_right = std::asin(cfg_->rbt.r_inscr * inf_ratio / rightPt.norm() );
     
@@ -386,15 +512,15 @@ namespace dynamic_gap
             Eigen::Vector2f leftAngularInflDir = Rnegpi2 * leftUnitNorm;
             Eigen::Vector2f rightAngularInflDir = Rpi2 * rightUnitNorm;
     
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        leftAngularInflDir: (" << leftAngularInflDir.transpose());
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        rightAngularInflDir: (" << rightAngularInflDir.transpose());
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        leftAngularInflDir: (" << leftAngularInflDir.transpose() << ")");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        rightAngularInflDir: (" << rightAngularInflDir.transpose() << ")");
     
             // perform inflation
             Eigen::Vector2f inflatedLeftPt = leftPt + leftAngularInflDir * r_infl_left;
             Eigen::Vector2f inflatedRightPt = rightPt + rightAngularInflDir * r_infl_right;
     
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedLeftPt: (" << inflatedLeftPt.transpose());
-            ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedRightPt: (" << inflatedRightPt.transpose());
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedLeftPt: (" << inflatedLeftPt.transpose() << ")");
+            ROS_INFO_STREAM_NAMED("GapManipulator", "        inflatedRightPt: (" << inflatedRightPt.transpose() << ")");
     
             inflatedLeftTheta = std::atan2(inflatedLeftPt[1], inflatedLeftPt[0]);
             inflatedRightTheta = std::atan2(inflatedRightPt[1], inflatedRightPt[0]);
@@ -447,7 +573,14 @@ namespace dynamic_gap
         if (! successful_inflation)
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed for good.");
-            return false;
+         
+            gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+         
+            gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
+            gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
+    
+            return;
+            // return false;
         }
 
         if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");
@@ -488,6 +621,7 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("        post-inflate gap in polar. trailing left: (" << trailingLeftIdx << ", " << trailingLeftRange << "), trailing right: (" << trailingRightIdx << ", " << trailingRightRange << ")");
         // ROS_INFO_STREAM("        post-inflate gap in cart. trailing left: (" << xLeft << ", " << yLeft << "), trailing right: (" << xRight << ", " << yRight << ")");
 
-        return true;
+        return;
+        // return true;
     }
 }

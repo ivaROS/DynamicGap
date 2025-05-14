@@ -32,23 +32,17 @@ namespace dynamic_gap
             */
             void updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan);
 
-            // /**
-            // * \brief function for extending gap behind robot to ensure that robot starts its trajectory within gap
-            // * \param gap queried gap
-            // */
-            // void radialExtendGap(Gap * gap); 
-            
             /**
             * \brief function for inflating gap radially and angularly to account for robot size
             * \param gap queried gap
             */            
-            bool inflateGapSides(Gap * gap);
+            void inflateGapSides(Gap * gap);
             
             /**
             * \brief function for convering radial gaps into swept gaps to allow maneuvering around corners
             * \param gap queried gap
             */                   
-            void convertRadialGap(Gap * gap);
+            void convertRadialGap(std::vector<Gap *> const & gaps, const int & gapIdx);
 
         private:
         

@@ -5,22 +5,12 @@ namespace dynamic_gap
     DynamicScanPropagator::DynamicScanPropagator(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;        
-        propagatedEgocirclePublisher_ = nh.advertise<sensor_msgs::LaserScan>("propagated_egocircle", 1);
+        propagatedEgocirclePublisher_ = nh.advertise<visualization_msgs::MarkerArray>("propagated_egocircle", 1);
     }
 
     void DynamicScanPropagator::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan) 
     {
         scan_ = scan;
-    }
-
-    void DynamicScanPropagator::visualizePropagatedEgocircle(const sensor_msgs::LaserScan & propagatedScan) 
-    {
-        propagatedEgocirclePublisher_.publish(propagatedScan);
-
-        // ROS_INFO_STREAM("propagated egocircle ranges: ");
-        // for (int i = 0; i < propagatedScan.ranges.size(); i++)
-        //     ROS_INFO_STREAM("       i: " << i << ", range: " <<  propagatedScan.ranges.at(i) << ", intensity: " << propagatedScan.intensities.at(i));
-
     }
 
     std::vector<sensor_msgs::LaserScan> DynamicScanPropagator::propagateCurrentLaserScan(const std::vector<Gap *> & rawGaps)
@@ -35,8 +25,31 @@ namespace dynamic_gap
 
         futureScans.at(0) = scan; // at t = 0.0
 
-        sensor_msgs::LaserScan visPropScan = scan;
-        visPropScan.intensities.resize(visPropScan.ranges.size());
+        visualization_msgs::MarkerArray propScanMarkerArray;
+
+        visualization_msgs::Marker marker;
+        marker.header.stamp = scan.header.stamp;
+        marker.header.frame_id = scan.header.frame_id;
+        marker.ns = "propagated_egocircle";
+        marker.type = visualization_msgs::Marker::POINTS;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0.0;
+        marker.pose.position.y = 0.0;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;        
+
+        float thickness = 0.05;
+        marker.scale.x = thickness;  
+        marker.scale.y = thickness;   
+
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+        marker.color.a = 1.0;
 
         // order models by index
         std::map<int, Estimator *> rawModels;
@@ -189,6 +202,10 @@ namespace dynamic_gap
         float t_i = 0.0, t_iplus1 = 0.0;
         for (int futureScanTimeIdx = 1; futureScanTimeIdx < futureScans.size(); futureScanTimeIdx++) 
         {        
+            marker.id = futureScanTimeIdx;
+            marker.color.a = 1.0 - (float(futureScanTimeIdx) / float(futureScans.size()));
+            marker.points.clear();
+
             t_iplus1 = t_i + cfg_->traj.integrate_stept;
             // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "        propagating scan at t: " << t_iplus1);
 
@@ -204,6 +221,7 @@ namespace dynamic_gap
                     float theta = idx2theta(i);
 
                     Eigen::Vector2f scanPt(range*cos(theta), range*sin(theta));
+
                     Eigen::Vector2f attachedPos = rawModels[pointwiseModelIndices.at(i)]->getGapPosition();
                     Eigen::Vector2f attachedVel = rawModels[pointwiseModelIndices.at(i)]->getGapVelocity();
                     // ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            pointwiseModelIndices.at(i): " << pointwiseModelIndices.at(i));
@@ -241,6 +259,17 @@ namespace dynamic_gap
 
             futureScans.at(futureScanTimeIdx) = propagatedScan;
 
+            geometry_msgs::Point p;
+            for (int i = 0; i < futureScans.at(futureScanTimeIdx).ranges.size(); i++)
+            {
+                // ROS_INFO_STREAM("       i: " << i << ", range: " <<  futureScans.at(futureScanTimeIdx).ranges.at(i) << ", intensity: " << futureScans.at(futureScanTimeIdx).intensities.at(i));
+                p.x = futureScans.at(futureScanTimeIdx).ranges.at(i) * cos(idx2theta(i));
+                p.y = futureScans.at(futureScanTimeIdx).ranges.at(i) * sin(idx2theta(i));
+                marker.points.push_back(p);
+            }
+
+            propScanMarkerArray.markers.push_back(marker);
+
             t_i = t_iplus1;
         }
 
@@ -250,8 +279,8 @@ namespace dynamic_gap
         // to verify what portions of the scan are being estimated as dynamic
 
 
-        visualizePropagatedEgocircle(visPropScan);        
-
+        propagatedEgocirclePublisher_.publish(propScanMarkerArray);
+        
         return futureScans;
     }
 }

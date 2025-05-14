@@ -137,42 +137,50 @@ namespace dynamic_gap
                 if (std::isnan(orig.range_))
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has NaN range");
+
                     return false;
                 }
 
                 if (std::isinf(orig.range_))
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has Inf range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has Inf range");
                     return false;
                 }
 
                 if (std::isnan(orig.idx_))
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has NaN index");
                     return false;
                 }
 
                 if (std::isinf(orig.idx_))
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has negative or Inf index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has negative or Inf index");
                     return false;
                 }
 
                 if (orig.idx_ < 0)
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has a negative index");
                     return false;
                 }
 
                 if (orig.range_ < 0)
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has a negative range");
                     return false;
                 }
 
                 if (orig.idx_ >= 2*half_num_scan)
                 {
                     ROS_WARN_STREAM_NAMED("Gap", "Gap point has an index out of bounds");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has an index out of bounds");
                     return false;
                 }
 
@@ -183,43 +191,50 @@ namespace dynamic_gap
             {
                 if (std::isnan(manip.range_))
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN range");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has NaN range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has NaN range");
                     return false;
                 }
 
                 if (std::isinf(manip.range_))
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has Inf range");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has Inf range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has Inf range");
                     return false;
                 }
 
                 if (std::isnan(manip.idx_))
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN index");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has NaN index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has NaN index");
                     return false;
                 }
 
                 if (std::isinf(manip.idx_))
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has negative or Inf index");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has negative or Inf index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has negative or Inf index");
                     return false;
                 }
 
                 if (manip.idx_ < 0)
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative index");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has a negative index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has a negative index");
                     return false;
                 }
 
                 if (manip.range_ < 0)
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative range");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has a negative range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has a negative range");
                     return false;
                 }
 
                 if (manip.idx_ >= 2*half_num_scan)
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has an index out of bounds");
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has an index out of bounds");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has an index out of bounds");
                     return false;
                 }
 
@@ -323,7 +338,7 @@ namespace dynamic_gap
 
             void setUngapID(const int & ungapID)
             {
-                ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
+                // ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
                 ungapID_ = ungapID;
             }
 

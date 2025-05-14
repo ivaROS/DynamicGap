@@ -17,6 +17,9 @@
 
 #include <dynamic_gap/gap_association/GapAssociator.h>
 
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
+
 namespace dynamic_gap 
 {
     /**
@@ -27,20 +30,23 @@ namespace dynamic_gap
     class GapPropagator 
     {
         public: 
-            GapPropagator(const DynamicGapConfig& cfg) { cfg_ = &cfg; gapAssociator_ = new GapAssociator(cfg); };
+            GapPropagator(ros::NodeHandle& nh, const DynamicGapConfig& cfg);
 
             ~GapPropagator() { delete gapAssociator_; }
 
-            /**
-            * \brief Set terminal range and bearing values for gap based on 
-            * where gap crossed
-            * \param gap incoming gap whose points we want to propagate
-            */                 
-            void propagateGapPoints(Gap * gap);
+            // /**
+            // * \brief Set terminal range and bearing values for gap based on 
+            // * where gap crossed
+            // * \param gap incoming gap whose points we want to propagate
+            // */                 
+            // void propagateGapPoints(Gap * gap);
 
             void propagateGapPointsV2(const std::vector<Gap *> & gaps,
                                         std::vector<GapTube *> & gapTubes);
         private:
+
+            void visualizePropagatedGapPoints(visualization_msgs::MarkerArray & markerArray, const int & futureTimeIdx, const int & numSteps);
+
             void getGaps(std::vector<Gap *> & currentGaps,
                             const float & t_iplus1);
 
@@ -82,5 +88,6 @@ namespace dynamic_gap
             std::vector<std::vector<float>> distMatrix_; /**< Distance matrix for gaps */
             std::vector<int> assocation_; /**< Association vector for gaps */
 
+            ros::Publisher propagatedPointsPublisher_; /**< Publisher for propagated gap points */
         };
 }

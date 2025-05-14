@@ -51,6 +51,12 @@ namespace dynamic_gap
             * \return command velocity for robot
             */
             geometry_msgs::Twist obstacleAvoidanceControlLaw();
+
+            /**
+            * \brief Control law for pure obstacle avoidance
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist obstacleAvoidanceControlLawNonHolonomic();
             
             /**
             * \brief Control law for manual robot operation
@@ -77,6 +83,16 @@ namespace dynamic_gap
                                                             const float & desiredSpeed);
 
             /**
+            * \brief Control law for trajectory tracking
+            * \param current current robot pose
+            * \param desired desired robot pose
+            * \return command velocity for robot
+            */
+            geometry_msgs::Twist constantVelocityControlLawNonHolonomicLookahead(const geometry_msgs::Pose & current, 
+                                                                        const geometry_msgs::Pose & desired,
+                                                                        const float & desiredSpeed);                                                            
+
+            /**
             * \brief Apply post-processing steps to command velocity including robot kinematic limits
             * along with last-resort safety modules such as projection operator or CBF
             * \param rawCmdVel raw command velocity
@@ -86,10 +102,22 @@ namespace dynamic_gap
             * \return processed command velocity
             */
             geometry_msgs::Twist processCmdVel(const geometry_msgs::Twist & rawCmdVel,
-                                                const geometry_msgs::PoseStamped & rbtPoseInSensorFrame, 
-                                                const geometry_msgs::TwistStamped & currRbtVel, 
-                                                const geometry_msgs::TwistStamped & currRbtAcc);
-            
+                                                const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
+                                                         
+            /**
+            * \brief Apply post-processing steps to command velocity including robot kinematic limits
+            * along with last-resort safety modules such as projection operator or CBF
+            * \param rawCmdVel raw command velocity
+            * \param rbtPoseInSensorFrame robot pose in sensor frame
+            * \param currRbtVel current robot velocity
+            * \param currRbtAcc current robot acceleration
+            * \return processed command velocity
+            */
+            geometry_msgs::Twist processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
+                                                            const geometry_msgs::Twist & rawCmdVel,
+                                                            const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
+
             /**
             * \brief Extract pose within target trajectory that we should track
             * \param currPose current robot pose
@@ -134,8 +162,8 @@ namespace dynamic_gap
             */
             void runProjectionOperator(const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                         Eigen::Vector2f & cmdVelFeedback,
-                                        float & Psi, 
-                                        Eigen::Vector2f & dPsiDx,
+                                        // float & Psi, 
+                                        // Eigen::Vector2f & dPsiDx,
                                         float & velLinXSafe, 
                                         float & velLinYSafe,
                                         float & minDistTheta, 
@@ -146,7 +174,8 @@ namespace dynamic_gap
             * \param closestScanPtToRobot minimum distance scan point
             * \return projection operator function and gradient values (Psi and dPsiDx)
             */
-            Eigen::Vector3f calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot);
+            void calculateProjectionOperator(const Eigen::Vector2f & closestScanPtToRobot,
+                                                float & Psi, Eigen::Vector2f & dPsiDx);
 
             /**
             * \brief Function for visualizing projection operator output in RViz
@@ -168,6 +197,8 @@ namespace dynamic_gap
 
             float KFeedbackTheta_; /**< Proportional feedback gain for robot theta */
 
+            float l_; /**< Lookahead distance for nonholonomic control */
+
             float manualVelX_; /**< Linear command velocity in x-direction for manual control */
             float manualVelY_; /**< Linear command velocity in y-direction for manual control */
             float manualVelAng_; /**< Angular command velocity in yaw direction for manual control */
@@ -177,6 +208,15 @@ namespace dynamic_gap
 
             ControlParameters ctrlParams_; /**< Control parameters for gap control */
 
+            geometry_msgs::Pose prevDesired_; /**< Previous desired robot pose */
+            ros::Time prevDesiredTime_; /**< Previous desired robot pose time */
+            float lambda_; /**< lambda value for CBF */
+            float lambdaInit_; /**< initial lambda value for CBF */
+            float epsilon_; /**< epsilon value for CBF */
+            float cp_ = 0.0; /**< proportional coefficient value for CBF */
+            float clambda_ = 0.0; /**< lambda coefficient value for CBF */
+
+            ros::Publisher propagatedPointsPublisher_; /**< Publisher for propagated points */
             // std::chrono::steady_clock::time_point startTime_; /**< Start time */
     };
 }

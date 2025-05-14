@@ -122,34 +122,47 @@ namespace dynamic_gap
             {
                 // ROS_INFO_STREAM_NAMED("Gap", "gap propagated point constructor");
 
-                if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight())
+
+                frame_ = frame;
+                available_ = available;
+
+                leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
+                rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
+
+                gapStart_ = gapStart;
+
+                // initializing convex polar gap coordinates to raw ones
+                // leftGapPt_->initManipPoint();
+                // rightGapPt_->initManipPoint();
+
+                // radial_ = radial;
+                // rightType_ = rightType;
+                setRadial();
+                setRightType();
+
+                // ROS_INFO_STREAM_NAMED("Gap", "  leftGapPt_: " << leftGapPt_->getOrigIdx());
+                // ROS_INFO_STREAM_NAMED("Gap", "  rightGapPt_: " << rightGapPt_->getOrigIdx());
+                // ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
+
+                goal_ = new GapGoal();
+                
+                if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isRight() && available_)
                 {
-                    frame_ = frame;
-                    available_ = available;
-
-                    leftGapPt_ = new GapPoint(leftPropagatedGapPoint);
-                    rightGapPt_ = new GapPoint(rightPropagatedGapPoint);
-
-                    gapStart_ = gapStart;
-
-                    // initializing convex polar gap coordinates to raw ones
-                    // leftGapPt_->initManipPoint();
-                    // rightGapPt_->initManipPoint();
-
-                    // radial_ = radial;
-                    // rightType_ = rightType;
-                    setRadial();
-                    setRightType();
-
-                    // ROS_INFO_STREAM_NAMED("Gap", "  leftGapPt_: " << leftGapPt_->getOrigIdx());
-                    // ROS_INFO_STREAM_NAMED("Gap", "  rightGapPt_: " << rightGapPt_->getOrigIdx());
-                    // ROS_INFO_STREAM_NAMED("Gap", "  radial_: " << radial_);
-    
-                    goal_ = new GapGoal();
+                    // available gap
+                } else if (leftPropagatedGapPoint.isRight() && rightPropagatedGapPoint.isLeft() && !available_)
+                {
+                    // unavailable gap
                 }
-                else
+                else if (leftPropagatedGapPoint.isLeft() && rightPropagatedGapPoint.isLeft())
                 {
-                    ROS_WARN_STREAM_NAMED("Gap", "Gap points are not left and right");
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap points are both left");
+                }
+                else if (leftPropagatedGapPoint.isRight() && rightPropagatedGapPoint.isRight())
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap points are both right");
+                } else
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap points are not valid");
                 }
             }
 
@@ -425,13 +438,13 @@ namespace dynamic_gap
             */
             bool isRightType() const { return rightType_; }
 
-            void setRGC() { rgc_ = true; }
+            // void setRGC() { rgc_ = true; }
 
-            /**
-            * \brief Getter for gap converted to swept gap condition
-            * \return Gap converted to swept gap condition
-            */
-            bool isRGC() const { return rgc_; }
+            // /**
+            // * \brief Getter for gap converted to swept gap condition
+            // * \return Gap converted to swept gap condition
+            // */
+            // bool isRGC() const { return rgc_; }
 
             bool isAvailable() const { return available_; }
 
@@ -475,7 +488,7 @@ namespace dynamic_gap
             
             bool rightType_ = false; /**< Initial gap right type characteristic identifier */
 
-            bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
+            // bool rgc_ = false; /**< flag for if gap has been converted into swept gap */
 
             bool available_ = true; /**< flag for if gap is available */
 
