@@ -264,13 +264,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/propagated_egocircle
               Name: MarkerArray
               Namespaces:
-                propagated_egocircle: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Alpha: 1
               Autocompute Intensity Bounds: true
               Autocompute Value Bounds:
@@ -332,13 +332,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/raw_gaps
               Name: Marker
               Namespaces:
-                {}
+                raw: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/simp_gaps
@@ -348,21 +348,21 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/manip_gaps
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/raw_gap_model_positions
               Name: MarkerArray
               Namespaces:
-                {}
+                raw: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/raw_gap_model_velocities
@@ -388,21 +388,21 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/manip_gap_model_positions
               Name: MarkerArray
               Namespaces:
-                manip: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/manip_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                manip: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/global_path_local_waypoint
@@ -436,13 +436,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/propagated_gap_points
               Name: MarkerArray
               Namespaces:
-                propagated_gap_points: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
           Enabled: true
           Name: Gaps
         - Class: rviz/Group
@@ -539,7 +539,7 @@ Visualization Manager:
           Marker Topic: /rto/pedestrian_histories
           Name: MarkerArray
           Namespaces:
-            pedestrian_histories: true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
@@ -731,7 +731,7 @@ Visualization Manager:
       Axis: X
       Channel Name: intensity
       Class: rviz/LaserScan
-      Color: 255; 25; 0
+      Color: 114; 159; 207
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true

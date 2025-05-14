@@ -34,7 +34,7 @@ namespace dynamic_gap
                             gapSplines;
 
         // Raw gaps
-        std::vector<double> rawGapColorTriplet = {1.0, 0.0, 0.0};
+        std::vector<double> rawGapColorTriplet = {0.08235294117, 0.47450980392, 0.08235294117};
         rawTmin1.a = 0.5;
         rawTmin1.r = rawGapColorTriplet[0];
         rawTmin1.g = rawGapColorTriplet[1];
