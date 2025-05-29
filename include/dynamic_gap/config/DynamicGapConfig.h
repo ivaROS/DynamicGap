@@ -4,6 +4,8 @@
 #include <sensor_msgs/LaserScan.h>
 #include <boost/shared_ptr.hpp>
 
+#include <dynamic_gap/utils/Utils.h>    
+
 namespace dynamic_gap 
 {
     /**
@@ -55,14 +57,15 @@ namespace dynamic_gap
             */
             struct PlanningMode 
             {
+                int gap_prop = 1; /**< 0 - old, 1 - new */
                 int pursuit_guidance_method = 1; /**< 0 - pure pursuit, 1 - parallel navigation */
-                bool heading = true; /**< Boolean for if robot tracks path headings or not */
+                // bool heading = false; /**< Boolean for if robot tracks path headings or not */
+                bool holonomic = false; /**< Boolean for if robot is holonomic or not */
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
                 bool egocircle_prop_cheat = false; /**< Flag for enacting future scan propagation through cheating */
                 bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
-                int halt_size = 5; /**< Size of command velocity buffer */
             } planning;            
 
             /**
@@ -74,6 +77,7 @@ namespace dynamic_gap
                 bool man_ctrl = false; /**< Flag for enacting manual teleoperation control */
                 bool mpc_ctrl = false; /**< Flag for enacting MPC control */
                 bool feedback_ctrl = true; /**< Flag for enacting feedback control */
+                int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
             } ctrl;
 
             /**
@@ -81,9 +85,9 @@ namespace dynamic_gap
             */
             struct Goal 
             {
-                float goal_tolerance = 0.2; /**< Distance threshold for global goal */
-                float yaw_goal_tolerance = M_PI; /**< Angular distance threshold for global goal */
-                float waypoint_tolerance = 0.1; /**< Distance threshold for global path local waypoint */
+                float xy_global_goal_tolerance = 0.2; /**< Distance threshold for global goal */
+                float yaw_global_goal_tolerance = M_PI; /**< Angular distance threshold for global goal */
+                float xy_waypoint_tolerance = 0.1; /**< Distance threshold for global path local waypoint */
             } goal;
 
             /**
@@ -91,7 +95,7 @@ namespace dynamic_gap
             */
             struct GapAssociation 
             {
-                float assoc_thresh = 0.50; /**< Distance threshold for gap association */
+                float assoc_thresh = 1.0; /**< Distance threshold for gap association */
             } gap_assoc;           
 
             /**
@@ -99,9 +103,8 @@ namespace dynamic_gap
             */
             struct GapManipulation 
             {
-                float epsilon1 = 0.20; /**< Denominator for setting radial gap pivot angle */
-                float epsilon2 = 0.30; /**< Numerator for setting radial gap pivot angle */                
-                bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
+                float rgc_angle = 1.0; /**< Rotation amount (radians) for RGC step  */              
+                // bool radial_extend = true; /**< Flag for if gap manipulator should apply radial extension */
             } gap_manip;
 
             /**
@@ -117,17 +120,6 @@ namespace dynamic_gap
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
             } traj;            
-
-            /**
-            * \brief Hyperparameters for trajectory tracking
-            */
-            struct ControlParams 
-            {
-                float k_fb_x = 0.5; /**< Proportional feedback gain in x-direction */
-                float k_fb_y = 0.5; /**< Proportional feedback gain in y-direction */
-                float k_fb_theta = 0.8; /**< Proportional feedback for robot yaw */
-                int ctrl_ahead_pose = 2; /**< Number of poses ahead of closest pose in current trajectory to track */
-            } control;
             
             /**
             * \brief Hyperparameters for projection operator

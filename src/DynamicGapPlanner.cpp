@@ -19,8 +19,37 @@ namespace dynamic_gap
         name_ = name;
         planner_.initialize(name_);
 
+        ros::NodeHandle nh("~/" + name);
+
+        ros::NodeHandle estimation_nh(nh, "estimation");
+        dynamic_estimation_recfg_ = boost::make_shared<dynamic_reconfigure::Server<EstimationParametersConfig>>(estimation_nh);
+        dynamic_reconfigure::Server<EstimationParametersConfig>::CallbackType estimation_cb =
+        boost::bind(&DynamicGapPlanner::reconfigureEstimationCallback, this, _1, _2);
+        dynamic_estimation_recfg_->setCallback(estimation_cb);
+
+        ros::NodeHandle control_nh(nh, "control");
+        dynamic_control_recfg_ = boost::make_shared<dynamic_reconfigure::Server<ControlParametersConfig>>(control_nh);
+        dynamic_reconfigure::Server<ControlParametersConfig>::CallbackType control_cb =
+        boost::bind(&DynamicGapPlanner::reconfigureControlCallback, this, _1, _2);
+        dynamic_control_recfg_->setCallback(control_cb);
+
         return;
     }
+
+    void DynamicGapPlanner::reconfigureControlCallback(ControlParametersConfig &config, uint32_t level)
+    {
+        ctrlParams_.linear_vel_x_ = config.linear_vel_x;
+        ctrlParams_.linear_vel_y_ = config.linear_vel_y;
+        ctrlParams_.angular_vel_z_ = config.angular_vel_z;
+    }
+
+
+    void DynamicGapPlanner::reconfigureEstimationCallback(EstimationParametersConfig &config, uint32_t level)
+    {
+        estParams_.Q_ = config.Q;
+        estParams_.R_ = config.R;
+    }
+
 
     bool DynamicGapPlanner::computeVelocityCommands(geometry_msgs::Twist & cmdVel)
     {
@@ -34,7 +63,11 @@ namespace dynamic_gap
 
         cmdVel = cmd_vel_stamped.twist;
 
-        ROS_INFO_STREAM("computeVelocityCommands cmdVel: " << cmdVel);
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "computeVelocityCommands cmdVel: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                linear: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                  x: " << cmdVel.linear.x << ", y: " << cmdVel.linear.y << ", z: " << cmdVel.linear.z);
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                angular: ");
+        ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "                  x: " << cmdVel.angular.x << ", y: " << cmdVel.angular.y << ", z: " << cmdVel.angular.z);
 
         // TODO: just hardcoding this now, need to revise
         bool success = 1;
@@ -47,22 +80,30 @@ namespace dynamic_gap
                                                         geometry_msgs::TwistStamped &cmd_vel,
                                                         std::string &message)
     {
+        boost::mutex::scoped_lock cfg_lock(config_mutex_);
+
         // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(long)]");
 
         if (!planner_.initialized())
         {
             planner_.initialize(name_); // nh_
-            ROS_WARN_STREAM("computeVelocity called before initializing planner");
+            ROS_WARN_STREAM_NAMED("DynamicGapPlanner", "computeVelocity called before initializing planner");
         }
 
         planner_.setReachedGlobalGoal(false);
 
-        dynamic_gap::Trajectory localTrajectory;
+        planner_.setParams(estParams_, ctrlParams_);
+
+        Trajectory localTrajectory;
         int trajFlag; 
         planner_.runPlanningLoop(localTrajectory, trajFlag);
 
         if (planner_.isGoalReached())
         {
+            ROS_INFO_STREAM_NAMED("DynamicGapPlanner", "Goal reached, stopping robot");
+
+            // planner_.reset();
+
             cmd_vel.twist = geometry_msgs::Twist();
             return mbf_msgs::ExePathResult::SUCCESS;
         }
@@ -71,7 +112,7 @@ namespace dynamic_gap
 
         cmd_vel.twist = cmdVelNoStamp;
 
-        bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp);
+        bool acceptedCmdVel = planner_.recordAndCheckVel(cmdVelNoStamp, trajFlag);
 
         /*
         *         SUCCESS           = 0

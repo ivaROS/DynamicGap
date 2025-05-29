@@ -5,6 +5,7 @@ namespace dynamic_gap
     PerfectEstimator::PerfectEstimator() 
     {
         xFrozen_ << 0.0, 0.0, 0.0, 0.0;
+        xManipFrozen_ << 0.0, 0.0, 0.0, 0.0;
     }
 
     void PerfectEstimator::initialize(const std::string & side, const int & modelID,
@@ -54,6 +55,12 @@ namespace dynamic_gap
         // this->eyes = model.eyes;
 
         return;
+    }
+
+    // For transferring an existing model state to a new model
+    void PerfectEstimator::transferFromPropagatedGapPoint(const Estimator & incomingModel)
+    {
+        throw std::runtime_error("PerfectEstimator::transferFromPropagatedGapPoint not implemented"); 
     }
 
     void PerfectEstimator::update(const Eigen::Vector2f & measurement, 

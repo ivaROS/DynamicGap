@@ -1,0 +1,374 @@
+#pragma once
+
+#include <ros/ros.h>
+#include <math.h>
+#include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/utils/PropagatedGapPoint.h>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <dynamic_gap/gap_estimation/RotatingFrameCartesianKalmanFilter.h>
+#include <dynamic_gap/gap_estimation/PerfectEstimator.h>
+
+namespace dynamic_gap
+{
+    /**
+    * \brief Class for a single gap point
+    */
+    class GapPoint
+    {
+        public:
+
+            GapPoint() 
+            { 
+                // Do NOT want to initialize model here
+            }
+
+            // Only meant to be run during gap detection
+            GapPoint(const int & idx, const float & range)
+            {
+                orig.idx_ = idx;
+                orig.range_ = range;
+
+                if (! checkPtIdx(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 1]: Gap index is not valid: " << orig.idx_);
+                    orig.idx_ = 0;
+                }
+                if (! checkPtRange(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 1]: Gap range is not valid: " << orig.range_);
+                    orig.range_ = 0.0;
+                }
+
+                // Here, you can define what type of model you want to use
+                model_ = new RotatingFrameCartesianKalmanFilter();
+                // model_ = new PerfectEstimator();
+            }
+
+            //
+            GapPoint(const GapPoint & otherGapPoint)
+            {
+                orig.idx_ = otherGapPoint.orig.idx_;
+                orig.range_ = otherGapPoint.orig.range_;
+
+                if (! checkPtIdx(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap index is not valid: " << orig.idx_);
+                    orig.idx_ = 0;
+                }
+
+                if (! checkPtRange(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap range is not valid: " << orig.range_);
+                    orig.range_ = 0.0;
+                }
+
+                manip.idx_ = otherGapPoint.manip.idx_;
+                manip.range_ = otherGapPoint.manip.range_;
+
+                if (! checkPtIdx(manip.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap index is not valid: " << manip.idx_);
+                    manip.idx_ = 0;
+                }
+
+                if (! checkPtRange(manip.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 2]: Gap range is not valid: " << manip.range_);
+                    manip.range_ = 0.0;
+                }
+
+                ungapID_ = otherGapPoint.ungapID_;
+
+                // Deep copy of models
+                model_ = new RotatingFrameCartesianKalmanFilter();
+                // model_ = new PerfectEstimator();
+
+                model_->transfer(*otherGapPoint.model_);
+            }
+
+            // Run after manipulation
+            GapPoint(const PropagatedGapPoint & propagatedGapPoint)
+            {
+                // ROS_INFO_STREAM_NAMED("Gap", "in PropagatedGapPoint constructor");
+
+                // ROS_INFO_STREAM_NAMED("Gap", "  getGapState: " << propagatedGapPoint.getModel()->getGapState().transpose());
+
+                orig.idx_ = theta2idx(propagatedGapPoint.getModel()->getGapBearing());
+                orig.range_ = propagatedGapPoint.getModel()->getGapRange();
+
+                if (! checkOrigPoint())
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 3]: Gap point is not valid: " << orig.idx_ << ", " << orig.range_);
+                    orig.idx_ = 0;
+                    orig.range_ = 0.0;
+                }
+
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+
+                // ROS_INFO_STREAM_NAMED("Gap", "  getManipGapState: " << propagatedGapPoint.getModel()->getManipGapState().transpose());
+
+                manip.idx_ = theta2idx(propagatedGapPoint.getModel()->getManipGapBearing());
+                manip.range_ = propagatedGapPoint.getModel()->getManipGapRange();
+
+                if (! checkManipPoint())
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "[GapPoint constructor 3]: Gap point is not valid: " << manip.idx_ << ", " << manip.range_);
+                    manip.idx_ = 0;
+                    manip.range_ = 0.0;
+                }
+
+                ungapID_ = propagatedGapPoint.getUngapID();
+
+                // ROS_INFO_STREAM_NAMED("Gap", "  manip.idx_: " << manip.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  manip.range_: " << manip.range_);
+
+                // Here, you can define what type of model you want to use
+                model_ = new RotatingFrameCartesianKalmanFilter();
+                // model_ = new PerfectEstimator();
+
+                model_->transferFromPropagatedGapPoint(*propagatedGapPoint.getModel());
+            }
+
+            bool checkOrigPoint()
+            {
+                if (std::isnan(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has NaN range");
+
+                    return false;
+                }
+
+                if (std::isinf(orig.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has Inf range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has Inf range");
+                    return false;
+                }
+
+                if (std::isnan(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has NaN index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has NaN index");
+                    return false;
+                }
+
+                if (std::isinf(orig.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has negative or Inf index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has negative or Inf index");
+                    return false;
+                }
+
+                if (orig.idx_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has a negative index");
+                    return false;
+                }
+
+                if (orig.range_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has a negative range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has a negative range");
+                    return false;
+                }
+
+                if (orig.idx_ >= 2*half_num_scan)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Gap point has an index out of bounds");
+                    ROS_INFO_STREAM_NAMED("Gap", "Gap point has an index out of bounds");
+                    return false;
+                }
+
+                return true;                
+            }
+
+            bool checkManipPoint()
+            {
+                if (std::isnan(manip.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has NaN range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has NaN range");
+                    return false;
+                }
+
+                if (std::isinf(manip.range_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has Inf range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has Inf range");
+                    return false;
+                }
+
+                if (std::isnan(manip.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has NaN index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has NaN index");
+                    return false;
+                }
+
+                if (std::isinf(manip.idx_))
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has negative or Inf index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has negative or Inf index");
+                    return false;
+                }
+
+                if (manip.idx_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has a negative index");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has a negative index");
+                    return false;
+                }
+
+                if (manip.range_ < 0)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has a negative range");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has a negative range");
+                    return false;
+                }
+
+                if (manip.idx_ >= 2*half_num_scan)
+                {
+                    ROS_WARN_STREAM_NAMED("Gap", "Manip gap point has an index out of bounds");
+                    ROS_INFO_STREAM_NAMED("Gap", "Manip gap point has an index out of bounds");
+                    return false;
+                }
+
+                return true;                
+            }
+
+            ~GapPoint()
+            {
+                delete model_;
+            }
+
+            void setOrigIdx(const int & idx)
+            {
+                orig.idx_ = idx;
+            }
+
+            void setOrigRange(const float & range)
+            {
+                orig.range_ = range;
+            }
+
+            int getOrigIdx() const
+            {
+                return orig.idx_;
+            }
+
+            float getOrigRange() const
+            {
+                return orig.range_;
+            }
+
+            void setManipIdx(const int & idx)
+            {
+                manip.idx_ = idx;
+            }
+
+            void setManipRange(const float & range)
+            {
+                manip.range_ = range;
+            }
+
+            int getManipIdx() const
+            {
+                return manip.idx_;
+            }
+
+            float getManipRange() const
+            {
+                return manip.range_;
+            }
+
+            void setModel(Estimator * model)
+            {
+                model_ = model;
+            }
+
+            Estimator * getModel() const
+            {
+                return model_;
+            }
+
+            void getOrigCartesian(float &x, float &y) const
+            {
+                // ROS_INFO_STREAM_NAMED("Gap", "getOrigCartesian");
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.idx_: " << orig.idx_);
+                // ROS_INFO_STREAM_NAMED("Gap", "  orig.range_: " << orig.range_);
+                
+                float theta = idx2theta(orig.idx_);
+                x = (orig.range_) * std::cos(theta);
+                y = (orig.range_) * std::sin(theta);
+            }
+
+            void getManipCartesian(float &x, float &y) const
+            {
+                float theta = idx2theta(manip.idx_);
+                x = (manip.range_) * std::cos(theta);
+                y = (manip.range_) * std::sin(theta);
+            }            
+
+            Eigen::Vector2f getOrigCartesian() const
+            {
+                float x = 0.0, y = 0.0;
+                getOrigCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
+            }
+
+            Eigen::Vector2f getManipCartesian() const
+            {
+                float x = 0.0, y = 0.0;
+                getManipCartesian(x, y);
+
+                return Eigen::Vector2f(x, y);
+            }
+
+            void initManipPoint()
+            {
+                manip.idx_ = orig.idx_;
+                manip.range_ = orig.range_;
+            }
+
+            void setUngapID(const int & ungapID)
+            {
+                // ROS_INFO_STREAM_NAMED("Gap", "setUngapID: " << ungapID);
+                ungapID_ = ungapID;
+            }
+
+            int getUngapID() const
+            {
+                return ungapID_;
+            }
+
+        private:
+
+            int ungapID_ = -1; // set one time at init
+
+            /**
+            * \brief Parameters of original form of gap
+            */        
+            struct Orig
+            {
+                int idx_ = -1; /**< Original gap point index */
+                float range_ = -1.0; /**< Original gap point range */
+            } orig;
+
+            /**
+            * \brief Parameters of manipulated form of gap
+            */
+            struct Manip
+            {
+                int idx_ = -1; /**< Manipulated gap point index */
+                float range_ = -1.0; /**< Manipulated gap point range */
+            } manip;
+
+            Estimator * model_ = NULL; /**< Gap point estimator */
+    };
+}

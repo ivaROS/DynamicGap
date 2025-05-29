@@ -24,12 +24,7 @@ namespace dynamic_gap
     */
     class PerfectEstimator : public Estimator 
     {
-        private:            
-            std::map<std::string, geometry_msgs::Pose> agentPoses_; /**< poses of all agents in environment (ground truth information used for certain estimator classes */
-            std::map<std::string, geometry_msgs::Vector3Stamped> agentVels_; /**< velocities of all agents in environment (ground truth information used for certain estimator classes) */
-
         public:
-
             PerfectEstimator();
 
             void initialize(const std::string & side, const int & modelID, 
@@ -38,6 +33,8 @@ namespace dynamic_gap
                             const geometry_msgs::TwistStamped & lastRbtAcc);
 
             void transfer(const Estimator & incomingModel);
+
+            void transferFromPropagatedGapPoint(const Estimator & incomingModel);
 
             void update(const Eigen::Vector2f & measurement, 
                         const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels, 
@@ -61,5 +58,8 @@ namespace dynamic_gap
 
             float min_dist_thresh = 1.5;
 
+        private:            
+            std::map<std::string, geometry_msgs::Pose> agentPoses_; /**< poses of all agents in environment (ground truth information used for certain estimator classes */
+            std::map<std::string, geometry_msgs::Vector3Stamped> agentVels_; /**< velocities of all agents in environment (ground truth information used for certain estimator classes) */
     };
 }

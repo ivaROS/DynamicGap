@@ -8,8 +8,8 @@ namespace dynamic_gap
               0.0, 1.0, 0.0, 0.0;
         H_transpose_ = H_.transpose();
         
-        R_scalar = 0.1; // low value: velocities become very sensitive
-        Q_scalar = 0.5;
+        Q_scalar = 0.01;
+        R_scalar = 0.01; // low value: velocities become very sensitive
 
         Q_temp_ << 0.0, 0.0, 0.0, 0.0,
                0.0, 0.0, 0.0, 0.0,
@@ -32,20 +32,29 @@ namespace dynamic_gap
         STM_ = A_;
 
         eyes = Eigen::MatrixXf::Identity(4,4);
-
-        // xTildeDistribution = std::uniform_real_distribution<double>(0.9, 1.1);
-
     }
 
     // For initializing a new model
     void RotatingFrameCartesianKalmanFilter::initialize(const std::string & side, const int & modelID,
                                                         const float & gapPtX, const float & gapPtY,
                                                         const ros::Time & t_update, const geometry_msgs::TwistStamped & lastRbtVel,
-                                                        const geometry_msgs::TwistStamped & lastRbtAcc) 
+                                                        const geometry_msgs::TwistStamped & lastRbtAcc, const EstimationParameters & estParams) 
     {
         this->side_ = side;
         this->modelID_ = modelID;
         // ROS_INFO_STREAM("    initialize model: " << modelID_);
+
+        this->R_scalar = estParams.R_;
+        this->Q_scalar = estParams.Q_;
+
+        Q_temp_ << 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, Q_scalar, 0.0,
+        0.0, 0.0, 0.0, Q_scalar;
+        Q_k_ = Q_temp_;
+        R_temp_ << R_scalar, 0.0,
+                0.0, R_scalar;
+        R_k_ = R_temp_;
 
         // COVARIANCE MATRIX
         // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
@@ -97,6 +106,7 @@ namespace dynamic_gap
         this->P_k_plus_ = model.P_k_plus_;
 
         this->xFrozen_ = model.xFrozen_;
+        this->xManipFrozen_ = model.xManipFrozen_;
         this->xRewind_ = model.xRewind_;
 
         this->G_k_ = model.G_k_;
@@ -107,6 +117,7 @@ namespace dynamic_gap
         this->Q_k_ = model.Q_k_;
         this->Q_temp_ = model.Q_temp_;
 
+
         this->intermediateRbtVels_ = model.intermediateRbtVels_;
         this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
         this->lastRbtVel_ = model.lastRbtVel_;
@@ -115,37 +126,55 @@ namespace dynamic_gap
         this->tStart_ = model.tStart_;
         this->tLastUpdate_ = model.tLastUpdate_;
 
-        this->manip_ = false; // will set to true if we do need to manip
+        this->rgc_ = model.rgc_; // will set to true if we do need to manip
+        this->ungap_ = model.ungap_; // will set to true if we do need to manip
 
-        // From RotatingFrameCartesianKalmanFilter.h
-        // this->H_ = model.H_;
-        // this->H_transpose_ = model.H_transpose_;
+        return;
+    }
 
-        // this->R_k_ = model.R_k_;
-        // this->Q_k_ = model.Q_k_;
-        // this->dQ_ = model.dQ_;
+    // For transferring an existing model state to a new model
+    void RotatingFrameCartesianKalmanFilter::transferFromPropagatedGapPoint(const Estimator & model)
+    {
+        // ROS_INFO_STREAM("        transfering of model: " << model.modelID_);
+        // From Estimator.h
+        this->modelID_ = model.modelID_;  // keeping the same for now ...
+        this->side_ = model.side_;
 
-        // this->Q_1_ = model.Q_1_;
-        // this->Q_2_ = model.Q_2_;
-        // this->Q_3_ = model.Q_3_;
+        // We have been propagating xManipFrozen_ forward in time, so we will use that as our new x_hat_kmin1_plus_
+        this->x_hat_kmin1_plus_ = model.xManipFrozen_;
+        this->x_hat_k_minus_ = model.xManipFrozen_;
+        this->x_hat_k_plus_ = model.xManipFrozen_;
 
-        // this->R_scalar = model.R_scalar;
-        // this->Q_scalar = model.Q_scalar;
+        // COVARIANCE MATRIX
+        // covariance/uncertainty of state variables (r_x, r_y, v_x, v_y)
+        this->P_kmin1_plus_ = model.P_kmin1_plus_;
+        this->P_k_minus_ = model.P_k_minus_;
+        this->P_k_plus_ = model.P_k_plus_;
 
-        // this->A_ = model.A_;
-        // this->STM_ = model.STM_;
+        this->xFrozen_ = model.xFrozen_;
+        this->xManipFrozen_ = model.xManipFrozen_;
+        this->xRewind_ = model.xRewind_;
 
-        // this->eyes = model.eyes;
-        // this->innovation_ = model.innovation_;
-        // this->residual_ = model.residual_;
+        this->G_k_ = model.G_k_;
+        this->xTilde_ = model.xTilde_;
 
-        // this->tmp_mat = model.tmp_mat;
+        this->R_k_ = model.R_k_;
+        this->R_temp_ = model.R_temp_;
+        this->Q_k_ = model.Q_k_;
+        this->Q_temp_ = model.Q_temp_;
 
-        // this->P_intermediate = model.P_intermediate;
-        // this->new_P = model.new_P;
-        
-        // this->lifetimeThreshold_ = model.lifetimeThreshold_;
-        
+
+        this->intermediateRbtVels_ = model.intermediateRbtVels_;
+        this->intermediateRbtAccs_ = model.intermediateRbtAccs_;
+        this->lastRbtVel_ = model.lastRbtVel_;
+        this->lastRbtAcc_ = model.lastRbtAcc_;
+
+        this->tStart_ = model.tStart_;
+        this->tLastUpdate_ = model.tLastUpdate_;
+
+        this->rgc_ = model.rgc_; // will set to true if we do need to manip
+        this->ungap_ = model.ungap_; // will set to true if we do need to manip
+
         return;
     }
 
@@ -213,7 +242,7 @@ namespace dynamic_gap
         Q_2_ = A_ * Q_1_ + Q_1_ * A_.transpose();
         Q_3_ = A_ * Q_2_ + Q_2_ * A_.transpose();
 
-        dQ_ = (Q_1_ * dt) + (Q_2_ * dt * dt / 2.0) + (Q_3_ * dt * dt * dt / 6.0);
+        dQ_ = (Q_1_ * dt) + (0.50 * Q_2_ * dt * dt) + (0.16666666666 * Q_3_ * dt * dt * dt);
     }
 
     void RotatingFrameCartesianKalmanFilter::update(const Eigen::Vector2f & measurement, 
@@ -236,8 +265,8 @@ namespace dynamic_gap
 
         if (intermediateRbtVels_.size() == 0 || intermediateRbtAccs_.size() == 0)
         {
-            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "    GapEstimation", "intermediateRbtVels_ is empty, no update");
-            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "    GapEstimation", "intermediateRbtAccs_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtVels_.size() == 0, "GapEstimation", "intermediateRbtVels_ is empty, no update");
+            ROS_WARN_STREAM_COND_NAMED(intermediateRbtAccs_.size() == 0, "GapEstimation", "intermediateRbtAccs_ is empty, no update");
             return;
         }
 
@@ -307,30 +336,9 @@ namespace dynamic_gap
 
         // ROS_INFO_STREAM("    xTilde_: " << xTilde_[0] << ", " << xTilde_[1]);
         
-        Eigen::Vector2f noisyXTilde_ = xTilde_;
-        noisyXTilde_[0] += xTildeDistribution(generator);
-        noisyXTilde_[1] += xTildeDistribution(generator);
-
-        innovation_ = noisyXTilde_ - H_*x_hat_k_minus_;
+        innovation_ = xTilde_ - H_*x_hat_k_minus_;
         x_hat_k_plus_ = x_hat_k_minus_ + G_k_*innovation_;
-        residual_ = noisyXTilde_ - H_*x_hat_k_plus_;
-
-        // float sensor_noise_factor = R_scalar * xTilde_.norm();
-        // R_k_ << sensor_noise_factor, 0.0,
-        //        0.0, sensor_noise_factor;
-
-        // R_k_ = (alpha_R * R_temp_) + (1.0 - alpha_R)*(residual_ * residual_.transpose() + H_*P_k_minus_*H_transpose_);
-        
-        // ROS_INFO_STREAM("1");
-
-        // // ROS_INFO_STREAM("Rxx: " << cfg_->gap_est.R_xx << ", Ryy: " << cfg_->gap_est.R_yy);
-        // R_k_ << cfg_->gap_est.R_xx, 0.0,
-        //        0.0, cfg_->gap_est.R_yy;
-
-        // ROS_INFO_STREAM("H_transpose_: " << H_transpose_(0, 0) << ", " << H_transpose_(0, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(1, 0) << ", " << H_transpose_(1, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(2, 0) << ", " << H_transpose_(2, 1));
-        // ROS_INFO_STREAM("              " << H_transpose_(3, 0) << ", " << H_transpose_(3, 1));
+        residual_ = xTilde_ - H_*x_hat_k_plus_;
 
         tmp_mat = H_*P_k_minus_*H_transpose_ + R_k_;
 
@@ -350,17 +358,10 @@ namespace dynamic_gap
         // ROS_INFO_STREAM("    " << H_(1, 0) << ", " << H_(1, 1) << ", " << H_(1, 2) << ", " << H_(1, 3));
         
         P_k_plus_ = (eyes - G_k_*H_)*P_k_minus_;
-    
-        // Q_temp_ = (alpha_Q * Q_k_) + (1.0 - alpha_Q) * (G_k_ * residual_ * residual_.transpose() * G_k_.transpose());
-        // Q_k_ = Q_temp_;
-
-        // ROS_INFO_STREAM("2");
 
         x_hat_kmin1_plus_ = x_hat_k_plus_;
         P_kmin1_plus_ = P_k_plus_;
         tLastUpdate_ = t_update;
-
-        // ROS_INFO_STREAM("3");
 
         // ROS_INFO_STREAM("    intermediateRbtVels_ size: " << intermediateRbtVels_.size());
         // ROS_INFO_STREAM("    intermediateRbtAccs_ size: " << intermediateRbtAccs_.size());
@@ -397,16 +398,7 @@ namespace dynamic_gap
             // // ROS_INFO_STREAM("        new model");
             state[2] = 0.0 - lastRbtVel_.twist.linear.x;
             state[3] = 0.0 - lastRbtVel_.twist.linear.y;   
-        } 
-
-        if (manip_)
-        {
-            // // ROS_INFO_STREAM("        manipulated model");
-            state[0] = manipPosition[0];
-            state[1] = manipPosition[1];
-            state[2] = 0.0 - lastRbtVel_.twist.linear.x;
-            state[3] = 0.0 - lastRbtVel_.twist.linear.y;               
-        }        
+        }     
 
         return state;  
     }    

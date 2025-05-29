@@ -1,9 +1,0 @@
-<launch>
-  <arg name="robot_namespace" default="robot0" />
-  <arg name="rbt_x" default="$(optenv GM_PARAM_RBT_X 1)" />
-  <arg name="rbt_y" default="$(optenv GM_PARAM_RBT_Y 2)" />
-  <arg name="rbt_theta" default="0.0" />
-  <arg name="robot_file" default="$(find dynamic_gap)/stdr_robots/robots/holonomic_second_order/360_bumper.xml" />
-
-  <node pkg="stdr_robot" type="robot_handler" name="spawn_$(arg robot_namespace)" args="add $(arg robot_file) $(arg rbt_x) $(arg rbt_y) $(arg rbt_theta)" />
-</launch>

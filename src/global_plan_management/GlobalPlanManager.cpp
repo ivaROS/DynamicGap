@@ -60,7 +60,7 @@ namespace dynamic_gap
         {
             planPoseNorms.at(i) = poseNorm(globalPlan.at(i)); // calculating distance to robot at each step of plan
             scanDistsAtPlanIndices.at(i) = calculateScanRangesAtPlanIndices(globalPlan.at(i));
-            scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (cfg_->rbt.r_inscr / 2.0)) - planPoseNorms.at(i);
+            scanMinusPlanPoseNormDiffs.at(i) = (scanDistsAtPlanIndices.at(i) - (0.5 * cfg_->rbt.r_inscr)) - planPoseNorms.at(i);
         }
 
         // Find closest pose to robot to start the global plan snippet

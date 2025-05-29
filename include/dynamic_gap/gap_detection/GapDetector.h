@@ -25,13 +25,20 @@ namespace dynamic_gap
             GapDetector(const DynamicGapConfig& cfg) { cfg_ = &cfg; }
 
             /**
+            * \brief Preprocess incoming laser scan to remove NaN/Inf values
+            *
+            * \param scan pointer to incoming laser scan
+            */
+            void preprocessScan(boost::shared_ptr<sensor_msgs::LaserScan> scan);
+
+            /**
             * \brief Detect raw set of gaps from incoming laser scan.
             * 
             * \param scanPtr pointer to incoming laser scan
             * \param globalGoalRbtFrame global goal pose in robot frame
             * \return raw set of gaps
             */
-            std::vector<dynamic_gap::Gap *> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
+            std::vector<Gap *> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
                                                         const geometry_msgs::PoseStamped & globalGoalRbtFrame);
         
             /**
@@ -40,7 +47,7 @@ namespace dynamic_gap
             * \param rawGaps set of raw gaps
             * \return set of simplified gaps
             */        
-            std::vector<dynamic_gap::Gap *> gapSimplification(const std::vector<dynamic_gap::Gap *> & rawGaps);     
+            std::vector<Gap *> gapSimplification(const std::vector<Gap *> & rawGaps);     
 
         private:
             /**
@@ -71,7 +78,7 @@ namespace dynamic_gap
             * \param gap queried gap
             * \return boolean if gap should be classified as swept
             */
-            bool sweptGapSizeCheck(dynamic_gap::Gap * gap);
+            bool sweptGapSizeCheck(const int & leftIdx, const float & leftRange, const int & rightIdx, const float & rightRange);
 
             /**
             * \brief Checking if gap should be classified as radial 
@@ -93,7 +100,7 @@ namespace dynamic_gap
             * \param rawGaps raw set of gaps
             * \return boolean if first and last raw gaps should be merged together
             */
-            bool bridgeCondition(const std::vector<dynamic_gap::Gap *> & rawGaps);
+            bool bridgeCondition(const std::vector<Gap *> & rawGaps);
 
             /**
             * \brief Check if a raw swept gap should be merged into a simplified swept gap
@@ -103,8 +110,8 @@ namespace dynamic_gap
             * \param simplifiedGaps existing set of simplified gaps
             * \return boolean for if raw gap should be merged or not
             */
-            bool mergeSweptGapCondition(dynamic_gap::Gap * rawGap, 
-                                        const std::vector<dynamic_gap::Gap *> & simplifiedGaps);
+            bool mergeSweptGapCondition(Gap * rawGap, 
+                                        const std::vector<Gap *> & simplifiedGaps);
 
             /**
             * \brief Iterate backwards through simplified gaps to see if/where
@@ -114,8 +121,8 @@ namespace dynamic_gap
             * \param simplifiedGaps existing set of simplified gaps
             * \return index within simplified gaps that should be merged
             */
-            int checkSimplifiedGapsMergeability(dynamic_gap::Gap * rawGap, 
-                                                const std::vector<dynamic_gap::Gap *> & simplifiedGaps);
+            int checkSimplifiedGapsMergeability(Gap * rawGap, 
+                                                const std::vector<Gap *> & simplifiedGaps);
 
             sensor_msgs::LaserScan scan_; /**< Current laser scan */
             const DynamicGapConfig* cfg_ = NULL; /**< Planner hyperparameter config list */
