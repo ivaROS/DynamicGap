@@ -73,8 +73,7 @@ namespace dynamic_gap
         return firstAndLastGapsBorder;
     }
 
-    std::vector<Gap *> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
-                                                                const geometry_msgs::PoseStamped & globalGoalRbtFrame)
+    std::vector<Gap *> GapDetector::gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr)
     {
         std::vector<Gap *> rawGaps;
 

@@ -239,7 +239,7 @@ namespace dynamic_gap
         //////// GAP DETECTION ////////
         ///////////////////////////////
         timeKeeper_->startTimer(GAP_DET);
-        currRawGaps_ = gapDetector_->gapDetection(scan_, globalGoalRobotFrame_);
+        currRawGaps_ = gapDetector_->gapDetection(scan_);
         timeKeeper_->stopTimer(GAP_DET);
 
         /////////////////////////////////////

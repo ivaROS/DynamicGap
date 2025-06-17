@@ -38,8 +38,7 @@ namespace dynamic_gap
             * \param globalGoalRbtFrame global goal pose in robot frame
             * \return raw set of gaps
             */
-            std::vector<Gap *> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr, 
-                                                        const geometry_msgs::PoseStamped & globalGoalRbtFrame);
+            std::vector<Gap *> gapDetection(boost::shared_ptr<sensor_msgs::LaserScan const> scanPtr);
         
             /**
             * \brief Condense raw set of gaps into a smaller set of simplified gaps more amenable for navigation.
