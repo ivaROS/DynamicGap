@@ -72,7 +72,7 @@ namespace dynamic_gap
             * \return intermediate cost of pose
             */
             float evaluatePose(const geometry_msgs::Pose & pose,
-                                const sensor_msgs::LaserScan scan_k) ;
+                                const sensor_msgs::LaserScan & scan_k) ;
             
             /**
             * \brief function for calculating intermediate trajectory cost (in static environment)

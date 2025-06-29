@@ -84,7 +84,7 @@ namespace dynamic_gap
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
-    float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) 
+    float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan & scan_k) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         // sensor_msgs::LaserScan scan = *scan_.get();

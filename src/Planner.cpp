@@ -1369,8 +1369,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             }
 
             // selecting best trajectory
-            auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
-            int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
+            auto lowestCostTrajIter = std::min_element(pathCosts.begin(), pathCosts.end());
+            int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIter);
 
             if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
             {    
@@ -2126,6 +2126,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             geometry_msgs::PoseStamped currPoseStRobotFrame;
             currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
             currPoseStRobotFrame.pose.orientation.w = 1;
+            
             geometry_msgs::PoseStamped currPoseStampedOdomFrame;
             currPoseStampedOdomFrame.header.frame_id = cfg_.odom_frame_id;
             tf2::doTransform(currPoseStRobotFrame, currPoseStampedOdomFrame, rbt2odom_);
