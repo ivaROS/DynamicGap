@@ -1495,8 +1495,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //////////////////////////////////////////////////////////////////////////////
             // Transform into the current robot frame to score against the current scan //
             //////////////////////////////////////////////////////////////////////////////
-            geometry_msgs::PoseArray incomingPathRobotFrame = gapTrajGenerator_->transformPath(incomingTraj.getPathOdomFrame(), odom2rbt_);
-
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
             float incomingPathTerminalPoseCost;

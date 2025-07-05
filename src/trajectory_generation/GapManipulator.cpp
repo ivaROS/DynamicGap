@@ -428,7 +428,7 @@ namespace dynamic_gap
             gap->getRightGapPt()->getModel()->setRGC(); // manipulating right point, so set vel to 0
         }
 
-        gap->setManipPoints(newLeftIdx, newRightIdx, newLeftRange, newRightRange);
+        gap->setManipPoints(newLeftIdx, newLeftRange, newRightIdx, newRightRange);
 
         gap->getManipulatedLCartesian(xLeft, yLeft);
         gap->getManipulatedRCartesian(xRight, yRight);
@@ -491,7 +491,7 @@ namespace dynamic_gap
                 ROS_WARN_STREAM_NAMED("GapManipulator", "        inflation ratio is too large, aborting");
 
 
-                gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+                gap->setManipPoints(leftIdx, leftRange, rightIdx, rightRange);
 
                 gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
                 gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
@@ -574,7 +574,7 @@ namespace dynamic_gap
         {
             ROS_INFO_STREAM_NAMED("GapManipulator", "        inflation has failed for good.");
          
-            gap->setManipPoints(leftIdx, rightIdx, leftRange, rightRange);
+            gap->setManipPoints(leftIdx, leftRange, rightIdx, rightRange);
          
             gap->getLeftGapPt()->getModel()->setNewPosition(leftTheta, leftRange); // manipulating left point
             gap->getRightGapPt()->getModel()->setNewPosition(rightTheta, rightRange); // manipulating right point
@@ -586,7 +586,7 @@ namespace dynamic_gap
         if (inflatedRightIdx == inflatedLeftIdx) // // ROS_INFO_STREAM("manipulated indices are same");
             inflatedLeftIdx++;
 
-        gap->setManipPoints(inflatedLeftIdx, inflatedRightIdx, inflatedLeftRange, inflatedRightRange);
+        gap->setManipPoints(inflatedLeftIdx, inflatedLeftRange, inflatedRightIdx, inflatedRightRange);
 
         gap->getLeftGapPt()->getModel()->setNewPosition(inflatedLeftTheta, inflatedLeftRange); // manipulating left point
         gap->getRightGapPt()->getModel()->setNewPosition(inflatedRightTheta, inflatedRightRange); // manipulating right point

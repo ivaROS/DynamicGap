@@ -221,8 +221,8 @@ namespace dynamic_gap
             */            
             void setRRange(const float & rrange) { rightGapPt_->setOrigRange(rrange); }
 
-            void setManipPoints(const int & newLeftIdx, const int & newRightIdx, 
-                                const float & newLeftRange, const float & newRightRange)
+            void setManipPoints(const int & newLeftIdx, const float & newLeftRange, 
+                                const int & newRightIdx, const float & newRightRange)
             {
                 leftGapPt_->setManipIdx(newLeftIdx);
                 leftGapPt_->setManipRange(newLeftRange);
