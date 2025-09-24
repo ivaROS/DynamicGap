@@ -1031,27 +1031,84 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             std::vector<float> bestPoseCosts;
                             float bestTerminalCost = 0.0f;
 
-                            for (auto &cand : candTrajs)
-                            {
-                                // Evaluate
-                                std::vector<float> poseCostsTmp;
-                                float terminalCostTmp;
-                                trajEvaluator_->evaluateTrajectory(cand, poseCostsTmp, terminalCostTmp, futureScans, scanIdx);
+                            if (candTrajs.size() > 0)
+{
+    // === FIRST CANDIDATE TRAJECTORY ===
+    Trajectory cand0 = candTrajs.at(0);
 
-                                float avgCost = std::accumulate(poseCostsTmp.begin(), poseCostsTmp.end(), 0.0f) / poseCostsTmp.size();
-                                float totalCost = terminalCostTmp + avgCost;
+    std::vector<float> poseCosts0;
+    float terminalCost0;
 
-                                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                                    "   candidate traj cost = " << totalCost);
+    trajEvaluator_->evaluateTrajectory(cand0, poseCosts0, terminalCost0, futureScans, scanIdx);
 
-                                if (totalCost < bestCost)
-                                {
-                                    bestCost = totalCost;
-                                    bestTraj = cand;
-                                    bestPoseCosts = poseCostsTmp;
-                                    bestTerminalCost = terminalCostTmp;
-                                }
-                            }
+    float avgCost0 = poseCosts0.empty() ? 0.0f :
+        std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) / poseCosts0.size();
+    float totalCost0 = terminalCost0 + avgCost0;
+
+    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                          "   [TEST] first candidate traj cost = " << totalCost0);
+
+    // Store as best by default
+    bestTraj = cand0;
+    bestPoseCosts = poseCosts0;
+    bestTerminalCost = terminalCost0;
+    bestCost = totalCost0;
+}
+
+if (candTrajs.size() > 1)
+{
+    // === SECOND CANDIDATE TRAJECTORY ===
+    Trajectory cand1 = candTrajs.at(1);
+
+    std::vector<float> poseCosts1;
+    float terminalCost1;
+
+    trajEvaluator_->evaluateTrajectory(cand1, poseCosts1, terminalCost1, futureScans, scanIdx);
+
+    float avgCost1 = poseCosts1.empty() ? 0.0f :
+        std::accumulate(poseCosts1.begin(), poseCosts1.end(), 0.0f) / poseCosts1.size();
+    float totalCost1 = terminalCost1 + avgCost1;
+
+    ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                          "   [TEST] second candidate traj cost = " << totalCost1);
+
+    // Optionally overwrite bestTraj with second one
+    // For now, you can either always take the second one:
+    // bestTraj = cand1;
+    // bestPoseCosts = poseCosts1;
+    // bestTerminalCost = terminalCost1;
+    // bestCost = totalCost1;
+
+    // Or only take it if it's cheaper:
+    if (totalCost1 < bestCost) {
+        bestTraj = cand1;
+        bestPoseCosts = poseCosts1;
+        bestTerminalCost = terminalCost1;
+        bestCost = totalCost1;
+    }
+}
+
+                            // for (auto &cand : candTrajs)
+                            // {
+                            //     // Evaluate
+                            //     std::vector<float> poseCostsTmp;
+                            //     float terminalCostTmp;
+                            //     trajEvaluator_->evaluateTrajectory(cand, poseCostsTmp, terminalCostTmp, futureScans, scanIdx);
+
+                            //     float avgCost = std::accumulate(poseCostsTmp.begin(), poseCostsTmp.end(), 0.0f) / poseCostsTmp.size();
+                            //     float totalCost = terminalCostTmp + avgCost;
+
+                            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                            //                         "   candidate traj cost = " << totalCost);
+
+                            //     if (totalCost < bestCost)
+                            //     {
+                            //         bestCost = totalCost;
+                            //         bestTraj = cand;
+                            //         bestPoseCosts = poseCostsTmp;
+                            //         bestTerminalCost = terminalCostTmp;
+                            //     }
+                            // }
 
                             pursuitGuidanceTraj = bestTraj;
                             pursuitGuidancePoseCosts = bestPoseCosts;

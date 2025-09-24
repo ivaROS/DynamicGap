@@ -186,6 +186,7 @@ namespace dynamic_gap
     std::vector<float> pathTiming;
     path.header.stamp = currPose.header.stamp;
     path.header.frame_id = cfg_->sensor_frame_id;
+    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "cfg_->sensor_frame_id: " + cfg_->sensor_frame_id);                
 
     Eigen::Vector4f rbtState(currPose.pose.position.x, 
                              currPose.pose.position.y,
@@ -213,6 +214,9 @@ namespace dynamic_gap
     {
         geometry_msgs::PoseArray path_i;
         std::vector<float> pathTiming_i;
+
+        path_i.header.stamp = currPose.header.stamp;
+        path_i.header.frame_id = cfg_->sensor_frame_id;   
 
         robotAndGapState x = {rbtState[0], rbtState[1],
                               xLeft, yLeft, xRight, yRight,
