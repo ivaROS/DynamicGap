@@ -174,6 +174,78 @@ namespace dynamic_gap
         return traj;
     }
 
+    std::vector<Trajectory> GapTrajectoryGenerator::generateMultiTrajectoryV2(
+    Gap * selectedGap, 
+    const geometry_msgs::PoseStamped & currPose, 
+    const geometry_msgs::PoseStamped & globalGoalRobotFrame)
+{
+    std::vector<Trajectory> allTrajs;   // store multiple
+
+    // set up initial state (same as before)
+    geometry_msgs::PoseArray path;
+    std::vector<float> pathTiming;
+    path.header.stamp = currPose.header.stamp;
+    path.header.frame_id = cfg_->sensor_frame_id;
+
+    Eigen::Vector4f rbtState(currPose.pose.position.x, 
+                             currPose.pose.position.y,
+                             0.0, 0.0);
+
+    float xLeft = 0.0, yLeft = 0.0, xRight = 0.0, yRight = 0.0;
+    selectedGap->getManipulatedLCartesian(xLeft, yLeft);
+    selectedGap->getManipulatedRCartesian(xRight, yRight);
+
+    Eigen::Vector2f initialGoal = selectedGap->getGoal()->getOrigGoalPos();
+    Eigen::Vector2f goalPtVel   = selectedGap->getGoal()->getOrigGoalVel();
+    Eigen::Vector2f leftGapPtVel  = selectedGap->getManipulatedLVelocity();
+    Eigen::Vector2f rightGapPtVel = selectedGap->getManipulatedRVelocity();
+    Eigen::Vector2f terminalGoal  = selectedGap->getGoal()->getTermGoalPos();
+
+    // ---- MULTIPLE GAMMAS ----
+    float baseGamma = selectedGap->getGammaInterceptGoal();
+    std::vector<float> gammaCandidates = {
+        baseGamma - 0.2f,
+        baseGamma,
+        baseGamma + 0.2f
+    };
+
+    for (float gamma : gammaCandidates)
+    {
+        geometry_msgs::PoseArray path_i;
+        std::vector<float> pathTiming_i;
+
+        robotAndGapState x = {rbtState[0], rbtState[1],
+                              xLeft, yLeft, xRight, yRight,
+                              initialGoal[0], initialGoal[1]};
+
+        Eigen::Quaternionf desiredQ = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+                                      Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+                                      Eigen::AngleAxisf(gamma, Eigen::Vector3f::UnitZ());
+
+        TrajectoryLogger logger(path_i, pathTiming_i, cfg_->robot_frame_id, desiredQ);
+
+        ParallelNavigation pn(gamma,
+                              cfg_->rbt.vx_absmax,
+                              cfg_->rbt.r_inscr,
+                              leftGapPtVel,
+                              rightGapPtVel,
+                              goalPtVel,
+                              terminalGoal);
+
+        float t_max = std::min(selectedGap->getGapLifespan(), cfg_->traj.integrate_maxt);
+
+        boost::numeric::odeint::integrate_const(
+            boost::numeric::odeint::euler<robotAndGapState>(),
+            pn, x, 0.0f, t_max, cfg_->traj.integrate_stept, logger);
+
+        // store trajectory
+        allTrajs.emplace_back(path_i, pathTiming_i);
+    }
+
+    return allTrajs;
+}
+
+
     Trajectory GapTrajectoryGenerator::generateIdlingTrajectoryV2(Gap * gap,
                                                                     const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
                                                                     const Trajectory & runningTraj)

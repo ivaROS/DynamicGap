@@ -1018,27 +1018,68 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     // Run pursuit guidance behavior
                     if (gap->isAvailable())
                     {
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
-                        pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                        currPose, 
-                                                                                        // currVel, 
-                                                                                        globalGoalRobotFrame_);
-                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                    // currPose,
-                                                                                    // currVel,
-                                                                                    // false);
-                        
-                        if (j == (gapTube->size() - 1))
+                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
+
+                        bool generate_multi_traj = true; // TODO: config flag
+                        if (generate_multi_traj)
                         {
-                            // prune trajectory
-                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
-                            pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                            std::vector<Trajectory> candTrajs =
+                                gapTrajGenerator_->generateMultiTrajectoryV2(gap, currPose, globalGoalRobotFrame_);
+
+                            float bestCost = std::numeric_limits<float>::infinity();
+                            Trajectory bestTraj;
+                            std::vector<float> bestPoseCosts;
+                            float bestTerminalCost = 0.0f;
+
+                            for (auto &cand : candTrajs)
+                            {
+                                // Evaluate
+                                std::vector<float> poseCostsTmp;
+                                float terminalCostTmp;
+                                trajEvaluator_->evaluateTrajectory(cand, poseCostsTmp, terminalCostTmp, futureScans, scanIdx);
+
+                                float avgCost = std::accumulate(poseCostsTmp.begin(), poseCostsTmp.end(), 0.0f) / poseCostsTmp.size();
+                                float totalCost = terminalCostTmp + avgCost;
+
+                                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "   candidate traj cost = " << totalCost);
+
+                                if (totalCost < bestCost)
+                                {
+                                    bestCost = totalCost;
+                                    bestTraj = cand;
+                                    bestPoseCosts = poseCostsTmp;
+                                    bestTerminalCost = terminalCostTmp;
+                                }
+                            }
+
+                            pursuitGuidanceTraj = bestTraj;
+                            pursuitGuidancePoseCosts = bestPoseCosts;
+                            pursuitGuidanceTerminalPoseCost = bestTerminalCost;
+                            pursuitGuidancePoseCost = bestCost;
                         }
-                        
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
-                        pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
-                    } else
+                        else
+                        {
+                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, currPose, globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+
+                            if (j == (gapTube->size() - 1))
+                            {
+                                pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                            }
+
+                            trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts,
+                                                            pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                            pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost +
+                                                    std::accumulate(pursuitGuidancePoseCosts.begin(),
+                                                                    pursuitGuidancePoseCosts.end(), 0.0f) /
+                                                        pursuitGuidancePoseCosts.size();
+                        }
+                    }
+
+                    
+                    
+                    else
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");
                         pursuitGuidanceTraj = gapTrajGenerator_->generateIdlingTrajectoryV2(gap, 
