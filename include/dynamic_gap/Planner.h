@@ -438,6 +438,10 @@ namespace dynamic_gap
             ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
+            ros::Publisher multiPnTrajPub_;   /**< RViz visualization for all PN candidates */
+            // ros::Publisher bestPnTrajPub_;    /**< RViz visualization for the chosen PN trajectory */
+
+
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
 
