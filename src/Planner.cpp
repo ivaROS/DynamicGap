@@ -115,6 +115,8 @@ namespace dynamic_gap
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
+        pnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj", 1); //for visualizing pn traj
+
         // Visualization Setup
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
@@ -1020,7 +1022,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
 
-                        bool generate_multi_traj = true; // TODO: config flag
+                        bool generate_multi_traj = false; // TODO: config flag
                         if (generate_multi_traj)
                         {
                             std::vector<Trajectory> candTrajs =
@@ -1170,6 +1172,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                     std::accumulate(pursuitGuidancePoseCosts.begin(),
                                                                     pursuitGuidancePoseCosts.end(), 0.0f) /
                                                         pursuitGuidancePoseCosts.size();
+
+                            //visualization for debugging
+                            geometry_msgs::PoseArray vizMsg = pursuitGuidanceTraj.getPathRbtFrame();
+                            vizMsg.header.stamp = ros::Time::now();
+                            vizMsg.header.frame_id = cfg_.robot_frame_id;
+                            pnTrajPub_.publish(vizMsg);
                         }
                     }
 
