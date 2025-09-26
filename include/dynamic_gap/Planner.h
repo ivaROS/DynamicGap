@@ -439,6 +439,10 @@ namespace dynamic_gap
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
             ros::Publisher pnTrajPub_; /**< for visualizing pn traj */
+            ros::Publisher pnCand0Pub_;
+            ros::Publisher pnCand1Pub_;
+            ros::Publisher pnCand2Pub_;
+
 
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */

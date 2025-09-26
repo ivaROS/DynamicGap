@@ -116,6 +116,10 @@ namespace dynamic_gap
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
         pnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj", 1); //for visualizing pn traj
+        pnCand0Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand0", 1);
+        pnCand1Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand1", 1);
+        pnCand2Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand2", 1);
+
 
         // Visualization Setup
 
@@ -1022,7 +1026,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
 
-                        bool generate_multi_traj = false; // TODO: config flag
+                        bool generate_multi_traj = true; // TODO: config flag
                         if (generate_multi_traj)
                         {
                             std::vector<Trajectory> candTrajs =
@@ -1055,6 +1059,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                 bestPoseCosts = poseCosts0;
                                 bestTerminalCost = terminalCost0;
                                 bestCost = totalCost0;
+
+                                geometry_msgs::PoseArray msg0 = cand0.getPathRbtFrame();
+                                msg0.header.stamp = ros::Time::now();
+                                msg0.header.frame_id = cfg_.robot_frame_id;
+                                pnCand0Pub_.publish(msg0);
                             }
 
                             if (candTrajs.size() > 1)
@@ -1087,7 +1096,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                     bestPoseCosts = poseCosts1;
                                     bestTerminalCost = terminalCost1;
                                     bestCost = totalCost1;
+                                                                    
                                 }
+                                geometry_msgs::PoseArray msg1 = cand1.getPathRbtFrame();
+                                msg1.header.stamp = ros::Time::now();
+                                msg1.header.frame_id = cfg_.robot_frame_id;
+                                pnCand1Pub_.publish(msg1);
                             }
                             if (candTrajs.size() > 2)
                             {
@@ -1124,6 +1138,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                             bestTerminalCost = terminalCost2;
                                             bestCost = totalCost2;
                                         }
+                                        geometry_msgs::PoseArray msg2 = cand2.getPathRbtFrame();
+                                        msg2.header.stamp = ros::Time::now();
+                                        msg2.header.frame_id = cfg_.robot_frame_id;
+                                        pnCand2Pub_.publish(msg2);
                                     }
                                 }
                             }
