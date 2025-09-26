@@ -442,6 +442,8 @@ namespace dynamic_gap
             ros::Publisher pnCand0Pub_;
             ros::Publisher pnCand1Pub_;
             ros::Publisher pnCand2Pub_;
+            ros::Publisher bestPnTrajPub_;
+
 
 
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */

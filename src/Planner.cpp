@@ -119,6 +119,7 @@ namespace dynamic_gap
         pnCand0Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand0", 1);
         pnCand1Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand1", 1);
         pnCand2Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand2", 1);
+        bestPnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("best_pn_traj", 1);
 
 
         // Visualization Setup
@@ -1145,6 +1146,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                     }
                                 }
                             }
+                            // === Publish best PN trajectory for visualization ===
+                            if (bestTraj.getPathRbtFrame().poses.size() > 1)
+                            {
+                                geometry_msgs::PoseArray bestMsg = bestTraj.getPathRbtFrame();
+                                bestMsg.header.stamp = ros::Time::now();
+                                bestMsg.header.frame_id = cfg_.robot_frame_id;
+                                bestPnTrajPub_.publish(bestMsg);
+                            }
+                            else
+                            {
+                                ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "No valid best PN trajectory to publish (too few poses)");
+                            }
+
 
 
                             // for (auto &cand : candTrajs)
