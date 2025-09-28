@@ -115,6 +115,13 @@ namespace dynamic_gap
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
+        pnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj", 1); //for visualizing pn traj
+        pnCand0Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand0", 1);
+        pnCand1Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand1", 1);
+        pnCand2Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand2", 1);
+        bestPnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("best_pn_traj", 1);
+
+
         // Visualization Setup
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
@@ -1018,29 +1025,198 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     // Run pursuit guidance behavior
                     if (gap->isAvailable())
                     {
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
-                        pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                        currPose, 
-                                                                                        // currVel, 
-                                                                                        globalGoalRobotFrame_);
-                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                    // currPose,
-                                                                                    // currVel,
-                                                                                    // false);
+                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
 
-                        if (j == (gapTube->size() - 1))
+                        bool generate_multi_traj = true; // TODO: config flag
+                        if (generate_multi_traj)
                         {
-                            // prune trajectory
-                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
-                            pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                            std::vector<Trajectory> candTrajs =
+                                gapTrajGenerator_->generateMultiTrajectoryV2(gap, currPose, globalGoalRobotFrame_);
+
+                            float bestCost = std::numeric_limits<float>::infinity();
+                            Trajectory bestTraj;
+                            std::vector<float> bestPoseCosts;
+                            float bestTerminalCost = 0.0f;
+
+                            if (candTrajs.size() > 0)
+                            {
+                                // === FIRST CANDIDATE TRAJECTORY ===
+                                Trajectory cand0 = candTrajs.at(0);
+
+                                std::vector<float> poseCosts0;
+                                float terminalCost0;
+
+                                trajEvaluator_->evaluateTrajectory(cand0, poseCosts0, terminalCost0, futureScans, scanIdx);
+
+                                float avgCost0 = poseCosts0.empty() ? 0.0f :
+                                    std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) / poseCosts0.size();
+                                float totalCost0 = terminalCost0 + avgCost0;
+
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "   [TEST] first candidate traj cost = " << totalCost0);
+
+                                // Store as best by default
+                                bestTraj = cand0;
+                                bestPoseCosts = poseCosts0;
+                                bestTerminalCost = terminalCost0;
+                                bestCost = totalCost0;
+
+                                geometry_msgs::PoseArray msg0 = cand0.getPathRbtFrame();
+                                msg0.header.stamp = ros::Time::now();
+                                msg0.header.frame_id = cfg_.robot_frame_id;
+                                pnCand0Pub_.publish(msg0);
+                            }
+
+                            if (candTrajs.size() > 1)
+                            {
+                                // === SECOND CANDIDATE TRAJECTORY ===
+                                Trajectory cand1 = candTrajs.at(1);
+
+                                std::vector<float> poseCosts1;
+                                float terminalCost1;
+
+                                trajEvaluator_->evaluateTrajectory(cand1, poseCosts1, terminalCost1, futureScans, scanIdx);
+
+                                float avgCost1 = poseCosts1.empty() ? 0.0f :
+                                    std::accumulate(poseCosts1.begin(), poseCosts1.end(), 0.0f) / poseCosts1.size();
+                                float totalCost1 = terminalCost1 + avgCost1;
+
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "   [TEST] second candidate traj cost = " << totalCost1);
+
+                                // Optionally overwrite bestTraj with second one
+                                // For now, you can either always take the second one:
+                                // bestTraj = cand1;
+                                // bestPoseCosts = poseCosts1;
+                                // bestTerminalCost = terminalCost1;
+                                // bestCost = totalCost1;
+
+                                // Or only take it if it's cheaper:
+                                if (totalCost1 < bestCost) {
+                                    bestTraj = cand1;
+                                    bestPoseCosts = poseCosts1;
+                                    bestTerminalCost = terminalCost1;
+                                    bestCost = totalCost1;
+                                                                    
+                                }
+                                geometry_msgs::PoseArray msg1 = cand1.getPathRbtFrame();
+                                msg1.header.stamp = ros::Time::now();
+                                msg1.header.frame_id = cfg_.robot_frame_id;
+                                pnCand1Pub_.publish(msg1);
+                            }
+                            if (candTrajs.size() > 2)
+                            {
+                                // === THIRD CANDIDATE TRAJECTORY ===
+                                Trajectory cand2 = candTrajs.at(2);
+
+                                if (cand2.getPathRbtFrame().poses.size() > 1)
+                                {
+                                    std::vector<float> poseCosts2;
+                                    float terminalCost2;
+
+                                    trajEvaluator_->evaluateTrajectory(cand2, poseCosts2, terminalCost2, futureScans, scanIdx);
+
+                                    if (!poseCosts2.empty())
+                                    {
+                                        float avgCost2 = std::accumulate(poseCosts2.begin(), poseCosts2.end(), 0.0f) / poseCosts2.size();
+                                        float totalCost2 = terminalCost2 + avgCost2;
+
+                                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                            "   [TEST] third candidate traj cost = " << totalCost2);
+
+                                        // Optionally overwrite bestTraj with third one
+                                        // For testing, always take it:
+                                        // bestTraj = cand2;
+                                        // bestPoseCosts = poseCosts2;
+                                        // bestTerminalCost = terminalCost2;
+                                        // bestCost = totalCost2;
+
+                                        // Or only if cheaper:
+                                        if (totalCost2 < bestCost)
+                                        {
+                                            bestTraj = cand2;
+                                            bestPoseCosts = poseCosts2;
+                                            bestTerminalCost = terminalCost2;
+                                            bestCost = totalCost2;
+                                        }
+                                        geometry_msgs::PoseArray msg2 = cand2.getPathRbtFrame();
+                                        msg2.header.stamp = ros::Time::now();
+                                        msg2.header.frame_id = cfg_.robot_frame_id;
+                                        pnCand2Pub_.publish(msg2);
+                                    }
+                                }
+                            }
+                            // === Publish best PN trajectory for visualization ===
+                            if (bestTraj.getPathRbtFrame().poses.size() > 1)
+                            {
+                                geometry_msgs::PoseArray bestMsg = bestTraj.getPathRbtFrame();
+                                bestMsg.header.stamp = ros::Time::now();
+                                bestMsg.header.frame_id = cfg_.robot_frame_id;
+                                bestPnTrajPub_.publish(bestMsg);
+                            }
+                            else
+                            {
+                                ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "No valid best PN trajectory to publish (too few poses)");
+                            }
+
+
+
+                            // for (auto &cand : candTrajs)
+                            // {
+                            //     // Evaluate
+                            //     std::vector<float> poseCostsTmp;
+                            //     float terminalCostTmp;
+                            //     trajEvaluator_->evaluateTrajectory(cand, poseCostsTmp, terminalCostTmp, futureScans, scanIdx);
+
+                            //     float avgCost = std::accumulate(poseCostsTmp.begin(), poseCostsTmp.end(), 0.0f) / poseCostsTmp.size();
+                            //     float totalCost = terminalCostTmp + avgCost;
+
+                            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                            //                         "   candidate traj cost = " << totalCost);
+
+                            //     if (totalCost < bestCost)
+                            //     {
+                            //         bestCost = totalCost;
+                            //         bestTraj = cand;
+                            //         bestPoseCosts = poseCostsTmp;
+                            //         bestTerminalCost = terminalCostTmp; 
+                            //     }
+                            // }
+
+                            pursuitGuidanceTraj = bestTraj;
+                            pursuitGuidancePoseCosts = bestPoseCosts;
+                            pursuitGuidanceTerminalPoseCost = bestTerminalCost;
+                            pursuitGuidancePoseCost = bestCost;
                         }
-                        
+                        else
+                        {
+                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, currPose, globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
 
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx, gap);
+                            if (j == (gapTube->size() - 1))
+                            {
+                                pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                            }
 
-                        pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
-                    } else
+                            trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts,
+                                                            pursuitGuidanceTerminalPoseCost, futureScans, scanIdx, gap);
+                            pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost +
+                                                    std::accumulate(pursuitGuidancePoseCosts.begin(),
+                                                                    pursuitGuidancePoseCosts.end(), 0.0f) /
+                                                        pursuitGuidancePoseCosts.size();
+
+                            //visualization for debugging
+                            geometry_msgs::PoseArray vizMsg = pursuitGuidanceTraj.getPathRbtFrame();
+                            vizMsg.header.stamp = ros::Time::now();
+                            vizMsg.header.frame_id = cfg_.robot_frame_id;
+                            pnTrajPub_.publish(vizMsg);
+                        }
+                    }
+
+                    
+                    
+                    else
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");
                         pursuitGuidanceTraj = gapTrajGenerator_->generateIdlingTrajectoryV2(gap, 
