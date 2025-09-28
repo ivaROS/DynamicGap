@@ -67,7 +67,7 @@ namespace dynamic_gap
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool social_cost_function = true; /**< false - old without cost function, true - new */
-                float social_cost_weight = .1; /**< weight for social cost during pose evaluation for traj selection */
+                float social_cost_weight = .05; /**< weight for social cost during pose evaluation for traj selection */
             } planning;            
 
             /**

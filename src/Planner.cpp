@@ -1027,7 +1027,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
 
-                        bool generate_multi_traj = true; // TODO: config flag
+                        bool generate_multi_traj = true; // TODO: add to config 
                         if (generate_multi_traj)
                         {
                             std::vector<Trajectory> candTrajs =
