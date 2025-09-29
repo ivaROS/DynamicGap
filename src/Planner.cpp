@@ -1042,6 +1042,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             {
                                 // === FIRST CANDIDATE TRAJECTORY ===
                                 Trajectory cand0 = candTrajs.at(0);
+                                cand0 = gapTrajGenerator_->processTrajectory(cand0);
 
                                 std::vector<float> poseCosts0;
                                 float terminalCost0;
@@ -1071,6 +1072,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             {
                                 // === SECOND CANDIDATE TRAJECTORY ===
                                 Trajectory cand1 = candTrajs.at(1);
+                                cand1 = gapTrajGenerator_->processTrajectory(cand1);
 
                                 std::vector<float> poseCosts1;
                                 float terminalCost1;
@@ -1108,6 +1110,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             {
                                 // === THIRD CANDIDATE TRAJECTORY ===
                                 Trajectory cand2 = candTrajs.at(2);
+                                cand2 = gapTrajGenerator_->processTrajectory(cand2);
 
                                 if (cand2.getPathRbtFrame().poses.size() > 1)
                                 {
