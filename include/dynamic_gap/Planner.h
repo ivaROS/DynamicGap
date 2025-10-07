@@ -62,6 +62,9 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <visualization_msgs/MarkerArray.h>
+
+
 namespace dynamic_gap
 {
     /**
@@ -443,6 +446,7 @@ namespace dynamic_gap
             ros::Publisher pnCand1Pub_;
             ros::Publisher pnCand2Pub_;
             ros::Publisher bestPnTrajPub_;
+            ros::Publisher candidateMarkerPub_;
 
 
 

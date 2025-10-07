@@ -1,4 +1,6 @@
 #include <dynamic_gap/Planner.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
 
 namespace dynamic_gap
 {   
@@ -120,6 +122,7 @@ namespace dynamic_gap
         pnCand1Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand1", 1);
         pnCand2Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand2", 1);
         bestPnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("best_pn_traj", 1);
+        candidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("pn_traj_all_markers", 1);
 
 
         // Visualization Setup
@@ -956,6 +959,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
+        // Collect all trajectories (for all gaps) into one visualization array
+visualization_msgs::MarkerArray allMarkers;
+int global_id = 0;
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajsV2()]");
         
@@ -1191,6 +1197,37 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             pursuitGuidancePoseCosts = bestPoseCosts;
                             pursuitGuidanceTerminalPoseCost = bestTerminalCost;
                             pursuitGuidancePoseCost = bestCost;
+                            
+                            // === Add all candidate trajectories for this gap to MarkerArray ===
+                            for (auto &cand : candTrajs)
+                            {
+                                geometry_msgs::PoseArray path = cand.getPathRbtFrame();
+
+                                for (size_t j = 0; j < path.poses.size(); ++j)
+                                {
+                                    visualization_msgs::Marker m;
+                                    m.header.frame_id = cfg_.robot_frame_id;
+                                    m.header.stamp = ros::Time::now();
+                                    m.ns = "gap_" + std::to_string(i);    // each gap its own namespace
+                                    m.id = global_id++;                   // unique ID across all markers
+                                    m.type = visualization_msgs::Marker::ARROW;
+                                    m.action = visualization_msgs::Marker::ADD;
+                                    m.pose = path.poses[j];
+
+                                    // simple color scheme per gap
+                                    m.scale.x = 0.15;
+                                    m.scale.y = 0.03;
+                                    m.scale.z = 0.03;
+                                    m.color.r = (i % 3 == 0);
+                                    m.color.g = (i % 3 == 1);
+                                    m.color.b = (i % 3 == 2);
+                                    m.color.a = 1.0;
+
+                                    m.lifetime = ros::Duration(0.5); // stays visible for 5 seconds
+                                    allMarkers.markers.push_back(m);
+                                }
+                            }
+
                         }
                         else
                         {
@@ -1292,6 +1329,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     scanIdx = runningTraj.getPathRbtFrame().poses.size() - 1;
                 }
 
+                
+
+
                 gapTubeTrajs.at(i) = runningTraj;
                 gapTubeTrajPoseCosts.at(i) = runningPoseCosts;
                 gapTubeTrajTerminalPoseCosts.at(i) = runningTerminalPoseCost;     
@@ -1308,6 +1348,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        t: " << time << ", p: (" << pose.position.x << ", " << pose.position.y << "), cost: " << cost);
                 }
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    terminal cost: " << runningTerminalPoseCost);
+                // === Publish all collected markers together ===
+candidateMarkerPub_.publish(allMarkers);
+
             }        
 
             // trajVisualizer_->drawGapTrajectoryPoseScores(gapTubeTrajs, gapTubeTrajPoseCosts);
