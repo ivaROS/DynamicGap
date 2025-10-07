@@ -1,6 +1,9 @@
 #include <dynamic_gap/Planner.h>
-#include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
+
+#include <visualization_msgs/MarkerArray.h>
+#include <sstream>
+#include <iomanip>
 
 namespace dynamic_gap
 {   
@@ -122,7 +125,9 @@ namespace dynamic_gap
         pnCand1Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand1", 1);
         pnCand2Pub_ = nh_.advertise<geometry_msgs::PoseArray>("pn_traj_cand2", 1);
         bestPnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("best_pn_traj", 1);
-        candidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("pn_traj_all_markers", 1);
+        // candidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("pn_traj_all_markers", 1);
+        candidateTrajPub_ = nh_.advertise<visualization_msgs::MarkerArray>("candidate_trajs_with_costs", 1);
+
 
 
         // Visualization Setup
@@ -986,6 +991,8 @@ int global_id = 0;
                 Trajectory runningTraj;
                 std::vector<float> runningPoseCosts;
                 float runningTerminalPoseCost;
+                std::vector<float> candidateCosts; // for visualization
+
 
                 for (int j = 0; j < gapTube->size(); j++) 
                 {
@@ -1058,6 +1065,7 @@ int global_id = 0;
                                 float avgCost0 = poseCosts0.empty() ? 0.0f :
                                     std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) / poseCosts0.size();
                                 float totalCost0 = terminalCost0 + avgCost0;
+                                candidateCosts.push_back(totalCost0); // for visualization
 
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                                     "   [TEST] first candidate traj cost = " << totalCost0);
@@ -1072,6 +1080,8 @@ int global_id = 0;
                                 msg0.header.stamp = ros::Time::now();
                                 msg0.header.frame_id = cfg_.robot_frame_id;
                                 pnCand0Pub_.publish(msg0);
+
+
                             }
 
                             if (candTrajs.size() > 1)
@@ -1088,6 +1098,7 @@ int global_id = 0;
                                 float avgCost1 = poseCosts1.empty() ? 0.0f :
                                     std::accumulate(poseCosts1.begin(), poseCosts1.end(), 0.0f) / poseCosts1.size();
                                 float totalCost1 = terminalCost1 + avgCost1;
+                                candidateCosts.push_back(totalCost1);
 
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                                     "   [TEST] second candidate traj cost = " << totalCost1);
@@ -1129,6 +1140,8 @@ int global_id = 0;
                                     {
                                         float avgCost2 = std::accumulate(poseCosts2.begin(), poseCosts2.end(), 0.0f) / poseCosts2.size();
                                         float totalCost2 = terminalCost2 + avgCost2;
+                                        candidateCosts.push_back(totalCost2);
+
 
                                         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                                             "   [TEST] third candidate traj cost = " << totalCost2);
@@ -1197,7 +1210,12 @@ int global_id = 0;
                             pursuitGuidancePoseCosts = bestPoseCosts;
                             pursuitGuidanceTerminalPoseCost = bestTerminalCost;
                             pursuitGuidancePoseCost = bestCost;
+                                  
+                            // for visualization
+
+                            publishCandidateTrajsWithCosts(candTrajs, candidateCosts, "candTraj_" + std::to_string(i));
                             
+                            /* //before adding function for it: 
                             // === Add all candidate trajectories for this gap to MarkerArray ===
                             for (auto &cand : candTrajs)
                             {
@@ -1227,6 +1245,8 @@ int global_id = 0;
                                     allMarkers.markers.push_back(m);
                                 }
                             }
+                            */
+                            
 
                         }
                         else
@@ -1349,7 +1369,8 @@ int global_id = 0;
                 }
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    terminal cost: " << runningTerminalPoseCost);
                 // === Publish all collected markers together ===
-candidateMarkerPub_.publish(allMarkers);
+                // candidateMarkerPub_.publish(allMarkers);
+                
 
             }        
 
@@ -2563,4 +2584,86 @@ candidateMarkerPub_.publish(allMarkers);
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
     }
+
+void Planner::publishCandidateTrajsWithCosts(
+    const std::vector<Trajectory>& candTrajs,
+    const std::vector<float>& trajCosts,
+    const std::string& ns)
+{
+    visualization_msgs::MarkerArray markers;
+    int id = 0;
+
+    // Define color palette — one color per gap
+    std::vector<std::array<float, 3>> gapColors = {
+        {1.0, 0.0, 0.0},   // red
+        {0.0, 0.6, 1.0},   // blue
+        {0.0, 0.8, 0.3},   // green
+        {1.0, 0.6, 0.0},   // orange
+        {0.6, 0.2, 1.0},   // purple
+        {0.9, 0.9, 0.0}    // yellow
+    };
+
+    // Derive a consistent color index based on namespace (gap)
+    size_t colorIdx = std::hash<std::string>{}(ns) % gapColors.size();
+    const auto& color = gapColors[colorIdx];
+
+    for (size_t i = 0; i < candTrajs.size(); i++)
+    {
+        geometry_msgs::PoseArray path = candTrajs[i].getPathRbtFrame();
+
+        // === Draw arrows for each pose ===
+        for (size_t j = 0; j < path.poses.size(); j++)
+        {
+            visualization_msgs::Marker arrow;
+            arrow.header.frame_id = cfg_.robot_frame_id;
+            arrow.header.stamp = ros::Time::now();
+            arrow.ns = ns + "_arrow";
+            arrow.id = id++;
+            arrow.type = visualization_msgs::Marker::ARROW;
+            arrow.action = visualization_msgs::Marker::ADD;
+            arrow.pose = path.poses[j];
+            arrow.scale.x = 0.1;
+            arrow.scale.y = 0.02;
+            arrow.scale.z = 0.02;
+
+            // ✅ Same color for all cands of this gap
+            arrow.color.r = color[0];
+            arrow.color.g = color[1];
+            arrow.color.b = color[2];
+            arrow.color.a = 1.0;
+
+            arrow.lifetime = ros::Duration(0.5);
+            markers.markers.push_back(arrow);
+        }
+
+        // === Add text marker for cost ===
+        if (!path.poses.empty())
+        {
+            visualization_msgs::Marker text;
+            text.header.frame_id = cfg_.robot_frame_id;
+            text.header.stamp = ros::Time::now();
+            text.ns = ns + "_cost";
+            text.id = id++;
+            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            text.action = visualization_msgs::Marker::ADD;
+            text.pose = path.poses.back();
+            text.pose.position.z += 0.25;  // lifted a bit higher
+
+            std::ostringstream ss;
+            ss << std::fixed << std::setprecision(2) << trajCosts[i];
+            text.text = "cost=" + ss.str();
+
+            text.scale.z = 0.2;
+            text.color.r = 0.0;  // black text
+            text.color.g = 0.0;
+            text.color.b = 0.0;
+            text.color.a = 1.0;
+            text.lifetime = ros::Duration(0.25);
+            markers.markers.push_back(text);
+        }
+    }
+
+    candidateTrajPub_.publish(markers);
+}
+
 }

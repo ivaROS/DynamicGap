@@ -433,6 +433,12 @@ namespace dynamic_gap
             */
             void checkGapModels(const std::vector<Gap *> & gaps);
 
+            void publishCandidateTrajsWithCosts(
+            const std::vector<Trajectory>& candTrajs,
+            const std::vector<float>& trajCosts,
+            const std::string& ns);
+
+
             boost::mutex gapMutex_; /**< Current set of gaps mutex */
             DynamicGapConfig cfg_; /**< Planner hyperparameter config list */
 
@@ -446,7 +452,9 @@ namespace dynamic_gap
             ros::Publisher pnCand1Pub_;
             ros::Publisher pnCand2Pub_;
             ros::Publisher bestPnTrajPub_;
-            ros::Publisher candidateMarkerPub_;
+            // ros::Publisher candidateMarkerPub_;
+            ros::Publisher candidateTrajPub_;
+
 
 
 
