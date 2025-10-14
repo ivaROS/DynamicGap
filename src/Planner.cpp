@@ -127,6 +127,7 @@ namespace dynamic_gap
         bestPnTrajPub_ = nh_.advertise<geometry_msgs::PoseArray>("best_pn_traj", 1);
         // candidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("pn_traj_all_markers", 1);
         candidateTrajPub_ = nh_.advertise<visualization_msgs::MarkerArray>("candidate_trajs_with_costs", 1);
+        minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
 
 
 
@@ -241,6 +242,28 @@ namespace dynamic_gap
         {
             colliding_ = false;
         }
+
+// publish as circle marker in RViz
+visualization_msgs::Marker circle;
+circle.header.frame_id = cfg_.sensor_frame_id;
+circle.header.stamp = ros::Time::now();
+circle.ns = "min_scan_circle";
+circle.id = 0;
+circle.type = visualization_msgs::Marker::CYLINDER;
+circle.action = visualization_msgs::Marker::ADD;
+circle.pose.position.x = 0.0;
+circle.pose.position.y = 0.0;
+circle.pose.position.z = 0.0;
+circle.pose.orientation.w = 1.0;
+circle.scale.x = 2.0 * minScanDist;
+circle.scale.y = 2.0 * minScanDist;
+circle.scale.z = 0.01;
+circle.color.r = 1.0;
+circle.color.g = 0.0;
+circle.color.b = 0.0;
+circle.color.a = 0.3;
+circle.lifetime = ros::Duration(0.1);
+minDistCirclePub_.publish(circle);
 
         cfg_.updateParamFromScan(scan_);
 

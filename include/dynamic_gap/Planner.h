@@ -454,7 +454,8 @@ namespace dynamic_gap
             ros::Publisher bestPnTrajPub_;
             // ros::Publisher candidateMarkerPub_;
             ros::Publisher candidateTrajPub_;
-
+            
+            ros::Publisher minDistCirclePub_;// for visualizing minumum distance
 
 
 
