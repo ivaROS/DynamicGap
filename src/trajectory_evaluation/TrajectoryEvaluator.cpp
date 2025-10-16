@@ -29,12 +29,16 @@ namespace dynamic_gap
     {    
         try
         {
-
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
             // Requires LOCAL FRAME
 
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
             std::vector<float> pathTiming = traj.getPathTiming();
+
+              ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
+                 << " addr=" << &path);
+                 
+
             
             posewiseCosts = std::vector<float>(path.poses.size());
 
