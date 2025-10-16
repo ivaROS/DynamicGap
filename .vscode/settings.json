@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "core": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "sstream": "cpp",
+        "iosfwd": "cpp"
     }
 }

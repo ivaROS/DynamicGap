@@ -165,6 +165,39 @@ namespace dynamic_gap
             boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
                                                     parallelNavigation, x, 0.0f, t_max, 
                                                     cfg_->traj.integrate_stept, logger);
+
+            
+            // create the trajectory first
+            bool debug_traj = true; 
+
+            if(debug_traj)
+            {
+                Trajectory traj(path, pathTiming);
+
+                // then print it
+                geometry_msgs::PoseArray trajPath = traj.getPathRbtFrame();
+                std::vector<float> trajTiming = traj.getPathTiming();
+
+                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                    "Trajectory positions (x, y): [ " <<
+                    ([&](){
+                        std::stringstream ss;
+                        for (const auto& p : trajPath.poses)
+                            ss << "(" << p.position.x << ", " << p.position.y << ") ";
+                        return ss.str();
+                    })() << "]");
+
+                ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                    "Trajectory timing: [ " <<
+                    ([&](){
+                        std::stringstream ss;
+                        for (float t : trajTiming)
+                            ss << t << " ";
+                        return ss.str();
+                    })() << "]");
+            }
+
+                        
         }
 
 
