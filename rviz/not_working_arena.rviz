@@ -348,30 +348,6 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: true
-              Marker Topic: /rto/bezier_curve
-              Name: Marker
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: true         
-            - Class: rviz/Marker
-              Enabled: true
-              Marker Topic: /rto/bezier_p2
-              Name: Marker
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: true           
-            - Class: rviz/Marker
-              Enabled: true
-              Marker Topic: /rto/min_scan_circle
-              Name: Marker
-              Namespaces:
-                {}
-              Queue Size: 100
-              Value: true
-            - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/manip_gaps
               Name: Marker
@@ -566,6 +542,31 @@ Visualization Manager:
             {}
           Queue Size: 100
           Value: true
+        - Class: rviz/Group
+          Displays:
+          - Class: rviz/Marker
+            Enabled: true
+            Marker Topic: /rto/bezier_curve
+            Name: Marker
+            Namespaces: {}
+            Queue Size: 100
+            Value: true
+          - Class: rviz/Marker
+            Enabled: true
+            Marker Topic: /rto/bezier_p2
+            Name: Marker
+            Namespaces: {}
+            Queue Size: 100
+            Value: true
+          - Class: rviz/Marker
+            Enabled: true
+            Marker Topic: /rto/min_scan_circle
+            Name: Marker
+            Namespaces: {}
+            Queue Size: 100
+            Value: true
+        Enabled: true
+        Name: Bezier Debug
       Enabled: true
       Name: Dynamic Gap
     - Alpha: 1
