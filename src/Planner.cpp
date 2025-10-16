@@ -1074,74 +1074,36 @@ else
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
 
-                            // ------------------------------------------------------------------
-// Visualize every Bézier pose
-// ------------------------------------------------------------------
-Trajectory bezierTraj;
-geometry_msgs::PoseArray path;
-std::vector<float> pathTiming;
+                            // convert to trajectory
+                            Trajectory bezierTraj;
+                            geometry_msgs::PoseArray path;
+                            path.header.frame_id = cfg_.sensor_frame_id;
+                            path.header.stamp = ros::Time::now();
 
-path.header.stamp = ros::Time::now();
-path.header.frame_id = cfg_.sensor_frame_id;
+                            for (const auto& pt : curve) {
+                                geometry_msgs::Pose pose;
+                                pose.position.x = pt.x();
+                                pose.position.y = pt.y();
+                                pose.position.z = 0.0;
+                                pose.orientation = tf::createQuaternionMsgFromYaw(atan2(v_dir.y(), v_dir.x()));
+                                path.poses.push_back(pose);
+                            }
 
-// Publisher (static so it doesn’t re-advertise)
-static ros::Publisher pose_pub = nh_.advertise<visualization_msgs::MarkerArray>("bezier_poses", 1);
+                            // assign timing (mimic pursuit guidance spacing)
+                            std::vector<float> times;
+                            float dt = 0.5f;  // or 1 / sampling_rate; tweak for speed
+                            for (size_t i = 0; i < curve.size(); ++i)
+                                times.push_back(i * dt);
 
-visualization_msgs::MarkerArray markers;
+                            bezierTraj.setPathRbtFrame(path);
+                            bezierTraj.setPathTiming(times);
 
-float accumulated_dist = 0.0f;
-float v_nominal = cfg_.rbt.vx_absmax;
+                            // transform to odom for consistency
+                            bezierTraj.setPathOdomFrame(gapTrajGenerator_->transformPath(path, rbt2odom_));
 
-for (size_t i = 0; i < curve.size(); ++i)
-{
-    geometry_msgs::Pose pose;
-    pose.position.x = curve[i].x();
-    pose.position.y = curve[i].y();
-    pose.position.z = 0.0;
-
-    if (i > 0)
-    {
-        Eigen::Vector2f tangent = (curve[i] - curve[i - 1]).normalized();
-        float yaw = std::atan2(tangent.y(), tangent.x());
-        pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-        accumulated_dist += (curve[i] - curve[i - 1]).norm();
-    }
-    else
-        pose.orientation = tf::createQuaternionMsgFromYaw(std::atan2(v_dir.y(), v_dir.x()));
-
-    path.poses.push_back(pose);
-    pathTiming.push_back(accumulated_dist / std::max(v_nominal, 1e-3f));
-
-    // ---- create an arrow marker for each pose ----
-    visualization_msgs::Marker m;
-    m.header = path.header;
-    m.ns = "bezier_poses";
-    m.id = static_cast<int>(i);
-    m.type = visualization_msgs::Marker::ARROW;
-    m.action = visualization_msgs::Marker::ADD;
-    m.pose = pose;
-    m.scale.x = 0.1;   // arrow shaft length
-    m.scale.y = 0.04;  // arrow width
-    m.scale.z = 0.04;
-    m.color.a = 1.0;
-    m.color.r = 0.2f + 0.8f * (float(i) / curve.size());
-    m.color.g = 0.3f;
-    m.color.b = 1.0f - 0.8f * (float(i) / curve.size());
-    m.lifetime = ros::Duration(0);  // persistent
-    markers.markers.push_back(m);
-}
-
-// publish all poses
-pose_pub.publish(markers);
-
-// ------------------------------------------------------------------
-// Keep rest of your trajectory code below
-// ------------------------------------------------------------------
-bezierTraj.setPathRbtFrame(path);
-bezierTraj.setPathTiming(pathTiming);
-geometry_msgs::PoseArray pathOdom = gapTrajGenerator_->transformPath(path, rbt2odom_);
-bezierTraj.setPathOdomFrame(pathOdom);
-pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(bezierTraj);
+                            // use this instead of pursuitGuidanceTraj
+                            pursuitGuidanceTraj = bezierTraj;
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
 
 
                             //delete this: 
