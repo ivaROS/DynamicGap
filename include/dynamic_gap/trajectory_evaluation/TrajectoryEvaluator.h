@@ -57,6 +57,12 @@ namespace dynamic_gap
                                     float & terminalPoseCost,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     const int & scanIdx);
+
+             void testing_evaluateTrajectory(geometry_msgs::PoseArray path , const Trajectory & traj,
+                                                std::vector<float> & posewiseCosts,
+                                                float & terminalPoseCost,
+                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                                const int & scanIdx);
             
         private:
             /**

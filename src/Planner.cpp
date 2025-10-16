@@ -1,10 +1,13 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 
+geometry_msgs::PoseArray path;
+
 namespace dynamic_gap
 {   
     Planner::~Planner()
     {
+
         // delete current raw, simplified, and selected gaps
         for (Gap * rawGap : currRawGaps_)
             delete rawGap;
@@ -1076,7 +1079,9 @@ else
 
                             // convert to trajectory
                             Trajectory bezierTraj;
-                            geometry_msgs::PoseArray path;
+                            // geometry_msgs::PoseArray path;
+                            extern geometry_msgs::PoseArray path;
+
                             path.header.frame_id = cfg_.sensor_frame_id;
                             path.header.stamp = ros::Time::now();
 
@@ -1088,6 +1093,8 @@ else
                                 pose.orientation = tf::createQuaternionMsgFromYaw(atan2(v_dir.y(), v_dir.x()));
                                 path.poses.push_back(pose);
                             }
+                            ROS_ERROR_STREAM_NAMED("DWA poses", "IN planner.cpp path.poses.size(): " << path.poses.size());
+
 
                             // assign timing (mimic pursuit guidance spacing)
                             std::vector<float> times;
@@ -1095,6 +1102,7 @@ else
                             for (size_t i = 0; i < curve.size(); ++i)
                                 times.push_back(i * dt);
 
+                            // ROS_ERROR_STREAM_NAMED("DWA times size", "DWA times size: " << times.size());
                             bezierTraj.setPathRbtFrame(path);
                             bezierTraj.setPathTiming(times);
 
@@ -1128,14 +1136,16 @@ else
                                                                                     // false);
                         }
                         
-                        if (j == (gapTube->size() - 1))
-                        {
-                            // prune trajectory
-                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
-                            pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
-                        }
-                        
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                        // if (j == (gapTube->size() - 1)) //commented out bc i wasn't sure if it's causing issues with the dwa traj
+                        // {
+                        //     // prune trajectory
+                        //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
+                        //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
+                        // }
+                        extern geometry_msgs::PoseArray path;
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "brute force global variable path.poses.size(): " << path.poses.size());
+
+                        trajEvaluator_->testing_evaluateTrajectory(path, pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                     } else
