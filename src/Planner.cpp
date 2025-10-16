@@ -1072,15 +1072,46 @@ else
                            
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
+
+                            // convert to trajectory
+Trajectory bezierTraj;
+geometry_msgs::PoseArray path;
+path.header.frame_id = cfg_.sensor_frame_id;
+path.header.stamp = ros::Time::now();
+
+for (const auto& pt : curve) {
+    geometry_msgs::Pose pose;
+    pose.position.x = pt.x();
+    pose.position.y = pt.y();
+    pose.position.z = 0.0;
+    pose.orientation = tf::createQuaternionMsgFromYaw(atan2(v_dir.y(), v_dir.x()));
+    path.poses.push_back(pose);
+}
+
+// assign timing (mimic pursuit guidance spacing)
+std::vector<float> times;
+float dt = 0.5f;  // or 1 / sampling_rate; tweak for speed
+for (size_t i = 0; i < curve.size(); ++i)
+    times.push_back(i * dt);
+
+bezierTraj.setPathRbtFrame(path);
+bezierTraj.setPathTiming(times);
+
+// transform to odom for consistency
+bezierTraj.setPathOdomFrame(gapTrajGenerator_->transformPath(path, rbt2odom_));
+
+// use this instead of pursuitGuidanceTraj
+pursuitGuidanceTraj = bezierTraj;
+
                             //delete this: 
-                             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                            currPose, 
-                                                                                            // currVel, 
-                                                                                            globalGoalRobotFrame_);
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                        // currPose,
-                                                                                        // currVel,
-                                                                                    // false);
+                            //  pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
+                            //                                                                 currPose, 
+                            //                                                                 // currVel, 
+                            //                                                                 globalGoalRobotFrame_);
+                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                            //                                                             // currPose,
+                            //                                                             // currVel,
+                            //                                                         // false);
                         }
                         else
                         {
