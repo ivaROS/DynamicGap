@@ -1,4 +1,5 @@
 #include <dynamic_gap/Planner.h>
+#include <dynamic_gap/utils/bezier_utils.h>
 
 namespace dynamic_gap
 {   
@@ -119,6 +120,8 @@ namespace dynamic_gap
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
+        minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
+
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -215,6 +218,8 @@ namespace dynamic_gap
         scan_ = scan;
 
         float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
+        min_scan_dist_ = minScanDist;
+
 
         if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
@@ -226,6 +231,28 @@ namespace dynamic_gap
         {
             colliding_ = false;
         }
+
+        // publish as circle marker in RViz
+        visualization_msgs::Marker circle;
+        circle.header.frame_id = cfg_.sensor_frame_id;
+        circle.header.stamp = ros::Time::now();
+        circle.ns = "min_scan_circle";
+        circle.id = 0;
+        circle.type = visualization_msgs::Marker::CYLINDER;
+        circle.action = visualization_msgs::Marker::ADD;
+        circle.pose.position.x = 0.0;
+        circle.pose.position.y = 0.0;
+        circle.pose.position.z = 0.0;
+        circle.pose.orientation.w = 1.0;
+        circle.scale.x = 2.0 * minScanDist;
+        circle.scale.y = 2.0 * minScanDist;
+        circle.scale.z = 0.01;
+        circle.color.r = 1.0;
+        circle.color.g = 0.0;
+        circle.color.b = 0.0;
+        circle.color.a = 0.3;
+        circle.lifetime = ros::Duration(0.1);
+        minDistCirclePub_.publish(circle);
 
         cfg_.updateParamFromScan(scan_);
 
@@ -438,6 +465,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
 
         currentRbtAcc_ = *rbtAccelMsg;
+        
+        //just for finding v_dir which is for the dwa_method 
+        float vx = currentRbtVel_.twist.linear.x;
+float vy = currentRbtVel_.twist.linear.y;
+float norm = std::sqrt(vx*vx + vy*vy);
+if (norm > 1e-5)  // avoid division by zero
+    v_dir_ = Eigen::Vector2f(vx / norm, vy / norm);
+else
+    v_dir_ = Eigen::Vector2f(1.0, 0.0);  // default forward
+
+
         if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
         {
             // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
@@ -1019,14 +1057,38 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     if (gap->isAvailable())
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
-                        pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                        currPose, 
-                                                                                        // currVel, 
-                                                                                        globalGoalRobotFrame_);
-                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                    // currPose,
-                                                                                    // currVel,
+                        
+                        if (cfg_.planning.dwa_method)
+                        {
+                            // get the latest min distance and velocity direction
+                            float min_scan_dist = min_scan_dist_;
+                            Eigen::Vector2f v_dir = v_dir_;
+                            Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos(); 
+                            Eigen::Vector2f p0(0.0f, 0.0f);
+                            Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
+                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 100);
+                            
+                            //delete this: 
+                             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
+                                                                                            currPose, 
+                                                                                            // currVel, 
+                                                                                            globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                                                                                        // currPose,
+                                                                                        // currVel,
                                                                                     // false);
+                        }
+                        else
+                        {
+                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
+                                                                                            currPose, 
+                                                                                            // currVel, 
+                                                                                            globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                                                                                        // currPose,
+                                                                                        // currVel,
+                                                                                    // false);
+                        }
                         
                         if (j == (gapTube->size() - 1))
                         {

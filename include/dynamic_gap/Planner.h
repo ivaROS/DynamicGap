@@ -445,6 +445,8 @@ namespace dynamic_gap
 
             message_filters::Subscriber<nav_msgs::Odometry> rbtPoseSub_; /**< Subscriber to incoming robot pose */
             message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
+            ros::Publisher minDistCirclePub_;// for visualizing minumum distance
+
 
             typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
             typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
@@ -558,6 +560,9 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
             float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
+            float min_scan_dist_; 
+            Eigen::Vector2f v_dir_;   // normalized direction of current velocity
+
                 
     };
 }

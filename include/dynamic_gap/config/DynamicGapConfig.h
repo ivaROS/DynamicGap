@@ -66,6 +66,7 @@ namespace dynamic_gap
                 bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
+                bool dwa_method = true; /**< Flag for using dwa to generate trajectories instead of pursuit guidance */
             } planning;            
 
             /**
