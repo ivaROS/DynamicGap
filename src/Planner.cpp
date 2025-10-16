@@ -1,7 +1,7 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 
-geometry_msgs::PoseArray path;
+geometry_msgs::PoseArray path; //a
 
 namespace dynamic_gap
 {   
