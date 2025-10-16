@@ -96,6 +96,8 @@ namespace dynamic_gap
         goalVisualizer_ = new GoalVisualizer(nh_, cfg_);
         agentVisualizer_ = new AgentVisualizer(nh_, cfg_);
         trajVisualizer_ = new TrajectoryVisualizer(nh_, cfg_);
+        bezierVisualizer_ = new BezierVisualizer(nh_, cfg_);
+
 
         ungapFeasibilityChecker_ = new UngapFeasibilityChecker(cfg_);
 
@@ -1067,7 +1069,9 @@ else
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
                             std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 100);
-                            
+                           
+                             bezierVisualizer_->drawP2(p2);
+                            bezierVisualizer_->drawCurve(curve);    
                             //delete this: 
                              pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
                                                                                             currPose, 

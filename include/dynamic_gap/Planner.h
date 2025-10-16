@@ -32,6 +32,7 @@
 #include <dynamic_gap/visualization/GoalVisualizer.h>
 #include <dynamic_gap/visualization/AgentVisualizer.h>
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
+#include <dynamic_gap/visualization/BezierVisualizer.h>
 #include <dynamic_gap/global_plan_management/GlobalPlanManager.h>
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
 #include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
@@ -527,6 +528,7 @@ namespace dynamic_gap
             AgentVisualizer * agentVisualizer_ = NULL; /**< Pedestrian visualizer */
             GlobalPlanManager * globalPlanManager_ = NULL; /**< Goal selector */
             TrajectoryVisualizer * trajVisualizer_ = NULL; /**< Trajectory visualizer */
+            BezierVisualizer* bezierVisualizer_ = NULL;
             GoalVisualizer * goalVisualizer_ = NULL; /**< Goal visualizer */
             TrajectoryEvaluator * trajEvaluator_ = NULL; /**< Trajectory scorer */
             DynamicScanPropagator * dynamicScanPropagator_ = NULL; /**< Dynamic scan propagator */
