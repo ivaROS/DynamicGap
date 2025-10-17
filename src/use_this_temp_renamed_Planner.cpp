@@ -1061,7 +1061,7 @@ else
                     // Run pursuit guidance behavior
                     if (gap->isAvailable())
                     {
-                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
+                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
                     
                             // get the latest min distance and velocity direction
                             float min_scan_dist = min_scan_dist_;
@@ -1159,10 +1159,10 @@ else
 
     for (int i = 0; i < pursuitGuidancePoseCosts.size(); i++)
     {
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+            "pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
         pursuitGuidancePoseCosts.at(i) =
             trajEvaluator_->evaluatePose(path.poses.at(i), futureScans.at(scanIdx + i));
-         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",
-            "pose " << i << " (total scan idx: " << (scanIdx + i) << "): " << pursuitGuidancePoseCosts.at(i) );
     }
 
     float totalTrajCost =
