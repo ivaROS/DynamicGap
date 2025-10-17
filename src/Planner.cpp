@@ -1002,7 +1002,7 @@ else
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
-ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
+                // ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                 GapTube * gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
@@ -1070,7 +1070,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
-                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11);
+                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 10);
                            
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
@@ -1119,10 +1119,10 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                         // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
                         // << " addr= (not valid for temporaries)");
 
-                        ROS_ERROR_STREAM("before evaluator: tube=" << i 
-                        << " gap=" << j 
-                        << " traj path.size()=" 
-                        << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
+                        // ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                        // << " gap=" << j 
+                        // << " traj path.size()=" 
+                        // << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
                         // geometry_msgs::PoseArray safe_path = pursuitGuidanceTraj.getPathRbtFrame();
                         // Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
@@ -1170,8 +1170,8 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                         pursuitGuidancePoseCosts.end(),
                         float(0)) / pursuitGuidancePoseCosts.size();
 
-    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
-        "avg pose-wise cost: " << totalTrajCost);
+    // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",
+    //     "avg pose-wise cost: " << totalTrajCost);
 
     pursuitGuidanceTerminalPoseCost =
         cfg_.traj.Q_f *
