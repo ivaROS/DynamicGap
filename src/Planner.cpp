@@ -1099,7 +1099,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                                 times.push_back(i * dt);
 
                             bezierTraj.setPathRbtFrame(path);
-                            bezierTraj.setPathTiming(times);
+                            bezierTraj.setPathTiming(times); //
 
                             // transform to odom for consistency
                             // bezierTraj.setPathOdomFrame(gapTrajGenerator_->transformPath(path, rbt2odom_)); // Code already transforms the traj down below
