@@ -1063,8 +1063,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
                         
-                        if (cfg_.planning.dwa_method)
-                        {
+                      
                             // get the latest min distance and velocity direction
                             float min_scan_dist = min_scan_dist_;
                             Eigen::Vector2f v_dir = v_dir_;
@@ -1118,18 +1117,8 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             //                                                             // currPose,
                             //                                                             // currVel,
                             //                                                         // false);
-                        }
-                        else
-                        {
-                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                            currPose, 
-                                                                                            // currVel, 
-                                                                                            globalGoalRobotFrame_);
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                        // currPose,
-                                                                                        // currVel,
-                                                                                    // false);
-                        }
+                        
+                    
                         
                         // if (j == (gapTube->size() - 1)) //commented out while debugging dwa mismatch 
                         // {
