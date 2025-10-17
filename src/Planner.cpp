@@ -1142,17 +1142,77 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
     // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
     // << " addr= (not valid for temporaries)");
 
-    ROS_ERROR_STREAM("before evaluator: tube=" << i 
-                 << " gap=" << j 
-                 << " traj path.size()=" 
-                 << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
+                        ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                        << " gap=" << j 
+                        << " traj path.size()=" 
+                        << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
-geometry_msgs::PoseArray safe_path = pursuitGuidanceTraj.getPathRbtFrame();
-Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
+                        // geometry_msgs::PoseArray safe_path = pursuitGuidanceTraj.getPathRbtFrame();
+                        // Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
 
-                        trajEvaluator_->evaluateTrajectory(tempTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                        // trajEvaluator_->evaluateTrajectory(tempTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                      
+                
+
+    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
+
+    geometry_msgs::PoseArray path = pursuitGuidanceTraj.getPathRbtFrame();
+    std::vector<float> pathTiming = pursuitGuidanceTraj.getPathTiming();
+
+    ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
+                     << " addr=" << &path);
+
+    pursuitGuidancePoseCosts = std::vector<float>(path.poses.size());
+
+    if (path.poses.size() > futureScans.size())
+    {
+        ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+            "posewiseCosts-futureScans size mismatch: "
+            << pursuitGuidancePoseCosts.size() << " vs " << futureScans.size());
+    }
+
+    if (pursuitGuidancePoseCosts.size() != path.poses.size())
+    {
+        ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+            "posewiseCosts-pathPoses size mismatch: "
+            << pursuitGuidancePoseCosts.size() << " vs " << path.poses.size());
+    }
+
+    for (int i = 0; i < pursuitGuidancePoseCosts.size(); i++)
+    {
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+            "pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
+        pursuitGuidancePoseCosts.at(i) =
+            trajEvaluator_->evaluatePose(path.poses.at(i), futureScans.at(scanIdx + i));
+    }
+
+    float totalTrajCost =
+        std::accumulate(pursuitGuidancePoseCosts.begin(),
+                        pursuitGuidancePoseCosts.end(),
+                        float(0)) / pursuitGuidancePoseCosts.size();
+
+    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+        "avg pose-wise cost: " << totalTrajCost);
+
+    pursuitGuidanceTerminalPoseCost =
+        cfg_.traj.Q_f *
+        trajEvaluator_->terminalGoalCost(path.poses.back());
+
+    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+        "terminal cost: " << pursuitGuidanceTerminalPoseCost);
+
+
+                        
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                      
+           
+                        
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
+
+
+
+
                     } else
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");

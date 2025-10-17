@@ -57,9 +57,9 @@ namespace dynamic_gap
                                     float & terminalPoseCost,
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     const int & scanIdx);
-            
-        private:
-            /**
+
+
+             /**
             * \brief function for evaluating terminal waypoint cost for candidate trajectory
             * \param pose final pose in candidate trajectory to check against terminal waypoint
             * \return terminal waypoint cost for candidate trajectory
@@ -74,6 +74,9 @@ namespace dynamic_gap
             float evaluatePose(const geometry_msgs::Pose & pose,
                                 const sensor_msgs::LaserScan scan_k) ;
             
+            
+        private:
+           
             /**
             * \brief function for calculating intermediate trajectory cost (in static environment)
             * \param rbtToScanDist minimum distance from robot pose to current scan
