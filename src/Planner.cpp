@@ -1062,8 +1062,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                     if (gap->isAvailable())
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
-                        
-                      
+                    
                             // get the latest min distance and velocity direction
                             float min_scan_dist = min_scan_dist_;
                             Eigen::Vector2f v_dir = v_dir_;
@@ -1108,17 +1107,6 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
 
 
-                            //delete this: 
-                            //  pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                            //                                                                 currPose, 
-                            //                                                                 // currVel, 
-                            //                                                                 globalGoalRobotFrame_);
-                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                            //                                                             // currPose,
-                            //                                                             // currVel,
-                            //                                                         // false);
-                        
-                    
                         
                         // if (j == (gapTube->size() - 1)) //commented out while debugging dwa mismatch 
                         // {
@@ -1127,9 +1115,9 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         // }
                         
-    //                     ROS_ERROR_STREAM("INSIDE planner path.size()=" 
-    // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
-    // << " addr= (not valid for temporaries)");
+                        //                     ROS_ERROR_STREAM("INSIDE planner path.size()=" 
+                        // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
+                        // << " addr= (not valid for temporaries)");
 
                         ROS_ERROR_STREAM("before evaluator: tube=" << i 
                         << " gap=" << j 
@@ -1141,16 +1129,17 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                         // trajEvaluator_->evaluateTrajectory(tempTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                      
+////////////////////////////////////////////////////////////////////start of: BRUTE FORCE PASTING IN CODE INSTEAD OF evaluateTrajectory()/////////////////////////////////////////////////////////////////////////////////////////////////                      
                 
 
     ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
 
-    geometry_msgs::PoseArray path = pursuitGuidanceTraj.getPathRbtFrame();
-    std::vector<float> pathTiming = pursuitGuidanceTraj.getPathTiming();
+    // geometry_msgs::PoseArray path = pursuitGuidanceTraj.getPathRbtFrame(); // path already defined above
+    // std::vector<float> pathTiming = pursuitGuidanceTraj.getPathTiming(); // times defined above
+    std::vector<float> pathTiming = times;
 
-    ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
-                     << " addr=" << &path);
+    // ROS_ERROR_STREAM("brute force inline code: evaluator path.size()=" << path.poses.size()
+    //                  << " addr=" << &path);
 
     pursuitGuidancePoseCosts = std::vector<float>(path.poses.size());
 
@@ -1193,7 +1182,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
 
                         
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                      
+////////////////////////////////////////////////////////////////////////////////////////end of: BRUTE FORCE PASTING IN CODE INSTEAD OF evaluateTrajectory()/////////////////////////////////////////////////////////////////////////////                      
            
                         
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();

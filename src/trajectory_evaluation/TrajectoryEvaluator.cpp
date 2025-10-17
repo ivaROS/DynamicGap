@@ -35,8 +35,8 @@ namespace dynamic_gap
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
             std::vector<float> pathTiming = traj.getPathTiming();
 
-              ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
-                 << " addr=" << &path);
+            //   ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
+            //      << " addr=" << &path);
                  
 
             
