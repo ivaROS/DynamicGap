@@ -999,6 +999,13 @@ else
             gapTubeTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
             gapTubeTrajTerminalPoseCosts = std::vector<float>(gapTubes.size());
 
+            geometry_msgs::TwistStamped currentRbtVel_;
+            float current_linear_velocity = std::sqrt(
+            std::pow(currentRbtVel_.twist.linear.x, 2) +
+            std::pow(currentRbtVel_.twist.linear.y, 2)
+            );
+
+
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
@@ -1077,36 +1084,56 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
 
-                            // convert to trajectory
-                            Trajectory bezierTraj;
-                            geometry_msgs::PoseArray path;
-                            path.header.frame_id = cfg_.sensor_frame_id;
-                            path.header.stamp = ros::Time::now();
+                            //
+                            // known limits and current state
+float v0       = current_linear_velocity;
+float v_max    = cfg_.rbt.vx_absmax;
+float w_max    = cfg_.rbt.vang_absmax;
+float a_max    =  1.0; //todo: update this value
 
-                            for (const auto& pt : curve) {
-                                geometry_msgs::Pose pose;
-                                pose.position.x = pt.x();
-                                pose.position.y = pt.y();
-                                pose.position.z = 0.0;
-                                pose.orientation = tf::createQuaternionMsgFromYaw(atan2(v_dir.y(), v_dir.x()));
-                                path.poses.push_back(pose);
-                            }
 
-                            // assign timing (mimic pursuit guidance spacing)
-                            std::vector<float> times;
-                            float dt = 0.5f;  // or 1 / sampling_rate; tweak for speed
-                            for (size_t i = 0; i < curve.size(); ++i)
-                                times.push_back(i * dt);
+const int   num_points   = 11;           // total points along the trajectory
+const int   num_segments = num_points - 1;
+const float dt           = 0.5f;         // each step = 0.5 s
+const float total_time   = dt * num_segments;   // ~5.0 s horizon
 
-                            bezierTraj.setPathRbtFrame(path);
-                            bezierTraj.setPathTiming(times); //
 
-                            // transform to odom for consistency
-                            // bezierTraj.setPathOdomFrame(gapTrajGenerator_->transformPath(path, rbt2odom_)); // Code already transforms the traj down below
+// --- Step 1: desired forward speed after one step of acceleration ---
+float v_des = std::min(v0 + a_max * dt, v_max);
 
-                            // use this instead of pursuitGuidanceTraj
-                            pursuitGuidanceTraj = bezierTraj;
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+
+// --- Step 2: estimate curvature at the start of the Bézier (using sampled points) ---
+Eigen::Vector2f curve_point0 = curve[0];
+Eigen::Vector2f curve_point1 = curve[1];
+Eigen::Vector2f curve_point2 = curve[2];
+
+Eigen::Vector2f v1 = curve_point1 - curve_point0;
+Eigen::Vector2f v2 = curve_point2 - curve_point1;
+
+// z-component of the cross product between consecutive direction vectors
+float cross = v1.x() * v2.y() - v1.y() * v2.x();
+float curvature = cross / powf(v1.norm(), 3.0f);   // discrete curvature estimate
+
+
+// --- Step 3: desired yaw rate from curvature ---
+float w_des = v_des * curvature;
+
+
+// --- Step 4: compute λ scaling factor (re-parameterization of curve timing) ---
+float lambda = std::min(1.0f, v_des / v1.norm());
+
+
+// --- Step 5: apply angular-velocity clipping (σ term) ---
+float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
+
+
+// --- Step 6: final commanded velocities (ego-DWA style) ---
+float v_cmd = sigma * lambda * v_des;
+float w_cmd = sigma * lambda * w_des;
+
+                            
+                            // pursuitGuidanceTraj = bezierTraj;
+                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
 
 
                             //delete this: 
