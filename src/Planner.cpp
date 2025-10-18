@@ -123,6 +123,8 @@ namespace dynamic_gap
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
         minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
+        ros::NodeHandle nh;  // or pass an existing NodeHandle
+        traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("bezier_traj", 1);
 
 
         map2rbt_.transform.rotation.w = 1;
@@ -1094,7 +1096,7 @@ float a_max    =  1.0; //todo: update this value
 
 const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
-const float dt           = 0.5f;         // each step = 0.5 s
+const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
 const float total_time   = dt * num_segments;   // ~5.0 s horizon
 
 
@@ -1130,6 +1132,71 @@ float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
 // --- Step 6: final commanded velocities (ego-DWA style) ---
 float v_cmd = sigma * lambda * v_des;
 float w_cmd = sigma * lambda * w_des;
+
+// ------------------------------------------------------------
+// Generate trajectory rollout from (v_cmd, w_cmd)
+// ------------------------------------------------------------
+
+// initial state (robot frame)
+float x = 0.0f;
+float y = 0.0f;
+float yaw = 0.0f;
+float t = 0.0f;
+
+// storage
+std::vector<Eigen::Vector2f> positions;
+std::vector<float> yaws;
+std::vector<float> times;
+
+positions.reserve(num_points);
+yaws.reserve(num_points);
+times.reserve(num_points);
+
+// store initial pose
+positions.push_back(Eigen::Vector2f(x, y));
+yaws.push_back(yaw);
+times.push_back(t);
+
+// rollout integration (unicycle model)
+for (int i = 1; i < num_points; ++i)
+{
+    yaw += w_cmd * dt;
+    x   += v_cmd * std::cos(yaw) * dt;
+    y   += v_cmd * std::sin(yaw) * dt;
+    t   += dt;
+
+    positions.push_back(Eigen::Vector2f(x, y));
+    yaws.push_back(yaw);
+    times.push_back(t);
+}
+
+// ------------------------------------------------------------
+// Convert to ROS PoseArray if desired
+// ------------------------------------------------------------
+geometry_msgs::PoseArray traj_path;
+traj_path.header.frame_id = cfg_.sensor_frame_id;
+traj_path.header.stamp = ros::Time::now();
+
+for (int i = 0; i < num_points; ++i)
+{
+    geometry_msgs::Pose pose;
+    pose.position.x = positions[i].x();
+    pose.position.y = positions[i].y();
+    pose.position.z = 0.0;
+    pose.orientation = tf::createQuaternionMsgFromYaw(yaws[i]);
+    traj_path.poses.push_back(pose);
+}
+
+// optional: store timing in a separate vector for later scoring
+std::vector<float> traj_times = times;
+traj_pub_.publish(traj_path);
+
+//delete this: 
+                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
+                                                                                            currPose, 
+                                                                                            // currVel, 
+                                                                                            globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
 
                             
                             // pursuitGuidanceTraj = bezierTraj;
