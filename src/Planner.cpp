@@ -1081,7 +1081,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
-                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11);
+                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 21);
                            
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
@@ -1091,10 +1091,10 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 float v0       = current_linear_velocity;
 float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  1.0; //todo: update this value
+float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
 
-const int   num_points   = 11;           // total points along the trajectory
+const int   num_points   = 21;           // total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
 const float total_time   = dt * num_segments;   // ~5.0 s horizon
