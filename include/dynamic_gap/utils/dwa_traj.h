@@ -9,7 +9,7 @@
 struct dwa_Trajectory
 {
     // --- Core geometry ---
-    std::vector<Eigen::Vector2f> positions;   // sampled x,y positions (robot frame)
+    std::vector<Eigen::Vector2f> positions;   // sampled x,y positions (robot frame)s
     std::vector<float> yaws;                  // heading angles at each step
     std::vector<float> times;                 // timestamps (s)
 

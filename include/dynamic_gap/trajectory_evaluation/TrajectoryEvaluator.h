@@ -71,6 +71,10 @@ namespace dynamic_gap
             * \param pose pose within candidate trajectory to evaluate
             * \return intermediate cost of pose
             */
+            
+            float dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k); 
+
+            
             float evaluatePose(const geometry_msgs::Pose & pose,
                                 const sensor_msgs::LaserScan scan_k) ;
             

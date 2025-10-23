@@ -88,6 +88,36 @@ namespace dynamic_gap
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
+    float TrajectoryEvaluator::dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) 
+    {
+        boost::mutex::scoped_lock lock(scanMutex_);
+        // sensor_msgs::LaserScan scan = *scan_.get();
+
+        // obtain orientation and idx of pose
+
+        // dist is size of scan
+        std::vector<float> scan2RbtDists(scan_k.ranges.size());
+
+        // iterate through ranges and obtain the distance from the egocircle point and the pose
+        // Meant to find where is really small
+        // float currScan2RbtDist = 0.0;
+        for (int i = 0; i < scan2RbtDists.size(); i++) 
+        {
+            scan2RbtDists.at(i) = dist2Pose(idx2theta(i), scan_k.ranges.at(i), pose);
+        }
+
+        auto iter = std::min_element(scan2RbtDists.begin(), scan2RbtDists.end());
+        // std::cout << "robot pose: " << pose.position.x << ", " << pose.position.y << ")" << std::endl;
+        int minDistIdx = std::distance(scan2RbtDists.begin(), iter);
+        float range = scan_k.ranges.at(minDistIdx);
+        float theta = idx2theta(minDistIdx);
+        float cost = chapterCost(*iter);
+        //std::cout << *iter << ", regular cost: " << cost << std::endl;
+        ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            robot pose: " << pose.position.x << ", " << pose.position.y << 
+                                                        ", closest scan point: " << range * std::cos(theta) << ", " << range * std::sin(theta) << ", cost: " << cost);
+        return cost;
+    }
+
     float TrajectoryEvaluator::evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
