@@ -1082,7 +1082,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
-                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11);
+                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
                            
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
@@ -1098,7 +1098,7 @@ float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it
 const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
-const float total_time   = dt * num_segments;   
+// const float total_time   = dt * num_segments;   
 
 // --- Step 1: desired forward speed after one step of acceleration ---
 float v_des = std::min(v0 + a_max * dt, v_max);
@@ -1133,12 +1133,72 @@ float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
 float v_cmd = sigma * lambda * v_des;
 float w_cmd = sigma * lambda * w_des;
 
-dwa_Trajectory dwa_traj;  // holds everything
+// dwa_Trajectory dwa_traj;  // holds everything
+// dwa_traj.v_cmd = v_cmd;
+// dwa_traj.w_cmd = w_cmd;
+
+
+
+// --- Assume constant speed along Bézier arc ---
+float total_time = dt * (num_points - 1);
+float total_length = 0.0f;
+
+//compute arc length of the Bézier (approx. sum of straight-line segments)
+for (int i = 1; i < curve.size(); ++i)
+    total_length += (curve[i] - curve[i - 1]).norm();
+
+//compute how far the robot travels per timestep at v_cmd
+float step_distance = (v_cmd * total_time) / (num_points - 1);
+
+//extract equally spaced points along the curve by accumulated distance
+dwa_Trajectory dwa_traj;
 dwa_traj.v_cmd = v_cmd;
 dwa_traj.w_cmd = w_cmd;
 
+float dist_accum = 0.0f;
+float next_target = 0.0f;
+int current_seg = 0;
 
+dwa_traj.positions.reserve(num_points);
+dwa_traj.yaws.reserve(num_points);
+dwa_traj.times.reserve(num_points);
 
+// always include starting point
+dwa_traj.positions.push_back(curve.front());
+dwa_traj.yaws.push_back(atan2((curve[1] - curve[0]).y(), (curve[1] - curve[0]).x()));
+dwa_traj.times.push_back(0.0f);
+
+// iterate through segments and pick positions spaced by step_distance
+for (int i = 1; i < num_points; ++i)
+{
+    next_target += step_distance;
+
+    // walk along the Bézier until accumulated distance exceeds next_target
+    while (current_seg + 1 < curve.size() &&
+           (dist_accum + (curve[current_seg + 1] - curve[current_seg]).norm()) < next_target)
+    {
+        dist_accum += (curve[current_seg + 1] - curve[current_seg]).norm();
+        current_seg++;
+    }
+
+    if (current_seg + 1 >= curve.size())
+        break;
+
+    float seg_len = (curve[current_seg + 1] - curve[current_seg]).norm();
+    float remaining = next_target - dist_accum;
+    float t_seg = remaining / std::max(seg_len, 1e-6f);
+
+    // linear interpolation between curve points
+    Eigen::Vector2f pt = curve[current_seg] + t_seg * (curve[current_seg + 1] - curve[current_seg]);
+    Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
+
+    dwa_traj.positions.push_back(pt);
+    dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
+    dwa_traj.times.push_back(i * dt);
+}
+
+//publish as PoseArray
+traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 
 
 
@@ -1196,7 +1256,7 @@ for (int vi = 0; vi < num_points; ++vi)
     vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
     vis_traj_path.poses.push_back(vis_pose);
 }
-traj_pub_.publish(vis_traj_path);
+// traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
 //delete this: 
                             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
