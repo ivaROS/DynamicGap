@@ -1133,65 +1133,70 @@ float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
 float v_cmd = sigma * lambda * v_des;
 float w_cmd = sigma * lambda * w_des;
 
+dwa_Trajectory dwa_traj;  // holds everything
+dwa_traj.v_cmd = v_cmd;
+dwa_traj.w_cmd = w_cmd;
+
+
+
+
+
+
+
 // ------------------------------------------------------------
-// Generate trajectory rollout from (v_cmd, w_cmd)
+// Visualization-only rollout for RViz
 // ------------------------------------------------------------
 
 // initial state (robot frame)
-float x = 0.0f;
-float y = 0.0f;
-float yaw = 0.0f;
-float t = 0.0f;
+float vis_x = 0.0f;
+float vis_y = 0.0f;
+float vis_yaw = 0.0f;
+float vis_t = 0.0f;
 
 // storage
-std::vector<Eigen::Vector2f> positions;
-std::vector<float> yaws;
-std::vector<float> times;
+std::vector<Eigen::Vector2f> vis_positions;
+std::vector<float> vis_yaws;
+std::vector<float> vis_times;
 
-positions.reserve(num_points);
-yaws.reserve(num_points);
-times.reserve(num_points);
+vis_positions.reserve(num_points);
+vis_yaws.reserve(num_points);
+vis_times.reserve(num_points);
 
 // store initial pose
-positions.push_back(Eigen::Vector2f(x, y));
-yaws.push_back(yaw);
-times.push_back(t);
+vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
+vis_yaws.push_back(vis_yaw);
+vis_times.push_back(vis_t);
 
 // rollout integration (unicycle model)
-for (int i = 1; i < num_points; ++i)
+for (int vi = 1; vi < num_points; ++vi)
 {
-    yaw += w_cmd * dt;
-    x   += v_cmd * std::cos(yaw) * dt;
-    y   += v_cmd * std::sin(yaw) * dt;
-    t   += dt;
+    vis_yaw += w_cmd * dt;
+    vis_x   += v_cmd * std::cos(vis_yaw) * dt;
+    vis_y   += v_cmd * std::sin(vis_yaw) * dt;
+    vis_t   += dt;
 
-    positions.push_back(Eigen::Vector2f(x, y));
-    yaws.push_back(yaw);
-    times.push_back(t);
+    vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
+    vis_yaws.push_back(vis_yaw);
+    vis_times.push_back(vis_t);
 }
 
 // ------------------------------------------------------------
 // Convert to ROS PoseArray
 // ------------------------------------------------------------
-geometry_msgs::PoseArray traj_path;
-traj_path.header.frame_id = cfg_.sensor_frame_id;
-traj_path.header.stamp = ros::Time::now();
+geometry_msgs::PoseArray vis_traj_path;
+vis_traj_path.header.frame_id = cfg_.sensor_frame_id;
+vis_traj_path.header.stamp = ros::Time::now();
 
-for (int i = 0; i < num_points; ++i)
+for (int vi = 0; vi < num_points; ++vi)
 {
-    geometry_msgs::Pose pose;
-    pose.position.x = positions[i].x();
-    pose.position.y = positions[i].y();
-    pose.position.z = 0.0;
-    pose.orientation = tf::createQuaternionMsgFromYaw(yaws[i]);
-    traj_path.poses.push_back(pose);
+    geometry_msgs::Pose vis_pose;
+    vis_pose.position.x = vis_positions[vi].x();
+    vis_pose.position.y = vis_positions[vi].y();
+    vis_pose.position.z = 0.0;
+    vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
+    vis_traj_path.poses.push_back(vis_pose);
 }
-
-// optional: store timing in a separate vector for later scoring
-std::vector<float> traj_times = times;
-traj_pub_.publish(traj_path);
-
-
+traj_pub_.publish(vis_traj_path);
 
 //delete this: 
                             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
