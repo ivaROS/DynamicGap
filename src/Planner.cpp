@@ -1081,7 +1081,7 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
-                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 21);
+                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11);
                            
                              bezierVisualizer_->drawP2(p2);
                             bezierVisualizer_->drawCurve(curve);    
@@ -1094,11 +1094,10 @@ float w_max    = cfg_.rbt.vang_absmax;
 float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
 
-const int   num_points   = 21;           // total points along the trajectory
+const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
-const float total_time   = dt * num_segments;   // ~5.0 s horizon
-
+const float total_time   = dt * num_segments;   
 
 // --- Step 1: desired forward speed after one step of acceleration ---
 float v_des = std::min(v0 + a_max * dt, v_max);
@@ -1129,7 +1128,7 @@ float lambda = std::min(1.0f, v_des / v1.norm());
 float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
 
 
-// --- Step 6: final commanded velocities (ego-DWA style) ---
+// --- Step 6: final commanded velocities ---
 float v_cmd = sigma * lambda * v_des;
 float w_cmd = sigma * lambda * w_des;
 
@@ -1171,7 +1170,7 @@ for (int i = 1; i < num_points; ++i)
 }
 
 // ------------------------------------------------------------
-// Convert to ROS PoseArray if desired
+// Convert to ROS PoseArray
 // ------------------------------------------------------------
 geometry_msgs::PoseArray traj_path;
 traj_path.header.frame_id = cfg_.sensor_frame_id;
@@ -1190,6 +1189,8 @@ for (int i = 0; i < num_points; ++i)
 // optional: store timing in a separate vector for later scoring
 std::vector<float> traj_times = times;
 traj_pub_.publish(traj_path);
+
+
 
 //delete this: 
                             pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
