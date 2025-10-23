@@ -1,5 +1,6 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/bezier_utils.h>
+#include <dynamic_gap/utils/dwa_traj.h>
 
 namespace dynamic_gap
 {   
@@ -1136,59 +1137,30 @@ float w_cmd = sigma * lambda * w_des;
 // Generate trajectory rollout from (v_cmd, w_cmd)
 // ------------------------------------------------------------
 
-// initial state (robot frame)
-float x = 0.0f;
-float y = 0.0f;
-float yaw = 0.0f;
-float t = 0.0f;
+dwa_Trajectory dwa_traj;
 
-// storage
-std::vector<Eigen::Vector2f> positions;
-std::vector<float> yaws;
-std::vector<float> times;
+// rollout loop
+float x = 0.0f, y = 0.0f, yaw = 0.0f, t = 0.0f;
+dwa_traj.v_cmd = v_cmd;
+dwa_traj.w_cmd = w_cmd;
 
-positions.reserve(num_points);
-yaws.reserve(num_points);
-times.reserve(num_points);
+dwa_traj.positions.push_back(Eigen::Vector2f(x, y));
+dwa_traj.yaws.push_back(yaw);
+dwa_traj.times.push_back(t);
 
-// store initial pose
-positions.push_back(Eigen::Vector2f(x, y));
-yaws.push_back(yaw);
-times.push_back(t);
-
-// rollout integration (unicycle model)
 for (int i = 1; i < num_points; ++i)
 {
-    yaw += w_cmd * dt;
-    x   += v_cmd * std::cos(yaw) * dt;
-    y   += v_cmd * std::sin(yaw) * dt;
+    yaw += dwa_traj.w_cmd * dt;
+    x   += dwa_traj.v_cmd * std::cos(yaw) * dt;
+    y   += dwa_traj.v_cmd * std::sin(yaw) * dt;
     t   += dt;
 
-    positions.push_back(Eigen::Vector2f(x, y));
-    yaws.push_back(yaw);
-    times.push_back(t);
+    dwa_traj.positions.push_back(Eigen::Vector2f(x, y));
+    dwa_traj.yaws.push_back(yaw);
+    dwa_traj.times.push_back(t);
 }
 
-// ------------------------------------------------------------
-// Convert to ROS PoseArray
-// ------------------------------------------------------------
-geometry_msgs::PoseArray traj_path;
-traj_path.header.frame_id = cfg_.sensor_frame_id;
-traj_path.header.stamp = ros::Time::now();
-
-for (int i = 0; i < num_points; ++i)
-{
-    geometry_msgs::Pose pose;
-    pose.position.x = positions[i].x();
-    pose.position.y = positions[i].y();
-    pose.position.z = 0.0;
-    pose.orientation = tf::createQuaternionMsgFromYaw(yaws[i]);
-    traj_path.poses.push_back(pose);
-}
-
-// optional: store timing in a separate vector for later scoring
-std::vector<float> traj_times = times;
-traj_pub_.publish(traj_path);
+traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 
 
 
