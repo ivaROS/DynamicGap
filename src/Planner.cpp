@@ -1011,7 +1011,7 @@ else
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
-ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
+                ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                 GapTube * gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
@@ -1189,6 +1189,44 @@ for (int i = 0; i < num_points; ++i)
 // optional: store timing in a separate vector for later scoring
 std::vector<float> traj_times = times;
 traj_pub_.publish(traj_path);
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ going to add generateTrajectoryV2_dwa() here later \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// Trajectory GapTrajectoryGenerator::generateTrajectoryV2(Gap * selectedGap, 
+//                                                             const geometry_msgs::PoseStamped & currPose, 
+//                                                             // const geometry_msgs::TwistStamped & currVel,
+//                                                             const geometry_msgs::PoseStamped & globalGoalRobotFrame) 
+
+// --- declare inputs ---
+Gap* selectedGap = gap;  // or the variable name you're passing
+// currPose;  // not needed
+geometry_msgs::PoseStamped globalGoalRobotFrame = globalGoalRobotFrame_;
+
+
+
+geometry_msgs::PoseArray path;
+std::vector<float> pathTiming;
+
+// std::chrono::steady_clock::time_point generateTrajectoryStartTime = std::chrono::steady_clock::now();
+
+path.header.stamp = currPose.header.stamp;
+path.header.frame_id = cfg_->sensor_frame_id;
+
+Eigen::Vector4f rbtState(currPose.pose.position.x, 
+                            currPose.pose.position.y,
+                            0.0, 
+                            0.0);
+
+                            Eigen::Vector2f terminalGoal = selectedGap->getGoal()->getTermGoalPos();  // (selectedGap->terminalGoal.x_, selectedGap->terminalGoal.y_);
+
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "            actual terminal goal: (" << terminalGoal[0] << ", " << terminalGoal[1] << ")"); 
+
+
+            dwa_TrajectoryLogger dwa_logger(path, pathTiming, cfg_->robot_frame_id, TODO_if_want_put_Q_here_will_ahve_to_do_conversion ); // tf::createQuaternionMsgFromYaw(yaws[i]) returns a ROS geometry_msgs::Quaternion, while Eigen::Quaternionf is an Eigen math type; they represent the same rotation but use different data structures.
+
+    
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ end of generateTrajectoryV2_dwa()\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 
 
 

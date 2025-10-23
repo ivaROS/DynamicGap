@@ -328,5 +328,53 @@ namespace dynamic_gap
             pathTiming_.push_back(t);
         }
     };
+    /**
+    * \brief Structure for logging DWA trajectories! and recording their contents
+    */
+    struct dwa_TrajectoryLogger
+    {
+        geometry_msgs::PoseArray & path_; /**< resulting path of trajectory */
+        std::vector<float>& pathTiming_; /**< resulting path timing of trajectory */
+        std::string frame_; /**< frame ID of trajectory */
+        // Eigen::Quaternionf q_; /**< quaternion of trajectory */
+
+        dwa_TrajectoryLogger(geometry_msgs::PoseArray & path, std::vector<float> & pathTiming,
+                        const std::string & frame) : // deleted const Eigen::Quaternionf & q 
+                         path_(path), frame_(frame), pathTiming_(pathTiming) // deleted this ", q_(q)"
+        {
+            if (frame_.empty())
+            {
+                ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id is empty");
+            }
+
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger frame id: " << frame_);
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "TrajectoryLogger q: " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w());
+
+
+        }
+
+        /**
+        * \brief () operator for logger that records trajectory state
+        * \param x trajectory state
+        * \param t current timestep
+        */
+        void operator() (const robotAndGapState &x , const float & t)
+        {
+            geometry_msgs::PoseStamped pose;
+            pose.header.frame_id = frame_;
+
+            pose.pose.position.x = x[0];
+            pose.pose.position.y = x[1];
+            pose.pose.position.z = 0;
+
+            pose.pose.orientation.x = q_.x();
+            pose.pose.orientation.y = q_.y();
+            pose.pose.orientation.z = q_.z();
+            pose.pose.orientation.w = q_.w();
+            path_.poses.push_back(pose.pose);
+
+            pathTiming_.push_back(t);
+        }
+    };
 
 }
