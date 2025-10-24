@@ -168,7 +168,7 @@ namespace dynamic_gap
 
             
             // create the trajectory first
-            bool debug_traj = true; 
+            bool debug_traj = false; 
 
             if(debug_traj)
             {

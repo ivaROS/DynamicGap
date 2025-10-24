@@ -1196,10 +1196,23 @@ for (int i = 1; i < num_points; ++i)
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
 }
-
 //publish as PoseArray
-traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 
+
+// --- Convert positioin evaluator path.size()ns to PoseArray ---
+geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
+
+// --- Evaluate each pose using your evaluator ---
+int counter = 0; 
+for (const auto& pose : pose_array.poses)
+{
+    float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
+    ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "dwa_evaluatePose output: " << cost);
+    counter++; 
+}
+
+// traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
+traj_pub_.publish(pose_array);
 
 
 
@@ -2070,10 +2083,17 @@ Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
         if (cfg_.planning.future_scan_propagation)
         {
             if (cfg_.planning.egocircle_prop_cheat)
+            {
                 throw std::runtime_error("cheat not implemented"); // futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
-            else
+            }
+                else
+            {
                 futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);        
-        } else 
+                publishFutureScans(futureScans);
+       
+            }
+        }
+            else 
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();
             futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
@@ -2615,4 +2635,28 @@ Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
     }
+
+    void Planner::publishFutureScans(const std::vector<sensor_msgs::LaserScan>& futureScans)
+    {
+    static std::vector<ros::Publisher> futureScanPubs;
+
+    // Create publishers only once (latched)
+    if (futureScanPubs.empty())
+    {
+        futureScanPubs.reserve(futureScans.size());
+        for (size_t k = 0; k < futureScans.size(); ++k)
+        {
+            std::string topic = "/future_scan_" + std::to_string(k);
+            futureScanPubs.push_back(nh_.advertise<sensor_msgs::LaserScan>(topic, 1, true));
+            ROS_INFO_STREAM_NAMED("Planner", "Advertising future scan topic: " << topic);
+        }
+    }
+
+    // Publish each future scan
+    for (size_t k = 0; k < futureScans.size(); ++k)
+    {
+        futureScanPubs[k].publish(futureScans[k]);
+    }
+    }
+
 }

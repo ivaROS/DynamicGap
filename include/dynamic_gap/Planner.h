@@ -143,6 +143,9 @@ namespace dynamic_gap
             */
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
+            void publishFutureScans(const std::vector<sensor_msgs::LaserScan>& futureScans);
+
+
         private:
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,

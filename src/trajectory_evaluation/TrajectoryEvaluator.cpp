@@ -35,8 +35,8 @@ namespace dynamic_gap
             geometry_msgs::PoseArray path = traj.getPathRbtFrame();
             std::vector<float> pathTiming = traj.getPathTiming();
 
-              ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
-                 << " addr=" << &path);
+            //   ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
+            //      << " addr=" << &path);
                  
 
             
@@ -88,7 +88,7 @@ namespace dynamic_gap
         return sqrt(pow(dx, 2) + pow(dy, 2));
     }
 
-    float TrajectoryEvaluator::dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) 
+    float TrajectoryEvaluator::dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k) // to do make this more efficient 
     {
         boost::mutex::scoped_lock lock(scanMutex_);
         // sensor_msgs::LaserScan scan = *scan_.get();
