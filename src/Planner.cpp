@@ -1039,6 +1039,12 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                     float goToGoalTerminalPoseCost, pursuitGuidanceTerminalPoseCost;
                     float goToGoalCost, pursuitGuidancePoseCost;
 
+                    //variables for dwa
+                    std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
+                    float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
+                    float dwa_goToGoalCost, dwa_PoseCost;
+
+
                     Gap * gap = gapTube->at(j);
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "         gap: " << j);
@@ -1201,15 +1207,62 @@ for (int i = 1; i < num_points; ++i)
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
 geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
+    
+// --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
+// int counter = 0; 
+// for (const auto& pose : pose_array.poses)
+// {
+//     float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
+//     ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "dwa_evaluatePose output: " << cost);
+//     counter++; 
+// }
 
-// --- Evaluate each pose using your evaluator ---
-int counter = 0; 
-for (const auto& pose : pose_array.poses)
+//  std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
+//                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
+//                     float dwa_goToGoalCost, dwa_PoseCost;
+
+
+trajEvaluator_->dwa_evaluateTrajectory(pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
+
+// ------------------------------------------------------------
+//  Visualize cost values for each pose
+// ------------------------------------------------------------
+visualization_msgs::MarkerArray cost_texts;
+cost_texts.markers.reserve(pose_array.poses.size());
+
+for (size_t i = 0; i < pose_array.poses.size(); ++i)
 {
-    float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
-    ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "dwa_evaluatePose output: " << cost);
-    counter++; 
+    visualization_msgs::Marker text_marker;
+    text_marker.header.frame_id = cfg_.sensor_frame_id; // or "base_link"
+    text_marker.header.stamp = ros::Time::now();
+    text_marker.ns = "dwa_pose_costs";
+    text_marker.id = static_cast<int>(i);
+
+    text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+    text_marker.action = visualization_msgs::Marker::ADD;
+
+    text_marker.pose.position.x = pose_array.poses[i].position.x;
+    text_marker.pose.position.y = pose_array.poses[i].position.y;
+    text_marker.pose.position.z = 0.1; // lift a bit above ground
+
+    text_marker.scale.z = 0.15;     // text height
+    text_marker.color.r = 0.0;
+    text_marker.color.g = 0.0;
+    text_marker.color.b = 0.0;
+    text_marker.color.a = 1.0;
+
+    // Convert cost to short string
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(2) << dwa_PoseCosts[i];
+    text_marker.text = ss.str();
+
+    cost_texts.markers.push_back(text_marker);
 }
+
+// Publish text markers
+static ros::Publisher cost_pub = nh_.advertise<visualization_msgs::MarkerArray>("dwa_pose_cost_markers", 1, true);
+cost_pub.publish(cost_texts);
+
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
@@ -1310,7 +1363,7 @@ for (int vi = 0; vi < num_points; ++vi)
                         //     // prune trajectory
                         //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
-                        // }
+                        // }futureScans, scanIdx);futureScans, scanIdx);
                         
     //                     ROS_ERROR_STREAM("INSIDE planner path.size()=" 
     // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
