@@ -1040,7 +1040,8 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                     float goToGoalCost, pursuitGuidancePoseCost;
 
                     //variables for dwa
-                    std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
+                    std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts; // IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost
+                    std::vector<float> dwa_PathCosts; 
                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
                     float dwa_goToGoalCost, dwa_PoseCost;
 
@@ -1225,7 +1226,7 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 float totalTrajCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
 
@@ -1249,6 +1250,18 @@ traj_cost_viz_pub.publish(clear);
 static int global_marker_id = 0;
 
 visualization_msgs::MarkerArray traj_markers;
+ std::vector<float> costPrintout; 
+costPrintout = dwa_PathCosts; ///////////////////// adjust this line for the rviz cost print out
+
+#include <sstream>
+#include <iterator>
+
+std::ostringstream oss;
+std::copy(dwa_PathCosts.begin(), dwa_PathCosts.end(),
+          std::ostream_iterator<float>(oss, ", "));
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PathCosts: [" << oss.str() << "]");
+
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PoseCosts" << dwa_PoseCosts);
 
 // --- line strip for this trajectory ---
 visualization_msgs::Marker line;
@@ -1294,7 +1307,7 @@ for (size_t i = 0; i < pose_array.poses.size(); ++i)
     text.lifetime = ros::Duration(dwa_visual_duration);
 
     std::ostringstream ss;
-    ss << std::fixed << std::setprecision(2) << dwa_PoseCosts[i];
+    ss << std::fixed << std::setprecision(2) << costPrintout[i];
     text.text = ss.str();
 
     traj_markers.markers.push_back(text);

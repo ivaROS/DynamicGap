@@ -85,6 +85,7 @@ namespace dynamic_gap
     //                                             const int & scanIdx) 
         void TrajectoryEvaluator::dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
                                 std::vector<float> & posewiseCosts,
+                                std::vector<float> &dwa_PathCosts, 
                                 float & terminalPoseCost,
                                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                                 const int & scanIdx,
@@ -104,6 +105,7 @@ namespace dynamic_gap
 
             
             posewiseCosts = std::vector<float>(pose_array.poses.size());
+            dwa_PathCosts = std::vector<float>(pose_array.poses.size());
 
             if (pose_array.poses.size() > futureScans.size()) 
             {
@@ -123,7 +125,7 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
                 // IMPORTANT NOTE: this is only the distance-related cost not other costs like path cost
-                posewiseCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
+                dwa_PathCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (cost: " << posewiseCosts.at(i) << "): ");
 
             }
@@ -142,8 +144,9 @@ namespace dynamic_gap
             float path_cost_sum = 0.0f;
             for (const auto& pose : pose_array.poses) //todo: combine with loop above
             {
-                path_cost_sum += calcDistToGlobalPath(pose, globalPlanSnippet);
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "pose" << idx << " path distance cost: " << path_cost_sum);
+                dwa_PathCosts.at(idx) = calcDistToGlobalPath(pose, globalPlanSnippet);
+                path_cost_sum += dwa_PathCosts.at(idx);
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "pose" << idx << " path distance cost: " << path_cost_sum);
                 idx++; 
             }
 

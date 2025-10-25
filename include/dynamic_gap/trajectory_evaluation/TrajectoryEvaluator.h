@@ -60,6 +60,7 @@ namespace dynamic_gap
 
             void dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
                             std::vector<float> & posewiseCosts,
+                            std::vector<float> &dwa_PathCosts, 
                             float & terminalPoseCost,
                             const std::vector<sensor_msgs::LaserScan> & futureScans,
                             const int & scanIdx,
