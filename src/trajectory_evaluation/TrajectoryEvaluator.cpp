@@ -78,11 +78,17 @@ namespace dynamic_gap
         return;
     }
 
-    void TrajectoryEvaluator::dwa_evaluateTrajectory(geometry_msgs::PoseArray & pose_array,
-                                                std::vector<float> & posewiseCosts,
-                                                float & terminalPoseCost,
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
-                                                const int & scanIdx) 
+    // void TrajectoryEvaluator::dwa_evaluateTrajectory(geometry_msgs::PoseArray & pose_array,
+    //                                             std::vector<float> & posewiseCosts,
+    //                                             float & terminalPoseCost,
+    //                                             const std::vector<sensor_msgs::LaserScan> & futureScans,
+    //                                             const int & scanIdx) 
+        void TrajectoryEvaluator::dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
+                                std::vector<float> & posewiseCosts,
+                                float & terminalPoseCost,
+                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                const int & scanIdx,
+                                const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet)
     {    
         try
         {
@@ -116,18 +122,40 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
+                // IMPORTANT NOTE: this is only the distance-related cost not other costs like path cost
                 posewiseCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (cost: " << posewiseCosts.at(i) << "): ");
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (cost: " << posewiseCosts.at(i) << "): ");
 
             }
-            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
+            // float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
+            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
-
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
+            //////////////////// path costs //////////////////
+            // --- Path-distance cost (distance to visible global plan snippet) ---
+            // std::vector<geometry_msgs::PoseStamped> visiblePlan =
+                // globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
+            float idx = 0; 
+            float path_cost_sum = 0.0f;
+            for (const auto& pose : pose_array.poses) //todo: combine with loop above
+            {
+                path_cost_sum += calcDistToGlobalPath(pose, globalPlanSnippet);
+                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "pose" << idx << " path distance cost: " << path_cost_sum);
+                idx++; 
+            }
+
+            float avg_path_cost = path_cost_sum / std::max(1.0f, float(pose_array.poses.size()));
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "avg path distance cost: " << avg_path_cost);
+
+            // Combine into a final cost
+            float totalTrajCost =
+                cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
+                cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost;
+
+
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         } catch (const std::out_of_range& e) 
         {
@@ -240,4 +268,27 @@ namespace dynamic_gap
 
         return cfg_->traj.Q * std::exp(-cfg_->traj.pen_exp_weight * inflRbtToScanDist);
     }
+    float TrajectoryEvaluator::calcDistToGlobalPath(const geometry_msgs::Pose& pose,
+                                                const std::vector<geometry_msgs::PoseStamped>& globalPlanSnippet)
+{
+    if (globalPlanSnippet.empty())
+        return 0.0f;
+
+    // We'll use the first and last visible global plan points
+    geometry_msgs::Point e1 = globalPlanSnippet.front().pose.position;
+    geometry_msgs::Point e2 = globalPlanSnippet.back().pose.position;
+
+    // Line coefficients (ax + by + c = 0)
+    const float a = e2.y - e1.y;
+    const float b = -(e2.x - e1.x);
+    const float c = -a * e1.x - b * e1.y;
+
+    geometry_msgs::Point p = pose.position;
+
+    // perpendicular distance from point to line
+    float dist = std::fabs(a * p.x + b * p.y + c) / (std::hypot(a, b) + 1e-6);
+
+    return dist;
+}
+
 }

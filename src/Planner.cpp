@@ -1199,8 +1199,7 @@ for (int i = 1; i < num_points; ++i)
     Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
 
     dwa_traj.positions.push_back(pt);
-    ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
-
+    // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
 }
@@ -1223,8 +1222,10 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 //                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
 //                     float dwa_goToGoalCost, dwa_PoseCost;
 
-
-trajEvaluator_->dwa_evaluateTrajectory(pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
+std::vector<geometry_msgs::PoseStamped> visiblePlan =
+    globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
+float totalTrajCost = 0; 
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
 
@@ -1233,8 +1234,8 @@ if(visualize_curves_and_costs)
 {
 // Evaluate trajectory
 float dwa_visual_duration = .05; 
-trajEvaluator_->dwa_evaluateTrajectory(
-    pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
+// trajEvaluator_->dwa_evaluateTrajectory(
+//     pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
 
 static ros::Publisher traj_cost_viz_pub =
     nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);

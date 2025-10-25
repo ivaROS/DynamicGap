@@ -58,13 +58,17 @@ namespace dynamic_gap
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     const int & scanIdx);
 
-            void dwa_evaluateTrajectory(geometry_msgs::PoseArray & pose_array,
-                                                std::vector<float> & posewiseCosts,
-                                                float & terminalPoseCost,
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
-                                                const int & scanIdx);
+            void dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
+                            std::vector<float> & posewiseCosts,
+                            float & terminalPoseCost,
+                            const std::vector<sensor_msgs::LaserScan> & futureScans,
+                            const int & scanIdx,
+                            const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet);
 
             float dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k); 
+            
+            float calcDistToGlobalPath(const geometry_msgs::Pose& pose,
+                           const std::vector<geometry_msgs::PoseStamped>& globalPlanSnippet);
 
             
         private:
