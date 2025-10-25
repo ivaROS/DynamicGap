@@ -1223,49 +1223,85 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 
 
 trajEvaluator_->dwa_evaluateTrajectory(pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
-
-// ------------------------------------------------------------
-//  Visualize cost values for each pose
-// ------------------------------------------------------------
-visualization_msgs::MarkerArray cost_texts;
-cost_texts.markers.reserve(pose_array.poses.size());
-
-for (size_t i = 0; i < pose_array.poses.size(); ++i)
-{
-    visualization_msgs::Marker text_marker;
-    text_marker.header.frame_id = cfg_.sensor_frame_id; // or "base_link"
-    text_marker.header.stamp = ros::Time::now();
-    text_marker.ns = "dwa_pose_costs";
-    text_marker.id = static_cast<int>(i);
-
-    text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-    text_marker.action = visualization_msgs::Marker::ADD;
-
-    text_marker.pose.position.x = pose_array.poses[i].position.x;
-    text_marker.pose.position.y = pose_array.poses[i].position.y;
-    text_marker.pose.position.z = 0.1; // lift a bit above ground
-
-    text_marker.scale.z = 0.15;     // text height
-    text_marker.color.r = 0.0;
-    text_marker.color.g = 0.0;
-    text_marker.color.b = 0.0;
-    text_marker.color.a = 1.0;
-
-    // Convert cost to short string
-    std::ostringstream ss;
-    ss << std::fixed << std::setprecision(2) << dwa_PoseCosts[i];
-    text_marker.text = ss.str();
-
-    cost_texts.markers.push_back(text_marker);
-}
-
-// Publish text markers
-static ros::Publisher cost_pub = nh_.advertise<visualization_msgs::MarkerArray>("dwa_pose_cost_markers", 1, true);
-cost_pub.publish(cost_texts);
-
-
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
+
+bool visualize_curves_and_costs = true; 
+if(visualize_curves_and_costs)
+{
+// Evaluate trajectory
+float dwa_visual_duration = .05; 
+trajEvaluator_->dwa_evaluateTrajectory(
+    pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
+
+static ros::Publisher traj_cost_viz_pub =
+    nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
+
+//Clear previous markers if you want a clean refresh each cycle
+visualization_msgs::MarkerArray clear;
+clear.markers.clear();
+traj_cost_viz_pub.publish(clear);
+
+
+static int global_marker_id = 0;
+
+visualization_msgs::MarkerArray traj_markers;
+
+// --- line strip for this trajectory ---
+visualization_msgs::Marker line;
+line.header.frame_id = cfg_.sensor_frame_id;
+line.header.stamp = ros::Time::now();
+line.ns = "dwa_traj_lines";
+line.id = global_marker_id++;
+line.type = visualization_msgs::Marker::LINE_STRIP;
+line.action = visualization_msgs::Marker::ADD;
+line.scale.x = 0.03;
+line.color.r = 0.0;
+line.color.g = 1.0;
+line.color.b = 0.0;
+line.color.a = 1.0;
+line.lifetime = ros::Duration(dwa_visual_duration);  // keep indefinitely
+
+for (const auto& pose : pose_array.poses)
+{
+    geometry_msgs::Point p;
+    p.x = pose.position.x;
+    p.y = pose.position.y;
+    p.z = 0.02;
+    line.points.push_back(p);
+}
+traj_markers.markers.push_back(line);
+
+// --- per-pose cost text ---
+for (size_t i = 0; i < pose_array.poses.size(); ++i)
+{
+    visualization_msgs::Marker text;
+    text.header = line.header;
+    text.ns = "dwa_pose_costs";
+    text.id = global_marker_id++;
+    text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+    text.action = visualization_msgs::Marker::ADD;
+    text.pose = pose_array.poses[i];
+    text.pose.position.z += 0.15;
+    text.scale.z = 0.15;
+    text.color.r = 0.0;
+    text.color.g = 0.0;
+    text.color.b = 0.0;
+    text.color.a = 1.0;
+    text.lifetime = ros::Duration(dwa_visual_duration);
+
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(2) << dwa_PoseCosts[i];
+    text.text = ss.str();
+
+    traj_markers.markers.push_back(text);
+}
+
+// Publish all markers for this trajectory
+traj_cost_viz_pub.publish(traj_markers);
+}
+
+
 
 
 
