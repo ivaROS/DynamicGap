@@ -66,6 +66,9 @@ namespace dynamic_gap
                             const int & scanIdx,
                             const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet);
 
+            float calcSpeedCost(const float v_cmd, const float v_max); 
+
+
             float dwa_evaluatePose(const geometry_msgs::Pose & pose, const sensor_msgs::LaserScan scan_k); 
             
             float calcDistToGlobalPath(const geometry_msgs::Pose& pose,

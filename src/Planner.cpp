@@ -1225,8 +1225,14 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 
 std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
-float totalTrajCost = 0; 
+float totalTrajCost = 0;
+float speedCost = 0; 
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
+speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
+totalTrajCost += speedCost * cfg_.traj.w_speed;
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+
+
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
 
@@ -1252,14 +1258,6 @@ static int global_marker_id = 0;
 visualization_msgs::MarkerArray traj_markers;
  std::vector<float> costPrintout; 
 costPrintout = dwa_PathCosts; ///////////////////// adjust this line for the rviz cost print out
-
-#include <sstream>
-#include <iterator>
-
-std::ostringstream oss;
-std::copy(dwa_PathCosts.begin(), dwa_PathCosts.end(),
-          std::ostream_iterator<float>(oss, ", "));
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PathCosts: [" << oss.str() << "]");
 
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PoseCosts" << dwa_PoseCosts);
 

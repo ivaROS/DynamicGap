@@ -123,6 +123,7 @@ namespace dynamic_gap
                 float w_obs = 1.0; 
                 float w_path = 1.0; 
                 float w_goal = 1.0; 
+                float w_speed = 1.0; 
             } traj;            
             
             /**

@@ -78,6 +78,20 @@ namespace dynamic_gap
         return;
     }
 
+    float TrajectoryEvaluator::calcSpeedCost(const float v_cmd, const float v_max)
+        {
+            // Prefer higher speeds but stay within limits.
+            // Cost = 0 when v_cmd == v_max, increases as speed drops.
+            float speed_cost = v_max - std::clamp(v_cmd, 0.0f, v_max);
+
+            // Normalize by v_max so cost is in [0,1].
+            speed_cost /= (v_max + 1e-6f);
+            ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "v_cmd: " << v_cmd << " speed_cost: " << speed_cost);
+
+            return speed_cost;
+        }
+
+
     // void TrajectoryEvaluator::dwa_evaluateTrajectory(geometry_msgs::PoseArray & pose_array,
     //                                             std::vector<float> & posewiseCosts,
     //                                             float & terminalPoseCost,
@@ -154,7 +168,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "avg path distance cost: " << avg_path_cost);
 
             // Combine into a final cost
-            float totalTrajCost =
+            totalTrajCost =
                 cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
                 cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost;
 
