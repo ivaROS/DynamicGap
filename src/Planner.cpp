@@ -1199,6 +1199,8 @@ for (int i = 1; i < num_points; ++i)
     Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
 
     dwa_traj.positions.push_back(pt);
+    ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
+
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
 }
@@ -1213,7 +1215,7 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 // for (const auto& pose : pose_array.poses)
 // {
 //     float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
-//     ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "dwa_evaluatePose output: " << cost);
+//     ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "pose: " << counter << "dwa_evaluatePose (not evalTraj) output: " << cost);
 //     counter++; 
 // }
 
@@ -1405,11 +1407,15 @@ for (int vi = 0; vi < num_points; ++vi)
     // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
     // << " addr= (not valid for temporaries)");
 
-    ROS_ERROR_STREAM("before evaluator: tube=" << i 
-                 << " gap=" << j 
-                 << " traj path.size()=" 
-                 << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
+    // ROS_ERROR_STREAM("before evaluator: tube=" << i 
+    //              << " gap=" << j 
+    //              << " traj path.size()=" 
+    //              << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
+
+    ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                 << " gap=" << j);
+    
 geometry_msgs::PoseArray safe_path = pursuitGuidanceTraj.getPathRbtFrame();
 Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
 
