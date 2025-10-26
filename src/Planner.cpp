@@ -1415,10 +1415,6 @@ for (int vi = 0; vi < num_points; ++vi)
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         // }futureScans, scanIdx);futureScans, scanIdx);
                         
-    //                     ROS_ERROR_STREAM("INSIDE planner path.size()=" 
-    // << pursuitGuidanceTraj.getPathRbtFrame().poses.size()
-    // << " addr= (not valid for temporaries)");
-
     // ROS_ERROR_STREAM("before evaluator: tube=" << i 
     //              << " gap=" << j 
     //              << " traj path.size()=" 
@@ -1428,10 +1424,7 @@ for (int vi = 0; vi < num_points; ++vi)
     ROS_ERROR_STREAM("before evaluator: tube=" << i 
                  << " gap=" << j);
     
-geometry_msgs::PoseArray safe_path = pursuitGuidanceTraj.getPathRbtFrame();
-Trajectory tempTraj(safe_path, pursuitGuidanceTraj.getPathTiming());
-
-                        trajEvaluator_->evaluateTrajectory(tempTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                     } else
