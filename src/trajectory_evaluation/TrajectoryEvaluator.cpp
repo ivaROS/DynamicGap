@@ -86,7 +86,7 @@ namespace dynamic_gap
 
             // Normalize by v_max so cost is in [0,1].
             speed_cost /= (v_max + 1e-6f);
-            ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "v_cmd: " << v_cmd << " speed_cost: " << speed_cost);
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "v_cmd: " << v_cmd << " speed_cost: " << speed_cost);
 
             return speed_cost;
         }

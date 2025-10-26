@@ -1258,9 +1258,25 @@ traj_cost_viz_pub.publish(clear);
 
 static int global_marker_id = 0;
 
+
+// --- for visualization combine pose, path, and terminal costs into total per-step costs ---
+std::vector<float> dwa_TotalCostsVector;
+dwa_TotalCostsVector.reserve(dwa_PoseCosts.size());
+
+for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+{
+    float total_cost = dwa_PoseCosts[i] + dwa_PathCosts[i];
+
+    // add terminal cost only at the last time step
+    if (i == dwa_PoseCosts.size() - 1)
+        total_cost += dwa_TerminalPoseCost;
+
+    dwa_TotalCostsVector.push_back(total_cost);
+}
+
 visualization_msgs::MarkerArray traj_markers;
- std::vector<float> costPrintout; 
-costPrintout = dwa_PathCosts; ///////////////////// adjust this line for the rviz cost print out
+std::vector<float> costPrintout; 
+costPrintout = dwa_TotalCostsVector; // adjust this line for the rviz cost print out. options: dwa_PoseCosts, dwa_PathCosts, dwa_TotalCostsVector
 
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PoseCosts" << dwa_PoseCosts);
 
@@ -1815,15 +1831,18 @@ for (int vi = 0; vi < num_points; ++vi)
                 lowestCostTrajIdx = candidateLowestCostTrajIdx;
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
+                ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - numGapTrajs;
                 trajFlag = UNGAP;
+                ROS_ERROR_STREAM_NAMED("Planner", "          picked UPGAP traj");
                 ROS_INFO_STREAM_NAMED("Planner", "    picking ungap traj: " << lowestCostTrajIdx);
             } else if (candidateLowestCostTrajIdx >= (numGapTrajs + numUngapTrajs) && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs + numIdlingTrajs))
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
                 trajFlag = IDLING;
+                ROS_ERROR_STREAM_NAMED("Planner", "          picked IDLING traj");
                 ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
             } else
             {
