@@ -1076,6 +1076,10 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                     }
         
                     // Run pursuit guidance behavior
+                    float totalTrajCost = 0;
+                    geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
+                    dwa_Trajectory dwa_traj;        
+
                     if (gap->isAvailable())
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
@@ -1158,7 +1162,6 @@ for (int i = 1; i < curve.size(); ++i)
 float step_distance = (v_cmd * total_time) / (num_points - 1);
 
 //extract equally spaced points along the curve by accumulated distance
-dwa_Trajectory dwa_traj;
 dwa_traj.v_cmd = v_cmd;
 dwa_traj.w_cmd = w_cmd;
 
@@ -1208,7 +1211,7 @@ for (int i = 1; i < num_points; ++i)
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
-geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
+pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
     
 // --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
 // int counter = 0; 
@@ -1225,7 +1228,7 @@ geometry_msgs::PoseArray pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id)
 
 std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
-float totalTrajCost = 0;
+// float totalTrajCost = 0;
 float speedCost = 0; 
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
@@ -1375,11 +1378,11 @@ for (int vi = 0; vi < num_points; ++vi)
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
 //delete this: 
-                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                            currPose, 
-                                                                                            // currVel, 
-                                                                                            globalGoalRobotFrame_);
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
+                            // pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
+                            //                                                                 currPose, 
+                            //                                                                 // currVel, 
+                            //                                                                 globalGoalRobotFrame_);
+                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
 
                             
                             // pursuitGuidanceTraj = bezierTraj;
@@ -1421,12 +1424,65 @@ for (int vi = 0; vi < num_points; ++vi)
     //              << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
 
-    ROS_ERROR_STREAM("before evaluator: tube=" << i 
-                 << " gap=" << j);
-    
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
-                        pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
+                        ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                        << " gap=" << j);
+                        // IMPORTANT todo: put an if statement here for when dwa is jused since I already evaluateTraj() above
+
+                        if (!cfg_.planning.dwa_method)
+                        {
+                            trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                            pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
+                            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
+                        }
+                        else
+                        { 
+                            //package dwa traj into the Trajectory class since that's what the later code expects 
+                            // --- Package DWA-generated path (pose_array) into a Trajectory object ---
+                            Trajectory dwaTrajectory;
+
+                            // The Trajectory class typically stores PoseArray and timing
+                            dwaTrajectory.setPathRbtFrame(pose_array);         // robot-frame path
+
+                            if (!dwa_traj.times.empty())
+                            {
+                                dwaTrajectory.setPathTiming(dwa_traj.times); 
+                                const auto& times = dwaTrajectory.getPathTiming();
+
+                                const auto& poses = dwaTrajectory.getPathRbtFrame();
+
+                                // 1) Just size
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                "poses size: " << poses.poses.size());
+
+
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                    "timing size: " << times.size());
+
+                                // 2) First few values
+                                std::ostringstream oss;
+                                oss << "[";
+                                for (size_t i = 0; i < std::min<size_t>(times.size(), 10); ++i) {
+                                    if (i) oss << ", ";
+                                    oss << std::fixed << std::setprecision(3) << times[i];
+                                }
+                                if (times.size() > 12) oss << ", ...";
+                                oss << "]";
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "timing: " << oss.str());
+                            }
+
+                            else
+                            {
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "dwa_traj.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
+                            } 
+                            // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
+                            pursuitGuidanceTraj = dwaTrajectory;
+                            pursuitGuidancePoseCost = totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
+                            pursuitGuidancePoseCosts = dwa_PoseCosts;
+                            pursuitGuidanceTerminalPoseCost = dwa_TerminalPoseCost;
+                            //todo: run processTrajectory()
+
+                        }
+
                     } else
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");

@@ -139,7 +139,7 @@ namespace dynamic_gap
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
                 // IMPORTANT NOTE: this is only the distance-related cost not other costs like path cost
-                dwa_PathCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
+                posewiseCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (cost: " << posewiseCosts.at(i) << "): ");
 
             }
