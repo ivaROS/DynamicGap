@@ -1446,28 +1446,6 @@ for (int vi = 0; vi < num_points; ++vi)
                             if (!dwa_traj.times.empty())
                             {
                                 dwaTrajectory.setPathTiming(dwa_traj.times); 
-                                const auto& times = dwaTrajectory.getPathTiming();
-
-                                const auto& poses = dwaTrajectory.getPathRbtFrame();
-
-                                // 1) Just size
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                "poses size: " << poses.poses.size());
-
-
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                    "timing size: " << times.size());
-
-                                // 2) First few values
-                                std::ostringstream oss;
-                                oss << "[";
-                                for (size_t i = 0; i < std::min<size_t>(times.size(), 10); ++i) {
-                                    if (i) oss << ", ";
-                                    oss << std::fixed << std::setprecision(3) << times[i];
-                                }
-                                if (times.size() > 12) oss << ", ...";
-                                oss << "]";
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "timing: " << oss.str());
                             }
 
                             else
