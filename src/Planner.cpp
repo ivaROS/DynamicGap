@@ -1052,6 +1052,8 @@ else
                     std::vector<float> dwa_PathCosts; 
                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
                     float dwa_goToGoalCost, dwa_PoseCost;
+                    float totalTrajCost = 0;
+                    geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
 
 
                     Gap * gap = gapTube->at(j);
@@ -1084,9 +1086,13 @@ else
                     }
         
                     // Run pursuit guidance behavior
-                    float totalTrajCost = 0;
-                    geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
-                    dwa_Trajectory dwa_traj;        
+                    
+                    // Number of samples on each side
+                    int theta_samples = 3; // e.g. left/right + center
+                    std::vector<dwa_Trajectory> dwa_trajs;
+                    dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
+                    int counter = 0; 
+
 
                     if (gap->isAvailable())
                     {
@@ -1094,45 +1100,46 @@ else
                         
                         if (cfg_.planning.dwa_method)
                         {
-                            // get the latest min distance and velocity direction
-                            float min_scan_dist = min_scan_dist_;
-                            Eigen::Vector2f v_dir = v_dir_;
-                            // Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos(); 
-                            Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
-                            Eigen::Vector2f p0(0.0f, 0.0f);
-                            Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
-                            // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
-                            float robot_radius = cfg_.rbt.r_inscr; 
-                            float gap_insurance = 0.6f * robot_radius;  // offset scaling
-                            float r = p2.norm();
-                            float theta_off = gap_insurance / std::max(r, 1e-3f);
+// get the latest min distance and velocity direction
+float min_scan_dist = min_scan_dist_;
+Eigen::Vector2f v_dir = v_dir_;
+// Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos(); 
+Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
+Eigen::Vector2f p0(0.0f, 0.0f);
+Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
+// --- Rotation-based goal seed generation (multi-trajectory per gap) ---
+float robot_radius = cfg_.rbt.r_inscr; 
+float gap_insurance = 0.6f * robot_radius;  // offset scaling
+float r = p2.norm();
+float theta_off = gap_insurance / std::max(r, 1e-3f);
 
-                            // Number of samples on each side
-                            int theta_samples = 3; // e.g. left/right + center
-                            std::vector<Eigen::Vector2f> curve; 
-
-                            for (int k = -theta_samples; k <= theta_samples; ++k)
-                            {
-                                float theta = k * theta_off;
-                                Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta);
-                                Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
-
-                                // --- Generate Bézier for this rotated goal ---
-                                curve = compositeBezier(
-                                    p0, p2_rot, goal_rot, min_scan_dist, v_dir, 11);
-
-                                bezierVisualizer_->drawCurve(curve);
-                                 bezierVisualizer_->drawP2(p2);
-
-                                dwa_Trajectory dwa_traj;
-                                // ... reuse your existing DWA generation + cost evaluation  ...
-                            }
+std::vector<Eigen::Vector2f> curve; // btw I don't store curve i just keep redefining it but don't save it
 
 
+for (int k = -theta_samples; k <= theta_samples; ++k)
+{
+    float theta = k * theta_off;
+    // Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta); // this should be the same thing and more computationally efficient but I'd rather just project onto the circle since thats same as egoDWA
+    Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
+    Eigen::Vector2f p2_rot = projectOntoCircle(goal_rot, min_scan_dist);
 
-                            // std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
-                            //  bezierVisualizer_->drawP2(p2);
-                            // bezierVisualizer_->drawCurve(curve);    
+
+    // --- Generate Bézier for this rotated goal ---
+    curve = compositeBezier(
+        p0, p2_rot, goal_rot, min_scan_dist, v_dir, 11);
+
+    bezierVisualizer_->drawCurve(curve);
+        bezierVisualizer_->drawP2(p2_rot);
+
+    // dwa_Trajectory dwa_traj;
+    // ... reuse existing DWA generation + cost evaluation  ...
+
+
+
+
+// std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
+//  bezierVisualizer_->drawP2(p2);
+// bezierVisualizer_->drawCurve(curve);    
 
                             
 float v0       = current_linear_velocity;
@@ -1141,7 +1148,7 @@ float w_max    = cfg_.rbt.vang_absmax;
 float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
 
-const int   num_points   = 11;           // total points along the trajectory
+const int   num_points   = 11;           // TODO: use something from cfg or something //total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
 // const float total_time   = dt * num_segments;   
@@ -1197,21 +1204,21 @@ for (int i = 1; i < curve.size(); ++i)
 float step_distance = (v_cmd * total_time) / (num_points - 1);
 
 //extract equally spaced points along the curve by accumulated distance
-dwa_traj.v_cmd = v_cmd;
-dwa_traj.w_cmd = w_cmd;
+dwa_trajs[counter].v_cmd = v_cmd;
+dwa_trajs[counter].w_cmd = w_cmd;
 
 float dist_accum = 0.0f;
 float next_target = 0.0f;
 int current_seg = 0;
 
-dwa_traj.positions.reserve(num_points);
-dwa_traj.yaws.reserve(num_points);
-dwa_traj.times.reserve(num_points);
+dwa_trajs[counter].positions.reserve(num_points);
+dwa_trajs[counter].yaws.reserve(num_points);
+dwa_trajs[counter].times.reserve(num_points);
 
 // always include starting point
-dwa_traj.positions.push_back(curve.front());
-dwa_traj.yaws.push_back(atan2((curve[1] - curve[0]).y(), (curve[1] - curve[0]).x()));
-dwa_traj.times.push_back(0.0f);
+dwa_trajs[counter].positions.push_back(curve.front());
+dwa_trajs[counter].yaws.push_back(atan2((curve[1] - curve[0]).y(), (curve[1] - curve[0]).x()));
+dwa_trajs[counter].times.push_back(0.0f);
 
 // iterate through segments and pick positions spaced by step_distance
 for (int i = 1; i < num_points; ++i)
@@ -1237,16 +1244,16 @@ for (int i = 1; i < num_points; ++i)
     Eigen::Vector2f pt = curve[current_seg] + t_seg * (curve[current_seg + 1] - curve[current_seg]);
     Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
 
-    dwa_traj.positions.push_back(pt);
-    // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
-    dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
-    dwa_traj.times.push_back(i * dt);
+    dwa_trajs[counter].positions.push_back(pt);
+    // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_trajs[counter].positions.size(): )" <<  dwa_trajs[counter].positions.size());
+    dwa_trajs[counter].yaws.push_back(atan2(dir.y(), dir.x()));
+    dwa_trajs[counter].times.push_back(i * dt);
 }
 //publish as PoseArray
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
-pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
+pose_array = dwa_trajs[counter].toPoseArray(cfg_.sensor_frame_id);
     
 // --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
 // int counter = 0; 
@@ -1271,10 +1278,12 @@ totalTrajCost += speedCost * cfg_.traj.w_speed;
 ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
 
 
-// traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
+// traj_pub_.publish(dwa_trajs[counter].toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
 
-bool visualize_curves_and_costs = false; 
+
+
+bool visualize_curves_and_costs = false; //IMPORTANT NOTE!! THIS CAUSES CRASHES
 if(visualize_curves_and_costs)
 {
 // Evaluate trajectory
@@ -1430,6 +1439,9 @@ if (visualize_dwa_rollout)
     }
 }
 
+counter += 1;
+}
+
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
 //delete this: 
@@ -1498,9 +1510,9 @@ if (visualize_dwa_rollout)
                             // The Trajectory class typically stores PoseArray and timing
                             dwaTrajectory.setPathRbtFrame(pose_array);         // robot-frame path
 
-                            if (!dwa_traj.times.empty())
+                            if (!dwa_trajs[counter].times.empty())
                             {
-                                dwaTrajectory.setPathTiming(dwa_traj.times); 
+                                dwaTrajectory.setPathTiming(dwa_trajs[counter].times); 
                             }
 
                             else
@@ -1508,7 +1520,7 @@ if (visualize_dwa_rollout)
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "dwa_traj.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
                             } 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
-                            pursuitGuidanceTraj = dwaTrajectory;
+                            pursuitGuidanceTraj = dwaTrajectory; //TODO: make sure you update this!
                             pursuitGuidancePoseCost = totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
                             pursuitGuidancePoseCosts = dwa_PoseCosts;
                             pursuitGuidanceTerminalPoseCost = dwa_TerminalPoseCost;
