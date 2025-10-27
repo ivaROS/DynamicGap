@@ -1239,7 +1239,7 @@ ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
 
-bool visualize_curves_and_costs = true; 
+bool visualize_curves_and_costs = false; 
 if(visualize_curves_and_costs)
 {
 // Evaluate trajectory
@@ -1341,56 +1341,60 @@ traj_cost_viz_pub.publish(traj_markers);
 // ------------------------------------------------------------
 // Visualization-only rollout for RViz
 // ------------------------------------------------------------
-
-// initial state (robot frame)
-float vis_x = 0.0f;
-float vis_y = 0.0f;
-float vis_yaw = 0.0f;
-float vis_t = 0.0f;
-
-// storage
-std::vector<Eigen::Vector2f> vis_positions;
-std::vector<float> vis_yaws;
-std::vector<float> vis_times;
-
-vis_positions.reserve(num_points);
-vis_yaws.reserve(num_points);
-vis_times.reserve(num_points);
-
-// store initial pose
-vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
-vis_yaws.push_back(vis_yaw);
-vis_times.push_back(vis_t);
-
-// rollout integration (unicycle model)
-for (int vi = 1; vi < num_points; ++vi)
+bool visualize_dwa_rollout = false; 
+if (visualize_dwa_rollout)
 {
-    vis_yaw += w_cmd * dt;
-    vis_x   += v_cmd * std::cos(vis_yaw) * dt;
-    vis_y   += v_cmd * std::sin(vis_yaw) * dt;
-    vis_t   += dt;
+    // initial state (robot frame)
+    float vis_x = 0.0f;
+    float vis_y = 0.0f;
+    float vis_yaw = 0.0f;
+    float vis_t = 0.0f;
 
+    // storage
+    std::vector<Eigen::Vector2f> vis_positions;
+    std::vector<float> vis_yaws;
+    std::vector<float> vis_times;
+
+    vis_positions.reserve(num_points);
+    vis_yaws.reserve(num_points);
+    vis_times.reserve(num_points);
+
+    // store initial pose
     vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
     vis_yaws.push_back(vis_yaw);
     vis_times.push_back(vis_t);
+
+    // rollout integration (unicycle model)
+    for (int vi = 1; vi < num_points; ++vi)
+    {
+        vis_yaw += w_cmd * dt;
+        vis_x   += v_cmd * std::cos(vis_yaw) * dt;
+        vis_y   += v_cmd * std::sin(vis_yaw) * dt;
+        vis_t   += dt;
+
+        vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
+        vis_yaws.push_back(vis_yaw);
+        vis_times.push_back(vis_t);
+    }
+
+    // ------------------------------------------------------------
+    // Convert to ROS PoseArray
+    // ------------------------------------------------------------
+    geometry_msgs::PoseArray vis_traj_path;
+    vis_traj_path.header.frame_id = cfg_.sensor_frame_id;
+    vis_traj_path.header.stamp = ros::Time::now();
+
+    for (int vi = 0; vi < num_points; ++vi)
+    {
+        geometry_msgs::Pose vis_pose;
+        vis_pose.position.x = vis_positions[vi].x();
+        vis_pose.position.y = vis_positions[vi].y();
+        vis_pose.position.z = 0.0;
+        vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
+        vis_traj_path.poses.push_back(vis_pose);
+    }
 }
 
-// ------------------------------------------------------------
-// Convert to ROS PoseArray
-// ------------------------------------------------------------
-geometry_msgs::PoseArray vis_traj_path;
-vis_traj_path.header.frame_id = cfg_.sensor_frame_id;
-vis_traj_path.header.stamp = ros::Time::now();
-
-for (int vi = 0; vi < num_points; ++vi)
-{
-    geometry_msgs::Pose vis_pose;
-    vis_pose.position.x = vis_positions[vi].x();
-    vis_pose.position.y = vis_positions[vi].y();
-    vis_pose.position.z = 0.0;
-    vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
-    vis_traj_path.poses.push_back(vis_pose);
-}
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
 //delete this: 
