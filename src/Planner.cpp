@@ -674,6 +674,14 @@ else
         // ROS_INFO_STREAM("tfCB succeeded");
     }
 
+    // Apply 2D rotation and translation (equivalent to egodwa's BezierTrajectoryGenerator::transform2d)
+    Eigen::Vector2f rotatePoint2D(const Eigen::Vector2f& point, float theta)
+    {
+        float c = std::cos(theta);
+        float s = std::sin(theta);
+        return Eigen::Vector2f(c*point.x() - s*point.y(), s*point.x() + c*point.y());
+    }
+
     void Planner::updateEgoCircle()
     {
         globalPlanManager_->updateEgoCircle(scan_);
@@ -1012,7 +1020,7 @@ else
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
-ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
+                ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                 GapTube * gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
@@ -1092,14 +1100,41 @@ ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
                             // Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos(); 
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
-                            Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist); 
-                            std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
-                           
-                             bezierVisualizer_->drawP2(p2);
-                            bezierVisualizer_->drawCurve(curve);    
+                            Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
+                            // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
+                            float robot_radius = cfg_.rbt.r_inscr; 
+                            float gap_insurance = 0.6f * robot_radius;  // offset scaling
+                            float r = p2.norm();
+                            float theta_off = gap_insurance / std::max(r, 1e-3f);
 
-                            //
-                            // known limits and current state
+                            // Number of samples on each side
+                            int theta_samples = 3; // e.g. left/right + center
+                            std::vector<Eigen::Vector2f> curve; 
+
+                            for (int k = -theta_samples; k <= theta_samples; ++k)
+                            {
+                                float theta = k * theta_off;
+                                Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta);
+                                Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
+
+                                // --- Generate Bézier for this rotated goal ---
+                                curve = compositeBezier(
+                                    p0, p2_rot, goal_rot, min_scan_dist, v_dir, 11);
+
+                                bezierVisualizer_->drawCurve(curve);
+                                 bezierVisualizer_->drawP2(p2);
+
+                                dwa_Trajectory dwa_traj;
+                                // ... reuse your existing DWA generation + cost evaluation  ...
+                            }
+
+
+
+                            // std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
+                            //  bezierVisualizer_->drawP2(p2);
+                            // bezierVisualizer_->drawCurve(curve);    
+
+                            
 float v0       = current_linear_velocity;
 float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
