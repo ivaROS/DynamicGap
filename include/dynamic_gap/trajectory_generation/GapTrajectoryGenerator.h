@@ -44,7 +44,14 @@ namespace dynamic_gap
             * \param runGoToGoal boolean for if go to goal trajectory method should be run
             * \return trajectory through gap
             */
+
             Trajectory generateTrajectoryV2(Gap * selectedGap, 
+                                            const geometry_msgs::PoseStamped & currPose, 
+                                            // const geometry_msgs::TwistStamped & currVel,
+                                            const geometry_msgs::PoseStamped & globalGoalRobotFrame);
+            
+                                                      
+            std::vector<Trajectory> generateMultiTrajectoryV2(Gap * selectedGap, 
                                             const geometry_msgs::PoseStamped & currPose, 
                                             // const geometry_msgs::TwistStamped & currVel,
                                             const geometry_msgs::PoseStamped & globalGoalRobotFrame);
