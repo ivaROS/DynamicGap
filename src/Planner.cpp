@@ -1086,7 +1086,8 @@ else
                     // Run pursuit guidance behavior
                     float totalTrajCost = 0;
                     geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
-                    dwa_Trajectory dwa_traj;        
+                    // dwa_Trajectory dwa_traj;        
+                    dwa_Trajectory debug_traj;        
 
                     if (gap->isAvailable())
                     {
@@ -1115,8 +1116,9 @@ else
 
                             for (int k = -theta_samples; k <= theta_samples; ++k)
                             {
+                                curve.clear(); 
                                 float theta = k * theta_off;
-                                Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta);
+                                Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta); // IMPORTANT TODO:  i don't like this 
                                 Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
 
                                 // --- Generate Bézier for this rotated goal ---
@@ -1128,7 +1130,7 @@ else
 
                                 dwa_Trajectory dwa_traj;
                                 // ... reuse your existing DWA generation + cost evaluation  ...
-                            }
+                            
 
 
 
@@ -1239,7 +1241,7 @@ for (int i = 1; i < num_points; ++i)
     Eigen::Vector2f pt = curve[current_seg] + t_seg * (curve[current_seg + 1] - curve[current_seg]);
     Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
 
-    dwa_traj.positions.push_back(pt);
+    dwa_traj.positions.push_back(pt); //I suspect this may be causing the issue - 1028
     // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
@@ -1247,7 +1249,7 @@ for (int i = 1; i < num_points; ++i)
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
-pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);
+pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);//I suspect this may be causing the issue - 1028
     
 // --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
 // int counter = 0; 
@@ -1280,6 +1282,7 @@ dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost;
 dwa_traj.totalTrajCost = totalTrajCost; 
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
 
+debug_traj = dwa_trajs[0]; 
 
 bool visualize_curves_and_costs = false; 
 if(visualize_curves_and_costs)
@@ -1439,6 +1442,7 @@ if (visualize_dwa_rollout)
 
 }
 
+}
 
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
@@ -1508,14 +1512,14 @@ if (visualize_dwa_rollout)
                             // The Trajectory class typically stores PoseArray and timing
                             dwaTrajectory.setPathRbtFrame(pose_array);         // robot-frame path
 
-                            if (!dwa_traj.times.empty())
+                            if (!debug_traj.times.empty())
                             {
-                                dwaTrajectory.setPathTiming(dwa_traj.times); 
+                                dwaTrajectory.setPathTiming(debug_traj.times); 
                             }
 
                             else
                             {
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "dwa_traj.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "debug_traj.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
                             } 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
