@@ -1087,7 +1087,7 @@ else
                     float totalTrajCost = 0;
                     geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
                     // dwa_Trajectory dwa_traj;        
-                    dwa_Trajectory debug_traj;        
+                    dwa_Trajectory cheapest_dwa;        
 
                     if (gap->isAvailable())
                     {
@@ -1282,8 +1282,6 @@ dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost;
 dwa_traj.totalTrajCost = totalTrajCost; 
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
 
-debug_traj = dwa_trajs[0]; 
-
 bool visualize_curves_and_costs = false; 
 if(visualize_curves_and_costs)
 {
@@ -1443,6 +1441,21 @@ if (visualize_dwa_rollout)
 }
 
 }
+if (!dwa_trajs.empty())
+{
+    cheapest_dwa = dwa_trajs[0];
+    for (size_t i = 1; i < dwa_trajs.size(); ++i)
+    {
+        if (dwa_trajs[i].totalTrajCost < cheapest_dwa.totalTrajCost)
+            cheapest_dwa = dwa_trajs[i];
+    }
+    ROS_ERROR_STREAM("[CHEAPEST_DWA] cost=" << cheapest_dwa.totalTrajCost);
+}
+else
+{
+    ROS_WARN_STREAM("[CHEAPEST_DWA] no valid DWA trajectories found");
+}
+
 
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
@@ -1512,14 +1525,14 @@ if (visualize_dwa_rollout)
                             // The Trajectory class typically stores PoseArray and timing
                             dwaTrajectory.setPathRbtFrame(pose_array);         // robot-frame path
 
-                            if (!debug_traj.times.empty())
+                            if (!cheapest_dwa.times.empty())
                             {
-                                dwaTrajectory.setPathTiming(debug_traj.times); 
+                                dwaTrajectory.setPathTiming(cheapest_dwa.times); 
                             }
 
                             else
                             {
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "debug_traj.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "cheapest_dwa.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
                             } 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
