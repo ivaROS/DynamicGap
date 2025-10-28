@@ -1020,7 +1020,7 @@ else
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
-                ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
+                // ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                 GapTube * gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
@@ -1271,7 +1271,7 @@ float speedCost = 0;
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
 
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
@@ -1450,7 +1450,7 @@ if (!dwa_trajs.empty())
         if (dwa_trajs[i].totalTrajCost < cheapest_dwa.totalTrajCost)
             cheapest_dwa = dwa_trajs[i];
     }
-    ROS_ERROR_STREAM("[CHEAPEST_DWA] cost=" << cheapest_dwa.totalTrajCost);
+    // ROS_ERROR_STREAM("[CHEAPEST_DWA] cost=" << cheapest_dwa.totalTrajCost);
 }
 else
 {
@@ -1464,7 +1464,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
     static ros::Publisher traj_cost_viz_pub =
         nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
 
-    // --- clear previous markers ---
+    // clear previous markers
     visualization_msgs::MarkerArray clear;
     traj_cost_viz_pub.publish(clear);
 
@@ -1479,7 +1479,25 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         const auto& traj = dwa_trajs[t];
         geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
 
-        // --- line strip for each trajectory ---
+        // --- compute total cost per pose (pose + path + speed + terminal) ---
+        std::vector<float> total_costs;
+        total_costs.reserve(poses.poses.size());
+        for (size_t i = 0; i < poses.poses.size(); ++i)
+        {
+            float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
+            float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
+            float speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
+            float term_cost = (i == poses.poses.size() - 1) ? traj.TerminalPoseCost : 0.0f;
+            float total = pose_cost + path_cost + speed_cost * cfg_.traj.w_speed + term_cost;
+            total_costs.push_back(total);
+        }
+
+        // --- normalize colors for cost visualization ---
+        float max_cost = *std::max_element(total_costs.begin(), total_costs.end());
+        float min_cost = *std::min_element(total_costs.begin(), total_costs.end());
+        float range = std::max(1e-3f, max_cost - min_cost);
+
+        // --- draw trajectory line ---
         visualization_msgs::Marker line;
         line.header.frame_id = cfg_.sensor_frame_id;
         line.header.stamp = ros::Time::now();
@@ -1488,27 +1506,30 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         line.type = visualization_msgs::Marker::LINE_STRIP;
         line.action = visualization_msgs::Marker::ADD;
         line.scale.x = line_width;
-
-        // vary color per trajectory
-        float hue = static_cast<float>(t) / std::max<size_t>(1, dwa_trajs.size());
-        line.color.r = hue;
-        line.color.g = 1.0f - hue;
-        line.color.b = 0.2f;
-        line.color.a = 1.0f;
+        line.color.a = 1.0;
         line.lifetime = ros::Duration(lifetime);
 
-        for (const auto& pose : poses.poses)
+        for (size_t i = 0; i < poses.poses.size(); ++i)
         {
             geometry_msgs::Point p;
-            p.x = pose.position.x;
-            p.y = pose.position.y;
+            p.x = poses.poses[i].position.x;
+            p.y = poses.poses[i].position.y;
             p.z = 0.05;
             line.points.push_back(p);
+
+            // Red for high cost, Green for low
+            std_msgs::ColorRGBA c;
+            float norm = (total_costs[i] - min_cost) / range;
+            c.r = norm;
+            c.g = 1.0f - norm;
+            c.b = 0.0f;
+            c.a = 1.0f;
+            line.colors.push_back(c);
         }
         all_markers.markers.push_back(line);
 
         // --- per-pose cost text ---
-        for (size_t i = 0; i < poses.poses.size() && i < traj.PoseCosts.size(); ++i)
+        for (size_t i = 0; i < poses.poses.size(); ++i)
         {
             visualization_msgs::Marker text;
             text.header = line.header;
@@ -1526,14 +1547,16 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             text.lifetime = ros::Duration(lifetime);
 
             std::ostringstream ss;
-            ss << std::fixed << std::setprecision(2) << traj.PoseCosts[i];
+            ss << std::fixed << std::setprecision(2) << total_costs[i];
             text.text = ss.str();
+
             all_markers.markers.push_back(text);
         }
     }
 
     traj_cost_viz_pub.publish(all_markers);
 }
+
 
 
 
@@ -1586,8 +1609,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
     //              << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
 
-                        ROS_ERROR_STREAM("before evaluator: tube=" << i 
-                        << " gap=" << j);
+                        // ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                        // << " gap=" << j);
                         // IMPORTANT todo: put an if statement here for when dwa is jused since I already evaluateTraj() above
 
                         if (!cfg_.planning.dwa_method)
