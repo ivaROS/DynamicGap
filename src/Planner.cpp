@@ -1283,7 +1283,7 @@ dwa_traj.totalTrajCost = totalTrajCost;
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
 
 bool visualize_curves_and_costs = false; 
-if(visualize_curves_and_costs)
+if (visualize_curves_and_costs)
 {
 // Evaluate trajectory
 float dwa_visual_duration = .5; 
@@ -1441,6 +1441,7 @@ if (visualize_dwa_rollout)
 }
 
 }
+// pick the cheapest dwa traj
 if (!dwa_trajs.empty())
 {
     cheapest_dwa = dwa_trajs[0];
@@ -1455,6 +1456,85 @@ else
 {
     ROS_WARN_STREAM("[CHEAPEST_DWA] no valid DWA trajectories found");
 }
+
+
+bool visualize_all_dwa_trajs = true;
+if (visualize_all_dwa_trajs && !dwa_trajs.empty())
+{
+    static ros::Publisher traj_cost_viz_pub =
+        nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
+
+    // --- clear previous markers ---
+    visualization_msgs::MarkerArray clear;
+    traj_cost_viz_pub.publish(clear);
+
+    visualization_msgs::MarkerArray all_markers;
+    static int global_marker_id = 0;
+    float text_scale = 0.12f;
+    float line_width = 0.03f;
+    float lifetime = 0.25f;
+
+    for (size_t t = 0; t < dwa_trajs.size(); ++t)
+    {
+        const auto& traj = dwa_trajs[t];
+        geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+
+        // --- line strip for each trajectory ---
+        visualization_msgs::Marker line;
+        line.header.frame_id = cfg_.sensor_frame_id;
+        line.header.stamp = ros::Time::now();
+        line.ns = "dwa_traj_lines";
+        line.id = global_marker_id++;
+        line.type = visualization_msgs::Marker::LINE_STRIP;
+        line.action = visualization_msgs::Marker::ADD;
+        line.scale.x = line_width;
+
+        // vary color per trajectory
+        float hue = static_cast<float>(t) / std::max<size_t>(1, dwa_trajs.size());
+        line.color.r = hue;
+        line.color.g = 1.0f - hue;
+        line.color.b = 0.2f;
+        line.color.a = 1.0f;
+        line.lifetime = ros::Duration(lifetime);
+
+        for (const auto& pose : poses.poses)
+        {
+            geometry_msgs::Point p;
+            p.x = pose.position.x;
+            p.y = pose.position.y;
+            p.z = 0.05;
+            line.points.push_back(p);
+        }
+        all_markers.markers.push_back(line);
+
+        // --- per-pose cost text ---
+        for (size_t i = 0; i < poses.poses.size() && i < traj.PoseCosts.size(); ++i)
+        {
+            visualization_msgs::Marker text;
+            text.header = line.header;
+            text.ns = "dwa_pose_costs";
+            text.id = global_marker_id++;
+            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            text.action = visualization_msgs::Marker::ADD;
+            text.pose = poses.poses[i];
+            text.pose.position.z += 0.15;
+            text.scale.z = text_scale;
+            text.color.r = 0.0;
+            text.color.g = 0.0;
+            text.color.b = 0.0;
+            text.color.a = 1.0;
+            text.lifetime = ros::Duration(lifetime);
+
+            std::ostringstream ss;
+            ss << std::fixed << std::setprecision(2) << traj.PoseCosts[i];
+            text.text = ss.str();
+            all_markers.markers.push_back(text);
+        }
+    }
+
+    traj_cost_viz_pub.publish(all_markers);
+}
+
 
 
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
