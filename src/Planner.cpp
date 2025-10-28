@@ -1109,6 +1109,8 @@ else
 
                             // Number of samples on each side
                             int theta_samples = 3; // e.g. left/right + center
+                            std::vector<dwa_Trajectory> dwa_trajs;
+                            // dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
                             std::vector<Eigen::Vector2f> curve; 
 
                             for (int k = -theta_samples; k <= theta_samples; ++k)
@@ -1241,7 +1243,6 @@ for (int i = 1; i < num_points; ++i)
     // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
-}
 //publish as PoseArray
 
 
@@ -1273,6 +1274,12 @@ ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
+dwa_traj.PoseCosts = dwa_PoseCosts; 
+dwa_traj.PathCosts = dwa_PathCosts; 
+dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost; 
+dwa_traj.totalTrajCost = totalTrajCost; 
+dwa_trajs.push_back(dwa_traj);  // append new trajectory
+
 
 bool visualize_curves_and_costs = false; 
 if(visualize_curves_and_costs)
@@ -1429,6 +1436,9 @@ if (visualize_dwa_rollout)
         vis_traj_path.poses.push_back(vis_pose);
     }
 }
+
+}
+
 
 // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 

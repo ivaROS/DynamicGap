@@ -23,11 +23,6 @@ struct dwa_Trajectory
     float speed_cost = 0.0f;
     float path_cost = 0.0f;
     float total_cost = 0.0f;
-    float totalTrajCost = 0.0f; 
-    geometry_msgs::PoseArray pose_array;
-     std::vector<float> PoseCosts;// IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost 
-     std::vector<float> PathCosts; 
-     float TerminalPoseCost= 0.0f; 
 
     // --- Convert to ROS PoseArray for visualization ---
     geometry_msgs::PoseArray toPoseArray(const std::string& frame_id) const
