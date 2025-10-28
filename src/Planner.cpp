@@ -1109,7 +1109,7 @@ else
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
 
                             // Number of samples on each side
-                            int theta_samples = 3; // e.g. left/right + center
+                            int theta_samples = 1; // e.g. left/right + center
                             std::vector<dwa_Trajectory> dwa_trajs;
                             // dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
                             std::vector<Eigen::Vector2f> curve; 
@@ -1286,7 +1286,7 @@ bool visualize_curves_and_costs = false;
 if(visualize_curves_and_costs)
 {
 // Evaluate trajectory
-float dwa_visual_duration = .05; 
+float dwa_visual_duration = .5; 
 // trajEvaluator_->dwa_evaluateTrajectory(
 //     pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
 
