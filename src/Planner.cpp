@@ -1492,10 +1492,18 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         {
             float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
             float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
-            float speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
-            float term_cost = (i == poses.poses.size() - 1) ? traj.TerminalPoseCost : 0.0f;
+            float speed_cost = 0.0f;
+            float term_cost = 0.0f;
+
+            if (i == poses.poses.size() - 1)
+            {
+                speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
+                term_cost  = traj.TerminalPoseCost;
+            }
+
             float total = pose_cost + path_cost + speed_cost * cfg_.traj.w_speed + term_cost;
             total_costs.push_back(total);
+
         }
 
         // --- normalize colors for cost visualization ---
