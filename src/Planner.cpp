@@ -1464,7 +1464,7 @@ else
 }
 
 
-bool visualize_all_dwa_trajs = false;
+bool visualize_all_dwa_trajs = true;
 if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 {
     static ros::Publisher traj_cost_viz_pub =
@@ -1499,9 +1499,20 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         }
 
         // --- normalize colors for cost visualization ---
+        // --- normalize colors for cost visualization ---
+        if (total_costs.empty())
+            continue;
+
         float max_cost = *std::max_element(total_costs.begin(), total_costs.end());
         float min_cost = *std::min_element(total_costs.begin(), total_costs.end());
-        float range = std::max(1e-3f, max_cost - min_cost);
+
+        // handle invalid or degenerate ranges
+        if (!std::isfinite(max_cost) || !std::isfinite(min_cost))
+            continue;
+
+        float range = std::max(1e-6f, max_cost - min_cost);
+        if (range < 1e-6f)
+            range = 1.0f;  // fallback if all costs identical
 
         // --- draw trajectory line ---
         visualization_msgs::Marker line;
@@ -1526,11 +1537,17 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             // Red for high cost, Green for low
             std_msgs::ColorRGBA c;
             float norm = (total_costs[i] - min_cost) / range;
+            if (!std::isfinite(norm))
+                norm = 0.0f;
+            norm = std::min(1.0f, std::max(0.0f, norm));  // clamp to [0,1] 
+
+            // Red = high cost, Green = low cost
             c.r = norm;
             c.g = 1.0f - norm;
             c.b = 0.0f;
             c.a = 1.0f;
             line.colors.push_back(c);
+
         }
         all_markers.markers.push_back(line);
 
