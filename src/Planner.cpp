@@ -1088,6 +1088,7 @@ else
                     geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
                     // dwa_Trajectory dwa_traj;        
                     dwa_Trajectory cheapest_dwa;        
+                    std::vector<dwa_Trajectory> dwa_trajs;
 
                     if (gap->isAvailable())
                     {
@@ -1110,7 +1111,6 @@ else
 
                             // Number of samples on each side
                             int theta_samples = 1; // e.g. left/right + center
-                            std::vector<dwa_Trajectory> dwa_trajs;
                             // dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
                             std::vector<Eigen::Vector2f> curve; 
 
@@ -1245,6 +1245,7 @@ for (int i = 1; i < num_points; ++i)
     // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
     dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
     dwa_traj.times.push_back(i * dt);
+} 
 //publish as PoseArray
 
 
@@ -1458,7 +1459,7 @@ else
 }
 
 
-bool visualize_all_dwa_trajs = true;
+bool visualize_all_dwa_trajs = false;
 if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 {
     static ros::Publisher traj_cost_viz_pub =
@@ -1552,7 +1553,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
             all_markers.markers.push_back(text);
         }
-    }
+
 
     traj_cost_viz_pub.publish(all_markers);
 }
