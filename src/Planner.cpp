@@ -1020,7 +1020,7 @@ else
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
-                // ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
+                ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
                 GapTube * gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
@@ -1272,7 +1272,12 @@ float speedCost = 0;
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
-// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+float pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f);
+float path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f);
+
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts sum: " << pose_cost_sum);
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PATHCosts sum: " << path_cost_sum);
 
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
