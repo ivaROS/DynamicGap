@@ -123,9 +123,16 @@ namespace dynamic_gap
                 return pathRbtFrame_.poses.size();
             }
 
+            void setVcmd(float v) { v_cmd_ = v; }
+            void setWcmd(float w) { w_cmd_ = w; }
+            float getVcmd() const { return v_cmd_; }
+            float getWcmd() const { return w_cmd_; }
+
         private:
             geometry_msgs::PoseArray pathRbtFrame_; /**< trajectory path in robot frame */
             geometry_msgs::PoseArray pathOdomFrame_; /**< trajectory path in odom frame */
             std::vector<float> pathTiming_; /**< trajectory path timing */
+            float v_cmd_ = 0.0f;
+            float w_cmd_ = 0.0f;
     };
 }

@@ -113,7 +113,10 @@ namespace dynamic_gap
             * \return command velocity to send to robot
             */
             geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
-                                                int & trajFlag);
+                                    int & trajFlag,
+                                    float v_cmd = NAN,
+                                    float w_cmd = NAN);
+
 
             /**
             * \brief Final command velocity pre-processing to check if robot is stuck

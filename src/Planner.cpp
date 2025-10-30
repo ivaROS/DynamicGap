@@ -1129,9 +1129,6 @@ else
                                  bezierVisualizer_->drawP2(p2);
 
                                 dwa_Trajectory dwa_traj;
-                                // ... reuse your existing DWA generation + cost evaluation  ...
-                            
-
 
 
                             // std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
@@ -1183,10 +1180,8 @@ float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
 float v_cmd = sigma * lambda * v_des;
 float w_cmd = sigma * lambda * w_des;
 
-// dwa_Trajectory dwa_traj;  // holds everything
-// dwa_traj.v_cmd = v_cmd;
-// dwa_traj.w_cmd = w_cmd;
-
+dwa_traj.v_cmd = v_cmd;
+dwa_traj.w_cmd = w_cmd;
 
 
 // --- Assume constant speed along Bézier arc ---
@@ -1201,8 +1196,6 @@ for (int i = 1; i < curve.size(); ++i)
 float step_distance = (v_cmd * total_time) / (num_points - 1);
 
 //extract equally spaced points along the curve by accumulated distance
-dwa_traj.v_cmd = v_cmd;
-dwa_traj.w_cmd = w_cmd;
 
 float dist_accum = 0.0f;
 float next_target = 0.0f;
@@ -1668,6 +1661,11 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             {
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "cheapest_dwa.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
                             } 
+
+                            dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
+                            dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
+
+
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
                             pursuitGuidancePoseCost = totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
@@ -2756,8 +2754,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         return recedingUngaps;
     }
 
-    geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
-                                                    int & trajFlag) 
+geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
+                                             int & trajFlag,
+                                             float v_cmd,
+                                             float w_cmd)
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
         timeKeeper_->startTimer(CONTROL);
@@ -2785,7 +2785,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 ROS_INFO_STREAM_NAMED("Planner", "planner opting to idle, no trajectory chosen.");
                 rawCmdVel = geometry_msgs::Twist();
                 return rawCmdVel;                
-            } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL 
+            } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL  
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
                 if (cfg_.planning.holonomic)
@@ -2835,18 +2835,38 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
                 timeKeeper_->startTimer(FEEBDACK);
-                if (cfg_.planning.holonomic)
+
+                if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
                 {
-                    rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
-                } else
-                {
-                    rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
-                
-                    cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
-                                                                        targetTrajectoryPose,
-                                                                        rawCmdVel,
-                                                                        rbtPoseInSensorFrame_); 
+                    ROS_INFO_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
+
+                    rawCmdVel.linear.x  = v_cmd;
+                    rawCmdVel.linear.y  = 0.0;
+                    rawCmdVel.angular.z = w_cmd;
+
+                    cmdVel = trajController_->processCmdVelNonHolonomic(
+                                currPoseOdomFrame,
+                                targetTrajectoryPose,
+                                rawCmdVel,
+                                rbtPoseInSensorFrame_);
                 }
+                else
+                {
+
+                    if (cfg_.planning.holonomic)
+                    {
+                        rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                    } else
+                    {
+                        rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+                    
+                        cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                                                                            targetTrajectoryPose,
+                                                                            rawCmdVel,
+                                                                            rbtPoseInSensorFrame_); 
+                    }
+                }
+
                 timeKeeper_->stopTimer(FEEBDACK);
             } else
             {
