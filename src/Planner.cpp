@@ -1265,12 +1265,12 @@ float speedCost = 0;
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
 float pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f);
 float path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f);
 
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts sum: " << pose_cost_sum);
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PATHCosts sum: " << path_cost_sum);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts sum: " << pose_cost_sum);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PATHCosts sum: " << path_cost_sum);
 
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
@@ -1655,12 +1655,16 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             if (!cheapest_dwa.times.empty())
                             {
                                 dwaTrajectory.setPathTiming(cheapest_dwa.times); 
+                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "times size: " << dwaTrajectory.getPathTiming().size());
+
                             }
 
                             else
                             {
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "cheapest_dwa.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
                             } 
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "poses size: " << dwaTrajectory.getPathRbtFrame().poses.size());
+
 
                             dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
