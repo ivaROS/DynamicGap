@@ -45,12 +45,6 @@ namespace dynamic_gap
             if (path.poses.size() > futureScans.size()) 
             {
                 ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
-                for (size_t i = 0; i < posewiseCosts.size(); ++i)
-                {
-                    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",
-                        "(vanilla) Pose index " << i << " cost = " << posewiseCosts[i]);
-                }
-
                 return;
             }
 
@@ -130,16 +124,7 @@ namespace dynamic_gap
             if (pose_array.poses.size() > futureScans.size()) 
             {
                 ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
-                for (size_t i = 0; i < pose_array.poses.size(); ++i)
-                {
-                    const auto &p = pose_array.poses[i];
-                    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",
-                        "Pose " << i << ": "
-                        << "x=" << p.position.x 
-                        << ", y=" << p.position.y 
-                        << ", z=" << p.position.z);
-                }
-
+                
                 return;
             }
 
