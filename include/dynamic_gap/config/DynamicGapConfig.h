@@ -30,8 +30,8 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
+                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
                 float vang_absmax = 2.0; /**< todo: update this value i just randomly picked it. Maximum angular speed for robot */            
             } rbt;
 
@@ -120,7 +120,7 @@ namespace dynamic_gap
                 float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
-                float w_obs = 1.0; 
+                float w_obs = 1.5; 
                 float w_path = 1.0; 
                 float w_goal = 1.0; 
                 float w_speed = 1.0; 

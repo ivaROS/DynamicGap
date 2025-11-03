@@ -1457,7 +1457,7 @@ else
 }
 
 
-bool visualize_all_dwa_trajs = true;
+bool visualize_all_dwa_trajs = false;
 if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 {
     static ros::Publisher traj_cost_viz_pub =
