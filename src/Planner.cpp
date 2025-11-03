@@ -1266,12 +1266,31 @@ trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts,
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
-float pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f);
-float path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f);
+float pose_cost_sum = 0.0f;
+float path_cost_sum = 0.0f;
 
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts sum: " << pose_cost_sum);
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PATHCosts sum: " << path_cost_sum);
+if (!dwa_PoseCosts.empty())
+{
+    pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
+    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
+    for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+    {
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
+    }
+}
 
+// if (!dwa_PathCosts.empty())
+// {
+//     path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f) / dwa_PathCosts.size();
+//     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts (size = " << dwa_PathCosts.size() << "):");
+//     for (size_t i = 0; i < dwa_PathCosts.size(); ++i)
+//     {
+//         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PathCosts[i]);
+//     }
+// }
+
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
+ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
@@ -1457,7 +1476,7 @@ else
 }
 
 
-bool visualize_all_dwa_trajs = false;
+bool visualize_all_dwa_trajs = true;
 if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 {
     static ros::Publisher traj_cost_viz_pub =
@@ -1475,7 +1494,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
     for (size_t t = 0; t < dwa_trajs.size(); ++t)
     {
-        const auto& traj = dwa_trajs[t];
+        const auto &traj = dwa_trajs[t];
         geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
 
         // --- compute total cost per pose (pose + path + speed + terminal) ---
@@ -1488,32 +1507,23 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             float speed_cost = 0.0f;
             float term_cost = 0.0f;
 
+            // normalize per length (same as evaluator)
+            float len_norm = std::max(1.0f, float(poses.poses.size()));
+            pose_cost /= len_norm;
+            path_cost /= len_norm;
+
             if (i == poses.poses.size() - 1)
             {
                 speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
                 term_cost  = traj.TerminalPoseCost;
             }
 
-            float total = pose_cost + path_cost + speed_cost * cfg_.traj.w_speed + term_cost;
+            float total = cfg_.traj.w_obs  * pose_cost +
+                          cfg_.traj.w_path * path_cost +
+                          cfg_.traj.w_speed * speed_cost +
+                          cfg_.traj.w_goal  * term_cost;
             total_costs.push_back(total);
-
         }
-
-        // --- normalize colors for cost visualization ---
-        // --- normalize colors for cost visualization ---
-        if (total_costs.empty())
-            continue;
-
-        float max_cost = *std::max_element(total_costs.begin(), total_costs.end());
-        float min_cost = *std::min_element(total_costs.begin(), total_costs.end());
-
-        // handle invalid or degenerate ranges
-        if (!std::isfinite(max_cost) || !std::isfinite(min_cost))
-            continue;
-
-        float range = std::max(1e-6f, max_cost - min_cost);
-        if (range < 1e-6f)
-            range = 1.0f;  // fallback if all costs identical
 
         // --- draw trajectory line ---
         visualization_msgs::Marker line;
@@ -1524,6 +1534,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         line.type = visualization_msgs::Marker::LINE_STRIP;
         line.action = visualization_msgs::Marker::ADD;
         line.scale.x = line_width;
+        line.color.r = 0.0;
+        line.color.g = 0.8;
+        line.color.b = 1.0;
         line.color.a = 1.0;
         line.lifetime = ros::Duration(lifetime);
 
@@ -1534,21 +1547,6 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             p.y = poses.poses[i].position.y;
             p.z = 0.05;
             line.points.push_back(p);
-
-            // Red for high cost, Green for low
-            std_msgs::ColorRGBA c;
-            float norm = (total_costs[i] - min_cost) / range;
-            if (!std::isfinite(norm))
-                norm = 0.0f;
-            norm = std::min(1.0f, std::max(0.0f, norm));  // clamp to [0,1] 
-
-            // Red = high cost, Green = low cost
-            c.r = norm;
-            c.g = 1.0f - norm;
-            c.b = 0.0f;
-            c.a = 1.0f;
-            line.colors.push_back(c);
-
         }
         all_markers.markers.push_back(line);
 
@@ -1577,9 +1575,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             all_markers.markers.push_back(text);
         }
 
-
     traj_cost_viz_pub.publish(all_markers);
+    
 }
+
 
 
 
