@@ -32,7 +32,8 @@ namespace dynamic_gap
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
                 float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
                 float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 2.0; /**< todo: update this value i just randomly picked it. Maximum angular speed for robot */            
+                float vang_absmax = 1.0; /**< Maximum angular speed for robot */            
+                float a_max = 2.0; /**< todo: update this value i just randomly picked it. Maximum angular speed for robot */      
             } rbt;
 
             /**

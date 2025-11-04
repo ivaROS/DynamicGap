@@ -1139,7 +1139,7 @@ else
 float v0       = current_linear_velocity;
 float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
+float a_max    =  cfg_.rbt.a_max; //todo: update this value. I just set it to 1 for now
 
 
 const int   num_points   = 11;           // total points along the trajectory
