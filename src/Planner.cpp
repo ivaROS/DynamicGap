@@ -2257,12 +2257,12 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
             // if planner has been idling for longer than maxt and incoming score is better
 
-            // if (incomingPathCost < reducedCurrentPathSubCost) 
-            // {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
-            //                                                 ": incoming trajectory is lower score");
-            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            // }
+            if (incomingPathCost < reducedCurrentPathSubCost) 
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
+                                                            ": incoming trajectory is lower score");
+                changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            }
             
             
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory maintain");
