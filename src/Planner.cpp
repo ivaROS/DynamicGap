@@ -1671,9 +1671,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
-                            pursuitGuidancePoseCost = totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
-                            pursuitGuidancePoseCosts = dwa_PoseCosts;
-                            pursuitGuidanceTerminalPoseCost = dwa_TerminalPoseCost;
+                            pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
+                            pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts;
+                            pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
                             //todo: run processTrajectory()
 
                         }
