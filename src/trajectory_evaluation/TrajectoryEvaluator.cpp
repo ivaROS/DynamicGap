@@ -148,7 +148,8 @@ namespace dynamic_gap
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
+            // terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back()); // this is the original code, but i want to use my weight traj.w_goal instead 
+            terminalPoseCost = cfg_->traj.w_goal * terminalGoalCost(pose_array.poses.back());
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
             //////////////////// path costs //////////////////
