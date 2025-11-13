@@ -2219,8 +2219,18 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             //  Enact a trajectory switch if the we have been tracking the currently executing path for its entire lifespan  //
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
             ros::Duration currentTrajTrackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
+            
+             double lifespan_sec = currentTrajLifespan_.toSec();
+            // lifespan_sec = std::max(0.0, lifespan_sec - 4.0);
 
-            if (currentTrajTrackingTime > currentTrajLifespan_)
+            double tracking_sec = currentTrajTrackingTime.toSec();
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec); 
+            // // if (currentTrajTrackingTime > currentTrajLifespan_)
+            // if (tracking_sec + 4 > lifespan_sec)
+            double max_track_time = 0.25; 
+            
+            // if (currentTrajTrackingTime > currentTrajLifespan_)
+            if (tracking_sec >= max_track_time)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
