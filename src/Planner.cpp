@@ -1139,7 +1139,7 @@ else
 float v0       = current_linear_velocity;
 float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
+float a_max    =  2.0; 
 
 
 const int   num_points   = 11;           // total points along the trajectory
@@ -1201,6 +1201,9 @@ float dist_accum = 0.0f;
 float next_target = 0.0f;
 int current_seg = 0;
 
+// ROS_ERROR_STREAM("num_points: " << num_points);
+
+
 dwa_traj.positions.reserve(num_points);
 dwa_traj.yaws.reserve(num_points);
 dwa_traj.times.reserve(num_points);
@@ -1240,6 +1243,7 @@ for (int i = 1; i < num_points; ++i)
     dwa_traj.times.push_back(i * dt);
 } 
 //publish as PoseArray
+// ROS_ERROR_STREAM("dwa_traj.positions.size() :" << dwa_traj.positions.size());
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
@@ -1265,19 +1269,19 @@ float speedCost = 0;
 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
 float pose_cost_sum = 0.0f;
 float path_cost_sum = 0.0f;
 
-if (!dwa_PoseCosts.empty())
-{
-    pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
-    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
-    for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
-    {
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
-    }
-}
+// if (!dwa_PoseCosts.empty())
+// {
+//     pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
+//     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
+//     for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+//     {
+//         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
+//     }
+// }
 
 // if (!dwa_PathCosts.empty())
 // {
@@ -1289,8 +1293,8 @@ if (!dwa_PoseCosts.empty())
 //     }
 // }
 
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
-ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
+// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
 traj_pub_.publish(pose_array);
@@ -1671,9 +1675,11 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
-                            pursuitGuidancePoseCost = totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
-                            pursuitGuidancePoseCosts = dwa_PoseCosts;
-                            pursuitGuidanceTerminalPoseCost = dwa_TerminalPoseCost;
+                            pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
+                            pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts;
+                            pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
+
                             //todo: run processTrajectory()
 
                         }
@@ -2033,6 +2039,35 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
                 ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
+                // /////////////// just for debugging printouts: 
+                // // --- Extract cost data for this gap ---
+                // const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
+                // float currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(lowestCostTrajIdx);
+
+                // // --- Print pose-wise costs ---
+                // // ROS_ERROR_STREAM_NAMED("Planner", "[GAP_COST] Pose-wise breakdown (traj " << lowestCostTrajIdx << "):");
+                // for (size_t k = 0; k < currentTrajPoseCosts.size(); ++k)
+                // {
+                //     float cost = currentTrajPoseCosts[k];
+                //     if (k == currentTrajPoseCosts.size() - 1)
+                //         cost += currentTrajTerminalPoseCost;
+
+                //     ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                // }
+
+                // // --- Compute and print average and total cost ---
+                // float avgPoseCost = 0.0f;
+                // if (!currentTrajPoseCosts.empty())
+                //     avgPoseCost = std::accumulate(currentTrajPoseCosts.begin(),
+                //                                 currentTrajPoseCosts.end(), 0.0f) / currentTrajPoseCosts.size();
+
+                // float totalCost = avgPoseCost + currentTrajTerminalPoseCost;
+                // ROS_ERROR_STREAM_NAMED("Planner", "[GAP_COST_SUMMARY] avgPose=" << avgPoseCost
+                //                     << "  terminal=" << currentTrajTerminalPoseCost
+                //                     << "  total=" << totalCost);
+                                    
+
+
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - numGapTrajs;
@@ -2216,11 +2251,33 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             //  Enact a trajectory switch if the we have been tracking the currently executing path for its entire lifespan  //
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
             ros::Duration currentTrajTrackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
+            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "currentTrajLifespan_: " << currentTrajLifespan_); 
+            
+            ///////////////////////// old code /////////////////////////
+            // float tweaked_currentTrajLifespan_ = currentTrajLifespan_; 
+            // tweaked_currentTrajLifespan_ -= 1; 
+            // if (tweaked_currentTrajLifespan_ < 0)
+            // {
+            //     tweaked_currentTrajLifespan_ = 0; 
+            // }
 
-            if (currentTrajTrackingTime > currentTrajLifespan_)
+            // if (currentTrajTrackingTime > tweaked_currentTrajLifespan_)
+            ///////////////////////// old code /////////////////////////
+
+            double lifespan_sec = currentTrajLifespan_.toSec();
+            // lifespan_sec = std::max(0.0, lifespan_sec - 4.0);
+
+            double tracking_sec = currentTrajTrackingTime.toSec();
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec); 
+            // // if (currentTrajTrackingTime > currentTrajLifespan_)
+            // if (tracking_sec + 4 > lifespan_sec)
+            double max_track_time = 0.25; 
+            if (tracking_sec >= max_track_time)
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-                                                                ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
+                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", " ------------ switched traj bc tracking for longer than: " << max_track_time); 
+                // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
+                //                                                 ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
+
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
@@ -2480,9 +2537,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
-            generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
-            timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
+            // timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
+            // generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
+            // timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
