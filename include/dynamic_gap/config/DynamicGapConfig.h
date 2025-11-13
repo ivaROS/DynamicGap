@@ -121,9 +121,9 @@ namespace dynamic_gap
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 float w_obs = 1.5; 
-                float w_path = 0; 
-                float w_goal = 0; 
-                float w_speed = 0; 
+                float w_path = 1.0; 
+                float w_goal = 1.0; 
+                float w_speed = 1.0; 
             } traj;            
             
             /**
