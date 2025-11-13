@@ -1243,7 +1243,7 @@ for (int i = 1; i < num_points; ++i)
     dwa_traj.times.push_back(i * dt);
 } 
 //publish as PoseArray
-ROS_ERROR_STREAM("dwa_traj.positions.size() :" << dwa_traj.positions.size());
+// ROS_ERROR_STREAM("dwa_traj.positions.size() :" << dwa_traj.positions.size());
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
@@ -1273,15 +1273,15 @@ totalTrajCost += speedCost * cfg_.traj.w_speed;
 float pose_cost_sum = 0.0f;
 float path_cost_sum = 0.0f;
 
-if (!dwa_PoseCosts.empty())
-{
-    pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
-    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
-    for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
-    {
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
-    }
-}
+// if (!dwa_PoseCosts.empty())
+// {
+//     pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
+//     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
+//     for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+//     {
+//         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
+//     }
+// }
 
 // if (!dwa_PathCosts.empty())
 // {
@@ -2039,21 +2039,21 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
                 ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
-                /////////////// just for debugging printouts: 
-                // --- Extract cost data for this gap ---
-                const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
-                float currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(lowestCostTrajIdx);
+                // /////////////// just for debugging printouts: 
+                // // --- Extract cost data for this gap ---
+                // const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
+                // float currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(lowestCostTrajIdx);
 
-                // --- Print pose-wise costs ---
-                // ROS_ERROR_STREAM_NAMED("Planner", "[GAP_COST] Pose-wise breakdown (traj " << lowestCostTrajIdx << "):");
-                for (size_t k = 0; k < currentTrajPoseCosts.size(); ++k)
-                {
-                    float cost = currentTrajPoseCosts[k];
-                    if (k == currentTrajPoseCosts.size() - 1)
-                        cost += currentTrajTerminalPoseCost;
+                // // --- Print pose-wise costs ---
+                // // ROS_ERROR_STREAM_NAMED("Planner", "[GAP_COST] Pose-wise breakdown (traj " << lowestCostTrajIdx << "):");
+                // for (size_t k = 0; k < currentTrajPoseCosts.size(); ++k)
+                // {
+                //     float cost = currentTrajPoseCosts[k];
+                //     if (k == currentTrajPoseCosts.size() - 1)
+                //         cost += currentTrajTerminalPoseCost;
 
-                    ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
-                }
+                //     ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                // }
 
                 // // --- Compute and print average and total cost ---
                 // float avgPoseCost = 0.0f;
