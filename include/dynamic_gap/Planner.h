@@ -148,6 +148,9 @@ namespace dynamic_gap
 
             void publishFutureScans(const std::vector<sensor_msgs::LaserScan>& futureScans);
 
+            void visualizePoseArray(const geometry_msgs::PoseArray & path,
+                                 const std::string & ns);
+
 
         private:
 
@@ -454,6 +457,7 @@ namespace dynamic_gap
             message_filters::Subscriber<geometry_msgs::TwistStamped> rbtAccSub_; /**< Subscriber to incoming robot acceleration */
             ros::Publisher minDistCirclePub_;// for visualizing minumum distance
             ros::Publisher traj_pub_;
+            ros::Publisher transformed_path_pub_;
 
             typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
             typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */

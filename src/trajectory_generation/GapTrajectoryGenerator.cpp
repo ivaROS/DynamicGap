@@ -306,7 +306,7 @@ namespace dynamic_gap
 
         if (transformedPath.poses.size() != path.poses.size())
         {
-            ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "transformed path size mismatch: " << transformedPath.poses.size() << " vs " << path.poses.size());
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "transformed path size mismatch: " << transformedPath.poses.size() << " vs " << path.poses.size());
         }
 
         if (transformedPath.header.frame_id.empty())
