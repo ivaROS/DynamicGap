@@ -1274,7 +1274,7 @@ std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 // float totalTrajCost = 0;
 float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
@@ -1661,13 +1661,15 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             Trajectory dwaTrajectory;
 
                             // The Trajectory class typically stores PoseArray and timing
-                            dwaTrajectory.setPathRbtFrame(pose_array);         // robot-frame path
+                            // dwaTrajectory.setPathRbtFrame(pose_array); // I don't like this so I fixed it below, this is unrelated to social cost stuff btw
 
+                                geometry_msgs::PoseArray pose_array_cheapest_dwa; 
                             if (!cheapest_dwa.times.empty())
                             {
                                 dwaTrajectory.setPathTiming(cheapest_dwa.times); 
                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "times size: " << dwaTrajectory.getPathTiming().size());
-
+                                pose_array_cheapest_dwa = cheapest_dwa.toPoseArray(cfg_.sensor_frame_id);
+                                dwaTrajectory.setPathRbtFrame(pose_array_cheapest_dwa);         // robot-frame path
                             }
 
                             else

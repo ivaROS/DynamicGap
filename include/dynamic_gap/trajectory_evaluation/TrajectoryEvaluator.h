@@ -64,7 +64,8 @@ namespace dynamic_gap
                             float & terminalPoseCost,
                             const std::vector<sensor_msgs::LaserScan> & futureScans,
                             const int & scanIdx,
-                            const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet);
+                            const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                            dynamic_gap::Gap* gap);
 
             float calcSpeedCost(const float v_cmd, const float v_max); 
 

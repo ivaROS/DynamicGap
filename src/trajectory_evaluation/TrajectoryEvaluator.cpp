@@ -103,7 +103,8 @@ namespace dynamic_gap
                                 float & terminalPoseCost,
                                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                                 const int & scanIdx,
-                                const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet)
+                                const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                dynamic_gap::Gap* gap)
     {    
         try
         {
@@ -167,6 +168,126 @@ namespace dynamic_gap
 
             float avg_path_cost = path_cost_sum / std::max(1.0f, float(pose_array.poses.size()));
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "avg path distance cost: " << avg_path_cost);
+            
+///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
+        // Requires LOCAL FRAME
+
+        Eigen::Vector2f leftGapRelVel(0, 0);
+        geometry_msgs::TwistStamped RbtVelMsg;
+        Eigen::Vector2f RbtVel(0, 0);
+        Eigen::Vector2f leftGapRelPos(0, 0);
+        Eigen::Vector2f rightGapRelVel(0, 0);
+        Eigen::Vector2f rightGapRelPos(0, 0); 
+        bool leftGapPtIsDynamic = false; 
+        bool rightGapPtIsDynamic = false; 
+        
+        if(cfg_->planning.social_cost_function == 1)
+        {
+        if(gap)
+        {
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
+
+        leftGapPtIsDynamic = gap->getLeftGapPt()->getUngapID()>=0; 
+        if(leftGapPtIsDynamic)
+        {
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+         gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        //  gap->leftGapPt__model_->isolateGapDynamics();
+         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity();
+         RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
+         RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
+         // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
+         leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
+
+        }
+
+        rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
+        if(rightGapPtIsDynamic)
+        {
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
+         gap->getRightGapPt()->getModel()->isolateGapDynamics();
+        //  gap->rightGapPt__model_->isolateGapDynamics();
+         rightGapRelVel = gap->getRightGapPt()->getModel()->getGapVelocity();
+        
+         // ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", rightGapRelVel);  
+         rightGapRelPos = gap->getRightGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->rightGapPtModel_->getState(): ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", rightGapRelPos);  
+
+        }
+
+
+        
+    //     int i = 0; //ATODO DELETE
+    //     for(i = 0; i < 1; i++)
+    // {
+        
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+    //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+        
+    // }
+        }
+    }
+
+        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+        std::vector<float> pathTiming = traj.getPathTiming();
+        
+        posewiseCosts = std::vector<float>(path.poses.size());
+
+        float leftGapPtCost = 0; 
+        float rightGapPtCost = 0; 
+        float weight = cfg_->planning.social_cost_weight; 
+
+
+        for (int i = 0; i < posewiseCosts.size(); i++) 
+        {
+            if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
+                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
+                Eigen::Vector2f Pos;
+                Pos.x() = posUncoverted.x; 
+                Pos.y() = posUncoverted.y;
+                
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): "); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapRelPos);
+
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "Pos: "); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", Pos);
+
+                leftGapPtCost = relativeVelocityCost(leftGapRelVel, leftGapRelPos, Pos, RbtVel);
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(leftGapRelVel, leftGapRelPos, RbtVel)"); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapPtCost); 
+            }
+            
+
+            if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){
+                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
+                Eigen::Vector2f Pos;
+                Pos.x() = posUncoverted.x; 
+                Pos.y() = posUncoverted.y;
+                
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapRelPos: "); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapRelPos);
+
+                rightGapPtCost = relativeVelocityCost(rightGapRelVel, rightGapRelPos, Pos, RbtVel);
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(rightGapRelVel, rightGapRelPos, RbtVel)"); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapPtCost); 
+            }
+
+///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
             // Combine into a final cost
             totalTrajCost =
