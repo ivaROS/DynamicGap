@@ -75,6 +75,11 @@ namespace dynamic_gap
             float calcDistToGlobalPath(const geometry_msgs::Pose& pose,
                            const std::vector<geometry_msgs::PoseStamped>& globalPlanSnippet);
 
+            float relativeVelocityCost(Eigen::Vector2f relativeVel,
+                            Eigen::Vector2f relativeGapPos,
+                            Eigen::Vector2f trajPos,
+                            Eigen::Vector2f robotVel);
+
             
         private:
             /**

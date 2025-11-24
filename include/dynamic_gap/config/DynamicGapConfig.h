@@ -68,6 +68,7 @@ namespace dynamic_gap
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool dwa_method = true; /**< Flag for using dwa to generate trajectories instead of pursuit guidance */
                 bool social_cost_function = true;
+                float social_cost_weight = 1.0; 
             } planning;            
 
             /**

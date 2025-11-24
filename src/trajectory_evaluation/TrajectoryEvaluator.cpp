@@ -242,10 +242,10 @@ namespace dynamic_gap
         }
     }
 
-        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
-        std::vector<float> pathTiming = traj.getPathTiming();
+        // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+        // std::vector<float> pathTiming = traj.getPathTiming();
         
-        posewiseCosts = std::vector<float>(path.poses.size());
+        posewiseCosts = std::vector<float>(pose_array.poses.size());
 
         float leftGapPtCost = 0; 
         float rightGapPtCost = 0; 
@@ -255,7 +255,7 @@ namespace dynamic_gap
         for (int i = 0; i < posewiseCosts.size(); i++) 
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
+                geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
                 Eigen::Vector2f Pos;
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
@@ -273,7 +273,7 @@ namespace dynamic_gap
             
 
             if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
+                geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
                 Eigen::Vector2f Pos;
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
@@ -288,11 +288,12 @@ namespace dynamic_gap
 
 ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+            
             // Combine into a final cost
             totalTrajCost =
                 cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
                 cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost;
+        }
 
 
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
@@ -428,6 +429,39 @@ namespace dynamic_gap
     float dist = std::fabs(a * p.x + b * p.y + c) / (std::hypot(a, b) + 1e-6);
 
     return dist;
+}
+
+float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
+        Eigen::Vector2f relativeGapPos,
+        Eigen::Vector2f trajPos,
+        Eigen::Vector2f robotVel){
+            
+    Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
+
+    // ROS_ERROR_STREAM_NAMED("relvel cost: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
+
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "relativeGapPos: ");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", relativeGapPos);
+
+    Eigen::Vector2f posToGapPtDist = relativeGapPos - trajPos;// distance between the current pos we're looking at and the gap point (which represents the dynamic obstacle)
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "posToGapPtDist: ");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", posToGapPtDist);
+
+
+
+
+    float cost = (std::max(relVel.dot(relativeGapPos), 0.0f) + robotVel.norm()) / posToGapPtDist.norm();
+
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "std::max(relVel.dot(relativeGapPos), 0.0f");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", std::max(relVel.dot(relativeGapPos), 0.0f));
+
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "relVel.dot(relativeGapPos)");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", relVel.dot(relativeGapPos));
+
+    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: ");
+    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
+
+    return cost;
 }
 
 }
