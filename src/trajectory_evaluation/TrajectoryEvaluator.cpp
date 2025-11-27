@@ -214,7 +214,7 @@ namespace dynamic_gap
         }
 
         // rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
-        rightGapPtIsDynamic = false; //debugging
+        rightGapPtIsDynamic = true; //debugging
         if(rightGapPtIsDynamic)
         {
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
