@@ -1064,6 +1064,7 @@ else
                     std::vector<float> dwa_PathCosts; 
                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
                     float dwa_goToGoalCost, dwa_PoseCost;
+                    std::vector<float> dwa_RelVelPoseCosts; 
 
 
                     Gap * gap = gapTube->at(j);
@@ -1274,7 +1275,7 @@ std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 // float totalTrajCost = 0;
 float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
@@ -1308,6 +1309,7 @@ float path_cost_sum = 0.0f;
 traj_pub_.publish(pose_array);
 dwa_traj.PoseCosts = dwa_PoseCosts; 
 dwa_traj.PathCosts = dwa_PathCosts; 
+dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts; 
 dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost; 
 dwa_traj.totalTrajCost = totalTrajCost; 
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
@@ -1516,6 +1518,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         {
             float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
             float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
+            float relvel_cost = (i < traj.RelVelPoseCosts.size()) ? traj.PathCosts[i] : 0.0f;
             float speed_cost = 0.0f;
             float term_cost = 0.0f;
 
@@ -1523,17 +1526,22 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             float len_norm = std::max(1.0f, float(poses.poses.size()));
             pose_cost /= len_norm;
             path_cost /= len_norm;
-
+            relvel_cost /= len_norm; 
             if (i == poses.poses.size() - 1)
             {
-                speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
-                term_cost  = traj.TerminalPoseCost;
+                // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
+                // term_cost  = traj.TerminalPoseCost;
+                ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+
             }
 
-            float total = cfg_.traj.w_obs  * pose_cost +
-                          cfg_.traj.w_path * path_cost +
-                          cfg_.traj.w_speed * speed_cost +
-                          cfg_.traj.w_goal  * term_cost;
+            // float total = cfg_.traj.w_obs  * pose_cost +
+            //               cfg_.traj.w_path * path_cost +
+            //               cfg_.traj.w_speed * speed_cost +
+            //               cfg_.traj.w_goal  * term_cost;
+
+            float total = cfg_.traj.w_relvel * relvel_cost; 
+            ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
             total_costs.push_back(total);
         }
 

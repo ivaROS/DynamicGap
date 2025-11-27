@@ -104,7 +104,8 @@ namespace dynamic_gap
                                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                                 const int & scanIdx,
                                 const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
-                                dynamic_gap::Gap* gap)
+                                dynamic_gap::Gap* gap,
+                                std::vector<float> &dwa_RelVelPoseCosts)
     {    
         try
         {
@@ -121,6 +122,7 @@ namespace dynamic_gap
             
             posewiseCosts = std::vector<float>(pose_array.poses.size());
             dwa_PathCosts = std::vector<float>(pose_array.poses.size());
+            dwa_RelVelPoseCosts = std::vector<float>(pose_array.poses.size());
 
             if (pose_array.poses.size() > futureScans.size()) 
             {
@@ -251,10 +253,10 @@ namespace dynamic_gap
 
         float leftGapPtCost = 0; 
         float rightGapPtCost = 0; 
-        float weight = cfg_->planning.social_cost_weight; 
+        float weight = cfg_->traj.w_relvel; 
 
 
-        for (int i = 0; i < posewiseCosts.size(); i++) 
+        for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
                 geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
@@ -287,10 +289,13 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(rightGapRelVel, rightGapRelPos, RbtVel)"); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapPtCost); 
             }
+            dwa_RelVelPoseCosts.at(i) = leftGapPtCost + rightGapPtCost;
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_RelVelPoseCosts.at(i): " << dwa_RelVelPoseCosts.at(i)); 
+        }
 
-///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        }    
+           
             // Combine into a final cost
             totalTrajCost =
                 cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
@@ -463,7 +468,7 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
     // ROS_ERROR_STREAM_NAMED("relvel cost", "relVel.dot(relativeGapPos)");
     // ROS_ERROR_STREAM_NAMED("relvel cost", relVel.dot(relativeGapPos));
 
-    ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
+    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
     return cost;

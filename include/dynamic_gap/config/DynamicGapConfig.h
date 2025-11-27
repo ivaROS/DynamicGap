@@ -68,7 +68,7 @@ namespace dynamic_gap
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool dwa_method = true; /**< Flag for using dwa to generate trajectories instead of pursuit guidance */
                 bool social_cost_function = true;
-                float social_cost_weight = 1.0; 
+                // float social_cost_weight = 1.0; 
             } planning;            
 
             /**
@@ -124,8 +124,9 @@ namespace dynamic_gap
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 float w_obs = 1.5; 
                 float w_path = 1.0; 
-                float w_goal = 1.0; 
+                float w_goal = 1.0; //FYI Q_f already scales the terminal point cost and it happens that Q_f is set to 1. I think of this w_goal term as a way to adjust what max found worked best for the chapter's cost
                 float w_speed = 1.0; 
+                float w_relvel = 1.0; 
             } traj;            
             
             /**

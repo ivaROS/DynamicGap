@@ -27,6 +27,7 @@ struct dwa_Trajectory
     geometry_msgs::PoseArray pose_array;
      std::vector<float> PoseCosts;// IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost 
      std::vector<float> PathCosts; 
+     std::vector<float> RelVelPoseCosts; //relative velocity cost applied to each pose 
      float TerminalPoseCost= 0.0f; 
 
     // --- Convert to ROS PoseArray for visualization ---
