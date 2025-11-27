@@ -1529,9 +1529,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             relvel_cost /= len_norm; 
             if (i == poses.poses.size() - 1)
             {
-                // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
-                // term_cost  = traj.TerminalPoseCost;
-                ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
+                term_cost  = traj.TerminalPoseCost;
+                // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
 
             }
 
