@@ -150,7 +150,7 @@ namespace dynamic_gap
 
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
+            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
             //////////////////// path costs //////////////////
             // --- Path-distance cost (distance to visible global plan snippet) ---
@@ -443,7 +443,7 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
     // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
     // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
     // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
-    // ROS_ERROR_STREAM_NAMED("relvel cost: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
+    // ROS_ERROR_STREAM_NAMED("relvel: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
 
     // ROS_ERROR_STREAM_NAMED("relvel cost", "relativeGapPos: ");
     // ROS_ERROR_STREAM_NAMED("relvel cost", relativeGapPos);
@@ -463,7 +463,7 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
     // ROS_ERROR_STREAM_NAMED("relvel cost", "relVel.dot(relativeGapPos)");
     // ROS_ERROR_STREAM_NAMED("relvel cost", relVel.dot(relativeGapPos));
 
-    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: ");
+    ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
     return cost;
