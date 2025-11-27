@@ -247,7 +247,7 @@ namespace dynamic_gap
         // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         // std::vector<float> pathTiming = traj.getPathTiming();
         
-        posewiseCosts = std::vector<float>(pose_array.poses.size());
+        // posewiseCosts = std::vector<float>(pose_array.poses.size());
 
         float leftGapPtCost = 0; 
         float rightGapPtCost = 0; 
