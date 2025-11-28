@@ -55,7 +55,7 @@ namespace dynamic_gap
             }
 
 
-            for (int i = 0; i < posewiseCosts.size(); i++) 
+            for (int    = 0; i < posewiseCosts.size(); i++) 
             {
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
@@ -75,7 +75,7 @@ namespace dynamic_gap
             ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            evaluateTrajectory out of range exception: " << e.what());
         }
         
-        return;
+        return; //
     }
 
     float TrajectoryEvaluator::calcSpeedCost(const float v_cmd, const float v_max)
