@@ -297,10 +297,12 @@ namespace dynamic_gap
 
            
             // Combine into a final cost
-            totalTrajCost =
-                cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
-                cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
-                cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+            // totalTrajCost =
+            //     cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
+            //     cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
+            //     cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+        
+             totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
         
 
 
@@ -439,40 +441,52 @@ namespace dynamic_gap
     return dist;
 }
 
-float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
+float TrajectoryEvaluator::relativeVelocityCost(
+        Eigen::Vector2f relativeVel,
         Eigen::Vector2f relativeGapPos,
         Eigen::Vector2f trajPos,
-        Eigen::Vector2f robotVel){
-            
-    Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
-    // ROS_ERROR_STREAM("relativeVel: " << relativeVel.transpose());
-    // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
-    // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
-    // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
-    // ROS_ERROR_STREAM_NAMED("relvel: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
+        Eigen::Vector2f robotVel)
+{
+    const float eps = 1e-3f;
 
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "relativeGapPos: ");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", relativeGapPos);
+    // Reconstruct human velocity
+    Eigen::Vector2f humanVel = robotVel + relativeVel;
 
-    Eigen::Vector2f posToGapPtDist = relativeGapPos - trajPos;// distance between the current pos we're looking at and the gap point (which represents the dynamic obstacle)
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "posToGapPtDist: ");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", posToGapPtDist);
+    float vr = robotVel.norm();
+    float vh = humanVel.norm();
 
 
+    // 2D cross product magnitude = |x1*y2 - y1*x2|
+    float cross = std::abs(robotVel.x()*humanVel.y()
+                          - robotVel.y()*humanVel.x());
 
+    float sin_theta = cross / (vr*vh + eps);  // normalized [0,1]
 
-    float cost = (std::max(relVel.dot(relativeGapPos), 0.0f) + robotVel.norm()) / posToGapPtDist.norm();
+    // Distance from trajectory point to gap point
+    Eigen::Vector2f d = relativeGapPos - trajPos;
+    float dist = std::max(d.norm(), eps);
 
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "std::max(relVel.dot(relativeGapPos), 0.0f");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", std::max(relVel.dot(relativeGapPos), 0.0f));
+    // Minimum perpendicular-penalty version
+    float cost = sin_theta / dist;
 
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "relVel.dot(relativeGapPos)");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", relVel.dot(relativeGapPos));
-
-    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
-    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
+    // --------------------------------------------------
+    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+        << "\nrelativeVel:       " << relativeVel.transpose()
+        << "\nrobotVel:          " << robotVel.transpose()
+        << "\nhumanVel (recon):  " << humanVel.transpose()
+        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+        << "\ntrajPos:           " << trajPos.transpose()
+        << "\nposToGap d:        " << d.transpose()
+        << "\nvr (|Vr|):         " << vr
+        << "\nvh (|Vh|):         " << vh
+        << "\ncross:             " << cross
+        << "\nsin(theta):        " << sin_theta
+        << "\ndist:              " << dist
+        << "\ncost:              " << cost
+        << "\n------------------------------------------" );
 
     return cost;
 }
+
 
 }
