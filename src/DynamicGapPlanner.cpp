@@ -82,6 +82,7 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock cfg_lock(config_mutex_);
 
+            
         // ROS_INFO_STREAM("[DynamicGapPlanner::computeVelocityCommands(long)]");
 
         if (!planner_.initialized())

@@ -1,6 +1,7 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 #include <dynamic_gap/utils/dwa_traj.h>
+#include <tf/transform_datatypes.h>
 
 namespace dynamic_gap
 {   
@@ -91,6 +92,7 @@ namespace dynamic_gap
         dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
 
         trajEvaluator_ = new TrajectoryEvaluator(cfg_);
+        
         trajController_ = new TrajectoryController(nh_, cfg_);
 
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
@@ -123,6 +125,17 @@ namespace dynamic_gap
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
+
+        gapVelSub_ = nh_.subscribe(
+            "simp_gap_model_velocities", 
+            10,
+            &Planner::gapVelCB,
+            this
+        );
+        trajEvaluator_->latestGapLeftVelPtr_ = &latestGapLeftVel_; // for relvel calcuation
+        trajEvaluator_->latestGapRightVelPtr_ = &latestGapRightVel_;
+
+
         minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
         ros::NodeHandle nh;  // or pass an existing NodeHandle
         traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("bezier_traj", 1);
@@ -682,6 +695,107 @@ else
         float s = std::sin(theta);
         return Eigen::Vector2f(c*point.x() - s*point.y(), s*point.x() + c*point.y());
     }
+
+void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
+{
+    latestGapLeftVel_.clear();
+    latestGapRightVel_.clear();
+
+    for (size_t i = 0; i < msg->markers.size(); i++)
+    {
+        const auto& m = msg->markers[i];
+
+        float speed = m.scale.x;
+
+        // --------------------------------------------------------------
+        // FIX 1: Handle zero-speed markers (undefined direction)
+        // --------------------------------------------------------------
+        if (speed < 1e-6)
+        {
+            Eigen::Vector2f vel(0.0f, 0.0f);
+
+            if (i % 2 == 0) latestGapLeftVel_.push_back(vel);
+            else            latestGapRightVel_.push_back(vel);
+
+            continue;
+        }
+
+        // --------------------------------------------------------------
+        // FIX 3: Check quaternion validity before using it
+        // --------------------------------------------------------------
+        const geometry_msgs::Quaternion& q = m.pose.orientation;
+
+        bool quat_invalid =
+            !std::isfinite(q.w) || !std::isfinite(q.x) ||
+            !std::isfinite(q.y) || !std::isfinite(q.z) ||
+            (q.w == 0.0 && q.x == 0.0 && q.y == 0.0 && q.z == 0.0);
+
+        if (quat_invalid)
+        {
+            // invalid quaternion → default direction (yaw = 0)
+            float yaw = 0.0f;
+            float vx = speed * std::cos(yaw);
+            float vy = speed * std::sin(yaw);
+
+            Eigen::Vector2f vel(vx, vy);
+
+            if (i % 2 == 0) latestGapLeftVel_.push_back(vel);
+            else            latestGapRightVel_.push_back(vel);
+
+            continue;
+        }
+
+        // --------------------------------------------------------------
+        // FIX 4: Normalize quaternion if needed (avoid TF warnings)
+        // --------------------------------------------------------------
+        geometry_msgs::Quaternion qnorm = q;
+        double n = std::sqrt(qnorm.x*qnorm.x + qnorm.y*qnorm.y +
+                             qnorm.z*qnorm.z + qnorm.w*qnorm.w);
+
+        if (n > 1e-6)
+        {
+            qnorm.x /= n;
+            qnorm.y /= n;
+            qnorm.z /= n;
+            qnorm.w /= n;
+        }
+
+        // --------------------------------------------------------------
+        // FIX 2: Safe yaw extraction (guard against NaN)
+        // --------------------------------------------------------------
+        float yaw = tf::getYaw(qnorm);
+        if (std::isnan(yaw) || std::isinf(yaw))
+            yaw = 0.0f;
+
+        float vx = speed * std::cos(yaw);
+        float vy = speed * std::sin(yaw);
+
+        Eigen::Vector2f vel(vx, vy);
+
+        // --------------------------------------------------------------
+        // correct left/right assignment
+        // --------------------------------------------------------------
+        if (i % 2 == 0)
+{
+    latestGapLeftVel_.push_back(vel);
+
+    // PRINT ONLY LEFT GAP VELOCITY
+    ROS_ERROR_STREAM("[gapVelCB] LEFT gap vel: " << vel.transpose()
+                     << "  (vx=" << vx << ", vy=" << vy << ")");
+}
+else
+{
+    latestGapRightVel_.push_back(vel);
+}
+
+    }
+
+    ROS_ERROR_STREAM("[gapVelCB] stored "
+        << latestGapLeftVel_.size() << " left gap vels, "
+        << latestGapRightVel_.size() << " right gap vels.");
+        
+}
+
 
     void Planner::updateEgoCircle()
     {
@@ -1531,7 +1645,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             {
                 // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
                 // term_cost  = traj.TerminalPoseCost;
-                ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                int filler = 0; 
 
             }
 

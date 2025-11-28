@@ -81,6 +81,10 @@ namespace dynamic_gap
                             Eigen::Vector2f trajPos,
                             Eigen::Vector2f robotVel);
 
+            std::vector<Eigen::Vector2f>* latestGapLeftVelPtr_;
+            std::vector<Eigen::Vector2f>* latestGapRightVelPtr_;
+
+
             
         private:
             /**

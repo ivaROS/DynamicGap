@@ -151,6 +151,10 @@ namespace dynamic_gap
             void visualizePoseArray(const geometry_msgs::PoseArray & path,
                                  const std::string & ns);
 
+            std::vector<Eigen::Vector2f> latestGapLeftVel_;
+            std::vector<Eigen::Vector2f> latestGapRightVel_;
+
+
 
         private:
 
@@ -464,6 +468,10 @@ namespace dynamic_gap
             boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
 
             ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
+
+            ros::Subscriber gapVelSub_; // used in relvel cacluation
+            void gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg);
+
 
             geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
             geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */

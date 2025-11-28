@@ -250,7 +250,7 @@ namespace dynamic_gap
         }
 
         //////////////////////////////
-        // Draw gap goal velocities //
+        // Draw gap goal velocities // 
         //////////////////////////////        
         visualization_msgs::MarkerArray gapModelVelocityMarkerArray;
         for (Gap * gap : gaps) 
@@ -422,6 +422,16 @@ namespace dynamic_gap
             modelMarker.pose.position.x = leftModelState[0];
             modelMarker.pose.position.y = leftModelState[1];
             gapVel = leftModelState.tail(2);
+
+            bool isRaw  = ns.find("raw")  != std::string::npos;
+            bool isSimp = ns.find("simp") != std::string::npos;
+
+            ROS_ERROR_STREAM_NAMED("Visualizer",
+                "[drawModelVelocity] gapVel=" << gapVel.transpose()
+                << "  type=" << (isRaw ? "RAW" : (isSimp ? "SIMP" : "OTHER"))
+                << "  ns=" << ns);
+
+
         } else
         {
             modelMarker.pose.position.x = rightModelState[0];

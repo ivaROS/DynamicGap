@@ -205,6 +205,26 @@ namespace dynamic_gap
          leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity();
          RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
          RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
+
+
+         Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
+
+        // //// just testing ////////////////
+        // Eigen::Vector2f leftVel  = leftState.tail<2>();
+        // // Debug print
+        // ROS_ERROR_STREAM_NAMED("DWA",
+        //     "[GapVel] left=("  << leftVel.transpose()  << ")");
+        // //// just testing ////////////////
+
+        int gapID = gap->getLeftGapPt()->getModel()->getID();
+        ROS_ERROR_STREAM("DWA gapID=" << gapID); 
+
+        // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(gapID);
+
+        // ROS_ERROR_STREAM("DWA gapID=" << gapID
+        //     << " leftVel=" << leftVel.transpose());
+
+
          // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
@@ -471,6 +491,16 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
 
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
+
+    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+        << "\nrelVel:       " << relVel.transpose()
+        << "\nrobotVel:          " << robotVel.transpose()
+        // << "\nhumanVel (recon):  " << humanVel.transpose()
+        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+        // << "\ntrajPos:           " << trajPos.transpose()
+
+        << "\ncost:              " << cost
+        << "\n------------------------------------------" );
 
     return cost;
 }
