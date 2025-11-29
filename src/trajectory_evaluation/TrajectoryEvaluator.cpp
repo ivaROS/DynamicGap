@@ -209,12 +209,7 @@ namespace dynamic_gap
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
-        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos); 
-        Eigen::Vector2f leftGapVelSocial = gap->getGapVelLeftSocial();
-        // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapVelSocial: " << leftGapVelSocial); 
-        ROS_ERROR_STREAM("[Planner] gap ptr = " << gap);
-
-
+        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
 
         }
 
