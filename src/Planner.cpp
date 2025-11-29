@@ -1633,13 +1633,12 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 int filler = 0; 
 
             }
-             float total = cfg_.traj.w_relvel * relvel_cost;
 
-            // float total = cfg_.traj.w_obs  * pose_cost +
-            //               cfg_.traj.w_path * path_cost +
-            //               cfg_.traj.w_speed * speed_cost +
-            //               cfg_.traj.w_goal  * term_cost + 
-            //               cfg_.traj.w_relvel * relvel_cost;
+            float total = cfg_.traj.w_obs  * pose_cost +
+                          cfg_.traj.w_path * path_cost +
+                          cfg_.traj.w_speed * speed_cost +
+                          cfg_.traj.w_goal  * term_cost + 
+                          cfg_.traj.w_relvel * relvel_cost;
 
             // float total = cfg_.traj.w_relvel * relvel_cost; 
             // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
