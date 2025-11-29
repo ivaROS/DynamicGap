@@ -1531,7 +1531,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             {
                 // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
                 // term_cost  = traj.TerminalPoseCost;
-                ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                int skip_this = 0; 
 
             }
 

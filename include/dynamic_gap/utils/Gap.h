@@ -172,7 +172,16 @@ namespace dynamic_gap
                 delete leftGapPt_;
                 delete rightGapPt_;
             };
-            
+
+            void setGapVelLeftSocial(const Eigen::Vector2f& v)  { gapVelLeft_social_ = v; }
+            void setGapVelRightSocial(const Eigen::Vector2f& v) { gapVelRight_social_ = v; }
+            void setGapVelSocial(const Eigen::Vector2f& v)      { gapVel_social_ = v; }
+
+            Eigen::Vector2f getGapVelLeftSocial()  const { return gapVelLeft_social_; }
+            Eigen::Vector2f getGapVelRightSocial() const { return gapVelRight_social_; }
+            Eigen::Vector2f getGapVelSocial()      const { return gapVel_social_; }
+
+                        
             /**
             * \brief Getter for initial left gap point index
             * \return initial left gap point index
@@ -496,6 +505,12 @@ namespace dynamic_gap
             bool globalGoalWithin = false; /**< Flag for if global goal lies within gap's angular span */
             float tInterceptGoal_ = 0.0;  /**< Intercept time for gap goal point */
             float gammaInterceptGoal_ = 0.0; /**< Intercept angle for gap goal point */
+
+            // === SOCIAL-related GAP VELOCITY VARIABLES ===
+            Eigen::Vector2f gapVelLeft_social_  = Eigen::Vector2f(0,0);//a brute work around with an issue I'm having
+            Eigen::Vector2f gapVelRight_social_ = Eigen::Vector2f(0,0);
+            Eigen::Vector2f gapVel_social_      = Eigen::Vector2f(0,0); 
+
 
     };
 }
