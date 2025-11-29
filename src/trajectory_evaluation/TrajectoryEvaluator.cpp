@@ -183,6 +183,10 @@ namespace dynamic_gap
         Eigen::Vector2f rightGapRelPos(0, 0); 
         bool leftGapPtIsDynamic = false; 
         bool rightGapPtIsDynamic = false; 
+
+        Eigen::Vector2f leftVel(0,0);
+        Eigen::Vector2f rightVel(0,0);
+
         
         if(cfg_->planning.social_cost_function == 1)
         {
@@ -218,7 +222,6 @@ namespace dynamic_gap
 
         int gapID = gap->getLeftGapPt()->getModel()->getID();
 
-        Eigen::Vector2f leftVel(0,0);
         ROS_ERROR_STREAM("[TE] requested modelID=" << gapID);
 
         if (leftVelDictPtr_)
@@ -267,7 +270,6 @@ namespace dynamic_gap
 
             int gapID = gap->getRightGapPt()->getModel()->getID();
 
-            Eigen::Vector2f rightVel(0,0);
             ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << gapID);
 
             if (rightVelDictPtr_)
@@ -338,7 +340,7 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "Pos: "); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", Pos);
 
-                leftGapPtCost = relativeVelocityCost(leftGapRelVel, leftGapRelPos, Pos, RbtVel);
+                leftGapPtCost = relativeVelocityCost(leftVel, leftGapRelPos, Pos, RbtVel);
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(leftGapRelVel, leftGapRelPos, RbtVel)"); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapPtCost); 
             }
@@ -353,7 +355,7 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapRelPos: "); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapRelPos);
 
-                rightGapPtCost = relativeVelocityCost(rightGapRelVel, rightGapRelPos, Pos, RbtVel);
+                rightGapPtCost = relativeVelocityCost(rightVel, rightGapRelPos, Pos, RbtVel);
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(rightGapRelVel, rightGapRelPos, RbtVel)"); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapPtCost); 
             }
@@ -507,12 +509,13 @@ namespace dynamic_gap
     return dist;
 }
 
-float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
+float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f humanVel,
         Eigen::Vector2f relativeGapPos,
         Eigen::Vector2f trajPos,
         Eigen::Vector2f robotVel){
             
-    Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
+    // Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
+     Eigen::Vector2f relVel = robotVel - humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
     // ROS_ERROR_STREAM("relativeVel: " << relativeVel.transpose());
     // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
     // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
@@ -540,15 +543,15 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
-    // ROS_ERROR_STREAM("\n[RelVelCost Debug]"
-    //     << "\nrelVel:       " << relVel.transpose()
-    //     << "\nrobotVel:          " << robotVel.transpose()
-    //     // << "\nhumanVel (recon):  " << humanVel.transpose()
-    //     << "\nrelativeGapPos:    " << relativeGapPos.transpose()
-    //     // << "\ntrajPos:           " << trajPos.transpose()
+    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+        << "\nrelVel:       " << relVel.transpose()
+        << "\nrobotVel:          " << robotVel.transpose()
+        // << "\nhumanVel (recon):  " << humanVel.transpose()
+        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+        // << "\ntrajPos:           " << trajPos.transpose()
 
-    //     << "\ncost:              " << cost
-    //     << "\n------------------------------------------" );
+        << "\ncost:              " << cost
+        << "\n------------------------------------------" );
 
     return cost;
 }
