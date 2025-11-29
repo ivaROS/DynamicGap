@@ -638,6 +638,16 @@ namespace dynamic_gap
                 manipPosition << newRange * std::cos(newTheta), 
                                  newRange * std::sin(newTheta); 
             }
+               Eigen::Vector2f socialVelL_ = Eigen::Vector2f(0.0f, 0.0f);
+    Eigen::Vector2f socialVelR_ = Eigen::Vector2f(0.0f, 0.0f);
+
+            // Store / retrieve velocities for social cost function
+            inline void setSocialVelocityLeft(const Eigen::Vector2f &v)  { socialVelL_ = v; }
+            inline void setSocialVelocityRight(const Eigen::Vector2f &v) { socialVelR_ = v; }
+
+            inline Eigen::Vector2f getSocialVelocityLeft()  const { return socialVelL_; }
+            inline Eigen::Vector2f getSocialVelocityRight() const { return socialVelR_; }
+
 
     };
 }

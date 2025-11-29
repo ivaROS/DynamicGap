@@ -210,6 +210,14 @@ namespace dynamic_gap
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
+        Eigen::Vector2f vL = gap->getLeftGapPt()->getModel()->getSocialVelocityLeft();
+        ROS_ERROR_STREAM_NAMED("evalTraj", "left vel for social/relvel cost calc: " << vL);  
+
+        ROS_ERROR_STREAM_NAMED("DBG_PTR",
+    "[Planner] Gap ptr=" << gap
+    << " | L GapPoint ptr=" << gap->getLeftGapPt()
+    << " | L Model ptr=" << gap->getLeftGapPt()->getModel());
+
 
         }
 

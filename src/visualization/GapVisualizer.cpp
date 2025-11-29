@@ -422,18 +422,30 @@ namespace dynamic_gap
             modelMarker.pose.position.x = leftModelState[0];
             modelMarker.pose.position.y = leftModelState[1];
             gapVel = leftModelState.tail(2);
-               bool isRaw  = ns.find("raw")  != std::string::npos;
+
+            gap->getLeftGapPt()->getModel()->setSocialVelocityLeft(gapVel);
+        
+            bool isRaw  = ns.find("raw")  != std::string::npos;
             bool isSimp = ns.find("simp") != std::string::npos;
 
             ROS_ERROR_STREAM_NAMED("Visualizer",
                 "[drawModelVelocity] gapVel=" << gapVel.transpose()
                 << "  type=" << (isRaw ? "RAW" : (isSimp ? "SIMP" : "OTHER"))
                 << "  ns=" << ns);
+
+
+            ROS_ERROR_STREAM_NAMED("DBG_PTR",
+        "[Visualizer-LEFT] gap="      << gap
+        << "  gapPt="                 << gap->getLeftGapPt()
+        << "  model="                 << gap->getLeftGapPt()->getModel());
+        
         } else
         {
             modelMarker.pose.position.x = rightModelState[0];
             modelMarker.pose.position.y = rightModelState[1];            
             gapVel << rightModelState.tail(2); 
+
+            gap->getRightGapPt()->getModel()->setSocialVelocityRight(gapVel);
         }
         modelMarker.pose.position.z = 0.01;
 
