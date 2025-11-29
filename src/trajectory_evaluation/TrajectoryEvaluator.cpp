@@ -260,23 +260,44 @@ namespace dynamic_gap
         }
 
         // rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
-        rightGapPtIsDynamic = true; //debugging
+        rightGapPtIsDynamic = true; // debugging
         if(rightGapPtIsDynamic)
         {
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
-         gap->getRightGapPt()->getModel()->isolateGapDynamics();
-        //  gap->rightGapPt__model_->isolateGapDynamics();
+            gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-         rightGapRelVel = gap->getRightGapPt()->getModel()->getGapVelocity();
-        
-         // ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: ");
-        // ROS_ERROR_STREAM_NAMED("evalTraj", rightGapRelVel);  
-         rightGapRelPos = gap->getRightGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
-        // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->rightGapPtModel_->getState(): ");
-        // ROS_ERROR_STREAM_NAMED("evalTraj", rightGapRelPos);  
+            int gapID = gap->getRightGapPt()->getModel()->getID();
 
+            Eigen::Vector2f rightVel(0,0);
+            ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << gapID);
+
+            if (rightVelDictPtr_)
+            {
+                auto it = rightVelDictPtr_->find(gapID);
+                ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
+                    << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
+
+                if (it != rightVelDictPtr_->end())
+                {
+                    rightVel = it->second;
+                }
+                else
+                {
+                    ROS_WARN_STREAM("Missing rightVel for modelID=" << gapID);
+                }
+            }
+            else
+            {
+                ROS_WARN_STREAM("rightVelDictPtr_ is null");
+            }
+
+            ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: " << rightVel);
+
+            // rightGapRelVel = rightVel;
+
+            rightGapRelPos =
+                gap->getRightGapPt()->getModel()->getState().head<2>();
         }
+
 
 
         
