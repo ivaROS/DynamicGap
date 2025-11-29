@@ -400,7 +400,16 @@ namespace dynamic_gap
         modelMarker.header.frame_id = gap->getFrame();
         modelMarker.header.stamp = ros::Time();
         modelMarker.ns = ns;
-        modelMarker.id = id++;
+        // modelMarker.id = id++; // this is not my social cost code, it's just for visualization, but I"m going to reuse it for quick testing 
+        if (left)
+            {
+                modelMarker.id = gap->getLeftGapPt()->getModel()->getID();
+            }
+            else
+            {
+                modelMarker.id = gap->getRightGapPt()->getModel()->getID();
+            }
+
         modelMarker.type = visualization_msgs::Marker::ARROW;
         modelMarker.action = visualization_msgs::Marker::ADD;
         

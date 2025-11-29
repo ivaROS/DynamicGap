@@ -217,7 +217,33 @@ namespace dynamic_gap
         // //// just testing ////////////////
 
         int gapID = gap->getLeftGapPt()->getModel()->getID();
-        ROS_ERROR_STREAM("DWA gapID=" << gapID); 
+
+        Eigen::Vector2f leftVel(0,0);
+        ROS_ERROR_STREAM("[TE] requested modelID=" << gapID);
+
+        if (leftVelDictPtr_)
+        {
+            auto it = leftVelDictPtr_->find(gapID);
+            // ROS_ERROR_STREAM("leftVelDictPtr_->end(): " << leftVelDictPtr_->end());
+            ROS_ERROR_STREAM("[TE] leftVelDictPtr_ size = "
+                 << std::distance(leftVelDictPtr_->begin(), leftVelDictPtr_->end()));
+
+            if (it != leftVelDictPtr_->end())
+            {
+                leftVel = it->second;
+            }
+            else
+            {
+                ROS_WARN_STREAM("Missing leftVel for modelID=" << gapID);
+            }
+        }
+        else
+        {
+            ROS_WARN_STREAM("leftVelDictPtr_ is null");
+        }
+        ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
+
+
 
         // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(gapID);
 
@@ -241,6 +267,7 @@ namespace dynamic_gap
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
          gap->getRightGapPt()->getModel()->isolateGapDynamics();
         //  gap->rightGapPt__model_->isolateGapDynamics();
+
          rightGapRelVel = gap->getRightGapPt()->getModel()->getGapVelocity();
         
          // ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: ");
@@ -492,15 +519,15 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f relativeVel,
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
-    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
-        << "\nrelVel:       " << relVel.transpose()
-        << "\nrobotVel:          " << robotVel.transpose()
-        // << "\nhumanVel (recon):  " << humanVel.transpose()
-        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
-        // << "\ntrajPos:           " << trajPos.transpose()
+    // ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+    //     << "\nrelVel:       " << relVel.transpose()
+    //     << "\nrobotVel:          " << robotVel.transpose()
+    //     // << "\nhumanVel (recon):  " << humanVel.transpose()
+    //     << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+    //     // << "\ntrajPos:           " << trajPos.transpose()
 
-        << "\ncost:              " << cost
-        << "\n------------------------------------------" );
+    //     << "\ncost:              " << cost
+    //     << "\n------------------------------------------" );
 
     return cost;
 }

@@ -134,6 +134,9 @@ namespace dynamic_gap
         );
         trajEvaluator_->latestGapLeftVelPtr_ = &latestGapLeftVel_; // for relvel calcuation
         trajEvaluator_->latestGapRightVelPtr_ = &latestGapRightVel_;
+        trajEvaluator_->leftVelDictPtr_  = &leftVelByModelID_;
+        trajEvaluator_->rightVelDictPtr_ = &rightVelByModelID_;
+
 
 
         minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
@@ -698,103 +701,84 @@ else
 
 void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
+    // Clear old data
     latestGapLeftVel_.clear();
     latestGapRightVel_.clear();
+    leftVelByModelID_.clear();
+    rightVelByModelID_.clear();
 
-    for (size_t i = 0; i < msg->markers.size(); i++)
+    for (size_t i = 0; i < msg->markers.size(); ++i)
     {
         const auto& m = msg->markers[i];
-
+        const int model_id = m.id;          // should match Estimator::getID()
         float speed = m.scale.x;
 
-        // --------------------------------------------------------------
-        // FIX 1: Handle zero-speed markers (undefined direction)
-        // --------------------------------------------------------------
-        if (speed < 1e-6)
+        Eigen::Vector2f vel(0.0f, 0.0f);
+
+        // Handle zero-speed markers
+        if (speed >= 1e-6)
         {
-            Eigen::Vector2f vel(0.0f, 0.0f);
+            const geometry_msgs::Quaternion& q = m.pose.orientation;
+            bool quat_invalid =
+                !std::isfinite(q.w) || !std::isfinite(q.x) ||
+                !std::isfinite(q.y) || !std::isfinite(q.z) ||
+                (q.w == 0.0 && q.x == 0.0 && q.y == 0.0 && q.z == 0.0);
 
-            if (i % 2 == 0) latestGapLeftVel_.push_back(vel);
-            else            latestGapRightVel_.push_back(vel);
+            geometry_msgs::Quaternion qnorm = q;
+            if (!quat_invalid)
+            {
+                double n = std::sqrt(qnorm.x*qnorm.x + qnorm.y*qnorm.y +
+                                     qnorm.z*qnorm.z + qnorm.w*qnorm.w);
+                if (n > 1e-6)
+                {
+                    qnorm.x /= n;
+                    qnorm.y /= n;
+                    qnorm.z /= n;
+                    qnorm.w /= n;
+                }
+            }
 
-            continue;
-        }
-
-        // --------------------------------------------------------------
-        // FIX 3: Check quaternion validity before using it
-        // --------------------------------------------------------------
-        const geometry_msgs::Quaternion& q = m.pose.orientation;
-
-        bool quat_invalid =
-            !std::isfinite(q.w) || !std::isfinite(q.x) ||
-            !std::isfinite(q.y) || !std::isfinite(q.z) ||
-            (q.w == 0.0 && q.x == 0.0 && q.y == 0.0 && q.z == 0.0);
-
-        if (quat_invalid)
-        {
-            // invalid quaternion → default direction (yaw = 0)
             float yaw = 0.0f;
+            if (!quat_invalid)
+            {
+                yaw = tf::getYaw(qnorm);
+                if (std::isnan(yaw) || std::isinf(yaw))
+                    yaw = 0.0f;
+            }
+
             float vx = speed * std::cos(yaw);
             float vy = speed * std::sin(yaw);
-
-            Eigen::Vector2f vel(vx, vy);
-
-            if (i % 2 == 0) latestGapLeftVel_.push_back(vel);
-            else            latestGapRightVel_.push_back(vel);
-
-            continue;
+            vel = Eigen::Vector2f(vx, vy);
         }
 
-        // --------------------------------------------------------------
-        // FIX 4: Normalize quaternion if needed (avoid TF warnings)
-        // --------------------------------------------------------------
-        geometry_msgs::Quaternion qnorm = q;
-        double n = std::sqrt(qnorm.x*qnorm.x + qnorm.y*qnorm.y +
-                             qnorm.z*qnorm.z + qnorm.w*qnorm.w);
-
-        if (n > 1e-6)
-        {
-            qnorm.x /= n;
-            qnorm.y /= n;
-            qnorm.z /= n;
-            qnorm.w /= n;
-        }
-
-        // --------------------------------------------------------------
-        // FIX 2: Safe yaw extraction (guard against NaN)
-        // --------------------------------------------------------------
-        float yaw = tf::getYaw(qnorm);
-        if (std::isnan(yaw) || std::isinf(yaw))
-            yaw = 0.0f;
-
-        float vx = speed * std::cos(yaw);
-        float vy = speed * std::sin(yaw);
-
-        Eigen::Vector2f vel(vx, vy);
-
-        // --------------------------------------------------------------
-        // correct left/right assignment
-        // --------------------------------------------------------------
+        // Left/right by index parity; also fill dicts
         if (i % 2 == 0)
-{
-    latestGapLeftVel_.push_back(vel);
+        {
+            latestGapLeftVel_.push_back(vel);
+            leftVelByModelID_[model_id] = vel;
 
-    // PRINT ONLY LEFT GAP VELOCITY
-    ROS_ERROR_STREAM("[gapVelCB] LEFT gap vel: " << vel.transpose()
-                     << "  (vx=" << vx << ", vy=" << vy << ")");
-}
-else
-{
-    latestGapRightVel_.push_back(vel);
-}
+            ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
+                             << " vel = " << vel.transpose());
+        }
+        else
+        {
+            latestGapRightVel_.push_back(vel);
+            rightVelByModelID_[model_id] = vel;
 
+            ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
+                             << " vel = " << vel.transpose());
+        }
     }
 
     ROS_ERROR_STREAM("[gapVelCB] stored "
         << latestGapLeftVel_.size() << " left gap vels, "
         << latestGapRightVel_.size() << " right gap vels.");
-        
+    ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
+                     << leftVelByModelID_.size()
+                     << ", rightVelByModelID_ size = "
+                     << rightVelByModelID_.size());
 }
+
 
 
     void Planner::updateEgoCircle()
