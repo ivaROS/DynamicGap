@@ -1632,7 +1632,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
         {
             float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
             float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
-            float relvel_cost = (i < traj.RelVelPoseCosts.size()) ? traj.PathCosts[i] : 0.0f;
+            float relvel_cost = (i < traj.RelVelPoseCosts.size()) ? traj.RelVelPoseCosts[i] : 0.0f;
             float speed_cost = 0.0f;
             float term_cost = 0.0f;
 
