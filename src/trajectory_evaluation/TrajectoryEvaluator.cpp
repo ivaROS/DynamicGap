@@ -202,14 +202,14 @@ namespace dynamic_gap
 
         int gapID = gap->getLeftGapPt()->getModel()->getID();
 
-        ROS_ERROR_STREAM("[TE] requested modelID=" << gapID);
+        // ROS_ERROR_STREAM("[TE] requested modelID=" << gapID);
 
         if (leftVelDictPtr_)
         {
             auto it = leftVelDictPtr_->find(gapID);
             // ROS_ERROR_STREAM("leftVelDictPtr_->end(): " << leftVelDictPtr_->end());
-            ROS_ERROR_STREAM("[TE] leftVelDictPtr_ size = "
-                 << std::distance(leftVelDictPtr_->begin(), leftVelDictPtr_->end()));
+            // ROS_ERROR_STREAM("[TE] leftVelDictPtr_ size = "
+            //      << std::distance(leftVelDictPtr_->begin(), leftVelDictPtr_->end()));
 
             if (it != leftVelDictPtr_->end())
             {
@@ -224,7 +224,7 @@ namespace dynamic_gap
         {
             ROS_WARN_STREAM("leftVelDictPtr_ is null");
         }
-        ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
         
         // leftGapPtIsDynamic = true; //JUST FOR DEBUGGING!
 
@@ -270,13 +270,13 @@ namespace dynamic_gap
 
         int right_gapID = gap->getRightGapPt()->getModel()->getID();
 
-            ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << right_gapID);
+            // ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << right_gapID);
 
             if (rightVelDictPtr_)
             {
                 auto it = rightVelDictPtr_->find(right_gapID);
-                ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
-                    << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
+                // ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
+                //     << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
 
                 if (it != rightVelDictPtr_->end())
                 {
@@ -292,7 +292,7 @@ namespace dynamic_gap
                 ROS_WARN_STREAM("rightVelDictPtr_ is null");
             }
 
-            ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: " << rightVel);
+            // ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: " << rightVel);
 
             // rightGapRelVel = rightVel;
 
@@ -517,51 +517,51 @@ namespace dynamic_gap
     return dist;
 }
 
-float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f humanVel,
+float TrajectoryEvaluator::relativeVelocityCost(
+        Eigen::Vector2f humanVel,
         Eigen::Vector2f relativeGapPos,
         Eigen::Vector2f trajPos,
-        Eigen::Vector2f robotVel){
-            
-    // Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
-     Eigen::Vector2f relVel = robotVel - humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
-    // ROS_ERROR_STREAM("relativeVel: " << relativeVel.transpose());
-    // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
-    // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
-    // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
-    // ROS_ERROR_STREAM_NAMED("relvel: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
+        Eigen::Vector2f robotVel)
+{
+    const float eps = 1e-3f;
 
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "relativeGapPos: ");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", relativeGapPos);
+    // Magnitudes
+    float vr = robotVel.norm();
+    float vh = humanVel.norm();
 
-    Eigen::Vector2f posToGapPtDist = relativeGapPos - trajPos;// distance between the current pos we're looking at and the gap point (which represents the dynamic obstacle)
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "posToGapPtDist: ");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", posToGapPtDist);
+    // If either not moving → no perpendicular conflict
+    if (vr < eps || vh < eps)
+        return 0.0f;
 
+    // 2D cross product magnitude = |x1*y2 - y1*x2|
+    float cross = std::abs(robotVel.x()*humanVel.y()
+                           - robotVel.y()*humanVel.x());
 
+    // Perpendicular factor |sin(theta)| in [0,1]
+    float sin_theta = cross / (vr*vh + eps);
 
+    // Distance from trajectory sample to dynamic gap point (human)
+    Eigen::Vector2f d = relativeGapPos - trajPos;
+    float dist = std::max(d.norm(), eps);
 
-    float cost = (std::max(relVel.dot(relativeGapPos), 0.0f) + robotVel.norm()) / posToGapPtDist.norm();
+    // MINIMAL perpendicular-cutoff cost
+    float cost = sin_theta / dist;
 
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "std::max(relVel.dot(relativeGapPos), 0.0f");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", std::max(relVel.dot(relativeGapPos), 0.0f));
-
-    // ROS_ERROR_STREAM_NAMED("relvel cost", "relVel.dot(relativeGapPos)");
-    // ROS_ERROR_STREAM_NAMED("relvel cost", relVel.dot(relativeGapPos));
-
-    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
-    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
-
-    // ROS_ERROR_STREAM("\n[RelVelCost Debug]"
-    //     << "\nrelVel:       " << relVel.transpose()
-    //     << "\nrobotVel:          " << robotVel.transpose()
-    //     // << "\nhumanVel (recon):  " << humanVel.transpose()
-    //     << "\nrelativeGapPos:    " << relativeGapPos.transpose()
-    //     // << "\ntrajPos:           " << trajPos.transpose()
-
-    //     << "\ncost:              " << cost
-    //     << "\n------------------------------------------" );
+    // DEBUG OUTPUT -----------------------------------------------------------
+    ROS_ERROR_STREAM("\n[PerpVelocityCost Debug]"
+        << "\nrobotVel:        " << robotVel.transpose() << "  |Vr|=" << vr
+        << "\nhumanVel:        " << humanVel.transpose() << "  |Vh|=" << vh
+        << "\nrelativeGapPos:  " << relativeGapPos.transpose()
+        << "\ntrajPos:         " << trajPos.transpose()
+        << "\nposToGap d:      " << d.transpose() << "  dist=" << dist
+        << "\ncross:           " << cross
+        << "\nsin(theta):      " << sin_theta
+        << "\ncost:            " << cost
+        << "\n-----------------------------------------------------"
+    );
 
     return cost;
 }
+
 
 }

@@ -757,16 +757,16 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             latestGapLeftVel_.push_back(vel);
             leftVelByModelID_[model_id] = vel;
 
-            ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
-                             << " vel = " << vel.transpose());
+            // ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
+            //                  << " vel = " << vel.transpose());
         }
         else
         {
             latestGapRightVel_.push_back(vel);
             rightVelByModelID_[model_id] = vel;
 
-            ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
-                             << " vel = " << vel.transpose());
+            // ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
+            //                  << " vel = " << vel.transpose());
         }
     }
 
