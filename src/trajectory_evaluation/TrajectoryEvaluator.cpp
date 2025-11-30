@@ -276,7 +276,7 @@ namespace dynamic_gap
             }
             
             
-            if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){
+            if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){ //
                 geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
                 Eigen::Vector2f Pos;
                 Pos.x() = posUncoverted.x; 
