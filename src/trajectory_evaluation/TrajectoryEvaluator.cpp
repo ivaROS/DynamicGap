@@ -174,7 +174,7 @@ namespace dynamic_gap
 ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
              ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
         // Requires LOCAL FRAME
-
+        int dynamic_thres = 0.15; // threshold for what's considered a dynamic gap endpoint
         Eigen::Vector2f leftGapRelVel(0, 0);
         geometry_msgs::TwistStamped RbtVelMsg;
         Eigen::Vector2f RbtVel(0, 0);
@@ -199,26 +199,6 @@ namespace dynamic_gap
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
 
         // leftGapPtIsDynamic = gap->getLeftGapPt()->getUngapID()>=0; 
-        leftGapPtIsDynamic = true; //JUST FOR DEBUGGING!
-        if(leftGapPtIsDynamic)
-        {
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
-         gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-        //  gap->leftGapPt__model_->isolateGapDynamics();
-         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity();
-         RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
-         RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
-
-
-         Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
-
-        // //// just testing ////////////////
-        // Eigen::Vector2f leftVel  = leftState.tail<2>();
-        // // Debug print
-        // ROS_ERROR_STREAM_NAMED("DWA",
-        //     "[GapVel] left=("  << leftVel.transpose()  << ")");
-        // //// just testing ////////////////
 
         int gapID = gap->getLeftGapPt()->getModel()->getID();
 
@@ -245,7 +225,31 @@ namespace dynamic_gap
             ROS_WARN_STREAM("leftVelDictPtr_ is null");
         }
         ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
+        
+        // leftGapPtIsDynamic = true; //JUST FOR DEBUGGING!
 
+        if (leftVel.norm() > dynamic_thres) {leftGapPtIsDynamic = true;}
+        if(leftGapPtIsDynamic)
+        {
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+         gap->getLeftGapPt()->getModel()->isolateGapDynamics();
+        //  gap->leftGapPt__model_->isolateGapDynamics();
+         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity();
+         RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
+         RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
+
+
+         Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
+
+        // //// just testing ////////////////
+        // Eigen::Vector2f leftVel  = leftState.tail<2>();
+        // // Debug print
+        // ROS_ERROR_STREAM_NAMED("DWA",
+        //     "[GapVel] left=("  << leftVel.transpose()  << ")");
+        // //// just testing ////////////////
+
+        
 
 
         // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(gapID);
@@ -263,18 +267,14 @@ namespace dynamic_gap
         }
 
         // rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
-        rightGapPtIsDynamic = true; // debugging
-        if(rightGapPtIsDynamic)
-        {
-            gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-            int gapID = gap->getRightGapPt()->getModel()->getID();
+        int right_gapID = gap->getRightGapPt()->getModel()->getID();
 
-            ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << gapID);
+            ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << right_gapID);
 
             if (rightVelDictPtr_)
             {
-                auto it = rightVelDictPtr_->find(gapID);
+                auto it = rightVelDictPtr_->find(right_gapID);
                 ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
                     << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
 
@@ -284,7 +284,7 @@ namespace dynamic_gap
                 }
                 else
                 {
-                    ROS_WARN_STREAM("Missing rightVel for modelID=" << gapID);
+                    ROS_WARN_STREAM("Missing rightVel for modelID=" << right_gapID);
                 }
             }
             else
@@ -295,6 +295,14 @@ namespace dynamic_gap
             ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: " << rightVel);
 
             // rightGapRelVel = rightVel;
+
+        // rightGapPtIsDynamic = true; // debugging
+        if (rightVel.norm() > dynamic_thres) {rightGapPtIsDynamic = true;
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "right gap point is dynamic greater than 0.15 threshold");
+        }
+        if(rightGapPtIsDynamic)
+        {
+            gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
             rightGapRelPos =
                 gap->getRightGapPt()->getModel()->getState().head<2>();
@@ -543,15 +551,15 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f humanVel,
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
-    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
-        << "\nrelVel:       " << relVel.transpose()
-        << "\nrobotVel:          " << robotVel.transpose()
-        // << "\nhumanVel (recon):  " << humanVel.transpose()
-        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
-        // << "\ntrajPos:           " << trajPos.transpose()
+    // ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+    //     << "\nrelVel:       " << relVel.transpose()
+    //     << "\nrobotVel:          " << robotVel.transpose()
+    //     // << "\nhumanVel (recon):  " << humanVel.transpose()
+    //     << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+    //     // << "\ntrajPos:           " << trajPos.transpose()
 
-        << "\ncost:              " << cost
-        << "\n------------------------------------------" );
+    //     << "\ncost:              " << cost
+    //     << "\n------------------------------------------" );
 
     return cost;
 }
