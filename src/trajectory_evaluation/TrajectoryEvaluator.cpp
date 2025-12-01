@@ -372,6 +372,111 @@ namespace dynamic_gap
         }
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////// social code
+ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "[evaluateTrajectory()] social");
+
+// threshold for what's considered a dynamic endpoint
+const float dynamic_thres = 0.15f;
+
+// robot velocity (get once, safely)
+Eigen::Vector2f robotVel(0.f, 0.f);
+if (gap && gap->getLeftGapPt() && gap->getLeftGapPt()->getModel())
+{
+    geometry_msgs::TwistStamped rv_msg =
+        gap->getLeftGapPt()->getModel()->getRobotVel();
+    robotVel << rv_msg.twist.linear.x, rv_msg.twist.linear.y;
+}
+
+// Check that social cost is enabled and we actually have dicts
+bool social_ok =
+    (cfg_->planning.social_cost_function == 1) &&
+    leftVelDictPtr_  && rightVelDictPtr_ &&
+    leftPosDictPtr_  && rightPosDictPtr_;
+
+// If social cost disabled or dicts not ready: zero out and skip
+if (!social_ok)
+{
+    std::fill(dwa_RelVelPoseCosts.begin(),
+              dwa_RelVelPoseCosts.end(), 0.0f);
+}
+else
+{
+    // IMPORTANT: make local copies to avoid concurrent read/write
+    // with Planner::gapVelCB()
+    std::unordered_map<int, Eigen::Vector2f> leftVelLocal  = *leftVelDictPtr_;
+    std::unordered_map<int, Eigen::Vector2f> rightVelLocal = *rightVelDictPtr_;
+    std::unordered_map<int, Eigen::Vector2f> leftPosLocal  = *leftPosDictPtr_;
+    std::unordered_map<int, Eigen::Vector2f> rightPosLocal = *rightPosDictPtr_;
+
+    // If no endpoints, just set 0 and return
+    if (leftVelLocal.empty() && rightVelLocal.empty())
+    {
+        std::fill(dwa_RelVelPoseCosts.begin(),
+                  dwa_RelVelPoseCosts.end(), 0.0f);
+    }
+    else
+    {
+        for (size_t i = 0; i < pose_array.poses.size(); ++i)
+        {
+            geometry_msgs::Point p = pose_array.poses[i].position;
+            Eigen::Vector2f trajPos(p.x, p.y);
+
+            float accum_cost = 0.0f;
+
+            // LEFT endpoints
+            for (const auto &kv : leftVelLocal)
+            {
+                int id = kv.first;
+                const Eigen::Vector2f &humanVel = kv.second;
+
+                if (humanVel.norm() < dynamic_thres)
+                    continue;
+
+                auto pos_it = leftPosLocal.find(id);
+                if (pos_it == leftPosLocal.end())
+                    continue;
+
+                const Eigen::Vector2f &humanPos = pos_it->second;
+
+                // relative position of human w.r.t. current traj pose
+                Eigen::Vector2f relPos = humanPos - trajPos;
+
+                accum_cost += relativeVelocityCost(
+                    humanVel,
+                    relPos,
+                    trajPos,
+                    robotVel);
+            }
+
+            // RIGHT endpoints
+            for (const auto &kv : rightVelLocal)
+            {
+                int id = kv.first;
+                const Eigen::Vector2f &humanVel = kv.second;
+
+                if (humanVel.norm() < dynamic_thres)
+                    continue;
+
+                auto pos_it = rightPosLocal.find(id);
+                if (pos_it == rightPosLocal.end())
+                    continue;
+
+                const Eigen::Vector2f &humanPos = pos_it->second;
+
+                Eigen::Vector2f relPos = humanPos - trajPos;
+
+                accum_cost += relativeVelocityCost(
+                    humanVel,
+                    relPos,
+                    trajPos,
+                    robotVel);
+            }
+
+            dwa_RelVelPoseCosts[i] = accum_cost;
+        }
+    }
+}
+///////////////////////////////////////////////////// social code end
 
            
             // Combine into a final cost
