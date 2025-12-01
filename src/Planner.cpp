@@ -136,6 +136,8 @@ namespace dynamic_gap
         trajEvaluator_->latestGapRightVelPtr_ = &latestGapRightVel_;
         trajEvaluator_->leftVelDictPtr_  = &leftVelByModelID_;
         trajEvaluator_->rightVelDictPtr_ = &rightVelByModelID_;
+        trajEvaluator_->leftPosDictPtr_  = &leftPosByModelID_;
+        trajEvaluator_->rightPosDictPtr_ = &rightPosByModelID_;
 
 
 
@@ -698,27 +700,42 @@ else
         float s = std::sin(theta);
         return Eigen::Vector2f(c*point.x() - s*point.y(), s*point.x() + c*point.y());
     }
-
+    
 void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
+    // ------------------------------------------------------------
     // Clear old data
+    // ------------------------------------------------------------
     latestGapLeftVel_.clear();
     latestGapRightVel_.clear();
+
     leftVelByModelID_.clear();
     rightVelByModelID_.clear();
 
+    leftPosByModelID_.clear();
+    rightPosByModelID_.clear();
+
+
+    // ------------------------------------------------------------
+    // Process each marker
+    // ------------------------------------------------------------
     for (size_t i = 0; i < msg->markers.size(); ++i)
     {
         const auto& m = msg->markers[i];
-        const int model_id = m.id;          // should match Estimator::getID()
+        const int model_id = m.id;     // matches Estimator::getID()
+
         float speed = m.scale.x;
-
         Eigen::Vector2f vel(0.0f, 0.0f);
+        Eigen::Vector2f pos(m.pose.position.x, m.pose.position.y);
 
-        // Handle zero-speed markers
+
+        // --------------------------------------------------------
+        // Compute velocity (orientation encoded as yaw)
+        // --------------------------------------------------------
         if (speed >= 1e-6)
         {
             const geometry_msgs::Quaternion& q = m.pose.orientation;
+
             bool quat_invalid =
                 !std::isfinite(q.w) || !std::isfinite(q.x) ||
                 !std::isfinite(q.y) || !std::isfinite(q.z) ||
@@ -727,8 +744,10 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             geometry_msgs::Quaternion qnorm = q;
             if (!quat_invalid)
             {
-                double n = std::sqrt(qnorm.x*qnorm.x + qnorm.y*qnorm.y +
-                                     qnorm.z*qnorm.z + qnorm.w*qnorm.w);
+                double n = std::sqrt(qnorm.x*qnorm.x +
+                                     qnorm.y*qnorm.y +
+                                     qnorm.z*qnorm.z +
+                                     qnorm.w*qnorm.w);
                 if (n > 1e-6)
                 {
                     qnorm.x /= n;
@@ -742,7 +761,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             if (!quat_invalid)
             {
                 yaw = tf::getYaw(qnorm);
-                if (std::isnan(yaw) || std::isinf(yaw))
+                if (!std::isfinite(yaw))
                     yaw = 0.0f;
             }
 
@@ -751,34 +770,51 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             vel = Eigen::Vector2f(vx, vy);
         }
 
-        // Left/right by index parity; also fill dicts
+
+        // --------------------------------------------------------
+        // Classify left/right endpoint by index parity
+        // AND store pos/vel into dictionaries
+        // --------------------------------------------------------
         if (i % 2 == 0)
         {
+            // vector (legacy)
             latestGapLeftVel_.push_back(vel);
-            leftVelByModelID_[model_id] = vel;
 
-            ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
-                             << " vel = " << vel.transpose());
+            // dictionaries
+            leftVelByModelID_[model_id] = vel;
+            leftPosByModelID_[model_id] = pos;
+
+            ROS_ERROR_STREAM("[gapVelCB] LEFT endpoint modelID=" << model_id
+                             << "  pos=" << pos.transpose()
+                             << "  vel=" << vel.transpose());
         }
         else
         {
             latestGapRightVel_.push_back(vel);
-            rightVelByModelID_[model_id] = vel;
 
-            ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
-                             << " vel = " << vel.transpose());
+            rightVelByModelID_[model_id] = vel;
+            rightPosByModelID_[model_id] = pos;
+
+            ROS_ERROR_STREAM("[gapVelCB] RIGHT endpoint modelID=" << model_id
+                             << "  pos=" << pos.transpose()
+                             << "  vel=" << vel.transpose());
         }
     }
 
-    ROS_ERROR_STREAM("[gapVelCB] stored "
-        << latestGapLeftVel_.size() << " left gap vels, "
-        << latestGapRightVel_.size() << " right gap vels.");
-    ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
-                     << leftVelByModelID_.size()
-                     << ", rightVelByModelID_ size = "
-                     << rightVelByModelID_.size());
-}
 
+    // ------------------------------------------------------------
+    // Debug summary
+    // ------------------------------------------------------------
+    ROS_ERROR_STREAM("[gapVelCB] stored "
+        << latestGapLeftVel_.size()  << " left vels, "
+        << latestGapRightVel_.size() << " right vels.");
+
+    ROS_ERROR_STREAM("[gapVelCB] byModelID sizes: leftVel="
+                     << leftVelByModelID_.size()
+                     << ", rightVel=" << rightVelByModelID_.size()
+                     << ", leftPos="  << leftPosByModelID_.size()
+                     << ", rightPos=" << rightPosByModelID_.size());
+}
 
 
     void Planner::updateEgoCircle()
