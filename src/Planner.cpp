@@ -2373,7 +2373,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             ////////////////// unused max tracking time //////////////////
 
 
-            if (currentTrajTrackingTime > max_track_time)
+            if (currentTrajTrackingTime > currentTrajLifespan_)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
