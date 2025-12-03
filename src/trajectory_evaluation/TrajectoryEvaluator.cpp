@@ -174,7 +174,7 @@ namespace dynamic_gap
 ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
              ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
         // Requires LOCAL FRAME
-        int dynamic_thres = 0.15; // threshold for what's considered a dynamic gap endpoint
+        double dynamic_thres = 0.15; // threshold for what's considered a dynamic gap endpoint
         Eigen::Vector2f leftGapRelVel(0, 0);
         geometry_msgs::TwistStamped RbtVelMsg;
         Eigen::Vector2f RbtVel(0, 0);
