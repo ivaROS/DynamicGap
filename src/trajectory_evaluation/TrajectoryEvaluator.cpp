@@ -175,7 +175,7 @@ namespace dynamic_gap
 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "[evaluateTrajectory()] social");
 
 // threshold for what's considered a dynamic endpoint
-// const float dynamic_thres = 0.15f;
+double dynamic_thres = 0.15f;
 
 // robot velocity (get once, safely)
 Eigen::Vector2f robotVel(0.f, 0.f);
