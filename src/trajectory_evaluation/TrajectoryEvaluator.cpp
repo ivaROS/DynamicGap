@@ -543,9 +543,10 @@ float TrajectoryEvaluator::relativeVelocityCost(
     // Distance from trajectory sample to dynamic gap point (human)
     Eigen::Vector2f d = relativeGapPos - trajPos;
     float dist = std::max(d.norm(), eps);
+    float divide_factor = 2; 
 
     // MINIMAL perpendicular-cutoff cost
-    float cost = sin_theta / dist;
+    float cost = sin_theta / (dist * divide_factor);
 
     // DEBUG OUTPUT -----------------------------------------------------------
     ROS_ERROR_STREAM("\n[PerpVelocityCost Debug]"

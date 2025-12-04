@@ -1216,7 +1216,8 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
                             // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
                             float robot_radius = cfg_.rbt.r_inscr; 
-                            float gap_insurance = 0.6f * robot_radius;  // offset scaling
+                            float insurance_factor = 3.0; 
+                            float gap_insurance = 0.6f * robot_radius * insurance_factor;  // offset scaling
                             float r = p2.norm();
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
 
@@ -1634,13 +1635,13 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
             }
 
-            float total = cfg_.traj.w_obs  * pose_cost +
-                          cfg_.traj.w_path * path_cost +
-                          cfg_.traj.w_speed * speed_cost +
-                          cfg_.traj.w_goal  * term_cost + 
-                          cfg_.traj.w_relvel * relvel_cost;
+            // float total = cfg_.traj.w_obs  * pose_cost +
+            //               cfg_.traj.w_path * path_cost +
+            //               cfg_.traj.w_speed * speed_cost +
+            //               cfg_.traj.w_goal  * term_cost + 
+            //               cfg_.traj.w_relvel * relvel_cost;
 
-            // float total = cfg_.traj.w_relvel * relvel_cost; 
+            float total = cfg_.traj.w_relvel * relvel_cost; 
             // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
             total_costs.push_back(total);
         }
