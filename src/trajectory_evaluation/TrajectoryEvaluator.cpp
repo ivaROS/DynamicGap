@@ -455,15 +455,15 @@ float TrajectoryEvaluator::relativeVelocityCost(Eigen::Vector2f humanVel,
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", "relativeVelocityCost() !!UNWEIGHTED!! cost: " << cost);
     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGenerator", cost);
 
-    // ROS_ERROR_STREAM("\n[RelVelCost Debug]"
-    //     << "\nrelVel:       " << relVel.transpose()
-    //     << "\nrobotVel:          " << robotVel.transpose()
-    //     // << "\nhumanVel (recon):  " << humanVel.transpose()
-    //     << "\nrelativeGapPos:    " << relativeGapPos.transpose()
-    //     // << "\ntrajPos:           " << trajPos.transpose()
+    ROS_ERROR_STREAM("\n[RelVelCost Debug]"
+        << "\nrelVel:       " << relVel.transpose()
+        << "\nrobotVel:          " << robotVel.transpose()
+        // << "\nhumanVel (recon):  " << humanVel.transpose()
+        << "\nrelativeGapPos:    " << relativeGapPos.transpose()
+        // << "\ntrajPos:           " << trajPos.transpose()
 
-    //     << "\ncost:              " << cost
-    //     << "\n------------------------------------------" );
+        << "\ncost:              " << cost
+        << "\n------------------------------------------" );
 
     return cost;
 }

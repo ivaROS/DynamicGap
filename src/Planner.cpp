@@ -784,9 +784,9 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             leftVelByModelID_[model_id] = vel;
             leftPosByModelID_[model_id] = pos;
 
-            ROS_ERROR_STREAM("[gapVelCB] LEFT endpoint modelID=" << model_id
-                             << "  pos=" << pos.transpose()
-                             << "  vel=" << vel.transpose());
+            // ROS_ERROR_STREAM("[gapVelCB] LEFT endpoint modelID=" << model_id
+            //                  << "  pos=" << pos.transpose()
+            //                  << "  vel=" << vel.transpose());
         }
         else
         {
@@ -795,9 +795,9 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             rightVelByModelID_[model_id] = vel;
             rightPosByModelID_[model_id] = pos;
 
-            ROS_ERROR_STREAM("[gapVelCB] RIGHT endpoint modelID=" << model_id
-                             << "  pos=" << pos.transpose()
-                             << "  vel=" << vel.transpose());
+            // ROS_ERROR_STREAM("[gapVelCB] RIGHT endpoint modelID=" << model_id
+            //                  << "  pos=" << pos.transpose()
+            //                  << "  vel=" << vel.transpose());
         }
     }
 
@@ -805,15 +805,15 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
     // ------------------------------------------------------------
     // Debug summary
     // ------------------------------------------------------------
-    ROS_ERROR_STREAM("[gapVelCB] stored "
-        << latestGapLeftVel_.size()  << " left vels, "
-        << latestGapRightVel_.size() << " right vels.");
+    // ROS_ERROR_STREAM("[gapVelCB] stored "
+    //     << latestGapLeftVel_.size()  << " left vels, "
+    //     << latestGapRightVel_.size() << " right vels.");
 
-    ROS_ERROR_STREAM("[gapVelCB] byModelID sizes: leftVel="
-                     << leftVelByModelID_.size()
-                     << ", rightVel=" << rightVelByModelID_.size()
-                     << ", leftPos="  << leftPosByModelID_.size()
-                     << ", rightPos=" << rightPosByModelID_.size());
+    // ROS_ERROR_STREAM("[gapVelCB] byModelID sizes: leftVel="
+    //                  << leftVelByModelID_.size()
+    //                  << ", rightVel=" << rightVelByModelID_.size()
+    //                  << ", leftPos="  << leftPosByModelID_.size()
+    //                  << ", rightPos=" << rightPosByModelID_.size());
 }
 
 
@@ -1670,13 +1670,13 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
             }
 
-            float total = cfg_.traj.w_obs  * pose_cost +
-                          cfg_.traj.w_path * path_cost +
-                          cfg_.traj.w_speed * speed_cost +
-                          cfg_.traj.w_goal  * term_cost + 
-                          cfg_.traj.w_relvel * relvel_cost;
+            // float total = cfg_.traj.w_obs  * pose_cost +
+            //               cfg_.traj.w_path * path_cost +
+            //               cfg_.traj.w_speed * speed_cost +
+            //               cfg_.traj.w_goal  * term_cost + 
+            //               cfg_.traj.w_relvel * relvel_cost;
 
-            // float total = cfg_.traj.w_relvel * relvel_cost; 
+            float total = cfg_.traj.w_relvel * relvel_cost; 
             // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
             total_costs.push_back(total);
         }
