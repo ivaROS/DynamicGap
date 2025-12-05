@@ -1222,7 +1222,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
 
                             // Number of samples on each side
-                            int theta_samples = 1; // e.g. left/right + center
+                            int theta_samples = 2; // e.g. left/right + center
                             // dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
                             std::vector<Eigen::Vector2f> curve; 
 
