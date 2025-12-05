@@ -375,13 +375,13 @@ namespace dynamic_gap
 
            
             // Combine into a final cost
-            // totalTrajCost =
-            //     cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
-            //     cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
-            //     cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+            totalTrajCost =
+                cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
+                cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
+                cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
         
-////////////////////////// just debugingg!!!!! ADD THE REST OF THE COSTS BACK!! \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-            totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+////////////////////////// just debugingg!!!!! ADD THE REST OF THE COSTS BACK!! 
+            // totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
         
 
 
