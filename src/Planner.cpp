@@ -770,13 +770,13 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         }
     }
 
-    ROS_ERROR_STREAM("[gapVelCB] stored "
-        << latestGapLeftVel_.size() << " left gap vels, "
-        << latestGapRightVel_.size() << " right gap vels.");
-    ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
-                     << leftVelByModelID_.size()
-                     << ", rightVelByModelID_ size = "
-                     << rightVelByModelID_.size());
+    // ROS_ERROR_STREAM("[gapVelCB] stored "
+    //     << latestGapLeftVel_.size() << " left gap vels, "
+    //     << latestGapRightVel_.size() << " right gap vels.");
+    // ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
+    //                  << leftVelByModelID_.size()
+    //                  << ", rightVelByModelID_ size = "
+    //                  << rightVelByModelID_.size());
 }
 
 
@@ -2158,7 +2158,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                 lowestCostTrajIdx = candidateLowestCostTrajIdx;
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
-                // ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
+                ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
                 /////////////// just for debugging printouts: 
                 // --- Extract cost data for this gap ---
                 const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);

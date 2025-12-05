@@ -375,10 +375,13 @@ namespace dynamic_gap
 
            
             // Combine into a final cost
-            totalTrajCost =
-                cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
-                cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
-                cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+            // totalTrajCost =
+            //     cfg_->traj.w_obs  * (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
+            //     cfg_->traj.w_path * avg_path_cost + cfg_->traj.w_goal * terminalPoseCost + 
+            //     cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+        
+////////////////////////// just debugingg!!!!! ADD THE REST OF THE COSTS BACK!! \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+            totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
         
 
 
@@ -549,17 +552,17 @@ float TrajectoryEvaluator::relativeVelocityCost(
     float cost = sin_theta / (dist * divide_factor);
 
     // DEBUG OUTPUT -----------------------------------------------------------
-    ROS_ERROR_STREAM("\n[PerpVelocityCost Debug]"
-        << "\nrobotVel:        " << robotVel.transpose() << "  |Vr|=" << vr
-        << "\nhumanVel:        " << humanVel.transpose() << "  |Vh|=" << vh
-        << "\nrelativeGapPos:  " << relativeGapPos.transpose()
-        << "\ntrajPos:         " << trajPos.transpose()
-        << "\nposToGap d:      " << d.transpose() << "  dist=" << dist
-        << "\ncross:           " << cross
-        << "\nsin(theta):      " << sin_theta
-        << "\ncost:            " << cost
-        << "\n-----------------------------------------------------"
-    );
+    // ROS_ERROR_STREAM("\n[PerpVelocityCost Debug]"
+    //     << "\nrobotVel:        " << robotVel.transpose() << "  |Vr|=" << vr
+    //     << "\nhumanVel:        " << humanVel.transpose() << "  |Vh|=" << vh
+    //     << "\nrelativeGapPos:  " << relativeGapPos.transpose()
+    //     << "\ntrajPos:         " << trajPos.transpose()
+    //     << "\nposToGap d:      " << d.transpose() << "  dist=" << dist
+    //     << "\ncross:           " << cross
+    //     << "\nsin(theta):      " << sin_theta
+    //     << "\ncost:            " << cost
+    //     << "\n-----------------------------------------------------"
+    // );
 
     return cost;
 }

@@ -450,10 +450,10 @@ namespace dynamic_gap
             bool isRaw  = ns.find("raw")  != std::string::npos;
             bool isSimp = ns.find("simp") != std::string::npos;
 
-             ROS_ERROR_STREAM_NAMED("Visualizer",
-                "[drawModelVelocity] right gapVel=" << gapVel.transpose()
-                << "  type=" << (isRaw ? "RAW" : (isSimp ? "SIMP" : "OTHER"))
-                << "  ns=" << ns);
+            //  ROS_ERROR_STREAM_NAMED("Visualizer",
+            //     "[drawModelVelocity] right gapVel=" << gapVel.transpose()
+            //     << "  type=" << (isRaw ? "RAW" : (isSimp ? "SIMP" : "OTHER"))
+            //     << "  ns=" << ns);
         }
         modelMarker.pose.position.z = 0.01;
 
