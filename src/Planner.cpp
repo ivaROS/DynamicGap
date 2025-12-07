@@ -2369,12 +2369,13 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec); 
             // // if (currentTrajTrackingTime > currentTrajLifespan_)
             // if (tracking_sec + 4 > lifespan_sec)
-            double max_track_time = 0.25; 
+            double max_track_time = 0.5; 
             // if (tracking_sec >= max_track_time)
             ////////////////// unused max tracking time //////////////////
 
 
-            if (currentTrajTrackingTime > currentTrajLifespan_)
+            // if (currentTrajTrackingTime > currentTrajLifespan_)
+            if (tracking_sec >= max_track_time)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path has been tracked for its entire lifespan, " << incomingPathStatus);

@@ -123,8 +123,8 @@ namespace dynamic_gap
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 float w_obs = 1.5; 
-                float w_path = 1.0; 
-                float w_goal = 1.0; //FYI Q_f already scales the terminal point cost and it happens that Q_f is set to 1. I think of this w_goal term as a way to adjust what max found worked best for the chapter's cost
+                float w_path = 0.0; 
+                float w_goal = 0.0; //FYI Q_f already scales the terminal point cost and it happens that Q_f is set to 1. I think of this w_goal term as a way to adjust what max found worked best for the chapter's cost
                 float w_speed = 1.0; 
                 float w_relvel = 15.0;  /** weight for relative velocity cost (aka social cost) */
             } traj;            
