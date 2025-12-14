@@ -549,7 +549,7 @@ float TrajectoryEvaluator::relativeVelocityCost(
     float divide_factor = 2; 
 
     // MINIMAL perpendicular-cutoff cost
-    float cost = sin_theta / (dist * divide_factor);
+    float cost = (sin_theta + vh) / (dist * divide_factor);
 
     // DEBUG OUTPUT -----------------------------------------------------------
     // ROS_ERROR_STREAM("\n[PerpVelocityCost Debug]"
