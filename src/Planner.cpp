@@ -1149,12 +1149,9 @@ else
 
                             
 float v0       = current_linear_velocity;
-// float v_max    = cfg_.rbt.vx_absmax;
-// float w_max    = cfg_.rbt.vang_absmax;
-// float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 float v_max    = cfg_.rbt.vx_absmax;
-float w_max    = 2.0;
-float a_max    =  2.0;
+float w_max    = cfg_.rbt.vang_absmax;
+float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
 const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
@@ -1681,7 +1678,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
 
 
 
@@ -2897,7 +2894,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
                 timeKeeper_->startTimer(FEEBDACK);
-                // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
+                ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
                 if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
                 {
