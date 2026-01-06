@@ -2017,7 +2017,7 @@ if (traj.getPathTiming().empty()) {
             }
 
             // poses here are in odom frame 
-            std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs); //todo fix this 
+            std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs);
 
             // evaluate gap trajectories
             int runningTrajIdx = 0;
@@ -2046,7 +2046,45 @@ if (traj.getPathTiming().empty()) {
                 runningTrajIdx++;
             }
 
-          
+            // evaluate ungap trajectories
+            for (size_t i = 0; i < ungapTrajs.size(); i++) 
+            {
+                // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
+
+                if (ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2)
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "ungap traj " << i << " has < 2 poses");
+                }
+
+                pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), ungapTrajPoseCosts.at(i).end(), float(0)) / ungapTrajPoseCosts.at(i).size();
+                
+                pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
+                                                                                                        pathCosts.at(runningTrajIdx);
+                
+                ROS_INFO_STREAM_NAMED("Planner", "    for ungap " << i << " (length: " << ungapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
+            
+                runningTrajIdx++;
+            }
+
+            // evaluate idling trajectory
+            for (size_t i = 0; i < idlingTrajs.size(); i++) 
+            {
+                // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
+
+                if (idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2)
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "idling traj " << i << " has < 2 poses");
+                }
+
+                pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), idlingTrajPoseCosts.at(i).end(), float(0)) / idlingTrajPoseCosts.at(i).size();
+                
+                pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
+                                                                                                        pathCosts.at(runningTrajIdx);
+                
+                ROS_INFO_STREAM_NAMED("Planner", "    for idling " << i << " (length: " << idlingTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
+            
+                runningTrajIdx++;
+            }
 
             // selecting best trajectory
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
@@ -2089,6 +2127,18 @@ if (traj.getPathTiming().empty()) {
                     // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
 
+            } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
+            {
+                lowestCostTrajIdx = candidateLowestCostTrajIdx - numGapTrajs;
+                trajFlag = UNGAP;
+                ROS_ERROR_STREAM_NAMED("Planner", "          picked UPGAP traj");
+                ROS_INFO_STREAM_NAMED("Planner", "    picking ungap traj: " << lowestCostTrajIdx);
+            } else if (candidateLowestCostTrajIdx >= (numGapTrajs + numUngapTrajs) && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs + numIdlingTrajs))
+            {
+                lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
+                trajFlag = IDLING;
+                ROS_ERROR_STREAM_NAMED("Planner", "          picked IDLING traj");
+                ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
             } else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "    trajFlag not set");
