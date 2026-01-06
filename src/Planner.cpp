@@ -2904,8 +2904,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
             } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL  
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
-                // if (cfg_.planning.holonomic)
-                if (false)
+                if (cfg_.planning.holonomic)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 } else
@@ -2918,7 +2917,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
             {
                 ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
                 
-                if (false)
+                if (cfg_.planning.holonomic)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 } else
@@ -2971,7 +2970,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 else
                 {
 
-                    if (false)
+                    if (cfg_.planning.holonomic)
                     {
                         rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
                     } else
@@ -2993,7 +2992,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
 
             timeKeeper_->startTimer(PO);
 
-            if (false)
+            if (cfg_.planning.holonomic)
             {
                 cmdVel = trajController_->processCmdVel(rawCmdVel,
                                                         rbtPoseInSensorFrame_); 
