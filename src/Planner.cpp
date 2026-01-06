@@ -1098,7 +1098,7 @@ auto dumpSizes = [&](const std::string& tag,
 
 
                     Gap * gap = gapTube->at(j);
-                    dumpSizes("ITER START", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
+                    // dumpSizes("ITER START", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
 
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "         gap: " << j);
@@ -1267,8 +1267,8 @@ for (int i = 1; i < num_points; ++i)
         current_seg++;
     }
 
-    if (current_seg + 1 >= curve.size())
-        break;
+    // if (current_seg + 1 >= curve.size())
+    //     break;
 
     float seg_len = (curve[current_seg + 1] - curve[current_seg]).norm();
     float remaining = next_target - dist_accum;
@@ -1769,22 +1769,22 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                         // gapTubeTrajTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
                     }
 
-                    dumpSizes("POST-SELECT", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
-                    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                        "POST-SELECT: selected poses=" << traj.getPathRbtFrame().poses.size()
-                    << " timing=" << traj.getPathTiming().size()
-                    << " poseCosts=" << poseCosts.size()
-                    << " terminal=" << terminalPoseCost);
+                    // dumpSizes("POST-SELECT", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
+                    // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                    //     "POST-SELECT: selected poses=" << traj.getPathRbtFrame().poses.size()
+                    // << " timing=" << traj.getPathTiming().size()
+                    // << " poseCosts=" << poseCosts.size()
+                    // << " terminal=" << terminalPoseCost);
 
         
                     // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                     traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
 
-                    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-    "PRE-BACK CHECK | selected traj sizes: poses="
-    << traj.getPathRbtFrame().poses.size()
-    << " timing=" << traj.getPathTiming().size()
-    << " poseCosts=" << poseCosts.size());
+//                     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+//     "PRE-BACK CHECK | selected traj sizes: poses="
+//     << traj.getPathRbtFrame().poses.size()
+//     << " timing=" << traj.getPathTiming().size()
+//     << " poseCosts=" << poseCosts.size());
 
 if (traj.getPathRbtFrame().poses.empty()) {
     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
