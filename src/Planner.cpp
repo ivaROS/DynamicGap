@@ -1149,10 +1149,12 @@ else
 
                             
 float v0       = current_linear_velocity;
+// float v_max    = cfg_.rbt.vx_absmax;
+// float w_max    = cfg_.rbt.vang_absmax;
+// float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 float v_max    = cfg_.rbt.vx_absmax;
-float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
-
+float w_max    = 2.0;
+float a_max    =  2.0;
 
 const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
@@ -1679,6 +1681,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
+
 
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
@@ -2223,6 +2227,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             Trajectory updatedCurrentTraj(updatedCurrentPathRobotFrame, updatedCurrentPathTiming);
             updatedCurrentTraj.setPathOdomFrame(currentTraj.getPathOdomFrame()); // odom frame traj will not change
 
+            //  FIX: preserve velocity commands
+            updatedCurrentTraj.setVcmd(currentTraj.getVcmd());
+            updatedCurrentTraj.setWcmd(currentTraj.getWcmd());
+
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
 
 
@@ -2276,6 +2284,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating current trajectory");            
             
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
+              //FIX: preserve velocity commands
+            reducedCurrentTraj.setVcmd(currentTraj.getVcmd());
+            reducedCurrentTraj.setWcmd(currentTraj.getWcmd());
+
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
             trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
@@ -2837,7 +2849,8 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
             } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL  
             { 
                 ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
-                if (cfg_.planning.holonomic)
+                // if (cfg_.planning.holonomic)
+                if (false)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 } else
@@ -2850,7 +2863,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
             {
                 ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
                 
-                if (cfg_.planning.holonomic)
+                if (false)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
                 } else
@@ -2884,6 +2897,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
                 timeKeeper_->startTimer(FEEBDACK);
+                ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
                 if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
                 {
@@ -2902,7 +2916,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 else
                 {
 
-                    if (cfg_.planning.holonomic)
+                    if (false)
                     {
                         rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
                     } else
@@ -2924,7 +2938,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
 
             timeKeeper_->startTimer(PO);
 
-            if (cfg_.planning.holonomic)
+            if (false)
             {
                 cmdVel = trajController_->processCmdVel(rawCmdVel,
                                                         rbtPoseInSensorFrame_); 
