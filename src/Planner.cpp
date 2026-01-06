@@ -1713,6 +1713,11 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
 
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                            "PACKAGED DWA traj: rbt=" << dwaTrajectory.getPathRbtFrame().poses.size()
+                            << " timing=" << dwaTrajectory.getPathTiming().size()
+                            << " v=" << dwaTrajectory.getVcmd()
+                            << " w=" << dwaTrajectory.getWcmd());
 
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
@@ -2285,6 +2290,13 @@ if (traj.getPathTiming().empty()) {
             updatedCurrentTraj.setVcmd(currentTraj.getVcmd());
             updatedCurrentTraj.setWcmd(currentTraj.getWcmd());
 
+            ROS_ERROR_STREAM_NAMED("compare",
+  "PACKAGED DWA traj: rbt=" << updatedCurrentTraj.getPathRbtFrame().poses.size()
+  << " timing=" << updatedCurrentTraj.getPathTiming().size()
+  << " v=" << updatedCurrentTraj.getVcmd()
+  << " w=" << updatedCurrentTraj.getWcmd());
+
+
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
 
 
@@ -2342,6 +2354,13 @@ if (traj.getPathTiming().empty()) {
               //FIX: preserve velocity commands
             reducedCurrentTraj.setVcmd(currentTraj.getVcmd());
             reducedCurrentTraj.setWcmd(currentTraj.getWcmd());
+
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+  "PACKAGED DWA traj: rbt=" << reducedCurrentTraj.getPathRbtFrame().poses.size()
+  << " timing=" << reducedCurrentTraj.getPathTiming().size()
+  << " v=" << reducedCurrentTraj.getVcmd()
+  << " w=" << reducedCurrentTraj.getWcmd());
+
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
