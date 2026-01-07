@@ -2027,6 +2027,8 @@ if (traj.getPathTiming().empty()) {
             for (size_t i = 0; i < gapTrajs.size(); i++) 
             {
                 currentTraj = gapTrajs.at(i);
+                ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
+
                 currentTrajPoseCosts = gapTrajPoseCosts.at(i);
                 currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(i);
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
@@ -2090,20 +2092,20 @@ if (traj.getPathTiming().empty()) {
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
             int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
 
-            if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
-            {    
-                ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
-                ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
-                for (float pathCost : pathCosts) 
-                {
-                    ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
-                }
-                ROS_INFO_STREAM_NAMED("Planner", "------------------");
+            // if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
+            // {    
+            //     ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
+            //     ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
+            //     for (float pathCost : pathCosts) 
+            //     {
+            //         ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
+            //     }
+            //     ROS_INFO_STREAM_NAMED("Planner", "------------------");
 
-                trajFlag = NONE;
-                // do not update candidateLowestCostTrajIdx
-                return;
-            }
+            //     trajFlag = NONE;
+            //     // do not update candidateLowestCostTrajIdx
+            //     return;
+            // }
 
             if (candidateLowestCostTrajIdx >= 0 && candidateLowestCostTrajIdx < numGapTrajs)
             {
@@ -2124,7 +2126,7 @@ if (traj.getPathTiming().empty()) {
                     if (k == currentTrajPoseCosts.size() - 1)
                         cost += currentTrajTerminalPoseCost;
 
-                    // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                    ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
 
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
