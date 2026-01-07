@@ -2224,7 +2224,7 @@ if (traj.getPathTiming().empty()) {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx;
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
-                ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
+                // ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
                 /////////////// just for debugging printouts: 
                 // --- Extract cost data for this gap ---
                 const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
@@ -2238,7 +2238,7 @@ if (traj.getPathTiming().empty()) {
                     if (k == currentTrajPoseCosts.size() - 1)
                         cost += currentTrajTerminalPoseCost;
 
-                    // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                    ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
 
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
