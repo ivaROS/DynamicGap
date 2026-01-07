@@ -2274,9 +2274,8 @@ if (traj.getPathTiming().empty()) {
                                                 Gap * incomingGap) 
     {
         // publishToMpc_ = true;
-        bool override_switchToIncoming = true; 
                 
-        if (switchToIncoming || override_switchToIncoming) 
+        if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
             setCurrentTrajTrackingStartTime(ros::Time::now());
