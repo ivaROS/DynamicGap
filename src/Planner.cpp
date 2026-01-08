@@ -1229,7 +1229,7 @@ auto dumpSizes = [&](const std::string& tag,
         
                     // Run pursuit guidance behavior
                     float totalTrajCost = 0;
-                    geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
+                    // geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
                     // dwa_Trajectory dwa_traj;        
                     dwa_Trajectory cheapest_dwa;        
                     std::vector<dwa_Trajectory> dwa_trajs;
@@ -1387,7 +1387,7 @@ for (int i = 1; i < num_points; ++i)
 
 
 // --- Convert positioin evaluator path.size()ns to PoseArray ---
-pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);//I suspect this may be causing the issue - 1028
+dwa_traj.pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);//I suspect this may be causing the issue - 1028
     
 // --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
 // int counter = 0; 
@@ -1406,7 +1406,7 @@ std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 // float totalTrajCost = 0;
 float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj.pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
@@ -1437,7 +1437,7 @@ float path_cost_sum = 0.0f;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
 
 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
-traj_pub_.publish(pose_array);
+traj_pub_.publish(dwa_traj.pose_array);
 dwa_traj.PoseCosts = dwa_PoseCosts; 
 dwa_traj.PathCosts = dwa_PathCosts; 
 dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts; 
@@ -1501,7 +1501,7 @@ line.color.b = 0.0;
 line.color.a = 1.0;
 line.lifetime = ros::Duration(dwa_visual_duration);  // keep indefinitely
 
-for (const auto& pose : pose_array.poses)
+for (const auto& pose : dwa_traj.pose_array.poses)
 {
     geometry_msgs::Point p;
     p.x = pose.position.x;
@@ -1512,7 +1512,7 @@ for (const auto& pose : pose_array.poses)
 traj_markers.markers.push_back(line);
 
 // --- per-pose cost text ---
-for (size_t i = 0; i < pose_array.poses.size(); ++i)
+for (size_t i = 0; i < dwa_traj.pose_array.poses.size(); ++i)
 {
     visualization_msgs::Marker text;
     text.header = line.header;
@@ -1520,7 +1520,7 @@ for (size_t i = 0; i < pose_array.poses.size(); ++i)
     text.id = global_marker_id++;
     text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
     text.action = visualization_msgs::Marker::ADD;
-    text.pose = pose_array.poses[i];
+    text.pose = dwa_traj.pose_array.poses[i];
     text.pose.position.z += 0.15;
     text.scale.z = 0.15;
     text.color.r = 0.0;
@@ -1640,7 +1640,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
     for (size_t t = 0; t < dwa_trajs.size(); ++t)
     {
         const auto &traj = dwa_trajs[t];
-        geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+        // geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+        const geometry_msgs::PoseArray& poses = traj.pose_array;
 
         // --- compute total cost per pose (pose + path + speed + terminal) ---
         std::vector<float> total_costs;
@@ -1802,15 +1803,15 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             Trajectory dwaTrajectory;
 
                             // The Trajectory class typically stores PoseArray and timing
-                            // dwaTrajectory.setPathRbtFrame(pose_array); // I don't like this so I fixed it below, this is unrelated to social cost stuff btw
+                            dwaTrajectory.setPathRbtFrame(cheapest_dwa.pose_array);         // robot-frame path
 
                                 geometry_msgs::PoseArray pose_array_cheapest_dwa; 
                             if (!cheapest_dwa.times.empty())
                             {
                                 dwaTrajectory.setPathTiming(cheapest_dwa.times); 
                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "times size: " << dwaTrajectory.getPathTiming().size());
-                                pose_array_cheapest_dwa = cheapest_dwa.toPoseArray(cfg_.sensor_frame_id);
-                                dwaTrajectory.setPathRbtFrame(pose_array_cheapest_dwa);         // robot-frame path
+                                // pose_array_cheapest_dwa = cheapest_dwa.toPoseArray(cfg_.sensor_frame_id);
+                                // dwaTrajectory.setPathRbtFrame(pose_array_cheapest_dwa);         // robot-frame path
                             }
 
                             else
@@ -1824,23 +1825,42 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
 
-                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                            "PACKAGED DWA traj: rbt=" << dwaTrajectory.getPathRbtFrame().poses.size()
-                            << " timing=" << dwaTrajectory.getPathTiming().size()
-                            << " v=" << dwaTrajectory.getVcmd()
-                            << " w=" << dwaTrajectory.getWcmd());
+                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                            // "PACKAGED DWA traj: rbt=" << dwaTrajectory.getPathRbtFrame().poses.size()
+                            // << " timing=" << dwaTrajectory.getPathTiming().size()
+                            // << " v=" << dwaTrajectory.getVcmd()
+                            // << " w=" << dwaTrajectory.getWcmd());
+
+                            // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose) and path costs (penalizes deviation from global path per pose)
+                            const auto& poseCosts = cheapest_dwa.PoseCosts;
+                            const auto& pathCosts = cheapest_dwa.PathCosts;
+
+                            pursuitGuidancePoseCosts.clear();
+                            pursuitGuidancePoseCosts.reserve(
+                                std::max(poseCosts.size(), pathCosts.size())
+                            );
+
+                            size_t N = std::min(poseCosts.size(), pathCosts.size());
+                            for (size_t i = 0; i < N; ++i) {
+                                pursuitGuidancePoseCosts.push_back(poseCosts[i] + pathCosts[i]);
+                            }
 
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
-       
                             pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
-                            pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts;
+                            // pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts; //should include path costs
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
 
-                            //todo: run processTrajectory()
+                
+
+                        // for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
+                        // {
+                        //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                        //         " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
+                        // }
+
 
                         }
 
