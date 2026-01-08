@@ -155,7 +155,7 @@ namespace dynamic_gap
             // --- Path-distance cost (distance to visible global plan snippet) ---
             // std::vector<geometry_msgs::PoseStamped> visiblePlan =
                 // globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
-            float idx = 0; 
+            int idx = 0; 
             float path_cost_sum = 0.0f;
             for (const auto& pose : pose_array.poses) //todo: combine with loop above
             {

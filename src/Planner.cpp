@@ -1539,7 +1539,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
     for (size_t t = 0; t < dwa_trajs.size(); ++t)
     {
         const auto &traj = dwa_trajs[t];
-        geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+        // geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+        const geometry_msgs::PoseArray& poses = traj.pose_array;
 
         // --- compute total cost per pose (pose + path + speed + terminal) ---
         std::vector<float> total_costs;
