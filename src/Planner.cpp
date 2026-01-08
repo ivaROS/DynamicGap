@@ -1406,7 +1406,7 @@ std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 // float totalTrajCost = 0;
 float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj.pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj.pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
