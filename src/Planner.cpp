@@ -1004,6 +1004,8 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             int currentRightGapPtModelID = getCurrentRightGapPtModelID();
             ROS_INFO_STREAM_NAMED("Planner", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
+             bool isGapFeasible = false;
+             
             if (cfg_.planning.dwa_method) {
                     isCurrentGapFeasible = true; // i'm not using this feasibility code so just keep it as true
                     bool isGapFeasible = true;
@@ -1026,10 +1028,10 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                 for (int j = 0; j < gapTube->size(); j++) 
                 {
                     if (cfg_.planning.dwa_method) {
-                        isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
+                        bool isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
                     }
                     else {
-                        isGapFeasible = false;
+                        bool isGapFeasible = false;
                     }
                     
 
