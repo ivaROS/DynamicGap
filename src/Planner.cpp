@@ -1004,9 +1004,16 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             int currentRightGapPtModelID = getCurrentRightGapPtModelID();
             ROS_INFO_STREAM_NAMED("Planner", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
-            isCurrentGapFeasible = false;
+            if (cfg_.planning.dwa_method) {
+                    isCurrentGapFeasible = true; // i'm not using this feasibility code so just keep it as true
+                    bool isGapFeasible = true;
 
-            bool isGapFeasible = false;
+            }
+            else {
+                    isCurrentGapFeasible = false;
+                    bool isGapFeasible = false;
+                    }
+            
 
             for (int i = 0; i < gapTubes.size(); i++)
             {
@@ -1018,7 +1025,13 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
 
                 for (int j = 0; j < gapTube->size(); j++) 
                 {
-                    bool isGapFeasible = false;
+                    if (cfg_.planning.dwa_method) {
+                        isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
+                    }
+                    else {
+                        isGapFeasible = false;
+                    }
+                    
 
                     Gap * gap = gapTube->at(j);
                     ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
@@ -1029,6 +1042,13 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                         isTubeFeasible = false;
                         break;
                     }
+
+                    if (cfg_.planning.dwa_method) {
+                        ; // don't do anything
+                    }
+                    else 
+                    {
+                        
 
                     // run pursuit guidance analysis on gap to determine feasibility
                     isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap, startPt);
@@ -1050,6 +1070,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                         Eigen::Vector2f trajDir(cos(gammaIntercept), sin(gammaIntercept));
                         startPt = gap->getGapLifespan() * trajDir; 
                         // startPt = gap->getGoal()->getTermGoalPos();
+                    }
                     }
                 }
         
@@ -2661,16 +2682,20 @@ if (traj.getPathTiming().empty()) {
             //////////////////////////////////////////////////////////////////////////////////////
             //                           GAP FEASIBILITY CHECK (v2)                             //
             //////////////////////////////////////////////////////////////////////////////////////
-
+            if (!cfg_.planning.dwa_method)
+            {
             timeKeeper_->startTimer(GAP_FEAS);
             gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasible);
             timeKeeper_->stopTimer(GAP_FEAS);
+            } 
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                         UNGAP FEASIBILITY CHECK                                  //
             //////////////////////////////////////////////////////////////////////////////////////
-
+            if (!cfg_.planning.dwa_method)
+            {
             ungapSetFeasibilityCheck(recedingUngaps);
+            } 
         }
 
         // Have to run here because terminal gap goals are set during feasibility check
