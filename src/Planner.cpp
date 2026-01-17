@@ -2430,12 +2430,12 @@ if (traj.getPathTiming().empty()) {
             ///////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing gap is not feasible //
             ///////////////////////////////////////////////////////////////////////////////
-            if (!isCurrentGapFeasible) 
-            {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-                                                                ": current gap is not feasible, " << incomingPathStatus);                
-                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            } 
+            // if (!isCurrentGapFeasible) 
+            // {
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
+            //                                                     ": current gap is not feasible, " << incomingPathStatus);                
+            //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            // } 
 
             // Transform current traj into most recent robot frame to score against the current scan
             geometry_msgs::PoseArray updatedCurrentPathRobotFrame = gapTrajGenerator_->transformPath(currentTraj.getPathOdomFrame(), odom2rbt_);
