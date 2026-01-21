@@ -90,7 +90,9 @@ namespace dynamic_gap
             Eigen::Vector2f DPCBFProjectVelocity(const Eigen::Vector2f& humanVel,
                                                           const Eigen::Vector2f& gapPos,
                                                           const Eigen::Vector2f& trajPos,
-                                                          const Eigen::Vector2f& u_nom);
+                                                          const Eigen::Vector2f& u_nom,
+                                                          float v_cmd, 
+                                                          float w_cmd); 
 
             std::vector<Eigen::Vector2f>* latestGapLeftVelPtr_;
             std::vector<Eigen::Vector2f>* latestGapRightVelPtr_;

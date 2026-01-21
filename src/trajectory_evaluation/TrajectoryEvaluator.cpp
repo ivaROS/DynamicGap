@@ -249,7 +249,11 @@ namespace dynamic_gap
                 PosL.y() = posUncovertedL.y;
             
         // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
-          Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, RbtVel); // todo rename this, it's not h, this is the new u i computed
+          float v  = dwa_traj.v_cmd; 
+          float w = dwa_traj.w_cmd; 
+
+          Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
+          Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
           ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
 
           // //// just testing ////////////////
@@ -653,11 +657,12 @@ float TrajectoryEvaluator::DPCBF(
 
     // Barrier: h = v_rel_new_x + lambda * v_rel_new_y^2 + mu
     float h = v_rel_new_x + lambda * (v_rel_new_y * v_rel_new_y) + mu;
-    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "h: " << h); 
+    // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "h: " << h); 
 
 
     return h;
 }
+
 // ============================================================
 // 2) Safety filter: project u_nom onto linearized h(u) >= 0
 // ============================================================
@@ -671,13 +676,58 @@ float TrajectoryEvaluator::DPCBF(
 Eigen::Vector2f TrajectoryEvaluator::DPCBFProjectVelocity(const Eigen::Vector2f& humanVel,
                                                           const Eigen::Vector2f& gapPos,
                                                           const Eigen::Vector2f& trajPos,
-                                                          const Eigen::Vector2f& u_nom)
+                                                          const Eigen::Vector2f& u_nom,
+                                                          float v_cmd, 
+                                                          float w_cmd)
 {
+    if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
+                {
+                    // ROS_INFO_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
+                    geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
+
+                    rawCmdVel.linear.x  = v_cmd;
+                    rawCmdVel.linear.y  = 0.0;
+                    rawCmdVel.angular.z = w_cmd;
+                    // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
+
+                    geometry_msgs::Twist nonholoCmdVel = rawCmdVel; // putting into this variable so code below stays the same 
+                }
+
+    else
+                { 
+                        ROS_ERROR_STREAM_NAMED("Controller",
+                                            "DPCBFProjectVelocity: external cmd invalid (NaN). "
+                                            << "v_cmd=" << v_cmd << ", w_cmd=" << w_cmd
+                                            << ". Returning u_nom.");
+                        return u_nom;
+                }
+    //--------------------------- start of pasting processCmdVelNonHolonomic code ----------------------------
+    geometry_msgs::Quaternion currOrient = currentPoseOdomFrame.orientation;
+    tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+    float currYaw = quaternionToYaw(currQuat); 
+
+    // get current x,y,theta
+    geometry_msgs::Point currPosn = currentPoseOdomFrame.position;
+    Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
+
+    ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+
+     // Map nonholonomic command velocities to holonomic command velocities
+    geometry_msgs::Twist holoCmdVel = geometry_msgs::Twist();
+    holoCmdVel.linear.x = nonholoCmdVel.linear.x;
+    holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
+    holoCmdVel.angular.z = 0.0;
+
+    //!!!!!!!! todo  add rest of code from processCmdVelNonHolonomic !!!!!!!!!!!!!!!!!!!!!!1
+    //--------------------------- end of processCmdVelNonHolonomic code ----------------------------
     // Evaluate at nominal
+    
+    u_nom.x() = holoCmdVel.linear.x; 
+    u_nom.y() = holoCmdVel.linear.y; 
 
     float h0 = this->DPCBF(humanVel, gapPos, trajPos, u_nom);
 
-    // Already safe: no change (like PO when Psi <= 0)
+    // Already safe: no change
     if (h0 >= 0.0f) {
         return u_nom;
     }
