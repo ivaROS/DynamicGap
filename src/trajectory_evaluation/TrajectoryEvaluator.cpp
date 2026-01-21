@@ -248,9 +248,11 @@ namespace dynamic_gap
                 PosL.x() = posUncovertedL.x; 
                 PosL.y() = posUncovertedL.y;
             
-        dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
+        // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
+          Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, RbtVel); // todo rename this, it's not h, this is the new u i computed
+          ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
 
-        // //// just testing ////////////////
+          // //// just testing ////////////////
         // Eigen::Vector2f leftVel  = leftState.tail<2>();
         // // Debug print
         // ROS_ERROR_STREAM_NAMED("DWA",
@@ -655,6 +657,61 @@ float TrajectoryEvaluator::DPCBF(
 
 
     return h;
+}
+// ============================================================
+// 2) Safety filter: project u_nom onto linearized h(u) >= 0
+// ============================================================
+//
+// This replaces the *projection operator* idea:
+// - Compute barrier h at u_nom.
+// - If h >= 0, do nothing.
+// - If h < 0, compute grad wrt u via finite diff (2D).
+// - Project u_nom onto halfspace defined by linearization.
+//
+Eigen::Vector2f TrajectoryEvaluator::DPCBFProjectVelocity(const Eigen::Vector2f& humanVel,
+                                                          const Eigen::Vector2f& gapPos,
+                                                          const Eigen::Vector2f& trajPos,
+                                                          const Eigen::Vector2f& u_nom)
+{
+    // Evaluate at nominal
+
+    float h0 = this->DPCBF(humanVel, gapPos, trajPos, u_nom);
+
+    // Already safe: no change (like PO when Psi <= 0)
+    if (h0 >= 0.0f) {
+        return u_nom;
+    }
+
+    // Finite-difference gradient wrt u = [u_x, u_y]
+    float fd_eps = 1e-3f; 
+    const float du = std::max(fd_eps, 1e-6f);
+
+    Eigen::Vector2f u_dx = u_nom;
+    u_dx.x() += du;
+    float h_dx = this->DPCBF(humanVel, gapPos, trajPos, u_dx);
+
+    Eigen::Vector2f u_dy = u_nom;
+    u_dy.y() += du;
+    float h_dy = this->DPCBF(humanVel, gapPos, trajPos, u_dy);
+
+    Eigen::Vector2f grad_h;
+    grad_h.x() = (h_dx - h0) / du;
+    grad_h.y() = (h_dy - h0) / du;
+
+
+    float denom = grad_h.squaredNorm();
+
+    // If gradient is degenerate, fallback (stop or keep nominal)
+    if (denom < 1e-9f) {
+        // Conservative fallback: stop
+        return Eigen::Vector2f::Zero();
+    }
+
+    // Closed-form orthogonal projection of u_nom onto linearized halfspace:
+    // u_safe = u_nom + (-h0 / ||grad||^2) * grad
+    Eigen::Vector2f u_safe = u_nom + (-h0 / denom) * grad_h;
+
+    return u_safe;
 }
 
 
