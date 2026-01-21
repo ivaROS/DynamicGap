@@ -81,6 +81,11 @@ namespace dynamic_gap
                             Eigen::Vector2f trajPos,
                             Eigen::Vector2f robotVel);
 
+            float DPCBF(Eigen::Vector2f relativeVel,
+                            Eigen::Vector2f relativeGapPos,
+                            Eigen::Vector2f trajPos,
+                            Eigen::Vector2f robotVel);
+
             std::vector<Eigen::Vector2f>* latestGapLeftVelPtr_;
             std::vector<Eigen::Vector2f>* latestGapRightVelPtr_;
             std::unordered_map<int, Eigen::Vector2f>* leftVelDictPtr_;
