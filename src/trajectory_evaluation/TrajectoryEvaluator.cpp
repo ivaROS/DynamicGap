@@ -242,6 +242,14 @@ namespace dynamic_gap
 
          Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
 
+         //  calculate h for DPCBF
+         geometry_msgs::Point posUncovertedL = pose_array.poses.at(0).position;
+                Eigen::Vector2f PosL;
+                PosL.x() = posUncovertedL.x; 
+                PosL.y() = posUncovertedL.y;
+            
+        dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
+
         // //// just testing ////////////////
         // Eigen::Vector2f leftVel  = leftState.tail<2>();
         // // Debug print
@@ -349,8 +357,6 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", Pos);
 
                 leftGapPtCost = relativeVelocityCost(leftVel, leftGapRelPos, Pos, RbtVel);
-
-                dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, Pos, RbtVel);
 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(leftGapRelVel, leftGapRelPos, RbtVel)"); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapPtCost); 
