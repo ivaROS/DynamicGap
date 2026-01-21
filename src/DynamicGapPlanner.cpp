@@ -109,7 +109,7 @@ namespace dynamic_gap
             return mbf_msgs::ExePathResult::SUCCESS;
         }
 
-        geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory.getPathOdomFrame(), trajFlag, localTrajectory.getVcmd(), localTrajectory.getWcmd());
+        geometry_msgs::Twist cmdVelNoStamp = planner_.ctrlGeneration(localTrajectory, trajFlag);
 
         cmd_vel.twist = cmdVelNoStamp;
 

@@ -97,7 +97,7 @@ namespace dynamic_gap
     //                                             float & terminalPoseCost,
     //                                             const std::vector<sensor_msgs::LaserScan> & futureScans,
     //                                             const int & scanIdx) 
-        void TrajectoryEvaluator::dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
+        void TrajectoryEvaluator::dwa_evaluateTrajectory(float & totalTrajCost, dwa_Trajectory & dwa_traj,
                                 std::vector<float> & posewiseCosts,
                                 std::vector<float> &dwa_PathCosts, 
                                 float & terminalPoseCost,
@@ -119,7 +119,7 @@ namespace dynamic_gap
             //      << " addr=" << &path);
                  
 
-            
+            geometry_msgs::PoseArray pose_array = dwa_traj.pose_array; 
             posewiseCosts = std::vector<float>(pose_array.poses.size());
             dwa_PathCosts = std::vector<float>(pose_array.poses.size());
             dwa_RelVelPoseCosts = std::vector<float>(pose_array.poses.size());
@@ -350,7 +350,7 @@ namespace dynamic_gap
 
                 leftGapPtCost = relativeVelocityCost(leftVel, leftGapRelPos, Pos, RbtVel);
 
-                float left_test_dpcbf = DPCBF(leftVel, leftGapRelPos, Pos, RbtVel);
+                dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, Pos, RbtVel);
 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(leftGapRelVel, leftGapRelPos, RbtVel)"); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapPtCost); 

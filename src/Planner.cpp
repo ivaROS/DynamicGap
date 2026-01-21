@@ -1443,7 +1443,7 @@ std::vector<geometry_msgs::PoseStamped> visiblePlan =
     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 // float totalTrajCost = 0;
 float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj.pose_array, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
+trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
 totalTrajCost += speedCost * cfg_.traj.w_speed;
 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
@@ -1860,6 +1860,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
+                            dwaTrajectory.setH(cheapest_dwa.H_left);
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
 
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
@@ -2196,7 +2197,7 @@ if (traj.getPathTiming().empty()) {
             for (size_t i = 0; i < gapTrajs.size(); i++) 
             {
                 currentTraj = gapTrajs.at(i);
-                ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
+                // ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
 
                 currentTrajPoseCosts = gapTrajPoseCosts.at(i);
                 currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(i);
@@ -2295,7 +2296,7 @@ if (traj.getPathTiming().empty()) {
                     if (k == currentTrajPoseCosts.size() - 1)
                         cost += currentTrajTerminalPoseCost;
 
-                    ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                    // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
 
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
@@ -2460,6 +2461,7 @@ if (traj.getPathTiming().empty()) {
             //  FIX: preserve velocity commands
             updatedCurrentTraj.setVcmd(currentTraj.getVcmd());
             updatedCurrentTraj.setWcmd(currentTraj.getWcmd());
+            updatedCurrentTraj.setH(currentTraj.getH());
 
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
 
@@ -2518,6 +2520,7 @@ if (traj.getPathTiming().empty()) {
               //FIX: preserve velocity commands
             reducedCurrentTraj.setVcmd(currentTraj.getVcmd());
             reducedCurrentTraj.setWcmd(currentTraj.getWcmd());
+            reducedCurrentTraj.setH(currentTraj.getH());
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
@@ -3050,16 +3053,19 @@ if (traj.getPathTiming().empty()) {
         return recedingUngaps;
     }
 
-geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
-                                             int & trajFlag,
-                                             float v_cmd,
-                                             float w_cmd)
+geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int & trajFlag)
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
         timeKeeper_->startTimer(CONTROL);
         
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
+
+        geometry_msgs::PoseArray path = localTrajectory.getPathOdomFrame(); 
+        float v_cmd = localTrajectory.getVcmd();
+        float w_cmd = localTrajectory.getWcmd(); 
+        float H_left = localTrajectory.getH(); // todo change trajectory file so there's a getH_left and getH_right
+
 
         try
         {
@@ -3093,9 +3099,9 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 }
 
                 return rawCmdVel;
-            } else if (localTrajectory.poses.size() == 0) 
+            } else if (path.poses.size() == 0) 
             {
-                ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << localTrajectory.poses.size() << " == 0, obstacle avoidance control chosen.");
+                ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << path.poses.size() << " == 0, obstacle avoidance control chosen.");
                 
                 if (cfg_.planning.holonomic)
                 {
@@ -3124,9 +3130,9 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                 // traj in odom frame here
 
                 // get point along trajectory to target/move towards
-                targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, localTrajectory);
+                targetTrajectoryPoseIdx_ = trajController_->extractTargetPoseIdx(currPoseOdomFrame, path);
 
-                geometry_msgs::Pose targetTrajectoryPose = localTrajectory.poses.at(targetTrajectoryPoseIdx_);
+                geometry_msgs::Pose targetTrajectoryPose = path.poses.at(targetTrajectoryPoseIdx_);
 
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
@@ -3140,6 +3146,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
                     rawCmdVel.linear.x  = v_cmd;
                     rawCmdVel.linear.y  = 0.0;
                     rawCmdVel.angular.z = w_cmd;
+                    ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
 
                     cmdVel = trajController_->processCmdVelNonHolonomic(
                                 currPoseOdomFrame,

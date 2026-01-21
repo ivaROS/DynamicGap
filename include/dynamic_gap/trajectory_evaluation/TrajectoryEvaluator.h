@@ -5,6 +5,7 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/config/DynamicGapConfig.h>
+#include <dynamic_gap/utils/dwa_traj.h>
 #include <vector>
 #include <numeric>
 
@@ -58,7 +59,7 @@ namespace dynamic_gap
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     const int & scanIdx);
 
-            void dwa_evaluateTrajectory(float & totalTrajCost, geometry_msgs::PoseArray & pose_array,
+            void dwa_evaluateTrajectory(float & totalTrajCost,  dwa_Trajectory & dwa_traj,
                             std::vector<float> & posewiseCosts,
                             std::vector<float> &dwa_PathCosts, 
                             float & terminalPoseCost,

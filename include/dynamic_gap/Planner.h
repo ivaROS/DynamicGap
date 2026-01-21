@@ -112,10 +112,7 @@ namespace dynamic_gap
             * \param trajFlag flag for if robot is idling or moving
             * \return command velocity to send to robot
             */
-            geometry_msgs::Twist ctrlGeneration(const geometry_msgs::PoseArray & localTrajectory,
-                                    int & trajFlag,
-                                    float v_cmd = NAN,
-                                    float w_cmd = NAN);
+            geometry_msgs::Twist ctrlGeneration(Trajectory & localTrajectory, int & trajFlag);
 
 
             /**

@@ -16,6 +16,7 @@ struct dwa_Trajectory
     // --- Commanded velocities used to generate rollout ---
     float v_cmd = 0.0f;  // linear velocity
     float w_cmd = 0.0f;  // angular velocity
+    float H_left = 0.0f;  // h for the CBF
 
     // --- Cost terms (for later DWA scoring) ---
     float obs_cost = 0.0f;

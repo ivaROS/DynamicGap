@@ -126,8 +126,10 @@ namespace dynamic_gap
 
             void setVcmd(float v) { v_cmd_ = v; }
             void setWcmd(float w) { w_cmd_ = w; }
+            void setH(float H) { H_ = H; }
             float getVcmd() const { return v_cmd_; }
             float getWcmd() const { return w_cmd_; }
+            float getH() const { return H_; }
 
         private:
             geometry_msgs::PoseArray pathRbtFrame_; /**< trajectory path in robot frame */
@@ -135,5 +137,7 @@ namespace dynamic_gap
             std::vector<float> pathTiming_; /**< trajectory path timing */
             float v_cmd_ = std::numeric_limits<float>::quiet_NaN();
             float w_cmd_ = std::numeric_limits<float>::quiet_NaN();
+            float H_ = std::numeric_limits<float>::quiet_NaN();
+
     };
 }
