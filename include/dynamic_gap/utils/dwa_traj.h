@@ -30,6 +30,8 @@ struct dwa_Trajectory
      Eigen::Vector2f humanVelLeft;
      Eigen::Vector2f gapPosLeft;
      Eigen::Vector2f trajPosLeft;
+     Eigen::Vector2f robotVel;
+
 
 
 

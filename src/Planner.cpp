@@ -1863,6 +1863,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.humanVelLeft = (cheapest_dwa.humanVelLeft);
                             dwaTrajectory.gapPosLeft = (cheapest_dwa.gapPosLeft);
                             dwaTrajectory.trajPosLeft = (cheapest_dwa.trajPosLeft);
+                            dwaTrajectory.robotVel = (cheapest_dwa.robotVel);
 
                             // dwaTrajectory.setH(cheapest_dwa.H_left);
                             
@@ -2471,6 +2472,7 @@ if (traj.getPathTiming().empty()) {
             updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
             updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
+            updatedCurrentTraj.robotVel = currentTraj.robotVel;
 
             // updatedCurrentTraj.setH(currentTraj.getH());
 
@@ -2534,6 +2536,7 @@ if (traj.getPathTiming().empty()) {
             reducedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
             reducedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             reducedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
+            reducedCurrentTraj.robotVel = currentTraj.robotVel;
             // reducedCurrentTraj.setH(currentTraj.getH());
 
             std::vector<float> reducedCurrentPathPoseCosts;
@@ -3161,12 +3164,24 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     rawCmdVel.linear.y  = 0.0;
                     rawCmdVel.angular.z = w_cmd;
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
-
-                    cmdVel = trajController_->processCmdVelNonHolonomic(
+                    
+                    cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
                                 currPoseOdomFrame,
                                 targetTrajectoryPose,
                                 rawCmdVel,
-                                rbtPoseInSensorFrame_);
+                                rbtPoseInSensorFrame_, 
+                                localTrajectory.humanVelLeft, 
+                                localTrajectory.gapPosLeft, 
+                                localTrajectory.trajPosLeft, 
+                                localTrajectory.robotVel
+                            );
+
+                    cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
+                                currPoseOdomFrame,
+                                targetTrajectoryPose,
+                                rawCmdVel,
+                                rbtPoseInSensorFrame_); 
+
                 }
                 else
                 {

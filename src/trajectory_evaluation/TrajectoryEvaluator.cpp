@@ -254,6 +254,7 @@ namespace dynamic_gap
             dwa_traj.humanVelLeft = leftVel;
             dwa_traj.gapPosLeft = leftGapRelPos;
             dwa_traj.trajPosLeft = leftPos;
+            dwa_traj.robotVel = RbtVel;
 
         //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
         //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
