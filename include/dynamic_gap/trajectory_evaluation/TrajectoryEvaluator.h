@@ -82,17 +82,13 @@ namespace dynamic_gap
                             Eigen::Vector2f trajPos,
                             Eigen::Vector2f robotVel);
 
-            float DPCBF(Eigen::Vector2f relativeVel,
-                            Eigen::Vector2f relativeGapPos,
-                            Eigen::Vector2f trajPos,
-                            Eigen::Vector2f robotVel);
 
-            Eigen::Vector2f DPCBFProjectVelocity(const Eigen::Vector2f& humanVel,
-                                                          const Eigen::Vector2f& gapPos,
-                                                          const Eigen::Vector2f& trajPos,
-                                                          const Eigen::Vector2f& u_nom,
-                                                          float v_cmd, 
-                                                          float w_cmd); 
+            // Eigen::Vector2f DPCBFProjectVelocity(const Eigen::Vector2f& humanVel,
+            //                                               const Eigen::Vector2f& gapPos,
+            //                                               const Eigen::Vector2f& trajPos,
+            //                                               const Eigen::Vector2f& u_nom,
+            //                                               float v_cmd, 
+            //                                               float w_cmd); 
 
             std::vector<Eigen::Vector2f>* latestGapLeftVelPtr_;
             std::vector<Eigen::Vector2f>* latestGapRightVelPtr_;

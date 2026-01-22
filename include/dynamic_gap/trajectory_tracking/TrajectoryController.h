@@ -118,6 +118,20 @@ namespace dynamic_gap
                                                             const geometry_msgs::Twist & rawCmdVel,
                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
 
+            geometry_msgs::Twist cbf_processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+                                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
+                                                                            const geometry_msgs::Twist & nonholoCmdVel,
+                                                                            const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
+                                                                            Eigen::Vector2f humanVel,
+                                                                            Eigen::Vector2f relativeGapPos,
+                                                                            Eigen::Vector2f trajPos,
+                                                                            Eigen::Vector2f robotVel);
+
+            float DPCBF(Eigen::Vector2f relativeVel,
+                            Eigen::Vector2f relativeGapPos,
+                            Eigen::Vector2f trajPos,
+                            Eigen::Vector2f robotVel);
+   
             /**
             * \brief Extract pose within target trajectory that we should track
             * \param currPose current robot pose

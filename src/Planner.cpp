@@ -3176,11 +3176,11 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                                 localTrajectory.robotVel
                             );
 
-                    cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
-                                currPoseOdomFrame,
-                                targetTrajectoryPose,
-                                rawCmdVel,
-                                rbtPoseInSensorFrame_); 
+                    // cmdVel = trajController_->processCmdVelNonHolonomic(
+                    //             currPoseOdomFrame,
+                    //             targetTrajectoryPose,
+                    //             rawCmdVel,
+                    //             rbtPoseInSensorFrame_); 
 
                 }
                 else
