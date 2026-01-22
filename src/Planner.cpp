@@ -1861,6 +1861,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
                             dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
                             dwaTrajectory.setH(cheapest_dwa.H_left);
+                            
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
 
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",

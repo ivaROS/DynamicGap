@@ -244,17 +244,20 @@ namespace dynamic_gap
 
          //  calculate h for DPCBF
          geometry_msgs::Point posUncovertedL = pose_array.poses.at(0).position;
-                Eigen::Vector2f PosL;
-                PosL.x() = posUncovertedL.x; 
-                PosL.y() = posUncovertedL.y;
+                Eigen::Vector2f leftPos;
+                leftPos.x() = posUncovertedL.x; 
+                leftPos.y() = posUncovertedL.y;
             
         // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
-          float v  = dwa_traj.v_cmd; 
-          float w = dwa_traj.w_cmd; 
+        //   float v  = dwa_traj.v_cmd; 
+        //   float w = dwa_traj.w_cmd; 
+            // dwa_traj.humanVelLeft = leftVel;
+            // dwa_traj.gapPosLeft = leftGapRelPos;
+            // dwa_traj.trajPosLeft = leftPos;
 
-          Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
-          Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
-          ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
+        //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
+        //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
+        //   ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
 
           // //// just testing ////////////////
         // Eigen::Vector2f leftVel  = leftState.tail<2>();
