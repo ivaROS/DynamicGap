@@ -138,12 +138,15 @@ namespace dynamic_gap
             // void getGapPos(float gapPos) {return gapPos_; }
             // void getTrajPos(float trajPos) { return trajPos_; }
 
+            // I intentionally initialized these to an NAN. That way, if it's not passed through the code correctly, 
+            //I know that it has to do with that.
             float v_cmd = std::numeric_limits<float>::quiet_NaN();
             float w_cmd = std::numeric_limits<float>::quiet_NaN();
             float H = std::numeric_limits<float>::quiet_NaN();
-            float humanVel = std::numeric_limits<float>::quiet_NaN();
-            float gapPos = std::numeric_limits<float>::quiet_NaN();
-            float trajPos = std::numeric_limits<float>::quiet_NaN();
+            Eigen::Vector2f humanVelLeft  = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+            Eigen::Vector2f gapPosLeft    = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+            Eigen::Vector2f trajPosLeft   = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+
 
 
 

@@ -1860,6 +1860,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.v_cmd = (cheapest_dwa.v_cmd);
                             dwaTrajectory.w_cmd = (cheapest_dwa.w_cmd);
+                            dwaTrajectory.humanVelLeft = (cheapest_dwa.humanVelLeft);
+                            dwaTrajectory.gapPosLeft = (cheapest_dwa.gapPosLeft);
+                            dwaTrajectory.trajPosLeft = (cheapest_dwa.trajPosLeft);
+
                             // dwaTrajectory.setH(cheapest_dwa.H_left);
                             
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.w_cmd;
@@ -2464,6 +2468,10 @@ if (traj.getPathTiming().empty()) {
             //  FIX: preserve velocity commands
             updatedCurrentTraj.v_cmd = currentTraj.v_cmd;
             updatedCurrentTraj.w_cmd = currentTraj.w_cmd;
+            updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
+            updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
+            updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
+
             // updatedCurrentTraj.setH(currentTraj.getH());
 
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
@@ -2523,6 +2531,9 @@ if (traj.getPathTiming().empty()) {
               //FIX: preserve velocity commands
             reducedCurrentTraj.v_cmd = currentTraj.v_cmd;
             reducedCurrentTraj.w_cmd = currentTraj.w_cmd;
+            reducedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
+            reducedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
+            reducedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
             // reducedCurrentTraj.setH(currentTraj.getH());
 
             std::vector<float> reducedCurrentPathPoseCosts;

@@ -251,9 +251,9 @@ namespace dynamic_gap
         // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
         //   float v  = dwa_traj.v_cmd; 
         //   float w = dwa_traj.w_cmd; 
-            // dwa_traj.humanVelLeft = leftVel;
-            // dwa_traj.gapPosLeft = leftGapRelPos;
-            // dwa_traj.trajPosLeft = leftPos;
+            dwa_traj.humanVelLeft = leftVel;
+            dwa_traj.gapPosLeft = leftGapRelPos;
+            dwa_traj.trajPosLeft = leftPos;
 
         //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
         //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
