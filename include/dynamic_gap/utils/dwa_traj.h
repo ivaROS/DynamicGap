@@ -16,7 +16,7 @@ struct dwa_Trajectory
     // --- Commanded velocities used to generate rollout ---
     float v_cmd = 0.0f;  // linear velocity
     float w_cmd = 0.0f;  // angular velocity
-    float H_left = 0.0f;  // h for the CBF
+    // float H_left = 0.0f;  // h for the CBF
 
     // --- Cost terms (for later DWA scoring) ---
     float obs_cost = 0.0f;
@@ -25,6 +25,14 @@ struct dwa_Trajectory
     float path_cost = 0.0f;
     float total_cost = 0.0f;
     float totalTrajCost = 0.0f; 
+
+    // -- Info needed for cbf 
+     Eigen::Vector2f humanVelLeft;
+     Eigen::Vector2f gapPosLeft;
+     Eigen::Vector2f trajPosLeft;
+
+
+
     geometry_msgs::PoseArray pose_array;
      std::vector<float> PoseCosts;// IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost 
      std::vector<float> PathCosts; 

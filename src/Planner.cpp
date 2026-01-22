@@ -1858,17 +1858,17 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "poses size: " << dwaTrajectory.getPathRbtFrame().poses.size());
 
 
-                            dwaTrajectory.setVcmd(cheapest_dwa.v_cmd);
-                            dwaTrajectory.setWcmd(cheapest_dwa.w_cmd);
-                            dwaTrajectory.setH(cheapest_dwa.H_left);
+                            dwaTrajectory.v_cmd = (cheapest_dwa.v_cmd);
+                            dwaTrajectory.w_cmd = (cheapest_dwa.w_cmd);
+                            // dwaTrajectory.setH(cheapest_dwa.H_left);
                             
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.getWcmd());
+                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.w_cmd;
 
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                             // "PACKAGED DWA traj: rbt=" << dwaTrajectory.getPathRbtFrame().poses.size()
                             // << " timing=" << dwaTrajectory.getPathTiming().size()
                             // << " v=" << dwaTrajectory.getVcmd()
-                            // << " w=" << dwaTrajectory.getWcmd());
+                            // << " w=" << dwaTrajectory.w_cmd;
 
                             // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose) and path costs (penalizes deviation from global path per pose)
                             const auto& poseCosts = cheapest_dwa.PoseCosts;
@@ -2462,9 +2462,9 @@ if (traj.getPathTiming().empty()) {
             updatedCurrentTraj.setPathOdomFrame(currentTraj.getPathOdomFrame()); // odom frame traj will not change
 
             //  FIX: preserve velocity commands
-            updatedCurrentTraj.setVcmd(currentTraj.getVcmd());
-            updatedCurrentTraj.setWcmd(currentTraj.getWcmd());
-            updatedCurrentTraj.setH(currentTraj.getH());
+            updatedCurrentTraj.v_cmd = currentTraj.v_cmd;
+            updatedCurrentTraj.w_cmd = currentTraj.w_cmd;
+            // updatedCurrentTraj.setH(currentTraj.getH());
 
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
 
@@ -2521,9 +2521,9 @@ if (traj.getPathTiming().empty()) {
             
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
               //FIX: preserve velocity commands
-            reducedCurrentTraj.setVcmd(currentTraj.getVcmd());
-            reducedCurrentTraj.setWcmd(currentTraj.getWcmd());
-            reducedCurrentTraj.setH(currentTraj.getH());
+            reducedCurrentTraj.v_cmd = currentTraj.v_cmd;
+            reducedCurrentTraj.w_cmd = currentTraj.w_cmd;
+            // reducedCurrentTraj.setH(currentTraj.getH());
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
@@ -3065,9 +3065,9 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
         geometry_msgs::PoseArray path = localTrajectory.getPathOdomFrame(); 
-        float v_cmd = localTrajectory.getVcmd();
-        float w_cmd = localTrajectory.getWcmd(); 
-        float H_left = localTrajectory.getH(); // todo change trajectory file so there's a getH_left and getH_right
+        float v_cmd = localTrajectory.v_cmd;
+        float w_cmd = localTrajectory.w_cmd; 
+        // float H_left = localTrajectory.getH(); // todo change trajectory file so there's a getH_left and getH_right
 
 
         try

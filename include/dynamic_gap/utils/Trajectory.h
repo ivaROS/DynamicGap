@@ -124,20 +124,40 @@ namespace dynamic_gap
                 return pathRbtFrame_.poses.size();
             }
 
-            void setVcmd(float v) { v_cmd_ = v; }
-            void setWcmd(float w) { w_cmd_ = w; }
-            void setH(float H) { H_ = H; }
-            float getVcmd() const { return v_cmd_; }
-            float getWcmd() const { return w_cmd_; }
-            float getH() const { return H_; }
+            // void setVcmd(float v) { v_cmd_ = v; }
+            // void setWcmd(float w) { w_cmd_ = w; }
+            // void setH(float H) { H_ = H; }
+            // void setHumanVel(float humanVel) {humanVel_ = humanVel}
+            // void setGapPos(float gapPos) {gapPos_ = gapPos; }
+            // void setTrajPos(float trajPos) { trajPos_ = trajPos; }
+
+            // float getVcmd() const { return v_cmd_; }
+            // float getWcmd() const { return w_cmd_; }
+            // float getH() const { return H_; }
+            // void getHumanVel(float humanVel) {return humanVel_;}
+            // void getGapPos(float gapPos) {return gapPos_; }
+            // void getTrajPos(float trajPos) { return trajPos_; }
+
+            float v_cmd = std::numeric_limits<float>::quiet_NaN();
+            float w_cmd = std::numeric_limits<float>::quiet_NaN();
+            float H = std::numeric_limits<float>::quiet_NaN();
+            float humanVel = std::numeric_limits<float>::quiet_NaN();
+            float gapPos = std::numeric_limits<float>::quiet_NaN();
+            float trajPos = std::numeric_limits<float>::quiet_NaN();
+
+
 
         private:
             geometry_msgs::PoseArray pathRbtFrame_; /**< trajectory path in robot frame */
             geometry_msgs::PoseArray pathOdomFrame_; /**< trajectory path in odom frame */
             std::vector<float> pathTiming_; /**< trajectory path timing */
-            float v_cmd_ = std::numeric_limits<float>::quiet_NaN();
-            float w_cmd_ = std::numeric_limits<float>::quiet_NaN();
-            float H_ = std::numeric_limits<float>::quiet_NaN();
+            // float v_cmd_ = std::numeric_limits<float>::quiet_NaN();
+            // float w_cmd_ = std::numeric_limits<float>::quiet_NaN();
+            // float H_ = std::numeric_limits<float>::quiet_NaN();
+            // float humanVel_ = std::numeric_limits<float>::quiet_NaN();
+            // float gapPos_ = std::numeric_limits<float>::quiet_NaN();
+            // float trajPos_ = std::numeric_limits<float>::quiet_NaN();
+
 
     };
 }
