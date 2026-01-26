@@ -1163,11 +1163,12 @@ auto dumpSizes = [&](const std::string& tag,
             gapTubeTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
             gapTubeTrajTerminalPoseCosts = std::vector<float>(gapTubes.size());
 
-            geometry_msgs::TwistStamped currentRbtVel_;
+            // geometry_msgs::TwistStamped currentRbtVel_;//shadow error
             float current_linear_velocity = std::sqrt(
             std::pow(currentRbtVel_.twist.linear.x, 2) +
             std::pow(currentRbtVel_.twist.linear.y, 2)
             );
+            ROS_ERROR_STREAM("shadow error inside generateGapTrajsV2 current_linear_velocity = " << current_linear_velocity);
 
 
             for (int i = 0; i < gapTubes.size(); i++)
@@ -1885,6 +1886,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "pursuitGuidanceTraj.getVcmd()" << pursuitGuidanceTraj.getVcmd());  
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "pursuitGuidanceTraj.getWcmd()" << pursuitGuidanceTraj.getWcmd());  
                             pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
                             // pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts; //should include path costs
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
@@ -2196,7 +2199,7 @@ if (traj.getPathTiming().empty()) {
             for (size_t i = 0; i < gapTrajs.size(); i++) 
             {
                 currentTraj = gapTrajs.at(i);
-                ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
+                // ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
 
                 currentTrajPoseCosts = gapTrajPoseCosts.at(i);
                 currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(i);
@@ -2295,7 +2298,7 @@ if (traj.getPathTiming().empty()) {
                     if (k == currentTrajPoseCosts.size() - 1)
                         cost += currentTrajTerminalPoseCost;
 
-                    ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
+                    // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
 
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
@@ -3135,7 +3138,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
 
                 if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
                 {
-                    ROS_INFO_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
+                    ROS_ERROR_STREAM_NAMED("Controller", "before processCmdVelNonHolonomic() v=" << v_cmd << ", w=" << w_cmd);
 
                     rawCmdVel.linear.x  = v_cmd;
                     rawCmdVel.linear.y  = 0.0;
@@ -3301,6 +3304,15 @@ geometry_msgs::Twist Planner::ctrlGeneration(const geometry_msgs::PoseArray & lo
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_INFO_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
+            
+            ROS_ERROR_STREAM_NAMED("Planner",
+  "[recordAndCheckVel] RESET about to happen. trajFlag=" << trajFlag
+  << " cmdVelNorm=" << cmdVelNorm
+  << " bufSum=" << cmdVelBufferSum
+  << " full=" << cmdVelBuffer_.full()
+  << " reachedGoal=" << reachedGlobalGoal_);
+
+  
             reset();
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
