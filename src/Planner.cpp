@@ -1163,7 +1163,7 @@ auto dumpSizes = [&](const std::string& tag,
             gapTubeTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
             gapTubeTrajTerminalPoseCosts = std::vector<float>(gapTubes.size());
 
-            geometry_msgs::TwistStamped currentRbtVel_;
+            // geometry_msgs::TwistStamped currentRbtVel_; //shadow variable error, delete this
             float current_linear_velocity = std::sqrt(
             std::pow(currentRbtVel_.twist.linear.x, 2) +
             std::pow(currentRbtVel_.twist.linear.y, 2)
