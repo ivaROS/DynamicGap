@@ -1934,23 +1934,23 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                     
                     }
 
-                    if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost)
-                    {
-                        traj = goToGoalTraj;
-                        poseCosts = goToGoalPoseCosts;
-                        terminalPoseCost = goToGoalTerminalPoseCost;
-                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "picked goToGoal Traj");
+                    // if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost) // add this back! i removed it while debugging cbf see "so it does happen on the cbf branch, but i don’t think that’s the only thing causing weirdness"
+                    // {
+                    //     traj = goToGoalTraj;
+                    //     poseCosts = goToGoalPoseCosts;
+                    //     terminalPoseCost = goToGoalTerminalPoseCost;
+                    //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "picked goToGoal Traj");
 
-                        // gapTubeTrajPoseCosts.at(i) = goToGoalPoseCosts;
-                        // gapTubeTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
-                    } else
-                    {
+                    //     // gapTubeTrajPoseCosts.at(i) = goToGoalPoseCosts;
+                    //     // gapTubeTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
+                    // } else
+                    // {
                         traj = pursuitGuidanceTraj;
                         poseCosts = pursuitGuidancePoseCosts;
                         terminalPoseCost = pursuitGuidanceTerminalPoseCost;
                         // gapTubeTrajPoseCosts.at(i) = pursuitGuidancePoseCosts;
                         // gapTubeTrajTerminalPoseCosts.at(i) = pursuitGuidanceTerminalPoseCost;
-                    }
+                    // }
 
                     // dumpSizes("POST-SELECT", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
                     // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",

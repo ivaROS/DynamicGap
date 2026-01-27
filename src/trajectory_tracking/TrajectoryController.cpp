@@ -692,6 +692,8 @@ namespace dynamic_gap
                                                                             Eigen::Vector2f trajPos,
                                                                             Eigen::Vector2f robotVel) 
     {
+        
+        trajPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
         //--------------------------- start of pasting processCmdVelNonHolonomic code ----------------------------
         geometry_msgs::Quaternion currOrient = currentPoseOdomFrame.orientation;
         tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
@@ -716,6 +718,13 @@ namespace dynamic_gap
         << "\n holo: ux=" << holoCmdVel.linear.x
         << " uy=" << holoCmdVel.linear.y);
 
+        ROS_ERROR_STREAM_NAMED("CBFDBG",
+    "CBF state:"
+    << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+    << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+    << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+    << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+
         //!!!!!!!! todo  add rest of code from processCmdVelNonHolonomic !!!!!!!!!!!!!!!!!!!!!!1
         //--------------------------- end of processCmdVelNonHolonomic code ----------------------------
         // Evaluate at nominal
@@ -724,6 +733,7 @@ namespace dynamic_gap
         u_nom.y() = holoCmdVel.linear.y; 
 
         float h0 = DPCBF(humanVel, relativeGapPos, trajPos, u_nom); // i haven't pasted this function into this file yet btw
+        ROS_ERROR_STREAM_NAMED("CBFDBG", "h0 = " << h0);
 
         // Already safe: no change
         if (h0 >= 0.0f) {
@@ -746,6 +756,9 @@ namespace dynamic_gap
         grad_h.x() = (h_dx - h0) / du;
         grad_h.y() = (h_dy - h0) / du;
 
+        ROS_ERROR_STREAM_NAMED("CBFDBG",
+        "h_dx=" << h_dx << " h_dy=" << h_dy);
+
 
         float denom = grad_h.squaredNorm();
 
@@ -754,6 +767,12 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Controller","denom = grad_h.squaredNorm(): " << denom << " < 1e-6, returning original cmdVel");            
             return nonholoCmdVel;
         }
+        ROS_ERROR_STREAM_NAMED("CBFDBG",
+        "grad_h=(" << grad_h.x() << "," << grad_h.y() << ")"
+        << " denom=" << denom);
+
+        ROS_ERROR_STREAM_NAMED("CBFDBG", " denom=" << denom);
+
 
         // Closed-form orthogonal projection of u_nom onto linearized halfspace:
         // u_safe = u_nom + (-h0 / ||grad||^2) * grad
@@ -797,7 +816,7 @@ namespace dynamic_gap
         "\n----------------------OUTPUT----------------------------------\n"
         << " v=" << cmdVel.linear.x
         << " w=" << cmdVel.angular.z
-    );
+         );
 
         return cmdVel;
 
