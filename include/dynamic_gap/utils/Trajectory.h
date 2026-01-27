@@ -133,9 +133,9 @@ namespace dynamic_gap
             geometry_msgs::PoseArray pathRbtFrame_; /**< trajectory path in robot frame */
             geometry_msgs::PoseArray pathOdomFrame_; /**< trajectory path in odom frame */
             std::vector<float> pathTiming_; /**< trajectory path timing */
-            // float v_cmd_ = std::numeric_limits<float>::quiet_NaN();
-            // float w_cmd_ = std::numeric_limits<float>::quiet_NaN();
-            float v_cmd_ = 42; 
-            float w_cmd_ = 42; // jsut testing 
+            float v_cmd_ = std::numeric_limits<float>::quiet_NaN();
+            float w_cmd_ = std::numeric_limits<float>::quiet_NaN();
+            // float v_cmd_ = 42; 
+            // float w_cmd_ = 42; // jsut testing 
     };
 }
