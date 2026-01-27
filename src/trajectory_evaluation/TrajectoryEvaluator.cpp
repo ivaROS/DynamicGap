@@ -251,10 +251,7 @@ namespace dynamic_gap
         // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
         //   float v  = dwa_traj.v_cmd; 
         //   float w = dwa_traj.w_cmd; 
-            dwa_traj.humanVelLeft = leftVel;
-            dwa_traj.gapPosLeft = leftGapRelPos;
-            dwa_traj.trajPosLeft = leftPos;
-            dwa_traj.robotVel = RbtVel;
+           
 
         //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
         //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
@@ -281,6 +278,11 @@ namespace dynamic_gap
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
+
+         dwa_traj.humanVelLeft = leftVel;
+        dwa_traj.gapPosLeft = leftGapRelPos;
+        dwa_traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
+        dwa_traj.robotVel = RbtVel;
 
         }
 
@@ -360,7 +362,7 @@ namespace dynamic_gap
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
                 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): "); 
+                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): " << leftGapRelPos); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapRelPos);
 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "Pos: "); 
