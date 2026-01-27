@@ -1168,7 +1168,7 @@ auto dumpSizes = [&](const std::string& tag,
             std::pow(currentRbtVel_.twist.linear.x, 2) +
             std::pow(currentRbtVel_.twist.linear.y, 2)
             );
-            ROS_ERROR_STREAM("shadow error inside generateGapTrajsV2 current_linear_velocity = " << current_linear_velocity);
+            // ROS_ERROR_STREAM("shadow error inside generateGapTrajsV2 current_linear_velocity = " << current_linear_velocity);
 
 
             for (int i = 0; i < gapTubes.size(); i++)
@@ -1988,6 +1988,7 @@ if (traj.getPathTiming().empty()) {
                     if (j == 0)
                     {
                         runningTraj = traj;
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside runningTraj v: " << runningTraj.getVcmd() << "w: " << runningTraj.getWcmd());
                         runningPoseCosts = poseCosts;
                         runningTerminalPoseCost = terminalPoseCost;
                     } else
@@ -2300,6 +2301,15 @@ if (traj.getPathTiming().empty()) {
 
                     // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
+
+
+                    const auto& sel = gapTrajs.at(lowestCostTrajIdx);
+
+                    ROS_ERROR_STREAM_NAMED("Planner",
+                         " v_cmd=" << sel.getVcmd()
+                        << " w_cmd=" << sel.getWcmd()); 
+                        // << " poses=" << sel.getPathRbtFrame().poses.size()
+                        // << " timing=" << sel.getPathTiming().size());
 
             } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
             {
