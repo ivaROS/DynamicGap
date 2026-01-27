@@ -1939,6 +1939,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                         traj = goToGoalTraj;
                         poseCosts = goToGoalPoseCosts;
                         terminalPoseCost = goToGoalTerminalPoseCost;
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "picked goToGoal Traj");
+
                         // gapTubeTrajPoseCosts.at(i) = goToGoalPoseCosts;
                         // gapTubeTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
                     } else
@@ -1992,6 +1994,8 @@ if (traj.getPathTiming().empty()) {
                     if (j == 0)
                     {
                         runningTraj = traj;
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running traj: " << runningTraj.v_cmd);
+
                         runningPoseCosts = poseCosts;
                         runningTerminalPoseCost = terminalPoseCost;
                     } else
