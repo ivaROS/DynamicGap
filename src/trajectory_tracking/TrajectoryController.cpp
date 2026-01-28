@@ -694,6 +694,23 @@ namespace dynamic_gap
     {
         
         trajPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
+
+        if (!std::isfinite(humanVel.x()) || !std::isfinite(humanVel.y()) ||
+            !std::isfinite(relativeGapPos.x()) || !std::isfinite(relativeGapPos.y()) ||
+            !std::isfinite(trajPos.x()) || !std::isfinite(trajPos.y()) ||
+            !std::isfinite(robotVel.x()) || !std::isfinite(robotVel.y()))
+        {
+            ROS_ERROR_STREAM_NAMED("CBFDBG",
+                "NaN/Inf in CBF inputs");
+                // << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+                // << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+                // << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+                // << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+
+            return nonholoCmdVel;
+        }
+
+
         //--------------------------- start of pasting processCmdVelNonHolonomic code ----------------------------
         geometry_msgs::Quaternion currOrient = currentPoseOdomFrame.orientation;
         tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);

@@ -27,11 +27,10 @@ struct dwa_Trajectory
     float totalTrajCost = 0.0f; 
 
     // -- Info needed for cbf 
-     Eigen::Vector2f humanVelLeft;
-     Eigen::Vector2f gapPosLeft;
-     Eigen::Vector2f trajPosLeft;
-     Eigen::Vector2f robotVel;
-
+    Eigen::Vector2f humanVelLeft  = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+    Eigen::Vector2f gapPosLeft    = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+    Eigen::Vector2f trajPosLeft   = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+    Eigen::Vector2f robotVel   = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
 
 
 

@@ -362,7 +362,7 @@ namespace dynamic_gap
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
                 
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): " << leftGapRelPos); 
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): " << leftGapRelPos); 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapRelPos);
 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "Pos: "); 
