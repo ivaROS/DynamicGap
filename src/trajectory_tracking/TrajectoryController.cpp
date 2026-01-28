@@ -607,10 +607,11 @@ namespace dynamic_gap
         Eigen::Vector2f robotVel)
     {
     // Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
-     Eigen::Vector2f v_rel = robotVel - humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
+    //  Eigen::Vector2f v_rel = robotVel - humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
      //todo might need to fix relvel^ , DPCBF code uses: v_rel = v_obs - v_robot
+     Eigen::Vector2f v_rel = -robotVel + humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
 
-    // ROS_ERROR_STREAM("relativeVel: " << relativeVel.transpose());
+    ROS_ERROR_STREAM("negative v_rel: " << v_rel.transpose());
     // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
     // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
     // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
@@ -650,7 +651,7 @@ namespace dynamic_gap
 
    
     const float r_obs = 0.2f;                
-    const float s_margin = 1.05f;            // must be > 1 for sqrt(s^2-1)
+    const float s_margin = 1.05f; //1.05f;            // must be > 1 for sqrt(s^2-1)
 
     const float r_robot = cfg_->rbt.r_inscr;
 
