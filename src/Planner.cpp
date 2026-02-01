@@ -1282,7 +1282,7 @@ auto dumpSizes = [&](const std::string& tag,
                             std::vector<Eigen::Vector2f> curve; 
                             bool traj_behind = false; // just for testing 
 
-                            for (int k = theta_samples; k <= theta_samples; ++k)
+                            for (int k = -theta_samples; k <= theta_samples; ++k)
                             {
                                 if (traj_behind)
                                 {
@@ -1994,7 +1994,7 @@ if (traj.getPathTiming().empty()) {
                     if (j == 0)
                     {
                         runningTraj = traj;
-                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running traj: " << runningTraj.v_cmd);
+                        // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running traj: " << runningTraj.v_cmd);
 
                         runningPoseCosts = poseCosts;
                         runningTerminalPoseCost = terminalPoseCost;
@@ -3162,11 +3162,13 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
                 if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
                 {
-                    ROS_INFO_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
+                    // ROS_ERROR_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
 
                     rawCmdVel.linear.x  = v_cmd;
                     rawCmdVel.linear.y  = 0.0;
                     rawCmdVel.angular.z = w_cmd;
+
+                    ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
                     
                     cmdVel = trajController_->cbf_processCmdVelNonHolonomic(

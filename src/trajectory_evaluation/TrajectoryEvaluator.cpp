@@ -279,10 +279,18 @@ namespace dynamic_gap
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
 
-         dwa_traj.humanVelLeft = leftVel;
+        dwa_traj.humanVelLeft = leftVel;
         dwa_traj.gapPosLeft = leftGapRelPos;
         dwa_traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
         dwa_traj.robotVel = RbtVel;
+
+
+        ROS_ERROR_STREAM_NAMED("eval",
+        "inside traj evaluator right after populating the object:"
+        << " humanVel=(" << dwa_traj.humanVelLeft.x() << "," << dwa_traj.humanVelLeft.y() << ")"
+        << " gapPos=(" << dwa_traj.gapPosLeft.x() << "," << dwa_traj.gapPosLeft.y() << ")"
+        << " robotVel=(" << dwa_traj.robotVel.x() << "," << dwa_traj.robotVel.y() << ")");
+
 
         }
 

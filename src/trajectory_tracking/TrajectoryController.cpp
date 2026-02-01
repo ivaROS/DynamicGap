@@ -701,13 +701,17 @@ namespace dynamic_gap
             !std::isfinite(trajPos.x()) || !std::isfinite(trajPos.y()) ||
             !std::isfinite(robotVel.x()) || !std::isfinite(robotVel.y()))
         {
-            ROS_ERROR_STREAM_NAMED("CBFDBG",
-                "NaN/Inf in CBF inputs");
-                // << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
-                // << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
-                // << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
-                // << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+            // ROS_ERROR_STREAM_NAMED("CBFDBG",
+            //     "NaN/Inf in CBF inputs");
 
+            ROS_ERROR_STREAM_NAMED("CBFDBG",
+            " Look a NaN/Inf in CBF inputs: "
+            << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+            << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+            << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+            << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+
+   
             return nonholoCmdVel;
         }
 
@@ -737,11 +741,11 @@ namespace dynamic_gap
         << " uy=" << holoCmdVel.linear.y);
 
         ROS_ERROR_STREAM_NAMED("CBFDBG",
-    "CBF state:"
-    << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
-    << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
-    << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
-    << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+        "CBF state:"
+        << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+        << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+        << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+        << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
 
         //!!!!!!!! todo  add rest of code from processCmdVelNonHolonomic !!!!!!!!!!!!!!!!!!!!!!1
         //--------------------------- end of processCmdVelNonHolonomic code ----------------------------
