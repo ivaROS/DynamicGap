@@ -69,6 +69,51 @@ namespace dynamic_gap
     return m;
     }
 
+    static inline visualization_msgs::Marker makeLineStrip(
+    const std::string& frame, const std::string& ns, int id,
+    const std::vector<geometry_msgs::Point>& pts,
+    const std_msgs::ColorRGBA& color,
+    float line_width = 0.02f)
+    {
+    visualization_msgs::Marker m;
+    m.header.frame_id = frame;
+    m.header.stamp    = ros::Time::now();
+    m.ns              = ns;
+    m.id              = id;
+    m.type            = visualization_msgs::Marker::LINE_STRIP;
+    m.action          = visualization_msgs::Marker::ADD;
+
+    // identity orientation (prevents "Uninitialized quaternion" warnings)
+    m.pose.orientation.x = 0.0;
+    m.pose.orientation.y = 0.0;
+    m.pose.orientation.z = 0.0;
+    m.pose.orientation.w = 1.0;
+
+    m.points = pts;
+
+    m.scale.x = line_width;   // LINE_STRIP uses scale.x as line width
+    m.color   = color;
+
+    m.lifetime = ros::Duration(0.15); // short lifetime so it refreshes smoothly
+    return m;
+    }
+
+    static inline visualization_msgs::Marker makeDeleteMarker(
+        const std::string& frame, const std::string& ns, int id)
+    {
+    visualization_msgs::Marker m;
+    m.header.frame_id = frame;
+    m.header.stamp    = ros::Time::now();
+    m.ns              = ns;
+    m.id              = id;
+    m.action          = visualization_msgs::Marker::DELETE;
+
+    // identity orientation (safe)
+    m.pose.orientation.w = 1.0;
+    return m;
+    }
+
+
     static inline float det2(const Eigen::Matrix2f& R){
     return R(0,0)*R(1,1) - R(0,1)*R(1,0);
     }
@@ -720,8 +765,76 @@ namespace dynamic_gap
     float h = v_rel_new_x + lambda * (v_rel_new_y * v_rel_new_y) + mu;
     // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "h: " << h); 
 
+    //////////////////// parabola visuals ////////////////////////////////////////////////
+    // ---------------- DPCBF parabola visualization (v-space curve) ----------------
+if (dbg_dpcbf_) {
 
-    //////////////// just debugging visualization ///////////////////////////
+     // Eigen::Vector2f origin = trajPos;
+
+    Eigen::Vector2f origin = Eigen::Vector2f::Zero();
+    const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
+
+  // Origin where you want the curve drawn (robot/traj point in world)
+//   Eigen::Vector2f origin = trajPos;
+
+  // LOS unit axis in world
+  Eigen::Vector2f p_hat = (p_rel.norm() > eps) ? (p_rel / p_rel.norm())
+                                               : Eigen::Vector2f(1.f, 0.f);
+
+  // Perp unit axis in world (right-hand perpendicular)
+  Eigen::Vector2f q_hat(-p_hat.y(), p_hat.x());
+
+  // Parameters for sampling the parabola in (v_x, v_y) coordinates
+  // We sample v_y in [-vy_max, vy_max], compute v_x = -lambda*vy^2 - mu.
+  // Choose vy_max based on your expected relative speed range.
+  const float vy_max = 1.5f;          // <-- tune this
+  const int   N      = 41;            // odd number looks nicer
+
+  // Scale from "velocity units" to "meters in RViz"
+  // Bigger => curve looks larger around the robot.
+  const float v_to_m = 0.75f;         // <-- tune this (like your arrow scale)
+
+  // Guard: if lambda is tiny/invalid, skip
+  if (!std::isfinite(lambda) || !std::isfinite(mu) || std::abs(lambda) < 1e-9f) {
+    // optional: ROS_WARN_STREAM_THROTTLE(1.0, "Skipping parabola: bad lambda/mu");
+  } else {
+
+    std::vector<geometry_msgs::Point> pts;
+    pts.reserve(N);
+
+    for (int i = 0; i < N; ++i) {
+      float t  = float(i) / float(N - 1);      // [0,1]
+      float vy = (2.0f * t - 1.0f) * vy_max;    // [-vy_max, vy_max]
+
+      float vx = -lambda * vy * vy - mu;        // boundary: vx + lambda*vy^2 + mu = 0
+
+      // Convert (vx, vy) in LOS frame into a world displacement
+      // world_point = origin + v_to_m*( vx*p_hat + vy*q_hat )
+      Eigen::Vector2f disp = v_to_m * (vx * p_hat + vy * q_hat);
+
+      geometry_msgs::Point p;
+      p.x = origin.x() + disp.x();
+      p.y = origin.y() + disp.y();
+      p.z = 0.10;  // draw slightly above ground
+      pts.push_back(p);
+    }
+
+    // Use a stable id per obstacle index `k` (or whatever your loop index is)
+    // so it overwrites each frame.
+    const int parabola_id = 1000; // + k; // choose an offset that won't collide with your arrow ids
+
+    // Color suggestion:
+    // - boundary curve: orange
+    dbg_marker_pub_.publish(
+      makeLineStrip(frame, "dpcbf_parabola", parabola_id, pts,
+                    rgba(1.0f, 0.5f, 0.0f, 1.0f), 0.02f)
+    );
+  }
+}
+
+
+
+    //////////////// just debugging line of sight visualization ///////////////////////////
     if (dbg_dpcbf_) {
     const float eps = 1e-6f;
 
