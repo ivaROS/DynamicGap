@@ -3168,7 +3168,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     rawCmdVel.linear.y  = 0.0;
                     rawCmdVel.angular.z = w_cmd;
 
-                    ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
+                    // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
                     
                     cmdVel = trajController_->cbf_processCmdVelNonHolonomic(

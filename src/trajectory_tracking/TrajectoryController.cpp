@@ -614,7 +614,7 @@ namespace dynamic_gap
      //todo might need to fix relvel^ , DPCBF code uses: v_rel = v_obs - v_robot
      Eigen::Vector2f v_rel = -robotVel + humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
 
-    ROS_ERROR_STREAM("negative v_rel: " << v_rel.transpose());
+    // ROS_ERROR_STREAM("negative v_rel: " << v_rel.transpose());
     // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
     // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
     // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
@@ -736,19 +736,24 @@ namespace dynamic_gap
         holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
         holoCmdVel.angular.z = 0.0;
 
-         ROS_ERROR_STREAM_NAMED("CBF",
+        ROS_ERROR_STREAM_NAMED("CBF",
         "\n[CBF INPUT]\n"
-        << " nonholo: v=" << nonholoCmdVel.linear.x
-        << " w=" << nonholoCmdVel.angular.z
-        << "\n holo: ux=" << holoCmdVel.linear.x
+        << " holo: ux=" << holoCmdVel.linear.x
         << " uy=" << holoCmdVel.linear.y);
+        
+        //  ROS_ERROR_STREAM_NAMED("CBF",
+        // "\n[CBF INPUT]\n"
+        // << " nonholo: v=" << nonholoCmdVel.linear.x
+        // << " w=" << nonholoCmdVel.angular.z
+        // << "\n holo: ux=" << holoCmdVel.linear.x
+        // << " uy=" << holoCmdVel.linear.y);
 
-        ROS_ERROR_STREAM_NAMED("CBFDBG",
-        "CBF state:"
-        << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
-        << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
-        << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
-        << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+        // ROS_ERROR_STREAM_NAMED("CBFDBG",
+        // "CBF state:"
+        // << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+        // << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+        // << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+        // << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
 
         //!!!!!!!! todo  add rest of code from processCmdVelNonHolonomic !!!!!!!!!!!!!!!!!!!!!!1
         //--------------------------- end of processCmdVelNonHolonomic code ----------------------------
@@ -795,8 +800,8 @@ namespace dynamic_gap
         grad_h.x() = (h_dx - h0) / du;
         grad_h.y() = (h_dy - h0) / du;
 
-        ROS_ERROR_STREAM_NAMED("CBFDBG",
-        "h_dx=" << h_dx << " h_dy=" << h_dy);
+        // ROS_ERROR_STREAM_NAMED("CBFDBG",
+        // "h_dx=" << h_dx << " h_dy=" << h_dy);
 
 
         float denom = grad_h.squaredNorm();
@@ -806,11 +811,11 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Controller","denom = grad_h.squaredNorm(): " << denom << " < 1e-6, returning original cmdVel");            
             return nonholoCmdVel;
         }
-        ROS_ERROR_STREAM_NAMED("CBFDBG",
-        "grad_h=(" << grad_h.x() << "," << grad_h.y() << ")"
-        << " denom=" << denom);
+        // ROS_ERROR_STREAM_NAMED("CBFDBG",
+        // "grad_h=(" << grad_h.x() << "," << grad_h.y() << ")"
+        // << " denom=" << denom);
 
-        ROS_ERROR_STREAM_NAMED("CBFDBG", " denom=" << denom);
+        // ROS_ERROR_STREAM_NAMED("CBFDBG", " denom=" << denom);
 
 
         // Closed-form orthogonal projection of u_nom onto linearized halfspace:

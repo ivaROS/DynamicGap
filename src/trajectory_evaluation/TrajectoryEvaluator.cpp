@@ -285,11 +285,11 @@ namespace dynamic_gap
         dwa_traj.robotVel = RbtVel;
 
 
-        ROS_ERROR_STREAM_NAMED("eval",
-        "inside traj evaluator right after populating the object:"
-        << " humanVel=(" << dwa_traj.humanVelLeft.x() << "," << dwa_traj.humanVelLeft.y() << ")"
-        << " gapPos=(" << dwa_traj.gapPosLeft.x() << "," << dwa_traj.gapPosLeft.y() << ")"
-        << " robotVel=(" << dwa_traj.robotVel.x() << "," << dwa_traj.robotVel.y() << ")");
+        // ROS_ERROR_STREAM_NAMED("eval",
+        // "inside traj evaluator right after populating the object:"
+        // << " humanVel=(" << dwa_traj.humanVelLeft.x() << "," << dwa_traj.humanVelLeft.y() << ")"
+        // << " gapPos=(" << dwa_traj.gapPosLeft.x() << "," << dwa_traj.gapPosLeft.y() << ")"
+        // << " robotVel=(" << dwa_traj.robotVel.x() << "," << dwa_traj.robotVel.y() << ")");
 
 
         }
