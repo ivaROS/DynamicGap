@@ -777,7 +777,7 @@ namespace dynamic_gap
 
 
         float h0 = DPCBF(humanVel, relativeGapPos, trajPos, u_nom); // i haven't pasted this function into this file yet btw
-        ROS_ERROR_STREAM_NAMED("CBFDBG", "h0 = " << h0);
+        // ROS_ERROR_STREAM_NAMED("CBFDBG", "h0 = " << h0);
 
         // Already safe: no change
         if (h0 >= 0.0f) {
