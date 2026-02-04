@@ -232,5 +232,21 @@ namespace dynamic_gap
 
             ros::Publisher propagatedPointsPublisher_; /**< Publisher for propagated points */
             // std::chrono::steady_clock::time_point startTime_; /**< Start time */
-    };
+
+            ros::NodeHandle nh_;
+            ros::Publisher vrel_pub_; /**< used for visualizing vrel */
+            ros::Publisher vrel_safe_pub_;
+            int vrel_marker_id_ = 0;
+
+           void publishVrelArrow(const Eigen::Vector2f& origin_xy,
+                      const Eigen::Vector2f& vrel_xy,
+                      const std::string& frame_id,
+                      const std::string& ns,
+                      ros::Publisher& pub,
+                      float r = 1.0f,
+                      float g = 0.2f,
+                      float b = 0.2f,
+                      float a = 1.0f);
+
+                };
 }

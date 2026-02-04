@@ -23,6 +23,9 @@ namespace dynamic_gap
         l_ = cfg_->rbt.r_inscr * cfg_->traj.inf_ratio; // error.norm();
 
         // startTime_ = std::chrono::steady_clock::now();
+
+        vrel_pub_      = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow", 1);
+        vrel_safe_pub_ = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow_safe", 1);
     }
 
     void TrajectoryController::updateParams(const ControlParameters & ctrlParams)
@@ -753,6 +756,20 @@ namespace dynamic_gap
         Eigen::Vector2f u_nom; 
         u_nom.x() = holoCmdVel.linear.x; 
         u_nom.y() = holoCmdVel.linear.y; 
+        
+        // v_rel consistent with DPCBF(): v_rel = -robotVel + humanVel
+        Eigen::Vector2f v_rel_nom = -u_nom + humanVel;
+
+        // Choose where to draw the arrow:
+        Eigen::Vector2f origin = Eigen::Vector2f::Zero();
+
+       
+        publishVrelArrow(origin,
+                        v_rel_nom,
+                        cfg_->sensor_frame_id,    // or cfg_->robot_frame_id
+                        "v_rel_nom",
+                        vrel_pub_);
+
 
         float h0 = DPCBF(humanVel, relativeGapPos, trajPos, u_nom); // i haven't pasted this function into this file yet btw
         ROS_ERROR_STREAM_NAMED("CBFDBG", "h0 = " << h0);
@@ -801,6 +818,18 @@ namespace dynamic_gap
         Eigen::Vector2f u_safe = u_nom + (-h0 / denom) * grad_h;
         // return u_safe;
         Eigen::Vector2f safeError(u_safe.x(), u_safe.y());
+
+        Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
+        publishVrelArrow(origin,
+                        v_rel_safe,
+                        cfg_->sensor_frame_id,
+                        "v_rel_safe",
+                        vrel_safe_pub_,
+                         0.2f,  // R
+                        1.0f,  // G
+                        0.2f,  // B
+                        1.0f); // A
+
 
         //-----------------------------------------------more original processCmdVelNonHolonomic code------------------------------------------------------------------
 
@@ -1118,4 +1147,51 @@ namespace dynamic_gap
         // make sure pose does note exceed trajectory size
         return std::min(targetPose, int(localTrajectory.poses.size() - 1));
     }
+
+    void TrajectoryController::publishVrelArrow(const Eigen::Vector2f& origin_xy,
+                                            const Eigen::Vector2f& vrel_xy,
+                                            const std::string& frame_id,
+                                            const std::string& ns,
+                                            ros::Publisher& pub,
+                                            float r,
+                                            float g,
+                                            float b,
+                                            float a)
+{
+  visualization_msgs::Marker m;
+  m.header.frame_id = frame_id;
+  m.header.stamp    = ros::Time::now();
+  m.ns              = ns;
+  m.id              = 0;   // overwrite same marker
+  m.type            = visualization_msgs::Marker::ARROW;
+  m.action          = visualization_msgs::Marker::ADD;
+
+  geometry_msgs::Point p0, p1;
+  p0.x = origin_xy.x();
+  p0.y = origin_xy.y();
+  p0.z = 0.10;
+
+  const float scale = 0.75f;
+  p1.x = origin_xy.x() + scale * vrel_xy.x();
+  p1.y = origin_xy.y() + scale * vrel_xy.y();
+  p1.z = 0.10;
+
+  m.points = {p0, p1};
+
+  // Arrow geometry
+  m.scale.x = 0.03;  // shaft diameter
+  m.scale.y = 0.06;  // head diameter
+  m.scale.z = 0.10;  // head length
+
+  // Color (now configurable)
+  m.color.r = r;
+  m.color.g = g;
+  m.color.b = b;
+  m.color.a = a;
+
+  m.lifetime = ros::Duration(0.15);
+  pub.publish(m);
+}
+
+
 }
