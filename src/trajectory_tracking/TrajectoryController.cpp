@@ -1,4 +1,5 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
+#include <visualization_msgs/Marker.h>
 
 namespace dynamic_gap
 {
@@ -26,6 +27,8 @@ namespace dynamic_gap
 
         vrel_pub_      = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow", 1);
         vrel_safe_pub_ = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow_safe", 1);
+        dbg_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("dpcbf_debug_markers", 50);
+
     }
 
     void TrajectoryController::updateParams(const ControlParameters & ctrlParams)
@@ -33,6 +36,42 @@ namespace dynamic_gap
         ctrlParams_ = ctrlParams;
     }
 
+
+    static inline std_msgs::ColorRGBA rgba(float r,float g,float b,float a=1.f){
+    std_msgs::ColorRGBA c; c.r=r; c.g=g; c.b=b; c.a=a; return c;
+    }
+
+    static inline visualization_msgs::Marker makeArrow(
+        const std::string& frame, const std::string& ns, int id,
+        const Eigen::Vector2f& origin, const Eigen::Vector2f& vec,
+        const std_msgs::ColorRGBA& color, float shaft=0.02f, float head_d=0.05f, float head_l=0.08f)
+    {
+    visualization_msgs::Marker m;
+    m.pose.orientation.x = 0.0;
+    m.pose.orientation.y = 0.0;
+    m.pose.orientation.z = 0.0;
+    m.pose.orientation.w = 1.0;
+
+    m.header.frame_id = frame;
+    m.header.stamp = ros::Time::now();
+    m.ns = ns; m.id = id;
+    m.type = visualization_msgs::Marker::ARROW;
+    m.action = visualization_msgs::Marker::ADD;
+
+    geometry_msgs::Point p0, p1;
+    p0.x = origin.x(); p0.y = origin.y(); p0.z = 0.05;
+    p1.x = origin.x()+vec.x(); p1.y = origin.y()+vec.y(); p1.z = 0.05;
+    m.points = {p0,p1};
+
+    m.scale.x = shaft; m.scale.y = head_d; m.scale.z = head_l;
+    m.color = color;
+    m.lifetime = ros::Duration(0.0);
+    return m;
+    }
+
+    static inline float det2(const Eigen::Matrix2f& R){
+    return R(0,0)*R(1,1) - R(0,1)*R(1,0);
+    }
 
     void TrajectoryController::updateEgoCircle(boost::shared_ptr<sensor_msgs::LaserScan const> scan)
     {
@@ -681,6 +720,70 @@ namespace dynamic_gap
     float h = v_rel_new_x + lambda * (v_rel_new_y * v_rel_new_y) + mu;
     // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "h: " << h); 
 
+
+    //////////////// just debugging visualization ///////////////////////////
+    if (dbg_dpcbf_) {
+    const float eps = 1e-6f;
+
+    // Eigen::Vector2f origin = trajPos;
+
+    Eigen::Vector2f origin = Eigen::Vector2f::Zero();
+    const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
+    // world basis
+    Eigen::Vector2f ex(1.f,0.f), ey(0.f,1.f);
+
+    // rotated basis expressed in world (since you used v_new = R*v for coordinates)
+    Eigen::Vector2f ex_rot = R.transpose() * ex;
+    Eigen::Vector2f ey_rot = R.transpose() * ey;
+
+    // p_hat for LOS sanity
+    Eigen::Vector2f p_hat = (p_rel.norm() > eps) ? (p_rel / p_rel.norm()) : Eigen::Vector2f(1.f,0.f);
+
+    // map v_rel_new back to world to confirm it matches v_rel
+    Eigen::Vector2f v_rel_back = R.transpose() * v_rel_new;
+
+    float ortho_err = (R.transpose()*R - Eigen::Matrix2f::Identity()).norm();
+    float detR = det2(R);
+    float v_norm_err = std::abs(v_rel.norm() - v_rel_new.norm());
+    float back_err = (v_rel - v_rel_back).norm();
+    float align = ex_rot.dot(p_hat);
+
+    ROS_ERROR_STREAM("[DPCBF ROT] p_rel=" << p_rel.transpose()
+                    << " rot_angle=" << rot_angle
+                    << " detR=" << detR
+                    << " ortho_err=" << ortho_err
+                    << " |v|-|Rv|=" << v_norm_err
+                    << " back_err=" << back_err
+                    << " align(ex_rot,p_hat)=" << align);
+
+    ROS_ERROR_STREAM("[DPCBF ROT] v_rel(world)=" << v_rel.transpose()
+                    << " v_rel_new(coords)=" << v_rel_new.transpose()
+                    << " v_rel_back(world)=" << v_rel_back.transpose());
+
+    float sc = dbg_scale_;
+
+    // world basis (before)
+    dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 0, origin, sc*ex, rgba(1,0,0,1))); // X red
+    dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 1, origin, sc*ey, rgba(0,0,1,1))); // Y blue
+
+    // rotated basis (after)
+    dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 10, origin, sc*ex_rot, rgba(1,1,0,1))); // yellow
+    dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 11, origin, sc*ey_rot, rgba(0,1,1,1))); // cyan
+
+    // vectors
+    // dbg_marker_pub_.publish(makeArrow(frame, "vecs", 20, origin, sc*p_hat, rgba(1,0,1,1))); // p_hat magenta
+
+    // Eigen::Vector2f v_rel_unit = (v_rel.norm()>eps) ? (v_rel / v_rel.norm()) : Eigen::Vector2f(0,0);
+    // dbg_marker_pub_.publish(makeArrow(frame, "vecs", 21, origin, sc*v_rel_unit, rgba(1,1,1,1))); // v_rel white
+
+    // Eigen::Vector2f v_back_unit = (v_rel_back.norm()>eps) ? (v_rel_back / v_rel_back.norm()) : Eigen::Vector2f(0,0);
+    // dbg_marker_pub_.publish(makeArrow(frame, "vecs", 22, origin, sc*v_back_unit, rgba(0,1,0,1))); // back-mapped green
+
+    // optional: show p_rel itself scaled (can be huge; clamp)
+    // float p_len = std::min(p_rel.norm(), 1.0f);
+    // Eigen::Vector2f p_clamp = (p_rel.norm()>eps) ? (p_rel / p_rel.norm()) * p_len : Eigen::Vector2f(0,0);
+    // dbg_marker_pub_.publish(makeArrow(frame, "vecs", 23, origin, p_clamp, rgba(0.6,0.2,1.0,0.8)));
+    }
 
     return h;
 }

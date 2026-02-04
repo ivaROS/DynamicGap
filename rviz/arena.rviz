@@ -28,6 +28,7 @@ Panels:
         - /Marker1
         - /Marker2
         - /Marker3
+        - /Marker4
       Splitter Ratio: 0.32637855410575867
     Tree Height: 484
   - Class: rviz/Selection
@@ -390,13 +391,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/manip_gap_model_positions
@@ -406,13 +407,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/manip_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                manip: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/global_path_local_waypoint
@@ -785,19 +786,28 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/v_rel_arrow
       Name: Marker
       Namespaces:
-        v_rel_nom: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/v_rel_arrow_safe
       Name: Marker
       Namespaces:
-        v_rel_safe: true
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /rto/dpcbf_debug_markers
+      Name: Marker
+      Namespaces:
+        basis_rot: true
+        basis_world: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -837,10 +847,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 141.69215393066406
+      Scale: 109.86978912353516
       Target Frame: rto/base_link
-      X: 0.18965469300746918
-      Y: 0.6579517126083374
+      X: 1.0925922393798828
+      Y: 2.4365501403808594
     Saved: ~
 Window Geometry:
   Displays:

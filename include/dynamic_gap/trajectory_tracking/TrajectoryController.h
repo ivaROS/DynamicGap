@@ -238,6 +238,11 @@ namespace dynamic_gap
             ros::Publisher vrel_safe_pub_;
             int vrel_marker_id_ = 0;
 
+            ros::Publisher dbg_marker_pub_; // visualization for debugging cbf line of sighte rotation
+            std::string dbg_frame_ = "map";   // or odom/base_link
+            bool dbg_dpcbf_ = true;
+            float dbg_scale_ = 0.5f;          // meters for unit vectors
+
            void publishVrelArrow(const Eigen::Vector2f& origin_xy,
                       const Eigen::Vector2f& vrel_xy,
                       const std::string& frame_id,
@@ -249,4 +254,7 @@ namespace dynamic_gap
                       float a = 1.0f);
 
                 };
+
+
+
 }
