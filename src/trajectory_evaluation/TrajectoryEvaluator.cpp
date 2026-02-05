@@ -235,15 +235,14 @@ namespace dynamic_gap
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
          gap->getLeftGapPt()->getModel()->isolateGapDynamics();
         //  gap->leftGapPt__model_->isolateGapDynamics();
-         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity();
+         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity(); // todo: delete this, its actually not used
          RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
          RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
 
 
          Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
 
-         //  calculate h for DPCBF
-         geometry_msgs::Point posUncovertedL = pose_array.poses.at(0).position;
+         geometry_msgs::Point posUncovertedL = pose_array.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
                 Eigen::Vector2f leftPos;
                 leftPos.x() = posUncovertedL.x; 
                 leftPos.y() = posUncovertedL.y;
@@ -284,7 +283,7 @@ namespace dynamic_gap
         dwa_traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
         dwa_traj.robotVel = RbtVel;
 
-
+        
         // ROS_ERROR_STREAM_NAMED("eval",
         // "inside traj evaluator right after populating the object:"
         // << " humanVel=(" << dwa_traj.humanVelLeft.x() << "," << dwa_traj.humanVelLeft.y() << ")"
@@ -334,6 +333,9 @@ namespace dynamic_gap
 
             rightGapRelPos =
                 gap->getRightGapPt()->getModel()->getState().head<2>();
+
+            dwa_traj.humanVelRight = rightVel;
+            dwa_traj.gapPosRight = rightGapRelPos;
         }
 
 

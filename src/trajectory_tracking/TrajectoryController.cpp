@@ -1040,6 +1040,7 @@ if (dbg_dpcbf_) {
         // return u_safe;
         Eigen::Vector2f safeError(u_safe.x(), u_safe.y());
 
+        // visualization
         Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
         publishVrelArrow(origin,
                         v_rel_safe,

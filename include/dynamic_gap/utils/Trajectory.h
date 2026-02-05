@@ -147,7 +147,8 @@ namespace dynamic_gap
             Eigen::Vector2f gapPosLeft    = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
             Eigen::Vector2f trajPosLeft   = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
             Eigen::Vector2f robotVel   = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
-
+            Eigen::Vector2f humanVelRight  = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
+            Eigen::Vector2f gapPosRight    = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
 
 
 
