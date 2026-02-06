@@ -1,6 +1,7 @@
 #include <dynamic_gap/Planner.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 #include <dynamic_gap/utils/dwa_traj.h>
+#include <dynamic_gap/utils/CbfLinConstraint.h>
 #include <sstream>
 #include <string>
 #include <tf/transform_datatypes.h>
@@ -3181,14 +3182,25 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
                     
-                    cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
+                    // cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
+                    //             currPoseOdomFrame,
+                    //             targetTrajectoryPose,
+                    //             rawCmdVel,
+                    //             rbtPoseInSensorFrame_, 
+                    //             localTrajectory.humanVelLeft, 
+                    //             localTrajectory.gapPosLeft, 
+                    //             localTrajectory.trajPosLeft, 
+                    //             localTrajectory.robotVel
+                    //         );
+                    CbfLinConstraint rightCBFOutput; 
+                     cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
                                 currPoseOdomFrame,
                                 targetTrajectoryPose,
                                 rawCmdVel,
                                 rbtPoseInSensorFrame_, 
-                                localTrajectory.humanVelLeft, 
-                                localTrajectory.gapPosLeft, 
-                                localTrajectory.trajPosLeft, 
+                                localTrajectory.humanVelRight, 
+                                localTrajectory.gapPosRight, 
+                                localTrajectory.trajPosLeft,  //delete trajPos it's usunsed
                                 localTrajectory.robotVel
                             );
 

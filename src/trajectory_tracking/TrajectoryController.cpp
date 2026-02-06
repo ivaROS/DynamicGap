@@ -1,5 +1,6 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <visualization_msgs/Marker.h>
+#include <dynamic_gap/utils/CbfLinConstraint.h>
 
 namespace dynamic_gap
 {
@@ -903,7 +904,7 @@ if (dbg_dpcbf_) {
 
     
 
-    geometry_msgs::Twist TrajectoryController::cbf_processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+    CbfLinConstraint TrajectoryController::cbf_processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
                                                                             const geometry_msgs::Pose & desiredPoseOdomFrame,
                                                                             const geometry_msgs::Twist & nonholoCmdVel,
                                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
@@ -912,6 +913,7 @@ if (dbg_dpcbf_) {
                                                                             Eigen::Vector2f trajPos,
                                                                             Eigen::Vector2f robotVel) 
     {
+        CbfLinConstraint out;
         
         trajPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
 
@@ -931,7 +933,7 @@ if (dbg_dpcbf_) {
             << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
 
    
-            return nonholoCmdVel;
+            return out;
         }
 
 
@@ -997,7 +999,7 @@ if (dbg_dpcbf_) {
 
         // Already safe: no change
         if (h0 >= 0.0f) {
-            return nonholoCmdVel;
+            return out;
         }
 
         // Finite-difference gradient wrt u = [u_x, u_y]
@@ -1025,7 +1027,7 @@ if (dbg_dpcbf_) {
         // If gradient is degenerate, fallback (stop or keep nominal)
         if (denom < 1e-6f) {
             ROS_INFO_STREAM_NAMED("Controller","denom = grad_h.squaredNorm(): " << denom << " < 1e-6, returning original cmdVel");            
-            return nonholoCmdVel;
+            return out;
         }
         // ROS_ERROR_STREAM_NAMED("CBFDBG",
         // "grad_h=(" << grad_h.x() << "," << grad_h.y() << ")"
@@ -1091,7 +1093,7 @@ if (dbg_dpcbf_) {
         << " w=" << cmdVel.angular.z
          );
 
-        return cmdVel;
+        return cmdVel;// make sure you change this
 
         //-----------------------------------------------end of original processCmdVelNonHolonomic code------------------------------------------------------------------
 

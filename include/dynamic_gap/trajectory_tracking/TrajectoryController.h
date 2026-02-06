@@ -24,6 +24,7 @@
 #include <dynamic_gap/utils/Utils.h>
 
 #include <thread>
+#include <dynamic_gap/utils/CbfLinConstraint.h>
 // #include <chrono>
 
 namespace dynamic_gap 
@@ -118,7 +119,7 @@ namespace dynamic_gap
                                                             const geometry_msgs::Twist & rawCmdVel,
                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame);
 
-            geometry_msgs::Twist cbf_processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
+           CbfLinConstraint cbf_processCmdVelNonHolonomic(const geometry_msgs::Pose & currentPoseOdomFrame,
                                                                             const geometry_msgs::Pose & desiredPoseOdomFrame,
                                                                             const geometry_msgs::Twist & nonholoCmdVel,
                                                                             const geometry_msgs::PoseStamped & rbtPoseInSensorFrame,
