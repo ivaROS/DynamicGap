@@ -3204,7 +3204,50 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                                 localTrajectory.trajPosLeft,  //delete trajPos it's usunsed
                                 localTrajectory.robotVel
                             );
+                            
+                    if (rightCBFOutput.valid == false){
+                        cmdVel = rightCBFOutput.cmdVel; // by the way I call h0 > 0 as not valid that way the cbf output is not used
+                        }
 
+                    else if (rightCBFOutput.valid == true)
+                    {
+                    float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
+                    Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
+                    nidMat(1, 1) = (1.0 / l_);
+
+                    Eigen::Vector2f nonholoVelocityCommand = nidMat * rightCBFOutput.u_proj; // negRotMat * 
+
+                    float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
+                    float velLinYFeedback = 0.0;
+                    float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
+
+                    ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
+                    ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
+
+                    float clippedVelLinXFeedback = 0.0;
+                    if (std::abs(velLinXFeedback) < cfg_.rbt.vx_absmax)
+                    {
+                        clippedVelLinXFeedback = velLinXFeedback;
+                    } else
+                    {
+                        clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+                    }
+
+                    geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+                    cmdVel.linear.x = clippedVelLinXFeedback;
+                    cmdVel.linear.y = 0.0;
+                    cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
+
+                    // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
+                    ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
+
+                    ROS_ERROR_STREAM_NAMED("CBF",
+                    "\n----------------------OUTPUT----------------------------------\n"
+                    << " v=" << cmdVel.linear.x
+                    << " w=" << cmdVel.angular.z
+                    );
+
+                }
                     // todo 0128 process nonHolonomicCmd() is not run
                     // for goToGoal trajs, meaning that no cbf, no PO and 
                     // no velocity clippping happens for those trajs 

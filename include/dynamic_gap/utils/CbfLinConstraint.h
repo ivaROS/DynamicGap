@@ -13,5 +13,8 @@ struct CbfLinConstraint
   float b = std::numeric_limits<float>::quiet_NaN();      // a^T u_nom - h0
 
   Eigen::Vector2f u_proj = Eigen::Vector2f::Zero();       // single-constraint projection
+//   Eigen::Vector2f cmdVel  = Eigen::Vector2f::Zero(); 
+  geometry_msgs::Twist cmdVel{};  // all zeros
+
 };
 
