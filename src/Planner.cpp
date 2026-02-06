@@ -3233,7 +3233,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                         clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
                     }
 
-                    geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
                     cmdVel.linear.x = clippedVelLinXFeedback;
                     cmdVel.linear.y = 0.0;
                     cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
@@ -3273,7 +3273,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                         clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
                     }
 
-                    geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
                     cmdVel.linear.x = clippedVelLinXFeedback;
                     cmdVel.linear.y = 0.0;
                     cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
