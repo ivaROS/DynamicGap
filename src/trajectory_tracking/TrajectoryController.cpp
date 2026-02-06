@@ -1055,10 +1055,15 @@ if (dbg_dpcbf_) {
                         1.0f,  // G
                         0.2f,  // B
                         1.0f); // A
+
+        // output 
+        float b = grad_h.dot(u_nom) - h0;
+        out.b = b;  
          out.valid = true; 
          out.h0 = h0; 
          out.a  = grad_h; 
          out.u_proj = u_safe; 
+        return out;
 
         //-----------------------------------------------more original processCmdVelNonHolonomic code------------------------------------------------------------------
 
