@@ -3193,7 +3193,8 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     //             localTrajectory.robotVel
                     //         );
                     CbfLinConstraint rightCBFOutput; 
-                     cmdVel = trajController_->cbf_processCmdVelNonHolonomic(
+
+                     rightCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
                                 currPoseOdomFrame,
                                 targetTrajectoryPose,
                                 rawCmdVel,

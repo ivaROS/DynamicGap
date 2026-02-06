@@ -1093,7 +1093,7 @@ if (dbg_dpcbf_) {
         << " w=" << cmdVel.angular.z
          );
 
-        return cmdVel;// make sure you change this
+        return out; 
 
         //-----------------------------------------------end of original processCmdVelNonHolonomic code------------------------------------------------------------------
 
