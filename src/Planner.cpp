@@ -3397,6 +3397,8 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     << " v=" << cmdVel.linear.x
                     << " w=" << cmdVel.angular.z
                     ); 
+
+                    
                 }
                 
                     // todo 0128 process nonHolonomicCmd() is not run

@@ -1052,16 +1052,16 @@ if (dbg_dpcbf_) {
         Eigen::Vector2f safeError(u_safe.x(), u_safe.y()); // this is redundant 
 
         // visualization
-        Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
-        publishVrelArrow(origin,
-                        v_rel_safe,
-                        cfg_->sensor_frame_id,
-                        "v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
+        // Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
+        // publishVrelArrow(origin,
+        //                 v_rel_safe,
+        //                 cfg_->sensor_frame_id,
+        //                 "v_rel_safe",
+        //                 vrel_safe_pub_,
+        //                  0.2f,  // R
+        //                 1.0f,  // G
+        //                 0.2f,  // B
+        //                 1.0f); // A
 
         // output 
         float b = grad_h.dot(u_nom) - h0;
