@@ -3085,6 +3085,44 @@ if (traj.getPathTiming().empty()) {
         return recedingUngaps;
     }
 
+bool sat(const Eigen::Vector2f& a, float b,
+                  const Eigen::Vector2f& u)
+{
+  return a.dot(u) >= b;
+}
+
+void consider(const Eigen::Vector2f& u,
+                       const Eigen::Vector2f& u_nom,
+                       float& best,
+                       Eigen::Vector2f& u_best) 
+{
+  float d = (u - u_nom).squaredNorm();
+  if (d < best) {
+    best = d;
+    u_best = u;
+  }
+}
+
+bool solve2x2(float a, float b, float c, float d,
+                            float e, float f,
+                            Eigen::Vector2f &output_vector)
+{
+    const float det = a*d - b*c;
+    if (!std::isfinite(det) || std::fabs(det) < 1e-8f) return false;
+
+    // inverse * rhs
+    // x = ( d*e - b*f)/det
+    // y = (-c*e + a*f)/det
+    const float x = ( d*e - b*f) / det;
+    const float y = (-c*e + a*f) / det;
+
+    if (!std::isfinite(x) || !std::isfinite(y)) return false;
+
+    output_vector.x() = x;
+    output_vector.y() = y;
+    return true;
+}
+
 geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int & trajFlag)
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
@@ -3206,10 +3244,11 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                             );
                             
                     if (rightCBFOutput.valid == false && leftCBFOutput.valid == false){
-                        cmdVel = rightCBFOutput.cmdVel; // by the way I call h0 > 0 as not valid that way the cbf output is not used
+                        cmdVel = rightCBFOutput.beforeCBFNonHoloCmdVel; 
+                        // by the way I call h0 > 0 as not valid that way the cbf output is not used
                         }
 
-                    else if (rightCBFOutput.valid == true)
+                    else if (rightCBFOutput.valid == true && leftCBFOutput.valid == false)
                     {
                     float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
                     Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
@@ -3249,7 +3288,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
                 }
 
-                else if (leftCBFOutput.valid == true)
+                else if (rightCBFOutput.valid == false && leftCBFOutput.valid == true)
                     {
                     float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
                     Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
@@ -3288,6 +3327,78 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     );
 
                 }
+
+                else if (rightCBFOutput.valid == true && leftCBFOutput.valid == true)
+                {
+                    // Aliases for readability
+                    const Eigen::Vector2f& aL = leftCBFOutput.a;
+                    const Eigen::Vector2f& aR = rightCBFOutput.a;
+                    const float bL = leftCBFOutput.b;
+                    const float bR = rightCBFOutput.b;
+
+                    const Eigen::Vector2f& uL = leftCBFOutput.u_proj;
+                    const Eigen::Vector2f& uR = rightCBFOutput.u_proj;
+                    const Eigen::Vector2f& u_nom = rightCBFOutput.u_nom;
+
+                    bool uL_ok = sat(aL,bL,uL) && sat(aR,bR,uL);
+                    bool uR_ok = sat(aL,bL,uR) && sat(aR,bR,uR);
+
+                    Eigen::Vector2f u_best;
+                    float best = std::numeric_limits<float>::infinity();
+
+                    // if they're both ok, then consider() makes sure that we pick the one closest to u_nom
+                    if (uL_ok) consider(uL, u_nom, best, u_best); // consider using uL
+                    if (uR_ok) consider(uR, u_nom, best, u_best);
+
+                    if (!std::isfinite(best)) {
+                        // neither single projection satisfies both -> intersection
+                        Eigen::Vector2f u_int;
+                        bool ok = solve2x2(aL.x(),aL.y(), aR.x(),aR.y(), bL,bR, u_int);
+                        if (!ok) return rightCBFOutput.beforeCBFNonHoloCmdVel; // fallback. I convert to nonholo right at the very end of cbf related stuff
+                        if (!sat(aL,bL,u_int) || !sat(aR,bR,u_int)) return rightCBFOutput.beforeCBFNonHoloCmdVel; // fallback
+                        u_best = u_int;
+                    }
+
+                    Eigen::Vector2f u_final = u_best;  // THIS is the final u that satisfies both
+
+                    //////////// convert to non holonomic, going to put this in a function later /////////////////////////
+                    float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
+                    Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
+                    nidMat(1, 1) = (1.0 / l_);
+
+                    Eigen::Vector2f nonholoVelocityCommand = nidMat * u_best; // negRotMat * 
+
+                    float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
+                    float velLinYFeedback = 0.0;
+                    float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
+
+                    ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
+                    ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
+
+                    float clippedVelLinXFeedback = 0.0;
+                    if (std::abs(velLinXFeedback) < cfg_.rbt.vx_absmax)
+                    {
+                        clippedVelLinXFeedback = velLinXFeedback;
+                    } else
+                    {
+                        clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+                    }
+
+                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+                    cmdVel.linear.x = clippedVelLinXFeedback;
+                    cmdVel.linear.y = 0.0;
+                    cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
+
+                    // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
+                    ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
+
+                    ROS_ERROR_STREAM_NAMED("CBF",
+                    "\n----------------------OUTPUT----------------------------------\n"
+                    << " v=" << cmdVel.linear.x
+                    << " w=" << cmdVel.angular.z
+                    ); 
+                }
+                
                     // todo 0128 process nonHolonomicCmd() is not run
                     // for goToGoal trajs, meaning that no cbf, no PO and 
                     // no velocity clippping happens for those trajs 

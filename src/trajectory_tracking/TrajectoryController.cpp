@@ -913,6 +913,7 @@ if (dbg_dpcbf_) {
                                                                             Eigen::Vector2f trajPos,
                                                                             Eigen::Vector2f robotVel) 
     {
+        // out.beforeCBFCmdVel =  nonholoCmdVel; // this is a fallback
         CbfLinConstraint out;
         
         trajPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
@@ -932,7 +933,7 @@ if (dbg_dpcbf_) {
             << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
             << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
 
-            out.cmdVel = nonholoCmdVel;
+            // out.beforeCBFHoloCmdVel =  nonholoCmdVel;
             return out;
         }
 
@@ -975,11 +976,17 @@ if (dbg_dpcbf_) {
 
         //!!!!!!!! todo  add rest of code from processCmdVelNonHolonomic !!!!!!!!!!!!!!!!!!!!!!1
         //--------------------------- end of processCmdVelNonHolonomic code ----------------------------
+
         // Evaluate at nominal
         Eigen::Vector2f u_nom; 
         u_nom.x() = holoCmdVel.linear.x; 
         u_nom.y() = holoCmdVel.linear.y; 
         
+        // storing info
+        out.beforeCBFHoloCmdVel = holoCmdVel; // I convert to nonholo right at the very end of cbf related stuff in planner 
+        out.beforeCBFNonHoloCmdVel = nonholoCmdVel; 
+        out.u_nom = u_nom; 
+
         // v_rel consistent with DPCBF(): v_rel = -robotVel + humanVel
         Eigen::Vector2f v_rel_nom = -u_nom + humanVel;
 
@@ -999,7 +1006,7 @@ if (dbg_dpcbf_) {
 
         // Already safe: no change
         if (h0 >= 0.0f) {
-            out.cmdVel = nonholoCmdVel;
+            // out.beforeCBFCmdVel =  nonholoCmdVel;
             return out;
         }
 
@@ -1028,7 +1035,7 @@ if (dbg_dpcbf_) {
         // If gradient is degenerate, fallback (stop or keep nominal)
         if (denom < 1e-6f) {
             ROS_INFO_STREAM_NAMED("Controller","denom = grad_h.squaredNorm(): " << denom << " < 1e-6, returning original cmdVel");      
-            out.cmdVel = nonholoCmdVel;     
+            // out.beforeCBFCmdVel =  nonholoCmdVel;     
             return out;
         }
         // ROS_ERROR_STREAM_NAMED("CBFDBG",

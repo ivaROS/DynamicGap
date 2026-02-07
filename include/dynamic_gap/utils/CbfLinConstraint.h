@@ -14,7 +14,10 @@ struct CbfLinConstraint
 
   Eigen::Vector2f u_proj = Eigen::Vector2f::Zero();       // single-constraint projection
 //   Eigen::Vector2f cmdVel  = Eigen::Vector2f::Zero(); 
-  geometry_msgs::Twist cmdVel{};  // all zeros
+  geometry_msgs::Twist beforeCBFHoloCmdVel;  // initilized to all zeros
+  geometry_msgs::Twist beforeCBFNonHoloCmdVel;  // all zeros
+  Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();     
+
 
 };
 
