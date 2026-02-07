@@ -862,17 +862,17 @@ if (dbg_dpcbf_) {
     float back_err = (v_rel - v_rel_back).norm();
     float align = ex_rot.dot(p_hat);
 
-    ROS_ERROR_STREAM("[DPCBF ROT] p_rel=" << p_rel.transpose()
-                    << " rot_angle=" << rot_angle
-                    << " detR=" << detR
-                    << " ortho_err=" << ortho_err
-                    << " |v|-|Rv|=" << v_norm_err
-                    << " back_err=" << back_err
-                    << " align(ex_rot,p_hat)=" << align);
+    // ROS_ERROR_STREAM("[DPCBF ROT] p_rel=" << p_rel.transpose()
+    //                 << " rot_angle=" << rot_angle
+    //                 << " detR=" << detR
+    //                 << " ortho_err=" << ortho_err
+    //                 << " |v|-|Rv|=" << v_norm_err
+    //                 << " back_err=" << back_err
+    //                 << " align(ex_rot,p_hat)=" << align);
 
-    ROS_ERROR_STREAM("[DPCBF ROT] v_rel(world)=" << v_rel.transpose()
-                    << " v_rel_new(coords)=" << v_rel_new.transpose()
-                    << " v_rel_back(world)=" << v_rel_back.transpose());
+    // ROS_ERROR_STREAM("[DPCBF ROT] v_rel(world)=" << v_rel.transpose()
+    //                 << " v_rel_new(coords)=" << v_rel_new.transpose()
+    //                 << " v_rel_back(world)=" << v_rel_back.transpose());
 
     float sc = dbg_scale_;
 

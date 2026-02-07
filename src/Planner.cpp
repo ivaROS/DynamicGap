@@ -3280,11 +3280,11 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
                     ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
 
-                    ROS_ERROR_STREAM_NAMED("CBF",
-                    "\n----------------------right OUTPUT----------------------------------\n"
-                    << " v=" << cmdVel.linear.x
-                    << " w=" << cmdVel.angular.z
-                    );
+                    // ROS_ERROR_STREAM_NAMED("CBF",
+                    // "\n----------------------right OUTPUT----------------------------------\n"
+                    // << " v=" << cmdVel.linear.x
+                    // << " w=" << cmdVel.angular.z
+                    // );
 
                 }
 
@@ -3320,11 +3320,11 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
                     ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
 
-                    ROS_ERROR_STREAM_NAMED("CBF",
-                    "\n----------------------left OUTPUT----------------------------------\n"
-                    << " v=" << cmdVel.linear.x
-                    << " w=" << cmdVel.angular.z
-                    );
+                    // ROS_ERROR_STREAM_NAMED("CBF",
+                    // "\n----------------------left OUTPUT----------------------------------\n"
+                    // << " v=" << cmdVel.linear.x
+                    // << " w=" << cmdVel.angular.z
+                    // );
 
                 }
 
@@ -3359,7 +3359,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                         u_best = u_int;
                     }
 
-                    Eigen::Vector2f u_final = u_best;  // THIS is the final u that satisfies both
+                    // Eigen::Vector2f u_final = u_best;  // unused // THIS is the final u that satisfies both
 
                     //////////// convert to non holonomic, going to put this in a function later /////////////////////////
                     float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
@@ -3393,7 +3393,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
 
                     ROS_ERROR_STREAM_NAMED("CBF",
-                    "\n----------------------OUTPUT----------------------------------\n"
+                    "\n----------------------left and right needed cbf output: ----------------------------------\n"
                     << " v=" << cmdVel.linear.x
                     << " w=" << cmdVel.angular.z
                     ); 

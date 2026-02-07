@@ -30,8 +30,8 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 0.5; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 0.5; /**< Maximum linear speed in y-direction for robot */
+                float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
+                float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
                 float vang_absmax = 2.0; /**< in the bezier curve code I just defined v ang max manully. todo: update this value i just randomly picked it. Maximum angular speed for robot */            
             } rbt;
 
