@@ -114,6 +114,15 @@ namespace dynamic_gap
             */
             geometry_msgs::Twist ctrlGeneration(Trajectory & localTrajectory, int & trajFlag);
 
+              void publishVrelArrow(const Eigen::Vector2f& origin_xy,
+                                            const Eigen::Vector2f& vrel_xy,
+                                            const std::string& frame_id,
+                                            const std::string& ns,
+                                            ros::Publisher& pub,
+                                            float r,
+                                            float g,
+                                            float b,
+                                            float a);
 
             /**
             * \brief Final command velocity pre-processing to check if robot is stuck
@@ -462,6 +471,7 @@ namespace dynamic_gap
             ros::Publisher minDistCirclePub_;// for visualizing minumum distance
             ros::Publisher traj_pub_;
             ros::Publisher transformed_path_pub_;
+            ros::Publisher vrel_safe_pub_;
 
             typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
             typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */

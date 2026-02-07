@@ -146,6 +146,7 @@ namespace dynamic_gap
         ros::NodeHandle nh;  // or pass an existing NodeHandle
         traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("bezier_traj", 1);
         transformed_path_pub_ = nh_.advertise<visualization_msgs::Marker>("current_traj_transformed_viz", 1);
+        vrel_safe_pub_ = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow_safe", 1);
 
 
         map2rbt_.transform.rotation.w = 1;
@@ -3359,6 +3360,33 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                         u_best = u_int;
                     }
 
+                    // visual
+                    // const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
+                    Eigen::Vector2f origin = Eigen::Vector2f::Zero();
+
+                     Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
+                      publishVrelArrow(origin,
+                        left_v_rel_safe,
+                        cfg_.sensor_frame_id,
+                        "left_v_rel_safe",
+                        vrel_safe_pub_,
+                         0.2f,  // R
+                        1.0f,  // G
+                        0.2f,  // B
+                        1.0f); // A
+
+                     Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
+                      publishVrelArrow(origin,
+                        right_v_rel_safe,
+                        cfg_.sensor_frame_id,
+                        "right_v_rel_safe",
+                        vrel_safe_pub_,
+                         0.2f,  // R
+                        1.0f,  // G
+                        0.2f,  // B
+                        1.0f); // A
+                        
+
                     // Eigen::Vector2f u_final = u_best;  // unused // THIS is the final u that satisfies both
 
                     //////////// convert to non holonomic, going to put this in a function later /////////////////////////
@@ -3398,7 +3426,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     << " w=" << cmdVel.angular.z
                     ); 
 
-                    
+
                 }
                 
                     // todo 0128 process nonHolonomicCmd() is not run
@@ -3626,6 +3654,51 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
     }
 
     transformed_path_pub_.publish(line);
+}
+
+  void Planner::publishVrelArrow(const Eigen::Vector2f& origin_xy,
+                                            const Eigen::Vector2f& vrel_xy,
+                                            const std::string& frame_id,
+                                            const std::string& ns,
+                                            ros::Publisher& pub,
+                                            float r,
+                                            float g,
+                                            float b,
+                                            float a)
+{
+  visualization_msgs::Marker m;
+  m.header.frame_id = frame_id;
+  m.header.stamp    = ros::Time::now();
+  m.ns              = ns;
+  m.id              = 0;   // overwrite same marker
+  m.type            = visualization_msgs::Marker::ARROW;
+  m.action          = visualization_msgs::Marker::ADD;
+
+  geometry_msgs::Point p0, p1;
+  p0.x = origin_xy.x();
+  p0.y = origin_xy.y();
+  p0.z = 0.10;
+
+  const float scale = 0.75f;
+  p1.x = origin_xy.x() + scale * vrel_xy.x();
+  p1.y = origin_xy.y() + scale * vrel_xy.y();
+  p1.z = 0.10;
+
+  m.points = {p0, p1};
+
+  // Arrow geometry
+  m.scale.x = 0.03;  // shaft diameter
+  m.scale.y = 0.06;  // head diameter
+  m.scale.z = 0.10;  // head length
+
+  // Color (now configurable)
+  m.color.r = r;
+  m.color.g = g;
+  m.color.b = b;
+  m.color.a = a;
+
+  m.lifetime = ros::Duration(0.15);
+  pub.publish(m);
 }
 
 }

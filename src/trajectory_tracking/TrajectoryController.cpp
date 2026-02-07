@@ -876,13 +876,13 @@ if (dbg_dpcbf_) {
 
     float sc = dbg_scale_;
 
-    // world basis (before)
-    dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 0, origin, sc*ex, rgba(1,0,0,1))); // X red
-    dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 1, origin, sc*ey, rgba(0,0,1,1))); // Y blue
+    // // world basis (before)
+    // dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 0, origin, sc*ex, rgba(1,0,0,1))); // X red
+    // dbg_marker_pub_.publish(makeArrow(frame, "basis_world", 1, origin, sc*ey, rgba(0,0,1,1))); // Y blue
 
-    // rotated basis (after)
-    dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 10, origin, sc*ex_rot, rgba(1,1,0,1))); // yellow
-    dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 11, origin, sc*ey_rot, rgba(0,1,1,1))); // cyan
+    // // rotated basis (after)
+    // dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 10, origin, sc*ex_rot, rgba(1,1,0,1))); // yellow
+    // dbg_marker_pub_.publish(makeArrow(frame, "basis_rot", 11, origin, sc*ey_rot, rgba(0,1,1,1))); // cyan
 
     // vectors
     // dbg_marker_pub_.publish(makeArrow(frame, "vecs", 20, origin, sc*p_hat, rgba(1,0,1,1))); // p_hat magenta
