@@ -917,6 +917,7 @@ if (dbg_dpcbf_) {
         CbfLinConstraint out;
         
         trajPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
+        out.beforeCBFNonHoloCmdVel = nonholoCmdVel; 
 
         if (!std::isfinite(humanVel.x()) || !std::isfinite(humanVel.y()) ||
             !std::isfinite(relativeGapPos.x()) || !std::isfinite(relativeGapPos.y()) ||
@@ -984,7 +985,6 @@ if (dbg_dpcbf_) {
         
         // storing info
         out.beforeCBFHoloCmdVel = holoCmdVel; // I convert to nonholo right at the very end of cbf related stuff in planner 
-        out.beforeCBFNonHoloCmdVel = nonholoCmdVel; 
         out.u_nom = u_nom; 
 
         // v_rel consistent with DPCBF(): v_rel = -robotVel + humanVel

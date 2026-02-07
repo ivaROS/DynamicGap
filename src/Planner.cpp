@@ -3245,7 +3245,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                             );
                             
                     if (rightCBFOutput.valid == false && leftCBFOutput.valid == false){
-                        cmdVel = rightCBFOutput.beforeCBFNonHoloCmdVel; 
+                        cmdVel = rawCmdVel; 
                         // by the way I call h0 > 0 as not valid that way the cbf output is not used
                         }
 
