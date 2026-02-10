@@ -3364,27 +3364,27 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
                     Eigen::Vector2f origin = Eigen::Vector2f::Zero();
 
-                     Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
-                      publishVrelArrow(origin,
-                        left_v_rel_safe,
-                        cfg_.sensor_frame_id,
-                        "left_v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
+                    //  Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
+                    //   publishVrelArrow(origin,
+                    //     left_v_rel_safe,
+                    //     cfg_.sensor_frame_id,
+                    //     "left_v_rel_safe",
+                    //     vrel_safe_pub_,
+                    //      0.2f,  // R
+                    //     1.0f,  // G
+                    //     0.2f,  // B
+                    //     1.0f); // A
 
-                     Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
-                      publishVrelArrow(origin,
-                        right_v_rel_safe,
-                        cfg_.sensor_frame_id,
-                        "right_v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
+                    //  Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
+                    //   publishVrelArrow(origin,
+                    //     right_v_rel_safe,
+                    //     cfg_.sensor_frame_id,
+                    //     "right_v_rel_safe",
+                    //     vrel_safe_pub_,
+                    //      0.2f,  // R
+                    //     1.0f,  // G
+                    //     0.2f,  // B
+                    //     1.0f); // A
                         
 
                     // Eigen::Vector2f u_final = u_best;  // unused // THIS is the final u that satisfies both

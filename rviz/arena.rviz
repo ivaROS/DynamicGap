@@ -18,6 +18,7 @@ Panels:
         - /Dynamic Gap1/Gaps1/MarkerArray9
         - /Dynamic Gap1/Gaps1/MarkerArray10
         - /Dynamic Gap1/Trajectories1
+        - /Dynamic Gap1/Trajectories1/MarkerArray1
         - /Dynamic Gap1/Trajectories1/MarkerArray3
         - /Dynamic Gap1/Trajectories1/MarkerArray5
         - /Dynamic Gap1/Tracking1
@@ -459,21 +460,21 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/trajectory_switch
               Name: Marker
               Namespaces:
-                traj_switch_count: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                currentTraj: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/entire_global_plan
@@ -499,13 +500,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/candidate_tube_trajectories
               Name: MarkerArray
               Namespaces:
-                {}
+                allTraj: true
               Queue Size: 100
-              Value: false
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
@@ -806,8 +807,6 @@ Visualization Manager:
       Marker Topic: /rto/dpcbf_debug_markers
       Name: Marker
       Namespaces:
-        basis_rot: true
-        basis_world: true
         dpcbf_parabola: true
       Queue Size: 100
       Value: true
@@ -848,10 +847,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 109.86978912353516
+      Scale: 123.05416107177734
       Target Frame: rto/base_link
-      X: 1.0925922393798828
-      Y: 2.4365501403808594
+      X: 1.0413949489593506
+      Y: 1.9492096900939941
     Saved: ~
 Window Geometry:
   Displays:
