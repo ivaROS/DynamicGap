@@ -2348,10 +2348,10 @@ if (traj.getPathTiming().empty()) {
                                                 Gap * incomingGap) 
     {
         // publishToMpc_ = true;
-        bool override_switchToIncoming = true; 
+        // bool override_switchToIncoming = true; 
+        // if (override_switchToIncoming) 
 
-        // if (switchToIncoming) 
-        if (override_switchToIncoming) 
+        if (switchToIncoming) 
         {
             setCurrentTraj(incomingTraj);
             setCurrentTrajTrackingStartTime(ros::Time::now());
@@ -2529,9 +2529,9 @@ if (traj.getPathTiming().empty()) {
             // if (tracking_sec >= max_track_time)
             ////////////////// unused max tracking time //////////////////
 
+            // if (tracking_sec >= max_track_time) // unused 
 
-            // if (currentTrajTrackingTime > currentTrajLifespan_)
-            if (tracking_sec >= max_track_time)
+            if (currentTrajTrackingTime > currentTrajLifespan_)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
                                                                 ": current path has been tracked for its entire lifespan, " << incomingPathStatus);

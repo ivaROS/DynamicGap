@@ -516,7 +516,7 @@ Visualization Manager:
               Marker Topic: /rto/po_dir
               Name: Marker
               Namespaces:
-                "": true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -837,7 +837,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.06999997794628143
+      Angle: 0.010000014677643776
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -847,7 +847,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 154.35914611816406
+      Scale: 105.76057434082031
       Target Frame: rto/base_link
       X: 1.0413949489593506
       Y: 1.9492096900939941
