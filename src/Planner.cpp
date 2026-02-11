@@ -3210,13 +3210,18 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                 timeKeeper_->startTimer(FEEBDACK);
                 // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
-                if (!std::isnan(v_cmd) && !std::isnan(w_cmd))
+                if (!std::isnan(v_cmd) && !std::isnan(w_cmd)) // todo fix this since no longer using v_cmd and w_cmd from jingchen's code
                 {
                     // ROS_ERROR_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
 
-                    rawCmdVel.linear.x  = v_cmd;
-                    rawCmdVel.linear.y  = 0.0;
-                    rawCmdVel.angular.z = w_cmd;
+                    // rawCmdVel.linear.x  = v_cmd; // no longer using this approach 
+                    // rawCmdVel.linear.y  = 0.0;
+                    // rawCmdVel.angular.z = w_cmd;
+
+                    rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
+
+
+
 
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);

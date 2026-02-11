@@ -460,21 +460,21 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/trajectory_switch
               Name: Marker
               Namespaces:
-                {}
+                traj_switch_count: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
-                {}
+                currentTraj: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/entire_global_plan
@@ -837,7 +837,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.0049999775364995
+      Angle: -0.06999997794628143
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -847,7 +847,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 123.05416107177734
+      Scale: 154.35914611816406
       Target Frame: rto/base_link
       X: 1.0413949489593506
       Y: 1.9492096900939941
