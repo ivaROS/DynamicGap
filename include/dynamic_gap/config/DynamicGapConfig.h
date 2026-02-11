@@ -30,9 +30,14 @@ namespace dynamic_gap
             struct Robot 
             {
                 float r_inscr = 0.2; /**< Inscribed radius of robot */
-                float vx_absmax = 1.0; /**< Maximum linear speed in x-direction for robot */
-                float vy_absmax = 1.0; /**< Maximum linear speed in y-direction for robot */
-                float vang_absmax = 2.0; /**< in the bezier curve code I just defined v ang max manully. todo: update this value i just randomly picked it. Maximum angular speed for robot */            
+                float vx_absmax = 0.5; /**< overwritten in dgap_local_planner_params.yaml. Maximum linear speed in x-direction for robot */
+                float vy_absmax = 0.5; /**< overwritten in dgap_local_planner_params.yaml. Maximum linear speed in y-direction for robot */
+                float vang_absmax = 1.0; /**< overwritten in dgap_local_planner_params.yaml. */            
+                float a_max = 1.0;  /**< my variables are NOT overwritten in dgap_local_planner_params.yaml. */
+
+                float cbf_vx_absmax = 2.5; /**< Maximum linear speed in x-direction for robot */
+                float cbf_vy_absmax = 0.5; // unused 
+                float cbf_vang_absmax = 3.0;
             } rbt;
 
             /**

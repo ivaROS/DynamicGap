@@ -752,7 +752,7 @@ namespace dynamic_gap
     // Base gains (copy author DT code constants)
     float k_lambda = 0.1f * std::sqrt(s_margin * s_margin - 1.0f) / ego_dim;
     float k_mu     = 0.5f * std::sqrt(s_margin * s_margin - 1.0f) / ego_dim;
-
+    
     // Guard v_rel_mag to avoid blow-up
     float v_rel_mag_safe = std::max(v_rel_mag, eps);
 
