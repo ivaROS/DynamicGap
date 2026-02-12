@@ -3270,12 +3270,12 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
 
                     float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.vx_absmax)
+                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
                     {
                         clippedVelLinXFeedback = velLinXFeedback;
                     } else
                     {
-                        clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
                     }
 
                     // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
@@ -3310,12 +3310,12 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
 
                     float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.vx_absmax)
+                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
                     {
                         clippedVelLinXFeedback = velLinXFeedback;
                     } else
                     {
-                        clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
                     }
 
                     // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
@@ -3369,27 +3369,27 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
                     Eigen::Vector2f origin = Eigen::Vector2f::Zero();
 
-                    //  Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
-                    //   publishVrelArrow(origin,
-                    //     left_v_rel_safe,
-                    //     cfg_.sensor_frame_id,
-                    //     "left_v_rel_safe",
-                    //     vrel_safe_pub_,
-                    //      0.2f,  // R
-                    //     1.0f,  // G
-                    //     0.2f,  // B
-                    //     1.0f); // A
+                     Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
+                      publishVrelArrow(origin,
+                        left_v_rel_safe,
+                        cfg_.sensor_frame_id,
+                        "left_v_rel_safe",
+                        vrel_safe_pub_,
+                         0.2f,  // R
+                        1.0f,  // G
+                        0.2f,  // B
+                        1.0f); // A
 
-                    //  Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
-                    //   publishVrelArrow(origin,
-                    //     right_v_rel_safe,
-                    //     cfg_.sensor_frame_id,
-                    //     "right_v_rel_safe",
-                    //     vrel_safe_pub_,
-                    //      0.2f,  // R
-                    //     1.0f,  // G
-                    //     0.2f,  // B
-                    //     1.0f); // A
+                     Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
+                      publishVrelArrow(origin,
+                        right_v_rel_safe,
+                        cfg_.sensor_frame_id,
+                        "right_v_rel_safe",
+                        vrel_safe_pub_,
+                         0.2f,  // R
+                        1.0f,  // G
+                        0.2f,  // B
+                        1.0f); // A
                         
 
                     // Eigen::Vector2f u_final = u_best;  // unused // THIS is the final u that satisfies both
@@ -3409,12 +3409,12 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
 
                     float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.vx_absmax)
+                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
                     {
                         clippedVelLinXFeedback = velLinXFeedback;
                     } else
                     {
-                        clippedVelLinXFeedback = cfg_.rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
                     }
 
                     // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();

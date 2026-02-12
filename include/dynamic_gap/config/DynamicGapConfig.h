@@ -33,6 +33,11 @@ namespace dynamic_gap
                 float vx_absmax = 1.0; /**< THIS IS OVERWRITTEN IN THE ARENA PARAMETER FILE! Maximum linear speed in x-direction for robot */
                 float vy_absmax = 1.0; /**< THIS IS OVERWRITTEN IN THE ARENA PARAMETER FILE!Maximum linear speed in y-direction for robot */
                 float vang_absmax = 2.0; /**< in the bezier curve code I just defined v ang max manully. todo: update this value i just randomly picked it. Maximum angular speed for robot */            
+                
+                float cbf_vx_absmax = 2.5; /**< Maximum linear speed in x-direction for robot */
+                float cbf_vy_absmax = 0.5; // unused 
+                float cbf_vang_absmax = 3.0;
+            
             } rbt;
 
             /**
