@@ -3210,7 +3210,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                 timeKeeper_->startTimer(FEEBDACK);
                 // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
-                if (!std::isnan(v_cmd) && !std::isnan(w_cmd)) // todo fix this since no longer using v_cmd and w_cmd from jingchen's code
+                if (cfg_.planning.dwa_method) 
                 {
                     // ROS_ERROR_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
 
