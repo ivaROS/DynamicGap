@@ -687,6 +687,134 @@ namespace dynamic_gap
         return cmdVel;
     }
 
+    geometry_msgs::Twist TrajectoryController::projectionOperatorOnTopCBF(const geometry_msgs::Pose & currentPoseOdomFrame,
+                                                                            const geometry_msgs::Pose & desiredPoseOdomFrame,
+                                                                            const geometry_msgs::Twist & nonholoCmdVel,
+                                                                            const geometry_msgs::PoseStamped & rbtPoseInSensorFrame) 
+    {
+        ROS_INFO_STREAM_NAMED("Controller", "    [processCmdVelNonHolonomic()]");
+
+        // obtain roll, pitch, and yaw of current orientation (I think we're only using yaw)
+        geometry_msgs::Quaternion currOrient = currentPoseOdomFrame.orientation;
+        tf::Quaternion currQuat(currOrient.x, currOrient.y, currOrient.z, currOrient.w);
+        float currYaw = quaternionToYaw(currQuat); 
+
+        // get current x,y,theta
+        geometry_msgs::Point currPosn = currentPoseOdomFrame.position;
+        Eigen::Matrix2cf currRbtTransform = getComplexMatrix(currPosn.x, currPosn.y, currYaw);
+
+        ROS_INFO_STREAM_NAMED("Controller", "        current pose x: " << currPosn.x << ", y: " << currPosn.y << ", yaw: " << currYaw);
+
+        // // obtaining RPY of desired orientation
+        // geometry_msgs::Point desPosn = desiredPoseOdomFrame.position;
+        // geometry_msgs::Quaternion desOrient = desiredPoseOdomFrame.orientation;
+        // tf::Quaternion desQuat(desOrient.x, desOrient.y, desOrient.z, desOrient.w);
+        // float desYaw = quaternionToYaw(desQuat);
+
+        // ROS_INFO_STREAM_NAMED("Controller", "        desired pose x: " << desiredPoseOdomFrame.position.x << ", y: " << desiredPoseOdomFrame.position.y << ", yaw: "<< desYaw);
+
+        // // get desired x,y,theta
+        // Eigen::Matrix2cf desRbtTransform = getComplexMatrix(desPosn.x, desPosn.y, desYaw);
+
+        // // get x,y,theta error
+        // Eigen::Matrix2cf errorMat = currRbtTransform.inverse() * desRbtTransform;
+        // float errorX = desPosn.x - currPosn.x; // errorMat.real()(0, 1);
+        // float errorY = desPosn.y - currPosn.y; // errorMat.imag()(0, 1);
+        // float errorTheta = std::arg(errorMat(0, 0));
+
+        // Eigen::Vector2f error(errorX, errorY);
+
+        // float l = error.norm();
+
+        // float l_adj = l; // 0.5 * l;
+
+        // Map nonholonomic command velocities to holonomic command velocities
+        geometry_msgs::Twist holoCmdVel = geometry_msgs::Twist();
+        holoCmdVel.linear.x = nonholoCmdVel.linear.x;
+        holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
+        holoCmdVel.angular.z = 0.0;
+
+
+
+        // float errorX = rawCmdVel.linear.x;
+        // float errorY = rawCmdVel.linear.y;
+        // float errorTheta = rawCmdVel.angular.z;
+
+        // ROS_INFO_STREAM_NAMED("Controller", rbtPoseInSensorFrame.pose);
+        float minRangeTheta = 0;
+        float minRange = 0;
+
+        // ROS_INFO_STREAM_NAMED("Controller", "        feedback errors: x: " << errorX << ", y: " << errorY << ", theta: " << errorTheta);
+
+        // applies PO
+        float velLinXSafe = 0.;
+        float velLinYSafe = 0.;
+        
+        if (cfg_->planning.projection_operator)
+        {
+            ROS_INFO_STREAM_NAMED("Controller", "        running projection operator");
+
+            Eigen::Vector2f holoCmdVelVector(holoCmdVel.linear.x, holoCmdVel.linear.y);
+
+            runProjectionOperator(rbtPoseInSensorFrame,
+                                    holoCmdVelVector, velLinXSafe, velLinYSafe,
+                                    minRangeTheta, minRange);
+            
+        } else 
+        {
+            ROS_DEBUG_STREAM_THROTTLE_NAMED(10, "Controller", "Projection operator off");
+        }
+        
+        float weightedVelLinXSafe = cfg_->projection.k_po_x * velLinXSafe;
+        float weightedVelLinYSafe = cfg_->projection.k_po_x * velLinYSafe;
+
+        // cmdVel_safe
+        visualizeProjectionOperator(weightedVelLinXSafe, weightedVelLinYSafe, minRangeTheta, minRange);
+
+        ROS_INFO_STREAM_NAMED("Controller", "        safe desired direction, v_x:" << weightedVelLinXSafe << ", v_y: " << weightedVelLinYSafe);
+
+        float safeErrorX = holoCmdVel.linear.x + weightedVelLinXSafe;
+        float safeErrorY = holoCmdVel.linear.y + weightedVelLinYSafe; 
+
+        ROS_INFO_STREAM_NAMED("Controller", "        summed desired direction, v_x:" << safeErrorX << ", v_y: " << safeErrorY);
+        Eigen::Vector2f safeError(safeErrorX, safeErrorY);
+
+        // Eigen::Matrix2f negRotMat = getRotMat(-currYaw);
+
+        Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
+        nidMat(1, 1) = (1.0 / l_);
+
+        Eigen::Vector2f nonholoVelocityCommand = nidMat * safeError; // negRotMat * 
+
+        float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
+        float velLinYFeedback = 0.0;
+        float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
+
+        ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
+        ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
+
+        // i left the original code commented out, I don't want clipping for the cbf, it has its own clipping values
+        // float clippedVelLinXFeedback = 0.0;
+        // if (std::abs(velLinXFeedback) < cfg_->rbt.vx_absmax)
+        // {
+            // clippedVelLinXFeedback = velLinXFeedback;
+        // } else
+        // {
+        //     clippedVelLinXFeedback = cfg_->rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+        // }
+
+        geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
+        cmdVel.linear.x = velLinXFeedback;
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = velAngFeedback;
+        // cmdVel.angular.z = std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, velAngFeedback));
+
+        // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
+        ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
+
+        return cmdVel;
+    }
+
 
     float TrajectoryController::DPCBF(
         Eigen::Vector2f humanVel,
