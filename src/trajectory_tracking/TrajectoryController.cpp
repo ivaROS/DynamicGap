@@ -602,13 +602,26 @@ namespace dynamic_gap
 
         // float l_adj = l; // 0.5 * l;
 
-        // Map nonholonomic command velocities to holonomic command velocities
-        geometry_msgs::Twist holoCmdVel = geometry_msgs::Twist();
-        holoCmdVel.linear.x = nonholoCmdVel.linear.x;
-        holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
+        // // Map nonholonomic command velocities to holonomic command velocities
+        // geometry_msgs::Twist holoCmdVel = geometry_msgs::Twist();
+        // holoCmdVel.linear.x = nonholoCmdVel.linear.x;
+        // holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
+        // holoCmdVel.angular.z = 0.0;
+
+        // clip before it goes into PO
+        double v0 = std::max(-static_cast<double>(cfg_->rbt.cbf_vx_absmax),
+                     std::min(static_cast<double>(cfg_->rbt.cbf_vx_absmax),
+                              nonholoCmdVel.linear.x));
+
+        double w0 = std::max(-static_cast<double>(cfg_->rbt.cbf_vang_absmax),
+                std::min( static_cast<double>(cfg_->rbt.cbf_vang_absmax),
+                        nonholoCmdVel.angular.z));
+
+
+        geometry_msgs::Twist holoCmdVel;
+        holoCmdVel.linear.x = v0;
+        holoCmdVel.linear.y = l_ * w0;
         holoCmdVel.angular.z = 0.0;
-
-
 
         // float errorX = rawCmdVel.linear.x;
         // float errorY = rawCmdVel.linear.y;
@@ -667,19 +680,19 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
 
-        float clippedVelLinXFeedback = 0.0;
-        if (std::abs(velLinXFeedback) < cfg_->rbt.vx_absmax)
-        {
-            clippedVelLinXFeedback = velLinXFeedback;
-        } else
-        {
-            clippedVelLinXFeedback = cfg_->rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
-        }
+        // float clippedVelLinXFeedback = 0.0;
+        // if (std::abs(velLinXFeedback) < cfg_->rbt.vx_absmax)
+        // {
+        //     clippedVelLinXFeedback = velLinXFeedback;
+        // } else
+        // {
+        //     clippedVelLinXFeedback = cfg_->rbt.vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
+        // }
 
         geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-        cmdVel.linear.x = clippedVelLinXFeedback;
+        cmdVel.linear.x = velLinXFeedback;
         cmdVel.linear.y = 0.0;
-        cmdVel.angular.z = std::max(-cfg_->rbt.vang_absmax, std::min(cfg_->rbt.vang_absmax, velAngFeedback));
+        cmdVel.angular.z = velAngFeedback; 
 
         // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
         ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
@@ -793,7 +806,7 @@ namespace dynamic_gap
         ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
         ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
 
-        // i left the original code commented out, I don't want clipping for the cbf, it has its own clipping values
+        // cbf has its own clipping. the PO output is not currently clipped
         // float clippedVelLinXFeedback = 0.0;
         // if (std::abs(velLinXFeedback) < cfg_->rbt.vx_absmax)
         // {
