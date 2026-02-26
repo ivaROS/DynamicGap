@@ -1055,12 +1055,12 @@ if (dbg_dpcbf_) {
             // ROS_ERROR_STREAM_NAMED("CBFDBG",
             //     "NaN/Inf in CBF inputs");
 
-            ROS_ERROR_STREAM_NAMED("CBFDBG",
-            " Look a NaN/Inf in CBF inputs: "
-            << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
-            << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
-            << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
-            << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
+            // ROS_ERROR_STREAM_NAMED("CBFDBG",
+            // " Look a NaN/Inf in CBF inputs: "
+            // << " humanVel=(" << humanVel.x() << "," << humanVel.y() << ")"
+            // << " gapPos=(" << relativeGapPos.x() << "," << relativeGapPos.y() << ")"
+            // << " trajPos=(" << trajPos.x() << "," << trajPos.y() << ")"
+            // << " robotVel=(" << robotVel.x() << "," << robotVel.y() << ")");
 
             // out.beforeCBFHoloCmdVel =  nonholoCmdVel;
             return out;
@@ -1084,10 +1084,10 @@ if (dbg_dpcbf_) {
         holoCmdVel.linear.y = l_ * nonholoCmdVel.angular.z;
         holoCmdVel.angular.z = 0.0;
 
-        ROS_ERROR_STREAM_NAMED("CBF",
-        "\n[CBF INPUT]\n"
-        << " holo: ux=" << holoCmdVel.linear.x
-        << " uy=" << holoCmdVel.linear.y);
+        // ROS_ERROR_STREAM_NAMED("CBF",
+        // "\n[CBF INPUT]\n"
+        // << " holo: ux=" << holoCmdVel.linear.x
+        // << " uy=" << holoCmdVel.linear.y);
         
         //  ROS_ERROR_STREAM_NAMED("CBF",
         // "\n[CBF INPUT]\n"
