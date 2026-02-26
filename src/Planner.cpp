@@ -3434,28 +3434,6 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
                 }
                 
-
-                //////////////// Projectection operator ///////////////////////////////////////////////
-
-                if (rightCBFOutput.valid == true || leftCBFOutput.valid == true)
-                {   
-                    // it would be more efficient to do this in the same function as cbf since some of the same steps are done like converting to 
-                    // non holo, but I didn't want to overcomplicate the code 
-                    cmdVel = trajController_->projectionOperatorOnTopCBF(currPoseOdomFrame,
-                                                                            targetTrajectoryPose,
-                                                                            cmdVel,
-                                                                            rbtPoseInSensorFrame_); // not a mistake that I use cmdVel instead of rawCmdVel. It was 
-                                                                            // because this is taking the cmdVel which comes out of CBF and adds on PO
-                }
-                else
-                {
-                    // if CBF is not used, use the original function which does both PO and clips the vel
-                  cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
-                                                                            targetTrajectoryPose,
-                                                                            rawCmdVel,
-                                                                            rbtPoseInSensorFrame_);   
-                }
-
                     // todo 0128 process nonHolonomicCmd() is not run
                     // for goToGoal trajs, meaning that no cbf, no PO and 
                     // no velocity clippping happens for those trajs 

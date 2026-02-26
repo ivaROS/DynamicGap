@@ -127,11 +127,6 @@ namespace dynamic_gap
                                                                             Eigen::Vector2f relativeGapPos,
                                                                             Eigen::Vector2f trajPos,
                                                                             Eigen::Vector2f robotVel);
-                                                                
-            geometry_msgs::Twist projectionOperatorOnTopCBF(const geometry_msgs::Pose & currentPoseOdomFrame,
-                                                                        const geometry_msgs::Pose & desiredPoseOdomFrame,
-                                                                        const geometry_msgs::Twist & nonholoCmdVel,
-                                                                        const geometry_msgs::PoseStamped & rbtPoseInSensorFrame); 
 
             float DPCBF(Eigen::Vector2f relativeVel,
                             Eigen::Vector2f relativeGapPos,
