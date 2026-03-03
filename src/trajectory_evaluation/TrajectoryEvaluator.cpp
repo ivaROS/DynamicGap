@@ -21,6 +21,89 @@ namespace dynamic_gap
         tf2::doTransform(globalPathLocalWaypointOdomFrame, globalPathLocalWaypointRobotFrame_, odom2rbt);
     }
 
+    float TrajectoryEvaluator::compute_h(
+        Eigen::Vector2f humanVel,
+        Eigen::Vector2f relativeGapPos,
+        // Eigen::Vector2f trajPos,
+        Eigen::Vector2f robotVel)
+    {
+    //btw this is just a copy of the DPCBF function i just renamed it so it doesn't get confusing
+    // Eigen::Vector2f relVel = -relativeVel; // so velocity and position vector point in the same direction for the dot product
+    //  Eigen::Vector2f v_rel = robotVel - humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
+     //todo might need to fix relvel^ , DPCBF code uses: v_rel = v_obs - v_robot
+     Eigen::Vector2f v_rel = -robotVel + humanVel; // human vel is the vel of the dynamic endpoint which represents the human  
+
+    // ROS_ERROR_STREAM("negative v_rel: " << v_rel.transpose());
+    // ROS_ERROR_STREAM("relativeGapPos: " << relativeGapPos.transpose());
+    // ROS_ERROR_STREAM("trajPos: " << trajPos.transpose());
+    // ROS_ERROR_STREAM("robotVel: " << robotVel.transpose());
+    // ROS_ERROR_STREAM_NAMED("relvel: ", relVel << ", relativeGapPos: " << relativeGapPos << ", robotVel: " << robotVel);
+
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "relativeGapPos: ");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", relativeGapPos);
+
+    Eigen::Vector2f p_rel = relativeGapPos;  //- trajPos;// distance between the current pos we're looking at and the gap point (which represents the dynamic obstacle)
+    // ROS_ERROR_STREAM_NAMED("relvel cost", "posToGapPtDist: ");
+    // ROS_ERROR_STREAM_NAMED("relvel cost", posToGapPtDist);
+
+
+    float rot_angle = std::atan2(p_rel.y(), p_rel.x());
+    // Rotation matrix R = [[cos a, sin a], [-sin a, cos a]]
+    float c = std::cos(rot_angle);
+    float s = std::sin(rot_angle);
+    Eigen::Matrix2f R;
+    R <<  c,  s,
+        -s,  c;
+
+    // v_rel_new = R * v_rel
+    Eigen::Vector2f v_rel_new = R * v_rel;
+    float v_rel_new_x = v_rel_new.x();
+    float v_rel_new_y = v_rel_new.y();
+
+    // Magnitudes
+    float p_rel_mag = p_rel.norm();
+    float v_rel_mag = v_rel.norm();
+
+    // float r_obs = 0.2; 
+    // float s = 1; 
+
+    // float ego_dim = (r_obs +  cfg_->rbt.r_inscr) * s; 
+
+    const float eps = 1e-6f;
+
+   
+    const float r_obs = 0.2f;                
+    const float s_margin = 1.05f; //1.05f;            // must be > 1 for sqrt(s^2-1)
+
+    const float r_robot = cfg_->rbt.r_inscr;
+
+    // inflated combined safety radius
+    float ego_dim = (r_obs + r_robot) * s_margin;
+
+    // d_safe = max(||p||^2 - ego_dim^2, eps)
+    float d_safe = std::max(p_rel_mag * p_rel_mag - ego_dim * ego_dim, eps);
+
+    // Base gains (copy author DT code constants)
+    float k_lambda = 0.1f * std::sqrt(s_margin * s_margin - 1.0f) / ego_dim;
+    float k_mu     = 0.5f * std::sqrt(s_margin * s_margin - 1.0f) / ego_dim;
+
+    // Guard v_rel_mag to avoid blow-up
+    float v_rel_mag_safe = std::max(v_rel_mag, eps);
+
+    // lambda = k_lambda * sqrt(d_safe) / ||v_rel||
+    float lambda = k_lambda * std::sqrt(d_safe) / v_rel_mag_safe;
+
+    // mu = k_mu * sqrt(d_safe)
+    float mu = k_mu * std::sqrt(d_safe);
+
+    // Barrier: h = v_rel_new_x + lambda * v_rel_new_y^2 + mu
+    float h = v_rel_new_x + lambda * (v_rel_new_y * v_rel_new_y) + mu;
+    // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "h: " << h); 
+
+    return h;
+}
+
+
     void TrajectoryEvaluator::evaluateTrajectory(const Trajectory & traj,
                                                 std::vector<float> & posewiseCosts,
                                                 float & terminalPoseCost,
@@ -153,7 +236,7 @@ namespace dynamic_gap
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
-            
+
             //////////////////// path costs //////////////////
             // --- Path-distance cost (distance to visible global plan snippet) ---
             // std::vector<geometry_msgs::PoseStamped> visiblePlan =
@@ -410,7 +493,13 @@ namespace dynamic_gap
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-           
+        ///////////////////// h related cost 
+
+        float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel); 
+        float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel); 
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
+
+
             // Combine into a final cost
             totalTrajCost =
                 (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +

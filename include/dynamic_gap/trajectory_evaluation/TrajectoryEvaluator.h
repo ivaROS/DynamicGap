@@ -31,6 +31,12 @@ namespace dynamic_gap
     class TrajectoryEvaluator
     {
         public:
+            float compute_h(
+                Eigen::Vector2f humanVel,
+                Eigen::Vector2f relativeGapPos,
+                // Eigen::Vector2f trajPos,
+                Eigen::Vector2f robotVel); 
+
             TrajectoryEvaluator(const DynamicGapConfig& cfg);
 
             /**
