@@ -127,10 +127,11 @@ namespace dynamic_gap
                 float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
-                float w_obs = 1.5; 
+                // float w_obs = 1.5; // no longer used, I'm just using the original Q see 20260303 commit. 
                 float w_path = 0.0; 
-                float w_goal = 0.0; //FYI Q_f already scales the terminal point cost and it happens that Q_f is set to 1. I think of this w_goal term as a way to adjust what max found worked best for the chapter's cost
-                float w_speed = 0.0; 
+                // float w_goal = 0.0; // no longer used,  I'm just using the original Q_f. see 20260303 commit. 
+                float w_speed = 0.0; // NOTE: speed cost is not added anywhere. If you want to use it you have 
+                // to add it to eiether terminal cost once, or you can somehow add it to every pose.  
                 float w_relvel = 15.0;  /** weight for relative velocity cost (aka social cost) */
             } traj;            
             

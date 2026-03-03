@@ -1707,11 +1707,11 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
             }
 
-            float total = cfg_.traj.w_obs  * pose_cost +
+            float total = pose_cost +
                           cfg_.traj.w_path * path_cost +
                           cfg_.traj.w_speed * speed_cost +
-                          cfg_.traj.w_goal  * term_cost + 
-                          cfg_.traj.w_relvel * relvel_cost;
+                          term_cost + 
+                          cfg_.traj.w_relvel * relvel_cost; //20260303 pose_cost and term_cost used to be multipled by constant but I removed them, see today's commit 
 
             // float total = cfg_.traj.w_relvel * relvel_cost; 
             // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
@@ -1881,20 +1881,25 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             // << " v=" << dwaTrajectory.getVcmd()
                             // << " w=" << dwaTrajectory.w_cmd;
 
-                            // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose) and path costs (penalizes deviation from global path per pose)
-                            const auto& poseCosts = cheapest_dwa.PoseCosts;
-                            const auto& pathCosts = cheapest_dwa.PathCosts;
+                            // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose),
+                            // path costs (penalizes deviation from global path per pose), and rel-vel costs (social term).
+                            const auto& poseCosts   = cheapest_dwa.PoseCosts;
+                            const auto& pathCosts   = cheapest_dwa.PathCosts;
+                            const auto& relVelCosts = cheapest_dwa.RelVelPoseCosts;
 
                             pursuitGuidancePoseCosts.clear();
-                            pursuitGuidancePoseCosts.reserve(
-                                std::max(poseCosts.size(), pathCosts.size())
-                            );
 
-                            size_t N = std::min(poseCosts.size(), pathCosts.size());
-                            for (size_t i = 0; i < N; ++i) {
-                                pursuitGuidancePoseCosts.push_back(poseCosts[i] + pathCosts[i]);
+                            size_t N = std::min({poseCosts.size(), pathCosts.size(), relVelCosts.size()});
+                            pursuitGuidancePoseCosts.reserve(N);
+
+                            for (size_t i = 0; i < N; ++i)
+                            {
+                                float c_obs   = poseCosts[i]; // the weight/constant is already baked into it 
+                                float c_path  = cfg_.traj.w_path   * pathCosts[i];
+                                float c_rel   = cfg_.traj.w_relvel * relVelCosts[i];
+
+                                pursuitGuidancePoseCosts.push_back(c_obs + c_path + c_rel);
                             }
-
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
