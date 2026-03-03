@@ -1906,15 +1906,15 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
                             // pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts; //should include path costs
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
 
                 
 
-                        // for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
-                        // {
-                        //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                        //         " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
-                        // }
+                        for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
+                        {
+                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
+                        }
 
 
                         }

@@ -497,8 +497,23 @@ namespace dynamic_gap
 
         float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel); 
         float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel); 
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
 
+        // Violation magnitudes (only when H < 0)
+        float vL = std::max(0.0f, -left_h);
+        float vR = std::max(0.0f, -right_h);
+
+        // Combine endpoints (two bad sides worse than one)
+        float V = vL + vR;
+
+        // Deadband to ignore tiny negatives (tune this)
+        const float epsilon = 0.05f;
+        float V_eff = std::max(0.0f, V - epsilon);
+
+        // Amplify (helps because H kinda saturates around 0.4–0.5)
+        float h_cost = V_eff * V_eff;
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+        terminalPoseCost += h_cost; // just taching h_cost onto this
 
             // Combine into a final cost
             totalTrajCost =
