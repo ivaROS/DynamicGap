@@ -511,7 +511,9 @@ namespace dynamic_gap
         float V_eff = std::max(0.0f, V - epsilon);
 
         // Amplify (helps because H kinda saturates around 0.4–0.5)
-        float h_cost = V_eff * V_eff;
+        // float h_cost = V_eff * V_eff;
+        float h_cost = V_eff; 
+        
         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
         terminalPoseCost += h_cost; // just taching h_cost onto this
 

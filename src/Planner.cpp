@@ -2562,7 +2562,7 @@ if (traj.getPathTiming().empty()) {
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
+            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
