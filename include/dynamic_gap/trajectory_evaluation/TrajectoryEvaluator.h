@@ -75,6 +75,18 @@ namespace dynamic_gap
                             dynamic_gap::Gap* gap,
                             std::vector<float> &dwa_RelVelPoseCosts);
 
+             void dwa_evaluateTrajectory_outside(
+                // float & totalTrajCost, 
+                                dwa_Trajectory & dwa_traj,
+                                std::vector<float> & posewiseCosts,
+                                // std::vector<float> &dwa_PathCosts, 
+                                float & terminalPoseCost,
+                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                const int & scanIdx,
+                                // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                dynamic_gap::Gap* gap); 
+                                // std::vector<float> &dwa_RelVelPoseCosts); 
+
             float calcSpeedCost(const float v_cmd, const float v_max); 
 
 

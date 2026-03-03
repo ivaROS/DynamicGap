@@ -128,7 +128,7 @@ namespace dynamic_gap
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 // float w_obs = 1.5; // no longer used, I'm just using the original Q see 20260303 commit. 
-                float w_path = 0.0; 
+                float w_path = 0.0; //NOTE: do not add back until you add path costs to dwa_evaluateTrajectory_outside
                 // float w_goal = 0.0; // no longer used,  I'm just using the original Q_f. see 20260303 commit. 
                 float w_speed = 0.0; // NOTE: speed cost is not added anywhere. If you want to use it you have 
                 // to add it to eiether terminal cost once, or you can somehow add it to every pose.  

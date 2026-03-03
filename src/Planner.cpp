@@ -2434,6 +2434,16 @@ if (traj.getPathTiming().empty()) {
             float incomingPathTerminalPoseCost;
             trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
 
+            //  void TrajectoryEvaluator::dwa_evaluateTrajectory_outside(float & totalTrajCost, dwa_Trajectory & dwa_traj,
+            //                     std::vector<float> & posewiseCosts,
+            //                     // std::vector<float> &dwa_PathCosts, 
+            //                     float & terminalPoseCost,
+            //                     const std::vector<sensor_msgs::LaserScan> & futureScans,
+            //                     const int & scanIdx,
+            //                     // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+            //                     dynamic_gap::Gap* gap,
+            //                     std::vector<float> &dwa_RelVelPoseCosts)
+
             float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
             
