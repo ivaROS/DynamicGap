@@ -5,6 +5,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <tf/tf.h>
 #include <ros/ros.h>
+#include <dynamic_gap/utils/Gap.h>
 
 struct dwa_Trajectory
 {
@@ -25,6 +26,7 @@ struct dwa_Trajectory
     float path_cost = 0.0f;
     float total_cost = 0.0f;
     float totalTrajCost = 0.0f; 
+    dynamic_gap::Gap* gap = nullptr;// it's in void TrajectoryEvaluator::update_human_info() when comparing functions
 
     // -- Info needed for cbf 
     Eigen::Vector2f humanVelLeft  = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());

@@ -1482,6 +1482,7 @@ dwa_traj.PathCosts = dwa_PathCosts;
 dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts; 
 dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost; 
 dwa_traj.totalTrajCost = totalTrajCost; 
+dwa_traj.gap = gap; // not used in this function, but it's in void TrajectoryEvaluator::update_human_info() when comparing functions
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
 
 bool visualize_curves_and_costs = false; 
@@ -1869,6 +1870,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.humanVelRight = (cheapest_dwa.humanVelRight);
                             dwaTrajectory.gapPosRight = (cheapest_dwa.gapPosRight);
+                            dwaTrajectory.gap = (cheapest_dwa.gap);
+
                             // dwaTrajectory.trajPosRight = (cheapest_dwa.trajPosRight);
 
                             // dwaTrajectory.setH(cheapest_dwa.H_left);

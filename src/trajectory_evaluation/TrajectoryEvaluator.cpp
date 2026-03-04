@@ -919,7 +919,7 @@ namespace dynamic_gap
     {    
         try
         {
-            
+        // this is just a modified copy of dwa_evaluateTrajectory_outside() 
 ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
              ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
         // Requires LOCAL FRAME

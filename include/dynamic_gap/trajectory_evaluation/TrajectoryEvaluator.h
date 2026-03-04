@@ -98,7 +98,6 @@ namespace dynamic_gap
               /**
             * \brief for updating human info which is just gap pos and gap velocity, which is needed for the cbf down stream. As a reminder into is stored within traj
             */
-
            void update_human_info(
         // float & totalTrajCost, 
                                 Trajectory & traj,
