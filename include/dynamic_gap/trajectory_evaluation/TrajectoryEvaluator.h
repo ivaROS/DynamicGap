@@ -65,6 +65,10 @@ namespace dynamic_gap
                                     const std::vector<sensor_msgs::LaserScan> & futureScans,
                                     const int & scanIdx);
 
+                      /**
+            * \brief Only to be used within generateGapTrajsV2: Function for evaluating dwa related costs along candidate trajectory. This is a modified ccopy of evaluateTrajectory
+            */
+
             void dwa_evaluateTrajectory(float & totalTrajCost,  dwa_Trajectory & dwa_traj,
                             std::vector<float> & posewiseCosts,
                             std::vector<float> &dwa_PathCosts, 
@@ -74,6 +78,10 @@ namespace dynamic_gap
                             const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                             dynamic_gap::Gap* gap,
                             std::vector<float> &dwa_RelVelPoseCosts);
+
+             /**
+            * \brief Only to be used outside of generateGapTrajsV2: Function for evaluating dwa related costs along candidate trajectory. This is a modified ccopy of evaluateTrajectory
+            */
 
              void dwa_evaluateTrajectory_outside(
                 // float & totalTrajCost, 
@@ -86,6 +94,22 @@ namespace dynamic_gap
                                 // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                                 dynamic_gap::Gap* gap); 
                                 // std::vector<float> &dwa_RelVelPoseCosts); 
+
+              /**
+            * \brief for updating human info which is just gap pos and gap velocity, which is needed for the cbf down stream. As a reminder into is stored within traj
+            */
+
+           void update_human_info(
+        // float & totalTrajCost, 
+                                Trajectory & traj,
+                                std::vector<float> & posewiseCosts,
+                                // std::vector<float> &dwa_PathCosts, 
+                                float & terminalPoseCost,
+                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                const int & scanIdx,
+                                // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                dynamic_gap::Gap* gap);
+                                // std::vector<float> &dwa_RelVelPoseCosts)
 
             float calcSpeedCost(const float v_cmd, const float v_max); 
 
