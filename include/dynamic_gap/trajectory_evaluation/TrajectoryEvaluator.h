@@ -77,7 +77,7 @@ namespace dynamic_gap
 
              void dwa_evaluateTrajectory_outside(
                 // float & totalTrajCost, 
-                                dwa_Trajectory & dwa_traj,
+                                Trajectory & traj,
                                 std::vector<float> & posewiseCosts,
                                 // std::vector<float> &dwa_PathCosts, 
                                 float & terminalPoseCost,

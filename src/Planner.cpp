@@ -1906,15 +1906,15 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
                             // pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts; //should include path costs
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
-                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
+                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
 
                 
 
-                        for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
-                        {
-                            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
-                        }
+                        // for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
+                        // {
+                        //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                        //         " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
+                        // }
 
 
                         }
@@ -2399,7 +2399,7 @@ if (traj.getPathTiming().empty()) {
         }        
     }
 
-    Trajectory Planner::compareToCurrentTraj(const Trajectory & incomingTraj,
+    Trajectory Planner::compareToCurrentTraj(Trajectory & incomingTraj, // removed const because I'm going to mod traj to store human vel info inside of TrajectoryEvaluator::dwa_evaluateTrajectory_outside
                                                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                                                 const int & trajFlag,
                                                 Gap * incomingGap,
@@ -2432,8 +2432,9 @@ if (traj.getPathTiming().empty()) {
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
             float incomingPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
-
+            // trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
+            trajEvaluator_->dwa_evaluateTrajectory_outside(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0, incomingGap);
+            
             //  void TrajectoryEvaluator::dwa_evaluateTrajectory_outside(float & totalTrajCost, dwa_Trajectory & dwa_traj,
             //                     std::vector<float> & posewiseCosts,
             //                     // std::vector<float> &dwa_PathCosts, 

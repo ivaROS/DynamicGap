@@ -514,7 +514,7 @@ namespace dynamic_gap
         // float h_cost = V_eff * V_eff;
         float h_cost = V_eff; 
 
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
         terminalPoseCost += h_cost; // just taching h_cost onto this
 
             // Combine into a final cost
@@ -540,7 +540,7 @@ namespace dynamic_gap
 
       void TrajectoryEvaluator::dwa_evaluateTrajectory_outside(
         // float & totalTrajCost, 
-                                dwa_Trajectory & dwa_traj,
+                                Trajectory & traj,
                                 std::vector<float> & posewiseCosts,
                                 // std::vector<float> &dwa_PathCosts, 
                                 float & terminalPoseCost,
@@ -552,31 +552,29 @@ namespace dynamic_gap
     {    
         try
         {
-            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
+             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
             // Requires LOCAL FRAME
 
-            // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
-            // std::vector<float> pathTiming = traj.getPathTiming();
+            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+            std::vector<float> pathTiming = traj.getPathTiming();
 
             //   ROS_ERROR_STREAM("in evaluator path.size()=" << path.poses.size()
             //      << " addr=" << &path);
                  
 
-            geometry_msgs::PoseArray pose_array = dwa_traj.pose_array; 
-            posewiseCosts = std::vector<float>(pose_array.poses.size());
-            // dwa_PathCosts = std::vector<float>(pose_array.poses.size());
-            std::vector<float> dwa_RelVelPoseCosts = std::vector<float>(pose_array.poses.size()); // i'm just using this internally in the dwa_evaluateTrajectory_outside function
+            
+            posewiseCosts = std::vector<float>(path.poses.size());
+            std::vector<float> dwa_RelVelPoseCosts = std::vector<float>(path.poses.size()); // only using this locally
 
-            if (pose_array.poses.size() > futureScans.size()) 
+            if (path.poses.size() > futureScans.size()) 
             {
                 ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
-                
                 return;
             }
 
-            if (posewiseCosts.size() != pose_array.poses.size()) 
+            if (posewiseCosts.size() != path.poses.size()) 
             {
-                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << pose_array.poses.size());
+                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << path.poses.size());
                 return;
             }
 
@@ -585,18 +583,16 @@ namespace dynamic_gap
             {
                 ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
                 // std::cout << "regular range at " << i << ": ";
-                // IMPORTANT NOTE: this is only the distance-related cost not other costs like path cost
-                posewiseCosts.at(i) = dwa_evaluatePose(pose_array.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (cost: " << posewiseCosts.at(i) << "): ");
-
+                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size() // this is ame as dwa_evaluatePose() btw
             }
-            // float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
-            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
+            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
-            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
+            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
 
+            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
+            
             //////////////////// path costs //////////////////
             // --- Path-distance cost (distance to visible global plan snippet) ---
             // std::vector<geometry_msgs::PoseStamped> visiblePlan =
@@ -685,7 +681,7 @@ namespace dynamic_gap
 
          Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
 
-         geometry_msgs::Point posUncovertedL = pose_array.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
+         geometry_msgs::Point posUncovertedL = path.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
                 Eigen::Vector2f leftPos;
                 leftPos.x() = posUncovertedL.x; 
                 leftPos.y() = posUncovertedL.y;
@@ -720,18 +716,19 @@ namespace dynamic_gap
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
-
-        dwa_traj.humanVelLeft = leftVel;
-        dwa_traj.gapPosLeft = leftGapRelPos;
-        dwa_traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
-        dwa_traj.robotVel = RbtVel;
+        // replaced dwa_traj with traj. I only used dwa_traj in generateTrajV2 because there were mulitple trajs per gap. but after that I repackage 
+        // all the info like human vel into max's Trajectory struct anways
+        traj.humanVelLeft = leftVel;
+        traj.gapPosLeft = leftGapRelPos;
+        traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
+        traj.robotVel = RbtVel;
 
         
         // ROS_ERROR_STREAM_NAMED("eval",
         // "inside traj evaluator right after populating the object:"
-        // << " humanVel=(" << dwa_traj.humanVelLeft.x() << "," << dwa_traj.humanVelLeft.y() << ")"
-        // << " gapPos=(" << dwa_traj.gapPosLeft.x() << "," << dwa_traj.gapPosLeft.y() << ")"
-        // << " robotVel=(" << dwa_traj.robotVel.x() << "," << dwa_traj.robotVel.y() << ")");
+        // << " humanVel=(" << traj.humanVelLeft.x() << "," << traj.humanVelLeft.y() << ")"
+        // << " gapPos=(" << traj.gapPosLeft.x() << "," << traj.gapPosLeft.y() << ")"
+        // << " robotVel=(" << traj.robotVel.x() << "," << traj.robotVel.y() << ")");
 
 
         }
@@ -777,13 +774,13 @@ namespace dynamic_gap
             rightGapRelPos =
                 gap->getRightGapPt()->getModel()->getState().head<2>();
 
-            dwa_traj.humanVelRight = rightVel;
-            dwa_traj.gapPosRight = rightGapRelPos;
+            traj.humanVelRight = rightVel;
+            traj.gapPosRight = rightGapRelPos;
 
         //     ROS_ERROR_STREAM_NAMED("eval",
         // "right endpoint ------- inside traj evaluator right after populating the object:"
-        // << " humanVelRight=(" << dwa_traj.humanVelRight.x() << "," << dwa_traj.humanVelRight.y() << ")"
-        // << " gapPos=(" << dwa_traj.gapPosRight.x() << "," << dwa_traj.gapPosRight.y() << ")");
+        // << " humanVelRight=(" << traj.humanVelRight.x() << "," << traj.humanVelRight.y() << ")"
+        // << " gapPos=(" << traj.gapPosRight.x() << "," << traj.gapPosRight.y() << ")");
         
         }
 
@@ -816,7 +813,7 @@ namespace dynamic_gap
         for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
+                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
                 Eigen::Vector2f Pos;
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
@@ -835,7 +832,7 @@ namespace dynamic_gap
             
             
             if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = pose_array.poses.at(i).position;
+                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
                 Eigen::Vector2f Pos;
                 Pos.x() = posUncoverted.x; 
                 Pos.y() = posUncoverted.y;
@@ -855,8 +852,8 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
-        float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel); 
-        float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel); 
+        float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel); 
+        float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel); 
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
 
         // Violation magnitudes (only when H < 0)

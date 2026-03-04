@@ -370,7 +370,7 @@ namespace dynamic_gap
             * \param futureScans set of propagated scans to use during scoring
             * \return the trajectory that the robot will track
             */
-            Trajectory compareToCurrentTraj(const Trajectory & incomingTraj,
+            Trajectory compareToCurrentTraj(Trajectory & incomingTraj,
                                             // const std::vector<Gap *> & feasibleGaps, 
                                             // const std::vector<Trajectory> & trajs,
                                             // const int & lowestCostTrajIdx,
