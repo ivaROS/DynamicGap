@@ -96,7 +96,8 @@ namespace dynamic_gap
                                 // std::vector<float> &dwa_RelVelPoseCosts); 
 
               /**
-            * \brief for updating human info which is just gap pos and gap velocity, which is needed for the cbf down stream. As a reminder into is stored within traj
+            * \brief for updating human info which is just gap pos and gap velocity, which is needed for the cbf down stream. As a reminder into is stored within traj.
+            * \param gap note if this is a nullptr this function just returns, meaning your current traj will continue to contain old human info and the cbf will act on that 
             */
            void update_human_info(
         // float & totalTrajCost, 
