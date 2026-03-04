@@ -908,11 +908,11 @@ namespace dynamic_gap
       void TrajectoryEvaluator::update_human_info(
         // float & totalTrajCost, 
                                 Trajectory & traj,
-                                std::vector<float> & posewiseCosts,
-                                // std::vector<float> &dwa_PathCosts, 
-                                float & terminalPoseCost,
-                                const std::vector<sensor_msgs::LaserScan> & futureScans,
-                                const int & scanIdx,
+                                // std::vector<float> & posewiseCosts,
+                                // // std::vector<float> &dwa_PathCosts, 
+                                // float & terminalPoseCost,
+                                // const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                // const int & scanIdx,
                                 // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                                 dynamic_gap::Gap* gap)
                                 // std::vector<float> &dwa_RelVelPoseCosts)
@@ -991,38 +991,11 @@ namespace dynamic_gap
 
          Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
 
-         geometry_msgs::Point posUncovertedL = path.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
-                Eigen::Vector2f leftPos;
-                leftPos.x() = posUncovertedL.x; 
-                leftPos.y() = posUncovertedL.y;
-            
-        // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
-        //   float v  = dwa_traj.v_cmd; 
-        //   float w = dwa_traj.w_cmd; 
-           
-
-        //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
-        //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
-        //   ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
-
-          // //// just testing ////////////////
-        // Eigen::Vector2f leftVel  = leftState.tail<2>();
-        // // Debug print
-        // ROS_ERROR_STREAM_NAMED("DWA",
-        //     "[GapVel] left=("  << leftVel.transpose()  << ")");
-        // //// just testing ////////////////
-
-        
-
-
-        // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(gapID);
-
-        // ROS_ERROR_STREAM("DWA gapID=" << gapID
-        //     << " leftVel=" << leftVel.transpose());
-
-
-         // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: ");
-        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
+        //  geometry_msgs::Point posUncovertedL = path.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
+        //         Eigen::Vector2f leftPos;
+        //         leftPos.x() = posUncovertedL.x; 
+        //         leftPos.y() = posUncovertedL.y;
+      
          leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
@@ -1030,7 +1003,7 @@ namespace dynamic_gap
         // all the info like human vel into max's Trajectory struct anways
         traj.humanVelLeft = leftVel;
         traj.gapPosLeft = leftGapRelPos;
-        traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
+        // traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
         traj.robotVel = RbtVel;
 
         
@@ -1110,102 +1083,8 @@ namespace dynamic_gap
         }
     }
 
-        // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
-        // std::vector<float> pathTiming = traj.getPathTiming();
-        
-        // posewiseCosts = std::vector<float>(pose_array.poses.size());
-
-        float leftGapPtCost = 0; 
-        float rightGapPtCost = 0; 
-        float weight = cfg_->traj.w_relvel; 
-
-
-        for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
-        {
-            if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
-                Eigen::Vector2f Pos;
-                Pos.x() = posUncoverted.x; 
-                Pos.y() = posUncoverted.y;
-                
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "leftGapRelPos (which is distance of robot to gap): " << leftGapRelPos); 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapRelPos);
-
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "Pos: "); 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", Pos);
-
-                leftGapPtCost = relativeVelocityCost(leftVel, leftGapRelPos, Pos, RbtVel);
-
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(leftGapRelVel, leftGapRelPos, RbtVel)"); 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", leftGapPtCost); 
-            }
-            
-            
-            if(rightGapPtIsDynamic){ //(rightGapPtIsDynamic){
-                geometry_msgs::Point posUncoverted = path.poses.at(i).position;
-                Eigen::Vector2f Pos;
-                Pos.x() = posUncoverted.x; 
-                Pos.y() = posUncoverted.y;
-                
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapRelPos: "); 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapRelPos);
-
-                rightGapPtCost = relativeVelocityCost(rightVel, rightGapRelPos, Pos, RbtVel);
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "relativeVelocityCost(rightGapRelVel, rightGapRelPos, RbtVel)"); 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", rightGapPtCost); 
-            }
-            dwa_RelVelPoseCosts.at(i) = leftGapPtCost + rightGapPtCost;
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_RelVelPoseCosts.at(i): " << dwa_RelVelPoseCosts.at(i)); 
-        }
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        ///////////////////// h related cost 
-
-        float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel); 
-        float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel); 
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
-
-        // Violation magnitudes (only when H < 0)
-        float vL = std::max(0.0f, -left_h);
-        float vR = std::max(0.0f, -right_h);
-
-        // Combine endpoints (two bad sides worse than one)
-        float V = vL + vR;
-
-        // Deadband to ignore tiny negatives (tune this)
-        const float epsilon = 0.05f;
-        float V_eff = std::max(0.0f, V - epsilon);
-
-        // Amplify (helps because H kinda saturates around 0.4–0.5)
-        // float h_cost = V_eff * V_eff;
-        float h_cost = V_eff; 
-        
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-        terminalPoseCost += h_cost; // just taching h_cost onto this
-        // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
-
-
-            // Combine into a final cost
-            // totalTrajCost =
-            //     (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
-            //     cfg_->traj.w_path * avg_path_cost + terminalPoseCost + 
-            //     cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
-        
-        
-////////////////////////// just debugingg!!!!! ADD THE REST OF THE COSTS BACK!! 
-            // totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
-        
-        
-        // this is very ugly but I need to repackage posewiseCosts so it contains all the costs that occur at every pose. this is what compareToCurrentTraj() expects
-            for (int i = 0; i < posewiseCosts.size(); i++) 
-            {
-                posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it 
-                // in future if you want to add path costs, you have to add it here as well 
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
-            }
-            // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
-
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         } catch (const std::out_of_range& e) 
         {
