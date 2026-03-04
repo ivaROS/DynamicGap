@@ -2495,17 +2495,22 @@ if (traj.getPathTiming().empty()) {
             Trajectory updatedCurrentTraj(updatedCurrentPathRobotFrame, updatedCurrentPathTiming);
             updatedCurrentTraj.setPathOdomFrame(currentTraj.getPathOdomFrame()); // odom frame traj will not change
 
-            //  FIX: preserve velocity commands
-            updatedCurrentTraj.v_cmd = currentTraj.v_cmd;
-            updatedCurrentTraj.w_cmd = currentTraj.w_cmd;
-            updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
-            updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
-            updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
-            updatedCurrentTraj.robotVel = currentTraj.robotVel;
-            
-            updatedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
-            updatedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
+            // updatedCurrentTraj.v_cmd = currentTraj.v_cmd;
+            // updatedCurrentTraj.w_cmd = currentTraj.w_cmd;
+            // updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
+            // updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
+            // updatedCurrentTraj.robotVel = currentTraj.robotVel;
+            trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commente out 
+            //code above is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
+            // the newest info about human (which is really just the gap endpoint)
+
+
+
+            // updatedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
+            // updatedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
+
+            // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft; // unused
 
             // updatedCurrentTraj.setH(currentTraj.getH());
 
