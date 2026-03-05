@@ -1015,6 +1015,32 @@ namespace dynamic_gap
 
         // ROS_ERROR_STREAM("[TE] requested modelID=" << leftGapPtID);
 
+          if (leftPosDictPtr_) {
+                auto it = leftPosDictPtr_->find(leftGapPtID);
+                if (it != leftPosDictPtr_->end()) {
+                    leftGapRelPos = it->second;
+                    ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
+                } else {
+                    ROS_WARN_STREAM("Missing leftPos for modelID=" << leftGapPtID);
+                }
+            } else {
+                ROS_WARN_STREAM("leftPosDictPtr_ is null");
+            }
+
+          if (rightPosDictPtr_) {
+                auto it = rightPosDictPtr_->find(rightGapPtID);
+                if (it != rightPosDictPtr_->end()) {
+                    rightGapRelPos = it->second;
+                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
+
+                } else {
+                    ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
+                }
+            } else {
+                ROS_WARN_STREAM("rightPosDictPtr_ is null");
+            }
+
+
         if (leftVelDictPtr_)
         {
             auto it = leftVelDictPtr_->find(leftGapPtID);
@@ -1038,7 +1064,7 @@ namespace dynamic_gap
         // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
         
         // leftGapPtIsDynamic = true; //JUST FOR DEBUGGING!
-
+        
         if (leftVel.norm() > dynamic_thres) {leftGapPtIsDynamic = true;}
         if(leftGapPtIsDynamic)
         {
@@ -1237,7 +1263,7 @@ namespace dynamic_gap
         // float h_cost = V_eff * V_eff;
         float h_cost = V_eff; 
         
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
         terminalPoseCost += h_cost; // just taching h_cost onto this
         // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
 
