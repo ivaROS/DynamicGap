@@ -14,7 +14,7 @@ struct dwa_Trajectory
     std::vector<float> yaws;                  // heading angles at each step
     std::vector<float> times;                 // timestamps (s)
 
-    // --- Commanded velocities used to generate rollout ---
+    // --- Commanded velocities used to generate rollout --- 
     float v_cmd = 0.0f;  // linear velocity
     float w_cmd = 0.0f;  // angular velocity
     // float H_left = 0.0f;  // h for the CBF
@@ -26,6 +26,8 @@ struct dwa_Trajectory
     float path_cost = 0.0f;
     float total_cost = 0.0f;
     float totalTrajCost = 0.0f; 
+    int leftGapPtID = -1; 
+    int rightGapPtID = -1; 
     dynamic_gap::Gap* gap = nullptr;// it's in void TrajectoryEvaluator::update_human_info() when comparing functions
 
     // -- Info needed for cbf 

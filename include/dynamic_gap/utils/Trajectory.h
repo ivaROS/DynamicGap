@@ -151,7 +151,8 @@ namespace dynamic_gap
             Eigen::Vector2f humanVelRight  = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
             Eigen::Vector2f gapPosRight    = Eigen::Vector2f::Constant(std::numeric_limits<float>::quiet_NaN());
             dynamic_gap::Gap* gap = nullptr; // it's in void TrajectoryEvaluator::update_human_info() when comparing functions
-
+            int leftGapPtID = -1; 
+            int rightGapPtID = -1; 
 
 
         private:

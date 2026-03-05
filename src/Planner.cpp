@@ -1491,6 +1491,9 @@ dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts;
 dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost; 
 dwa_traj.totalTrajCost = totalTrajCost; 
 dwa_traj.gap = gap; // not used in this function, but it's in void TrajectoryEvaluator::update_human_info() when comparing functions
+dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
+dwa_traj.rightGapPtID = gap->getRightGapPt()->getModel()->getID();
+
 dwa_trajs.push_back(dwa_traj);  // append new trajectory
 
 bool visualize_curves_and_costs = false; 
@@ -1879,6 +1882,10 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.humanVelRight = (cheapest_dwa.humanVelRight);
                             dwaTrajectory.gapPosRight = (cheapest_dwa.gapPosRight);
                             dwaTrajectory.gap = (cheapest_dwa.gap);
+                            dwaTrajectory.rightGapPtID = cheapest_dwa.rightGapPtID; 
+                            dwaTrajectory.leftGapPtID = cheapest_dwa.leftGapPtID; 
+
+                            // dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
 
                             // dwaTrajectory.trajPosRight = (cheapest_dwa.trajPosRight);
 
@@ -2513,6 +2520,9 @@ if (traj.getPathTiming().empty()) {
             // updatedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
             // updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
             // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
+ 
+             trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID); // the commented out code 
+
             //is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
             // the newest info about human (which is really just the gap endpoint)
 
