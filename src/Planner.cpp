@@ -140,7 +140,8 @@ namespace dynamic_gap
         trajEvaluator_->leftVelDictPtr_  = &leftVelByModelID_;
         trajEvaluator_->rightVelDictPtr_ = &rightVelByModelID_;
 
-
+        trajEvaluator_->leftPosDictPtr_  = &leftPosByModelID_;
+        trajEvaluator_->rightPosDictPtr_ = &rightPosByModelID_;
 
         minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
         ros::NodeHandle nh;  // or pass an existing NodeHandle
@@ -710,12 +711,15 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
     latestGapRightVel_.clear();
     leftVelByModelID_.clear();
     rightVelByModelID_.clear();
+    leftPosByModelID_.clear();
+    rightPosByModelID_.clear();
 
     for (size_t i = 0; i < msg->markers.size(); ++i)
     {
         const auto& m = msg->markers[i];
         const int model_id = m.id;          // should match Estimator::getID()
         float speed = m.scale.x;
+        Eigen::Vector2f pos(m.pose.position.x, m.pose.position.y);
 
         Eigen::Vector2f vel(0.0f, 0.0f);
 
@@ -760,6 +764,9 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         {
             latestGapLeftVel_.push_back(vel);
             leftVelByModelID_[model_id] = vel;
+            leftPosByModelID_[model_id] = pos;
+
+            
 
             // ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
             //                  << " vel = " << vel.transpose());
@@ -768,6 +775,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         {
             latestGapRightVel_.push_back(vel);
             rightVelByModelID_[model_id] = vel;
+            rightPosByModelID_[model_id] = pos;
 
             // ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
             //                  << " vel = " << vel.transpose());

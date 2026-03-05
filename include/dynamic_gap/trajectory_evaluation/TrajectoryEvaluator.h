@@ -136,7 +136,8 @@ namespace dynamic_gap
             std::vector<Eigen::Vector2f>* latestGapRightVelPtr_;
             std::unordered_map<int, Eigen::Vector2f>* leftVelDictPtr_;
             std::unordered_map<int, Eigen::Vector2f>* rightVelDictPtr_;
-
+            std::unordered_map<int, Eigen::Vector2f>* leftPosDictPtr_;
+            std::unordered_map<int, Eigen::Vector2f>* rightPosDictPtr_;
 
             
         private:

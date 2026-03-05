@@ -161,7 +161,8 @@ namespace dynamic_gap
             std::vector<Eigen::Vector2f> latestGapRightVel_;
             std::unordered_map<int, Eigen::Vector2f> leftVelByModelID_; // for social cost
             std::unordered_map<int, Eigen::Vector2f> rightVelByModelID_;
-
+            std::unordered_map<int, Eigen::Vector2f> leftPosByModelID_;
+            std::unordered_map<int, Eigen::Vector2f> rightPosByModelID_;
 
 
 
