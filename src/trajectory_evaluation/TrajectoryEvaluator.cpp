@@ -917,7 +917,7 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f rbtVel
+                                Eigen::Vector2f RbtVel
                                 )
                                 // std::vector<float> &dwa_RelVelPoseCosts)
     {    
@@ -999,7 +999,8 @@ namespace dynamic_gap
         
         if(cfg_->planning.social_cost_function == 1)
         {
-        if(gap)
+        // if(gap)
+        if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
@@ -1009,13 +1010,13 @@ namespace dynamic_gap
 
         // leftGapPtIsDynamic = gap->getLeftGapPt()->getUngapID()>=0; 
 
-        int gapID = gap->getLeftGapPt()->getModel()->getID();
+        int leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
 
-        // ROS_ERROR_STREAM("[TE] requested modelID=" << gapID);
+        // ROS_ERROR_STREAM("[TE] requested modelID=" << leftGapPtID);
 
         if (leftVelDictPtr_)
         {
-            auto it = leftVelDictPtr_->find(gapID);
+            auto it = leftVelDictPtr_->find(leftGapPtID);
             // ROS_ERROR_STREAM("leftVelDictPtr_->end(): " << leftVelDictPtr_->end());
             // ROS_ERROR_STREAM("[TE] leftVelDictPtr_ size = "
             //      << std::distance(leftVelDictPtr_->begin(), leftVelDictPtr_->end()));
@@ -1026,7 +1027,7 @@ namespace dynamic_gap
             }
             else
             {
-                ROS_WARN_STREAM("Missing leftVel for modelID=" << gapID);
+                ROS_WARN_STREAM("Missing leftVel for modelID=" << leftGapPtID);
             }
         }
         else
@@ -1040,13 +1041,7 @@ namespace dynamic_gap
         if (leftVel.norm() > dynamic_thres) {leftGapPtIsDynamic = true;}
         if(leftGapPtIsDynamic)
         {
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
-         gap->getLeftGapPt()->getModel()->isolateGapDynamics();
-        //  gap->leftGapPt__model_->isolateGapDynamics();
-         leftGapRelVel = gap->getLeftGapPt()->getModel()->getGapVelocity(); // todo: delete this, its actually not used
-         RbtVelMsg = gap->getLeftGapPt()->getModel()->getRobotVel();
-         RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
+        
 
 
          Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
@@ -1075,9 +1070,9 @@ namespace dynamic_gap
         
 
 
-        // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(gapID);
+        // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(leftGapPtID);
 
-        // ROS_ERROR_STREAM("DWA gapID=" << gapID
+        // ROS_ERROR_STREAM("DWA leftGapPtID=" << leftGapPtID
         //     << " leftVel=" << leftVel.transpose());
 
 
@@ -1105,13 +1100,13 @@ namespace dynamic_gap
 
         // rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
 
-        int right_gapID = gap->getRightGapPt()->getModel()->getID();
+        // int right_gapID = gap->getRightGapPt()->getModel()->getID();
 
-            // ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << right_gapID);
+            // ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << rightGapPtID);
 
             if (rightVelDictPtr_)
             {
-                auto it = rightVelDictPtr_->find(right_gapID);
+                auto it = rightVelDictPtr_->find(rightGapPtID);
                 // ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
                 //     << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
 
@@ -1121,7 +1116,7 @@ namespace dynamic_gap
                 }
                 else
                 {
-                    ROS_WARN_STREAM("Missing rightVel for modelID=" << right_gapID);
+                    ROS_WARN_STREAM("Missing rightVel for modelID=" << rightGapPtID);
                 }
             }
             else
@@ -1139,7 +1134,7 @@ namespace dynamic_gap
         }
         if(rightGapPtIsDynamic)
         {
-            gap->getRightGapPt()->getModel()->isolateGapDynamics();
+            // gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
             rightGapRelPos =
                 gap->getRightGapPt()->getModel()->getState().head<2>();
@@ -1260,7 +1255,9 @@ namespace dynamic_gap
         // this is very ugly but I need to repackage posewiseCosts so it contains all the costs that occur at every pose. this is what compareToCurrentTraj() expects
             for (int i = 0; i < posewiseCosts.size(); i++) 
             {
-                posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it 
+                posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it
+                // FYI ^ thats always run, regardless of whether if(gap) returns false, which means you cant even compute relvel. Always running ^ that is a waste of compute, but it keeps code simple 
+                
                 // in future if you want to add path costs, you have to add it here as well 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
             }

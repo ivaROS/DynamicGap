@@ -107,7 +107,7 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f rbtVel
+                                Eigen::Vector2f RbtVel
                                 );
 
               /**
