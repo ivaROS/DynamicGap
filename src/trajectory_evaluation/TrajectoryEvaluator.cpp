@@ -940,7 +940,38 @@ namespace dynamic_gap
             {
                 ROS_WARN_STREAM("rightVelDictPtr_ is null");
             }
-    }
+
+
+            Eigen::Vector2f rightPos(0,0);
+
+            if (rightPosDictPtr_) {
+                auto it = rightPosDictPtr_->find(rightGapPtID);
+                if (it != rightPosDictPtr_->end()) {
+                    rightPos = it->second;
+                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightPos: " << rightPos);
+
+                } else {
+                    ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
+                }
+            } else {
+                ROS_WARN_STREAM("rightPosDictPtr_ is null");
+            }
+
+            // Eigen::Vector2f leftPos(0,0);
+
+            // if (leftPosDictPtr_) {
+            //     auto it = leftPosDictPtr_->find(rightGapPtID);
+            //     if (it != leftPosDictPtr_->end()) {
+            //         leftPos = it->second;
+            //     } else {
+            //         ROS_WARN_STREAM("Missing leftPos for modelID=" << rightGapPtID);
+            //     }
+            // } else {
+            //     ROS_WARN_STREAM("leftPosDictPtr_ is null");
+            // }
+
+
+                }
 
 
     float TrajectoryEvaluator::terminalGoalCost(const geometry_msgs::Pose & pose) 
