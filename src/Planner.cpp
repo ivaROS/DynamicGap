@@ -2503,8 +2503,8 @@ if (traj.getPathTiming().empty()) {
 
              // updatedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
             // updatedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
-            updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
-            trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
+            // updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
+            // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
             //is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
             // the newest info about human (which is really just the gap endpoint)
 
@@ -2583,8 +2583,8 @@ if (traj.getPathTiming().empty()) {
             // // reducedCurrentTraj.setH(currentTraj.getH());
             // reducedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
             // reducedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
-               reducedCurrentTraj.gap = currentTraj.gap; // just being pedantic 
-               trajEvaluator_->update_human_info(reducedCurrentTraj, reducedCurrentTraj.gap); // the commented out code 
+            //    reducedCurrentTraj.gap = currentTraj.gap; // just being pedantic 
+            //    trajEvaluator_->update_human_info(reducedCurrentTraj, reducedCurrentTraj.gap); // the commented out code 
 
 
             std::vector<float> reducedCurrentPathPoseCosts;

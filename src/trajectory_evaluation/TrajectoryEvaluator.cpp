@@ -892,7 +892,7 @@ namespace dynamic_gap
             {
                 posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it 
                 // in future if you want to add path costs, you have to add it here as well 
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
             }
             // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
