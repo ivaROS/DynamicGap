@@ -2510,7 +2510,10 @@ if (traj.getPathTiming().empty()) {
             Trajectory updatedCurrentTraj(updatedCurrentPathRobotFrame, updatedCurrentPathTiming);
             updatedCurrentTraj.setPathOdomFrame(currentTraj.getPathOdomFrame()); // odom frame traj will not change
 
-          
+            geometry_msgs::TwistStamped RbtVelMsg;
+            Eigen::Vector2f RbtVel(0, 0);
+            RbtVelMsg = incomingGap->getLeftGapPt()->getModel()->getRobotVel(); // used in scoring the reducedCurrentTraj since I don't have access to current robot info in that 
+            RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
             // updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
             // updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
@@ -2521,7 +2524,7 @@ if (traj.getPathTiming().empty()) {
             // updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
             // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
  
-             trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID); // the commented out code 
+             trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID, RbtVel); // the commented out code 
 
             //is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
             // the newest info about human (which is really just the gap endpoint)

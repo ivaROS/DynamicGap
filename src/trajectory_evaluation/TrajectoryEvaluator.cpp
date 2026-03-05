@@ -915,10 +915,14 @@ namespace dynamic_gap
                                 // const int & scanIdx,
                                 // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                                 // dynamic_gap::Gap* gap,
-                                int rightGapPtID
+                                int rightGapPtID, 
+                                Eigen::Vector2f rbtVel
+
                             )
                                 // std::vector<float> &dwa_RelVelPoseCosts)
     {
+        ROS_ERROR_STREAM("rbtVel: " << rbtVel);
+
         Eigen::Vector2f rightVel(0,0);
          if (rightVelDictPtr_)
             {

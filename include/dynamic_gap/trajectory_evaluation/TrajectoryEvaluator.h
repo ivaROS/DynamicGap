@@ -109,7 +109,8 @@ namespace dynamic_gap
                                 // const int & scanIdx,
                                 // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                                 // dynamic_gap::Gap* gap,
-                                int right_gapID
+                                int right_gapID,
+                                Eigen::Vector2f rbtVel
                             );
                                 // std::vector<float> &dwa_RelVelPoseCosts)
 
