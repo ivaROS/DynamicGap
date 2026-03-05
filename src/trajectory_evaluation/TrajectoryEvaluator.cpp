@@ -1002,6 +1002,7 @@ namespace dynamic_gap
         // if(gap)
         if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
 
@@ -1010,7 +1011,7 @@ namespace dynamic_gap
 
         // leftGapPtIsDynamic = gap->getLeftGapPt()->getUngapID()>=0; 
 
-        int leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
+        // int leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
 
         // ROS_ERROR_STREAM("[TE] requested modelID=" << leftGapPtID);
 
@@ -1044,7 +1045,7 @@ namespace dynamic_gap
         
 
 
-         Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
+        //  Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
 
          geometry_msgs::Point posUncovertedL = path.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
                 Eigen::Vector2f leftPos;
@@ -1078,7 +1079,7 @@ namespace dynamic_gap
 
          // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
-         leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
+        //  leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
         // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
         // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
         // replaced dwa_traj with traj. I only used dwa_traj in generateTrajV2 because there were mulitple trajs per gap. but after that I repackage 
@@ -1136,8 +1137,8 @@ namespace dynamic_gap
         {
             // gap->getRightGapPt()->getModel()->isolateGapDynamics();
 
-            rightGapRelPos =
-                gap->getRightGapPt()->getModel()->getState().head<2>();
+            // rightGapRelPos =
+            //     gap->getRightGapPt()->getModel()->getState().head<2>();
 
             traj.humanVelRight = rightVel;
             traj.gapPosRight = rightGapRelPos;
@@ -1259,7 +1260,7 @@ namespace dynamic_gap
                 // FYI ^ thats always run, regardless of whether if(gap) returns false, which means you cant even compute relvel. Always running ^ that is a waste of compute, but it keeps code simple 
                 
                 // in future if you want to add path costs, you have to add it here as well 
-                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
+                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_reducedCurrentTraj cost: " << posewiseCosts.at(i) << "): ");
             }
             // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 

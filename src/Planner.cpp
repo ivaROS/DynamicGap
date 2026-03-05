@@ -2524,7 +2524,7 @@ if (traj.getPathTiming().empty()) {
             // updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
             // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
  
-             trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID, RbtVel); // the commented out code 
+            //  trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID, RbtVel); // the commented out code 
 
             //is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
             // the newest info about human (which is really just the gap endpoint)
@@ -2610,7 +2610,10 @@ if (traj.getPathTiming().empty()) {
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
+            trajEvaluator_->dwa_evaluateTrajectory_reducedCurrentTraj(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
+            // I intentionally use currentTraj.leftGapPtID because that's the only place the ID is stored, i don't copy it over to reducedCurrentTraj because I don't want to 
+
+            // trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
