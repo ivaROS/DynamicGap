@@ -2617,6 +2617,8 @@ if (traj.getPathTiming().empty()) {
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
+            trajEvaluator_->update_cbf_info(updatedCurrentTraj, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
+
             // if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
             // {
             //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
@@ -3342,11 +3344,11 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                     // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
                     ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
 
-                    // ROS_ERROR_STREAM_NAMED("CBF",
-                    // "\n----------------------right OUTPUT----------------------------------\n"
-                    // << " v=" << cmdVel.linear.x
-                    // << " w=" << cmdVel.angular.z
-                    // );
+                    ROS_ERROR_STREAM_NAMED("CBF",
+                    "\n----------------------right OUTPUT----------------------------------\n"
+                    << " v=" << cmdVel.linear.x
+                    << " w=" << cmdVel.angular.z
+                    );
 
                 }
 

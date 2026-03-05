@@ -128,6 +128,21 @@ namespace dynamic_gap
                                 Eigen::Vector2f rbtVel
                             );
                                 // std::vector<float> &dwa_RelVelPoseCosts)
+            
+             void update_cbf_info(
+        // float & totalTrajCost, 
+                                Trajectory & traj,
+                                // std::vector<float> & posewiseCosts,
+                                // std::vector<float> &dwa_PathCosts, 
+                                // float & terminalPoseCost,
+                                // const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                // const int & scanIdx,
+                                // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                // dynamic_gap::Gap* gap,
+                                int rightGapPtID, 
+                                int leftGapPtID,
+                                Eigen::Vector2f RbtVel
+                                );
 
             float calcSpeedCost(const float v_cmd, const float v_max); 
 

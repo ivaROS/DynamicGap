@@ -1299,6 +1299,258 @@ namespace dynamic_gap
         return;
     }
 
+    void TrajectoryEvaluator::update_cbf_info(
+        // float & totalTrajCost, 
+                                Trajectory & traj,
+                                // std::vector<float> & posewiseCosts,
+                                // std::vector<float> &dwa_PathCosts, 
+                                // float & terminalPoseCost,
+                                // const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                // const int & scanIdx,
+                                // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                // dynamic_gap::Gap* gap,
+                                int rightGapPtID, 
+                                int leftGapPtID,
+                                Eigen::Vector2f RbtVel
+                                )
+                                // std::vector<float> &dwa_RelVelPoseCosts)
+    {    
+        try
+        {
+          
+///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
+        // Requires LOCAL FRAME
+        double dynamic_thres = 0.15; // threshold for what's considered a dynamic gap endpoint
+        Eigen::Vector2f leftGapRelVel(0, 0);
+
+        Eigen::Vector2f leftGapRelPos(0, 0);
+        Eigen::Vector2f rightGapRelVel(0, 0);
+        Eigen::Vector2f rightGapRelPos(0, 0); 
+        bool leftGapPtIsDynamic = false; 
+        bool rightGapPtIsDynamic = false; 
+
+        Eigen::Vector2f leftVel(0,0);
+        Eigen::Vector2f rightVel(0,0);
+
+        
+        if(cfg_->planning.social_cost_function == 1)
+        {
+        // if(gap)
+        if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
+        {
+        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
+
+        // leftGapPtIsDynamic = gap->getLeftGapPt()->getUngapID()>=0; 
+
+        // int leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
+
+        // ROS_ERROR_STREAM("[TE] requested modelID=" << leftGapPtID);
+
+          if (leftPosDictPtr_) {
+                auto it = leftPosDictPtr_->find(leftGapPtID);
+                if (it != leftPosDictPtr_->end()) {
+                    leftGapRelPos = it->second;
+                    ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
+                } else {
+                    ROS_WARN_STREAM("Missing leftPos for modelID=" << leftGapPtID);
+                }
+            } else {
+                ROS_WARN_STREAM("leftPosDictPtr_ is null");
+            }
+
+          if (rightPosDictPtr_) {
+                auto it = rightPosDictPtr_->find(rightGapPtID);
+                if (it != rightPosDictPtr_->end()) {
+                    rightGapRelPos = it->second;
+                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
+
+                } else {
+                    ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
+                }
+            } else {
+                ROS_WARN_STREAM("rightPosDictPtr_ is null");
+            }
+
+
+        if (leftVelDictPtr_)
+        {
+            auto it = leftVelDictPtr_->find(leftGapPtID);
+            // ROS_ERROR_STREAM("leftVelDictPtr_->end(): " << leftVelDictPtr_->end());
+            // ROS_ERROR_STREAM("[TE] leftVelDictPtr_ size = "
+            //      << std::distance(leftVelDictPtr_->begin(), leftVelDictPtr_->end()));
+
+            if (it != leftVelDictPtr_->end())
+            {
+                leftVel = it->second;
+            }
+            else
+            {
+                ROS_WARN_STREAM("Missing leftVel for modelID=" << leftGapPtID);
+            }
+        }
+        else
+        {
+            ROS_WARN_STREAM("leftVelDictPtr_ is null");
+        }
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: " << leftVel);
+        
+        // leftGapPtIsDynamic = true; //JUST FOR DEBUGGING!
+        
+        if (leftVel.norm() > dynamic_thres) {leftGapPtIsDynamic = true;}
+        if(leftGapPtIsDynamic)
+        {
+        
+
+
+        //  Eigen::Vector4f leftState  = gap->getLeftGapPt()->getModel()->getGapState();
+
+        //  geometry_msgs::Point posUncovertedL = path.poses.at(0).position; //todo delete this. Its used for trajpos but I want to delete that too because it's unused in the actual cbf function
+        //         Eigen::Vector2f leftPos;
+        //         leftPos.x() = posUncovertedL.x; 
+        //         leftPos.y() = posUncovertedL.y;
+
+        Eigen::Vector2f leftPos = Eigen::Vector2f::Zero(); //todo, get rid of trajPos all together
+            
+        // dwa_traj.H_left = DPCBF(leftVel, leftGapRelPos, PosL, RbtVel);
+        //   float v  = dwa_traj.v_cmd; 
+        //   float w = dwa_traj.w_cmd; 
+           
+
+        //   Eigen::Vector2f u_nom = Eigen::Vector2f::Zero();
+        //   Eigen::Vector2f left_cbf_vel = DPCBFProjectVelocity(leftVel, leftGapRelPos, PosL, u_nom, v, w); // todo rename this, it's not h, this is the new u i computed
+        //   ROS_ERROR_STREAM("left_cbf_vel: " << left_cbf_vel); 
+
+          // //// just testing ////////////////
+        // Eigen::Vector2f leftVel  = leftState.tail<2>();
+        // // Debug print
+        // ROS_ERROR_STREAM_NAMED("DWA",
+        //     "[GapVel] left=("  << leftVel.transpose()  << ")");
+        // //// just testing ////////////////
+
+        
+
+
+        // Eigen::Vector2f leftVel  = latestGapLeftVelPtr_->at(leftGapPtID);
+
+        // ROS_ERROR_STREAM("DWA leftGapPtID=" << leftGapPtID
+        //     << " leftVel=" << leftVel.transpose());
+
+
+         // ROS_ERROR_STREAM_NAMED("evalTraj", "leftGapRelVel: ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelVel);  
+        //  leftGapRelPos = gap->getLeftGapPt()->getModel()->getState().head<2>(); //distance from robot to gap.
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "gap->leftGapPtModel_->getState(): ");
+        // ROS_ERROR_STREAM_NAMED("evalTraj", leftGapRelPos);  
+        // replaced dwa_traj with traj. I only used dwa_traj in generateTrajV2 because there were mulitple trajs per gap. but after that I repackage 
+        // all the info like human vel into max's Trajectory struct anways
+        traj.humanVelLeft = leftVel;
+        traj.gapPosLeft = leftGapRelPos;
+        traj.trajPosLeft = leftPos; //20260127 I plan on removing trajPos bc I'm not using it
+        traj.robotVel = RbtVel;
+
+        
+        // ROS_ERROR_STREAM_NAMED("eval",
+        // "inside traj evaluator right after populating the object:"
+        // << " humanVel=(" << traj.humanVelLeft.x() << "," << traj.humanVelLeft.y() << ")"
+        // << " gapPos=(" << traj.gapPosLeft.x() << "," << traj.gapPosLeft.y() << ")"
+        // << " robotVel=(" << traj.robotVel.x() << "," << traj.robotVel.y() << ")");
+
+
+        }
+
+        // rightGapPtIsDynamic = gap->getRightGapPt()->getUngapID()>=0; 
+
+        // int right_gapID = gap->getRightGapPt()->getModel()->getID();
+
+            // ROS_ERROR_STREAM("[TE] requested RIGHT modelID=" << rightGapPtID);
+
+            if (rightVelDictPtr_)
+            {
+                auto it = rightVelDictPtr_->find(rightGapPtID);
+                // ROS_ERROR_STREAM("[TE] rightVelDictPtr_ size = "
+                //     << std::distance(rightVelDictPtr_->begin(), rightVelDictPtr_->end()));
+
+                if (it != rightVelDictPtr_->end())
+                {
+                    rightVel = it->second;
+                }
+                else
+                {
+                    ROS_WARN_STREAM("Missing rightVel for modelID=" << rightGapPtID);
+                }
+            }
+            else
+            {
+                ROS_WARN_STREAM("rightVelDictPtr_ is null");
+            }
+
+            // ROS_ERROR_STREAM_NAMED("evalTraj", "rightGapRelVel: " << rightVel);
+
+            // rightGapRelVel = rightVel;
+
+        // rightGapPtIsDynamic = true; // debugging
+        if (rightVel.norm() > dynamic_thres) {rightGapPtIsDynamic = true;
+        // ROS_ERROR_STREAM_NAMED("evalTraj", "right gap point is dynamic greater than 0.15 threshold");
+        }
+        if(rightGapPtIsDynamic)
+        {
+            // gap->getRightGapPt()->getModel()->isolateGapDynamics();
+
+            // rightGapRelPos =
+            //     gap->getRightGapPt()->getModel()->getState().head<2>();
+
+            traj.humanVelRight = rightVel;
+            traj.gapPosRight = rightGapRelPos;
+
+        //     ROS_ERROR_STREAM_NAMED("eval",
+        // "right endpoint ------- inside traj evaluator right after populating the object:"
+        // << " humanVelRight=(" << traj.humanVelRight.x() << "," << traj.humanVelRight.y() << ")"
+        // << " gapPos=(" << traj.gapPosRight.x() << "," << traj.gapPosRight.y() << ")");
+        
+        }
+
+
+
+        
+    //     int i = 0; //ATODO DELETE
+    //     for(i = 0; i < 1; i++)
+    // {
+        
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getRightGapPt()->getUngapID()");
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getRightGapPt()->getUngapID());
+    //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
+    //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
+        
+    // }
+        }
+    }
+
+        // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+        // std::vector<float> pathTiming = traj.getPathTiming();
+        
+        // posewiseCosts = std::vector<float>(pose_array.poses.size());
+
+
+        ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        ///////////////////// h related cost 
+
+        // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
+
+            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
+        } catch (const std::out_of_range& e) 
+        {
+            ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            evaluateTrajectory out of range exception: " << e.what());
+        }
+        
+        return;
+    }
 
       void TrajectoryEvaluator::update_human_info(
         // float & totalTrajCost, 
