@@ -95,6 +95,21 @@ namespace dynamic_gap
                                 dynamic_gap::Gap* gap); 
                                 // std::vector<float> &dwa_RelVelPoseCosts); 
 
+             void dwa_evaluateTrajectory_reducedCurrentTraj(
+                                // float & totalTrajCost, 
+                                Trajectory & traj,
+                                std::vector<float> & posewiseCosts,
+                                // std::vector<float> &dwa_PathCosts, 
+                                float & terminalPoseCost,
+                                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                                const int & scanIdx,
+                                // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+                                // dynamic_gap::Gap* gap,
+                                int rightGapPtID, 
+                                int leftGapPtID,
+                                Eigen::Vector2f rbtVel
+                                );
+
               /**
             * \brief for updating human info which is just gap pos and gap velocity, which is needed for the cbf down stream. As a reminder into is stored within traj.
             * \param gap note if this is a nullptr this function just returns, meaning your current traj will continue to contain old human info and the cbf will act on that 
