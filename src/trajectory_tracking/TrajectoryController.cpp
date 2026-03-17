@@ -1,6 +1,10 @@
 #include <dynamic_gap/trajectory_tracking/TrajectoryController.h>
 #include <visualization_msgs/Marker.h>
 #include <dynamic_gap/utils/CbfLinConstraint.h>
+#include <OsqpEigen/OsqpEigen.h>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <vector>
 
 namespace dynamic_gap
 {
@@ -1175,21 +1179,21 @@ if (dbg_dpcbf_) {
 
         // Closed-form orthogonal projection of u_nom onto linearized halfspace:
         // u_safe = u_nom + (-h0 / ||grad||^2) * grad
-        Eigen::Vector2f u_safe = u_nom + (-h0 / denom) * grad_h;
-        // return u_safe;
-        Eigen::Vector2f safeError(u_safe.x(), u_safe.y()); // this is redundant 
+        // Eigen::Vector2f u_safe = u_nom + (-h0 / denom) * grad_h;
+        // // return u_safe;
+        // Eigen::Vector2f safeError(u_safe.x(), u_safe.y()); // this is redundant 
 
-        // visualization
-        Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
-        publishVrelArrow(origin,
-                        v_rel_safe,
-                        cfg_->sensor_frame_id,
-                        "v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
+        // // visualization
+        // Eigen::Vector2f v_rel_safe = -u_safe + humanVel;
+        // publishVrelArrow(origin,
+        //                 v_rel_safe,
+        //                 cfg_->sensor_frame_id,
+        //                 "v_rel_safe",
+        //                 vrel_safe_pub_,
+        //                  0.2f,  // R
+        //                 1.0f,  // G
+        //                 0.2f,  // B
+        //                 1.0f); // A
 
         // output 
         float b = grad_h.dot(u_nom) - h0;
@@ -1197,7 +1201,7 @@ if (dbg_dpcbf_) {
          out.valid = true; 
          out.h0 = h0; 
          out.a  = grad_h; 
-         out.u_proj = u_safe; 
+        //  out.u_proj = u_safe; 
         return out;
 
         //-----------------------------------------------more original processCmdVelNonHolonomic code------------------------------------------------------------------
@@ -1362,6 +1366,108 @@ if (dbg_dpcbf_) {
 
         projOpPublisher_.publish(projOpMarker);
     }
+
+    bool TrajectoryController::solveQpOsqp2D(const Eigen::Vector2d& u_nom,
+                   const std::vector<CbfLinConstraint>& cbf_constraints,
+                   double ux_min,
+                   double ux_max,
+                   double uy_min,
+                   double uy_max,
+                   Eigen::Vector2d& u_sol)
+{
+    // Decision variable dimension
+    constexpr int n = 2;
+
+    // Constraints:
+    // 1) each CBF constraint: a^T u >= b
+    // 2) box bounds on ux, uy
+    const int m = static_cast<int>(cbf_constraints.size()) + 4;
+
+    // Hessian H = I
+    Eigen::SparseMatrix<double> H(n, n);
+    H.insert(0, 0) = 1.0;
+    H.insert(1, 1) = 1.0;
+
+    // Gradient f = -u_nom
+    Eigen::VectorXd f(n);
+    f << -u_nom.x(), -u_nom.y();
+
+    // Constraint matrix A
+    Eigen::SparseMatrix<double> A(m, n);
+    Eigen::VectorXd lower(m);
+    Eigen::VectorXd upper(m);
+
+    int row = 0;
+
+    // CBF constraints: a^T u >= b
+    // OSQP uses lower <= A u <= upper
+    // so encode: b <= a^T u <= +inf
+    for (const auto& c : cbf_constraints) {
+        A.insert(row, 0) = c.a.x();
+        A.insert(row, 1) = c.a.y();
+        lower(row) = c.b;
+        upper(row) = OsqpEigen::INFTY;
+        ++row;
+    }
+
+    // ux >= ux_min
+    A.insert(row, 0) = 1.0;
+    A.insert(row, 1) = 0.0;
+    lower(row) = ux_min;
+    upper(row) = OsqpEigen::INFTY;
+    ++row;
+
+    // ux <= ux_max
+    A.insert(row, 0) = 1.0;
+    A.insert(row, 1) = 0.0;
+    lower(row) = -OsqpEigen::INFTY;
+    upper(row) = ux_max;
+    ++row;
+
+    // uy >= uy_min
+    A.insert(row, 0) = 0.0;
+    A.insert(row, 1) = 1.0;
+    lower(row) = uy_min;
+    upper(row) = OsqpEigen::INFTY;
+    ++row;
+
+    // uy <= uy_max
+    A.insert(row, 0) = 0.0;
+    A.insert(row, 1) = 1.0;
+    lower(row) = -OsqpEigen::INFTY;
+    upper(row) = uy_max;
+    ++row;
+
+    A.makeCompressed();
+    H.makeCompressed();
+
+    OsqpEigen::Solver solver;
+    solver.settings()->setWarmStart(true);
+    solver.settings()->setVerbosity(false);
+
+    solver.data()->setNumberOfVariables(n);
+    solver.data()->setNumberOfConstraints(m);
+
+    if (!solver.data()->setHessianMatrix(H)) return false;
+    if (!solver.data()->setGradient(f)) return false;
+    if (!solver.data()->setLinearConstraintsMatrix(A)) return false;
+    if (!solver.data()->setLowerBound(lower)) return false;
+    if (!solver.data()->setUpperBound(upper)) return false;
+
+    if (!solver.initSolver()) return false;
+    // if (!solver.solveProblem()) return false;
+    if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) {
+    return false;
+}
+
+    const Eigen::VectorXd sol = solver.getSolution();
+    if (sol.size() != 2 || !std::isfinite(sol(0)) || !std::isfinite(sol(1))) {
+        return false;
+    }
+
+    u_sol << sol(0), sol(1);
+    return true;
+}
 
     void TrajectoryController::clipRobotVelocity(float & velLinXFeedback, float & velLinYFeedback, float & velAngFeedback) 
     {

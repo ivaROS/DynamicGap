@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -88,4 +89,6 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}
+  OsqpEigen::OsqpEigen
+  Eigen3::Eigen
 )

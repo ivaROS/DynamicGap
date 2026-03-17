@@ -3307,191 +3307,52 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                                 localTrajectory.robotVel
                             );
                             
-                    if (rightCBFOutput.valid == false && leftCBFOutput.valid == false){
-                        cmdVel = rawCmdVel; 
-                        // by the way I call h0 > 0 as not valid that way the cbf output is not used
-                        }
+                   std::vector<CbfLinConstraint> cons;
 
-                    else if (rightCBFOutput.valid == true && leftCBFOutput.valid == false)
-                    {
-                    float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
-                    Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
-                    nidMat(1, 1) = (1.0 / l_);
+// Use whichever u_nom stored; they should be the same
+Eigen::Vector2d u_nom; // btw u_nom is rawCmdVel but converted to holo
+u_nom << static_cast<double>(leftCBFOutput.u_nom.x()),
+         static_cast<double>(leftCBFOutput.u_nom.y());
 
-                    Eigen::Vector2f nonholoVelocityCommand = nidMat * rightCBFOutput.u_proj; // negRotMat * 
+if (leftCBFOutput.valid) {
+    cons.push_back(leftCBFOutput);
+}
 
-                    float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
-                    float velLinYFeedback = 0.0;
-                    float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
+if (rightCBFOutput.valid) {
+    cons.push_back(rightCBFOutput);
+}
 
-                    ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
-                    ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
+// No active CBF constraints -> use nominal command
+if (cons.empty()) {
+    cmdVel = rawCmdVel;
+}
+else {
+    Eigen::Vector2d u_safe;
 
-                    float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
-                    {
-                        clippedVelLinXFeedback = velLinXFeedback;
-                    } else
-                    {
-                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
-                    }
+    const double ux_min = -cfg_.rbt.vx_absmax;
+    const double ux_max =  cfg_.rbt.vx_absmax;
 
-                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-                    cmdVel.linear.x = clippedVelLinXFeedback;
-                    cmdVel.linear.y = 0.0;
-                    cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
+    // u_y = l_ * w
+    const double l_ = (cfg_.rbt.r_inscr * cfg_.traj.inf_ratio);
+    const double uy_min = -l_ * cfg_.rbt.vang_absmax;
+    const double uy_max =  l_ * cfg_.rbt.vang_absmax;
 
-                    // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
-                    ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
+    bool ok = trajController_->solveQpOsqp2D(u_nom, cons, ux_min, ux_max, uy_min, uy_max, u_safe);
 
-                    ROS_ERROR_STREAM_NAMED("CBF",
-                    "\n----------------------right OUTPUT----------------------------------\n"
-                    << " v=" << cmdVel.linear.x
-                    << " w=" << cmdVel.angular.z
-                    );
+    if (!ok) {
+        cmdVel = rawCmdVel;  // fallback
+    } else {
+        cmdVel.linear.x = u_safe.x();
+        cmdVel.linear.y = 0.0;
+        cmdVel.angular.z = u_safe.y() / l_;
 
-                }
+        cmdVel.linear.x = std::max(-static_cast<double>(cfg_.rbt.cbf_vx_absmax),
+                           std::min(static_cast<double>(cfg_.rbt.cbf_vx_absmax), cmdVel.linear.x));
 
-                else if (rightCBFOutput.valid == false && leftCBFOutput.valid == true)
-                    {
-                    float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
-                    Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
-                    nidMat(1, 1) = (1.0 / l_);
-
-                    Eigen::Vector2f nonholoVelocityCommand = nidMat * leftCBFOutput.u_proj; // negRotMat * 
-
-                    float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
-                    float velLinYFeedback = 0.0;
-                    float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
-
-                    ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
-                    ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
-
-                    float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
-                    {
-                        clippedVelLinXFeedback = velLinXFeedback;
-                    } else
-                    {
-                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
-                    }
-
-                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-                    cmdVel.linear.x = clippedVelLinXFeedback;
-                    cmdVel.linear.y = 0.0;
-                    cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
-
-                    // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
-                    ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
-
-                    // ROS_ERROR_STREAM_NAMED("CBF",
-                    // "\n----------------------left OUTPUT----------------------------------\n"
-                    // << " v=" << cmdVel.linear.x
-                    // << " w=" << cmdVel.angular.z
-                    // );
-
-                }
-
-                else if (rightCBFOutput.valid == true && leftCBFOutput.valid == true)
-                {
-                    // Aliases for readability
-                    const Eigen::Vector2f& aL = leftCBFOutput.a;
-                    const Eigen::Vector2f& aR = rightCBFOutput.a;
-                    const float bL = leftCBFOutput.b;
-                    const float bR = rightCBFOutput.b;
-
-                    const Eigen::Vector2f& uL = leftCBFOutput.u_proj;
-                    const Eigen::Vector2f& uR = rightCBFOutput.u_proj;
-                    const Eigen::Vector2f& u_nom = rightCBFOutput.u_nom;
-
-                    bool uL_ok = sat(aL,bL,uL) && sat(aR,bR,uL);
-                    bool uR_ok = sat(aL,bL,uR) && sat(aR,bR,uR);
-
-                    Eigen::Vector2f u_best;
-                    float best = std::numeric_limits<float>::infinity();
-
-                    // if they're both ok, then consider() makes sure that we pick the one closest to u_nom
-                    if (uL_ok) consider(uL, u_nom, best, u_best); // consider using uL
-                    if (uR_ok) consider(uR, u_nom, best, u_best);
-
-                    if (!std::isfinite(best)) {
-                        // neither single projection satisfies both -> intersection
-                        Eigen::Vector2f u_int;
-                        bool ok = solve2x2(aL.x(),aL.y(), aR.x(),aR.y(), bL,bR, u_int);
-                        if (!ok) return rightCBFOutput.beforeCBFNonHoloCmdVel; // fallback. I convert to nonholo right at the very end of cbf related stuff
-                        if (!sat(aL,bL,u_int) || !sat(aR,bR,u_int)) return rightCBFOutput.beforeCBFNonHoloCmdVel; // fallback
-                        u_best = u_int;
-                    }
-
-                    // visual
-                    // const std::string frame = cfg_->sensor_frame_id;   // same as publishVrelArrow
-                    Eigen::Vector2f origin = Eigen::Vector2f::Zero();
-
-                     Eigen::Vector2f left_v_rel_safe = -u_best + localTrajectory.humanVelLeft;
-                      publishVrelArrow(origin,
-                        left_v_rel_safe,
-                        cfg_.sensor_frame_id,
-                        "left_v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
-
-                     Eigen::Vector2f right_v_rel_safe = -u_best + localTrajectory.humanVelRight;
-                      publishVrelArrow(origin,
-                        right_v_rel_safe,
-                        cfg_.sensor_frame_id,
-                        "right_v_rel_safe",
-                        vrel_safe_pub_,
-                         0.2f,  // R
-                        1.0f,  // G
-                        0.2f,  // B
-                        1.0f); // A
-                        
-
-                    // Eigen::Vector2f u_final = u_best;  // unused // THIS is the final u that satisfies both
-
-                    //////////// convert to non holonomic, going to put this in a function later /////////////////////////
-                    float l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio; // error.norm();
-                    Eigen::Matrix2f nidMat = Eigen::Matrix2f::Identity();
-                    nidMat(1, 1) = (1.0 / l_);
-
-                    Eigen::Vector2f nonholoVelocityCommand = nidMat * u_best; // negRotMat * 
-
-                    float velLinXFeedback = nonholoVelocityCommand[0]; // nonholoCmdVel.linear.x; // 
-                    float velLinYFeedback = 0.0;
-                    float velAngFeedback = nonholoVelocityCommand[1]; // nonholoCmdVel.angular.z; //  
-
-                    ROS_INFO_STREAM_NAMED("Controller", "        generating nonholonomic control signal");            
-                    ROS_INFO_STREAM_NAMED("Controller", "        Feedback command velocities, v_x: " << velLinXFeedback << ", v_ang: " << velAngFeedback);
-
-                    float clippedVelLinXFeedback = 0.0;
-                    if (std::abs(velLinXFeedback) < cfg_.rbt.cbf_vx_absmax)
-                    {
-                        clippedVelLinXFeedback = velLinXFeedback;
-                    } else
-                    {
-                        clippedVelLinXFeedback = cfg_.rbt.cbf_vx_absmax * epsilonDivide(velLinXFeedback, std::abs(velLinXFeedback));
-                    }
-
-                    // geometry_msgs::Twist cmdVel = geometry_msgs::Twist();
-                    cmdVel.linear.x = clippedVelLinXFeedback;
-                    cmdVel.linear.y = 0.0;
-                    cmdVel.angular.z = std::max(-cfg_.rbt.vang_absmax, std::min(cfg_.rbt.vang_absmax, velAngFeedback));
-
-                    // clipRobotVelocity(velLinXFeedback, velLinYFeedback, velAngFeedback);
-                    ROS_INFO_STREAM_NAMED("Controller", "        clipped nonholonomic command velocity, v_x:" << cmdVel.linear.x << ", v_ang: " << cmdVel.angular.z);
-
-                    ROS_ERROR_STREAM_NAMED("CBF",
-                    "\n----------------------left and right needed cbf output: ----------------------------------\n"
-                    << " v=" << cmdVel.linear.x
-                    << " w=" << cmdVel.angular.z
-                    ); 
-
-
-                }
-                
+        cmdVel.angular.z = std::max(-static_cast<double>(cfg_.rbt.vang_absmax),
+                            std::min(static_cast<double>(cfg_.rbt.vang_absmax), cmdVel.angular.z));
+    }
+}
 
                 //////////////// Projectection operator ///////////////////////////////////////////////
 

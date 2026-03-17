@@ -26,6 +26,10 @@
 #include <thread>
 #include <dynamic_gap/utils/CbfLinConstraint.h>
 // #include <chrono>
+#include <OsqpEigen/OsqpEigen.h>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <vector>
 
 namespace dynamic_gap 
 {
@@ -132,6 +136,15 @@ namespace dynamic_gap
                                                                         const geometry_msgs::Pose & desiredPoseOdomFrame,
                                                                         const geometry_msgs::Twist & nonholoCmdVel,
                                                                         const geometry_msgs::PoseStamped & rbtPoseInSensorFrame); 
+            
+                                                                        
+            bool solveQpOsqp2D(const Eigen::Vector2d& u_nom,
+                   const std::vector<CbfLinConstraint>& cbf_constraints,
+                   double ux_min,
+                   double ux_max,
+                   double uy_min,
+                   double uy_max,
+                   Eigen::Vector2d& u_sol);
 
             float DPCBF(Eigen::Vector2f relativeVel,
                             Eigen::Vector2f relativeGapPos,
