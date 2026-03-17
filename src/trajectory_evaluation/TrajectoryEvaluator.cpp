@@ -1002,7 +1002,7 @@ namespace dynamic_gap
         // if(gap)
         if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
 
@@ -1019,7 +1019,7 @@ namespace dynamic_gap
                 auto it = leftPosDictPtr_->find(leftGapPtID);
                 if (it != leftPosDictPtr_->end()) {
                     leftGapRelPos = it->second;
-                    ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
+                    // ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
                 } else {
                     ROS_WARN_STREAM("Missing leftPos for modelID=" << leftGapPtID);
                 }
@@ -1031,7 +1031,7 @@ namespace dynamic_gap
                 auto it = rightPosDictPtr_->find(rightGapPtID);
                 if (it != rightPosDictPtr_->end()) {
                     rightGapRelPos = it->second;
-                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
+                    // ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
 
                 } else {
                     ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
@@ -1263,7 +1263,7 @@ namespace dynamic_gap
         // float h_cost = V_eff * V_eff;
         float h_cost = V_eff; 
         
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
         terminalPoseCost += h_cost; // just taching h_cost onto this
         // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
 
@@ -1286,7 +1286,7 @@ namespace dynamic_gap
                 // FYI ^ thats always run, regardless of whether if(gap) returns false, which means you cant even compute relvel. Always running ^ that is a waste of compute, but it keeps code simple 
                 
                 // in future if you want to add path costs, you have to add it here as well 
-                ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_reducedCurrentTraj cost: " << posewiseCosts.at(i) << "): ");
+                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_reducedCurrentTraj cost: " << posewiseCosts.at(i) << "): ");
             }
             // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
@@ -1339,7 +1339,7 @@ namespace dynamic_gap
         // if(gap)
         if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
-        ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
+        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "rightGapPtID: " << rightGapPtID << " leftGapPtID: " << leftGapPtID);
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
 
@@ -1356,7 +1356,7 @@ namespace dynamic_gap
                 auto it = leftPosDictPtr_->find(leftGapPtID);
                 if (it != leftPosDictPtr_->end()) {
                     leftGapRelPos = it->second;
-                    ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
+                    // ROS_ERROR_STREAM("leftgapID: " << leftGapPtID << " leftGapRelPos: " << leftGapRelPos);
                 } else {
                     ROS_WARN_STREAM("Missing leftPos for modelID=" << leftGapPtID);
                 }
@@ -1368,7 +1368,7 @@ namespace dynamic_gap
                 auto it = rightPosDictPtr_->find(rightGapPtID);
                 if (it != rightPosDictPtr_->end()) {
                     rightGapRelPos = it->second;
-                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
+                    // ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightGapRelPos: " << rightGapRelPos);
 
                 } else {
                     ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
@@ -1580,7 +1580,7 @@ namespace dynamic_gap
                 if (it != rightVelDictPtr_->end())
                 {
                     rightVel = it->second;
-                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightVel: " << rightVel);
+                    // ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightVel: " << rightVel);
                 }
                 else
                 {
@@ -1599,7 +1599,7 @@ namespace dynamic_gap
                 auto it = rightPosDictPtr_->find(rightGapPtID);
                 if (it != rightPosDictPtr_->end()) {
                     rightPos = it->second;
-                    ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightPos: " << rightPos);
+                    // ROS_ERROR_STREAM("rightgapID: " << rightGapPtID << " rightPos: " << rightPos);
 
                 } else {
                     ROS_WARN_STREAM("Missing rightPos for modelID=" << rightGapPtID);
