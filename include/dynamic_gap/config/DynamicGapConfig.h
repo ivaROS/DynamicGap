@@ -132,7 +132,7 @@ namespace dynamic_gap
                 // float w_goal = 0.0; // no longer used,  I'm just using the original Q_f. see 20260303 commit. 
                 float w_speed = 0.0; // NOTE: speed cost is not added anywhere. If you want to use it you have 
                 // to add it to eiether terminal cost once, or you can somehow add it to every pose.  
-                float w_relvel = 0.0;  /** weight for relative velocity cost (aka social cost) */
+                float w_relvel = 1.0;  /** weight for relative velocity cost (aka social cost) */
                 float w_h = 1.0; /** weight for using the cbf's h to compute a cost for scoring */
             } traj;            
             
