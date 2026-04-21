@@ -120,6 +120,12 @@ namespace dynamic_gap
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
 
+        manualTrajSelectionSub_ = nh_.subscribe("/manual_traj_selection", 1,
+                                        &Planner::manualTrajSelectionCB, this);
+
+        manualCandidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>(
+            "/manual_candidate_markers", 1);
+
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
         rbt2odom_.transform.rotation.w = 1;
@@ -629,6 +635,132 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
         // ROS_INFO_STREAM("tfCB succeeded");
+    }
+
+    void Planner::manualTrajSelectionCB(const std_msgs::Int32::ConstPtr& msg)
+    {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+        selectedManualCandidateId_ = msg->data;
+        ROS_INFO_STREAM_NAMED("Planner", "Received manual trajectory selection: "
+                                        << selectedManualCandidateId_);
+    }
+
+    void Planner::publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
+                                            const std::vector<Trajectory>& ungapTrajs,
+                                            const std::vector<Trajectory>& idlingTrajs)
+    {
+        // ====== FLAGS (change only here) ======
+        bool disableUngapTrajs = true;   // true = hide/remove ungap candidates
+        bool disableIdlingTrajs = true;   // true = hide/remove idling candidates
+        // ======================================
+
+        visualization_msgs::MarkerArray marker_array;
+
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+        currentManualCandidates_.clear();
+
+        int display_id = 0;
+        int marker_id = 0;
+
+        auto add_marker_for_traj =
+            [&](const Trajectory& traj, int traj_flag, int local_idx)
+        {
+            if (traj.getPathOdomFrame().poses.empty())
+                return;
+
+            ManualCandidate c;
+            c.display_id = display_id;
+            c.traj_flag = traj_flag;
+            c.local_idx = local_idx;
+            currentManualCandidates_.push_back(c);
+
+            const geometry_msgs::Pose& terminal_pose =
+                traj.getPathOdomFrame().poses.back();
+
+            visualization_msgs::Marker text_marker;
+            text_marker.header = traj.getPathOdomFrame().header;
+            text_marker.ns = "manual_candidate_ids";
+            text_marker.id = marker_id++;
+            text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            text_marker.action = visualization_msgs::Marker::ADD;
+            text_marker.pose = terminal_pose;
+            text_marker.pose.position.z += 0.35;
+            text_marker.scale.z = 0.30;
+
+            if (display_id == selectedManualCandidateId_)
+            {
+                text_marker.color.a = 1.0;
+                text_marker.color.r = 0.0;
+                text_marker.color.g = 1.0;
+                text_marker.color.b = 0.0;
+            }
+            else
+            {
+                text_marker.color.a = 1.0;
+                text_marker.color.r = 1.0;
+                text_marker.color.g = 1.0;
+                text_marker.color.b = 0.0;
+            }
+
+            text_marker.text = std::to_string(display_id);
+
+            marker_array.markers.push_back(text_marker);
+            display_id++;
+        };
+
+        // GAP trajectories
+        for (size_t i = 0; i < gapTrajs.size(); i++)
+            add_marker_for_traj(gapTrajs.at(i), GAP, i);
+
+        // UNGAP trajectories
+        if (!disableUngapTrajs)
+        {
+            for (size_t i = 0; i < ungapTrajs.size(); i++)
+                add_marker_for_traj(ungapTrajs.at(i), UNGAP, i);
+        }
+
+        // IDLING trajectories
+        if (!disableIdlingTrajs)
+        {
+            for (size_t i = 0; i < idlingTrajs.size(); i++)
+                add_marker_for_traj(idlingTrajs.at(i), IDLING, i);
+        }
+
+        manualCandidateMarkerPub_.publish(marker_array);
+    }
+
+    bool Planner::getHumanSelectedTrajectory(int& trajFlag,
+                                         int& lowestCostTrajIdx,
+                                         const std::vector<Trajectory>& gapTrajs,
+                                         const std::vector<Trajectory>& ungapTrajs,
+                                         const std::vector<Trajectory>& idlingTrajs)
+    {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+
+        trajFlag = NONE;
+        lowestCostTrajIdx = -1;
+
+        for (const ManualCandidate& c : currentManualCandidates_)
+        {
+            if (c.display_id == selectedManualCandidateId_)
+            {
+                trajFlag = c.traj_flag;
+                lowestCostTrajIdx = c.local_idx;
+
+                ROS_INFO_STREAM_NAMED("Planner",
+                    "Manual candidate matched. display_id=" << c.display_id
+                    << ", trajFlag=" << trajFlag
+                    << ", local_idx=" << lowestCostTrajIdx);
+
+                return true;
+            }
+        }
+
+        ROS_WARN_STREAM_NAMED("Planner",
+            "No valid human-selected candidate currently available. selectedManualCandidateId_="
+            << selectedManualCandidateId_);
+
+        return false;
     }
 
     void Planner::updateEgoCircle()
@@ -1830,9 +1962,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
-            generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
-            timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
+            // timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
+            // generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
+            // timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
@@ -1850,16 +1982,52 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
         //                               GAP TRAJECTORY SELECTION                           //
         //////////////////////////////////////////////////////////////////////////////////////
+        if (manualSelectionMode_) // todo add manualSelectionMode_ to config 
+        {
+            publishManualCandidateMarkers(gapTrajs, ungapTrajs, idlingTrajs);
+        }
 
         timeKeeper_->startTimer(TRAJ_PICK);
         int lowestCostTrajIdx = -1;
         trajFlag = NONE;
-        
-        pickTraj(trajFlag, lowestCostTrajIdx, 
-                    gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
-                    ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
-                    idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+
+        bool haveManualSelection = false;
+
+        if (manualSelectionMode_)
+        {
+            haveManualSelection = getHumanSelectedTrajectory(trajFlag,
+                                                            lowestCostTrajIdx,
+                                                            gapTrajs,
+                                                            ungapTrajs,
+                                                            idlingTrajs);
+        }
+        else
+        {
+            pickTraj(trajFlag, lowestCostTrajIdx,
+                        gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                        ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+                        idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+        }
+
         timeKeeper_->stopTimer(TRAJ_PICK);
+
+        if (manualSelectionMode_ && !haveManualSelection)
+        {
+            ROS_INFO_STREAM_NAMED("Planner",
+                "Manual mode enabled but no valid human selection available. Keeping current trajectory.");
+            chosenTraj = getCurrentTraj();
+            return;
+        }
+
+        // timeKeeper_->startTimer(TRAJ_PICK);
+        // int lowestCostTrajIdx = -1;
+        // trajFlag = NONE;
+        
+        // pickTraj(trajFlag, lowestCostTrajIdx, 
+        //             gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+        //             ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+        //             idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+        // timeKeeper_->stopTimer(TRAJ_PICK);
 
         //////////////////////////////////////////////////////////////////////////////////////
         //                              GAP TRAJECTORY COMPARISON                           //

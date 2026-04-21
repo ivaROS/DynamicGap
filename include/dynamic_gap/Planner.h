@@ -61,6 +61,8 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <std_msgs/Int32.h>
+#include <visualization_msgs/MarkerArray.h>
 
 namespace dynamic_gap
 {
@@ -143,6 +145,33 @@ namespace dynamic_gap
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
         private:
+            struct ManualCandidate
+            {
+                int display_id;
+                int traj_flag;   // GAP, UNGAP, IDLING
+                int local_idx;
+            };
+
+            ros::Subscriber manualTrajSelectionSub_;
+            ros::Publisher manualCandidateMarkerPub_;
+
+            int selectedManualCandidateId_ = -1;
+            bool manualSelectionMode_ = true;
+
+            std::vector<ManualCandidate> currentManualCandidates_;
+            boost::mutex manualSelectionMutex_;
+
+            void manualTrajSelectionCB(const std_msgs::Int32::ConstPtr& msg);
+
+            void publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
+                                            const std::vector<Trajectory>& ungapTrajs,
+                                            const std::vector<Trajectory>& idlingTrajs);
+
+            bool getHumanSelectedTrajectory(int& trajFlag,
+                                            int& lowestCostTrajIdx,
+                                            const std::vector<Trajectory>& gapTrajs,
+                                            const std::vector<Trajectory>& ungapTrajs,
+                                            const std::vector<Trajectory>& idlingTrajs);
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                         std::vector<Ungap *> & ungaps);
