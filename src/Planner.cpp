@@ -685,7 +685,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             text_marker.action = visualization_msgs::Marker::ADD;
             text_marker.pose = terminal_pose;
             text_marker.pose.position.z += 0.35;
-            text_marker.scale.z = 0.30;
+            text_marker.scale.z = 2.0;
 
             if (display_id == selectedManualCandidateId_)
             {
@@ -697,8 +697,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             else
             {
                 text_marker.color.a = 1.0;
-                text_marker.color.r = 1.0;
-                text_marker.color.g = 1.0;
+                text_marker.color.r = 0.0;
+                text_marker.color.g = 0.0;
                 text_marker.color.b = 0.0;
             }
 
