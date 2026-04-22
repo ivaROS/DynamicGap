@@ -1105,8 +1105,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 Trajectory runningTraj;
                 std::vector<float> runningPoseCosts;
                 float runningTerminalPoseCost;
+                
+                bool disable_gap_tubes = true; 
+                int iterate;
+                if(disable_gap_tubes)
+                { 
+                    iterate = 1; 
+                }
+                else
+                { 
+                    iterate = gapTube->size(); 
+                }
 
-                for (int j = 0; j < gapTube->size(); j++) 
+                // for (int j = 0; j < gapTube->size(); j++) 
+                for (int j = 0;j < iterate; j++) 
                 {
                     Trajectory traj; 
                     Trajectory goToGoalTraj, pursuitGuidanceTraj;
