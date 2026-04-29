@@ -115,6 +115,15 @@ namespace dynamic_gap
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
+        mapSub_ = nh_.subscribe("/map", 1, &Planner::mapCB, this);
+
+        fmmDistanceSub_ = nh_.subscribe("/dgap/fmm_distance_map",
+                                        1,
+                                        &Planner::fmmDistanceCB,
+                                        this);
+
+        fmmGoalPub_ = nh_.advertise<geometry_msgs::PoseStamped>("/dgap/fmm_goal", 1, true);
+
         // Visualization Setup
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
@@ -574,6 +583,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             return false;
 
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
+        fmmGoalPub_.publish(globalGoalMapFrame);
         tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_); // to update odom frame parameter
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_); // to update robot frame parameter
         
@@ -629,7 +639,48 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // tf2::doTransform(rbtPoseInRbtFrame_, rbtPoseInSensorFrame_, rbt2cam_);
 
         // ROS_INFO_STREAM("tfCB succeeded");
+
+        rbt2map_ = tfBuffer_.lookupTransform(cfg_.map_frame_id,
+                                     cfg_.robot_frame_id,
+                                     ros::Time(0));
+
+        trajEvaluator_->updateRbtToMapTransform(rbt2map_);
     }
+
+    void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+{
+    boost::mutex::scoped_lock lock(mapMutex_);
+    staticMap_ = *msg;
+    hasStaticMap_ = true;
+}
+
+void Planner::fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg)
+{
+    boost::mutex::scoped_lock lock(mapMutex_);
+
+    if (!hasStaticMap_)
+    {
+        ROS_WARN_STREAM_NAMED("Planner",
+            "Received FMM distances but no static map yet");
+        return;
+    }
+
+    std::vector<float> fmmDistances = msg->data;
+
+    if (fmmDistances.size() != staticMap_.info.width * staticMap_.info.height)
+    {
+        ROS_WARN_STREAM_NAMED("Planner",
+            "FMM distance size mismatch: distances=" << fmmDistances.size()
+            << ", map=" << staticMap_.info.width * staticMap_.info.height);
+        return;
+    }
+
+    
+    trajEvaluator_->updateFmmMap(staticMap_, fmmDistances);
+
+    ROS_INFO_STREAM_NAMED("Planner",
+        "Updated TrajectoryEvaluator with received FMM distance map");
+}
 
     void Planner::updateEgoCircle()
     {

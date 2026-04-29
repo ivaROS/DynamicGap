@@ -62,6 +62,9 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <nav_msgs/OccupancyGrid.h>
+#include <std_msgs/Float32MultiArray.h>
+
 namespace dynamic_gap
 {
     /**
@@ -208,6 +211,10 @@ namespace dynamic_gap
             * \param msg incoming agent odometry message
             */
             void tfCB(const tf2_msgs::TFMessage& msg);
+
+            void mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg);
+            
+            void fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg);
 
             /**
             * \brief Function for all member objects updating their current egocircles
@@ -451,6 +458,16 @@ namespace dynamic_gap
             boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
 
             ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
+
+            ros::Subscriber mapSub_;
+            ros::Subscriber fmmDistanceSub_;
+            ros::Publisher fmmGoalPub_;
+
+            boost::mutex mapMutex_;
+            nav_msgs::OccupancyGrid staticMap_;
+            bool hasStaticMap_ = false;
+
+            geometry_msgs::TransformStamped rbt2map_;
 
             geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
             geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
