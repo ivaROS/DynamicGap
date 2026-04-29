@@ -1422,7 +1422,13 @@ void Planner::fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg)
             // selecting best trajectory
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
             int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
+            
+            int best_idx = candidateLowestCostTrajIdx;
 
+            ROS_ERROR_STREAM_NAMED("Planner",
+                "SELECTED traj " << best_idx
+                << " | total_traj_cost=" << pathCosts.at(best_idx));
+                
             if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
             {    
                 ROS_INFO_STREAM_NAMED("Planner", "    all infinity");

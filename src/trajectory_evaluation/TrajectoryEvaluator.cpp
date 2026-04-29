@@ -179,7 +179,6 @@ namespace dynamic_gap
 
     fmmMapInfo_ = map;
     fmmDistances_ = fmm_distances;
-    ROS_ERROR_STREAM("FMM sample: " << fmmDistances_[0]);
 
     if (fmmDistances_.size() != map.info.width * map.info.height)
     {
