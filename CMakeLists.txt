@@ -86,6 +86,11 @@ add_library(${PROJECT_NAME}
   src/TimeKeeper.cpp
   ) 
 
+catkin_install_python(PROGRAMS
+  scripts/fmm_distance_node.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 target_link_libraries(${PROJECT_NAME}
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}

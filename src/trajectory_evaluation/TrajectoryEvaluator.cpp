@@ -148,7 +148,13 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+            // terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+
+            if (cfg_->planning.FMM_global_cost)
+            {
+                computeFMMTerminalPoseCost(path, terminalPoseCost);
+            }
+            else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
@@ -538,6 +544,36 @@ namespace dynamic_gap
     }
 
 
+    void TrajectoryEvaluator::computeFMMTerminalPoseCost(
+    const geometry_msgs::PoseArray& path,
+    float& terminalPoseCost)
+    {
+        geometry_msgs::PoseStamped terminalPoseRbt;
+        terminalPoseRbt.header = path.header;
+        terminalPoseRbt.header.frame_id = cfg_->robot_frame_id;
+        terminalPoseRbt.header.stamp = ros::Time(0);
+        terminalPoseRbt.pose = path.poses.back();
+
+        geometry_msgs::PoseStamped terminalPoseMap;
+
+        {
+            boost::mutex::scoped_lock lock(tfMutex_);
+
+            if (!hasRbt2Map_)
+            {
+                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+                    "No rbt2map transform available, falling back to terminalGoalCost()");
+                terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+            }
+            else
+            {
+                tf2::doTransform(terminalPoseRbt, terminalPoseMap, rbt2map_);
+                terminalPoseCost = cfg_->traj.Q_f * terminalFmmCost(terminalPoseMap.pose);
+            }
+        }
+    }
+
+
       void TrajectoryEvaluator::dwa_evaluateTrajectory_outside(
         // float & totalTrajCost, 
                                 Trajectory & traj,
@@ -589,7 +625,13 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+            // terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+
+            if (cfg_->planning.FMM_global_cost)
+            {
+                computeFMMTerminalPoseCost(path, terminalPoseCost);
+            }
+            else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
@@ -960,7 +1002,12 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
 
             // obtain terminalGoalCost, scale by Q
-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
+
+            if (cfg_->planning.FMM_global_cost)
+            {
+                computeFMMTerminalPoseCost(path, terminalPoseCost);
+            }
+            else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
@@ -1796,6 +1843,94 @@ float TrajectoryEvaluator::relativeVelocityCost(
     // );
 
     return cost;
+}
+
+
+void TrajectoryEvaluator::updateFmmMap(
+    const nav_msgs::OccupancyGrid& map,
+    const std::vector<float>& fmm_distances)
+{
+    boost::mutex::scoped_lock lock(fmmMutex_);
+
+    fmmMapInfo_ = map;
+    fmmDistances_ = fmm_distances;
+
+    if (fmmDistances_.size() != map.info.width * map.info.height)
+    {
+        ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+            "FMM map size mismatch: distances=" << fmmDistances_.size()
+            << ", map=" << map.info.width * map.info.height);
+        hasFmmMap_ = false;
+        return;
+    }
+
+    hasFmmMap_ = true;
+}
+
+void TrajectoryEvaluator::updateRbtToMapTransform(
+    const geometry_msgs::TransformStamped& rbt2map)
+{
+    boost::mutex::scoped_lock lock(tfMutex_);
+    rbt2map_ = rbt2map;
+    hasRbt2Map_ = true;
+}
+
+bool TrajectoryEvaluator::worldToMap(float x, float y, int& mx, int& my) const
+{
+    const float origin_x = fmmMapInfo_.info.origin.position.x;
+    const float origin_y = fmmMapInfo_.info.origin.position.y;
+    const float res = fmmMapInfo_.info.resolution;
+
+    mx = static_cast<int>((x - origin_x) / res);
+    my = static_cast<int>((y - origin_y) / res);
+
+    return mx >= 0 &&
+           my >= 0 &&
+           mx < static_cast<int>(fmmMapInfo_.info.width) &&
+           my < static_cast<int>(fmmMapInfo_.info.height);
+}
+
+float TrajectoryEvaluator::getFmmDistanceAtWorld(float x, float y) const
+{
+    int mx, my;
+
+    if (!worldToMap(x, y, mx, my))
+        return std::numeric_limits<float>::infinity();
+
+    const int idx = my * fmmMapInfo_.info.width + mx;
+    return fmmDistances_.at(idx);
+}
+
+float TrajectoryEvaluator::terminalFmmCost(
+    const geometry_msgs::Pose& poseMapFrame)
+{
+    boost::mutex::scoped_lock lock(fmmMutex_);
+
+    if (!hasFmmMap_)
+    {
+        ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+            "No FMM map available, falling back to terminalGoalCost()");
+        return terminalGoalCost(poseMapFrame);
+    }
+
+    float d = getFmmDistanceAtWorld(
+        poseMapFrame.position.x,
+        poseMapFrame.position.y);
+
+    if (!std::isfinite(d))
+    {
+        ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
+            "Terminal pose has invalid FMM distance");
+        return std::numeric_limits<float>::infinity();
+    }
+
+    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+        "FMM terminal pose map: ("
+        << poseMapFrame.position.x << ", "
+        << poseMapFrame.position.y
+        << "), cost-to-go: " << d);
+
+    return d;
 }
 
 

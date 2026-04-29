@@ -63,6 +63,9 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <nav_msgs/OccupancyGrid.h>
+#include <std_msgs/Float32MultiArray.h>
+
 namespace dynamic_gap
 {
     /**
@@ -474,6 +477,16 @@ namespace dynamic_gap
             ros::Publisher transformed_path_pub_;
             ros::Publisher vrel_safe_pub_;
 
+            ros::Subscriber mapSub_;
+            ros::Subscriber fmmDistanceSub_;
+            ros::Publisher fmmGoalPub_;
+
+            boost::mutex mapMutex_;
+            nav_msgs::OccupancyGrid staticMap_;
+            bool hasStaticMap_ = false;
+
+            geometry_msgs::TransformStamped rbt2map_;
+
             typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::TwistStamped> rbtPoseAndAccSyncPolicy; /**< Custom synchronization policy for robot pose and acceleration messages */
             typedef message_filters::Synchronizer<rbtPoseAndAccSyncPolicy> CustomSynchronizer; /**< Custom synchronizer for robot pose and acceleration messages */
             boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
@@ -482,6 +495,9 @@ namespace dynamic_gap
 
             ros::Subscriber gapVelSub_; // used in relvel cacluation
             void gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg);
+
+            void mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg); // used for fmm progress score 
+            void fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg);
 
 
             geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */

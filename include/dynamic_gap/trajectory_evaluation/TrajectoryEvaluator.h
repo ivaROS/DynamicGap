@@ -22,6 +22,13 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <nav_msgs/OccupancyGrid.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <limits>
+#include <cmath>
+
 namespace dynamic_gap
 {
     /**
@@ -171,6 +178,11 @@ namespace dynamic_gap
             std::unordered_map<int, Eigen::Vector2f>* rightVelDictPtr_;
             std::unordered_map<int, Eigen::Vector2f>* leftPosDictPtr_;
             std::unordered_map<int, Eigen::Vector2f>* rightPosDictPtr_;
+        
+            void updateFmmMap(const nav_msgs::OccupancyGrid& map,
+                  const std::vector<float>& fmm_distances);
+
+            void updateRbtToMapTransform(const geometry_msgs::TransformStamped& rbt2map);
 
             
         private:
@@ -198,6 +210,18 @@ namespace dynamic_gap
             */
             float chapterCost(const float & rbtToScanDist);
 
+            float terminalFmmCost(const geometry_msgs::Pose& poseMapFrame);
+            bool worldToMap(float x, float y, int& mx, int& my) const;
+            float getFmmDistanceAtWorld(float x, float y) const;
+
+            /**
+             * \brief compute terminal pose cost using FMM (robot frame → map frame → FMM lookup)
+             * \param path trajectory path in robot frame
+             * \param terminalPoseCost output terminal cost
+             */
+            void computeFMMTerminalPoseCost(const geometry_msgs::PoseArray& path,
+                                            float& terminalPoseCost);
+
             boost::mutex globalPlanMutex_; /**< mutex locking thread for updating current global plan */
             boost::mutex scanMutex_; /**< mutex locking thread for updating current scan */
             
@@ -206,5 +230,14 @@ namespace dynamic_gap
 
             // sensor_msgs::LaserScan staticScan_;
             geometry_msgs::PoseStamped globalPathLocalWaypointRobotFrame_; /**< Current local waypoint along global plan in robot frame */
+
+            boost::mutex fmmMutex_;
+            nav_msgs::OccupancyGrid fmmMapInfo_;
+            std::vector<float> fmmDistances_;
+            bool hasFmmMap_ = false;
+
+            boost::mutex tfMutex_;
+            geometry_msgs::TransformStamped rbt2map_;
+            bool hasRbt2Map_ = false;
     };
 }
