@@ -239,42 +239,22 @@ float TrajectoryEvaluator::terminalFmmCost(
         return terminalGoalCost(poseMapFrame);
     }
 
-    // --- convert world → grid ---
-    int mx, my;
-    bool inside = worldToMap(
+    float d = getFmmDistanceAtWorld(
         poseMapFrame.position.x,
-        poseMapFrame.position.y,
-        mx, my);
+        poseMapFrame.position.y);
 
-    const int width  = fmmMapInfo_.info.width;
-    const int height = fmmMapInfo_.info.height;
-
-    // --- clamp (prevents out-of-bounds issues) ---
-    int mx_clamped = std::max(0, std::min(mx, width - 1));
-    int my_clamped = std::max(0, std::min(my, height - 1));
-
-    int idx = my_clamped * width + mx_clamped;
-
-    float d = fmmDistances_.at(idx);
-
-    // --- DEBUG (THIS IS THE IMPORTANT PART) ---
-    ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator",
-        "FMM QUERY: world=("
-        << poseMapFrame.position.x << ", "
-        << poseMapFrame.position.y << ") "
-        << "grid=(" << mx << ", " << my << ") "
-        << "clamped=(" << mx_clamped << ", " << my_clamped << ") "
-        << "inside=" << inside
-        << " dist=" << d);
-
-    // --- handle invalid ---
     if (!std::isfinite(d))
     {
         ROS_WARN_STREAM_NAMED("TrajectoryEvaluator",
-            "Terminal pose in invalid FMM region → applying penalty");
-
-        return 1000.0f;  // large but finite penalty (IMPORTANT CHANGE)
+            "Terminal pose has invalid FMM distance");
+        return std::numeric_limits<float>::infinity();
     }
+
+    ROS_INFO_STREAM_NAMED("TrajectoryEvaluator",
+        "FMM terminal pose map: ("
+        << poseMapFrame.position.x << ", "
+        << poseMapFrame.position.y
+        << "), cost-to-go: " << d);
 
     return d;
 }
