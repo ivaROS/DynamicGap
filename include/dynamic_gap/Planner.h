@@ -496,7 +496,7 @@ namespace dynamic_gap
             ros::Subscriber gapVelSub_; // used in relvel cacluation
             void gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg);
 
-            void mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg); // used for fmm progress score 
+            void mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg); // used for fmm progress score //
             void fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg);
 
 
