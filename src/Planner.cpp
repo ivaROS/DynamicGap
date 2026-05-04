@@ -1830,9 +1830,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                         UNGAP TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
-            generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
-            timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
+            // timeKeeper_->startTimer(UNGAP_TRAJ_GEN);
+            // generateUngapTrajs(recedingUngaps, ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts, futureScans);
+            // timeKeeper_->stopTimer(UNGAP_TRAJ_GEN);
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
