@@ -127,7 +127,7 @@ namespace dynamic_gap
                 float Q = 1.0; /**< Scaling hyperparameter for trajectory pose-wise cost */
                 float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
-                float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
+                float Q_f = 1.0; /**< DO NOT ADJUST THIS HERE, ADJUST IT IN ARENA'S dgap_local_planner_params.yaml file . Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
                 // float w_obs = 1.5; // no longer used, I'm just using the original Q see 20260303 commit. 
                 float w_path = 0.0; //NOTE: do not add back until you add path costs to dwa_evaluateTrajectory_outside
                 // float w_goal = 0.0; // no longer used,  I'm just using the original Q_f. see 20260303 commit. 
