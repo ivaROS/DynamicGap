@@ -261,7 +261,7 @@ def main():
         mse_text=mse_text
     )
 
-    print("")
+    print("") #
     print(f"saved vx plot: {vx_path}")
     print(f"saved vy plot: {vy_path}")
     print(f"saved speed plot: {speed_path}")
