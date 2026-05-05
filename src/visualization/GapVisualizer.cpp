@@ -1,5 +1,9 @@
 #include <dynamic_gap/visualization/GapVisualizer.h>
 #include <iomanip>
+   #include <ctime>
+#include <sstream>
+#include <iomanip>
+
 
 namespace dynamic_gap
 {
@@ -8,43 +12,43 @@ namespace dynamic_gap
         initialize(nh, cfg);
     }
 
-    void GapVisualizer::initializeGapCsvLogger(ros::NodeHandle& nh)
+
+void GapVisualizer::initializeGapCsvLogger(ros::NodeHandle& nh)
 {
-    nh.param<bool>("gap_csv_logging_enabled", gapCsvLoggingEnabled_, true);
+    gapCsvLoggingEnabled_ = true;  // force enable for now
 
-    nh.param<std::string>(
-        "gap_csv_path",
-        gapCsvPath_,
-        std::string("/tmp/simplified_gap_velocity_data.csv")
-    );
+    // === Base directory ===
+    std::string base_dir = "/home/az/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
 
-    if (!gapCsvLoggingEnabled_)
-    {
-        ROS_WARN_STREAM_NAMED("Visualizer",
-            "[Gap CSV Logger] Disabled.");
-        return;
-    }
+    // === Get current time ===
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::localtime(&t);
 
-    gapCsvFile_.open(gapCsvPath_, std::ios::out | std::ios::app);
+    // === Format: dgap_YY-MM-DD_HH-MM ===
+    std::ostringstream filename;
+    filename << base_dir << "/dgap_"
+             << std::put_time(&tm, "%y-%m-%d_%H-%M")
+             << ".csv";
+
+    gapCsvPath_ = filename.str();
+
+    // === Open file ===
+    gapCsvFile_.open(gapCsvPath_, std::ios::out);
 
     if (!gapCsvFile_.is_open())
     {
         ROS_ERROR_STREAM_NAMED("Visualizer",
-            "[Gap CSV Logger] Failed to open CSV file: " << gapCsvPath_);
+            "[Gap CSV Logger] Failed to open: " << gapCsvPath_);
         gapCsvLoggingEnabled_ = false;
         return;
     }
 
-    if (gapCsvFile_.tellp() == 0)
-    {
-        gapCsvFile_ << "time,gap_id,side,x,y,vx,vy,ns\n";
-        gapCsvHeaderWritten_ = true;
-    }
+    // === Write header ===
+    gapCsvFile_ << "time,gap_id,side,x,y,vx,vy,ns\n";
 
     ROS_WARN_STREAM_NAMED("Visualizer",
-        "[Gap CSV Logger] Logging simplified gap data to: " << gapCsvPath_);
+        "[Gap CSV Logger] Writing to: " << gapCsvPath_);
 }
-
 
 void GapVisualizer::logSimplifiedGapCsvRow(
     const ros::Time& stamp,
