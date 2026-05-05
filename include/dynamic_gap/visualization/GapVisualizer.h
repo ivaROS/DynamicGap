@@ -9,6 +9,9 @@
 
 #include <map>
 
+#include <fstream>
+#include <string>
+
 namespace dynamic_gap
 {
     /**
@@ -202,5 +205,22 @@ namespace dynamic_gap
 
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;
+
+            private:
+                std::ofstream gapCsvFile_;
+                bool gapCsvHeaderWritten_ = false;
+                bool gapCsvLoggingEnabled_ = true;
+                std::string gapCsvPath_;
+
+                void initializeGapCsvLogger(ros::NodeHandle& nh);
+
+                void logSimplifiedGapCsvRow(
+                    const ros::Time& stamp,
+                    const int& gap_id,
+                    const std::string& side,
+                    const Eigen::Vector2f& gapState,
+                    const Eigen::Vector2f& gapVel,
+                    const std::string& ns
+                );
     };
 }
