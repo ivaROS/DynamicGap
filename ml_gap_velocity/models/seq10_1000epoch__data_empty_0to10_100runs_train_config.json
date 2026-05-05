@@ -1,0 +1,31 @@
+{
+    "run_name": "seq10_1000epoch",
+    "output_base_name": "seq10_1000epoch__data_empty_0to10_100runs",
+    "csv": "data/empty_0to10_100runs.csv",
+    "model_path": "models/seq10_1000epoch__data_empty_0to10_100runs_gap_gru.pt",
+    "stats_path": "models/seq10_1000epoch__data_empty_0to10_100runs_norm_stats.json",
+    "config_path": "models/seq10_1000epoch__data_empty_0to10_100runs_train_config.json",
+    "history_path": "models/seq10_1000epoch__data_empty_0to10_100runs_train_history.csv",
+    "seq_len": 10,
+    "hidden_size": 64,
+    "num_layers": 2,
+    "batch_size": 64,
+    "epochs": 1000,
+    "lr": 0.001,
+    "seed": 42,
+    "input_features": [
+        "x",
+        "y"
+    ],
+    "output_features": [
+        "vx",
+        "vy"
+    ],
+    "group_cols": [
+        "gap_id",
+        "side"
+    ],
+    "num_samples": 49897,
+    "train_size": 39917,
+    "val_size": 9980
+}
