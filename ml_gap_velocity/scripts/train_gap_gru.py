@@ -11,6 +11,25 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
 
+def safe_name(name):
+    return (
+        str(name)
+        .replace("/", "_")
+        .replace(" ", "_")
+        .replace(":", "-")
+        .replace("(", "")
+        .replace(")", "")
+        .replace(",", "")
+        .replace("'", "")
+        .replace('"', "")
+    )
+
+
+def make_output_base_name(run_name, csv_path):
+    csv_base = os.path.splitext(os.path.basename(csv_path))[0]
+    return f"{safe_name(run_name)}__data_{safe_name(csv_base)}"
+
+
 class GapSequenceDataset(Dataset):
     def __init__(self, csv_path, seq_len=10):
         self.seq_len = seq_len
@@ -27,6 +46,7 @@ class GapSequenceDataset(Dataset):
         self.samples_x = []
         self.samples_y = []
 
+        # Gap IDs are globally unique in your setup, so this is enough.
         group_cols = ["gap_id", "side"]
 
         for _, group in df.groupby(group_cols):
@@ -98,8 +118,22 @@ class GapVelocityGRU(nn.Module):
         return pred
 
 
+def check_overwrite(paths, overwrite):
+    if overwrite:
+        return
+
+    existing = [p for p in paths if os.path.exists(p)]
+
+    if len(existing) > 0:
+        msg = "These output files already exist:\n"
+        msg += "\n".join(existing)
+        msg += "\n\nUse --overwrite if you intentionally want to replace them."
+        raise RuntimeError(msg)
+
+
 def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
+    print(f"device: {device}")
 
     dataset = GapSequenceDataset(args.csv, seq_len=args.seq_len)
 
@@ -109,7 +143,7 @@ def train(args):
     train_dataset, val_dataset = random_split(
         dataset,
         [train_size, val_size],
-        generator=torch.Generator().manual_seed(42)
+        generator=torch.Generator().manual_seed(args.seed)
     )
 
     train_loader = DataLoader(
@@ -138,8 +172,69 @@ def train(args):
 
     os.makedirs(args.model_dir, exist_ok=True)
 
-    best_model_path = os.path.join(args.model_dir, "gap_gru.pt")
-    stats_path = os.path.join(args.model_dir, "norm_stats.json")
+    output_base_name = make_output_base_name(args.run_name, args.csv)
+
+    best_model_path = os.path.join(
+        args.model_dir,
+        f"{output_base_name}_gap_gru.pt"
+    )
+
+    stats_path = os.path.join(
+        args.model_dir,
+        f"{output_base_name}_norm_stats.json"
+    )
+
+    config_path = os.path.join(
+        args.model_dir,
+        f"{output_base_name}_train_config.json"
+    )
+
+    history_path = os.path.join(
+        args.model_dir,
+        f"{output_base_name}_train_history.csv"
+    )
+
+    check_overwrite(
+        [best_model_path, stats_path, config_path, history_path],
+        overwrite=args.overwrite
+    )
+
+    train_config = {
+        "run_name": args.run_name,
+        "output_base_name": output_base_name,
+        "csv": args.csv,
+        "model_path": best_model_path,
+        "stats_path": stats_path,
+        "config_path": config_path,
+        "history_path": history_path,
+        "seq_len": args.seq_len,
+        "hidden_size": args.hidden_size,
+        "num_layers": args.num_layers,
+        "batch_size": args.batch_size,
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "seed": args.seed,
+        "input_features": ["x", "y"],
+        "output_features": ["vx", "vy"],
+        "group_cols": ["gap_id", "side"],
+        "num_samples": len(dataset),
+        "train_size": train_size,
+        "val_size": val_size,
+    }
+
+    with open(config_path, "w") as f:
+        json.dump(train_config, f, indent=4)
+
+    print("")
+    print(f"training data: {args.csv}")
+    print(f"output base name: {output_base_name}")
+    print(f"model will save to: {best_model_path}")
+    print(f"stats will save to: {stats_path}")
+    print(f"config will save to: {config_path}")
+    print(f"history will save to: {history_path}")
+    print("")
+
+    history_rows = []
 
     for epoch in range(args.epochs):
         model.train()
@@ -174,6 +269,13 @@ def train(args):
         train_loss = float(np.mean(train_losses))
         val_loss = float(np.mean(val_losses))
 
+        history_rows.append({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "best_val_loss_so_far": min(best_val_loss, val_loss),
+        })
+
         print(
             f"epoch {epoch + 1:04d} | "
             f"train_loss={train_loss:.6f} | "
@@ -194,13 +296,21 @@ def train(args):
             model.to(device)
 
             stats = {
+                "run_name": args.run_name,
+                "output_base_name": output_base_name,
+                "csv": args.csv,
+                "model_path": best_model_path,
+                "best_val_loss": best_val_loss,
                 "seq_len": args.seq_len,
+                "hidden_size": args.hidden_size,
+                "num_layers": args.num_layers,
                 "x_mean": dataset.x_mean.tolist(),
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
                 "input_features": ["x", "y"],
-                "output_features": ["vx", "vy"]
+                "output_features": ["vx", "vy"],
+                "group_cols": ["gap_id", "side"],
             }
 
             with open(stats_path, "w") as f:
@@ -209,8 +319,21 @@ def train(args):
             print(f"saved best model to {best_model_path}")
             print(f"saved normalization stats to {stats_path}")
 
+    pd.DataFrame(history_rows).to_csv(history_path, index=False)
+
+    print("")
     print("done")
     print(f"best_val_loss={best_val_loss:.6f}")
+    print("")
+    print("Use this for testing:")
+    print(
+        "python3 scripts/test_gap_gru.py "
+        f"--csv {args.csv} "
+        f"--model {best_model_path} "
+        f"--stats {stats_path} "
+        f"--plot-name {args.run_name} "
+        "--plot-dir plots"
+    )
 
 
 def main():
@@ -218,13 +341,21 @@ def main():
 
     parser.add_argument("--csv", required=True)
     parser.add_argument("--model-dir", required=True)
+
+    # This is the name you choose from the command line.
+    # The script automatically appends: __data_<csv_file_name>
+    parser.add_argument("--run-name", required=True)
+
     parser.add_argument("--seq-len", type=int, default=10)
     parser.add_argument("--hidden-size", type=int, default=64)
     parser.add_argument("--num-layers", type=int, default=2)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--seed", type=int, default=42)
+
     parser.add_argument("--cpu", action="store_true")
+    parser.add_argument("--overwrite", action="store_true")
 
     args = parser.parse_args()
     train(args)
