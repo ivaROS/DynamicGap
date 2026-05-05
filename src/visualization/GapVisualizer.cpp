@@ -2,8 +2,6 @@
 #include <iomanip>
    #include <ctime>
 #include <sstream>
-#include <iomanip>
-
 
 namespace dynamic_gap
 {
@@ -15,36 +13,37 @@ namespace dynamic_gap
 
 void GapVisualizer::initializeGapCsvLogger(ros::NodeHandle& nh)
 {
-    gapCsvLoggingEnabled_ = true;  // force enable for now
+    gapCsvLoggingEnabled_ = true;
 
-    // === Base directory ===
-    std::string base_dir = "/home/az/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
+    std::string base_dir =
+        "/home/az/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
 
-    // === Get current time ===
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
 
-    // === Format: dgap_YY-MM-DD_HH-MM ===
+    std::ostringstream session_id_stream;
+    session_id_stream << "dgap_"
+                      << std::put_time(&tm, "%y-%m-%d_%H-%M-%S");
+
+    gapCsvSessionId_ = session_id_stream.str();
+
     std::ostringstream filename;
-    filename << base_dir << "/dgap_"
-             << std::put_time(&tm, "%y-%m-%d_%H-%M")
-             << ".csv";
+    filename << base_dir << "/" << gapCsvSessionId_ << ".csv";
 
     gapCsvPath_ = filename.str();
 
-    // === Open file ===
     gapCsvFile_.open(gapCsvPath_, std::ios::out);
 
     if (!gapCsvFile_.is_open())
     {
         ROS_ERROR_STREAM_NAMED("Visualizer",
-            "[Gap CSV Logger] Failed to open: " << gapCsvPath_);
+            "[Gap CSV Logger] Failed to open CSV file: " << gapCsvPath_);
         gapCsvLoggingEnabled_ = false;
         return;
     }
 
-    // === Write header ===
-    gapCsvFile_ << "time,gap_id,side,x,y,vx,vy,ns\n";
+    gapCsvFile_
+        << "session_id,run_id,time,gap_id,side,x,y,vx,vy,ns\n";
 
     ROS_WARN_STREAM_NAMED("Visualizer",
         "[Gap CSV Logger] Writing to: " << gapCsvPath_);
@@ -52,6 +51,7 @@ void GapVisualizer::initializeGapCsvLogger(ros::NodeHandle& nh)
 
 void GapVisualizer::logSimplifiedGapCsvRow(
     const ros::Time& stamp,
+    const int& run_id,
     const int& gap_id,
     const std::string& side,
     const Eigen::Vector2f& gapState,
@@ -66,6 +66,8 @@ void GapVisualizer::logSimplifiedGapCsvRow(
 
     gapCsvFile_
         << std::fixed << std::setprecision(6)
+        << gapCsvSessionId_ << ","
+        << run_id << ","
         << stamp.toSec() << ","
         << gap_id << ","
         << side << ","
@@ -180,7 +182,17 @@ void GapVisualizer::logSimplifiedGapCsvRow(
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("reachable", reachable));
         colorMap.insert(std::pair<std::string, std_msgs::ColorRGBA>("gap_splines", gapSplines));    
         
-        initializeGapCsvLogger(nh);
+        std::string scenario_reset_topic;
+        nh.param<std::string>("scenario_reset_topic", scenario_reset_topic, "/scenario_reset");
+
+        scenarioResetSub_ = nh.subscribe(
+            scenario_reset_topic,
+            1,
+            &GapVisualizer::scenarioResetCallback,
+            this
+        );
+
+initializeGapCsvLogger(nh);
     }
 
     void GapVisualizer::drawGaps(const std::vector<Gap *> & gaps, const std::string & ns) 
@@ -526,13 +538,13 @@ void GapVisualizer::logSimplifiedGapCsvRow(
     if (isSimp)
     {
         logSimplifiedGapCsvRow(
-            modelMarker.header.stamp,
-            gap_id,
-            left ? "left" : "right",
-            gapState,
-            gapVel,
-            ns
-        );
+    modelMarker.header.stamp,
+    currentRunId_,
+    gap_id,
+    left ? "left" : "right",
+    gapState,
+    gapVel,
+    ns);
 
         ROS_ERROR_STREAM_NAMED("Visualizer",
             "[drawModelVelocity] gapState=" << gapState.transpose()
@@ -1208,5 +1220,13 @@ void GapVisualizer::logSimplifiedGapCsvRow(
         modelMarker.scale.z = 0.000001;
 
         // modelMarker.lifetime = ros::Duration(0);
+    }
+
+    void GapVisualizer::scenarioResetCallback(const std_msgs::Int16::ConstPtr& msg)
+    {
+        currentRunId_ = static_cast<int>(msg->data);
+
+        ROS_WARN_STREAM_NAMED("Visualizer",
+            "[Gap CSV Logger] Current run_id updated to: " << currentRunId_);
     }
 }

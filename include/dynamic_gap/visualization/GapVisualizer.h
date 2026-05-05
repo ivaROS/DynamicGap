@@ -11,6 +11,7 @@
 
 #include <fstream>
 #include <string>
+#include <std_msgs/Int16.h>
 
 namespace dynamic_gap
 {
@@ -57,6 +58,7 @@ namespace dynamic_gap
             void drawGapTubes(const std::vector<GapTube *> & gapTubes);            
 
         private:
+            
             /**
             * \brief initialize gap visualizer
             * \param nh ROS node handle for gap visualizer
@@ -206,21 +208,83 @@ namespace dynamic_gap
             int gapSpanResoln = 2;
             float invGapSpanResoln = 0.5;
 
-            private:
-                std::ofstream gapCsvFile_;
-                bool gapCsvHeaderWritten_ = false;
-                bool gapCsvLoggingEnabled_ = true;
-                std::string gapCsvPath_;
+    /**
+     * \brief Subscriber for Arena task reset messages.
+     *
+     * Each reset message gives the current run/episode index. This is used so
+     * repeated gap IDs from different runs are not treated as the same sequence
+     * during GRU training.
+     */
+    ros::Subscriber scenarioResetSub_;
 
-                void initializeGapCsvLogger(ros::NodeHandle& nh);
+    /**
+     * \brief Current Arena run/episode ID.
+     *
+     * Updated from the scenario reset topic and written into every CSV row.
+     */
+    int currentRunId_ = 0;
 
-                void logSimplifiedGapCsvRow(
-                    const ros::Time& stamp,
-                    const int& gap_id,
-                    const std::string& side,
-                    const Eigen::Vector2f& gapState,
-                    const Eigen::Vector2f& gapVel,
-                    const std::string& ns
-                );
+    /**
+     * \brief Output file stream for simplified gap velocity training data.
+     */
+    std::ofstream gapCsvFile_;
+
+    /**
+     * \brief Enables or disables simplified gap CSV logging.
+     */
+    bool gapCsvLoggingEnabled_ = true;
+
+    /**
+     * \brief Full path to the active CSV log file.
+     */
+    std::string gapCsvPath_;
+
+    /**
+     * \brief Unique session ID for the current logging file.
+     *
+     * Usually generated from the launch time, for example:
+     * dgap_26-05-05_08-29-26
+     */
+    std::string gapCsvSessionId_;
+
+    /**
+     * \brief Callback for Arena task reset messages.
+     * \param msg Reset message containing the current run/episode index.
+     *
+     * Updates currentRunId_ so the CSV can distinguish repeated gap IDs across
+     * different runs.
+     */
+    void scenarioResetCallback(const std_msgs::Int16::ConstPtr& msg);
+
+    /**
+     * \brief Initializes the simplified gap CSV logger.
+     * \param nh ROS node handle used to read parameters if needed.
+     *
+     * Creates a timestamped CSV file and writes the header row.
+     */
+    void initializeGapCsvLogger(ros::NodeHandle& nh);
+
+    /**
+     * \brief Writes one simplified gap training sample to the CSV file.
+     * \param stamp ROS timestamp for the sample.
+     * \param run_id Current Arena run/episode ID.
+     * \param gap_id Gap model ID.
+     * \param side Gap side, usually "left" or "right".
+     * \param gapState Simplified gap position state [x, y].
+     * \param gapVel Gap velocity label [vx, vy].
+     * \param ns Visualization namespace, used to confirm simplified/raw type.
+     *
+     * The stored row is used for GRU training where the input is a sequence of
+     * gap states and the label is the corresponding gap velocity.
+     */
+    void logSimplifiedGapCsvRow(
+        const ros::Time& stamp,
+        const int& run_id,
+        const int& gap_id,
+        const std::string& side,
+        const Eigen::Vector2f& gapState,
+        const Eigen::Vector2f& gapVel,
+        const std::string& ns
+    );
     };
 }
