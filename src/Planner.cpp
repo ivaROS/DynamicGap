@@ -329,6 +329,85 @@ namespace dynamic_gap
 
         timeKeeper_->stopTimer(SCAN);
     }
+    geometry_msgs::TwistStamped Planner::getRobotVelocityForGapLabel(
+    const std::vector<geometry_msgs::TwistStamped>& intermediateRbtVels) const
+    {
+        if (!intermediateRbtVels.empty())
+            return intermediateRbtVels.back();
+
+        return currentRbtVel_;
+    }
+
+    Planner::PerfectGapVelocityLabel Planner::computePerfectGapVelocityLabel(
+    const Eigen::Vector2f& gapPtRobotFrame,
+    const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
+    const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
+    const geometry_msgs::TwistStamped& robotVelRobotFrame,
+    const float& matchThresh) const
+{
+    PerfectGapVelocityLabel label;
+
+    // Default assumption:
+    // If this gap point is not near a pedestrian, assume it belongs to the static environment.
+    // A static world point appears to move opposite the robot in the robot frame.
+    label.rel_vel << -robotVelRobotFrame.twist.linear.x,
+                     -robotVelRobotFrame.twist.linear.y;
+
+    label.world_vel_robot << 0.0f, 0.0f;
+    label.matched_agent_id = "";
+    label.match_dist = std::numeric_limits<float>::infinity();
+    label.matched_dynamic_agent = false;
+
+    float minDist = std::numeric_limits<float>::infinity();
+    std::string bestAgentID = "";
+
+    for (const auto& agentPair : trueAgentPoses)
+    {
+        const std::string& agentID = agentPair.first;
+        const geometry_msgs::Pose& agentPose = agentPair.second;
+
+        float dx = agentPose.position.x - gapPtRobotFrame[0];
+        float dy = agentPose.position.y - gapPtRobotFrame[1];
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < minDist)
+        {
+            minDist = dist;
+            bestAgentID = agentID;
+        }
+    }
+
+    label.match_dist = minDist;
+    label.matched_agent_id = bestAgentID;
+
+    bool matchedAgent =
+        !bestAgentID.empty() &&
+        minDist < matchThresh &&
+        trueAgentVels.find(bestAgentID) != trueAgentVels.end();
+
+    if (matchedAgent)
+    {
+        const geometry_msgs::Vector3Stamped& agentVel = trueAgentVels.at(bestAgentID);
+
+        // True pedestrian/world velocity expressed in the robot frame.
+        label.world_vel_robot << agentVel.vector.x,
+                                 agentVel.vector.y;
+
+        // Relative velocity convention, matching the old PerfectEstimator:
+        //
+        // dynamic gap:
+        //      v_gap_relative = v_agent_robot_frame - v_robot_robot_frame
+        //
+        // static gap:
+        //      v_gap_relative = 0 - v_robot_robot_frame
+        label.rel_vel << agentVel.vector.x - robotVelRobotFrame.twist.linear.x,
+                         agentVel.vector.y - robotVelRobotFrame.twist.linear.y;
+
+        label.matched_dynamic_agent = true;
+    }
+
+    return label;
+}
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     void Planner::updateModels(std::vector<Gap *> & gaps, 
@@ -349,51 +428,110 @@ namespace dynamic_gap
     }
 
     void Planner::updateModel(const int & idx, 
-                                std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate) 
+                            std::vector<Gap *> & gaps, 
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                            const ros::Time & tCurrentFilterUpdate) 
+{
+    Gap * gap = gaps[int(0.5 * idx)];
+
+    float rX = 0.0;
+    float rY = 0.0;
+
+    Estimator* model = nullptr;
+    std::string side = "";
+
+    if (idx % 2 == 0) 
     {
-        Gap * gap = gaps[int(0.5 * idx)];
-
-        float rX = 0.0, rY = 0.0;
-        if (idx % 2 == 0) 
-            gap->getLCartesian(rX, rY);            
-        else 
-            gap->getRCartesian(rX, rY);            
-
-        // ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
-
-        Eigen::Vector2f measurement(rX, rY);
-
-        if (idx % 2 == 0) 
-        {
-            if (gap->getLeftGapPt()->getModel())
-            {
-                gap->getLeftGapPt()->getModel()->update(measurement, 
-                                                        intermediateRbtVels, intermediateRbtAccs, 
-                                                        currentTrueAgentPoses_, 
-                                                        currentTrueAgentVels_,
-                                                        tCurrentFilterUpdate);                    
-            } else
-            {
-                ROS_WARN_STREAM_NAMED("GapEstimation", "left model is null");
-            }
-        } else 
-        {
-            if (gap->getRightGapPt()->getModel())
-            {
-                gap->getRightGapPt()->getModel()->update(measurement, 
-                                                        intermediateRbtVels, intermediateRbtAccs, 
-                                                        currentTrueAgentPoses_, 
-                                                        currentTrueAgentVels_,
-                                                        tCurrentFilterUpdate);                    
-            } else
-            {                
-                ROS_WARN_STREAM_NAMED("GapEstimation", "right model is null");
-            }
-        }    
+        gap->getLCartesian(rX, rY);
+        model = gap->getLeftGapPt()->getModel();
+        side = "left";
+    } 
+    else 
+    {
+        gap->getRCartesian(rX, rY);
+        model = gap->getRightGapPt()->getModel();
+        side = "right";
     }
+
+    Eigen::Vector2f measurement(rX, rY);
+
+    if (!model)
+    {
+        ROS_WARN_STREAM_NAMED("GapEstimation", side << " model is null");
+        return;
+    }
+
+    //////////////////////////////////////////////////////
+    // 1. Normal current estimator update, unchanged
+    //////////////////////////////////////////////////////
+
+    model->update(measurement, 
+                  intermediateRbtVels,
+                  intermediateRbtAccs, 
+                  currentTrueAgentPoses_, 
+                  currentTrueAgentVels_,
+                  tCurrentFilterUpdate);
+
+    //////////////////////////////////////////////////////
+    // 2. Perfect velocity label for GRU training
+    //////////////////////////////////////////////////////
+
+    geometry_msgs::TwistStamped robotVelForLabel =
+        getRobotVelocityForGapLabel(intermediateRbtVels);
+
+    PerfectGapVelocityLabel perfectLabel =
+        computePerfectGapVelocityLabel(measurement,
+                                       currentTrueAgentPoses_,
+                                       currentTrueAgentVels_,
+                                       robotVelForLabel,
+                                       perfectGapVelMatchThresh_);
+
+    //////////////////////////////////////////////////////
+    //
+    //////////////////////////////////////////////////////
+
+    Eigen::Vector4f kalmanState = model->getState();
+
+    int gapIndex = int(0.5 * idx);
+    int modelID = model->getID();
+
+    float gapX = measurement[0];
+    float gapY = measurement[1];
+
+    float kalmanVx = kalmanState[2];
+    float kalmanVy = kalmanState[3];
+
+    float perfectRelVx = perfectLabel.rel_vel[0];
+    float perfectRelVy = perfectLabel.rel_vel[1];
+
+    float perfectWorldRobotVx = perfectLabel.world_vel_robot[0];
+    float perfectWorldRobotVy = perfectLabel.world_vel_robot[1];
+
+    std::string matchedAgentID = perfectLabel.matched_agent_id;
+    float matchDist = perfectLabel.match_dist;
+    bool matchedDynamicAgent = perfectLabel.matched_dynamic_agent;
+
+    //////////////////////////////////////////////////////
+    //  CSV logging 
+    //////////////////////////////////////////////////////
+
+    
+
+    ROS_ERROR_STREAM_NAMED("GapVelocityLabel",
+        "gap " << gapIndex
+        << " " << side
+        << " model " << modelID
+        << " pos=(" << gapX << ", " << gapY << ")"
+        << " kalman_vel=(" << kalmanVx << ", " << kalmanVy << ")"
+        << " perfect_rel_vel=(" << perfectRelVx << ", " << perfectRelVy << ")"
+        << " matched_agent=" << matchedAgentID
+        << " match_dist=" << matchDist
+        << " dynamic=" << matchedDynamicAgent
+    );
+
+    return;
+}
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)

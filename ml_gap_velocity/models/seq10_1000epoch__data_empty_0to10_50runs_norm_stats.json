@@ -1,0 +1,38 @@
+{
+    "run_name": "seq10_1000epoch",
+    "output_base_name": "seq10_1000epoch__data_empty_0to10_50runs",
+    "csv": "data/empty_0to10_50runs.csv",
+    "model_path": "models/seq10_1000epoch__data_empty_0to10_50runs_gap_gru.pt",
+    "best_val_loss": 0.44889251157308424,
+    "seq_len": 10,
+    "hidden_size": 64,
+    "num_layers": 2,
+    "x_mean": [
+        0.0018192927818745375,
+        0.011996328830718994
+    ],
+    "x_std": [
+        2.7381722927093506,
+        2.6198503971099854
+    ],
+    "y_mean": [
+        0.1643841713666916,
+        0.044047724455595016
+    ],
+    "y_std": [
+        0.3918915390968323,
+        0.3912351131439209
+    ],
+    "input_features": [
+        "x",
+        "y"
+    ],
+    "output_features": [
+        "vx",
+        "vy"
+    ],
+    "group_cols": [
+        "gap_id",
+        "side"
+    ]
+}

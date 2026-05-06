@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -96,6 +97,28 @@ namespace dynamic_gap
             * \return boolean for if global goal has been reached or not
             */
             bool isGoalReached();
+
+            struct PerfectGapVelocityLabel
+            {
+                Eigen::Vector2f rel_vel;          // label matching Kalman filter convention
+                Eigen::Vector2f world_vel_robot;  // true agent velocity expressed in robot frame
+
+                std::string matched_agent_id;
+                float match_dist = std::numeric_limits<float>::infinity();
+                bool matched_dynamic_agent = false;
+            };
+
+            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
+            const Eigen::Vector2f& gapPtRobotFrame,
+            const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
+            const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
+            const geometry_msgs::TwistStamped& robotVelRobotFrame,
+            const float& matchThresh) const;
+
+            geometry_msgs::TwistStamped getRobotVelocityForGapLabel(
+            const std::vector<geometry_msgs::TwistStamped>& intermediateRbtVels) const;
+            float perfectGapVelMatchThresh_ = 0.6; // TODO:  add to config. 0.6 should be more than enough
+            // i eyeballed rviz measured the DIAMETER of the agent to 0.3 
 
             /**
             * \brief Function for core planning loop of dynamic gap
