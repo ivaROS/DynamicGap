@@ -12,6 +12,10 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   rospy
   pedsim_msgs
   dynamic_reconfigure
+  std_msgs
+  geometry_msgs
+  visualization_msgs
+  message_generation
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -28,6 +32,18 @@ find_package(Eigen3 REQUIRED)
 generate_dynamic_reconfigure_options(
   cfg/ControlParameters.cfg
   cfg/EstimationParameters.cfg
+)
+
+add_message_files(
+  FILES
+  GapPointObservation.msg
+  GapVelocityPrediction.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
 )
 
 ###################################
