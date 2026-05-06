@@ -24,35 +24,22 @@ def safe_name(name):
 
 
 def build_features_for_group(group, input_dim):
-    group = group.sort_values("time").reset_index(drop=True)
+    group = group.sort_values("sample_idx").reset_index(drop=True)
 
-    time = group["time"].values.astype(np.float32)
+    if input_dim != 2:
+        raise RuntimeError(
+            f"This test script expects input_dim=2 for [x,y]. "
+            f"Got input_dim={input_dim} from norm_stats.json."
+        )
+
     x = group["x"].values.astype(np.float32)
     y = group["y"].values.astype(np.float32)
 
-    if input_dim == 2:
-        features = np.stack([x, y], axis=1).astype(np.float32)
+    features = np.stack([x, y], axis=1).astype(np.float32)
 
-    elif input_dim == 5:
-        dx = np.zeros_like(x)
-        dy = np.zeros_like(y)
-        dt = np.zeros_like(time)
-
-        dx[1:] = x[1:] - x[:-1]
-        dy[1:] = y[1:] - y[:-1]
-        dt[1:] = time[1:] - time[:-1]
-
-        dt = np.clip(dt, 1e-4, 1.0)
-
-        features = np.stack([x, y, dx, dy, dt], axis=1).astype(np.float32)
-
-    else:
-        raise RuntimeError(
-            f"Unsupported input dimension: {input_dim}. "
-            f"Expected 2 for [x,y] or 5 for [x,y,dx,dy,dt]."
-        )
-
-    true_vels = group[["vx", "vy"]].values.astype(np.float32)
+    true_vels = group[
+        ["perfect_rel_vx", "perfect_rel_vy"]
+    ].values.astype(np.float32)
 
     return group, features, true_vels
 
@@ -62,9 +49,9 @@ def run_model_on_all_gaps(model, df, seq_len, x_mean, x_std, y_mean, y_std):
 
     input_dim = len(x_mean)
 
-    for key, group in df.groupby(["gap_id", "side"]):
-        gap_id, side = key
-        group = group.sort_values("time").reset_index(drop=True)
+    for key, group in df.groupby(["model_id", "side"]):
+        model_id, side = key
+        group = group.sort_values("sample_idx").reset_index(drop=True)
 
         if len(group) < seq_len:
             continue
@@ -88,15 +75,14 @@ def run_model_on_all_gaps(model, df, seq_len, x_mean, x_std, y_mean, y_std):
             vector_error = float(np.sqrt(vx_error ** 2 + vy_error ** 2))
 
             rows.append({
-                "gap_id": int(gap_id),
+                "model_id": int(model_id),
                 "side": str(side),
-                "time": float(group.loc[i, "time"]),
-                "sample_idx": int(i),
+                "sample_idx": int(group.loc[i, "sample_idx"]),
 
-                "true_vx": float(y_true[0]),
-                "true_vy": float(y_true[1]),
-                "pred_vx": float(y_pred[0]),
-                "pred_vy": float(y_pred[1]),
+                "true_perfect_rel_vx": float(y_true[0]),
+                "true_perfect_rel_vy": float(y_true[1]),
+                "pred_perfect_rel_vx": float(y_pred[0]),
+                "pred_perfect_rel_vy": float(y_pred[1]),
 
                 "vx_error": vx_error,
                 "vy_error": vy_error,
@@ -139,14 +125,14 @@ def compute_global_metrics(results_df):
 def compute_per_gap_metrics(results_df):
     per_gap = []
 
-    for key, group in results_df.groupby(["gap_id", "side"]):
-        gap_id, side = key
+    for key, group in results_df.groupby(["model_id", "side"]):
+        model_id, side = key
 
         vector_mse = float(np.mean(group["squared_vector_error"]))
         vector_rmse = float(np.sqrt(vector_mse))
 
         per_gap.append({
-            "gap_id": int(gap_id),
+            "model_id": int(model_id),
             "side": str(side),
             "num_samples": int(len(group)),
             "vector_rmse": vector_rmse,
@@ -174,7 +160,7 @@ def make_all_gap_plots(results_df, per_gap_df, metrics, output_path_base, plot_t
     # 1. Histogram of vector error over all predictions.
     plt.figure(figsize=(10, 5))
     plt.hist(results_df["vector_error"].values, bins=60)
-    plt.xlabel("velocity vector error magnitude")
+    plt.xlabel("perfect relative velocity vector error magnitude")
     plt.ylabel("count")
     plt.title(f"{plot_title}\nAll prediction errors\n{metric_text}")
     plt.grid(True, alpha=0.3)
@@ -184,77 +170,99 @@ def make_all_gap_plots(results_df, per_gap_df, metrics, output_path_base, plot_t
     plt.close()
     saved_paths.append(path)
 
-    # 2. Per-gap RMSE, sorted worst to best.
+    # 2. Per-model RMSE, sorted worst to best.
     plt.figure(figsize=(14, 5))
     x_axis = np.arange(len(per_gap_df))
     plt.plot(x_axis, per_gap_df["vector_rmse"].values, marker="o", linewidth=1)
-    plt.xlabel("gap sequence sorted by vector RMSE, worst to best")
-    plt.ylabel("per-gap vector RMSE")
-    plt.title(f"{plot_title}\nPer-gap velocity prediction RMSE\n{metric_text}")
+    plt.xlabel("model_id + side sequence sorted by vector RMSE, worst to best")
+    plt.ylabel("per-sequence vector RMSE")
+    plt.title(f"{plot_title}\nPer-sequence perfect relative velocity RMSE\n{metric_text}")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    path = output_path_base + "_per_gap_rmse.png"
+    path = output_path_base + "_per_model_rmse.png"
     plt.savefig(path, dpi=200)
     plt.close()
     saved_paths.append(path)
 
-    # 3. Predicted vs true vx.
+    # 3. Predicted vs true perfect_rel_vx.
     plt.figure(figsize=(6, 6))
-    plt.scatter(results_df["true_vx"].values, results_df["pred_vx"].values, s=5, alpha=0.4)
-    min_val = min(results_df["true_vx"].min(), results_df["pred_vx"].min())
-    max_val = max(results_df["true_vx"].max(), results_df["pred_vx"].max())
+    plt.scatter(
+        results_df["true_perfect_rel_vx"].values,
+        results_df["pred_perfect_rel_vx"].values,
+        s=5,
+        alpha=0.4
+    )
+    min_val = min(
+        results_df["true_perfect_rel_vx"].min(),
+        results_df["pred_perfect_rel_vx"].min()
+    )
+    max_val = max(
+        results_df["true_perfect_rel_vx"].max(),
+        results_df["pred_perfect_rel_vx"].max()
+    )
     plt.plot([min_val, max_val], [min_val, max_val], linestyle="--")
-    plt.xlabel("true vx")
-    plt.ylabel("predicted vx")
-    plt.title(f"{plot_title}\nPredicted vs true vx | RMSE={metrics['vx_rmse']:.4f}")
+    plt.xlabel("true perfect_rel_vx")
+    plt.ylabel("predicted perfect_rel_vx")
+    plt.title(f"{plot_title}\nPredicted vs true perfect_rel_vx | RMSE={metrics['vx_rmse']:.4f}")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    path = output_path_base + "_vx_scatter.png"
+    path = output_path_base + "_perfect_rel_vx_scatter.png"
     plt.savefig(path, dpi=200)
     plt.close()
     saved_paths.append(path)
 
-    # 4. Predicted vs true vy.
+    # 4. Predicted vs true perfect_rel_vy.
     plt.figure(figsize=(6, 6))
-    plt.scatter(results_df["true_vy"].values, results_df["pred_vy"].values, s=5, alpha=0.4)
-    min_val = min(results_df["true_vy"].min(), results_df["pred_vy"].min())
-    max_val = max(results_df["true_vy"].max(), results_df["pred_vy"].max())
+    plt.scatter(
+        results_df["true_perfect_rel_vy"].values,
+        results_df["pred_perfect_rel_vy"].values,
+        s=5,
+        alpha=0.4
+    )
+    min_val = min(
+        results_df["true_perfect_rel_vy"].min(),
+        results_df["pred_perfect_rel_vy"].min()
+    )
+    max_val = max(
+        results_df["true_perfect_rel_vy"].max(),
+        results_df["pred_perfect_rel_vy"].max()
+    )
     plt.plot([min_val, max_val], [min_val, max_val], linestyle="--")
-    plt.xlabel("true vy")
-    plt.ylabel("predicted vy")
-    plt.title(f"{plot_title}\nPredicted vs true vy | RMSE={metrics['vy_rmse']:.4f}")
+    plt.xlabel("true perfect_rel_vy")
+    plt.ylabel("predicted perfect_rel_vy")
+    plt.title(f"{plot_title}\nPredicted vs true perfect_rel_vy | RMSE={metrics['vy_rmse']:.4f}")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    path = output_path_base + "_vy_scatter.png"
+    path = output_path_base + "_perfect_rel_vy_scatter.png"
     plt.savefig(path, dpi=200)
     plt.close()
     saved_paths.append(path)
 
-    # 5. Worst gap sequence plot.
+    # 5. Worst model/side sequence plot.
     worst_gap = per_gap_df.iloc[0]
-    worst_gap_id = worst_gap["gap_id"]
+    worst_model_id = worst_gap["model_id"]
     worst_side = worst_gap["side"]
 
     worst_df = results_df[
-        (results_df["gap_id"] == worst_gap_id)
+        (results_df["model_id"] == worst_model_id)
         & (results_df["side"] == worst_side)
     ].sort_values("sample_idx")
 
     plt.figure(figsize=(12, 5))
-    plt.plot(worst_df["sample_idx"], worst_df["true_vx"], label="true vx")
-    plt.plot(worst_df["sample_idx"], worst_df["pred_vx"], label="pred vx")
-    plt.plot(worst_df["sample_idx"], worst_df["true_vy"], label="true vy")
-    plt.plot(worst_df["sample_idx"], worst_df["pred_vy"], label="pred vy")
-    plt.xlabel("sample index")
-    plt.ylabel("velocity")
+    plt.plot(worst_df["sample_idx"], worst_df["true_perfect_rel_vx"], label="true perfect_rel_vx")
+    plt.plot(worst_df["sample_idx"], worst_df["pred_perfect_rel_vx"], label="pred perfect_rel_vx")
+    plt.plot(worst_df["sample_idx"], worst_df["true_perfect_rel_vy"], label="true perfect_rel_vy")
+    plt.plot(worst_df["sample_idx"], worst_df["pred_perfect_rel_vy"], label="pred perfect_rel_vy")
+    plt.xlabel("sample_idx")
+    plt.ylabel("perfect relative velocity")
     plt.title(
-        f"{plot_title}\nWorst gap: gap_id={worst_gap_id}, side={worst_side}, "
+        f"{plot_title}\nWorst sequence: model_id={worst_model_id}, side={worst_side}, "
         f"RMSE={worst_gap['vector_rmse']:.4f}"
     )
     plt.legend(loc="best")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    path = output_path_base + "_worst_gap_timeseries.png"
+    path = output_path_base + "_worst_model_timeseries.png"
     plt.savefig(path, dpi=200)
     plt.close()
     saved_paths.append(path)
@@ -271,7 +279,7 @@ def main():
 
     parser.add_argument("--num-print", type=int, default=20)
 
-    parser.add_argument("--plot-name", default="gap_gru_all_gap_test")
+    parser.add_argument("--plot-name", default="gap_gru_perfect_rel_test")
     parser.add_argument("--plot-dir", default="plots")
 
     parser.add_argument("--save-results-csv", action="store_true")
@@ -293,11 +301,25 @@ def main():
 
     df = pd.read_csv(args.csv)
 
-    if "ns" in df.columns:
-        df = df[df["ns"].astype(str).str.contains("simp", case=False, na=False)]
+    required_cols = [
+        "sample_idx",
+        "model_id",
+        "side",
+        "x",
+        "y",
+        "perfect_rel_vx",
+        "perfect_rel_vy",
+    ]
 
-    df = df.dropna(subset=["time", "gap_id", "side", "x", "y", "vx", "vy"])
-    df = df.sort_values(["gap_id", "side", "time"]).reset_index(drop=True)
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if len(missing_cols) > 0:
+        raise RuntimeError(
+            f"CSV is missing required columns: {missing_cols}\n"
+            f"Available columns: {list(df.columns)}"
+        )
+
+    df = df.dropna(subset=required_cols)
+    df = df.sort_values(["model_id", "side", "sample_idx"]).reset_index(drop=True)
 
     results_df = run_model_on_all_gaps(
         model=model,
@@ -316,9 +338,9 @@ def main():
     per_gap_df = compute_per_gap_metrics(results_df)
 
     print("")
-    print("Global metrics over all gaps:")
+    print("Global metrics over all model_id + side sequences:")
     print(f"num_predictions       = {len(results_df)}")
-    print(f"num_gap_sequences     = {len(per_gap_df)}")
+    print(f"num_sequences         = {len(per_gap_df)}")
     print(f"vx_mse                = {metrics['vx_mse']:.8f}")
     print(f"vy_mse                = {metrics['vy_mse']:.8f}")
     print(f"vx_rmse               = {metrics['vx_rmse']:.8f}")
@@ -331,7 +353,7 @@ def main():
     print(f"p95_vector_error      = {metrics['p95_vector_error']:.8f}")
 
     print("")
-    print("Worst gaps:")
+    print("Worst sequences:")
     print(per_gap_df.head(args.num_print).to_string(index=False))
 
     os.makedirs(args.plot_dir, exist_ok=True)
@@ -361,13 +383,13 @@ def main():
 
     if args.save_results_csv:
         results_path = output_path_base + "_all_predictions.csv"
-        per_gap_path = output_path_base + "_per_gap_metrics.csv"
+        per_gap_path = output_path_base + "_per_sequence_metrics.csv"
 
         results_df.to_csv(results_path, index=False)
         per_gap_df.to_csv(per_gap_path, index=False)
 
         print(f"saved all predictions csv: {results_path}")
-        print(f"saved per-gap metrics csv: {per_gap_path}")
+        print(f"saved per-sequence metrics csv: {per_gap_path}")
 
 
 if __name__ == "__main__":

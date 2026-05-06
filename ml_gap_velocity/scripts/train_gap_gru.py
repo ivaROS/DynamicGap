@@ -36,31 +36,47 @@ class GapSequenceDataset(Dataset):
 
         df = pd.read_csv(csv_path)
 
-        # Keep only simplified rows, just in case the CSV ever has more.
-        if "ns" in df.columns:
-            df = df[df["ns"].astype(str).str.contains("simp", case=False, na=False)]
+        required_cols = [
+            "sample_idx",
+            "model_id",
+            "side",
+            "x",
+            "y",
+            "perfect_rel_vx",
+            "perfect_rel_vy",
+        ]
 
-        df = df.dropna(subset=["time", "gap_id", "side", "x", "y", "vx", "vy"])
-        df = df.sort_values(["gap_id", "side", "time"]).reset_index(drop=True)
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if len(missing_cols) > 0:
+            raise RuntimeError(
+                f"CSV is missing required columns: {missing_cols}\n"
+                f"Available columns: {list(df.columns)}"
+            )
+
+        df = df.dropna(subset=required_cols)
+
+        df = df.sort_values(["model_id", "side", "sample_idx"]).reset_index(drop=True)
 
         self.samples_x = []
         self.samples_y = []
 
-        # Gap IDs are globally unique in your setup, so this is enough.
-        group_cols = ["gap_id", "side"]
+        group_cols = ["model_id", "side"]
 
         for _, group in df.groupby(group_cols):
-            group = group.sort_values("time")
+            group = group.sort_values("sample_idx").reset_index(drop=True)
 
             positions = group[["x", "y"]].values.astype(np.float32)
-            velocities = group[["vx", "vy"]].values.astype(np.float32)
+
+            perfect_rel_vels = group[
+                ["perfect_rel_vx", "perfect_rel_vy"]
+            ].values.astype(np.float32)
 
             if len(group) < seq_len:
                 continue
 
             for i in range(seq_len - 1, len(group)):
                 x_seq = positions[i - seq_len + 1 : i + 1]
-                y_label = velocities[i]
+                y_label = perfect_rel_vels[i]
 
                 self.samples_x.append(x_seq)
                 self.samples_y.append(y_label)
@@ -69,7 +85,10 @@ class GapSequenceDataset(Dataset):
         self.samples_y = np.array(self.samples_y, dtype=np.float32)
 
         if len(self.samples_x) == 0:
-            raise RuntimeError("No training sequences were created. Try lowering seq_len.")
+            raise RuntimeError(
+                "No training sequences were created. "
+                "Try lowering seq_len or collecting longer gap tracks."
+            )
 
         self.x_mean = self.samples_x.reshape(-1, 2).mean(axis=0)
         self.x_std = self.samples_x.reshape(-1, 2).std(axis=0) + 1e-8
@@ -79,6 +98,9 @@ class GapSequenceDataset(Dataset):
 
         self.samples_x = (self.samples_x - self.x_mean) / self.x_std
         self.samples_y = (self.samples_y - self.y_mean) / self.y_std
+
+        self.num_sequences = len(self.samples_x)
+        self.num_groups = df.groupby(group_cols).ngroups
 
     def __len__(self):
         return len(self.samples_x)
@@ -97,23 +119,23 @@ class GapVelocityGRU(nn.Module):
             input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
-            batch_first=True
+            batch_first=True,
         )
 
         self.head = nn.Sequential(
             nn.Linear(hidden_size, 64),
             nn.ReLU(),
-            nn.Linear(64, output_size)
+            nn.Linear(64, output_size),
         )
 
     def forward(self, x):
         # x shape: [batch, seq_len, 2]
-        out, hidden = self.gru(x)
+        out, _ = self.gru(x)
 
         # Use final GRU output.
         final_out = out[:, -1, :]
 
-        # Predict [vx, vy].
+        # Predict [perfect_rel_vx, perfect_rel_vy].
         pred = self.head(final_out)
         return pred
 
@@ -135,6 +157,9 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
     print(f"device: {device}")
 
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
     dataset = GapSequenceDataset(args.csv, seq_len=args.seq_len)
 
     train_size = int(0.8 * len(dataset))
@@ -143,26 +168,26 @@ def train(args):
     train_dataset, val_dataset = random_split(
         dataset,
         [train_size, val_size],
-        generator=torch.Generator().manual_seed(args.seed)
+        generator=torch.Generator().manual_seed(args.seed),
     )
 
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=True
+        shuffle=True,
     )
 
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
-        shuffle=False
+        shuffle=False,
     )
 
     model = GapVelocityGRU(
         input_size=2,
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
-        output_size=2
+        output_size=2,
     ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -176,27 +201,27 @@ def train(args):
 
     best_model_path = os.path.join(
         args.model_dir,
-        f"{output_base_name}_gap_gru.pt"
+        f"{output_base_name}_gap_gru.pt",
     )
 
     stats_path = os.path.join(
         args.model_dir,
-        f"{output_base_name}_norm_stats.json"
+        f"{output_base_name}_norm_stats.json",
     )
 
     config_path = os.path.join(
         args.model_dir,
-        f"{output_base_name}_train_config.json"
+        f"{output_base_name}_train_config.json",
     )
 
     history_path = os.path.join(
         args.model_dir,
-        f"{output_base_name}_train_history.csv"
+        f"{output_base_name}_train_history.csv",
     )
 
     check_overwrite(
         [best_model_path, stats_path, config_path, history_path],
-        overwrite=args.overwrite
+        overwrite=args.overwrite,
     )
 
     train_config = {
@@ -215,9 +240,10 @@ def train(args):
         "lr": args.lr,
         "seed": args.seed,
         "input_features": ["x", "y"],
-        "output_features": ["vx", "vy"],
-        "group_cols": ["gap_id", "side"],
+        "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+        "group_cols": ["model_id", "side"],
         "num_samples": len(dataset),
+        "num_groups": dataset.num_groups,
         "train_size": train_size,
         "val_size": val_size,
     }
@@ -228,6 +254,8 @@ def train(args):
     print("")
     print(f"training data: {args.csv}")
     print(f"output base name: {output_base_name}")
+    print(f"num sequences: {len(dataset)}")
+    print(f"num groups: {dataset.num_groups}")
     print(f"model will save to: {best_model_path}")
     print(f"stats will save to: {stats_path}")
     print(f"config will save to: {config_path}")
@@ -285,7 +313,6 @@ def train(args):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
 
-            # Save TorchScript model for runtime.
             model_cpu = model.to("cpu")
             model_cpu.eval()
 
@@ -309,8 +336,8 @@ def train(args):
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
                 "input_features": ["x", "y"],
-                "output_features": ["vx", "vy"],
-                "group_cols": ["gap_id", "side"],
+                "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+                "group_cols": ["model_id", "side"],
             }
 
             with open(stats_path, "w") as f:
@@ -332,7 +359,8 @@ def train(args):
         f"--model {best_model_path} "
         f"--stats {stats_path} "
         f"--plot-name {args.run_name} "
-        "--plot-dir plots"
+        "--plot-dir plots "
+        "--save-results-csv"
     )
 
 
@@ -342,7 +370,6 @@ def main():
     parser.add_argument("--csv", required=True)
     parser.add_argument("--model-dir", required=True)
 
-    # This is the name you choose from the command line.
     # The script automatically appends: __data_<csv_file_name>
     parser.add_argument("--run-name", required=True)
 
