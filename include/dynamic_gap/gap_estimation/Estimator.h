@@ -639,5 +639,17 @@ namespace dynamic_gap
                                  newRange * std::sin(newTheta); 
             }
 
+            void setRelativeVelocityEstimate(const Eigen::Vector2f& relVel)
+            {
+                x_hat_k_plus_[2] = relVel[0];
+                x_hat_k_plus_[3] = relVel[1];
+
+                x_hat_k_minus_[2] = relVel[0];
+                x_hat_k_minus_[3] = relVel[1];
+
+                x_hat_kmin1_plus_[2] = relVel[0];
+                x_hat_kmin1_plus_[3] = relVel[1];
+            }
+
     };
 }

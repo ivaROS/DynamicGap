@@ -67,6 +67,9 @@
 
 #include <limits>
 #include <dynamic_gap/GapPointObservation.h>
+#include <dynamic_gap/GapVelocityPrediction.h>
+#include <map>
+#include <Eigen/Dense>
 
 namespace dynamic_gap
 {
@@ -181,6 +184,30 @@ namespace dynamic_gap
             * \param status whether or not global goal has been reached 
             */
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
+
+
+            struct GruGapVelocityEstimate
+            {
+                Eigen::Vector2f rel_vel;
+                ros::Time stamp;
+                bool valid = false;
+                int seq_len_used = 0;
+            };
+
+            ros::Subscriber gruGapVelocitySub_;
+
+            std::map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_;
+            mutable boost::mutex gruGapVelocityMutex_;
+
+            bool useGruGapVelocity_ = true;
+            double maxGruPredictionAgeSec_ = 0.50;
+
+            void gruGapVelocityCB(const dynamic_gap::GapVelocityPrediction::ConstPtr& msg);
+
+            bool getLatestGruVelocityForModel(
+                const int& modelID,
+                const ros::Time& currentStamp,
+                Eigen::Vector2f& relVelOut) const;
 
         private:
 

@@ -27,6 +27,8 @@ Panels:
         - /Potential Gap1/PoseArray4
         - /LaserScan1
         - /Marker1
+        - /MarkerArray1
+        - /MarkerArray2
       Splitter Ratio: 0.32637855410575867
     Tree Height: 484
   - Class: rviz/Selection
@@ -785,11 +787,19 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /gru_gap_velocity_markers
+      Marker Topic: /rto/gru_gap_velocity_markers
       Name: MarkerArray
       Namespaces:
-        gru_gap_velocity_after_adding_robot_vel: true
-        perfect_gap_velocity_after_adding_robot_vel: true
+        gru_relative_velocity: true
+        perfect_relative_velocity: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/propagated_egocircle
+      Name: MarkerArray
+      Namespaces:
+        propagated_egocircle: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -829,7 +839,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 205.67237854003906
+      Scale: 125.5521011352539
       Target Frame: rto/base_link
       X: 0.7468352317810059
       Y: 0.03490552306175232

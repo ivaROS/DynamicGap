@@ -125,6 +125,30 @@ namespace dynamic_gap
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
+               std::string gruGapVelocityTopic;
+nh_.param<std::string>(
+    "gru_gap_velocity_topic",
+    gruGapVelocityTopic,
+    "/rto/gru_gap_velocity_prediction"
+);
+
+        nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
+        nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 0.50);
+
+        gruGapVelocitySub_ =
+            nh_.subscribe(
+                gruGapVelocityTopic,
+                100,
+                &Planner::gruGapVelocityCB,
+                this
+            );
+
+        ROS_WARN_STREAM_NAMED("GRUGapVelocity",
+            "GRU velocity override enabled: " << useGruGapVelocity_
+            << ", topic: " << gruGapVelocityTopic
+            << ", max age: " << maxGruPredictionAgeSec_
+        );
+
         // Visualization Setup
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
@@ -267,6 +291,66 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
     gapVelocityCsvFile_.flush();
 }
+    void Planner::gruGapVelocityCB(
+        const dynamic_gap::GapVelocityPrediction::ConstPtr& msg)
+    {
+        if (!msg->valid)
+        {
+            ROS_INFO_STREAM_NAMED("GRUGapVelocity",
+                "received invalid GRU velocity for model "
+                << msg->model_id
+                << " side=" << msg->side
+                << ", ignoring"
+            );
+            return;
+        }
+
+        GruGapVelocityEstimate estimate;
+        estimate.rel_vel << msg->pred_rel_vx, msg->pred_rel_vy;
+        estimate.stamp = msg->header.stamp;
+        estimate.valid = msg->valid;
+        estimate.seq_len_used = msg->seq_len_used;
+
+        {
+            boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
+            latestGruGapVelocityByModelID_[msg->model_id] = estimate;
+        }
+
+        ROS_INFO_STREAM_NAMED("GRUGapVelocity",
+            "received GRU velocity for model " << msg->model_id
+            << " side=" << msg->side
+            << " rel_vel=("
+            << estimate.rel_vel[0] << ", "
+            << estimate.rel_vel[1] << ")"
+            << " seq_len=" << estimate.seq_len_used
+        );
+    }
+
+    bool Planner::getLatestGruVelocityForModel(
+    const int& modelID,
+    const ros::Time& currentStamp,
+    Eigen::Vector2f& relVelOut) const
+    {
+        boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
+
+        auto it = latestGruGapVelocityByModelID_.find(modelID);
+
+        if (it == latestGruGapVelocityByModelID_.end())
+            return false;
+
+        const GruGapVelocityEstimate& estimate = it->second;
+
+        if (!estimate.valid)
+            return false;
+
+        double age = std::abs((currentStamp - estimate.stamp).toSec());
+
+        if (age > maxGruPredictionAgeSec_)
+            return false;
+
+        relVelOut = estimate.rel_vel;
+        return true;
+    }
 
     void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
     {
@@ -638,7 +722,7 @@ void Planner::updateModel(
     }
 
     //////////////////////////////////////////////////////
-    // 1. Normal current estimator update, unchanged
+    // 1. Normal current estimator update
     //////////////////////////////////////////////////////
 
     model->update(measurement, 
@@ -649,7 +733,65 @@ void Planner::updateModel(
                   tCurrentFilterUpdate);
 
     //////////////////////////////////////////////////////
-    // 2. Perfect velocity label for GRU training/debugging
+    // 2. Save pure Kalman state before GRU override
+    //////////////////////////////////////////////////////
+
+    Eigen::Vector4f kalmanStateBeforeGru = model->getState();
+
+    //////////////////////////////////////////////////////
+    // 3. Optional GRU velocity override
+    //
+    // Only apply this to simplified gaps because those are the
+    // gap points used for planning and the ones publish
+    // observations for.
+    //////////////////////////////////////////////////////
+
+    bool usedGruVelocity = false;
+    Eigen::Vector2f gruRelVel(0.0f, 0.0f);
+
+    if (useGruGapVelocity_ && logSimplifiedGapVelocityLabels)
+    {
+        bool haveGruVel = getLatestGruVelocityForModel(
+            model->getID(),
+            tCurrentFilterUpdate,
+            gruRelVel
+        );
+
+        if (haveGruVel)
+        {
+            model->setRelativeVelocityEstimate(gruRelVel);
+            usedGruVelocity = true;
+
+            ROS_WARN_STREAM_NAMED("GRUGapVelocity",
+                "overriding model " << model->getID()
+                << " " << side
+                << " velocity with GRU rel_vel=("
+                << gruRelVel[0] << ", " << gruRelVel[1] << ")"
+                << " old_kalman_rel_vel=("
+                << kalmanStateBeforeGru[2] << ", "
+                << kalmanStateBeforeGru[3] << ")"
+            );
+        }
+        else
+        {
+            ROS_INFO_STREAM_NAMED("GRUGapVelocity",
+                "no fresh GRU velocity for model " << model->getID()
+                << " " << side
+                << ", keeping Kalman velocity=("
+                << kalmanStateBeforeGru[2] << ", "
+                << kalmanStateBeforeGru[3] << ")"
+            );
+        }
+    }
+
+    //////////////////////////////////////////////////////
+    // 4. State after possible GRU override
+    //////////////////////////////////////////////////////
+
+    Eigen::Vector4f estimatorStateAfterOverride = model->getState();
+
+    //////////////////////////////////////////////////////
+    // 5. Perfect velocity label for GRU training/debugging
     //////////////////////////////////////////////////////
 
     geometry_msgs::TwistStamped robotVelForLabel =
@@ -663,10 +805,8 @@ void Planner::updateModel(
                                        perfectGapVelMatchThresh_);
 
     //////////////////////////////////////////////////////
-    // 3. Pull out values
+    // 6. Pull out values
     //////////////////////////////////////////////////////
-
-    Eigen::Vector4f kalmanState = model->getState();
 
     int gapIndex = int(0.5 * idx);
     int modelID = model->getID();
@@ -674,8 +814,12 @@ void Planner::updateModel(
     float gapX = measurement[0];
     float gapY = measurement[1];
 
-    float kalmanVx = kalmanState[2];
-    float kalmanVy = kalmanState[3];
+    // Keeping these as pure Kalman values for logging/training/debugging.
+    float kalmanVx = kalmanStateBeforeGru[2];
+    float kalmanVy = kalmanStateBeforeGru[3];
+
+    float activeVx = estimatorStateAfterOverride[2];
+    float activeVy = estimatorStateAfterOverride[3];
 
     float perfectRelVx = perfectLabel.rel_vel[0];
     float perfectRelVy = perfectLabel.rel_vel[1];
@@ -688,7 +832,10 @@ void Planner::updateModel(
     bool matchedDynamicAgent = perfectLabel.matched_dynamic_agent;
 
     //////////////////////////////////////////////////////
-    // 4. CSV logging for simplified gaps only
+    // 7. CSV logging for simplified gaps only
+    //
+    // 
+    // kalman_vx/kalman_vy remain pure Kalman, not GRU.
     //////////////////////////////////////////////////////
 
     if (logSimplifiedGapVelocityLabels)
@@ -712,8 +859,10 @@ void Planner::updateModel(
     }
 
     //////////////////////////////////////////////////////
-    // 5. Publish observation for Python GRU node
+    // 8. Publish observation for Python GRU node
     //
+    // Use pure Kalman state here so debug marker still compares:
+    // Kalman vs GRU vs Perfect.
     //////////////////////////////////////////////////////
 
     if (logSimplifiedGapVelocityLabels)
@@ -724,14 +873,13 @@ void Planner::updateModel(
             side,
             model,
             measurement,
-            kalmanState,
+            kalmanStateBeforeGru,
             perfectLabel
         );
-        
     }
 
     //////////////////////////////////////////////////////
-    // 6. Debug print
+    // 9. Debug print
     //////////////////////////////////////////////////////
 
     ROS_INFO_STREAM_NAMED("GapVelocityLabel",
@@ -740,6 +888,8 @@ void Planner::updateModel(
         << " model " << modelID
         << " pos=(" << gapX << ", " << gapY << ")"
         << " kalman_vel=(" << kalmanVx << ", " << kalmanVy << ")"
+        << " active_model_vel=(" << activeVx << ", " << activeVy << ")"
+        << " used_gru=" << usedGruVelocity
         << " perfect_rel_vel=(" << perfectRelVx << ", " << perfectRelVy << ")"
         << " matched_agent=" << matchedAgentID
         << " match_dist=" << matchDist
@@ -747,7 +897,8 @@ void Planner::updateModel(
     );
 
     return;
-} 
+}
+
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {
