@@ -1,5 +1,7 @@
 #pragma once
 #include <limits>
+#include <fstream>
+#include <string>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -181,10 +183,14 @@ namespace dynamic_gap
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
             */
-            void updateModels(std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+            void updateModels(
+            std::vector<Gap *> & gaps,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                const ros::Time & tCurrentFilterUpdate,
+                const bool& logSimplifiedGapVelocityLabels
+            );
+
 
             /**
             * \brief Function for updating a single gap's models
@@ -194,11 +200,14 @@ namespace dynamic_gap
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
             */
-            void updateModel(const int & idx, 
-                                std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+                void updateModel(
+                const int & idx,
+                std::vector<Gap *> & gaps,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                const ros::Time & tCurrentFilterUpdate,
+                const bool& logSimplifiedGapVelocityLabels
+            );
 
             /**
             * \brief Call back function for other agent odometry messages
@@ -581,6 +590,69 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
             float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
-                
+                    
+                        /**
+             * \brief CSV file stream for logging simplified gap velocity training labels.
+             */
+            std::ofstream gapVelocityCsvFile_;
+
+            /**
+             * \brief Enables/disables simplified gap velocity CSV logging.
+             */
+            bool gapVelocityCsvLoggingEnabled_ = true;
+
+            /**
+             * \brief Full path to the active gap velocity CSV file.
+             */
+            std::string gapVelocityCsvPath_;
+
+            /**
+             * \brief Unique file/session name generated from wall-clock time.
+             */
+            std::string gapVelocityCsvSessionId_;
+
+            /**
+             * \brief Monotonic row counter used to preserve sequence order without storing ROS time.
+             */
+            unsigned long long gapVelocityCsvSampleIdx_ = 0;
+
+            /**
+             * \brief Initializes the CSV logger for simplified gap velocity labels.
+             */
+            void initializeGapVelocityCsvLogger();
+
+            /**
+             * \brief Writes one simplified gap velocity training row to CSV.
+             * \param gap_index Index of the gap in the current simplified gap vector.
+             * \param model_id Persistent model ID for the gap point.
+             * \param side Gap side, usually "left" or "right".
+             * \param gap_x Gap point x-position in robot frame.
+             * \param gap_y Gap point y-position in robot frame.
+             * \param kalman_vx Velocity x from the estimator/Kalman state.
+             * \param kalman_vy Velocity y from the estimator/Kalman state.
+             * \param perfect_rel_vx Perfect relative velocity x label.
+             * \param perfect_rel_vy Perfect relative velocity y label.
+             * \param perfect_world_robot_vx Matched agent/world velocity x expressed in robot frame.
+             * \param perfect_world_robot_vy Matched agent/world velocity y expressed in robot frame.
+             * \param matched_agent_id ID of the closest matched agent, empty if none.
+             * \param match_dist Distance from gap point to matched agent.
+             * \param matched_dynamic_agent True if the gap point matched a dynamic agent.
+             */
+            void logSimplifiedGapVelocityCsvRow(
+                const int& gap_index,
+                const int& model_id,
+                const std::string& side,
+                const float& gap_x,
+                const float& gap_y,
+                const float& kalman_vx,
+                const float& kalman_vy,
+                const float& perfect_rel_vx,
+                const float& perfect_rel_vy,
+                const float& perfect_world_robot_vx,
+                const float& perfect_world_robot_vy,
+                const std::string& matched_agent_id,
+                const float& match_dist,
+                const bool& matched_dynamic_agent
+            );
     };
 }

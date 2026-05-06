@@ -1,9 +1,19 @@
 #include <dynamic_gap/Planner.h>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <cmath>
 
 namespace dynamic_gap
 {   
     Planner::~Planner()
     {
+        if (gapVelocityCsvFile_.is_open())
+        {
+            gapVelocityCsvFile_.flush();
+            gapVelocityCsvFile_.close();
+        }
+
         // delete current raw, simplified, and selected gaps
         for (Gap * rawGap : currRawGaps_)
             delete rawGap;
@@ -139,7 +149,7 @@ namespace dynamic_gap
         intermediateRbtAccs_.clear();
 
         tPreviousModelUpdate_ = ros::Time::now();
-
+        initializeGapVelocityCsvLogger();
         initialized_ = true;
 
         // prevTrajSwitchTime_ = std::chrono::steady_clock::now();
@@ -149,6 +159,111 @@ namespace dynamic_gap
 
         return true;
     }
+
+    void Planner::initializeGapVelocityCsvLogger()
+{
+    gapVelocityCsvLoggingEnabled_ = true;
+
+    std::string baseDir =
+        "/home/az/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
+
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::localtime(&t);
+
+    std::ostringstream sessionName;
+    sessionName << "dgap_"
+                << std::put_time(&tm, "%y-%m-%d_%H-%M-%S");
+
+    gapVelocityCsvSessionId_ = sessionName.str();
+
+    std::ostringstream fullPath;
+    fullPath << baseDir << "/" << gapVelocityCsvSessionId_ << ".csv";
+
+    gapVelocityCsvPath_ = fullPath.str();
+
+    gapVelocityCsvFile_.open(gapVelocityCsvPath_, std::ios::out);
+
+    if (!gapVelocityCsvFile_.is_open())
+    {
+        ROS_ERROR_STREAM_NAMED("GapVelocityLabel",
+            "[CSV] Failed to open gap velocity CSV file: "
+            << gapVelocityCsvPath_);
+
+        gapVelocityCsvLoggingEnabled_ = false;
+        return;
+    }
+
+    gapVelocityCsvFile_
+        << "sample_idx,"
+        << "gap_index,"
+        << "model_id,"
+        << "side,"
+        << "x,"
+        << "y,"
+        << "kalman_vx,"
+        << "kalman_vy,"
+        << "perfect_rel_vx,"
+        << "perfect_rel_vy,"
+        << "perfect_world_robot_vx,"
+        << "perfect_world_robot_vy,"
+        << "matched_agent_id,"
+        << "match_dist,"
+        << "matched_dynamic_agent"
+        << "\n";
+
+    gapVelocityCsvFile_.flush();
+
+    ROS_WARN_STREAM_NAMED("GapVelocityLabel",
+        "[CSV] Logging simplified gap velocity labels to: "
+        << gapVelocityCsvPath_);
+}
+
+
+void Planner::logSimplifiedGapVelocityCsvRow(
+    const int& gap_index,
+    const int& model_id,
+    const std::string& side,
+    const float& gap_x,
+    const float& gap_y,
+    const float& kalman_vx,
+    const float& kalman_vy,
+    const float& perfect_rel_vx,
+    const float& perfect_rel_vy,
+    const float& perfect_world_robot_vx,
+    const float& perfect_world_robot_vy,
+    const std::string& matched_agent_id,
+    const float& match_dist,
+    const bool& matched_dynamic_agent)
+{
+    if (!gapVelocityCsvLoggingEnabled_)
+        return;
+
+    if (!gapVelocityCsvFile_.is_open())
+        return;
+
+    float safeMatchDist = std::isfinite(match_dist) ? match_dist : -1.0f;
+
+    gapVelocityCsvFile_
+        << std::fixed << std::setprecision(6)
+        << gapVelocityCsvSampleIdx_++ << ","
+        << gap_index << ","
+        << model_id << ","
+        << side << ","
+        << gap_x << ","
+        << gap_y << ","
+        << kalman_vx << ","
+        << kalman_vy << ","
+        << perfect_rel_vx << ","
+        << perfect_rel_vy << ","
+        << perfect_world_robot_vx << ","
+        << perfect_world_robot_vy << ","
+        << matched_agent_id << ","
+        << safeMatchDist << ","
+        << static_cast<int>(matched_dynamic_agent)
+        << "\n";
+
+    gapVelocityCsvFile_.flush();
+}
 
     void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
     {
@@ -259,7 +374,7 @@ namespace dynamic_gap
         ////////////////////////////////////
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currRawGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate);
+                        intermediateRbtAccs, tCurrentFilterUpdate, false);
         timeKeeper_->stopTimer(GAP_EST);
 
         ////////////////////////////////////
@@ -286,7 +401,7 @@ namespace dynamic_gap
         ///////////////////////////////////////////     
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currSimplifiedGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate);
+                        intermediateRbtAccs, tCurrentFilterUpdate, true);
         timeKeeper_->stopTimer(GAP_EST);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
@@ -409,29 +524,35 @@ namespace dynamic_gap
     return label;
 }
 
-    // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    void Planner::updateModels(std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate) 
+        // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
+    void Planner::updateModels(
+        std::vector<Gap *> & gaps,
+        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+        const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+        const ros::Time & tCurrentFilterUpdate,
+        const bool& logSimplifiedGapVelocityLabels) 
     {
-        // ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
-
-        for (int i = 0; i < 2*gaps.size(); i++) 
+        for (int i = 0; i < 2 * gaps.size(); i++) 
         {
-            // ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
-            updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
-            // ROS_INFO_STREAM_NAMED("GapEstimation", "");
+            updateModel(
+                i,
+                gaps,
+                intermediateRbtVels,
+                intermediateRbtAccs,
+                tCurrentFilterUpdate,
+                logSimplifiedGapVelocityLabels
+            );
         }
 
         return;
     }
-
-    void Planner::updateModel(const int & idx, 
-                            std::vector<Gap *> & gaps, 
-                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                            const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                            const ros::Time & tCurrentFilterUpdate) 
+ void Planner::updateModel(
+    const int & idx,
+    std::vector<Gap *> & gaps,
+    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+    const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+    const ros::Time & tCurrentFilterUpdate,
+    const bool& logSimplifiedGapVelocityLabels)  
 {
     Gap * gap = gaps[int(0.5 * idx)];
 
@@ -515,8 +636,26 @@ namespace dynamic_gap
     //////////////////////////////////////////////////////
     //  CSV logging 
     //////////////////////////////////////////////////////
-
-    
+    if (logSimplifiedGapVelocityLabels)
+    {
+        logSimplifiedGapVelocityCsvRow(
+            gapIndex,
+            modelID,
+            side,
+            gapX,
+            gapY,
+            kalmanVx,
+            kalmanVy,
+            perfectRelVx,
+            perfectRelVy,
+            perfectWorldRobotVx,
+            perfectWorldRobotVy,
+            matchedAgentID,
+            matchDist,
+            matchedDynamicAgent
+        );
+    }
+        
 
     ROS_ERROR_STREAM_NAMED("GapVelocityLabel",
         "gap " << gapIndex
