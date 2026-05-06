@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /TrackedPersons1
         - /TrackedPersons1/History as line1
         - /Dynamic Gap1
         - /Dynamic Gap1/Scans1
@@ -178,7 +179,7 @@ Visualization Manager:
       Color map offset: 0
       Color transform: Constant color
       Delete after no. cycles: 100
-      Enabled: false
+      Enabled: true
       Excluded person IDs: ""
       Font color: 255; 255; 255
       Font color style: Same color
@@ -199,7 +200,7 @@ Visualization Manager:
       Render detection IDs: false
       Render history: false
       Render person visual: true
-      Render track IDs: false
+      Render track IDs: true
       Render track state: false
       Render velocities: true
       Show DELETED tracks: false
@@ -212,7 +213,7 @@ Visualization Manager:
         Value: Bounding boxes
       Topic: /pedsim_visualizer/tracked_persons
       Unreliable: false
-      Value: false
+      Value: true
       Z offset:
         Use Z position from message: false
         Value: 0
