@@ -311,10 +311,10 @@ class GRUGapVelocityNode:
         marker_array = MarkerArray()
 
         gru_color = ColorRGBA()
-        gru_color.r = 0.6
-        gru_color.g = 0.0
-        gru_color.b = 1.0
-        gru_color.a = 1.0
+        gru_color.r = 0.0
+        gru_color.g = 0.7
+        gru_color.b = 0.0
+        gru_color.a = 0.8
 
         marker_array.markers.append(
             self.make_arrow_marker(
@@ -328,29 +328,29 @@ class GRUGapVelocityNode:
             )
         )
 
-        if self.publish_kalman_marker:
-            kalman_color = ColorRGBA()
-            kalman_color.r = 1.0
-            kalman_color.g = 0.0
-            kalman_color.b = 0.0
-            kalman_color.a = 0.8
+        # if self.publish_kalman_marker: #commented out because I want to use red for the ground truth
+        #     kalman_color = ColorRGBA()
+        #     kalman_color.r = 1.0
+        #     kalman_color.g = 0.0
+        #     kalman_color.b = 0.0
+        #     kalman_color.a = 0.8
 
-            marker_array.markers.append(
-                self.make_arrow_marker(
-                    obs_msg,
-                    obs_msg.kalman_rel_vx,
-                    obs_msg.kalman_rel_vy,
-                    "kalman_relative_velocity",
-                    self.stable_marker_id(obs_msg, 100000),
-                    kalman_color,
-                    self.kalman_arrow_scale
-                )
-            )
+        #     marker_array.markers.append(
+        #         self.make_arrow_marker(
+        #             obs_msg,
+        #             obs_msg.kalman_rel_vx,
+        #             obs_msg.kalman_rel_vy,
+        #             "kalman_relative_velocity",
+        #             self.stable_marker_id(obs_msg, 100000),
+        #             kalman_color,
+        #             self.kalman_arrow_scale
+        #         )
+            # )
 
         if self.publish_perfect_marker:
             perfect_color = ColorRGBA()
-            perfect_color.r = 0.0
-            perfect_color.g = 0.7
+            perfect_color.r = 1.0
+            perfect_color.g = 0.0
             perfect_color.b = 0.0
             perfect_color.a = 0.8
 

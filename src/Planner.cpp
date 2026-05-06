@@ -296,7 +296,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     {
         if (!msg->valid)
         {
-            ROS_INFO_STREAM_NAMED("GRUGapVelocity",
+            ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
                 "received invalid GRU velocity for model "
                 << msg->model_id
                 << " side=" << msg->side
