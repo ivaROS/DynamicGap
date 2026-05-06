@@ -784,6 +784,16 @@ Visualization Manager:
         egorobot: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gru_gap_velocity_markers
+      Name: MarkerArray
+      Namespaces:
+        gru_relative_velocity: true
+        kalman_relative_velocity: true
+        perfect_relative_velocity: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -821,7 +831,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 88.0296630859375
+      Scale: 84.2812728881836
       Target Frame: rto/base_link
       X: -0.21646548807621002
       Y: -0.13326548039913177

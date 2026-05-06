@@ -65,6 +65,9 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <limits>
+#include <dynamic_gap/GapPointObservation.h>
+
 namespace dynamic_gap
 {
     /**
@@ -121,6 +124,18 @@ namespace dynamic_gap
             const std::vector<geometry_msgs::TwistStamped>& intermediateRbtVels) const;
             float perfectGapVelMatchThresh_ = 0.6; // TODO:  add to config. 0.6 should be more than enough
             // i eyeballed rviz measured the DIAMETER of the agent to 0.3 
+            
+            ros::Publisher gapPointObservationPublisher_;
+            bool publishGapPointObservations_ = true;
+
+            void publishGapPointObservation(
+            const ros::Time& stamp,
+            const int& gapIndex,
+            const std::string& side,
+            Estimator* model,
+            const Eigen::Vector2f& measurement,
+            const Eigen::Vector4f& kalmanState,
+            const PerfectGapVelocityLabel& perfectLabel);
 
             /**
             * \brief Function for core planning loop of dynamic gap

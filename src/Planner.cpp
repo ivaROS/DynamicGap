@@ -157,6 +157,9 @@ namespace dynamic_gap
         currentTrajTrackingStartTime_ = ros::Time::now();
         currentTrajLifespan_ = ros::Duration(0.0);
 
+        gapPointObservationPublisher_ =
+        nh_.advertise<dynamic_gap::GapPointObservation>("gap_point_observation", 10);
+
         return true;
     }
 
@@ -453,6 +456,57 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         return currentRbtVel_;
     }
 
+    void Planner::publishGapPointObservation(
+    const ros::Time& stamp,
+    const int& gapIndex,
+    const std::string& side,
+    Estimator* model,
+    const Eigen::Vector2f& measurement,
+    const Eigen::Vector4f& kalmanState,
+    const PerfectGapVelocityLabel& perfectLabel)
+    {
+    if (!publishGapPointObservations_)
+        return;
+
+    if (!model)
+        return;
+
+    dynamic_gap::GapPointObservation msg;
+
+    msg.header.stamp = stamp;
+    msg.header.frame_id = cfg_.robot_frame_id;
+
+    msg.gap_index = gapIndex;
+    msg.model_id = model->getID();
+    msg.side = side;
+
+    msg.gap_x = measurement[0];
+    msg.gap_y = measurement[1];
+
+    msg.kalman_rel_vx = kalmanState[2];
+    msg.kalman_rel_vy = kalmanState[3];
+
+    msg.perfect_rel_vx = perfectLabel.rel_vel[0];
+    msg.perfect_rel_vy = perfectLabel.rel_vel[1];
+
+    msg.perfect_world_robot_vx = perfectLabel.world_vel_robot[0];
+    msg.perfect_world_robot_vy = perfectLabel.world_vel_robot[1];
+
+    msg.matched_agent_id = perfectLabel.matched_agent_id;
+    msg.match_dist = perfectLabel.match_dist;
+    msg.matched_dynamic_agent = perfectLabel.matched_dynamic_agent;
+
+    gapPointObservationPublisher_.publish(msg);
+
+    // ROS_ERROR_STREAM_NAMED("GRUObs",
+    //     "PUBLISHED gap obs model=" << msg.model_id
+    //     << " side=" << msg.side
+    //     << " x=" << msg.gap_x
+    //     << " y=" << msg.gap_y
+    // );
+
+    }
+
     Planner::PerfectGapVelocityLabel Planner::computePerfectGapVelocityLabel(
     const Eigen::Vector2f& gapPtRobotFrame,
     const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
@@ -546,7 +600,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
         return;
     }
- void Planner::updateModel(
+void Planner::updateModel(
     const int & idx,
     std::vector<Gap *> & gaps,
     const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
@@ -595,7 +649,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
                   tCurrentFilterUpdate);
 
     //////////////////////////////////////////////////////
-    // 2. Perfect velocity label for GRU training
+    // 2. Perfect velocity label for GRU training/debugging
     //////////////////////////////////////////////////////
 
     geometry_msgs::TwistStamped robotVelForLabel =
@@ -609,7 +663,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
                                        perfectGapVelMatchThresh_);
 
     //////////////////////////////////////////////////////
-    //
+    // 3. Pull out values
     //////////////////////////////////////////////////////
 
     Eigen::Vector4f kalmanState = model->getState();
@@ -634,8 +688,9 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     bool matchedDynamicAgent = perfectLabel.matched_dynamic_agent;
 
     //////////////////////////////////////////////////////
-    //  CSV logging 
+    // 4. CSV logging for simplified gaps only
     //////////////////////////////////////////////////////
+
     if (logSimplifiedGapVelocityLabels)
     {
         logSimplifiedGapVelocityCsvRow(
@@ -655,9 +710,31 @@ void Planner::logSimplifiedGapVelocityCsvRow(
             matchedDynamicAgent
         );
     }
-        
 
-    ROS_ERROR_STREAM_NAMED("GapVelocityLabel",
+    //////////////////////////////////////////////////////
+    // 5. Publish observation for Python GRU node
+    //
+    //////////////////////////////////////////////////////
+
+    if (logSimplifiedGapVelocityLabels)
+    {
+        publishGapPointObservation(
+            tCurrentFilterUpdate,
+            gapIndex,
+            side,
+            model,
+            measurement,
+            kalmanState,
+            perfectLabel
+        );
+        
+    }
+
+    //////////////////////////////////////////////////////
+    // 6. Debug print
+    //////////////////////////////////////////////////////
+
+    ROS_INFO_STREAM_NAMED("GapVelocityLabel",
         "gap " << gapIndex
         << " " << side
         << " model " << modelID
@@ -670,8 +747,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     );
 
     return;
-}
-    
+} 
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
                                 const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
     {

@@ -26,11 +26,10 @@
     <mbf_costmap_core plugin="${prefix}/dg_plugin.xml"/>
   </export>
   <build_depend>message_generation</build_depend>
+  <build_depend>message_runtime</build_depend>
   <exec_depend>message_runtime</exec_depend>
 
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
-  <depend>rospy</depend>
-  <depend>roscpp</depend>
 </package>
