@@ -179,7 +179,7 @@ Visualization Manager:
       Color map offset: 0
       Color transform: Constant color
       Delete after no. cycles: 100
-      Enabled: true
+      Enabled: false
       Excluded person IDs: ""
       Font color: 255; 255; 255
       Font color style: Same color
@@ -213,7 +213,7 @@ Visualization Manager:
         Value: Bounding boxes
       Topic: /pedsim_visualizer/tracked_persons
       Unreliable: false
-      Value: true
+      Value: false
       Z offset:
         Use Z position from message: false
         Value: 0
@@ -341,14 +341,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/raw_gaps
               Name: Marker
               Namespaces:
-                raw: true
-                raw_tmin1: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/simp_gaps
@@ -789,9 +788,8 @@ Visualization Manager:
       Marker Topic: /gru_gap_velocity_markers
       Name: MarkerArray
       Namespaces:
-        gru_relative_velocity: true
-        kalman_relative_velocity: true
-        perfect_relative_velocity: true
+        gru_gap_velocity_after_adding_robot_vel: true
+        perfect_gap_velocity_after_adding_robot_vel: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -831,10 +829,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 84.2812728881836
+      Scale: 205.67237854003906
       Target Frame: rto/base_link
-      X: -0.21646548807621002
-      Y: -0.13326548039913177
+      X: 0.7468352317810059
+      Y: 0.03490552306175232
     Saved: ~
 Window Geometry:
   Displays:
