@@ -498,12 +498,12 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
     gapPointObservationPublisher_.publish(msg);
 
-    // ROS_ERROR_STREAM_NAMED("GRUObs",
-    //     "PUBLISHED gap obs model=" << msg.model_id
-    //     << " side=" << msg.side
-    //     << " x=" << msg.gap_x
-    //     << " y=" << msg.gap_y
-    // );
+    ROS_ERROR_STREAM_NAMED("GRUObs",
+        "PUBLISHED gap obs model=" << msg.model_id
+        << " side=" << msg.side
+        << " x=" << msg.gap_x
+        << " y=" << msg.gap_y
+    );
 
     }
 

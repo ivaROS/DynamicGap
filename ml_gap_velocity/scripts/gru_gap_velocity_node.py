@@ -120,7 +120,7 @@ class GRUGapVelocityNode:
         self.kalman_arrow_scale = float(rospy.get_param("~kalman_arrow_scale", 0.8))
         self.perfect_arrow_scale = float(rospy.get_param("~perfect_arrow_scale", 0.8))
 
-        self.publish_kalman_marker = bool(rospy.get_param("~publish_kalman_marker", True))
+        self.publish_kalman_marker = bool(rospy.get_param("~publish_kalman_marker", False))
         self.publish_perfect_marker = bool(rospy.get_param("~publish_perfect_marker", True))
 
         self.max_buffer_time_gap = float(rospy.get_param("~max_buffer_time_gap", 0.5))
