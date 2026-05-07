@@ -357,9 +357,9 @@ class GRUGapVelocityNode:
             marker_array.markers.append(
                 self.make_arrow_marker(
                     obs_msg,
-                    obs_msg.perfect_rel_vx,
-                    obs_msg.perfect_rel_vy,
-                    "perfect_relative_velocity",
+                    obs_msg.perfect_world_robot_vx,
+                    obs_msg.perfect_world_robot_vy,
+                    "perfect_gap_velocity_after_adding_robot_vel",
                     self.stable_marker_id(obs_msg, 200000),
                     perfect_color,
                     self.perfect_arrow_scale
