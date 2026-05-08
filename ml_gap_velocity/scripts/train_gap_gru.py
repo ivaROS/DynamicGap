@@ -15,6 +15,7 @@ def safe_name(name):
     return (
         str(name)
         .replace("/", "_")
+        .replace("\\", "_")
         .replace(" ", "_")
         .replace(":", "-")
         .replace("(", "")
@@ -25,9 +26,80 @@ def safe_name(name):
     )
 
 
-def make_output_base_name(run_name, csv_path):
-    csv_base = os.path.splitext(os.path.basename(csv_path))[0]
-    return f"{safe_name(run_name)}__data_{safe_name(csv_base)}"
+def safe_float_name(value):
+    """
+    Turns floats into filename-safe strings.
+
+    Examples:
+        0.001 -> 1em3
+        0.0005 -> 5em4
+        1e-05 -> 1em5
+        0.01 -> 0p01
+    """
+    s = f"{value:g}"
+
+    if "e-" in s:
+        base, exp = s.split("e-")
+        base = base.replace(".", "p")
+        return f"{base}em{exp}"
+
+    if "e+" in s:
+        base, exp = s.split("e+")
+        base = base.replace(".", "p")
+        return f"{base}ep{exp}"
+
+    return s.replace(".", "p")
+
+
+def make_auto_run_name(args):
+    """
+    Creates the concise automatic part of the filename.
+
+    Example:
+        factory_mse_sl10_h64_l2_bs64_lr1em3_e500
+    """
+    user_name = args.run_name
+
+    if user_name is None or user_name.strip() == "":
+        csv_base = os.path.splitext(os.path.basename(args.csv))[0]
+        user_name = csv_base
+
+    pieces = [
+        safe_name(user_name),
+        safe_name(args.loss),
+        f"sl{args.seq_len}",
+        f"h{args.hidden_size}",
+        f"l{args.num_layers}",
+        f"bs{args.batch_size}",
+        f"lr{safe_float_name(args.lr)}",
+        f"e{args.epochs}",
+    ]
+
+    return "_".join(pieces)
+
+
+def make_output_base_name(args):
+    csv_base = os.path.splitext(os.path.basename(args.csv))[0]
+    auto_run_name = make_auto_run_name(args)
+    return f"{auto_run_name}__data_{safe_name(csv_base)}"
+
+
+def make_loss_fn(loss_name):
+    loss_name = loss_name.lower()
+
+    if loss_name == "mse":
+        return nn.MSELoss()
+
+    if loss_name == "l1":
+        return nn.L1Loss()
+
+    if loss_name == "smooth_l1":
+        return nn.SmoothL1Loss()
+
+    raise RuntimeError(
+        f"Unknown loss function: {loss_name}. "
+        "Use one of: mse, l1, smooth_l1"
+    )
 
 
 class GapSequenceDataset(Dataset):
@@ -191,13 +263,14 @@ def train(args):
     ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    loss_fn = nn.MSELoss()
+    loss_fn = make_loss_fn(args.loss)
 
     best_val_loss = float("inf")
 
     os.makedirs(args.model_dir, exist_ok=True)
 
-    output_base_name = make_output_base_name(args.run_name, args.csv)
+    output_base_name = make_output_base_name(args)
+    auto_run_name = make_auto_run_name(args)
 
     best_model_path = os.path.join(
         args.model_dir,
@@ -226,6 +299,7 @@ def train(args):
 
     train_config = {
         "run_name": args.run_name,
+        "auto_run_name": auto_run_name,
         "output_base_name": output_base_name,
         "csv": args.csv,
         "model_path": best_model_path,
@@ -238,6 +312,7 @@ def train(args):
         "batch_size": args.batch_size,
         "epochs": args.epochs,
         "lr": args.lr,
+        "loss": args.loss,
         "seed": args.seed,
         "input_features": ["x", "y"],
         "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
@@ -253,7 +328,16 @@ def train(args):
 
     print("")
     print(f"training data: {args.csv}")
+    print(f"run name: {args.run_name}")
+    print(f"auto run name: {auto_run_name}")
     print(f"output base name: {output_base_name}")
+    print(f"loss: {args.loss}")
+    print(f"seq_len: {args.seq_len}")
+    print(f"hidden_size: {args.hidden_size}")
+    print(f"num_layers: {args.num_layers}")
+    print(f"batch_size: {args.batch_size}")
+    print(f"epochs: {args.epochs}")
+    print(f"lr: {args.lr}")
     print(f"num sequences: {len(dataset)}")
     print(f"num groups: {dataset.num_groups}")
     print(f"model will save to: {best_model_path}")
@@ -324,6 +408,7 @@ def train(args):
 
             stats = {
                 "run_name": args.run_name,
+                "auto_run_name": auto_run_name,
                 "output_base_name": output_base_name,
                 "csv": args.csv,
                 "model_path": best_model_path,
@@ -331,6 +416,10 @@ def train(args):
                 "seq_len": args.seq_len,
                 "hidden_size": args.hidden_size,
                 "num_layers": args.num_layers,
+                "batch_size": args.batch_size,
+                "epochs": args.epochs,
+                "lr": args.lr,
+                "loss": args.loss,
                 "x_mean": dataset.x_mean.tolist(),
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
@@ -358,7 +447,7 @@ def train(args):
         f"--csv {args.csv} "
         f"--model {best_model_path} "
         f"--stats {stats_path} "
-        f"--plot-name {args.run_name} "
+        f"--plot-name {auto_run_name} "
         "--plot-dir plots "
         "--save-results-csv"
     )
@@ -370,8 +459,12 @@ def main():
     parser.add_argument("--csv", required=True)
     parser.add_argument("--model-dir", required=True)
 
-    # The script automatically appends: __data_<csv_file_name>
-    parser.add_argument("--run-name", required=True)
+    # Now this should just be the environment / short experiment name.
+    # Example: --run-name factory_10to20json
+    #
+    # The script automatically adds:
+    # loss, seq_len, hidden_size, num_layers, batch_size, lr, epochs, and csv name.
+    parser.add_argument("--run-name", default=None)
 
     parser.add_argument("--seq-len", type=int, default=10)
     parser.add_argument("--hidden-size", type=int, default=64)
@@ -379,6 +472,16 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
+
+    # Default is MSE.
+    # Use --loss l1 if you want L1.
+    # Use --loss smooth_l1 if you want SmoothL1.
+    parser.add_argument(
+        "--loss",
+        choices=["mse", "l1", "smooth_l1"],
+        default="mse",
+    )
+
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--cpu", action="store_true")
