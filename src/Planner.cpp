@@ -133,7 +133,7 @@ nh_.param<std::string>(
 );
 
         nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
-        nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 0.50); // haven't tried tuning this yet
+        nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 3.0); // haven't tried tuning this yet
 
         gruGapVelocitySub_ =
             nh_.subscribe(
