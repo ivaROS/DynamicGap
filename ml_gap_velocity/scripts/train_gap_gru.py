@@ -56,7 +56,7 @@ def make_auto_run_name(args):
     Creates the concise automatic part of the filename.
 
     Example:
-        factory_mse_sl10_h64_l2_bs64_lr1em3_e500
+        factory_xy_dxy_mse_sl10_h64_l2_bs64_lr1em3_e500
     """
     user_name = args.run_name
 
@@ -64,8 +64,11 @@ def make_auto_run_name(args):
         csv_base = os.path.splitext(os.path.basename(args.csv))[0]
         user_name = csv_base
 
+    feature_name = "xy_dxy" if args.use_delta_features else "xy"
+
     pieces = [
         safe_name(user_name),
+        feature_name,
         safe_name(args.loss),
         f"sl{args.seq_len}",
         f"h{args.hidden_size}",
@@ -103,8 +106,9 @@ def make_loss_fn(loss_name):
 
 
 class GapSequenceDataset(Dataset):
-    def __init__(self, csv_path, seq_len=10):
+    def __init__(self, csv_path, seq_len=10, use_delta_features=True):
         self.seq_len = seq_len
+        self.use_delta_features = use_delta_features
 
         df = pd.read_csv(csv_path)
 
@@ -137,7 +141,19 @@ class GapSequenceDataset(Dataset):
         for _, group in df.groupby(group_cols):
             group = group.sort_values("sample_idx").reset_index(drop=True)
 
-            positions = group[["x", "y"]].values.astype(np.float32)
+            positions_xy = group[["x", "y"]].values.astype(np.float32)
+
+            if use_delta_features:
+                dxy = np.zeros_like(positions_xy)
+                dxy[1:] = positions_xy[1:] - positions_xy[:-1]
+
+                # Each timestep is now:
+                # [x, y, dx, dy]
+                input_features = np.concatenate([positions_xy, dxy], axis=1)
+            else:
+                # Each timestep is:
+                # [x, y]
+                input_features = positions_xy
 
             perfect_rel_vels = group[
                 ["perfect_rel_vx", "perfect_rel_vy"]
@@ -147,7 +163,7 @@ class GapSequenceDataset(Dataset):
                 continue
 
             for i in range(seq_len - 1, len(group)):
-                x_seq = positions[i - seq_len + 1 : i + 1]
+                x_seq = input_features[i - seq_len + 1 : i + 1]
                 y_label = perfect_rel_vels[i]
 
                 self.samples_x.append(x_seq)
@@ -162,8 +178,17 @@ class GapSequenceDataset(Dataset):
                 "Try lowering seq_len or collecting longer gap tracks."
             )
 
-        self.x_mean = self.samples_x.reshape(-1, 2).mean(axis=0)
-        self.x_std = self.samples_x.reshape(-1, 2).std(axis=0) + 1e-8
+        self.input_size = self.samples_x.shape[-1]
+
+        if use_delta_features:
+            self.input_features = ["x", "y", "dx", "dy"]
+        else:
+            self.input_features = ["x", "y"]
+
+        self.output_features = ["perfect_rel_vx", "perfect_rel_vy"]
+
+        self.x_mean = self.samples_x.reshape(-1, self.input_size).mean(axis=0)
+        self.x_std = self.samples_x.reshape(-1, self.input_size).std(axis=0) + 1e-8
 
         self.y_mean = self.samples_y.mean(axis=0)
         self.y_std = self.samples_y.std(axis=0) + 1e-8
@@ -184,7 +209,7 @@ class GapSequenceDataset(Dataset):
 
 
 class GapVelocityGRU(nn.Module):
-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
+    def __init__(self, input_size=4, hidden_size=64, num_layers=2, output_size=2):
         super().__init__()
 
         self.gru = nn.GRU(
@@ -201,7 +226,7 @@ class GapVelocityGRU(nn.Module):
         )
 
     def forward(self, x):
-        # x shape: [batch, seq_len, 2]
+        # x shape: [batch, seq_len, input_size]
         out, _ = self.gru(x)
 
         # Use final GRU output.
@@ -232,7 +257,11 @@ def train(args):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    dataset = GapSequenceDataset(args.csv, seq_len=args.seq_len)
+    dataset = GapSequenceDataset(
+        args.csv,
+        seq_len=args.seq_len,
+        use_delta_features=args.use_delta_features,
+    )
 
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
@@ -256,7 +285,7 @@ def train(args):
     )
 
     model = GapVelocityGRU(
-        input_size=2,
+        input_size=dataset.input_size,
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         output_size=2,
@@ -307,15 +336,17 @@ def train(args):
         "config_path": config_path,
         "history_path": history_path,
         "seq_len": args.seq_len,
+        "input_size": dataset.input_size,
         "hidden_size": args.hidden_size,
         "num_layers": args.num_layers,
         "batch_size": args.batch_size,
         "epochs": args.epochs,
         "lr": args.lr,
         "loss": args.loss,
+        "use_delta_features": args.use_delta_features,
         "seed": args.seed,
-        "input_features": ["x", "y"],
-        "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+        "input_features": dataset.input_features,
+        "output_features": dataset.output_features,
         "group_cols": ["model_id", "side"],
         "num_samples": len(dataset),
         "num_groups": dataset.num_groups,
@@ -332,6 +363,10 @@ def train(args):
     print(f"auto run name: {auto_run_name}")
     print(f"output base name: {output_base_name}")
     print(f"loss: {args.loss}")
+    print(f"use_delta_features: {args.use_delta_features}")
+    print(f"input_features: {dataset.input_features}")
+    print(f"input_size: {dataset.input_size}")
+    print(f"output_features: {dataset.output_features}")
     print(f"seq_len: {args.seq_len}")
     print(f"hidden_size: {args.hidden_size}")
     print(f"num_layers: {args.num_layers}")
@@ -400,7 +435,7 @@ def train(args):
             model_cpu = model.to("cpu")
             model_cpu.eval()
 
-            example_input = torch.zeros(1, args.seq_len, 2)
+            example_input = torch.zeros(1, args.seq_len, dataset.input_size)
             traced = torch.jit.trace(model_cpu, example_input)
             traced.save(best_model_path)
 
@@ -414,18 +449,20 @@ def train(args):
                 "model_path": best_model_path,
                 "best_val_loss": best_val_loss,
                 "seq_len": args.seq_len,
+                "input_size": dataset.input_size,
                 "hidden_size": args.hidden_size,
                 "num_layers": args.num_layers,
                 "batch_size": args.batch_size,
                 "epochs": args.epochs,
                 "lr": args.lr,
                 "loss": args.loss,
+                "use_delta_features": args.use_delta_features,
                 "x_mean": dataset.x_mean.tolist(),
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
-                "input_features": ["x", "y"],
-                "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+                "input_features": dataset.input_features,
+                "output_features": dataset.output_features,
                 "group_cols": ["model_id", "side"],
             }
 
@@ -463,7 +500,8 @@ def main():
     # Example: --run-name factory_10to20json
     #
     # The script automatically adds:
-    # loss, seq_len, hidden_size, num_layers, batch_size, lr, epochs, and csv name.
+    # feature mode, loss, seq_len, hidden_size, num_layers,
+    # batch_size, lr, epochs, and csv name.
     parser.add_argument("--run-name", default=None)
 
     parser.add_argument("--seq-len", type=int, default=10)
@@ -472,6 +510,16 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
+
+    # Default is now to use [x, y, dx, dy].
+    # Use --no-delta-features if you want old behavior: [x, y].
+    parser.add_argument(
+        "--no-delta-features",
+        dest="use_delta_features",
+        action="store_false",
+        help="Disable dx, dy input features and use only x, y.",
+    )
+    parser.set_defaults(use_delta_features=True)
 
     # Default is MSE.
     # Use --loss l1 if you want L1.
