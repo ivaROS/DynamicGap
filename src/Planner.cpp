@@ -184,6 +184,18 @@ nh_.param<std::string>(
         gapPointObservationPublisher_ =
         nh_.advertise<dynamic_gap::GapPointObservation>("gap_point_observation", 10);
 
+        gapPointObservationPublisher_ =
+        nh_.advertise<dynamic_gap::GapPointObservation>(
+            "gap_point_observation",
+            10
+        );
+
+        containedRawGapPointsMarkerPublisher_ =
+        nh_.advertise<visualization_msgs::MarkerArray>(
+            "contained_raw_gap_points",
+            1
+        );
+
         return true;
     }
 
@@ -639,6 +651,12 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         // gapVisualizer_->drawGaps(prevSimplifiedGaps_, std::string("simp_tmin1"));
         gapVisualizer_->drawGapModels(currSimplifiedGaps_, std::string("simp"));
 
+        publishContainedRawGapPointsMarkerArray(
+        currSimplifiedGaps_,
+        currRawGaps_,
+        scan_->header.stamp
+           );
+
         hasLaserScan_ = true;
         
         // update current scan for proper classes
@@ -1087,6 +1105,229 @@ void Planner::updateModel(
     // << " nearby_density=" << nearbyAgentDensity); 
 
     return;
+}
+
+void Planner::publishContainedRawGapPointsMarkerArray(
+    const std::vector<Gap*>& simplifiedGaps,
+    const std::vector<Gap*>& rawGaps,
+    const ros::Time& stamp) const
+{
+    visualization_msgs::MarkerArray markerArray;
+
+    //////////////////////////////////////////////////////
+    // Clear all previous markers first
+    //////////////////////////////////////////////////////
+
+    visualization_msgs::Marker deleteAllMarker;
+    deleteAllMarker.header.frame_id = cfg_.robot_frame_id;
+    deleteAllMarker.header.stamp = stamp;
+    deleteAllMarker.ns = "contained_raw_gap_points";
+    deleteAllMarker.id = 0;
+    deleteAllMarker.action = visualization_msgs::Marker::DELETEALL;
+
+    markerArray.markers.push_back(deleteAllMarker);
+
+    //////////////////////////////////////////////////////
+    // Small deterministic color palette by simplified gap index
+    //////////////////////////////////////////////////////
+
+    auto setGapColor = [](
+        visualization_msgs::Marker& marker,
+        const int gapIndex)
+    {
+        marker.color.a = 1.0;
+
+        switch (gapIndex % 6)
+        {
+            case 0:
+                marker.color.r = 1.0;
+                marker.color.g = 0.0;
+                marker.color.b = 0.0;
+                break;
+
+            case 1:
+                marker.color.r = 0.0;
+                marker.color.g = 1.0;
+                marker.color.b = 0.0;
+                break;
+
+            case 2:
+                marker.color.r = 0.0;
+                marker.color.g = 0.0;
+                marker.color.b = 1.0;
+                break;
+
+            case 3:
+                marker.color.r = 1.0;
+                marker.color.g = 1.0;
+                marker.color.b = 0.0;
+                break;
+
+            case 4:
+                marker.color.r = 1.0;
+                marker.color.g = 0.0;
+                marker.color.b = 1.0;
+                break;
+
+            default:
+                marker.color.r = 0.0;
+                marker.color.g = 1.0;
+                marker.color.b = 1.0;
+                break;
+        }
+    };
+
+    //////////////////////////////////////////////////////
+    // For every simplified gap, collect all raw gap points
+    // contained within its angular interval.
+    //////////////////////////////////////////////////////
+
+    for (size_t simpGapIndex = 0;
+         simpGapIndex < simplifiedGaps.size();
+         ++simpGapIndex)
+    {
+        Gap* simpGap = simplifiedGaps.at(simpGapIndex);
+
+        if (!simpGap)
+            continue;
+
+        const int simpRightIdx = simpGap->RIdx();
+        const int simpLeftIdx  = simpGap->LIdx();
+
+        //////////////////////////////////////////////////////
+        // Marker 1:
+        // Raw LEFT gap points inside this simplified gap
+        // Drawn as SPHERES
+        //////////////////////////////////////////////////////
+
+        visualization_msgs::Marker rawLeftMarker;
+
+        rawLeftMarker.header.frame_id = cfg_.robot_frame_id;
+        rawLeftMarker.header.stamp = stamp;
+
+        rawLeftMarker.ns = "contained_raw_left_gap_points";
+        rawLeftMarker.id = static_cast<int>(simpGapIndex);
+
+        rawLeftMarker.type = visualization_msgs::Marker::SPHERE_LIST;
+        rawLeftMarker.action = visualization_msgs::Marker::ADD;
+
+        rawLeftMarker.pose.position.x = 0.0;
+        rawLeftMarker.pose.position.y = 0.0;
+        rawLeftMarker.pose.position.z = 0.0;
+        rawLeftMarker.pose.orientation.x = 0.0;
+        rawLeftMarker.pose.orientation.y = 0.0;
+        rawLeftMarker.pose.orientation.z = 0.0;
+        rawLeftMarker.pose.orientation.w = 1.0;
+
+        rawLeftMarker.scale.x = 0.18;
+        rawLeftMarker.scale.y = 0.18;
+        rawLeftMarker.scale.z = 0.18;
+
+        setGapColor(rawLeftMarker, static_cast<int>(simpGapIndex));
+
+        //////////////////////////////////////////////////////
+        // Marker 2:
+        // Raw RIGHT gap points inside this simplified gap
+        // Drawn as CUBES
+        //////////////////////////////////////////////////////
+
+        visualization_msgs::Marker rawRightMarker;
+
+        rawRightMarker.header.frame_id = cfg_.robot_frame_id;
+        rawRightMarker.header.stamp = stamp;
+
+        rawRightMarker.ns = "contained_raw_right_gap_points";
+        rawRightMarker.id = static_cast<int>(simpGapIndex);
+
+        rawRightMarker.type = visualization_msgs::Marker::CUBE_LIST;
+        rawRightMarker.action = visualization_msgs::Marker::ADD;
+
+        rawRightMarker.pose.position.x = 0.0;
+        rawRightMarker.pose.position.y = 0.0;
+        rawRightMarker.pose.position.z = 0.0;
+        rawRightMarker.pose.orientation.x = 0.0;
+        rawRightMarker.pose.orientation.y = 0.0;
+        rawRightMarker.pose.orientation.z = 0.0;
+        rawRightMarker.pose.orientation.w = 1.0;
+
+        rawRightMarker.scale.x = 0.18;
+        rawRightMarker.scale.y = 0.18;
+        rawRightMarker.scale.z = 0.18;
+
+        setGapColor(rawRightMarker, static_cast<int>(simpGapIndex));
+
+        //////////////////////////////////////////////////////
+        // Check all raw gaps
+        //////////////////////////////////////////////////////
+
+        for (size_t rawGapIndex = 0;
+             rawGapIndex < rawGaps.size();
+             ++rawGapIndex)
+        {
+            Gap* rawGap = rawGaps.at(rawGapIndex);
+
+            if (!rawGap)
+                continue;
+
+            //////////////////////////////////////////////////////
+            // Raw RIGHT endpoint
+            //////////////////////////////////////////////////////
+
+            const int rawRightIdx = rawGap->RIdx();
+
+            if (scanIdxInsideGapRange(
+                    rawRightIdx,
+                    simpRightIdx,
+                    simpLeftIdx))
+            {
+                float rawRightX = 0.0f;
+                float rawRightY = 0.0f;
+
+                rawGap->getRCartesian(rawRightX, rawRightY);
+
+                geometry_msgs::Point p;
+                p.x = rawRightX;
+                p.y = rawRightY;
+                p.z = 0.15;
+
+                rawRightMarker.points.push_back(p);
+            }
+
+            //////////////////////////////////////////////////////
+            // Raw LEFT endpoint
+            //////////////////////////////////////////////////////
+
+            const int rawLeftIdx = rawGap->LIdx();
+
+            if (scanIdxInsideGapRange(
+                    rawLeftIdx,
+                    simpRightIdx,
+                    simpLeftIdx))
+            {
+                float rawLeftX = 0.0f;
+                float rawLeftY = 0.0f;
+
+                rawGap->getLCartesian(rawLeftX, rawLeftY);
+
+                geometry_msgs::Point p;
+                p.x = rawLeftX;
+                p.y = rawLeftY;
+                p.z = 0.15;
+
+                rawLeftMarker.points.push_back(p);
+            }
+        }
+
+        //////////////////////////////////////////////////////
+        // Push markers even if empty.
+        // This keeps marker IDs stable frame-to-frame.
+        //////////////////////////////////////////////////////
+
+        markerArray.markers.push_back(rawLeftMarker);
+        markerArray.markers.push_back(rawRightMarker);
+    }
+
+    containedRawGapPointsMarkerPublisher_.publish(markerArray);
 }
 
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 

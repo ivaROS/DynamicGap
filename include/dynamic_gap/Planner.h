@@ -71,6 +71,9 @@
 #include <map>
 #include <Eigen/Dense>
 
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
 namespace dynamic_gap
 {
     /**
@@ -516,6 +519,8 @@ namespace dynamic_gap
             ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
+            ros::Publisher containedRawGapPointsMarkerPublisher_;
+
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
 
@@ -708,6 +713,11 @@ namespace dynamic_gap
                 const int& idx,
                 const int& rightIdx,
                 const int& leftIdx) const;
+
+                void publishContainedRawGapPointsMarkerArray(
+                const std::vector<Gap*>& simplifiedGaps,
+                const std::vector<Gap*>& rawGaps,
+                const ros::Time& stamp) const;
 
                 std::string serializeRawGapPointsInsideSimplifiedGap(
                 const int& simplifiedGapIndex,
