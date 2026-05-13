@@ -106,14 +106,19 @@ namespace dynamic_gap
             */
             bool isGoalReached();
 
-            struct PerfectGapVelocityLabel
+            float gapPointDensityRadius_ = 3.0f;
+
+           struct PerfectGapVelocityLabel
             {
-                Eigen::Vector2f rel_vel;          // label matching Kalman filter convention
-                Eigen::Vector2f world_vel_robot;  // true agent velocity expressed in robot frame
+                Eigen::Vector2f rel_vel;
+                Eigen::Vector2f world_vel_robot;
 
                 std::string matched_agent_id;
                 float match_dist = std::numeric_limits<float>::infinity();
                 bool matched_dynamic_agent = false;
+
+                int nearby_agent_count = 0;
+                float nearby_agent_density = 0.0f;
             };
 
             PerfectGapVelocityLabel computePerfectGapVelocityLabel(
@@ -680,21 +685,22 @@ namespace dynamic_gap
              * \param match_dist Distance from gap point to matched agent.
              * \param matched_dynamic_agent True if the gap point matched a dynamic agent.
              */
-            void logSimplifiedGapVelocityCsvRow(
-                const int& gap_index,
-                const int& model_id,
-                const std::string& side,
-                const float& gap_x,
-                const float& gap_y,
-                const float& kalman_vx,
-                const float& kalman_vy,
-                const float& perfect_rel_vx,
-                const float& perfect_rel_vy,
-                const float& perfect_world_robot_vx,
-                const float& perfect_world_robot_vy,
-                const std::string& matched_agent_id,
-                const float& match_dist,
-                const bool& matched_dynamic_agent
-            );
+                void logSimplifiedGapVelocityCsvRow(
+                    const int& gap_index,
+                    const int& model_id,
+                    const std::string& side,
+                    const float& gap_x,
+                    const float& gap_y,
+                    const float& kalman_vx,
+                    const float& kalman_vy,
+                    const float& perfect_rel_vx,
+                    const float& perfect_rel_vy,
+                    const float& perfect_world_robot_vx,
+                    const float& perfect_world_robot_vy,
+                    const std::string& matched_agent_id,
+                    const float& match_dist,
+                    const bool& matched_dynamic_agent,
+                    const int& nearby_agent_count,
+                    const float& nearby_agent_density);
     };
 }

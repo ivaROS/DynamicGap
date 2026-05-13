@@ -344,13 +344,14 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/raw_gaps
               Name: Marker
               Namespaces:
-                {}
+                raw: true
+                raw_tmin1: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/simp_gaps
@@ -839,7 +840,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 83.11384582519531
+      Scale: 60.15005874633789
       Target Frame: rto/base_link
       X: 0.7468352317810059
       Y: 0.03490552306175232

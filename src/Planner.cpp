@@ -236,6 +236,8 @@ nh_.param<std::string>(
         << "matched_agent_id,"
         << "match_dist,"
         << "matched_dynamic_agent"
+        << "nearby_agent_count,"
+        << "nearby_agent_density"
         << "\n";
 
     gapVelocityCsvFile_.flush();
@@ -260,7 +262,9 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const float& perfect_world_robot_vy,
     const std::string& matched_agent_id,
     const float& match_dist,
-    const bool& matched_dynamic_agent)
+    const bool& matched_dynamic_agent,
+    const int& nearby_agent_count,
+    const float& nearby_agent_density)
 {
     if (!gapVelocityCsvLoggingEnabled_)
         return;
@@ -286,7 +290,9 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         << perfect_world_robot_vy << ","
         << matched_agent_id << ","
         << safeMatchDist << ","
-        << static_cast<int>(matched_dynamic_agent)
+        << static_cast<int>(matched_dynamic_agent) << ","
+        << nearby_agent_count << ","
+        << nearby_agent_density
         << "\n";
 
     gapVelocityCsvFile_.flush();
@@ -597,70 +603,102 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
     const geometry_msgs::TwistStamped& robotVelRobotFrame,
     const float& matchThresh) const
-{
-    PerfectGapVelocityLabel label;
-
-    // Default assumption:
-    // If this gap point is not near a pedestrian, assume it belongs to the static environment.
-    // A static world point appears to move opposite the robot in the robot frame.
-    label.rel_vel << -robotVelRobotFrame.twist.linear.x,
-                     -robotVelRobotFrame.twist.linear.y;
-
-    label.world_vel_robot << 0.0f, 0.0f;
-    label.matched_agent_id = "";
-    label.match_dist = std::numeric_limits<float>::infinity();
-    label.matched_dynamic_agent = false;
-
-    float minDist = std::numeric_limits<float>::infinity();
-    std::string bestAgentID = "";
-
-    for (const auto& agentPair : trueAgentPoses)
     {
-        const std::string& agentID = agentPair.first;
-        const geometry_msgs::Pose& agentPose = agentPair.second;
+        PerfectGapVelocityLabel label;
 
-        float dx = agentPose.position.x - gapPtRobotFrame[0];
-        float dy = agentPose.position.y - gapPtRobotFrame[1];
-        float dist = std::sqrt(dx * dx + dy * dy);
+        // Default: assume static world point.
+        // In robot-relative coordinates, static environment moves opposite robot velocity.
+        label.rel_vel << -robotVelRobotFrame.twist.linear.x,
+                        -robotVelRobotFrame.twist.linear.y;
 
-        if (dist < minDist)
+        label.world_vel_robot << 0.0f, 0.0f;
+        label.matched_agent_id = "";
+        label.match_dist = std::numeric_limits<float>::infinity();
+        label.matched_dynamic_agent = false;
+
+        label.nearby_agent_count = 0;
+        label.nearby_agent_density = 0.0f;
+
+        float minDist = std::numeric_limits<float>::infinity();
+        std::string bestAgentID = "";
+
+        for (const auto& agentPair : trueAgentPoses)
         {
-            minDist = dist;
-            bestAgentID = agentID;
+            const std::string& agentID = agentPair.first;
+            const geometry_msgs::Pose& agentPose = agentPair.second;
+
+            float dx = agentPose.position.x - gapPtRobotFrame[0];
+            float dy = agentPose.position.y - gapPtRobotFrame[1];
+            float dist = std::sqrt(dx * dx + dy * dy);
+
+            //////////////////////////////////////////////////////
+            // 1. Closest pedestrian to this gap point
+            //////////////////////////////////////////////////////
+
+            if (dist < minDist)
+            {
+                minDist = dist;
+                bestAgentID = agentID;
+            }
+
+            //////////////////////////////////////////////////////
+            // 2. Pedestrian density around this gap point
+            //    Count agents within 3.0 m radius
+            //////////////////////////////////////////////////////
+
+            if (dist <= gapPointDensityRadius_)
+            {
+                label.nearby_agent_count++;
+            }
         }
+
+        //////////////////////////////////////////////////////
+        // 3. Density = agents / circular area
+        //////////////////////////////////////////////////////
+
+        float densityArea =
+            static_cast<float>(M_PI) *
+            gapPointDensityRadius_ *
+            gapPointDensityRadius_;
+
+        if (densityArea > 0.0f)
+        {
+            label.nearby_agent_density =
+                static_cast<float>(label.nearby_agent_count) / densityArea;
+        }
+
+        //////////////////////////////////////////////////////
+        // 4. Store closest-agent info
+        //////////////////////////////////////////////////////
+
+        label.match_dist = minDist;
+        label.matched_agent_id = bestAgentID;
+
+        bool matchedAgent =
+            !bestAgentID.empty() &&
+            minDist < matchThresh &&
+            trueAgentVels.find(bestAgentID) != trueAgentVels.end();
+
+        //////////////////////////////////////////////////////
+        // 5. Perfect velocity label
+        //////////////////////////////////////////////////////
+
+        if (matchedAgent)
+        {
+            const geometry_msgs::Vector3Stamped& agentVel =
+                trueAgentVels.at(bestAgentID);
+
+            label.world_vel_robot << agentVel.vector.x,
+                                    agentVel.vector.y;
+
+            label.rel_vel << agentVel.vector.x - robotVelRobotFrame.twist.linear.x,
+                            agentVel.vector.y - robotVelRobotFrame.twist.linear.y;
+
+            label.matched_dynamic_agent = true;
+        }
+
+        return label;
     }
-
-    label.match_dist = minDist;
-    label.matched_agent_id = bestAgentID;
-
-    bool matchedAgent =
-        !bestAgentID.empty() &&
-        minDist < matchThresh &&
-        trueAgentVels.find(bestAgentID) != trueAgentVels.end();
-
-    if (matchedAgent)
-    {
-        const geometry_msgs::Vector3Stamped& agentVel = trueAgentVels.at(bestAgentID);
-
-        // True pedestrian/world velocity expressed in the robot frame.
-        label.world_vel_robot << agentVel.vector.x,
-                                 agentVel.vector.y;
-
-        // Relative velocity convention, matching the old PerfectEstimator:
-        //
-        // dynamic gap:
-        //      v_gap_relative = v_agent_robot_frame - v_robot_robot_frame
-        //
-        // static gap:
-        //      v_gap_relative = 0 - v_robot_robot_frame
-        label.rel_vel << agentVel.vector.x - robotVelRobotFrame.twist.linear.x,
-                         agentVel.vector.y - robotVelRobotFrame.twist.linear.y;
-
-        label.matched_dynamic_agent = true;
-    }
-
-    return label;
-}
 
         // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
     void Planner::updateModels(
@@ -838,6 +876,8 @@ void Planner::updateModel(
     std::string matchedAgentID = perfectLabel.matched_agent_id;
     float matchDist = perfectLabel.match_dist;
     bool matchedDynamicAgent = perfectLabel.matched_dynamic_agent;
+    int nearbyAgentCount = perfectLabel.nearby_agent_count;
+    float nearbyAgentDensity = perfectLabel.nearby_agent_density;
 
     //////////////////////////////////////////////////////
     // 7. CSV logging for simplified gaps only
@@ -862,7 +902,9 @@ void Planner::updateModel(
             perfectWorldRobotVy,
             matchedAgentID,
             matchDist,
-            matchedDynamicAgent
+            matchedDynamicAgent,
+             nearbyAgentCount,
+            nearbyAgentDensity
         );
     }
 
@@ -903,6 +945,9 @@ void Planner::updateModel(
         << " match_dist=" << matchDist
         << " dynamic=" << matchedDynamicAgent
     );
+
+     ROS_ERROR_STREAM_NAMED("GapVelocityLabel"," nearby_count=" << nearbyAgentCount
+    << " nearby_density=" << nearbyAgentDensity); 
 
     return;
 }
