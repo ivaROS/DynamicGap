@@ -10,6 +10,7 @@ Panels:
         - /Dynamic Gap1/Scans1
         - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Gaps1/Marker1
+        - /Dynamic Gap1/Gaps1/Marker2
         - /Dynamic Gap1/Gaps1/MarkerArray2
         - /Dynamic Gap1/Gaps1/MarkerArray3
         - /Dynamic Gap1/Gaps1/MarkerArray4
@@ -260,6 +261,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
+        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -353,13 +355,13 @@ Visualization Manager:
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /rto/manip_gaps

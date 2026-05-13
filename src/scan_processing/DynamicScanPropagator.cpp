@@ -86,6 +86,23 @@ namespace dynamic_gap
         //     ROS_INFO_STREAM_NAMED("DynamicScanPropagator", "            model state: " << iter->second->getGapState().transpose());
         // }
 
+        // ROS_ERROR_STREAM_NAMED("GapOrdering", "==== ORDERED GAP MODELS ====");
+
+        for (const auto& kv : rawModels)
+        {
+            int scanIdx = kv.first;
+            Estimator* model = kv.second;
+
+            // ROS_ERROR_STREAM_NAMED("GapOrdering",
+            //     "scan_idx=" << scanIdx
+            //     << " model_id=" << model->getID()
+            //     << " theta=" << idx2theta(scanIdx)
+            //     << " pos=("
+            //     << model->getGapPosition().x() << ", "
+            //     << model->getGapPosition().y() << ")"
+            // );
+        }
+
         sensor_msgs::LaserScan defaultScan = scan;
         sensor_msgs::LaserScan wipedScan = scan;
 

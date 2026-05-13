@@ -117,8 +117,7 @@ namespace dynamic_gap
                 float match_dist = std::numeric_limits<float>::infinity();
                 bool matched_dynamic_agent = false;
 
-                int nearby_agent_count = 0;
-                float nearby_agent_density = 0.0f;
+
             };
 
             PerfectGapVelocityLabel computePerfectGapVelocityLabel(
@@ -700,7 +699,18 @@ namespace dynamic_gap
                     const std::string& matched_agent_id,
                     const float& match_dist,
                     const bool& matched_dynamic_agent,
-                    const int& nearby_agent_count,
-                    const float& nearby_agent_density);
+                    const int& contained_raw_gap_point_count,
+                    const std::string& contained_raw_gap_points
+                );
+
+
+                bool scanIdxInsideGapRange(
+                const int& idx,
+                const int& rightIdx,
+                const int& leftIdx) const;
+
+                std::string serializeRawGapPointsInsideSimplifiedGap(
+                const int& simplifiedGapIndex,
+                int& containedRawGapPointCount) const;
     };
 }

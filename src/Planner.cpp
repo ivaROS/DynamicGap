@@ -187,6 +187,141 @@ nh_.param<std::string>(
         return true;
     }
 
+    bool Planner::scanIdxInsideGapRange(
+    const int& idx,
+    const int& rightIdx,
+    const int& leftIdx) const
+    {
+        // Normal case: right -> left does not cross index 0
+        if (rightIdx <= leftIdx)
+        {
+            return idx >= rightIdx && idx <= leftIdx;
+        }
+
+        // Wraparound case:
+        // Example: right=490, left=20 on a 512 beam scan
+        return idx >= rightIdx || idx <= leftIdx;
+    }
+
+    std::string Planner::serializeRawGapPointsInsideSimplifiedGap(
+    const int& simplifiedGapIndex,
+    int& containedRawGapPointCount) const
+    {
+        containedRawGapPointCount = 0;
+
+        if (simplifiedGapIndex < 0 ||
+            simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
+        {
+            return "";
+        }
+
+        Gap* simplifiedGap = currSimplifiedGaps_.at(simplifiedGapIndex);
+
+        const int simpRightIdx = simplifiedGap->RIdx();
+        const int simpLeftIdx  = simplifiedGap->LIdx();
+
+        std::ostringstream serializedPoints;
+        bool firstPoint = true;
+
+        for (size_t rawGapIndex = 0; rawGapIndex < currRawGaps_.size(); ++rawGapIndex)
+        {
+            Gap* rawGap = currRawGaps_.at(rawGapIndex);
+
+            //////////////////////////////////////////////////////
+            // Check raw RIGHT gap point
+            //////////////////////////////////////////////////////
+
+            {
+                const int rawRightScanIdx = rawGap->RIdx();
+
+                if (scanIdxInsideGapRange(rawRightScanIdx, simpRightIdx, simpLeftIdx))
+                {
+                    float rawX = 0.0f;
+                    float rawY = 0.0f;
+                    rawGap->getRCartesian(rawX, rawY);
+
+                    Estimator* rawModel =
+                        rawGap->getRightGapPt()->getModel();
+
+                    int rawModelID = rawModel ? rawModel->getID() : -1;
+
+                    if (!firstPoint)
+                        serializedPoints << ";";
+
+                    // Format:
+                    // raw_gap_index|side|model_id|scan_idx|x|y
+                    serializedPoints
+                        << rawGapIndex << "|"
+                        << "right" << "|"
+                        << rawModelID << "|"
+                        << rawRightScanIdx << "|"
+                        << rawX << "|"
+                        << rawY;
+
+                    firstPoint = false;
+                    containedRawGapPointCount++;
+
+                    float rawAngleDeg =
+                    std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
+
+                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                        "    angle_deg=" << rawAngleDeg
+                        << " side=right"
+                        << " rawModelID: " << rawModelID
+                    );
+
+
+                }
+            }
+
+            //////////////////////////////////////////////////////
+            // Check raw LEFT gap point
+            //////////////////////////////////////////////////////
+
+            {
+                const int rawLeftScanIdx = rawGap->LIdx();
+
+                if (scanIdxInsideGapRange(rawLeftScanIdx, simpRightIdx, simpLeftIdx))
+                {
+                    float rawX = 0.0f;
+                    float rawY = 0.0f;
+                    rawGap->getLCartesian(rawX, rawY);
+
+                    Estimator* rawModel =
+                        rawGap->getLeftGapPt()->getModel();
+
+                    int rawModelID = rawModel ? rawModel->getID() : -1;
+
+                    if (!firstPoint)
+                        serializedPoints << ";";
+
+                    // Format:
+                    // raw_gap_index|side|model_id|scan_idx|x|y
+                    serializedPoints
+                        << rawGapIndex << "|"
+                        << "left" << "|"
+                        << rawModelID << "|"
+                        << rawLeftScanIdx << "|"
+                        << rawX << "|"
+                        << rawY;
+
+                    firstPoint = false;
+                    containedRawGapPointCount++;
+
+                    float rawAngleDeg =
+                        std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
+
+                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                        "    angle_deg=" << rawAngleDeg
+                        << " side=left" << " rawModelID: " << rawModelID
+                    );
+                }
+            }
+        }
+
+        return serializedPoints.str();
+    }
+
     void Planner::initializeGapVelocityCsvLogger()
 {
     gapVelocityCsvLoggingEnabled_ = true;
@@ -235,9 +370,9 @@ nh_.param<std::string>(
         << "perfect_world_robot_vy,"
         << "matched_agent_id,"
         << "match_dist,"
-        << "matched_dynamic_agent"
-        << "nearby_agent_count,"
-        << "nearby_agent_density"
+        << "matched_dynamic_agent,"
+        << "contained_raw_gap_point_count,"
+        << "contained_raw_gap_points"
         << "\n";
 
     gapVelocityCsvFile_.flush();
@@ -263,8 +398,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const std::string& matched_agent_id,
     const float& match_dist,
     const bool& matched_dynamic_agent,
-    const int& nearby_agent_count,
-    const float& nearby_agent_density)
+    const int& contained_raw_gap_point_count,
+    const std::string& contained_raw_gap_points)
 {
     if (!gapVelocityCsvLoggingEnabled_)
         return;
@@ -291,8 +426,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         << matched_agent_id << ","
         << safeMatchDist << ","
         << static_cast<int>(matched_dynamic_agent) << ","
-        << nearby_agent_count << ","
-        << nearby_agent_density
+        << contained_raw_gap_point_count << ","
+        << contained_raw_gap_points
         << "\n";
 
     gapVelocityCsvFile_.flush();
@@ -616,9 +751,6 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         label.match_dist = std::numeric_limits<float>::infinity();
         label.matched_dynamic_agent = false;
 
-        label.nearby_agent_count = 0;
-        label.nearby_agent_density = 0.0f;
-
         float minDist = std::numeric_limits<float>::infinity();
         std::string bestAgentID = "";
 
@@ -641,31 +773,9 @@ void Planner::logSimplifiedGapVelocityCsvRow(
                 bestAgentID = agentID;
             }
 
-            //////////////////////////////////////////////////////
-            // 2. Pedestrian density around this gap point
-            //    Count agents within 3.0 m radius
-            //////////////////////////////////////////////////////
-
-            if (dist <= gapPointDensityRadius_)
-            {
-                label.nearby_agent_count++;
-            }
         }
 
-        //////////////////////////////////////////////////////
-        // 3. Density = agents / circular area
-        //////////////////////////////////////////////////////
 
-        float densityArea =
-            static_cast<float>(M_PI) *
-            gapPointDensityRadius_ *
-            gapPointDensityRadius_;
-
-        if (densityArea > 0.0f)
-        {
-            label.nearby_agent_density =
-                static_cast<float>(label.nearby_agent_count) / densityArea;
-        }
 
         //////////////////////////////////////////////////////
         // 4. Store closest-agent info
@@ -872,12 +982,39 @@ void Planner::updateModel(
 
     float perfectWorldRobotVx = perfectLabel.world_vel_robot[0];
     float perfectWorldRobotVy = perfectLabel.world_vel_robot[1];
-
     std::string matchedAgentID = perfectLabel.matched_agent_id;
     float matchDist = perfectLabel.match_dist;
     bool matchedDynamicAgent = perfectLabel.matched_dynamic_agent;
-    int nearbyAgentCount = perfectLabel.nearby_agent_count;
-    float nearbyAgentDensity = perfectLabel.nearby_agent_density;
+
+    int containedRawGapPointCount = 0;
+    std::string containedRawGapPoints = "";
+
+    if (logSimplifiedGapVelocityLabels)
+    {
+        containedRawGapPoints =
+            serializeRawGapPointsInsideSimplifiedGap(
+                gapIndex,
+                containedRawGapPointCount
+            );
+
+        // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+        //     "\n"
+        //     << "gap_index=" << gapIndex << "\n"
+        //     << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
+        //     << "contained_raw_gap_points=\n"
+        //     << containedRawGapPoints
+        // );
+
+        // this is easier to read
+        if (logSimplifiedGapVelocityLabels && side == "left")
+            {
+                ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                    "\n"
+                    << "gap_index=" << gapIndex << "\n"
+                    << "contained_raw_gap_point_count=" << containedRawGapPointCount
+                );
+            }
+    }
 
     //////////////////////////////////////////////////////
     // 7. CSV logging for simplified gaps only
@@ -903,8 +1040,8 @@ void Planner::updateModel(
             matchedAgentID,
             matchDist,
             matchedDynamicAgent,
-             nearbyAgentCount,
-            nearbyAgentDensity
+            containedRawGapPointCount,
+            containedRawGapPoints
         );
     }
 
@@ -946,8 +1083,8 @@ void Planner::updateModel(
         << " dynamic=" << matchedDynamicAgent
     );
 
-     ROS_ERROR_STREAM_NAMED("GapVelocityLabel"," nearby_count=" << nearbyAgentCount
-    << " nearby_density=" << nearbyAgentDensity); 
+    //  ROS_ERROR_STREAM_NAMED("GapVelocityLabel"," nearby_count=" << nearbyAgentCount
+    // << " nearby_density=" << nearbyAgentDensity); 
 
     return;
 }
