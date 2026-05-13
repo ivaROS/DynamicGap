@@ -216,6 +216,23 @@ namespace dynamic_gap
                 const ros::Time& currentStamp,
                 Eigen::Vector2f& relVelOut) const;
 
+            int scanIdxCircularWidth(
+                const int& rightIdx,
+                const int& leftIdx,
+                const int& scanSize) const;
+
+            float gapAngularWidthRad(
+                const int& rightIdx,
+                const int& leftIdx) const;
+
+            void computeSimplifiedGapSectorDensity(
+                const int& simplifiedGapIndex,
+                int& sectorAgentCount,
+                float& sectorArea,
+                float& sectorDensity,
+                float& sectorRadius,
+                float& sectorAngleRad) const;
+
         private:
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,

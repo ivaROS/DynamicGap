@@ -31,6 +31,7 @@ Panels:
         - /Marker1
         - /MarkerArray1
         - /MarkerArray2
+        - /MarkerArray3
       Splitter Ratio: 0.32637855410575867
     Tree Height: 484
   - Class: rviz/Selection
@@ -261,7 +262,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -803,6 +803,15 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         propagated_egocircle: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/contained_raw_gap_points
+      Name: MarkerArray
+      Namespaces:
+        contained_raw_left_gap_points: true
+        contained_raw_right_gap_points: true
       Queue Size: 100
       Value: true
   Enabled: true

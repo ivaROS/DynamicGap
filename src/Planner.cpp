@@ -478,6 +478,171 @@ void Planner::logSimplifiedGapVelocityCsvRow(
             << " seq_len=" << estimate.seq_len_used
         );
     }
+    // helper for density calculation 
+    int Planner::scanIdxCircularWidth(
+    const int& rightIdx,
+    const int& leftIdx,
+    const int& scanSize) const
+    {
+        if (scanSize <= 0)
+            return 0;
+
+        if (rightIdx <= leftIdx)
+            return leftIdx - rightIdx;
+
+        return (scanSize - rightIdx) + leftIdx;
+    }
+
+    float Planner::gapAngularWidthRad(
+    const int& rightIdx,
+    const int& leftIdx) const
+    {
+        if (!scan_)
+            return 0.0f;
+
+        const int scanSize = static_cast<int>(scan_->ranges.size());
+
+        int idxWidth = scanIdxCircularWidth(
+            rightIdx,
+            leftIdx,
+            scanSize
+        );
+
+        return static_cast<float>(idxWidth) * scan_->angle_increment;
+    }
+
+    void Planner::computeSimplifiedGapSectorDensity(
+    const int& simplifiedGapIndex,
+    int& sectorAgentCount,
+    float& sectorArea,
+    float& sectorDensity,
+    float& sectorRadius,
+    float& sectorAngleRad) const
+{
+    sectorAgentCount = 0;
+    sectorArea = 0.0f;
+    sectorDensity = 0.0f;
+    sectorRadius = 0.0f;
+    sectorAngleRad = 0.0f;
+
+    if (!scan_)
+        return;
+
+    if (simplifiedGapIndex < 0 ||
+        simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
+    {
+        return;
+    }
+
+    Gap* simplifiedGap = currSimplifiedGaps_.at(simplifiedGapIndex);
+
+    if (!simplifiedGap)
+        return;
+
+    const int simpRightIdx = simplifiedGap->RIdx();
+    const int simpLeftIdx  = simplifiedGap->LIdx();
+
+    //////////////////////////////////////////////////////
+    // 1. Find farthest contained raw gap point
+    //////////////////////////////////////////////////////
+
+    for (size_t rawGapIndex = 0; rawGapIndex < currRawGaps_.size(); ++rawGapIndex)
+    {
+        Gap* rawGap = currRawGaps_.at(rawGapIndex);
+
+        if (!rawGap)
+            continue;
+
+        // Raw right endpoint
+        const int rawRightIdx = rawGap->RIdx();
+
+        if (scanIdxInsideGapRange(rawRightIdx, simpRightIdx, simpLeftIdx))
+        {
+            float rawX = 0.0f;
+            float rawY = 0.0f;
+
+            rawGap->getRCartesian(rawX, rawY);
+
+            float rawDist = std::sqrt(rawX * rawX + rawY * rawY);
+
+            if (rawDist > sectorRadius)
+                sectorRadius = rawDist;
+        }
+
+        // Raw left endpoint
+        const int rawLeftIdx = rawGap->LIdx();
+
+        if (scanIdxInsideGapRange(rawLeftIdx, simpRightIdx, simpLeftIdx))
+        {
+            float rawX = 0.0f;
+            float rawY = 0.0f;
+
+            rawGap->getLCartesian(rawX, rawY);
+
+            float rawDist = std::sqrt(rawX * rawX + rawY * rawY);
+
+            if (rawDist > sectorRadius)
+                sectorRadius = rawDist;
+        }
+    }
+
+    //////////////////////////////////////////////////////
+    // 2. Compute angular width of simplified gap sector
+    //////////////////////////////////////////////////////
+
+    sectorAngleRad = gapAngularWidthRad(
+        simpRightIdx,
+        simpLeftIdx
+    );
+
+    //////////////////////////////////////////////////////
+    // 3. Compute sector area
+    //////////////////////////////////////////////////////
+
+    if (sectorRadius <= 0.0f || sectorAngleRad <= 0.0f)
+        return;
+
+    sectorArea =
+        0.5f *
+        sectorRadius *
+        sectorRadius *
+        sectorAngleRad;
+
+    if (sectorArea <= 0.0f)
+        return;
+
+    //////////////////////////////////////////////////////
+    // 4. Count agents inside that sector
+    //////////////////////////////////////////////////////
+
+    for (const auto& agentPair : currentTrueAgentPoses_)
+    {
+        const geometry_msgs::Pose& agentPose = agentPair.second;
+
+        float agentX = agentPose.position.x;
+        float agentY = agentPose.position.y;
+
+        float agentDist = std::sqrt(agentX * agentX + agentY * agentY);
+
+        if (agentDist > sectorRadius)
+            continue;
+
+        float agentTheta = std::atan2(agentY, agentX);
+        int agentIdx = theta2idx(agentTheta);
+
+        if (scanIdxInsideGapRange(agentIdx, simpRightIdx, simpLeftIdx))
+        {
+            sectorAgentCount++;
+        }
+    }
+
+    //////////////////////////////////////////////////////
+    // 5. Density
+    //////////////////////////////////////////////////////
+
+    sectorDensity =
+        static_cast<float>(sectorAgentCount) / sectorArea;
+}
 
     bool Planner::getLatestGruVelocityForModel(
     const int& modelID,
@@ -1007,32 +1172,44 @@ void Planner::updateModel(
     int containedRawGapPointCount = 0;
     std::string containedRawGapPoints = "";
 
+    int sectorAgentCount = 0;
+    float sectorArea = 0.0f;
+    float sectorDensity = 0.0f;
+    float sectorRadius = 0.0f;
+    float sectorAngleRad = 0.0f;
+
     if (logSimplifiedGapVelocityLabels)
-    {
-        containedRawGapPoints =
-            serializeRawGapPointsInsideSimplifiedGap(
+        {
+            containedRawGapPoints =
+                serializeRawGapPointsInsideSimplifiedGap(
+                    gapIndex,
+                    containedRawGapPointCount
+                );
+
+            computeSimplifiedGapSectorDensity(
                 gapIndex,
-                containedRawGapPointCount
+                sectorAgentCount,
+                sectorArea,
+                sectorDensity,
+                sectorRadius,
+                sectorAngleRad
             );
 
-        // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
-        //     "\n"
-        //     << "gap_index=" << gapIndex << "\n"
-        //     << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
-        //     << "contained_raw_gap_points=\n"
-        //     << containedRawGapPoints
-        // );
-
-        // this is easier to read
-        if (logSimplifiedGapVelocityLabels && side == "left")
+            if (side == "left")
             {
-                ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                 ROS_ERROR_STREAM_NAMED("GapSectorDensity", "just left bc easier read:"); 
+                ROS_ERROR_STREAM_NAMED("GapSectorDensity",
                     "\n"
                     << "gap_index=" << gapIndex << "\n"
-                    << "contained_raw_gap_point_count=" << containedRawGapPointCount
+                    << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
+                    << "sector_radius=" << sectorRadius << "\n"
+                    << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n"
+                    << "sector_area=" << sectorArea << "\n"
+                    << "sector_agent_count=" << sectorAgentCount << "\n"
+                    << "sector_density=" << sectorDensity
                 );
             }
-    }
+        }
 
     //////////////////////////////////////////////////////
     // 7. CSV logging for simplified gaps only
