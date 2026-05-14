@@ -225,13 +225,18 @@ namespace dynamic_gap
                 const int& rightIdx,
                 const int& leftIdx) const;
 
+            float getGapPointDynamicSpeedForDensity(
+                Estimator* model) const;
+
             void computeSimplifiedGapSectorDensity(
                 const int& simplifiedGapIndex,
-                int& sectorAgentCount,
-                float& sectorArea,
-                float& sectorDensity,
+                int& sectorDynamicRawGapPointCount,
                 float& sectorRadius,
-                float& sectorAngleRad) const;
+                float& sectorAngleRad,
+                float& sectorArea,
+                float& sectorDensity) const;
+
+        float gapDensityDynamicSpeedThresh_ = 0.05f;
 
         private:
 
@@ -706,7 +711,7 @@ namespace dynamic_gap
              * \param match_dist Distance from gap point to matched agent.
              * \param matched_dynamic_agent True if the gap point matched a dynamic agent.
              */
-                void logSimplifiedGapVelocityCsvRow(
+               void logSimplifiedGapVelocityCsvRow(
                     const int& gap_index,
                     const int& model_id,
                     const std::string& side,
@@ -722,8 +727,12 @@ namespace dynamic_gap
                     const float& match_dist,
                     const bool& matched_dynamic_agent,
                     const int& contained_raw_gap_point_count,
-                    const std::string& contained_raw_gap_points
-                );
+                    const std::string& contained_raw_gap_points,
+                    const float& sector_radius,
+                    const float& sector_angle_rad,
+                    const float& sector_area,
+                    const int& sector_dynamic_raw_gap_point_count,
+                    const float& sector_density);
 
 
                 bool scanIdxInsideGapRange(
