@@ -389,9 +389,7 @@ nh_.param<std::string>(
         << "sector_angle_rad,"
         << "sector_area,"
         << "sector_dynamic_raw_gap_point_count,"
-        << "sector_density,"
-        << "gt_sector_dynamic_raw_gap_point_count,"
-        << "gt_sector_density"
+        << "sector_density"
         << "\n";
         
     gapVelocityCsvFile_.flush();
@@ -423,9 +421,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const float& sector_angle_rad,
     const float& sector_area,
     const int& sector_dynamic_raw_gap_point_count,
-    const float& sector_density,
-    const int& gt_sector_dynamic_raw_gap_point_count,
-    const float& gt_sector_density)
+    const float& sector_density)
 {
     if (!gapVelocityCsvLoggingEnabled_)
         return;
@@ -459,9 +455,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         << sector_angle_rad << ","
         << sector_area << ","
         << sector_dynamic_raw_gap_point_count << ","
-        << sector_density << ","
-        << gt_sector_dynamic_raw_gap_point_count << ","
-        << gt_sector_density
+        << sector_density
         << "\n";
 
     gapVelocityCsvFile_.flush();
@@ -1262,41 +1256,22 @@ void Planner::updateModel(
     float sectorAngleRad = 0.0f;
     float sectorArea = 0.0f;
     float sectorDensity = 0.0f;
-    int gtSectorDynamicRawGapPointCount = 0;
-    float gtSectorDensity = 0.0f;
+if (logSimplifiedGapVelocityLabels)
+        {
+            containedRawGapPoints =
+                serializeRawGapPointsInsideSimplifiedGap(
+                    gapIndex,
+                    containedRawGapPointCount
+                );
 
-    if (logSimplifiedGapVelocityLabels)
-    {
-        containedRawGapPoints =
-            serializeRawGapPointsInsideSimplifiedGap(
+            computeSimplifiedGapSectorDensity(
                 gapIndex,
-                containedRawGapPointCount
+                sectorDynamicRawGapPointCount,
+                sectorRadius,
+                sectorAngleRad,
+                sectorArea,
+                sectorDensity
             );
-
-        //////////////////////////////////////////////////////
-        // Estimator-derived density:
-        // "what the robot thinks is dynamic"
-        //////////////////////////////////////////////////////
-
-        computeSimplifiedGapSectorDensity(
-            gapIndex,
-            sectorDynamicRawGapPointCount,
-            sectorRadius,
-            sectorAngleRad,
-            sectorArea,
-            sectorDensity
-        );
-
-        //////////////////////////////////////////////////////
-        // Ground-truth density:
-        // "what the training label says is truly dynamic"
-        //////////////////////////////////////////////////////
-
-        computeSimplifiedGapGroundTruthSectorDensity(
-            gapIndex,
-            gtSectorDynamicRawGapPointCount,
-            gtSectorDensity
-        );
 
             // if (side == "left") // you can print just the left one if its easier to read
             // {
@@ -1309,9 +1284,7 @@ void Planner::updateModel(
                     << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
                     << "sector_area=" << sectorArea << "\n"
                     << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
-                    << "sector_density=" << sectorDensity << "\n"
-                    << "gtSectorDynamicRawGapPointCount=" << gtSectorDynamicRawGapPointCount << "\n"
-                    << "gtSectorDensity=" << gtSectorDensity
+                    << "sector_density=" << sectorDensity
                 );
             // }
         }
@@ -1346,9 +1319,7 @@ void Planner::updateModel(
             sectorAngleRad,
             sectorArea,
             sectorDynamicRawGapPointCount,
-            sectorDensity,
-            gtSectorDynamicRawGapPointCount,
-            gtSectorDensity
+            sectorDensity
         );
     }
 
@@ -1617,304 +1588,6 @@ void Planner::publishContainedRawGapPointsMarkerArray(
     }
 
     containedRawGapPointsMarkerPublisher_.publish(markerArray);
-}
-
-bool Planner::rawGapPointMatchesDynamicGroundTruthAgent(
-    const Eigen::Vector2f& rawGapPointRobotFrame,
-    std::string& matchedAgentID,
-    float& matchDist,
-    float& matchedAgentGroundTruthSpeed) const
-{
-    matchedAgentID = "";
-    matchDist = std::numeric_limits<float>::infinity();
-    matchedAgentGroundTruthSpeed = 0.0f;
-
-    float minDist = std::numeric_limits<float>::infinity();
-    std::string bestAgentID = "";
-
-    //////////////////////////////////////////////////////
-    // 1. Find nearest ground-truth pedestrian
-    //////////////////////////////////////////////////////
-
-    for (const auto& agentPair : currentTrueAgentPoses_)
-    {
-        const std::string& agentID = agentPair.first;
-        const geometry_msgs::Pose& agentPose = agentPair.second;
-
-        const float dx =
-            agentPose.position.x - rawGapPointRobotFrame[0];
-
-        const float dy =
-            agentPose.position.y - rawGapPointRobotFrame[1];
-
-        const float dist =
-            std::sqrt(dx * dx + dy * dy);
-
-        if (dist < minDist)
-        {
-            minDist = dist;
-            bestAgentID = agentID;
-        }
-    }
-
-    matchedAgentID = bestAgentID;
-    matchDist = minDist;
-
-    //////////////////////////////////////////////////////
-    // 2. Must be close enough to count as matched
-    //////////////////////////////////////////////////////
-
-    if (bestAgentID.empty())
-        return false;
-
-    if (minDist >= perfectGapVelMatchThresh_)
-        return false;
-
-    //////////////////////////////////////////////////////
-    // 3. Must have a ground-truth velocity entry
-    //////////////////////////////////////////////////////
-
-    auto velIt = currentTrueAgentVels_.find(bestAgentID);
-
-    if (velIt == currentTrueAgentVels_.end())
-        return false;
-
-    const geometry_msgs::Vector3Stamped& agentVel =
-        velIt->second;
-
-    matchedAgentGroundTruthSpeed =
-        std::sqrt(
-            agentVel.vector.x * agentVel.vector.x +
-            agentVel.vector.y * agentVel.vector.y
-        );
-
-    //////////////////////////////////////////////////////
-    // 4. Dynamic if GT pedestrian speed is above threshold
-    //////////////////////////////////////////////////////
-
-    return matchedAgentGroundTruthSpeed >=
-           gapDensityDynamicSpeedThresh_;
-}
-
-void Planner::computeSimplifiedGapGroundTruthSectorDensity(
-    const int& simplifiedGapIndex,
-    int& gtSectorDynamicRawGapPointCount,
-    float& gtSectorDensity) const
-{
-    gtSectorDynamicRawGapPointCount = 0;
-    gtSectorDensity = 0.0f;
-
-    if (!scan_)
-        return;
-
-    if (simplifiedGapIndex < 0 ||
-        simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
-    {
-        return;
-    }
-
-    Gap* simplifiedGap =
-        currSimplifiedGaps_.at(simplifiedGapIndex);
-
-    if (!simplifiedGap)
-        return;
-
-    const int simpRightIdx = simplifiedGap->RIdx();
-    const int simpLeftIdx  = simplifiedGap->LIdx();
-
-    //////////////////////////////////////////////////////
-    // 1. Recompute same sector radius used by estimator density
-    //////////////////////////////////////////////////////
-
-    float sectorRadius = 0.0f;
-
-    for (size_t rawGapIndex = 0;
-         rawGapIndex < currRawGaps_.size();
-         ++rawGapIndex)
-    {
-        Gap* rawGap = currRawGaps_.at(rawGapIndex);
-
-        if (!rawGap)
-            continue;
-
-        //////////////////////////////////////////////////////
-        // Raw RIGHT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawRightIdx = rawGap->RIdx();
-
-        if (scanIdxInsideGapRange(
-                rawRightIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawRightX = 0.0f;
-            float rawRightY = 0.0f;
-
-            rawGap->getRCartesian(rawRightX, rawRightY);
-
-            const float rawRightRadius =
-                std::sqrt(
-                    rawRightX * rawRightX +
-                    rawRightY * rawRightY
-                );
-
-            if (rawRightRadius > sectorRadius)
-                sectorRadius = rawRightRadius;
-        }
-
-        //////////////////////////////////////////////////////
-        // Raw LEFT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawLeftIdx = rawGap->LIdx();
-
-        if (scanIdxInsideGapRange(
-                rawLeftIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawLeftX = 0.0f;
-            float rawLeftY = 0.0f;
-
-            rawGap->getLCartesian(rawLeftX, rawLeftY);
-
-            const float rawLeftRadius =
-                std::sqrt(
-                    rawLeftX * rawLeftX +
-                    rawLeftY * rawLeftY
-                );
-
-            if (rawLeftRadius > sectorRadius)
-                sectorRadius = rawLeftRadius;
-        }
-    }
-
-    //////////////////////////////////////////////////////
-    // 2. Same sector angle and area as estimator density
-    //////////////////////////////////////////////////////
-
-    const float sectorAngleRad =
-        gapAngularWidthRad(
-            simpRightIdx,
-            simpLeftIdx
-        );
-
-    if (sectorRadius <= 0.0f ||
-        sectorAngleRad <= 0.0f)
-    {
-        return;
-    }
-
-    const float sectorArea =
-        0.5f *
-        sectorRadius *
-        sectorRadius *
-        sectorAngleRad;
-
-    if (sectorArea <= 0.0f)
-        return;
-
-    //////////////////////////////////////////////////////
-    // 3. Count contained raw gap endpoints whose nearest
-    //    matched GT pedestrian is actually moving.
-    //////////////////////////////////////////////////////
-
-    for (size_t rawGapIndex = 0;
-         rawGapIndex < currRawGaps_.size();
-         ++rawGapIndex)
-    {
-        Gap* rawGap = currRawGaps_.at(rawGapIndex);
-
-        if (!rawGap)
-            continue;
-
-        //////////////////////////////////////////////////////
-        // Raw RIGHT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawRightIdx = rawGap->RIdx();
-
-        if (scanIdxInsideGapRange(
-                rawRightIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawRightX = 0.0f;
-            float rawRightY = 0.0f;
-
-            rawGap->getRCartesian(rawRightX, rawRightY);
-
-            Eigen::Vector2f rawRightPt(
-                rawRightX,
-                rawRightY
-            );
-
-            std::string matchedAgentID;
-            float matchDist = 0.0f;
-            float matchedAgentGroundTruthSpeed = 0.0f;
-
-            const bool isDynamicGroundTruthRawGapPoint =
-                rawGapPointMatchesDynamicGroundTruthAgent(
-                    rawRightPt,
-                    matchedAgentID,
-                    matchDist,
-                    matchedAgentGroundTruthSpeed
-                );
-
-            if (isDynamicGroundTruthRawGapPoint)
-            {
-                gtSectorDynamicRawGapPointCount++;
-            }
-        }
-
-        //////////////////////////////////////////////////////
-        // Raw LEFT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawLeftIdx = rawGap->LIdx();
-
-        if (scanIdxInsideGapRange(
-                rawLeftIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawLeftX = 0.0f;
-            float rawLeftY = 0.0f;
-
-            rawGap->getLCartesian(rawLeftX, rawLeftY);
-
-            Eigen::Vector2f rawLeftPt(
-                rawLeftX,
-                rawLeftY
-            );
-
-            std::string matchedAgentID;
-            float matchDist = 0.0f;
-            float matchedAgentGroundTruthSpeed = 0.0f;
-
-            const bool isDynamicGroundTruthRawGapPoint =
-                rawGapPointMatchesDynamicGroundTruthAgent(
-                    rawLeftPt,
-                    matchedAgentID,
-                    matchDist,
-                    matchedAgentGroundTruthSpeed
-                );
-
-            if (isDynamicGroundTruthRawGapPoint)
-            {
-                gtSectorDynamicRawGapPointCount++;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////
-    // 4. Ground-truth target density
-    //////////////////////////////////////////////////////
-
-    gtSectorDensity =
-        static_cast<float>(gtSectorDynamicRawGapPointCount) /
-        sectorArea;
 }
 
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 

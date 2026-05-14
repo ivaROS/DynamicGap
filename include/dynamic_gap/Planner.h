@@ -123,7 +123,18 @@ namespace dynamic_gap
 
             };
 
-            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
+            bool rawGapPointMatchesDynamicGroundTruthAgent( // for density calculation
+            const Eigen::Vector2f& rawGapPointRobotFrame,
+            std::string& matchedAgentID,
+            float& matchDist,
+            float& matchedAgentGroundTruthSpeed) const;
+
+            void computeSimplifiedGapGroundTruthSectorDensity(
+            const int& simplifiedGapIndex,
+            int& gtSectorDynamicRawGapPointCount,
+            float& gtSectorDensity) const;
+
+            PerfectGapVelocityLabel computePerfectGapVelocityLabel( // for GRU learn gap point velocity
             const Eigen::Vector2f& gapPtRobotFrame,
             const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
             const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
@@ -732,8 +743,9 @@ namespace dynamic_gap
                     const float& sector_angle_rad,
                     const float& sector_area,
                     const int& sector_dynamic_raw_gap_point_count,
-                    const float& sector_density);
-
+                    const float& sector_density,
+                    const int& gt_sector_dynamic_raw_gap_point_count,
+                    const float& gt_sector_density);
 
                 bool scanIdxInsideGapRange(
                 const int& idx,
