@@ -200,7 +200,7 @@ namespace dynamic_gap
                 bool valid = false;
                 int seq_len_used = 0;
             };
-
+            //
             ros::Subscriber gruGapVelocitySub_;
 
             std::map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_;
