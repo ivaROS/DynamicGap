@@ -248,11 +248,13 @@ namespace dynamic_gap
                 float& sectorArea,
                 float& sectorDensity) const;
 
-            void publishGapFeatureObservation(
+           void publishGapFeatureObservation(
             const ros::Time& stamp,
             const int& gapIndex,
             const int& modelID,
             const std::string& side,
+            const float& visX,
+            const float& visY,
             const float& sectorDensity,
             const int& sectorDynamicRawGapPointCount,
             const int& containedRawGapPointCount,
@@ -261,7 +263,6 @@ namespace dynamic_gap
             const float& sectorRadius,
             const float& gtSectorDensity,
             const int& gtSectorDynamicRawGapPointCount);
-
             float gapDensityDynamicSpeedThresh_ = 0.05f;
 
         private:

@@ -477,6 +477,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const int& gapIndex,
     const int& modelID,
     const std::string& side,
+    const float& visX,
+    const float& visY,
     const float& sectorDensity,
     const int& sectorDynamicRawGapPointCount,
     const int& containedRawGapPointCount,
@@ -487,9 +489,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const int& gtSectorDynamicRawGapPointCount)
     {
         //////////////////////////////////////////////////////
-        // For this density model, only publish once per
-        // simplified gap. Left/right rows contain the same
-        // sector-level information.
+        // Publish once per simplified gap only.
+        // Left/right rows contain the same sector-level info.
         //////////////////////////////////////////////////////
 
         if (side != "left")
@@ -505,10 +506,14 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         msg.side = side;
 
         //////////////////////////////////////////////////////
-        // Publish a superset of model-usable features.
-        //
-        // The Python node will select only the features that
-        // the loaded model expects, based on stats JSON.
+        // RViz anchor: midpoint of simplified gap.
+        //////////////////////////////////////////////////////
+
+        msg.vis_x = visX;
+        msg.vis_y = visY;
+
+        //////////////////////////////////////////////////////
+        // Generic feature vector.
         //////////////////////////////////////////////////////
 
         msg.feature_names.push_back("sector_density");
@@ -534,8 +539,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         msg.feature_values.push_back(sectorRadius);
 
         //////////////////////////////////////////////////////
-        // Targets are optional for inference, but useful for
-        // debugging and making the live topic self-contained.
+        // Targets are included for debugging/logging only.
         //////////////////////////////////////////////////////
 
         msg.target_names.push_back("gt_sector_density");
@@ -548,7 +552,6 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
         gapFeatureObservationPublisher_.publish(msg);
     }
-
     void Planner::gruGapVelocityCB(
         const dynamic_gap::GapVelocityPrediction::ConstPtr& msg)
     {
@@ -1459,13 +1462,33 @@ void Planner::updateModel(
     // 9. Publish generic sector-feature observation
     //    for the density / future feature GRU node
     //////////////////////////////////////////////////////
-    if (logSimplifiedGapVelocityLabels) 
+
+    float featureVisX = 0.0f;
+    float featureVisY = 0.0f;
+
+    if (logSimplifiedGapVelocityLabels)
+    {
+        float gapLeftX = 0.0f;
+        float gapLeftY = 0.0f;
+        float gapRightX = 0.0f;
+        float gapRightY = 0.0f;
+
+        gap->getLCartesian(gapLeftX, gapLeftY);
+        gap->getRCartesian(gapRightX, gapRightY);
+
+        featureVisX = 0.5f * (gapLeftX + gapRightX);
+        featureVisY = 0.5f * (gapLeftY + gapRightY);
+    }
+
+    if (logSimplifiedGapVelocityLabels)
     {
         publishGapFeatureObservation(
             tCurrentFilterUpdate,
             gapIndex,
             modelID,
             side,
+            featureVisX,
+            featureVisY,
             sectorDensity,
             sectorDynamicRawGapPointCount,
             containedRawGapPointCount,
@@ -1476,7 +1499,6 @@ void Planner::updateModel(
             gtSectorDynamicRawGapPointCount
         );
     }
-
     //////////////////////////////////////////////////////
     // 9. Debug print
     //////////////////////////////////////////////////////

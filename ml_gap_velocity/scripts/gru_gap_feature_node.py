@@ -9,6 +9,7 @@ import torch
 
 from dynamic_gap.msg import GapFeatureObservation
 from dynamic_gap.msg import GapFeaturePrediction
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class Normalizer:
@@ -111,6 +112,19 @@ class GRUGapFeatureNode:
             "gru_gap_feature_prediction",
         )
 
+        self.marker_topic = rospy.get_param(
+            "~marker_topic",
+            "gru_gap_feature_prediction_markers",
+        )
+
+        self.text_marker_height = float(
+            rospy.get_param("~text_marker_height", 0.28)
+        )
+
+        self.text_marker_z = float(
+            rospy.get_param("~text_marker_z", 0.35)
+        )
+
         self.max_buffer_time_gap = float(
             rospy.get_param("~max_buffer_time_gap", 0.5)
         )
@@ -130,6 +144,11 @@ class GRUGapFeatureNode:
             GapFeaturePrediction,
             queue_size=10,
         )
+        self.marker_pub = rospy.Publisher(
+            self.marker_topic,
+            MarkerArray,
+            queue_size=10,
+        )
 
         self.obs_sub = rospy.Subscriber(
             self.observation_topic,
@@ -142,6 +161,87 @@ class GRUGapFeatureNode:
         rospy.loginfo("Subscribing to: %s", self.observation_topic)
         rospy.loginfo("Publishing predictions to: %s", self.prediction_topic)
         rospy.loginfo("seq_len: %d", self.seq_len)
+
+    def stable_marker_id(self, msg):
+        return abs(hash("{}_{}".format(msg.model_id, msg.side))) % 1000000
+
+    def get_named_output_value(self, output_values, desired_name):
+        if desired_name not in self.output_features:
+            return None
+
+        idx = self.output_features.index(desired_name)
+
+        if idx >= len(output_values):
+            return None
+
+        return float(output_values[idx])
+
+    def get_named_target_value(self, obs_msg, desired_name):
+        if len(obs_msg.target_names) != len(obs_msg.target_values):
+            return None
+
+        target_dict = {
+            name: float(value)
+            for name, value in zip(obs_msg.target_names, obs_msg.target_values)
+        }
+
+        return target_dict.get(desired_name, None)
+
+    def publish_prediction_marker(self, obs_msg, output_values):
+        pred_density = self.get_named_output_value(
+            output_values,
+            "gt_sector_density"
+        )
+
+        gt_density = self.get_named_target_value(
+            obs_msg,
+            "gt_sector_density"
+        )
+
+        if pred_density is None:
+            return
+
+        marker_array = MarkerArray()
+
+        marker = Marker()
+        marker.header = obs_msg.header
+        marker.ns = "gru_sector_density_text"
+        marker.id = self.stable_marker_id(obs_msg)
+        marker.type = Marker.TEXT_VIEW_FACING
+        marker.action = Marker.ADD
+
+        marker.pose.position.x = obs_msg.vis_x
+        marker.pose.position.y = obs_msg.vis_y
+        marker.pose.position.z = self.text_marker_z
+
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.z = self.text_marker_height
+
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+
+        if gt_density is None:
+            marker.text = "gap {} | GRU: {:.3f} | GT: N/A".format(
+                obs_msg.gap_index,
+                pred_density,
+            )
+        else:
+            marker.text = "gap {} | GRU: {:.3f} | GT: {:.3f}".format(
+                obs_msg.gap_index,
+                pred_density,
+                gt_density,
+            )
+
+        marker.lifetime = rospy.Duration(0.35)
+
+        marker_array.markers.append(marker)
+        self.marker_pub.publish(marker_array)
 
     def load_model(self, model_path):
         # ////////////////////////////////////////////////////////////
@@ -312,6 +412,11 @@ class GRUGapFeatureNode:
 
         self.pred_pub.publish(pred_msg)
 
+        self.publish_prediction_marker(
+            obs_msg,
+            output_values,
+        )
+
         printable_outputs = ", ".join(
             [
                 "{}={:.6f}".format(name, value)
@@ -322,12 +427,23 @@ class GRUGapFeatureNode:
             ]
         )
 
+        gt_density = self.get_named_target_value(
+            obs_msg,
+            "gt_sector_density"
+        )
+
+        if gt_density is None:
+            gt_density_text = "gt_sector_density=N/A"
+        else:
+            gt_density_text = "gt_sector_density={:.6f}".format(gt_density)
+
         rospy.loginfo_throttle(
             0.5,
-            "GRU feature prediction | gap_index=%d model_id=%d %s",
+            "GRU feature prediction | gap_index=%d model_id=%d %s %s",
             obs_msg.gap_index,
             obs_msg.model_id,
             printable_outputs,
+            gt_density_text,
         )
 
     def spin(self):
