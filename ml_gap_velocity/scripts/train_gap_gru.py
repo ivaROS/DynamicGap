@@ -11,6 +11,20 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
 
+INPUT_FEATURES = [
+    "sector_density",
+    "sector_dynamic_raw_gap_point_count",
+    "contained_raw_gap_point_count",
+    "sector_area",
+    "sector_angle_rad",
+    "sector_radius",
+]
+
+OUTPUT_FEATURES = [
+    "gt_sector_density",
+]
+
+
 def safe_name(name):
     return (
         str(name)
@@ -66,6 +80,7 @@ def make_auto_run_name(args):
 
     pieces = [
         safe_name(user_name),
+        "density",
         safe_name(args.loss),
         f"sl{args.seq_len}",
         f"h{args.hidden_size}",
@@ -102,7 +117,7 @@ def make_loss_fn(loss_name):
     )
 
 
-class GapSequenceDataset(Dataset):
+class GapSectorDensitySequenceDataset(Dataset):
     def __init__(self, csv_path, seq_len=10):
         self.seq_len = seq_len
 
@@ -112,10 +127,8 @@ class GapSequenceDataset(Dataset):
             "sample_idx",
             "model_id",
             "side",
-            "x",
-            "y",
-            "perfect_rel_vx",
-            "perfect_rel_vy",
+            *INPUT_FEATURES,
+            *OUTPUT_FEATURES,
         ]
 
         missing_cols = [col for col in required_cols if col not in df.columns]
@@ -125,30 +138,56 @@ class GapSequenceDataset(Dataset):
                 f"Available columns: {list(df.columns)}"
             )
 
+        # ////////////////////////////////////////////////////////////
+        # Only use one row per simplified gap.
+        #
+        # Left and right simplified gap endpoint rows contain the
+        # same sector-level density information, so using both would
+        # duplicate the same training target.
+        # ////////////////////////////////////////////////////////////
+
+        df = df[df["side"] == "left"].copy()
+
+        if len(df) == 0:
+            raise RuntimeError(
+                "No rows with side == 'left' were found in the CSV."
+            )
+
         df = df.dropna(subset=required_cols)
 
-        df = df.sort_values(["model_id", "side", "sample_idx"]).reset_index(drop=True)
+        df = df.sort_values(
+            ["model_id", "sample_idx"]
+        ).reset_index(drop=True)
 
         self.samples_x = []
         self.samples_y = []
 
-        group_cols = ["model_id", "side"]
+        # ////////////////////////////////////////////////////////////
+        # Group by left simplified gap point model ID.
+        #
+        # This preserves temporal sequences for the same tracked
+        # simplified gap side over time.
+        # ////////////////////////////////////////////////////////////
+
+        group_cols = ["model_id"]
 
         for _, group in df.groupby(group_cols):
             group = group.sort_values("sample_idx").reset_index(drop=True)
 
-            positions = group[["x", "y"]].values.astype(np.float32)
+            features = group[
+                INPUT_FEATURES
+            ].values.astype(np.float32)
 
-            perfect_rel_vels = group[
-                ["perfect_rel_vx", "perfect_rel_vy"]
+            targets = group[
+                OUTPUT_FEATURES
             ].values.astype(np.float32)
 
             if len(group) < seq_len:
                 continue
 
             for i in range(seq_len - 1, len(group)):
-                x_seq = positions[i - seq_len + 1 : i + 1]
-                y_label = perfect_rel_vels[i]
+                x_seq = features[i - seq_len + 1 : i + 1]
+                y_label = targets[i]
 
                 self.samples_x.append(x_seq)
                 self.samples_y.append(y_label)
@@ -159,20 +198,38 @@ class GapSequenceDataset(Dataset):
         if len(self.samples_x) == 0:
             raise RuntimeError(
                 "No training sequences were created. "
-                "Try lowering seq_len or collecting longer gap tracks."
+                "Try lowering seq_len or collecting longer left-side gap tracks."
             )
 
-        self.x_mean = self.samples_x.reshape(-1, 2).mean(axis=0)
-        self.x_std = self.samples_x.reshape(-1, 2).std(axis=0) + 1e-8
+        num_input_features = len(INPUT_FEATURES)
+        num_output_features = len(OUTPUT_FEATURES)
 
-        self.y_mean = self.samples_y.mean(axis=0)
-        self.y_std = self.samples_y.std(axis=0) + 1e-8
+        self.x_mean = self.samples_x.reshape(
+            -1,
+            num_input_features
+        ).mean(axis=0)
+
+        self.x_std = self.samples_x.reshape(
+            -1,
+            num_input_features
+        ).std(axis=0) + 1e-8
+
+        self.y_mean = self.samples_y.reshape(
+            -1,
+            num_output_features
+        ).mean(axis=0)
+
+        self.y_std = self.samples_y.reshape(
+            -1,
+            num_output_features
+        ).std(axis=0) + 1e-8
 
         self.samples_x = (self.samples_x - self.x_mean) / self.x_std
         self.samples_y = (self.samples_y - self.y_mean) / self.y_std
 
         self.num_sequences = len(self.samples_x)
         self.num_groups = df.groupby(group_cols).ngroups
+        self.num_left_rows = len(df)
 
     def __len__(self):
         return len(self.samples_x)
@@ -183,8 +240,14 @@ class GapSequenceDataset(Dataset):
         return x, y
 
 
-class GapVelocityGRU(nn.Module):
-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
+class GapSectorDensityGRU(nn.Module):
+    def __init__(
+        self,
+        input_size=6,
+        hidden_size=64,
+        num_layers=2,
+        output_size=1,
+    ):
         super().__init__()
 
         self.gru = nn.GRU(
@@ -201,13 +264,15 @@ class GapVelocityGRU(nn.Module):
         )
 
     def forward(self, x):
-        # x shape: [batch, seq_len, 2]
+        # x shape:
+        # [batch, seq_len, 6]
         out, _ = self.gru(x)
 
         # Use final GRU output.
         final_out = out[:, -1, :]
 
-        # Predict [perfect_rel_vx, perfect_rel_vy].
+        # Predict:
+        # [gt_sector_density]
         pred = self.head(final_out)
         return pred
 
@@ -226,13 +291,18 @@ def check_overwrite(paths, overwrite):
 
 
 def train(args):
-    device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() and not args.cpu else "cpu"
+    )
     print(f"device: {device}")
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    dataset = GapSequenceDataset(args.csv, seq_len=args.seq_len)
+    dataset = GapSectorDensitySequenceDataset(
+        args.csv,
+        seq_len=args.seq_len,
+    )
 
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
@@ -255,11 +325,11 @@ def train(args):
         shuffle=False,
     )
 
-    model = GapVelocityGRU(
-        input_size=2,
+    model = GapSectorDensityGRU(
+        input_size=len(INPUT_FEATURES),
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
-        output_size=2,
+        output_size=len(OUTPUT_FEATURES),
     ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -274,7 +344,7 @@ def train(args):
 
     best_model_path = os.path.join(
         args.model_dir,
-        f"{output_base_name}_gap_gru.pt",
+        f"{output_base_name}_gap_sector_density_gru.pt",
     )
 
     stats_path = os.path.join(
@@ -298,6 +368,7 @@ def train(args):
     )
 
     train_config = {
+        "task": "gap_sector_density_prediction",
         "run_name": args.run_name,
         "auto_run_name": auto_run_name,
         "output_base_name": output_base_name,
@@ -314,11 +385,13 @@ def train(args):
         "lr": args.lr,
         "loss": args.loss,
         "seed": args.seed,
-        "input_features": ["x", "y"],
-        "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
-        "group_cols": ["model_id", "side"],
+        "input_features": INPUT_FEATURES,
+        "output_features": OUTPUT_FEATURES,
+        "row_filter": "side == left",
+        "group_cols": ["model_id"],
         "num_samples": len(dataset),
         "num_groups": dataset.num_groups,
+        "num_left_rows": dataset.num_left_rows,
         "train_size": train_size,
         "val_size": val_size,
     }
@@ -338,6 +411,10 @@ def train(args):
     print(f"batch_size: {args.batch_size}")
     print(f"epochs: {args.epochs}")
     print(f"lr: {args.lr}")
+    print(f"input features: {INPUT_FEATURES}")
+    print(f"output features: {OUTPUT_FEATURES}")
+    print("using only rows where side == 'left'")
+    print(f"num left-side rows: {dataset.num_left_rows}")
     print(f"num sequences: {len(dataset)}")
     print(f"num groups: {dataset.num_groups}")
     print(f"model will save to: {best_model_path}")
@@ -400,13 +477,19 @@ def train(args):
             model_cpu = model.to("cpu")
             model_cpu.eval()
 
-            example_input = torch.zeros(1, args.seq_len, 2)
+            example_input = torch.zeros(
+                1,
+                args.seq_len,
+                len(INPUT_FEATURES),
+            )
+
             traced = torch.jit.trace(model_cpu, example_input)
             traced.save(best_model_path)
 
             model.to(device)
 
             stats = {
+                "task": "gap_sector_density_prediction",
                 "run_name": args.run_name,
                 "auto_run_name": auto_run_name,
                 "output_base_name": output_base_name,
@@ -424,9 +507,10 @@ def train(args):
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
-                "input_features": ["x", "y"],
-                "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
-                "group_cols": ["model_id", "side"],
+                "input_features": INPUT_FEATURES,
+                "output_features": OUTPUT_FEATURES,
+                "row_filter": "side == left",
+                "group_cols": ["model_id"],
             }
 
             with open(stats_path, "w") as f:
@@ -441,16 +525,10 @@ def train(args):
     print("done")
     print(f"best_val_loss={best_val_loss:.6f}")
     print("")
-    print("Use this for testing:")
-    print(
-        "python3 scripts/test_gap_gru.py "
-        f"--csv {args.csv} "
-        f"--model {best_model_path} "
-        f"--stats {stats_path} "
-        f"--plot-name {auto_run_name} "
-        "--plot-dir plots "
-        "--save-results-csv"
-    )
+    print("This model predicts gt_sector_density from sector-level history.")
+    print("Your old velocity testing script will not match this model yet.")
+    print("You will need a separate density test/eval script.")
+    print("")
 
 
 def main():
@@ -459,11 +537,9 @@ def main():
     parser.add_argument("--csv", required=True)
     parser.add_argument("--model-dir", required=True)
 
-    # Now this should just be the environment / short experiment name.
-    # Example: --run-name factory_10to20json
-    #
-    # The script automatically adds:
-    # loss, seq_len, hidden_size, num_layers, batch_size, lr, epochs, and csv name.
+    # This should just be the environment / short experiment name.
+    # Example:
+    # --run-name empty_density_test
     parser.add_argument("--run-name", default=None)
 
     parser.add_argument("--seq-len", type=int, default=10)

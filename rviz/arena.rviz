@@ -262,6 +262,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
+        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -395,13 +396,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                {}
+                simp: true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/manip_gap_model_positions
@@ -851,7 +852,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 60.15005874633789
+      Scale: 40.99058151245117
       Target Frame: rto/base_link
       X: 0.7468352317810059
       Y: 0.03490552306175232
