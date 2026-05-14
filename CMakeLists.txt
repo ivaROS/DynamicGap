@@ -43,6 +43,8 @@ add_message_files(
   FILES
   GapPointObservation.msg
   GapVelocityPrediction.msg
+  GapFeatureObservation.msg
+  GapFeaturePrediction.msg
 )
 
 generate_messages(

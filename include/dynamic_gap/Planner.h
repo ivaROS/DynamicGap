@@ -73,6 +73,7 @@
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <dynamic_gap/GapFeatureObservation.h>
 
 namespace dynamic_gap
 {
@@ -247,7 +248,21 @@ namespace dynamic_gap
                 float& sectorArea,
                 float& sectorDensity) const;
 
-        float gapDensityDynamicSpeedThresh_ = 0.05f;
+            void publishGapFeatureObservation(
+            const ros::Time& stamp,
+            const int& gapIndex,
+            const int& modelID,
+            const std::string& side,
+            const float& sectorDensity,
+            const int& sectorDynamicRawGapPointCount,
+            const int& containedRawGapPointCount,
+            const float& sectorArea,
+            const float& sectorAngleRad,
+            const float& sectorRadius,
+            const float& gtSectorDensity,
+            const int& gtSectorDynamicRawGapPointCount);
+
+            float gapDensityDynamicSpeedThresh_ = 0.05f;
 
         private:
 
@@ -553,6 +568,7 @@ namespace dynamic_gap
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
             ros::Publisher containedRawGapPointsMarkerPublisher_;
+            ros::Publisher gapFeatureObservationPublisher_;
 
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */

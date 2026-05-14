@@ -196,6 +196,11 @@ nh_.param<std::string>(
             1
         );
 
+        gapFeatureObservationPublisher_ =
+    nh_.advertise<dynamic_gap::GapFeatureObservation>(
+        "gap_feature_observation",
+        10
+    );
         return true;
     }
 
@@ -466,6 +471,84 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
     gapVelocityCsvFile_.flush();
 }
+
+    void Planner::publishGapFeatureObservation(
+    const ros::Time& stamp,
+    const int& gapIndex,
+    const int& modelID,
+    const std::string& side,
+    const float& sectorDensity,
+    const int& sectorDynamicRawGapPointCount,
+    const int& containedRawGapPointCount,
+    const float& sectorArea,
+    const float& sectorAngleRad,
+    const float& sectorRadius,
+    const float& gtSectorDensity,
+    const int& gtSectorDynamicRawGapPointCount)
+    {
+        //////////////////////////////////////////////////////
+        // For this density model, only publish once per
+        // simplified gap. Left/right rows contain the same
+        // sector-level information.
+        //////////////////////////////////////////////////////
+
+        if (side != "left")
+            return;
+
+        dynamic_gap::GapFeatureObservation msg;
+
+        msg.header.stamp = stamp;
+        msg.header.frame_id = cfg_.robot_frame_id;
+
+        msg.gap_index = gapIndex;
+        msg.model_id = modelID;
+        msg.side = side;
+
+        //////////////////////////////////////////////////////
+        // Publish a superset of model-usable features.
+        //
+        // The Python node will select only the features that
+        // the loaded model expects, based on stats JSON.
+        //////////////////////////////////////////////////////
+
+        msg.feature_names.push_back("sector_density");
+        msg.feature_values.push_back(sectorDensity);
+
+        msg.feature_names.push_back("sector_dynamic_raw_gap_point_count");
+        msg.feature_values.push_back(
+            static_cast<float>(sectorDynamicRawGapPointCount)
+        );
+
+        msg.feature_names.push_back("contained_raw_gap_point_count");
+        msg.feature_values.push_back(
+            static_cast<float>(containedRawGapPointCount)
+        );
+
+        msg.feature_names.push_back("sector_area");
+        msg.feature_values.push_back(sectorArea);
+
+        msg.feature_names.push_back("sector_angle_rad");
+        msg.feature_values.push_back(sectorAngleRad);
+
+        msg.feature_names.push_back("sector_radius");
+        msg.feature_values.push_back(sectorRadius);
+
+        //////////////////////////////////////////////////////
+        // Targets are optional for inference, but useful for
+        // debugging and making the live topic self-contained.
+        //////////////////////////////////////////////////////
+
+        msg.target_names.push_back("gt_sector_density");
+        msg.target_values.push_back(gtSectorDensity);
+
+        msg.target_names.push_back("gt_sector_dynamic_raw_gap_point_count");
+        msg.target_values.push_back(
+            static_cast<float>(gtSectorDynamicRawGapPointCount)
+        );
+
+        gapFeatureObservationPublisher_.publish(msg);
+    }
+
     void Planner::gruGapVelocityCB(
         const dynamic_gap::GapVelocityPrediction::ConstPtr& msg)
     {
@@ -1359,7 +1442,7 @@ void Planner::updateModel(
     // Kalman vs GRU vs Perfect.
     //////////////////////////////////////////////////////
 
-    if (logSimplifiedGapVelocityLabels)
+    if (logSimplifiedGapVelocityLabels) // this is for using gru to estimate gap point velocity 
     {
         publishGapPointObservation(
             tCurrentFilterUpdate,
@@ -1369,6 +1452,28 @@ void Planner::updateModel(
             measurement,
             kalmanStateBeforeGru,
             perfectLabel
+        );
+    }
+    
+    //////////////////////////////////////////////////////
+    // 9. Publish generic sector-feature observation
+    //    for the density / future feature GRU node
+    //////////////////////////////////////////////////////
+    if (logSimplifiedGapVelocityLabels) 
+    {
+        publishGapFeatureObservation(
+            tCurrentFilterUpdate,
+            gapIndex,
+            modelID,
+            side,
+            sectorDensity,
+            sectorDynamicRawGapPointCount,
+            containedRawGapPointCount,
+            sectorArea,
+            sectorAngleRad,
+            sectorRadius,
+            gtSectorDensity,
+            gtSectorDynamicRawGapPointCount
         );
     }
 
