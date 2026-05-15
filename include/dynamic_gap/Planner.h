@@ -265,6 +265,10 @@ namespace dynamic_gap
             const int& gtSectorDynamicRawGapPointCount);
             float gapDensityDynamicSpeedThresh_ = 0.05f;
 
+
+            int getGapLeftModelIDForDensityCost(
+            Gap* gap) const;
+
         private:
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,

@@ -97,8 +97,7 @@ namespace dynamic_gap
         ungapTrajGenerator_ = new UngapTrajectoryGenerator(cfg_);
 
         dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
-
-        trajEvaluator_ = new TrajectoryEvaluator(cfg_);
+        trajEvaluator_ = new TrajectoryEvaluator(nh_, cfg_);
         trajController_ = new TrajectoryController(nh_, cfg_);
 
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
@@ -406,6 +405,24 @@ nh_.param<std::string>(
         << gapVelocityCsvPath_);
 }
 
+int Planner::getGapLeftModelIDForDensityCost(
+    Gap* gap) const
+    {
+        if (!gap)
+            return -1;
+
+        if (!gap->getLeftGapPt())
+            return -1;
+
+        if (!gap->getLeftGapPt()->getModel())
+            return -1;
+
+        return gap
+            ->getLeftGapPt()
+            ->getModel()
+            ->getID();
+    }
+
 
 void Planner::logSimplifiedGapVelocityCsvRow(
     const int& gap_index,
@@ -431,7 +448,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const float& sector_density,
     const int& gt_sector_dynamic_raw_gap_point_count,
     const float& gt_sector_density)
-{
+    {
     if (!gapVelocityCsvLoggingEnabled_)
         return;
 
@@ -470,7 +487,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         << "\n";
 
     gapVelocityCsvFile_.flush();
-}
+    }
 
     void Planner::publishGapFeatureObservation(
     const ros::Time& stamp,
@@ -2657,8 +2674,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                                             // currPose,
                                                                             // currVel,
                                                                             // false);
-                        trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
+                        int densityModelID =
+                            getGapLeftModelIDForDensityCost(gap);
 
+                        trajEvaluator_->evaluateTrajectory(
+                            goToGoalTraj,
+                            goToGoalPoseCosts,
+                            goToGoalTerminalPoseCost,
+                            futureScans,
+                            scanIdx,
+                            densityModelID
+                        );
 
                         goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0)) / goToGoalPoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        goToGoalCost: " << goToGoalCost);
@@ -2684,7 +2710,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                             pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         }
                         
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                        int densityModelID =
+                        getGapLeftModelIDForDensityCost(gap);
+
+                        trajEvaluator_->evaluateTrajectory(
+                            pursuitGuidanceTraj,
+                            pursuitGuidancePoseCosts,
+                            pursuitGuidanceTerminalPoseCost,
+                            futureScans,
+                            scanIdx,
+                            densityModelID
+                        );
+
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                     } else
@@ -2707,7 +2744,19 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         // }
 
-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
+                        
+                        int densityModelID =
+                        getGapLeftModelIDForDensityCost(gap);
+
+                        trajEvaluator_->evaluateTrajectory(
+                            pursuitGuidanceTraj,
+                            pursuitGuidancePoseCosts,
+                            pursuitGuidanceTerminalPoseCost,
+                            futureScans,
+                            scanIdx,
+                            densityModelID
+                        );
+
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
                     
@@ -2831,7 +2880,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                     pursuitGuidancePoseCosts, 
                                                     pursuitGuidanceTerminalPoseCost, 
                                                     futureScans,
-                                                    0);
+                                                    0, 
+                                                    -1); //-1 means don't store the model id which is needed for the density related score 
                 pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
@@ -3149,7 +3199,23 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
             float incomingPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
+
+            int incomingDensityModelID = -1;
+
+            if (trajFlag == GAP && incomingGap) // so you use the latest gap info for the gru/density cost
+            {
+                incomingDensityModelID =
+                    getGapLeftModelIDForDensityCost(incomingGap);
+            }
+
+            trajEvaluator_->evaluateTrajectory(
+                incomingTraj,
+                incomingPathPoseCosts,
+                incomingPathTerminalPoseCost,
+                futureScans,
+                0,
+                incomingDensityModelID
+            );
 
             float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
@@ -3238,7 +3304,24 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
+
+            int reducedCurrentDensityModelID = -1;
+
+            if (trajFlag == GAP)
+            {
+                reducedCurrentDensityModelID =
+                    getCurrentLeftGapPtModelID();
+            }
+
+            trajEvaluator_->evaluateTrajectory(
+                reducedCurrentTraj,
+                reducedCurrentPathPoseCosts,
+                reducedCurrentPathTerminalPoseCost,
+                futureScans,
+                updatedCurrentPathPoseIdx,
+                reducedCurrentDensityModelID
+            );
+            
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 

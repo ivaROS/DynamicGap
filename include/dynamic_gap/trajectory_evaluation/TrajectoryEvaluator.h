@@ -21,8 +21,22 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+
+#include <dynamic_gap/GapFeaturePrediction.h>
+#include <ros/ros.h>
+#include <map>
+#include <string>
+#include <cmath>
 namespace dynamic_gap
 {
+    struct GruGapFeatureDensityEstimate
+    {
+        float pred_sector_density = 0.0f;
+        ros::Time stamp;
+        bool valid = false;
+        int seq_len_used = 0;
+    };
+
     /**
     * \brief Class responsible for scoring candidate trajectory according to
     * trajectory's proximity to local environment and global path's local waypoint
@@ -30,7 +44,9 @@ namespace dynamic_gap
     class TrajectoryEvaluator
     {
         public:
-            TrajectoryEvaluator(const DynamicGapConfig& cfg);
+            TrajectoryEvaluator(
+            ros::NodeHandle& nh,
+            const DynamicGapConfig& cfg);
 
             /**
             * \brief receive new laser scan and update member variable accordingly
@@ -52,13 +68,50 @@ namespace dynamic_gap
             * \brief Function for evaluating pose-wise scores along candidate trajectory
             * \param traj candidate trajectory to score
             */
-            void evaluateTrajectory(const Trajectory & traj,
-                                    std::vector<float> & posewiseCosts,
-                                    float & terminalPoseCost,
-                                    const std::vector<sensor_msgs::LaserScan> & futureScans,
-                                    const int & scanIdx);
-            
+            void evaluateTrajectory(
+                const Trajectory & traj,
+                std::vector<float> & posewiseCosts,
+                float & terminalPoseCost,
+                const std::vector<sensor_msgs::LaserScan> & futureScans,
+                const int & scanIdx,
+                const int & densityModelID);
+
+            /**
+             * \brief Stores latest GRU density prediction for a gap model
+             * \param msg incoming GRU density prediction message
+             */
+            void gruGapFeatureDensityCB(
+                const dynamic_gap::GapFeaturePrediction::ConstPtr& msg);
+
+            /**
+             * \brief Gets latest valid GRU density prediction for a model
+             * \param modelID gap model ID to query
+             * \param currentStamp current time for freshness check
+             * \param predDensityOut returned predicted density
+             * \return true if a fresh valid prediction was found
+             */
+            bool getLatestGruGapFeatureDensityForModel(
+                const int& modelID,
+                const ros::Time& currentStamp,
+                float& predDensityOut) const;
+                        
         private:
+
+            //////////////////////////////////////////////////////
+            // GRU gap-density trajectory cost
+            //////////////////////////////////////////////////////
+
+            ros::Subscriber gruGapFeatureDensitySub_;
+
+            bool useGruGapFeatureDensityCost_ = true;
+            double maxGruGapFeaturePredictionAgeSec_ = 3.0;
+            float gruGapDensityCostWeight_ = 1.0f;
+
+            mutable boost::mutex gruGapFeatureDensityMutex_;
+
+            std::map<int, GruGapFeatureDensityEstimate>
+                latestGruGapFeatureDensityByModelID_;
+
             /**
             * \brief function for evaluating terminal waypoint cost for candidate trajectory
             * \param pose final pose in candidate trajectory to check against terminal waypoint
