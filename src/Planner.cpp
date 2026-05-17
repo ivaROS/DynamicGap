@@ -280,11 +280,11 @@ nh_.param<std::string>(
                     float rawAngleDeg =
                     std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
 
-                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
-                        "    angle_deg=" << rawAngleDeg
-                        << " side=right"
-                        << " rawModelID: " << rawModelID
-                    );
+                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                    //     "    angle_deg=" << rawAngleDeg
+                    //     << " side=right"
+                    //     << " rawModelID: " << rawModelID
+                    // );
 
 
                 }
@@ -327,10 +327,10 @@ nh_.param<std::string>(
                     float rawAngleDeg =
                         std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
 
-                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
-                        "    angle_deg=" << rawAngleDeg
-                        << " side=left" << " rawModelID: " << rawModelID
-                    );
+                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                    //     "    angle_deg=" << rawAngleDeg
+                    //     << " side=left" << " rawModelID: " << rawModelID
+                    // );
                 }
             }
         }
@@ -1404,18 +1404,18 @@ void Planner::updateModel(
             // if (side == "left") // you can print just the left one if its easier to read
             // {
             //      ROS_ERROR_STREAM_NAMED("GapSectorDensity", "just left bc easier read:");  
-                ROS_ERROR_STREAM_NAMED("GapSectorDensity",
-                    "\n"
-                    << "gap_index=" << gapIndex << "\n"
-                    << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
-                    << "sector_radius=" << sectorRadius << "\n"
-                    << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
-                    << "sector_area=" << sectorArea << "\n"
-                    << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
-                    << "sector_density=" << sectorDensity << "\n"
-                    << "gtSectorDynamicRawGapPointCount=" << gtSectorDynamicRawGapPointCount << "\n"
-                    << "gtSectorDensity=" << gtSectorDensity
-                );
+                // ROS_ERROR_STREAM_NAMED("GapSectorDensity",
+                //     "\n"
+                //     << "gap_index=" << gapIndex << "\n"
+                //     << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
+                //     << "sector_radius=" << sectorRadius << "\n"
+                //     << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
+                //     << "sector_area=" << sectorArea << "\n"
+                //     << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
+                //     << "sector_density=" << sectorDensity << "\n"
+                //     << "gtSectorDynamicRawGapPointCount=" << gtSectorDynamicRawGapPointCount << "\n"
+                //     << "gtSectorDensity=" << gtSectorDensity
+                // );
             // }
         }
 
@@ -2907,53 +2907,62 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return;
     }
 
-    // void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
-    //                                     std::vector<std::vector<float>> & idlingTrajPoseCosts,
-    //                                     std::vector<float> & idlingTrajTerminalPoseCosts,
-    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
-    // {
-    //     try
-    //     {
-    //         boost::mutex::scoped_lock gapset(gapMutex_);
+    void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
+                                        std::vector<std::vector<float>> & idlingTrajPoseCosts,
+                                        std::vector<float> & idlingTrajTerminalPoseCosts,
+                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    {
+        try
+        {
+            boost::mutex::scoped_lock gapset(gapMutex_);
 
-    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
 
-    //         Gap * nullGap = nullptr;
-    //         Trajectory idlingTrajectory;
-    //         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
-    //                                                                             rbtPoseInSensorFrame_);
+            Gap * nullGap = nullptr;
+            Trajectory idlingTrajectory;
+            Trajectory emptyRunningTraj;
 
-    //         std::vector<float> idlingPoseCosts;
-    //         float idlingTerminalPoseCost, idlingCost;
+            idlingTrajectory =
+                gapTrajGenerator_->generateIdlingTrajectoryV2(
+                    nullGap,
+                    rbtPoseInSensorFrame_,
+                    emptyRunningTraj
+                );
 
-    //         trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0);
+            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
+            //                                                                     rbtPoseInSensorFrame_);
 
-    //         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
+            std::vector<float> idlingPoseCosts;
+            float idlingTerminalPoseCost, idlingCost;
 
-    //         idlingTrajPoseCosts.push_back(idlingPoseCosts);
-    //         idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+            trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0, -1);
 
-    //         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-    //         idlingTrajs.push_back(idlingTrajectory);    
+            idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
 
-    //         // // push back idling trajectory as another option
+            idlingTrajPoseCosts.push_back(idlingPoseCosts);
+            idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
-    //         // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
+            idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
+            idlingTrajs.push_back(idlingTrajectory);    
+
+            // // push back idling trajectory as another option
+
+            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
             
-    //         // 
-    //         // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
-    //         // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
-    //     } catch (const std::out_of_range & e)
-    //     {
-    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
-    //     } catch (const std::exception & e)
-    //     {
-    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
-    //     }
+            // 
+            // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
+            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
+        } catch (const std::out_of_range & e)
+        {
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
+        } catch (const std::exception & e)
+        {
+            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
+        }
     
 
-    //     return;
-    // }
+        return;
+    }
 
     void Planner::pickTraj(int & trajFlag,
                             int & lowestCostTrajIdx,
@@ -3100,7 +3109,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
                 trajFlag = IDLING;
-                ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
+                ROS_ERROR_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
             } else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "    trajFlag not set");
@@ -3321,7 +3330,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 updatedCurrentPathPoseIdx,
                 reducedCurrentDensityModelID
             );
-            
+
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
@@ -3570,9 +3579,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
         } 
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());

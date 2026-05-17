@@ -263,7 +263,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -352,8 +351,7 @@ Visualization Manager:
               Marker Topic: /rto/raw_gaps
               Name: Marker
               Namespaces:
-                raw: true
-                raw_tmin1: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -361,7 +359,7 @@ Visualization Manager:
               Marker Topic: /rto/simp_gaps
               Name: Marker
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/Marker
@@ -377,7 +375,7 @@ Visualization Manager:
               Marker Topic: /rto/raw_gap_model_positions
               Name: MarkerArray
               Namespaces:
-                raw: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -401,7 +399,7 @@ Visualization Manager:
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -465,21 +463,21 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/trajectory_switch
               Name: Marker
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
-              Enabled: false
+              Enabled: true
               Marker Topic: /rto/curr_exec_dg_traj
               Name: MarkerArray
               Namespaces:
                 {}
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/entire_global_plan
@@ -521,7 +519,7 @@ Visualization Manager:
               Marker Topic: /rto/po_dir
               Name: Marker
               Namespaces:
-                "": true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -556,7 +554,7 @@ Visualization Manager:
           Marker Topic: /rto/pedestrian_histories
           Name: MarkerArray
           Namespaces:
-            pedestrian_histories: true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
@@ -788,7 +786,7 @@ Visualization Manager:
       Marker Topic: /rto/ego_robot_marker
       Name: Marker
       Namespaces:
-        egorobot: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -804,7 +802,7 @@ Visualization Manager:
       Marker Topic: /rto/propagated_egocircle
       Name: MarkerArray
       Namespaces:
-        propagated_egocircle: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -812,8 +810,7 @@ Visualization Manager:
       Marker Topic: /rto/contained_raw_gap_points
       Name: MarkerArray
       Namespaces:
-        contained_raw_left_gap_points: true
-        contained_raw_right_gap_points: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -856,7 +853,7 @@ Visualization Manager:
       Marker Topic: /rto/gru_gap_feature_prediction_markers
       Name: MarkerArray
       Namespaces:
-        gru_sector_density_text: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -896,10 +893,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 62.31673812866211
+      Scale: 54.04905319213867
       Target Frame: rto/base_link
-      X: 0.9030522108078003
-      Y: -0.06257312744855881
+      X: -2.5955917835235596
+      Y: 0.6180299520492554
     Saved: ~
 Window Geometry:
   Displays:

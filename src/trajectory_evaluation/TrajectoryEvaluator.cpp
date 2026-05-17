@@ -15,7 +15,7 @@ namespace dynamic_gap
 
         useGruGapFeatureDensityCost_ = true;
         maxGruGapFeaturePredictionAgeSec_ = 3.0;
-        gruGapDensityCostWeight_ = 1.0f;
+        gruGapDensityCostWeight_ = 5.0f;
 
         const std::string gruGapFeatureDensityTopic =
             "/rto/gru_gap_feature_prediction";
@@ -365,22 +365,22 @@ namespace dynamic_gap
                 baseTerminalGoalCost +
                 weightedGruDensityCost;
 
-            ROS_WARN_STREAM_NAMED(
-                "GRUGapFeatureDensityCost",
-                "evaluateTrajectory density cost | "
-                << "density_model_id="
-                << densityModelID
-                << " used_gru_density="
-                << usedGruDensity
-                << " pred_density="
-                << predGruDensity
-                << " weighted_density_cost="
-                << weightedGruDensityCost
-                << " base_terminal_goal_cost="
-                << baseTerminalGoalCost
-                << " final_terminal_pose_cost="
-                << terminalPoseCost
-            );
+            // ROS_WARN_STREAM_NAMED(
+            //     "GRUGapFeatureDensityCost",
+            //     "evaluateTrajectory density cost | "
+            //     << "density_model_id="
+            //     << densityModelID
+            //     << " used_gru_density="
+            //     << usedGruDensity
+            //     << " pred_density="
+            //     << predGruDensity
+            //     << " weighted_density_cost="
+            //     << weightedGruDensityCost
+            //     << " base_terminal_goal_cost="
+            //     << baseTerminalGoalCost
+            //     << " final_terminal_pose_cost="
+            //     << terminalPoseCost
+            // );
 
             ROS_INFO_STREAM_NAMED(
                 "TrajectoryEvaluator",
