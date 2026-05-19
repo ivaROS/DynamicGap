@@ -2742,8 +2742,8 @@ int global_id = 0;
                                 float totalCost0 = terminalCost0 + avgCost0;
                                 candidateCosts.push_back(totalCost0); // for visualization
 
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                                    "   [TEST] first candidate traj cost = " << totalCost0);
+                                // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                //                     "   [TEST] first candidate traj cost = " << totalCost0);
 
                                 // Store as best by default
                                 bestTraj = cand0;
@@ -2776,8 +2776,8 @@ int global_id = 0;
                                 float totalCost1 = terminalCost1 + avgCost1;
                                 candidateCosts.push_back(totalCost1);
 
-                                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                                    "   [TEST] second candidate traj cost = " << totalCost1);
+                                // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                //                     "   [TEST] second candidate traj cost = " << totalCost1);
 
                                 // Optionally overwrite bestTraj with second one
                                 // For now, you can either always take the second one:
@@ -2820,8 +2820,8 @@ int global_id = 0;
                                         candidateCosts.push_back(totalCost2);
 
 
-                                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                                                            "   [TEST] third candidate traj cost = " << totalCost2);
+                                        // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                        //                     "   [TEST] third candidate traj cost = " << totalCost2);
 
                                         // Optionally overwrite bestTraj with third one
                                         // For testing, always take it:
