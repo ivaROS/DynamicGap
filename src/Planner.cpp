@@ -2734,8 +2734,8 @@ int global_id = 0;
 
                                 std::vector<float> poseCosts0;
                                 float terminalCost0;
-
-                                trajEvaluator_->evaluateTrajectory(cand0, poseCosts0, terminalCost0, futureScans, scanIdx);
+                                int densityModelID = getGapLeftModelIDForDensityCost(gap);
+                                trajEvaluator_->evaluateTrajectory(cand0, poseCosts0, terminalCost0, futureScans, scanIdx, densityModelID);
 
                                 float avgCost0 = poseCosts0.empty() ? 0.0f :
                                     std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) / poseCosts0.size();
@@ -2767,8 +2767,9 @@ int global_id = 0;
 
                                 std::vector<float> poseCosts1;
                                 float terminalCost1;
+                                int densityModelID = getGapLeftModelIDForDensityCost(gap);
 
-                                trajEvaluator_->evaluateTrajectory(cand1, poseCosts1, terminalCost1, futureScans, scanIdx);
+                                trajEvaluator_->evaluateTrajectory(cand1, poseCosts1, terminalCost1, futureScans, scanIdx, densityModelID);
 
                                 float avgCost1 = poseCosts1.empty() ? 0.0f :
                                     std::accumulate(poseCosts1.begin(), poseCosts1.end(), 0.0f) / poseCosts1.size();
@@ -2809,7 +2810,8 @@ int global_id = 0;
                                     std::vector<float> poseCosts2;
                                     float terminalCost2;
 
-                                    trajEvaluator_->evaluateTrajectory(cand2, poseCosts2, terminalCost2, futureScans, scanIdx);
+                                    int densityModelID = getGapLeftModelIDForDensityCost(gap);
+                                    trajEvaluator_->evaluateTrajectory(cand2, poseCosts2, terminalCost2, futureScans, scanIdx, densityModelID);
 
                                     if (!poseCosts2.empty())
                                     {
