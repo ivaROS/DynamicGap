@@ -205,9 +205,9 @@ namespace dynamic_gap
     // ---- MULTIPLE GAMMAS ----
     float baseGamma = selectedGap->getGammaInterceptGoal();
     std::vector<float> gammaCandidates = {
-        baseGamma - 0.2f,
+        baseGamma - 1.57f,
         baseGamma,
-        baseGamma + 0.2f
+        baseGamma + 1.57f
     };
 
     for (float gamma : gammaCandidates)
