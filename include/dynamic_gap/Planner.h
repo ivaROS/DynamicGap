@@ -1,4 +1,7 @@
 #pragma once
+#include <limits>
+#include <fstream>
+#include <string>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -62,8 +65,15 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include <visualization_msgs/MarkerArray.h>
+#include <limits>
+#include <dynamic_gap/GapPointObservation.h>
+#include <dynamic_gap/GapVelocityPrediction.h>
+#include <map>
+#include <Eigen/Dense>
 
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <dynamic_gap/GapFeatureObservation.h>
 
 namespace dynamic_gap
 {
@@ -99,6 +109,55 @@ namespace dynamic_gap
             * \return boolean for if global goal has been reached or not
             */
             bool isGoalReached();
+
+            float gapPointDensityRadius_ = 3.0f;
+
+           struct PerfectGapVelocityLabel
+            {
+                Eigen::Vector2f rel_vel;
+                Eigen::Vector2f world_vel_robot;
+
+                std::string matched_agent_id;
+                float match_dist = std::numeric_limits<float>::infinity();
+                bool matched_dynamic_agent = false;
+
+
+            };
+
+            bool rawGapPointMatchesDynamicGroundTruthAgent( // for density calculation
+            const Eigen::Vector2f& rawGapPointRobotFrame,
+            std::string& matchedAgentID,
+            float& matchDist,
+            float& matchedAgentGroundTruthSpeed) const;
+
+            void computeSimplifiedGapGroundTruthSectorDensity(
+            const int& simplifiedGapIndex,
+            int& gtSectorDynamicRawGapPointCount,
+            float& gtSectorDensity) const;
+
+            PerfectGapVelocityLabel computePerfectGapVelocityLabel( // for GRU learn gap point velocity
+            const Eigen::Vector2f& gapPtRobotFrame,
+            const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
+            const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
+            const geometry_msgs::TwistStamped& robotVelRobotFrame,
+            const float& matchThresh) const;
+
+            geometry_msgs::TwistStamped getRobotVelocityForGapLabel(
+            const std::vector<geometry_msgs::TwistStamped>& intermediateRbtVels) const;
+            float perfectGapVelMatchThresh_ = 0.6; // TODO:  add to config. 0.6 should be more than enough
+            // i eyeballed rviz measured the DIAMETER of the agent to 0.3 
+            
+            ros::Publisher gapPointObservationPublisher_;
+            bool publishGapPointObservations_ = true;
+
+            void publishGapPointObservation(
+            const ros::Time& stamp,
+            const int& gapIndex,
+            const std::string& side,
+            Estimator* model,
+            const Eigen::Vector2f& measurement,
+            const Eigen::Vector4f& kalmanState,
+            const PerfectGapVelocityLabel& perfectLabel);
 
             /**
             * \brief Function for core planning loop of dynamic gap
@@ -145,6 +204,71 @@ namespace dynamic_gap
             */
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
+
+            struct GruGapVelocityEstimate
+            {
+                Eigen::Vector2f rel_vel;
+                ros::Time stamp;
+                bool valid = false;
+                int seq_len_used = 0;
+            };
+            //
+            ros::Subscriber gruGapVelocitySub_;
+
+            std::map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_;
+            mutable boost::mutex gruGapVelocityMutex_;
+
+            bool useGruGapVelocity_ = true;
+            double maxGruPredictionAgeSec_ = 0.50;
+
+            void gruGapVelocityCB(const dynamic_gap::GapVelocityPrediction::ConstPtr& msg);
+
+            bool getLatestGruVelocityForModel(
+                const int& modelID,
+                const ros::Time& currentStamp,
+                Eigen::Vector2f& relVelOut) const;
+
+            int scanIdxCircularWidth(
+                const int& rightIdx,
+                const int& leftIdx,
+                const int& scanSize) const;
+
+            float gapAngularWidthRad(
+                const int& rightIdx,
+                const int& leftIdx) const;
+
+            float getGapPointDynamicSpeedForDensity(
+                Estimator* model) const;
+
+            void computeSimplifiedGapSectorDensity(
+                const int& simplifiedGapIndex,
+                int& sectorDynamicRawGapPointCount,
+                float& sectorRadius,
+                float& sectorAngleRad,
+                float& sectorArea,
+                float& sectorDensity) const;
+
+           void publishGapFeatureObservation(
+            const ros::Time& stamp,
+            const int& gapIndex,
+            const int& modelID,
+            const std::string& side,
+            const float& visX,
+            const float& visY,
+            const float& sectorDensity,
+            const int& sectorDynamicRawGapPointCount,
+            const int& containedRawGapPointCount,
+            const float& sectorArea,
+            const float& sectorAngleRad,
+            const float& sectorRadius,
+            const float& gtSectorDensity,
+            const int& gtSectorDynamicRawGapPointCount);
+            float gapDensityDynamicSpeedThresh_ = 0.05f;
+
+
+            int getGapLeftModelIDForDensityCost(
+            Gap* gap) const;
+
         private:
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
@@ -161,10 +285,14 @@ namespace dynamic_gap
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
             */
-            void updateModels(std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+            void updateModels(
+            std::vector<Gap *> & gaps,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                const ros::Time & tCurrentFilterUpdate,
+                const bool& logSimplifiedGapVelocityLabels
+            );
+
 
             /**
             * \brief Function for updating a single gap's models
@@ -174,11 +302,14 @@ namespace dynamic_gap
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
             */
-            void updateModel(const int & idx, 
-                                std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+                void updateModel(
+                const int & idx,
+                std::vector<Gap *> & gaps,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
+                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
+                const ros::Time & tCurrentFilterUpdate,
+                const bool& logSimplifiedGapVelocityLabels
+            );
 
             /**
             * \brief Call back function for other agent odometry messages
@@ -268,10 +399,10 @@ namespace dynamic_gap
             //                         std::vector<float> & pathTerminalPoseScores,
             //                         const std::vector<sensor_msgs::LaserScan> & futureScans);
 
-            // void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
-            //                         std::vector<std::vector<float>> & pathPoseCosts,
-            //                         std::vector<float> & pathTerminalPoseCosts,
-            //                         const std::vector<sensor_msgs::LaserScan> & futureScans);
+            void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
+                                    std::vector<std::vector<float>> & pathPoseCosts,
+                                    std::vector<float> & pathTerminalPoseCosts,
+                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
 
             /**
             * \brief Function for generating candidate trajectories through the current set of gaps
@@ -447,17 +578,6 @@ namespace dynamic_gap
             ros::Publisher mpcInputPublisher_; /**< ROS publisher for mpc input terms */
             ros::Subscriber mpcOutputSubscriber_; /**< ROS subscriber for mpc output */
 
-            ros::Publisher pnTrajPub_; /**< for visualizing pn traj */
-            ros::Publisher pnCand0Pub_;
-            ros::Publisher pnCand1Pub_;
-            ros::Publisher pnCand2Pub_;
-            ros::Publisher bestPnTrajPub_;
-            // ros::Publisher candidateMarkerPub_;
-            ros::Publisher candidateTrajPub_;
-
-
-
-
             ros::Subscriber tfSub_; /**< Subscriber to TF tree */
             ros::Subscriber laserSub_; /**< Subscriber to incoming laser scan */
 
@@ -578,6 +698,91 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
             float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
-                
+                    
+                        /**
+             * \brief CSV file stream for logging simplified gap velocity training labels.
+             */
+            std::ofstream gapVelocityCsvFile_;
+
+            /**
+             * \brief Enables/disables simplified gap velocity CSV logging.
+             */
+            bool gapVelocityCsvLoggingEnabled_ = true;
+
+            /**
+             * \brief Full path to the active gap velocity CSV file.
+             */
+            std::string gapVelocityCsvPath_;
+
+            /**
+             * \brief Unique file/session name generated from wall-clock time.
+             */
+            std::string gapVelocityCsvSessionId_;
+
+            /**
+             * \brief Monotonic row counter used to preserve sequence order without storing ROS time.
+             */
+            unsigned long long gapVelocityCsvSampleIdx_ = 0;
+
+            /**
+             * \brief Initializes the CSV logger for simplified gap velocity labels.
+             */
+            void initializeGapVelocityCsvLogger();
+
+            /**
+             * \brief Writes one simplified gap velocity training row to CSV.
+             * \param gap_index Index of the gap in the current simplified gap vector.
+             * \param model_id Persistent model ID for the gap point.
+             * \param side Gap side, usually "left" or "right".
+             * \param gap_x Gap point x-position in robot frame.
+             * \param gap_y Gap point y-position in robot frame.
+             * \param kalman_vx Velocity x from the estimator/Kalman state.
+             * \param kalman_vy Velocity y from the estimator/Kalman state.
+             * \param perfect_rel_vx Perfect relative velocity x label.
+             * \param perfect_rel_vy Perfect relative velocity y label.
+             * \param perfect_world_robot_vx Matched agent/world velocity x expressed in robot frame.
+             * \param perfect_world_robot_vy Matched agent/world velocity y expressed in robot frame.
+             * \param matched_agent_id ID of the closest matched agent, empty if none.
+             * \param match_dist Distance from gap point to matched agent.
+             * \param matched_dynamic_agent True if the gap point matched a dynamic agent.
+             */
+               void logSimplifiedGapVelocityCsvRow(
+                    const int& gap_index,
+                    const int& model_id,
+                    const std::string& side,
+                    const float& gap_x,
+                    const float& gap_y,
+                    const float& kalman_vx,
+                    const float& kalman_vy,
+                    const float& perfect_rel_vx,
+                    const float& perfect_rel_vy,
+                    const float& perfect_world_robot_vx,
+                    const float& perfect_world_robot_vy,
+                    const std::string& matched_agent_id,
+                    const float& match_dist,
+                    const bool& matched_dynamic_agent,
+                    const int& contained_raw_gap_point_count,
+                    const std::string& contained_raw_gap_points,
+                    const float& sector_radius,
+                    const float& sector_angle_rad,
+                    const float& sector_area,
+                    const int& sector_dynamic_raw_gap_point_count,
+                    const float& sector_density,
+                    const int& gt_sector_dynamic_raw_gap_point_count,
+                    const float& gt_sector_density);
+
+                bool scanIdxInsideGapRange(
+                const int& idx,
+                const int& rightIdx,
+                const int& leftIdx) const;
+
+                void publishContainedRawGapPointsMarkerArray(
+                const std::vector<Gap*>& simplifiedGaps,
+                const std::vector<Gap*>& rawGaps,
+                const ros::Time& stamp) const;
+
+                std::string serializeRawGapPointsInsideSimplifiedGap(
+                const int& simplifiedGapIndex,
+                int& containedRawGapPointCount) const;
     };
 }

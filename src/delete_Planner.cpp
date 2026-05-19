@@ -3,11 +3,6 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include <visualization_msgs/Marker.h>
-
-#include <visualization_msgs/MarkerArray.h>
-#include <sstream>
-#include <iomanip>
 
 namespace dynamic_gap
 {   
@@ -102,7 +97,8 @@ namespace dynamic_gap
         ungapTrajGenerator_ = new UngapTrajectoryGenerator(cfg_);
 
         dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
-        trajEvaluator_ = new TrajectoryEvaluator(nh_, cfg_);
+
+        trajEvaluator_ = new TrajectoryEvaluator(cfg_);
         trajController_ = new TrajectoryController(nh_, cfg_);
 
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
@@ -128,6 +124,30 @@ namespace dynamic_gap
         laserSub_ = nh_.subscribe(cfg_.scan_topic, 5, &Planner::laserScanCB, this);
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
+
+               std::string gruGapVelocityTopic;
+nh_.param<std::string>(
+    "gru_gap_velocity_topic",
+    gruGapVelocityTopic,
+    "/rto/gru_gap_velocity_prediction"
+);
+
+        nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
+        nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 3.0); // haven't tried tuning this yet
+
+        gruGapVelocitySub_ =
+            nh_.subscribe(
+                gruGapVelocityTopic,
+                100,
+                &Planner::gruGapVelocityCB,
+                this
+            );
+
+        ROS_WARN_STREAM_NAMED("GRUGapVelocity",
+            "GRU velocity override enabled: " << useGruGapVelocity_
+            << ", topic: " << gruGapVelocityTopic
+            << ", max age: " << maxGruPredictionAgeSec_
+        );
 
         // Visualization Setup
 
@@ -176,11 +196,6 @@ namespace dynamic_gap
             1
         );
 
-        gapFeatureObservationPublisher_ =
-    nh_.advertise<dynamic_gap::GapFeatureObservation>(
-        "gap_feature_observation",
-        10
-    );
         return true;
     }
 
@@ -261,11 +276,11 @@ namespace dynamic_gap
                     float rawAngleDeg =
                     std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
 
-                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
-                    //     "    angle_deg=" << rawAngleDeg
-                    //     << " side=right"
-                    //     << " rawModelID: " << rawModelID
-                    // );
+                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                        "    angle_deg=" << rawAngleDeg
+                        << " side=right"
+                        << " rawModelID: " << rawModelID
+                    );
 
 
                 }
@@ -308,10 +323,10 @@ namespace dynamic_gap
                     float rawAngleDeg =
                         std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
 
-                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
-                    //     "    angle_deg=" << rawAngleDeg
-                    //     << " side=left" << " rawModelID: " << rawModelID
-                    // );
+                    ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
+                        "    angle_deg=" << rawAngleDeg
+                        << " side=left" << " rawModelID: " << rawModelID
+                    );
                 }
             }
         }
@@ -374,9 +389,7 @@ namespace dynamic_gap
         << "sector_angle_rad,"
         << "sector_area,"
         << "sector_dynamic_raw_gap_point_count,"
-        << "sector_density,"
-        << "gt_sector_dynamic_raw_gap_point_count,"
-        << "gt_sector_density"
+        << "sector_density"
         << "\n";
         
     gapVelocityCsvFile_.flush();
@@ -385,24 +398,6 @@ namespace dynamic_gap
         "[CSV] Logging simplified gap velocity labels to: "
         << gapVelocityCsvPath_);
 }
-
-int Planner::getGapLeftModelIDForDensityCost(
-    Gap* gap) const
-    {
-        if (!gap)
-            return -1;
-
-        if (!gap->getLeftGapPt())
-            return -1;
-
-        if (!gap->getLeftGapPt()->getModel())
-            return -1;
-
-        return gap
-            ->getLeftGapPt()
-            ->getModel()
-            ->getID();
-    }
 
 
 void Planner::logSimplifiedGapVelocityCsvRow(
@@ -426,10 +421,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const float& sector_angle_rad,
     const float& sector_area,
     const int& sector_dynamic_raw_gap_point_count,
-    const float& sector_density,
-    const int& gt_sector_dynamic_raw_gap_point_count,
-    const float& gt_sector_density)
-    {
+    const float& sector_density)
+{
     if (!gapVelocityCsvLoggingEnabled_)
         return;
 
@@ -462,94 +455,11 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         << sector_angle_rad << ","
         << sector_area << ","
         << sector_dynamic_raw_gap_point_count << ","
-        << sector_density << ","
-        << gt_sector_dynamic_raw_gap_point_count << ","
-        << gt_sector_density
+        << sector_density
         << "\n";
 
     gapVelocityCsvFile_.flush();
-    }
-
-    void Planner::publishGapFeatureObservation(
-    const ros::Time& stamp,
-    const int& gapIndex,
-    const int& modelID,
-    const std::string& side,
-    const float& visX,
-    const float& visY,
-    const float& sectorDensity,
-    const int& sectorDynamicRawGapPointCount,
-    const int& containedRawGapPointCount,
-    const float& sectorArea,
-    const float& sectorAngleRad,
-    const float& sectorRadius,
-    const float& gtSectorDensity,
-    const int& gtSectorDynamicRawGapPointCount)
-    {
-        //////////////////////////////////////////////////////
-        // Publish once per simplified gap only.
-        // Left/right rows contain the same sector-level info.
-        //////////////////////////////////////////////////////
-
-        if (side != "left")
-            return;
-
-        dynamic_gap::GapFeatureObservation msg;
-
-        msg.header.stamp = stamp;
-        msg.header.frame_id = cfg_.robot_frame_id;
-
-        msg.gap_index = gapIndex;
-        msg.model_id = modelID;
-        msg.side = side;
-
-        //////////////////////////////////////////////////////
-        // RViz anchor: midpoint of simplified gap.
-        //////////////////////////////////////////////////////
-
-        msg.vis_x = visX;
-        msg.vis_y = visY;
-
-        //////////////////////////////////////////////////////
-        // Generic feature vector.
-        //////////////////////////////////////////////////////
-
-        msg.feature_names.push_back("sector_density");
-        msg.feature_values.push_back(sectorDensity);
-
-        msg.feature_names.push_back("sector_dynamic_raw_gap_point_count");
-        msg.feature_values.push_back(
-            static_cast<float>(sectorDynamicRawGapPointCount)
-        );
-
-        msg.feature_names.push_back("contained_raw_gap_point_count");
-        msg.feature_values.push_back(
-            static_cast<float>(containedRawGapPointCount)
-        );
-
-        msg.feature_names.push_back("sector_area");
-        msg.feature_values.push_back(sectorArea);
-
-        msg.feature_names.push_back("sector_angle_rad");
-        msg.feature_values.push_back(sectorAngleRad);
-
-        msg.feature_names.push_back("sector_radius");
-        msg.feature_values.push_back(sectorRadius);
-
-        //////////////////////////////////////////////////////
-        // Targets are included for debugging/logging only.
-        //////////////////////////////////////////////////////
-
-        msg.target_names.push_back("gt_sector_density");
-        msg.target_values.push_back(gtSectorDensity);
-
-        msg.target_names.push_back("gt_sector_dynamic_raw_gap_point_count");
-        msg.target_values.push_back(
-            static_cast<float>(gtSectorDynamicRawGapPointCount)
-        );
-
-        gapFeatureObservationPublisher_.publish(msg);
-    }
+}
     void Planner::gruGapVelocityCB(
         const dynamic_gap::GapVelocityPrediction::ConstPtr& msg)
     {
@@ -1346,57 +1256,36 @@ void Planner::updateModel(
     float sectorAngleRad = 0.0f;
     float sectorArea = 0.0f;
     float sectorDensity = 0.0f;
-    int gtSectorDynamicRawGapPointCount = 0;
-    float gtSectorDensity = 0.0f;
+if (logSimplifiedGapVelocityLabels)
+        {
+            containedRawGapPoints =
+                serializeRawGapPointsInsideSimplifiedGap(
+                    gapIndex,
+                    containedRawGapPointCount
+                );
 
-    if (logSimplifiedGapVelocityLabels)
-    {
-        containedRawGapPoints =
-            serializeRawGapPointsInsideSimplifiedGap(
+            computeSimplifiedGapSectorDensity(
                 gapIndex,
-                containedRawGapPointCount
+                sectorDynamicRawGapPointCount,
+                sectorRadius,
+                sectorAngleRad,
+                sectorArea,
+                sectorDensity
             );
-
-        //////////////////////////////////////////////////////
-        // Estimator-derived density:
-        // "what the robot thinks is dynamic"
-        //////////////////////////////////////////////////////
-
-        computeSimplifiedGapSectorDensity(
-            gapIndex,
-            sectorDynamicRawGapPointCount,
-            sectorRadius,
-            sectorAngleRad,
-            sectorArea,
-            sectorDensity
-        );
-
-        //////////////////////////////////////////////////////
-        // Ground-truth density:
-        // "what the training label says is truly dynamic"
-        //////////////////////////////////////////////////////
-
-        computeSimplifiedGapGroundTruthSectorDensity(
-            gapIndex,
-            gtSectorDynamicRawGapPointCount,
-            gtSectorDensity
-        );
 
             // if (side == "left") // you can print just the left one if its easier to read
             // {
             //      ROS_ERROR_STREAM_NAMED("GapSectorDensity", "just left bc easier read:");  
-                // ROS_ERROR_STREAM_NAMED("GapSectorDensity",
-                //     "\n"
-                //     << "gap_index=" << gapIndex << "\n"
-                //     << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
-                //     << "sector_radius=" << sectorRadius << "\n"
-                //     << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
-                //     << "sector_area=" << sectorArea << "\n"
-                //     << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
-                //     << "sector_density=" << sectorDensity << "\n"
-                //     << "gtSectorDynamicRawGapPointCount=" << gtSectorDynamicRawGapPointCount << "\n"
-                //     << "gtSectorDensity=" << gtSectorDensity
-                // );
+                ROS_ERROR_STREAM_NAMED("GapSectorDensity",
+                    "\n"
+                    << "gap_index=" << gapIndex << "\n"
+                    << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
+                    << "sector_radius=" << sectorRadius << "\n"
+                    << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
+                    << "sector_area=" << sectorArea << "\n"
+                    << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
+                    << "sector_density=" << sectorDensity
+                );
             // }
         }
 
@@ -1430,9 +1319,7 @@ void Planner::updateModel(
             sectorAngleRad,
             sectorArea,
             sectorDynamicRawGapPointCount,
-            sectorDensity,
-            gtSectorDynamicRawGapPointCount,
-            gtSectorDensity
+            sectorDensity
         );
     }
 
@@ -1443,7 +1330,7 @@ void Planner::updateModel(
     // Kalman vs GRU vs Perfect.
     //////////////////////////////////////////////////////
 
-    if (logSimplifiedGapVelocityLabels) // this is for using gru to estimate gap point velocity 
+    if (logSimplifiedGapVelocityLabels)
     {
         publishGapPointObservation(
             tCurrentFilterUpdate,
@@ -1455,48 +1342,7 @@ void Planner::updateModel(
             perfectLabel
         );
     }
-    
-    //////////////////////////////////////////////////////
-    // 9. Publish generic sector-feature observation
-    //    for the density / future feature GRU node
-    //////////////////////////////////////////////////////
 
-    float featureVisX = 0.0f;
-    float featureVisY = 0.0f;
-
-    if (logSimplifiedGapVelocityLabels)
-    {
-        float gapLeftX = 0.0f;
-        float gapLeftY = 0.0f;
-        float gapRightX = 0.0f;
-        float gapRightY = 0.0f;
-
-        gap->getLCartesian(gapLeftX, gapLeftY);
-        gap->getRCartesian(gapRightX, gapRightY);
-
-        featureVisX = 0.5f * (gapLeftX + gapRightX);
-        featureVisY = 0.5f * (gapLeftY + gapRightY);
-    }
-
-    if (logSimplifiedGapVelocityLabels)
-    {
-        publishGapFeatureObservation(
-            tCurrentFilterUpdate,
-            gapIndex,
-            modelID,
-            side,
-            featureVisX,
-            featureVisY,
-            sectorDensity,
-            sectorDynamicRawGapPointCount,
-            containedRawGapPointCount,
-            sectorArea,
-            sectorAngleRad,
-            sectorRadius,
-            gtSectorDensity,
-            gtSectorDynamicRawGapPointCount
-        );
-    }
     //////////////////////////////////////////////////////
     // 9. Debug print
     //////////////////////////////////////////////////////
@@ -1742,304 +1588,6 @@ void Planner::publishContainedRawGapPointsMarkerArray(
     }
 
     containedRawGapPointsMarkerPublisher_.publish(markerArray);
-}
-
-bool Planner::rawGapPointMatchesDynamicGroundTruthAgent(
-    const Eigen::Vector2f& rawGapPointRobotFrame,
-    std::string& matchedAgentID,
-    float& matchDist,
-    float& matchedAgentGroundTruthSpeed) const
-{
-    matchedAgentID = "";
-    matchDist = std::numeric_limits<float>::infinity();
-    matchedAgentGroundTruthSpeed = 0.0f;
-
-    float minDist = std::numeric_limits<float>::infinity();
-    std::string bestAgentID = "";
-
-    //////////////////////////////////////////////////////
-    // 1. Find nearest ground-truth pedestrian
-    //////////////////////////////////////////////////////
-
-    for (const auto& agentPair : currentTrueAgentPoses_)
-    {
-        const std::string& agentID = agentPair.first;
-        const geometry_msgs::Pose& agentPose = agentPair.second;
-
-        const float dx =
-            agentPose.position.x - rawGapPointRobotFrame[0];
-
-        const float dy =
-            agentPose.position.y - rawGapPointRobotFrame[1];
-
-        const float dist =
-            std::sqrt(dx * dx + dy * dy);
-
-        if (dist < minDist)
-        {
-            minDist = dist;
-            bestAgentID = agentID;
-        }
-    }
-
-    matchedAgentID = bestAgentID;
-    matchDist = minDist;
-
-    //////////////////////////////////////////////////////
-    // 2. Must be close enough to count as matched
-    //////////////////////////////////////////////////////
-
-    if (bestAgentID.empty())
-        return false;
-
-    if (minDist >= perfectGapVelMatchThresh_)
-        return false;
-
-    //////////////////////////////////////////////////////
-    // 3. Must have a ground-truth velocity entry
-    //////////////////////////////////////////////////////
-
-    auto velIt = currentTrueAgentVels_.find(bestAgentID);
-
-    if (velIt == currentTrueAgentVels_.end())
-        return false;
-
-    const geometry_msgs::Vector3Stamped& agentVel =
-        velIt->second;
-
-    matchedAgentGroundTruthSpeed =
-        std::sqrt(
-            agentVel.vector.x * agentVel.vector.x +
-            agentVel.vector.y * agentVel.vector.y
-        );
-
-    //////////////////////////////////////////////////////
-    // 4. Dynamic if GT pedestrian speed is above threshold
-    //////////////////////////////////////////////////////
-
-    return matchedAgentGroundTruthSpeed >=
-           gapDensityDynamicSpeedThresh_;
-}
-
-void Planner::computeSimplifiedGapGroundTruthSectorDensity(
-    const int& simplifiedGapIndex,
-    int& gtSectorDynamicRawGapPointCount,
-    float& gtSectorDensity) const
-{
-    gtSectorDynamicRawGapPointCount = 0;
-    gtSectorDensity = 0.0f;
-
-    if (!scan_)
-        return;
-
-    if (simplifiedGapIndex < 0 ||
-        simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
-    {
-        return;
-    }
-
-    Gap* simplifiedGap =
-        currSimplifiedGaps_.at(simplifiedGapIndex);
-
-    if (!simplifiedGap)
-        return;
-
-    const int simpRightIdx = simplifiedGap->RIdx();
-    const int simpLeftIdx  = simplifiedGap->LIdx();
-
-    //////////////////////////////////////////////////////
-    // 1. Recompute same sector radius used by estimator density
-    //////////////////////////////////////////////////////
-
-    float sectorRadius = 0.0f;
-
-    for (size_t rawGapIndex = 0;
-         rawGapIndex < currRawGaps_.size();
-         ++rawGapIndex)
-    {
-        Gap* rawGap = currRawGaps_.at(rawGapIndex);
-
-        if (!rawGap)
-            continue;
-
-        //////////////////////////////////////////////////////
-        // Raw RIGHT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawRightIdx = rawGap->RIdx();
-
-        if (scanIdxInsideGapRange(
-                rawRightIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawRightX = 0.0f;
-            float rawRightY = 0.0f;
-
-            rawGap->getRCartesian(rawRightX, rawRightY);
-
-            const float rawRightRadius =
-                std::sqrt(
-                    rawRightX * rawRightX +
-                    rawRightY * rawRightY
-                );
-
-            if (rawRightRadius > sectorRadius)
-                sectorRadius = rawRightRadius;
-        }
-
-        //////////////////////////////////////////////////////
-        // Raw LEFT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawLeftIdx = rawGap->LIdx();
-
-        if (scanIdxInsideGapRange(
-                rawLeftIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawLeftX = 0.0f;
-            float rawLeftY = 0.0f;
-
-            rawGap->getLCartesian(rawLeftX, rawLeftY);
-
-            const float rawLeftRadius =
-                std::sqrt(
-                    rawLeftX * rawLeftX +
-                    rawLeftY * rawLeftY
-                );
-
-            if (rawLeftRadius > sectorRadius)
-                sectorRadius = rawLeftRadius;
-        }
-    }
-
-    //////////////////////////////////////////////////////
-    // 2. Same sector angle and area as estimator density
-    //////////////////////////////////////////////////////
-
-    const float sectorAngleRad =
-        gapAngularWidthRad(
-            simpRightIdx,
-            simpLeftIdx
-        );
-
-    if (sectorRadius <= 0.0f ||
-        sectorAngleRad <= 0.0f)
-    {
-        return;
-    }
-
-    const float sectorArea =
-        0.5f *
-        sectorRadius *
-        sectorRadius *
-        sectorAngleRad;
-
-    if (sectorArea <= 0.0f)
-        return;
-
-    //////////////////////////////////////////////////////
-    // 3. Count contained raw gap endpoints whose nearest
-    //    matched GT pedestrian is actually moving.
-    //////////////////////////////////////////////////////
-
-    for (size_t rawGapIndex = 0;
-         rawGapIndex < currRawGaps_.size();
-         ++rawGapIndex)
-    {
-        Gap* rawGap = currRawGaps_.at(rawGapIndex);
-
-        if (!rawGap)
-            continue;
-
-        //////////////////////////////////////////////////////
-        // Raw RIGHT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawRightIdx = rawGap->RIdx();
-
-        if (scanIdxInsideGapRange(
-                rawRightIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawRightX = 0.0f;
-            float rawRightY = 0.0f;
-
-            rawGap->getRCartesian(rawRightX, rawRightY);
-
-            Eigen::Vector2f rawRightPt(
-                rawRightX,
-                rawRightY
-            );
-
-            std::string matchedAgentID;
-            float matchDist = 0.0f;
-            float matchedAgentGroundTruthSpeed = 0.0f;
-
-            const bool isDynamicGroundTruthRawGapPoint =
-                rawGapPointMatchesDynamicGroundTruthAgent(
-                    rawRightPt,
-                    matchedAgentID,
-                    matchDist,
-                    matchedAgentGroundTruthSpeed
-                );
-
-            if (isDynamicGroundTruthRawGapPoint)
-            {
-                gtSectorDynamicRawGapPointCount++;
-            }
-        }
-
-        //////////////////////////////////////////////////////
-        // Raw LEFT endpoint
-        //////////////////////////////////////////////////////
-
-        const int rawLeftIdx = rawGap->LIdx();
-
-        if (scanIdxInsideGapRange(
-                rawLeftIdx,
-                simpRightIdx,
-                simpLeftIdx))
-        {
-            float rawLeftX = 0.0f;
-            float rawLeftY = 0.0f;
-
-            rawGap->getLCartesian(rawLeftX, rawLeftY);
-
-            Eigen::Vector2f rawLeftPt(
-                rawLeftX,
-                rawLeftY
-            );
-
-            std::string matchedAgentID;
-            float matchDist = 0.0f;
-            float matchedAgentGroundTruthSpeed = 0.0f;
-
-            const bool isDynamicGroundTruthRawGapPoint =
-                rawGapPointMatchesDynamicGroundTruthAgent(
-                    rawLeftPt,
-                    matchedAgentID,
-                    matchDist,
-                    matchedAgentGroundTruthSpeed
-                );
-
-            if (isDynamicGroundTruthRawGapPoint)
-            {
-                gtSectorDynamicRawGapPointCount++;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////
-    // 4. Ground-truth target density
-    //////////////////////////////////////////////////////
-
-    gtSectorDensity =
-        static_cast<float>(gtSectorDynamicRawGapPointCount) /
-        sectorArea;
 }
 
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
@@ -2596,9 +2144,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                         const std::vector<sensor_msgs::LaserScan> & futureScans) 
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
-        // Collect all trajectories (for all gaps) into one visualization array
-visualization_msgs::MarkerArray allMarkers;
-int global_id = 0;
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajsV2()]");
         
@@ -2623,8 +2168,6 @@ int global_id = 0;
                 Trajectory runningTraj;
                 std::vector<float> runningPoseCosts;
                 float runningTerminalPoseCost;
-                std::vector<float> candidateCosts; // for visualization
-
 
                 for (int j = 0; j < gapTube->size(); j++) 
                 {
@@ -2660,17 +2203,8 @@ int global_id = 0;
                                                                             // currPose,
                                                                             // currVel,
                                                                             // false);
-                        int densityModelID =
-                            getGapLeftModelIDForDensityCost(gap);
+                        trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
-                        trajEvaluator_->evaluateTrajectory(
-                            goToGoalTraj,
-                            goToGoalPoseCosts,
-                            goToGoalTerminalPoseCost,
-                            futureScans,
-                            scanIdx,
-                            densityModelID
-                        );
 
                         goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0)) / goToGoalPoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        goToGoalCost: " << goToGoalCost);
@@ -2719,19 +2253,7 @@ int global_id = 0;
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         // }
 
-                        
-                        int densityModelID =
-                        getGapLeftModelIDForDensityCost(gap);
-
-                        trajEvaluator_->evaluateTrajectory(
-                            pursuitGuidanceTraj,
-                            pursuitGuidancePoseCosts,
-                            pursuitGuidanceTerminalPoseCost,
-                            futureScans,
-                            scanIdx,
-                            densityModelID
-                        );
-
+                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
                     
@@ -2784,9 +2306,6 @@ int global_id = 0;
                     scanIdx = runningTraj.getPathRbtFrame().poses.size() - 1;
                 }
 
-                
-
-
                 gapTubeTrajs.at(i) = runningTraj;
                 gapTubeTrajPoseCosts.at(i) = runningPoseCosts;
                 gapTubeTrajTerminalPoseCosts.at(i) = runningTerminalPoseCost;     
@@ -2803,10 +2322,6 @@ int global_id = 0;
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        t: " << time << ", p: (" << pose.position.x << ", " << pose.position.y << "), cost: " << cost);
                 }
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    terminal cost: " << runningTerminalPoseCost);
-                // === Publish all collected markers together ===
-                // candidateMarkerPub_.publish(allMarkers);
-                
-
             }        
 
             // trajVisualizer_->drawGapTrajectoryPoseScores(gapTubeTrajs, gapTubeTrajPoseCosts);
@@ -2862,8 +2377,7 @@ int global_id = 0;
                                                     pursuitGuidancePoseCosts, 
                                                     pursuitGuidanceTerminalPoseCost, 
                                                     futureScans,
-                                                    0, 
-                                                    -1); //-1 means don't store the model id which is needed for the density related score 
+                                                    0);
                 pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
@@ -2889,62 +2403,53 @@ int global_id = 0;
         return;
     }
 
-    void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
-                                        std::vector<std::vector<float>> & idlingTrajPoseCosts,
-                                        std::vector<float> & idlingTrajTerminalPoseCosts,
-                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
-    {
-        try
-        {
-            boost::mutex::scoped_lock gapset(gapMutex_);
+    // void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
+    //                                     std::vector<std::vector<float>> & idlingTrajPoseCosts,
+    //                                     std::vector<float> & idlingTrajTerminalPoseCosts,
+    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    // {
+    //     try
+    //     {
+    //         boost::mutex::scoped_lock gapset(gapMutex_);
 
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
+    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
 
-            Gap * nullGap = nullptr;
-            Trajectory idlingTrajectory;
-            Trajectory emptyRunningTraj;
+    //         Gap * nullGap = nullptr;
+    //         Trajectory idlingTrajectory;
+    //         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
+    //                                                                             rbtPoseInSensorFrame_);
 
-            idlingTrajectory =
-                gapTrajGenerator_->generateIdlingTrajectoryV2(
-                    nullGap,
-                    rbtPoseInSensorFrame_,
-                    emptyRunningTraj
-                );
+    //         std::vector<float> idlingPoseCosts;
+    //         float idlingTerminalPoseCost, idlingCost;
 
-            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
-            //                                                                     rbtPoseInSensorFrame_);
+    //         trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0);
 
-            std::vector<float> idlingPoseCosts;
-            float idlingTerminalPoseCost, idlingCost;
+    //         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
 
-            trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0, -1);
+    //         idlingTrajPoseCosts.push_back(idlingPoseCosts);
+    //         idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
-            idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
+    //         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
+    //         idlingTrajs.push_back(idlingTrajectory);    
 
-            idlingTrajPoseCosts.push_back(idlingPoseCosts);
-            idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+    //         // // push back idling trajectory as another option
 
-            idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-            idlingTrajs.push_back(idlingTrajectory);    
-
-            // // push back idling trajectory as another option
-
-            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
+    //         // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
             
-            // 
-            // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
-            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
-        } catch (const std::out_of_range & e)
-        {
-            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
-        } catch (const std::exception & e)
-        {
-            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
-        }
+    //         // 
+    //         // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
+    //         // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
+    //     } catch (const std::out_of_range & e)
+    //     {
+    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
+    //     } catch (const std::exception & e)
+    //     {
+    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
+    //     }
     
 
-        return;
-    }
+    //     return;
+    // }
 
     void Planner::pickTraj(int & trajFlag,
                             int & lowestCostTrajIdx,
@@ -3091,7 +2596,7 @@ int global_id = 0;
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
                 trajFlag = IDLING;
-                ROS_ERROR_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
+                ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
             } else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "    trajFlag not set");
@@ -3190,23 +2695,7 @@ int global_id = 0;
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
             float incomingPathTerminalPoseCost;
-
-            int incomingDensityModelID = -1;
-
-            if (trajFlag == GAP && incomingGap) // so you use the latest gap info for the gru/density cost
-            {
-                incomingDensityModelID =
-                    getGapLeftModelIDForDensityCost(incomingGap);
-            }
-
-            trajEvaluator_->evaluateTrajectory(
-                incomingTraj,
-                incomingPathPoseCosts,
-                incomingPathTerminalPoseCost,
-                futureScans,
-                0,
-                incomingDensityModelID
-            );
+            trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
 
             float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
@@ -3295,24 +2784,7 @@ int global_id = 0;
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-
-            int reducedCurrentDensityModelID = -1;
-
-            if (trajFlag == GAP)
-            {
-                reducedCurrentDensityModelID =
-                    getCurrentLeftGapPtModelID();
-            }
-
-            trajEvaluator_->evaluateTrajectory(
-                reducedCurrentTraj,
-                reducedCurrentPathPoseCosts,
-                reducedCurrentPathTerminalPoseCost,
-                futureScans,
-                updatedCurrentPathPoseIdx,
-                reducedCurrentDensityModelID
-            );
-
+            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
@@ -3561,9 +3033,9 @@ int global_id = 0;
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
         } 
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
@@ -4062,86 +3534,4 @@ int global_id = 0;
         }
         return keepPlanning || cfg_.ctrl.man_ctrl;
     }
-
-void Planner::publishCandidateTrajsWithCosts(
-    const std::vector<Trajectory>& candTrajs,
-    const std::vector<float>& trajCosts,
-    const std::string& ns)
-{
-    visualization_msgs::MarkerArray markers;
-    int id = 0;
-
-    // Define color palette — one color per gap
-    std::vector<std::array<float, 3>> gapColors = {
-        {1.0, 0.0, 0.0},   // red
-        {0.0, 0.6, 1.0},   // blue
-        {0.0, 0.8, 0.3},   // green
-        {1.0, 0.6, 0.0},   // orange
-        {0.6, 0.2, 1.0},   // purple
-        {0.9, 0.9, 0.0}    // yellow
-    };
-
-    // Derive a consistent color index based on namespace (gap)
-    size_t colorIdx = std::hash<std::string>{}(ns) % gapColors.size();
-    const auto& color = gapColors[colorIdx];
-
-    for (size_t i = 0; i < candTrajs.size(); i++)
-    {
-        geometry_msgs::PoseArray path = candTrajs[i].getPathRbtFrame();
-
-        // === Draw arrows for each pose ===
-        for (size_t j = 0; j < path.poses.size(); j++)
-        {
-            visualization_msgs::Marker arrow;
-            arrow.header.frame_id = cfg_.robot_frame_id;
-            arrow.header.stamp = ros::Time::now();
-            arrow.ns = ns + "_arrow";
-            arrow.id = id++;
-            arrow.type = visualization_msgs::Marker::ARROW;
-            arrow.action = visualization_msgs::Marker::ADD;
-            arrow.pose = path.poses[j];
-            arrow.scale.x = 0.1;
-            arrow.scale.y = 0.02;
-            arrow.scale.z = 0.02;
-
-            // ✅ Same color for all cands of this gap
-            arrow.color.r = color[0];
-            arrow.color.g = color[1];
-            arrow.color.b = color[2];
-            arrow.color.a = 1.0;
-
-            arrow.lifetime = ros::Duration(0.5);
-            markers.markers.push_back(arrow);
-        }
-
-        // === Add text marker for cost ===
-        if (!path.poses.empty())
-        {
-            visualization_msgs::Marker text;
-            text.header.frame_id = cfg_.robot_frame_id;
-            text.header.stamp = ros::Time::now();
-            text.ns = ns + "_cost";
-            text.id = id++;
-            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-            text.action = visualization_msgs::Marker::ADD;
-            text.pose = path.poses.back();
-            text.pose.position.z += 0.25;  // lifted a bit higher
-
-            std::ostringstream ss;
-            ss << std::fixed << std::setprecision(2) << trajCosts[i];
-            text.text = "cost=" + ss.str();
-
-            text.scale.z = 0.2;
-            text.color.r = 0.0;  // black text
-            text.color.g = 0.0;
-            text.color.b = 0.0;
-            text.color.a = 1.0;
-            text.lifetime = ros::Duration(0.25);
-            markers.markers.push_back(text);
-        }
-    }
-
-    candidateTrajPub_.publish(markers);
-}
-
 }
