@@ -16,6 +16,7 @@
 
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/LaserScan.h>
 // #include <std_msgs/Header.h>
 #include <nav_msgs/Odometry.h>
@@ -148,12 +149,14 @@ namespace dynamic_gap
             struct ManualCandidate
             {
                 int display_id;
-                int traj_flag;   // GAP, UNGAP, IDLING
+                int traj_flag;   // GAP, UNGAP, IDLING, 
                 int local_idx;
+                geometry_msgs::PoseArray path_odom_frame; // full trajectory path in odom frame
             };
 
             ros::Subscriber manualTrajSelectionSub_;
             ros::Publisher manualCandidateMarkerPub_;
+            ros::Subscriber rvizPublishPointSubsciber_; //for manuel_gap_selection click to point
 
             int selectedManualCandidateId_ = -1;
             bool manualSelectionMode_ = true;
@@ -162,6 +165,9 @@ namespace dynamic_gap
             boost::mutex manualSelectionMutex_;
 
             void manualTrajSelectionCB(const std_msgs::Int32::ConstPtr& msg);
+
+            //callback function for RViz publish point subscriber
+            void rvizPublishPointSubsciberCB(const geometry_msgs::PointStamped::ConstPtr& msg);
 
             void publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
                                             const std::vector<Trajectory>& ungapTrajs,

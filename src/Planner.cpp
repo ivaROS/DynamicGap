@@ -123,6 +123,8 @@ namespace dynamic_gap
         manualTrajSelectionSub_ = nh_.subscribe("/manual_traj_selection", 1,
                                         &Planner::manualTrajSelectionCB, this);
 
+        rvizPublishPointSubsciber_ = nh_.subscribe("/gap_selection_point", 1, &Planner::rvizPublishPointSubsciberCB, this); //initlize the pubcriber for the publish point RVIz button on manuel trajectroy selction
+
         manualCandidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>(
             "/manual_candidate_markers", 1);
 
@@ -645,6 +647,54 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                         << selectedManualCandidateId_);
     }
 
+    //callback function, updates 
+    void Planner::rvizPublishPointSubsciberCB(const geometry_msgs::PointStamped::ConstPtr& msg) {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+        
+        ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] received point: (" << msg->point.x << ", " << msg->point.y << ")");
+        
+        if (!haveTFs_)
+            return;
+
+        // transform clicked point from map frame to odom frame
+        geometry_msgs::PointStamped clickedPointOdomFrame;
+        tf2::doTransform(*msg, clickedPointOdomFrame, map2odom_);
+
+        // find nearest candidate path pose to clicked point
+        float minDist = std::numeric_limits<float>::infinity();
+        int nearestCandidateId = -1;
+
+        geometry_msgs::Pose pose;
+
+        for (const ManualCandidate& c : currentManualCandidates_)
+        {
+            if (c.path_odom_frame.poses.empty())
+            {
+                continue;
+            }
+                
+            pose = c.path_odom_frame.poses.back();
+            float dx = pose.position.x - clickedPointOdomFrame.point.x;
+            float dy = pose.position.y - clickedPointOdomFrame.point.y;
+            float dist = sqrt(pow(dx, 2) + pow(dy, 2));
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestCandidateId = c.display_id;
+            }
+        }
+
+        ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] finished, selected candidate: " << selectedManualCandidateId_ << " in " << minDist << "m");
+
+        if (nearestCandidateId >= 0)
+        {
+            selectedManualCandidateId_ = nearestCandidateId;
+            ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] selected candidate: " << selectedManualCandidateId_ << " (dist: " << minDist << ")");
+        } else {
+            ROS_WARN_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] no candidate found");
+        }
+    }
+
     void Planner::publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
                                             const std::vector<Trajectory>& ungapTrajs,
                                             const std::vector<Trajectory>& idlingTrajs)
@@ -672,6 +722,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             c.display_id = display_id;
             c.traj_flag = traj_flag;
             c.local_idx = local_idx;
+            c.path_odom_frame = traj.getPathOdomFrame();
             currentManualCandidates_.push_back(c);
 
             const geometry_msgs::Pose& terminal_pose =
@@ -1420,7 +1471,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             ROS_INFO_STREAM_NAMED("Planner", "[pickTraj()]");
             
-            // int lowestCostTrajIdx = -1;        
+            // int lowestCostTrajIdx = -1;       g 
             
             int numUngapTrajs = ungapTrajs.size();
             int numIdlingTrajs = idlingTrajs.size();
@@ -1567,6 +1618,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                                 Gap * incomingGap) 
     {
         // publishToMpc_ = true;
+        ROS_INFO_STREAM_NAMED("Planner", "[changeTrajectoryHelper] trajectory switch " << trajectoryChangeCount_ << " to trajFlag: " << trajFlag);
         
         if (switchToIncoming) 
         {
