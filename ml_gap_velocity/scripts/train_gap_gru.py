@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
 
-INPUT_FEATURES = [
+BASE_INPUT_FEATURES = [
     "sector_density",
     "sector_dynamic_raw_gap_point_count",
     "contained_raw_gap_point_count",
@@ -20,9 +20,38 @@ INPUT_FEATURES = [
     "sector_radius",
 ]
 
+DERIVED_FEATURE_CONFIG = {
+    "density_rate_of_change": "drate",
+    "aspect_ratio":           "ar",
+}
+
 OUTPUT_FEATURES = [
     "gt_sector_density",
 ]
+
+# Minimum angle (radians) used when computing aspect_ratio to
+# prevent division by zero or extreme values.
+MIN_SECTOR_ANGLE_RAD = 1e-4
+
+def build_input_features(use_density_rate: bool, use_aspect_ratio: bool) -> list:
+    """
+    Returns the ordered list of input feature names for this run.
+ 
+    Base features always come first (same order as the original
+    training script). Enabled derived features are appended after.
+ 
+    This list is the single source of truth for feature ordering:
+    - The dataset uses it to build numpy arrays.
+    - It is saved in the stats JSON.
+    - The ROS inference node reads it from the stats JSON and knows
+      exactly which features to compute and in which order.
+    """
+    features = list(BASE_INPUT_FEATURES)
+    if use_density_rate:
+        features.append("density_rate_of_change")
+    if use_aspect_ratio:
+        features.append("aspect_ratio")
+    return features
 
 
 def safe_name(name):
@@ -64,6 +93,27 @@ def safe_float_name(value):
 
     return s.replace(".", "p")
 
+def make_feature_suffix(use_density_rate: bool, use_aspect_ratio: bool) -> str:
+    """
+    Builds a short suffix that encodes which derived features are
+    active. Examples:
+        both off  -> ""
+        drate on  -> "_feat_drate"
+        ar on     -> "_feat_ar"
+        both on   -> "_feat_drate_ar"
+ 
+    This ends up in all output filenames so you can tell runs apart
+    at a glance and never accidentally load the wrong stats JSON.
+    """
+    active = []
+    if use_density_rate:
+        active.append(DERIVED_FEATURE_CONFIG["density_rate_of_change"])
+    if use_aspect_ratio:
+        active.append(DERIVED_FEATURE_CONFIG["aspect_ratio"])
+    if not active:
+        return ""
+    return "_feat_" + "_".join(active)
+
 
 def make_auto_run_name(args):
     """
@@ -77,7 +127,12 @@ def make_auto_run_name(args):
     if user_name is None or user_name.strip() == "":
         csv_base = os.path.splitext(os.path.basename(args.csv))[0]
         user_name = csv_base
-
+    
+    feature_suffix = make_feature_suffix(
+        args.use_density_rate,
+        args.use_aspect_ratio,
+    )
+ 
     pieces = [
         safe_name(user_name),
         "density",
@@ -89,7 +144,12 @@ def make_auto_run_name(args):
         f"lr{safe_float_name(args.lr)}",
         f"e{args.epochs}",
     ]
-
+ 
+    # Append feature suffix to the run name piece so it shows up
+    # near the front of every filename, e.g.:
+    #   myenv_density_feat_drate_ar_mse_sl10_h64_l2_bs64_lr1em3_e500
+    pieces[0] = pieces[0] + feature_suffix
+ 
     return "_".join(pieces)
 
 
@@ -118,8 +178,22 @@ def make_loss_fn(loss_name):
 
 
 class GapSectorDensitySequenceDataset(Dataset):
-    def __init__(self, csv_path, seq_len=10):
+    def __init__(
+        self,
+        csv_path: str,
+        seq_len: int = 10,
+        use_density_rate: bool = False,
+        use_aspect_ratio: bool = False
+    ):
         self.seq_len = seq_len
+        self.use_density_rate = use_density_rate
+        self.use_aspect_ratio = use_aspect_ratio
+
+        # The final ordered list of features this model instance uses.
+        self.input_features = build_input_features(
+            use_density_rate,
+            use_aspect_ratio,
+        )
 
         df = pd.read_csv(csv_path)
 
@@ -127,7 +201,7 @@ class GapSectorDensitySequenceDataset(Dataset):
             "sample_idx",
             "model_id",
             "side",
-            *INPUT_FEATURES,
+            *BASE_INPUT_FEATURES,
             *OUTPUT_FEATURES,
         ]
 
@@ -174,8 +248,30 @@ class GapSectorDensitySequenceDataset(Dataset):
         for _, group in df.groupby(group_cols):
             group = group.sort_values("sample_idx").reset_index(drop=True)
 
+            # --------------------------------------------------------
+            # Compute derived features PER GROUP so that temporal
+            # differences (density_rate_of_change) are computed within
+            # the same gap track and not across different tracks.
+            # --------------------------------------------------------
+ 
+            if self.use_density_rate:
+                # sector_density[t] - sector_density[t-1].
+                # The very first observation has no prior, so we use 0.0.
+                # This is consistent with the ROS node, which also
+                # outputs 0.0 when the buffer is empty.
+                group["density_rate_of_change"] = (
+                    group["sector_density"].diff().fillna(0.0)
+                )
+ 
+            if self.use_aspect_ratio:
+                # 1 / sector_angle_rad. Clipped to avoid extreme values
+                # when a gap's angular span is very small.
+                group["aspect_ratio"] = 1.0 / group["sector_angle_rad"].clip(
+                    lower=MIN_SECTOR_ANGLE_RAD
+                )
+
             features = group[
-                INPUT_FEATURES
+                self.input_features
             ].values.astype(np.float32)
 
             targets = group[
@@ -201,7 +297,7 @@ class GapSectorDensitySequenceDataset(Dataset):
                 "Try lowering seq_len or collecting longer left-side gap tracks."
             )
 
-        num_input_features = len(INPUT_FEATURES)
+        num_input_features = len(self.input_features)
         num_output_features = len(OUTPUT_FEATURES)
 
         self.x_mean = self.samples_x.reshape(
@@ -302,7 +398,11 @@ def train(args):
     dataset = GapSectorDensitySequenceDataset(
         args.csv,
         seq_len=args.seq_len,
+        use_density_rate=args.use_density_rate,
+        use_aspect_ratio=args.use_aspect_ratio
     )
+
+    input_features = dataset.input_features
 
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
@@ -326,7 +426,7 @@ def train(args):
     )
 
     model = GapSectorDensityGRU(
-        input_size=len(INPUT_FEATURES),
+        input_size=len(input_features),
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         output_size=len(OUTPUT_FEATURES),
@@ -385,7 +485,7 @@ def train(args):
         "lr": args.lr,
         "loss": args.loss,
         "seed": args.seed,
-        "input_features": INPUT_FEATURES,
+        "input_features": input_features,
         "output_features": OUTPUT_FEATURES,
         "row_filter": "side == left",
         "group_cols": ["model_id"],
@@ -411,7 +511,9 @@ def train(args):
     print(f"batch_size: {args.batch_size}")
     print(f"epochs: {args.epochs}")
     print(f"lr: {args.lr}")
-    print(f"input features: {INPUT_FEATURES}")
+    print(f"use_density_rate: {args.use_density_rate}")
+    print(f"use_aspect_ratio: {args.use_aspect_ratio}")
+    print(f"input features: {input_features}")
     print(f"output features: {OUTPUT_FEATURES}")
     print("using only rows where side == 'left'")
     print(f"num left-side rows: {dataset.num_left_rows}")
@@ -480,7 +582,7 @@ def train(args):
             example_input = torch.zeros(
                 1,
                 args.seq_len,
-                len(INPUT_FEATURES),
+                len(input_features),
             )
 
             traced = torch.jit.trace(model_cpu, example_input)
@@ -507,8 +609,10 @@ def train(args):
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
-                "input_features": INPUT_FEATURES,
+                "input_features": input_features,
                 "output_features": OUTPUT_FEATURES,
+                "use_density_rate": args.use_density_rate,
+                "use_aspect_ratio": args.use_aspect_ratio,
                 "row_filter": "side == left",
                 "group_cols": ["model_id"],
             }
@@ -556,6 +660,26 @@ def main():
         "--loss",
         choices=["mse", "l1", "smooth_l1"],
         default="mse",
+    )
+
+    parser.add_argument(
+        "--use-density-rate",
+        action="store_true",
+        help=(
+            "Add density_rate_of_change as an input feature. "
+            "Computed as sector_density[t] - sector_density[t-1] "
+            "within each gap track. Penalizes gaps whose congestion "
+            "is spiking even if current density looks acceptable."
+        ),
+    )
+    parser.add_argument(
+        "--use-aspect-ratio",
+        action="store_true",
+        help=(
+            "Add aspect_ratio = 1/sector_angle_rad as an input feature. "
+            "Penalizes narrow sectors geometrically. A small theta means "
+            "a long skinny corridor with little maneuvering room."
+        ),
     )
 
     parser.add_argument("--seed", type=int, default=42)

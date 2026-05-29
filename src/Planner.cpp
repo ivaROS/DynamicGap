@@ -2744,6 +2744,9 @@ int global_id = 0;
 
                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                 //                     "   [TEST] first candidate traj cost = " << totalCost0);
+                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                                    "   [TEST] first candidate terminalCost0 = " << terminalCost0);
+
 
                                 // Store as best by default
                                 bestTraj = cand0;

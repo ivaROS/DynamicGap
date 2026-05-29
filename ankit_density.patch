@@ -1,0 +1,1200 @@
+diff --git a/ml_gap_velocity/scripts/gru_gap_feature_node.py b/ml_gap_velocity/scripts/gru_gap_feature_node.py
+index 819d8c3..a76be96 100644
+--- a/ml_gap_velocity/scripts/gru_gap_feature_node.py
++++ b/ml_gap_velocity/scripts/gru_gap_feature_node.py
+@@ -12,20 +12,47 @@ from dynamic_gap.msg import GapFeaturePrediction
+ from visualization_msgs.msg import Marker, MarkerArray
+ 
+ 
++# ================================================================
++# BASE_INPUT_FEATURES
++#
++# These are the features that must arrive in the incoming
++# GapFeatureObservation ROS message (via feature_names /
++# feature_values). They map 1-to-1 to what the planner publishes.
++#
++# Any feature NOT in this list is a DERIVED feature, meaning the
++# node computes it locally from the base features or from buffer
++# history. The node figures out which derived features to compute
++# by reading `input_features` from the stats JSON — no manual
++# configuration required.
++# ================================================================
++BASE_INPUT_FEATURES = [
++    "sector_density",
++    "sector_dynamic_raw_gap_point_count",
++    "contained_raw_gap_point_count",
++    "sector_area",
++    "sector_angle_rad",
++    "sector_radius",
++]
++
++# Minimum angle used when computing aspect_ratio to prevent
++# division-by-zero or extreme values. Must match the training script.
++MIN_SECTOR_ANGLE_RAD = 1e-4
++
++
+ class Normalizer:
+     def __init__(self, stats_path):
+         self.input_mean = None
+-        self.input_std = None
++        self.input_std  = None
+         self.target_mean = None
+-        self.target_std = None
++        self.target_std  = None
+ 
+-        self.input_features = None
++        self.input_features  = None
+         self.output_features = None
+ 
+         if not stats_path:
+             raise RuntimeError(
+-                "stats_path is required for this generic feature node "
+-                "because it defines the expected input/output feature names."
++                "stats_path is required — it defines the expected "
++                "input/output feature names and normalization constants."
+             )
+ 
+         with open(stats_path, "r") as f:
+@@ -33,50 +60,35 @@ class Normalizer:
+ 
+         rospy.loginfo("Loaded normalization stats keys: %s", list(stats.keys()))
+ 
+-        self.input_mean = self._get_array(
+-            stats,
+-            ["input_mean", "x_mean", "X_mean", "feature_mean", "features_mean"]
+-        )
+-        self.input_std = self._get_array(
+-            stats,
+-            ["input_std", "x_std", "X_std", "feature_std", "features_std"]
+-        )
+-        self.target_mean = self._get_array(
+-            stats,
+-            ["target_mean", "y_mean", "Y_mean", "label_mean", "output_mean"]
+-        )
+-        self.target_std = self._get_array(
+-            stats,
+-            ["target_std", "y_std", "Y_std", "label_std", "output_std"]
+-        )
++        self.input_mean  = self._get_array(stats, ["input_mean",  "x_mean",  "X_mean",  "feature_mean",  "features_mean"])
++        self.input_std   = self._get_array(stats, ["input_std",   "x_std",   "X_std",   "feature_std",   "features_std"])
++        self.target_mean = self._get_array(stats, ["target_mean", "y_mean",  "Y_mean",  "label_mean",    "output_mean"])
++        self.target_std  = self._get_array(stats, ["target_std",  "y_std",   "Y_std",   "label_std",     "output_std"])
+ 
+-        self.input_features = stats.get("input_features", None)
++        self.input_features  = stats.get("input_features",  None)
+         self.output_features = stats.get("output_features", None)
+ 
+         if self.input_features is None:
+             raise RuntimeError(
+                 "Stats JSON is missing 'input_features'. "
+-                "Cannot know which incoming features the model expects."
++                "Cannot know which features the model expects."
+             )
+-
+         if self.output_features is None:
+             raise RuntimeError(
+                 "Stats JSON is missing 'output_features'. "
+                 "Cannot name model outputs."
+             )
+-
+         if self.input_mean is None or self.input_std is None:
+             raise RuntimeError(
+-                "Input normalization stats were not found in stats JSON."
++                "Input normalization stats not found in stats JSON."
+             )
+-
+         if self.target_mean is None or self.target_std is None:
+             raise RuntimeError(
+-                "Target normalization stats were not found in stats JSON."
++                "Target normalization stats not found in stats JSON."
+             )
+ 
+-        rospy.loginfo("Expected model input features: %s", self.input_features)
+-        rospy.loginfo("Expected model output features: %s", self.output_features)
++        rospy.loginfo("Model input features:  %s", self.input_features)
++        rospy.loginfo("Model output features: %s", self.output_features)
+ 
+     def _get_array(self, stats, keys):
+         for key in keys:
+@@ -95,60 +107,63 @@ class GRUGapFeatureNode:
+     def __init__(self):
+         rospy.init_node("gru_gap_feature_node")
+ 
+-        self.model_path = rospy.get_param("~model_path")
+-        self.stats_path = rospy.get_param("~stats_path")
+-
+-        self.seq_len = int(rospy.get_param("~seq_len", 10))
++        self.model_path  = rospy.get_param("~model_path")
++        self.stats_path  = rospy.get_param("~stats_path")
++        self.seq_len     = int(rospy.get_param("~seq_len", 10))
+         self.device_name = rospy.get_param("~device", "cpu")
+-        self.device = torch.device(self.device_name)
+-
+-        self.observation_topic = rospy.get_param(
+-            "~observation_topic",
+-            "gap_feature_observation",
+-        )
+-
+-        self.prediction_topic = rospy.get_param(
+-            "~prediction_topic",
+-            "gru_gap_feature_prediction",
+-        )
++        self.device      = torch.device(self.device_name)
+ 
+-        self.marker_topic = rospy.get_param(
+-            "~marker_topic",
+-            "gru_gap_feature_prediction_markers",
+-        )
+-
+-        self.text_marker_height = float(
+-            rospy.get_param("~text_marker_height", 0.28)
+-        )
++        self.observation_topic = rospy.get_param("~observation_topic", "gap_feature_observation")
++        self.prediction_topic  = rospy.get_param("~prediction_topic",  "gru_gap_feature_prediction")
++        self.marker_topic      = rospy.get_param("~marker_topic",      "gru_gap_feature_prediction_markers")
+ 
+-        self.text_marker_z = float(
+-            rospy.get_param("~text_marker_z", 0.35)
+-        )
+-
+-        self.max_buffer_time_gap = float(
+-            rospy.get_param("~max_buffer_time_gap", 0.5)
+-        )
++        self.text_marker_height = float(rospy.get_param("~text_marker_height", 0.28))
++        self.text_marker_z      = float(rospy.get_param("~text_marker_z",      0.35))
++        self.max_buffer_time_gap = float(rospy.get_param("~max_buffer_time_gap", 0.5))
+ 
+         self.normalizer = Normalizer(self.stats_path)
+ 
+-        self.input_features = self.normalizer.input_features
++        self.input_features  = self.normalizer.input_features
+         self.output_features = self.normalizer.output_features
+ 
++        # ============================================================
++        # AUTO-DETECT DERIVED FEATURES
++        #
++        # We check which features in `input_features` are NOT in the
++        # base set. Those must be computed locally rather than read
++        # from the incoming ROS message.
++        #
++        # This means: whichever flags were set at training time are
++        # automatically honoured here, with zero manual configuration.
++        # If you trained with --use-density-rate, the stats JSON will
++        # have "density_rate_of_change" in input_features, and the
++        # node will compute it. If you didn't, it won't.
++        # ============================================================
++        self.use_density_rate = "density_rate_of_change" in self.input_features
++        self.use_aspect_ratio = "aspect_ratio"           in self.input_features
++
++        # Index of sector_density in the raw (unnormalized) buffer
++        # entries, needed to compute density_rate_of_change at runtime.
++        # We look it up once here to avoid repeated list searches.
++        self._density_idx_in_base = BASE_INPUT_FEATURES.index("sector_density")
++
++        # Index of sector_angle_rad in the base feature list, needed
++        # to compute aspect_ratio at runtime.
++        self._angle_idx_in_base = BASE_INPUT_FEATURES.index("sector_angle_rad")
++
++        rospy.loginfo("use_density_rate: %s", self.use_density_rate)
++        rospy.loginfo("use_aspect_ratio: %s", self.use_aspect_ratio)
++
++        # Buffer stores raw (unnormalized) full feature vectors per
++        # model_id+side key. Normalization happens on the full sequence
++        # just before inference.
+         self.buffers = defaultdict(lambda: deque(maxlen=self.seq_len))
+         self.last_stamp_by_key = {}
+ 
+         self.model = self.load_model(self.model_path)
+ 
+-        self.pred_pub = rospy.Publisher(
+-            self.prediction_topic,
+-            GapFeaturePrediction,
+-            queue_size=10,
+-        )
+-        self.marker_pub = rospy.Publisher(
+-            self.marker_topic,
+-            MarkerArray,
+-            queue_size=10,
+-        )
++        self.pred_pub   = rospy.Publisher(self.prediction_topic, GapFeaturePrediction, queue_size=10)
++        self.marker_pub = rospy.Publisher(self.marker_topic,     MarkerArray,          queue_size=10)
+ 
+         self.obs_sub = rospy.Subscriber(
+             self.observation_topic,
+@@ -157,10 +172,15 @@ class GRUGapFeatureNode:
+             queue_size=100,
+         )
+ 
+-        rospy.loginfo("GRU generic gap feature node ready.")
+-        rospy.loginfo("Subscribing to: %s", self.observation_topic)
+-        rospy.loginfo("Publishing predictions to: %s", self.prediction_topic)
+-        rospy.loginfo("seq_len: %d", self.seq_len)
++        rospy.loginfo("GRU gap feature node ready.")
++        rospy.loginfo("Subscribing to:  %s", self.observation_topic)
++        rospy.loginfo("Publishing to:   %s", self.prediction_topic)
++        rospy.loginfo("seq_len:         %d", self.seq_len)
++        rospy.loginfo("input_features:  %s", self.input_features)
++
++    # ----------------------------------------------------------------
++    # Helpers
++    # ----------------------------------------------------------------
+ 
+     def stable_marker_id(self, msg):
+         return abs(hash("{}_{}".format(msg.model_id, msg.side))) % 1000000
+@@ -168,103 +188,30 @@ class GRUGapFeatureNode:
+     def get_named_output_value(self, output_values, desired_name):
+         if desired_name not in self.output_features:
+             return None
+-
+         idx = self.output_features.index(desired_name)
+-
+         if idx >= len(output_values):
+             return None
+-
+         return float(output_values[idx])
+ 
+     def get_named_target_value(self, obs_msg, desired_name):
+         if len(obs_msg.target_names) != len(obs_msg.target_values):
+             return None
+-
+         target_dict = {
+             name: float(value)
+             for name, value in zip(obs_msg.target_names, obs_msg.target_values)
+         }
+-
+         return target_dict.get(desired_name, None)
+ 
+-    def publish_prediction_marker(self, obs_msg, output_values):
+-        pred_density = self.get_named_output_value(
+-            output_values,
+-            "gt_sector_density"
+-        )
+-
+-        gt_density = self.get_named_target_value(
+-            obs_msg,
+-            "gt_sector_density"
+-        )
+-
+-        if pred_density is None:
+-            return
+-
+-        marker_array = MarkerArray()
+-
+-        marker = Marker()
+-        marker.header = obs_msg.header
+-        marker.ns = "gru_sector_density_text"
+-        marker.id = self.stable_marker_id(obs_msg)
+-        marker.type = Marker.TEXT_VIEW_FACING
+-        marker.action = Marker.ADD
+-
+-        marker.pose.position.x = obs_msg.vis_x
+-        marker.pose.position.y = obs_msg.vis_y
+-        marker.pose.position.z = self.text_marker_z
+-
+-        marker.pose.orientation.x = 0.0
+-        marker.pose.orientation.y = 0.0
+-        marker.pose.orientation.z = 0.0
+-        marker.pose.orientation.w = 1.0
+-
+-        marker.scale.z = self.text_marker_height
+-
+-        marker.color.r = 0.0
+-        marker.color.g = 1.0
+-        marker.color.b = 0.0
+-        marker.color.a = 1.0
+-
+-        if gt_density is None:
+-            marker.text = "gap {} | GRU: {:.3f} | GT: N/A".format(
+-                obs_msg.gap_index,
+-                pred_density,
+-            )
+-        else:
+-            marker.text = "gap {} | GRU: {:.3f} | GT: {:.3f}".format(
+-                obs_msg.gap_index,
+-                pred_density,
+-                gt_density,
+-            )
+-
+-        marker.lifetime = rospy.Duration(0.35)
+-
+-        marker_array.markers.append(marker)
+-        self.marker_pub.publish(marker_array)
+-
+     def load_model(self, model_path):
+-        # ////////////////////////////////////////////////////////////
+-        # Saved models from your training script are TorchScript.
+-        # ////////////////////////////////////////////////////////////
+-
+         try:
+-            model = torch.jit.load(
+-                model_path,
+-                map_location=self.device,
+-            )
++            model = torch.jit.load(model_path, map_location=self.device)
+             model.to(self.device)
+             model.eval()
+-
+-            rospy.loginfo("Loaded TorchScript GRU model from: %s", model_path)
++            rospy.loginfo("Loaded TorchScript model from: %s", model_path)
+             return model
+-
+         except Exception as e:
+             raise RuntimeError(
+-                "Failed to load TorchScript model from '{}': {}".format(
+-                    model_path,
+-                    str(e),
+-                )
++                "Failed to load TorchScript model from '{}': {}".format(model_path, str(e))
+             )
+ 
+     def make_key(self, msg):
+@@ -274,12 +221,9 @@ class GRUGapFeatureNode:
+         if key not in self.last_stamp_by_key:
+             self.last_stamp_by_key[key] = stamp
+             return
+-
+         dt = (stamp - self.last_stamp_by_key[key]).to_sec()
+-
+         if dt < 0.0 or dt > self.max_buffer_time_gap:
+             self.buffers[key].clear()
+-
+         self.last_stamp_by_key[key] = stamp
+ 
+     def incoming_feature_dict(self, msg):
+@@ -287,63 +231,128 @@ class GRUGapFeatureNode:
+             raise RuntimeError(
+                 "Incoming feature_names and feature_values have different lengths."
+             )
+-
+         return {
+             name: float(value)
+             for name, value in zip(msg.feature_names, msg.feature_values)
+         }
+ 
+-    def build_model_input_sample(self, msg):
++    # ----------------------------------------------------------------
++    # Core: build one model input sample from an incoming message.
++    #
++    # prev_sample is the last raw feature vector sitting in the buffer
++    # (i.e. the previous timestep for this gap track). It is passed in
++    # so density_rate_of_change can be computed without the buffer
++    # having to be queried again.
++    # ----------------------------------------------------------------
++
++    def build_model_input_sample(self, msg, prev_sample=None):
++        """
++        Returns a 1-D float32 numpy array of length len(input_features),
++        in the exact order the model was trained on.
++
++        Base features come from the incoming message.
++        Derived features are computed here:
++
++        density_rate_of_change
++            = current sector_density - previous sector_density
++            If there is no previous sample (first observation for this
++            gap track), we use 0.0, consistent with the training script
++            which fills NaN diffs with 0.0 for the first row in a group.
++
++        aspect_ratio
++            = 1.0 / sector_angle_rad  (clipped to MIN_SECTOR_ANGLE_RAD)
++            Purely geometric — requires no history.
++        """
+         feature_dict = self.incoming_feature_dict(msg)
+ 
++        # Validate that all base features are present in the message.
+         missing = [
+-            name
+-            for name in self.input_features
++            name for name in BASE_INPUT_FEATURES
+             if name not in feature_dict
+         ]
+-
+         if len(missing) > 0:
+             raise RuntimeError(
+-                "Incoming GapFeatureObservation is missing model-required "
+-                "features: {}".format(missing)
++                "Incoming GapFeatureObservation is missing base features: {}".format(missing)
++            )
++
++        # --------------------------------------------------------
++        # Compute density_rate_of_change if this model uses it.
++        #
++        # prev_sample is the raw (unnormalized) full feature vector
++        # from the previous timestep. We index into it using the
++        # pre-computed _density_idx_in_base, which is the position
++        # of sector_density in BASE_INPUT_FEATURES.
++        #
++        # Why this approach rather than recomputing from feature_dict?
++        # The buffer already holds the full prior vector so we don't
++        # need to re-parse the message. We just grab the relevant slot.
++        # --------------------------------------------------------
++        if self.use_density_rate:
++            if prev_sample is not None:
++                prev_density = float(prev_sample[self._density_idx_in_base])
++                curr_density = feature_dict["sector_density"]
++                feature_dict["density_rate_of_change"] = curr_density - prev_density
++            else:
++                # First observation for this gap track — no previous
++                # density available. Use 0.0 (no change), consistent
++                # with the training script's .fillna(0.0).
++                feature_dict["density_rate_of_change"] = 0.0
++
++        # --------------------------------------------------------
++        # Compute aspect_ratio if this model uses it.
++        #
++        # aspect_ratio = 1 / sector_angle_rad.
++        # Clipped to MIN_SECTOR_ANGLE_RAD to match training and to
++        # prevent extreme values for nearly-zero-angle sectors.
++        # --------------------------------------------------------
++        if self.use_aspect_ratio:
++            angle = max(
++                feature_dict.get("sector_angle_rad", MIN_SECTOR_ANGLE_RAD),
++                MIN_SECTOR_ANGLE_RAD,
+             )
++            feature_dict["aspect_ratio"] = 1.0 / angle
+ 
++        # Build the array in the exact feature order the model expects.
+         return np.array(
+-            [
+-                feature_dict[name]
+-                for name in self.input_features
+-            ],
++            [feature_dict[name] for name in self.input_features],
+             dtype=np.float32,
+         )
+ 
++    # ----------------------------------------------------------------
++    # ROS callback
++    # ----------------------------------------------------------------
++
+     def observation_cb(self, msg):
+         try:
+-            # //////////////////////////////////////////////////////
+-            # // The planner should already publish left only,
+-            # // but this avoids accidental duplicate use.
+-            # //////////////////////////////////////////////////////
+-
++            # The planner should publish left only, but guard here too.
+             if msg.side != "left":
+                 return
+ 
+             key = self.make_key(msg)
+             self.maybe_clear_stale_buffer(key, msg.header.stamp)
+ 
+-            sample = self.build_model_input_sample(msg)
++            # --------------------------------------------------------
++            # Grab the previous sample BEFORE appending the new one.
++            #
++            # This is critical for density_rate_of_change: we need
++            # ρ_{t-1} from the buffer, which is the last entry before
++            # we push ρ_t. After append, buffer[-1] would be the
++            # current sample, making the diff meaningless.
++            # --------------------------------------------------------
++            prev_sample = (
++                self.buffers[key][-1]
++                if len(self.buffers[key]) > 0
++                else None
++            )
++
++            sample = self.build_model_input_sample(msg, prev_sample=prev_sample)
+             self.buffers[key].append(sample)
+ 
+             if len(self.buffers[key]) < self.seq_len:
+-                self.publish_invalid_prediction(
+-                    msg,
+-                    len(self.buffers[key]),
+-                )
++                self.publish_invalid_prediction(msg, len(self.buffers[key]))
+                 return
+ 
+-            seq = np.stack(
+-                list(self.buffers[key]),
+-                axis=0,
+-            ).astype(np.float32)
+-
++            seq = np.stack(list(self.buffers[key]), axis=0).astype(np.float32)
+             seq = self.normalizer.normalize_input(seq)
+ 
+             x = torch.from_numpy(seq).unsqueeze(0).to(self.device)
+@@ -353,17 +362,9 @@ class GRUGapFeatureNode:
+ 
+             pred = self.normalizer.denormalize_target(pred)
+ 
+-            output_values = [
+-                float(value)
+-                for value in np.atleast_1d(pred)
+-            ]
++            output_values = [float(v) for v in np.atleast_1d(pred)]
+ 
+-            self.publish_prediction(
+-                msg,
+-                output_values,
+-                True,
+-                self.seq_len,
+-            )
++            self.publish_prediction(msg, output_values, True, self.seq_len)
+ 
+         except Exception as e:
+             rospy.logerr_throttle(
+@@ -372,78 +373,88 @@ class GRUGapFeatureNode:
+                 str(e),
+             )
+ 
+-    def publish_invalid_prediction(self, obs_msg, seq_len_used):
+-        pred_msg = GapFeaturePrediction()
+-        pred_msg.header = obs_msg.header
+-
+-        pred_msg.gap_index = obs_msg.gap_index
+-        pred_msg.model_id = obs_msg.model_id
+-        pred_msg.side = obs_msg.side
++    # ----------------------------------------------------------------
++    # Publishers
++    # ----------------------------------------------------------------
+ 
+-        pred_msg.output_names = list(self.output_features)
+-        pred_msg.output_values = [
+-            0.0 for _ in self.output_features
+-        ]
++    def publish_prediction_marker(self, obs_msg, output_values):
++        pred_density = self.get_named_output_value(output_values, "gt_sector_density")
++        gt_density   = self.get_named_target_value(obs_msg, "gt_sector_density")
+ 
+-        pred_msg.valid = False
+-        pred_msg.seq_len_used = seq_len_used
++        if pred_density is None:
++            return
+ 
+-        self.pred_pub.publish(pred_msg)
++        marker_array = MarkerArray()
++        marker = Marker()
++        marker.header = obs_msg.header
++        marker.ns     = "gru_sector_density_text"
++        marker.id     = self.stable_marker_id(obs_msg)
++        marker.type   = Marker.TEXT_VIEW_FACING
++        marker.action = Marker.ADD
+ 
+-    def publish_prediction(
+-        self,
+-        obs_msg,
+-        output_values,
+-        valid,
+-        seq_len_used,
+-    ):
+-        pred_msg = GapFeaturePrediction()
+-        pred_msg.header = obs_msg.header
++        marker.pose.position.x  = obs_msg.vis_x
++        marker.pose.position.y  = obs_msg.vis_y
++        marker.pose.position.z  = self.text_marker_z
++        marker.pose.orientation.w = 1.0
+ 
+-        pred_msg.gap_index = obs_msg.gap_index
+-        pred_msg.model_id = obs_msg.model_id
+-        pred_msg.side = obs_msg.side
++        marker.scale.z  = self.text_marker_height
++        marker.color.g  = 1.0
++        marker.color.a  = 1.0
+ 
+-        pred_msg.output_names = list(self.output_features)
+-        pred_msg.output_values = output_values
++        if gt_density is None:
++            marker.text = "gap {} | GRU: {:.3f} | GT: N/A".format(
++                obs_msg.gap_index, pred_density,
++            )
++        else:
++            marker.text = "gap {} | GRU: {:.3f} | GT: {:.3f}".format(
++                obs_msg.gap_index, pred_density, gt_density,
++            )
+ 
+-        pred_msg.valid = valid
+-        pred_msg.seq_len_used = seq_len_used
++        marker.lifetime = rospy.Duration(0.35)
++        marker_array.markers.append(marker)
++        self.marker_pub.publish(marker_array)
+ 
++    def publish_invalid_prediction(self, obs_msg, seq_len_used):
++        pred_msg = GapFeaturePrediction()
++        pred_msg.header       = obs_msg.header
++        pred_msg.gap_index    = obs_msg.gap_index
++        pred_msg.model_id     = obs_msg.model_id
++        pred_msg.side         = obs_msg.side
++        pred_msg.output_names  = list(self.output_features)
++        pred_msg.output_values = [0.0 for _ in self.output_features]
++        pred_msg.valid         = False
++        pred_msg.seq_len_used  = seq_len_used
+         self.pred_pub.publish(pred_msg)
+ 
+-        self.publish_prediction_marker(
+-            obs_msg,
+-            output_values,
+-        )
++    def publish_prediction(self, obs_msg, output_values, valid, seq_len_used):
++        pred_msg = GapFeaturePrediction()
++        pred_msg.header       = obs_msg.header
++        pred_msg.gap_index    = obs_msg.gap_index
++        pred_msg.model_id     = obs_msg.model_id
++        pred_msg.side         = obs_msg.side
++        pred_msg.output_names  = list(self.output_features)
++        pred_msg.output_values = output_values
++        pred_msg.valid         = valid
++        pred_msg.seq_len_used  = seq_len_used
++        self.pred_pub.publish(pred_msg)
++        self.publish_prediction_marker(obs_msg, output_values)
+ 
+         printable_outputs = ", ".join(
+-            [
+-                "{}={:.6f}".format(name, value)
+-                for name, value in zip(
+-                    self.output_features,
+-                    output_values,
+-                )
+-            ]
++            "{}={:.6f}".format(n, v)
++            for n, v in zip(self.output_features, output_values)
+         )
+-
+-        gt_density = self.get_named_target_value(
+-            obs_msg,
+-            "gt_sector_density"
++        gt_density = self.get_named_target_value(obs_msg, "gt_sector_density")
++        gt_text = (
++            "gt_sector_density=N/A" if gt_density is None
++            else "gt_sector_density={:.6f}".format(gt_density)
+         )
+-
+-        if gt_density is None:
+-            gt_density_text = "gt_sector_density=N/A"
+-        else:
+-            gt_density_text = "gt_sector_density={:.6f}".format(gt_density)
+-
+         rospy.loginfo_throttle(
+             0.5,
+-            "GRU feature prediction | gap_index=%d model_id=%d %s %s",
++            "GRU prediction | gap_index=%d model_id=%d %s %s",
+             obs_msg.gap_index,
+             obs_msg.model_id,
+             printable_outputs,
+-            gt_density_text,
++            gt_text,
+         )
+ 
+     def spin(self):
+diff --git a/ml_gap_velocity/scripts/train_gap_gru.py b/ml_gap_velocity/scripts/train_gap_gru.py
+index 8cdc4ad..f231130 100755
+--- a/ml_gap_velocity/scripts/train_gap_gru.py
++++ b/ml_gap_velocity/scripts/train_gap_gru.py
+@@ -11,7 +11,7 @@ import torch.nn as nn
+ from torch.utils.data import Dataset, DataLoader, random_split
+ 
+ 
+-INPUT_FEATURES = [
++BASE_INPUT_FEATURES = [
+     "sector_density",
+     "sector_dynamic_raw_gap_point_count",
+     "contained_raw_gap_point_count",
+@@ -20,10 +20,39 @@ INPUT_FEATURES = [
+     "sector_radius",
+ ]
+ 
++DERIVED_FEATURE_CONFIG = {
++    "density_rate_of_change": "drate",
++    "aspect_ratio":           "ar",
++}
++
+ OUTPUT_FEATURES = [
+     "gt_sector_density",
+ ]
+ 
++# Minimum angle (radians) used when computing aspect_ratio to
++# prevent division by zero or extreme values.
++MIN_SECTOR_ANGLE_RAD = 1e-4
++
++def build_input_features(use_density_rate: bool, use_aspect_ratio: bool) -> list:
++    """
++    Returns the ordered list of input feature names for this run.
++ 
++    Base features always come first (same order as the original
++    training script). Enabled derived features are appended after.
++ 
++    This list is the single source of truth for feature ordering:
++    - The dataset uses it to build numpy arrays.
++    - It is saved in the stats JSON.
++    - The ROS inference node reads it from the stats JSON and knows
++      exactly which features to compute and in which order.
++    """
++    features = list(BASE_INPUT_FEATURES)
++    if use_density_rate:
++        features.append("density_rate_of_change")
++    if use_aspect_ratio:
++        features.append("aspect_ratio")
++    return features
++
+ 
+ def safe_name(name):
+     return (
+@@ -64,6 +93,27 @@ def safe_float_name(value):
+ 
+     return s.replace(".", "p")
+ 
++def make_feature_suffix(use_density_rate: bool, use_aspect_ratio: bool) -> str:
++    """
++    Builds a short suffix that encodes which derived features are
++    active. Examples:
++        both off  -> ""
++        drate on  -> "_feat_drate"
++        ar on     -> "_feat_ar"
++        both on   -> "_feat_drate_ar"
++ 
++    This ends up in all output filenames so you can tell runs apart
++    at a glance and never accidentally load the wrong stats JSON.
++    """
++    active = []
++    if use_density_rate:
++        active.append(DERIVED_FEATURE_CONFIG["density_rate_of_change"])
++    if use_aspect_ratio:
++        active.append(DERIVED_FEATURE_CONFIG["aspect_ratio"])
++    if not active:
++        return ""
++    return "_feat_" + "_".join(active)
++
+ 
+ def make_auto_run_name(args):
+     """
+@@ -77,7 +127,12 @@ def make_auto_run_name(args):
+     if user_name is None or user_name.strip() == "":
+         csv_base = os.path.splitext(os.path.basename(args.csv))[0]
+         user_name = csv_base
+-
++    
++    feature_suffix = make_feature_suffix(
++        args.use_density_rate,
++        args.use_aspect_ratio,
++    )
++ 
+     pieces = [
+         safe_name(user_name),
+         "density",
+@@ -89,7 +144,12 @@ def make_auto_run_name(args):
+         f"lr{safe_float_name(args.lr)}",
+         f"e{args.epochs}",
+     ]
+-
++ 
++    # Append feature suffix to the run name piece so it shows up
++    # near the front of every filename, e.g.:
++    #   myenv_density_feat_drate_ar_mse_sl10_h64_l2_bs64_lr1em3_e500
++    pieces[0] = pieces[0] + feature_suffix
++ 
+     return "_".join(pieces)
+ 
+ 
+@@ -118,8 +178,22 @@ def make_loss_fn(loss_name):
+ 
+ 
+ class GapSectorDensitySequenceDataset(Dataset):
+-    def __init__(self, csv_path, seq_len=10):
++    def __init__(
++        self,
++        csv_path: str,
++        seq_len: int = 10,
++        use_density_rate: bool = False,
++        use_aspect_ratio: bool = False
++    ):
+         self.seq_len = seq_len
++        self.use_density_rate = use_density_rate
++        self.use_aspect_ratio = use_aspect_ratio
++
++        # The final ordered list of features this model instance uses.
++        self.input_features = build_input_features(
++            use_density_rate,
++            use_aspect_ratio,
++        )
+ 
+         df = pd.read_csv(csv_path)
+ 
+@@ -127,7 +201,7 @@ class GapSectorDensitySequenceDataset(Dataset):
+             "sample_idx",
+             "model_id",
+             "side",
+-            *INPUT_FEATURES,
++            *BASE_INPUT_FEATURES,
+             *OUTPUT_FEATURES,
+         ]
+ 
+@@ -174,8 +248,30 @@ class GapSectorDensitySequenceDataset(Dataset):
+         for _, group in df.groupby(group_cols):
+             group = group.sort_values("sample_idx").reset_index(drop=True)
+ 
++            # --------------------------------------------------------
++            # Compute derived features PER GROUP so that temporal
++            # differences (density_rate_of_change) are computed within
++            # the same gap track and not across different tracks.
++            # --------------------------------------------------------
++ 
++            if self.use_density_rate:
++                # sector_density[t] - sector_density[t-1].
++                # The very first observation has no prior, so we use 0.0.
++                # This is consistent with the ROS node, which also
++                # outputs 0.0 when the buffer is empty.
++                group["density_rate_of_change"] = (
++                    group["sector_density"].diff().fillna(0.0)
++                )
++ 
++            if self.use_aspect_ratio:
++                # 1 / sector_angle_rad. Clipped to avoid extreme values
++                # when a gap's angular span is very small.
++                group["aspect_ratio"] = 1.0 / group["sector_angle_rad"].clip(
++                    lower=MIN_SECTOR_ANGLE_RAD
++                )
++
+             features = group[
+-                INPUT_FEATURES
++                self.input_features
+             ].values.astype(np.float32)
+ 
+             targets = group[
+@@ -201,7 +297,7 @@ class GapSectorDensitySequenceDataset(Dataset):
+                 "Try lowering seq_len or collecting longer left-side gap tracks."
+             )
+ 
+-        num_input_features = len(INPUT_FEATURES)
++        num_input_features = len(self.input_features)
+         num_output_features = len(OUTPUT_FEATURES)
+ 
+         self.x_mean = self.samples_x.reshape(
+@@ -302,8 +398,12 @@ def train(args):
+     dataset = GapSectorDensitySequenceDataset(
+         args.csv,
+         seq_len=args.seq_len,
++        use_density_rate=args.use_density_rate,
++        use_aspect_ratio=args.use_aspect_ratio
+     )
+ 
++    input_features = dataset.input_features
++
+     train_size = int(0.8 * len(dataset))
+     val_size = len(dataset) - train_size
+ 
+@@ -326,7 +426,7 @@ def train(args):
+     )
+ 
+     model = GapSectorDensityGRU(
+-        input_size=len(INPUT_FEATURES),
++        input_size=len(input_features),
+         hidden_size=args.hidden_size,
+         num_layers=args.num_layers,
+         output_size=len(OUTPUT_FEATURES),
+@@ -385,7 +485,7 @@ def train(args):
+         "lr": args.lr,
+         "loss": args.loss,
+         "seed": args.seed,
+-        "input_features": INPUT_FEATURES,
++        "input_features": input_features,
+         "output_features": OUTPUT_FEATURES,
+         "row_filter": "side == left",
+         "group_cols": ["model_id"],
+@@ -411,7 +511,9 @@ def train(args):
+     print(f"batch_size: {args.batch_size}")
+     print(f"epochs: {args.epochs}")
+     print(f"lr: {args.lr}")
+-    print(f"input features: {INPUT_FEATURES}")
++    print(f"use_density_rate: {args.use_density_rate}")
++    print(f"use_aspect_ratio: {args.use_aspect_ratio}")
++    print(f"input features: {input_features}")
+     print(f"output features: {OUTPUT_FEATURES}")
+     print("using only rows where side == 'left'")
+     print(f"num left-side rows: {dataset.num_left_rows}")
+@@ -480,7 +582,7 @@ def train(args):
+             example_input = torch.zeros(
+                 1,
+                 args.seq_len,
+-                len(INPUT_FEATURES),
++                len(input_features),
+             )
+ 
+             traced = torch.jit.trace(model_cpu, example_input)
+@@ -507,8 +609,10 @@ def train(args):
+                 "x_std": dataset.x_std.tolist(),
+                 "y_mean": dataset.y_mean.tolist(),
+                 "y_std": dataset.y_std.tolist(),
+-                "input_features": INPUT_FEATURES,
++                "input_features": input_features,
+                 "output_features": OUTPUT_FEATURES,
++                "use_density_rate": args.use_density_rate,
++                "use_aspect_ratio": args.use_aspect_ratio,
+                 "row_filter": "side == left",
+                 "group_cols": ["model_id"],
+             }
+@@ -558,6 +662,26 @@ def main():
+         default="mse",
+     )
+ 
++    parser.add_argument(
++        "--use-density-rate",
++        action="store_true",
++        help=(
++            "Add density_rate_of_change as an input feature. "
++            "Computed as sector_density[t] - sector_density[t-1] "
++            "within each gap track. Penalizes gaps whose congestion "
++            "is spiking even if current density looks acceptable."
++        ),
++    )
++    parser.add_argument(
++        "--use-aspect-ratio",
++        action="store_true",
++        help=(
++            "Add aspect_ratio = 1/sector_angle_rad as an input feature. "
++            "Penalizes narrow sectors geometrically. A small theta means "
++            "a long skinny corridor with little maneuvering room."
++        ),
++    )
++
+     parser.add_argument("--seed", type=int, default=42)
+ 
+     parser.add_argument("--cpu", action="store_true")
+diff --git a/rviz/arena.rviz b/rviz/arena.rviz
+index ce99f91..f0263c1 100644
+--- a/rviz/arena.rviz
++++ b/rviz/arena.rviz
+@@ -185,7 +185,7 @@ Visualization Manager:
+       Color map offset: 0
+       Color transform: Constant color
+       Delete after no. cycles: 100
+-      Enabled: false
++      Enabled: true
+       Excluded person IDs: ""
+       Font color: 255; 255; 255
+       Font color style: Same color
+@@ -206,7 +206,7 @@ Visualization Manager:
+       Render detection IDs: false
+       Render history: false
+       Render person visual: true
+-      Render track IDs: true
++      Render track IDs: false
+       Render track state: false
+       Render velocities: true
+       Show DELETED tracks: false
+@@ -219,7 +219,7 @@ Visualization Manager:
+         Value: Bounding boxes
+       Topic: /pedsim_visualizer/tracked_persons
+       Unreliable: false
+-      Value: false
++      Value: true
+       Z offset:
+         Use Z position from message: false
+         Value: 0
+@@ -351,7 +351,8 @@ Visualization Manager:
+               Marker Topic: /rto/raw_gaps
+               Name: Marker
+               Namespaces:
+-                {}
++                raw: true
++                raw_tmin1: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/Marker
+@@ -359,7 +360,7 @@ Visualization Manager:
+               Marker Topic: /rto/simp_gaps
+               Name: Marker
+               Namespaces:
+-                {}
++                simp: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/Marker
+@@ -375,7 +376,7 @@ Visualization Manager:
+               Marker Topic: /rto/raw_gap_model_positions
+               Name: MarkerArray
+               Namespaces:
+-                {}
++                raw: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/MarkerArray
+@@ -399,7 +400,7 @@ Visualization Manager:
+               Marker Topic: /rto/simp_gap_model_velocities
+               Name: MarkerArray
+               Namespaces:
+-                {}
++                simp: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/MarkerArray
+@@ -467,7 +468,7 @@ Visualization Manager:
+               Marker Topic: /rto/trajectory_switch
+               Name: Marker
+               Namespaces:
+-                {}
++                traj_switch_count: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/MarkerArray
+@@ -475,7 +476,7 @@ Visualization Manager:
+               Marker Topic: /rto/curr_exec_dg_traj
+               Name: MarkerArray
+               Namespaces:
+-                {}
++                currentTraj: true
+               Queue Size: 100
+               Value: true
+             - Class: rviz/MarkerArray
+@@ -487,13 +488,13 @@ Visualization Manager:
+               Queue Size: 100
+               Value: false
+             - Class: rviz/MarkerArray
+-              Enabled: false
++              Enabled: true
+               Marker Topic: /rto/relevant_global_plan_snippet
+               Name: MarkerArray
+               Namespaces:
+-                {}
++                globalPlanSnippet: true
+               Queue Size: 100
+-              Value: false
++              Value: true
+             - Class: rviz/MarkerArray
+               Enabled: false
+               Marker Topic: /rto/candidate_ungap_trajectories
+@@ -507,7 +508,7 @@ Visualization Manager:
+               Marker Topic: /rto/candidate_tube_trajectories
+               Name: MarkerArray
+               Namespaces:
+-                {}
++                allTraj: true
+               Queue Size: 100
+               Value: true
+           Enabled: true
+@@ -519,7 +520,7 @@ Visualization Manager:
+               Marker Topic: /rto/po_dir
+               Name: Marker
+               Namespaces:
+-                {}
++                "": true
+               Queue Size: 100
+               Value: true
+             - Alpha: 1
+@@ -550,13 +551,13 @@ Visualization Manager:
+           Queue Size: 100
+           Value: false
+         - Class: rviz/MarkerArray
+-          Enabled: true
++          Enabled: false
+           Marker Topic: /rto/pedestrian_histories
+           Name: MarkerArray
+           Namespaces:
+             {}
+           Queue Size: 100
+-          Value: true
++          Value: false
+       Enabled: true
+       Name: Dynamic Gap
+     - Alpha: 1
+@@ -672,7 +673,7 @@ Visualization Manager:
+           Marker Topic: /rto/candidate_trajs_with_costs
+           Name: Candidate Trajectories
+           Namespaces:
+-            gap: true
++            {}
+           Queue Size: 100
+           Value: true
+         - Alpha: 1
+@@ -794,7 +795,7 @@ Visualization Manager:
+       Marker Topic: /rto/ego_robot_marker
+       Name: Marker
+       Namespaces:
+-        {}
++        egorobot: true
+       Queue Size: 100
+       Value: true
+     - Class: rviz/MarkerArray
+@@ -806,19 +807,20 @@ Visualization Manager:
+       Queue Size: 100
+       Value: true
+     - Class: rviz/MarkerArray
+-      Enabled: true
++      Enabled: false
+       Marker Topic: /rto/propagated_egocircle
+       Name: MarkerArray
+       Namespaces:
+         {}
+       Queue Size: 100
+-      Value: true
++      Value: false
+     - Class: rviz/MarkerArray
+       Enabled: true
+       Marker Topic: /rto/contained_raw_gap_points
+       Name: MarkerArray
+       Namespaces:
+-        {}
++        contained_raw_left_gap_points: true
++        contained_raw_right_gap_points: true
+       Queue Size: 100
+       Value: true
+     - Angle Tolerance: 0.10000000149011612
+@@ -861,7 +863,7 @@ Visualization Manager:
+       Marker Topic: /rto/gru_gap_feature_prediction_markers
+       Name: MarkerArray
+       Namespaces:
+-        {}
++        gru_sector_density_text: true
+       Queue Size: 100
+       Value: true
+   Enabled: true
+@@ -901,10 +903,10 @@ Visualization Manager:
+       Invert Z Axis: false
+       Name: Current View
+       Near Clip Distance: 0.009999999776482582
+-      Scale: 54.04905319213867
++      Scale: 87.87240600585938
+       Target Frame: rto/base_link
+-      X: -2.5955917835235596
+-      Y: 0.6180299520492554
++      X: -1.0687755346298218
++      Y: -0.41274452209472656
+     Saved: ~
+ Window Geometry:
+   Displays:
+@@ -912,7 +914,7 @@ Window Geometry:
+   Height: 1016
+   Hide Left Dock: false
+   Hide Right Dock: true
+-  QMainWindow State: 000000ff00000000fd00000004000000000000022d0000039efc0200000006fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000026f000000c900fffffffb000000100044006900730070006c00610079007301000002b200000129000000c900ffffff000000010000010f0000039efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d0000039e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000041800fffffffb0000000800540069006d006501000000000000045000000000000000000000054d0000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
++  QMainWindow State: 000000ff00000000fd00000004000000000000022d0000039efc0200000006fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000026f000000c900fffffffb000000100044006900730070006c00610079007301000002b200000129000000c900ffffff000000010000010f0000039efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d0000039e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000041800fffffffb0000000800540069006d00650100000000000004500000000000000000000005050000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+   Selection:
+     collapsed: false
+   Time:
+@@ -921,6 +923,6 @@ Window Geometry:
+     collapsed: false
+   Views:
+     collapsed: true
+-  Width: 1920
+-  X: 0
++  Width: 1848
++  X: 72
+   Y: 27
+diff --git a/src/Planner.cpp b/src/Planner.cpp
+index 900fc42..df9ab66 100644
+--- a/src/Planner.cpp
++++ b/src/Planner.cpp
+@@ -2744,6 +2744,9 @@ int global_id = 0;
+ 
+                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                 //                     "   [TEST] first candidate traj cost = " << totalCost0);
++                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
++                                                    "   [TEST] first candidate terminalCost0 = " << terminalCost0);
++
+ 
+                                 // Store as best by default
+                                 bestTraj = cand0;
+diff --git a/src/trajectory_evaluation/TrajectoryEvaluator.cpp b/src/trajectory_evaluation/TrajectoryEvaluator.cpp
+index 5ed1dec..984c1b3 100644
+--- a/src/trajectory_evaluation/TrajectoryEvaluator.cpp
++++ b/src/trajectory_evaluation/TrajectoryEvaluator.cpp
+@@ -15,7 +15,7 @@ namespace dynamic_gap
+ 
+         useGruGapFeatureDensityCost_ = true;
+         maxGruGapFeaturePredictionAgeSec_ = 3.0;
+-        gruGapDensityCostWeight_ = 5.0f;
++        gruGapDensityCostWeight_ = 2.0f;
+ 
+         const std::string gruGapFeatureDensityTopic =
+             "/rto/gru_gap_feature_prediction";
