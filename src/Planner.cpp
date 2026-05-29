@@ -664,19 +664,23 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float minDist = std::numeric_limits<float>::infinity();
         int nearestCandidateId = -1;
 
+        geometry_msgs::Pose pose;
+
         for (const ManualCandidate& c : currentManualCandidates_)
         {
-            for (const geometry_msgs::Pose& pose : c.path_odom_frame.poses)
+            if (c.path_odom_frame.poses.empty())
             {
-                float dx = pose.position.x - clickedPointOdomFrame.point.x;
-                float dy = pose.position.y - clickedPointOdomFrame.point.y;
-                float dist = sqrt(pow(dx, 2) + pow(dy, 2));
-
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    nearestCandidateId = c.display_id;
-                }
+                continue;
+            }
+                
+            pose = c.path_odom_frame.poses.back();
+            float dx = pose.position.x - clickedPointOdomFrame.point.x;
+            float dy = pose.position.y - clickedPointOdomFrame.point.y;
+            float dist = sqrt(pow(dx, 2) + pow(dy, 2));
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestCandidateId = c.display_id;
             }
         }
 
@@ -1467,7 +1471,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
             ROS_INFO_STREAM_NAMED("Planner", "[pickTraj()]");
             
-            // int lowestCostTrajIdx = -1;        
+            // int lowestCostTrajIdx = -1;       g 
             
             int numUngapTrajs = ungapTrajs.size();
             int numIdlingTrajs = idlingTrajs.size();
