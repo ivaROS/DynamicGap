@@ -40,9 +40,11 @@ namespace dynamic_gap
         trajMarker.header.frame_id = traj.getPathRbtFrame().header.frame_id;
         trajMarker.header.stamp = traj.getPathRbtFrame().header.stamp;
         trajMarker.ns = "currentTraj";
-        trajMarker.type = visualization_msgs::Marker::ARROW;
+//        trajMarker.type = visualization_msgs::Marker::ARROW;
+        trajMarker.type = visualization_msgs::Marker::LINE_STRIP;
         trajMarker.action = visualization_msgs::Marker::ADD;
-        trajMarker.scale.x = 0.1;
+//        trajMarker.scale.x = 0.1;
+        trajMarker.scale.x = 0.12;
         trajMarker.scale.y = 0.08; // 0.01;
         trajMarker.scale.z = 0.0001;
         trajMarker.color.a = 1;
@@ -52,16 +54,28 @@ namespace dynamic_gap
 
         trajMarker.lifetime = ros::Duration(0);     
         
+//        geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+//        for (const geometry_msgs::Pose & pose : path.poses) 
+//        {
+//            trajMarker.id = int (trajMarkerArray.markers.size());
+//            trajMarker.pose = pose;
+//            trajMarkerArray.markers.push_back(trajMarker);
+//        }
         geometry_msgs::PoseArray path = traj.getPathRbtFrame();
         for (const geometry_msgs::Pose & pose : path.poses) 
         {
-            trajMarker.id = int (trajMarkerArray.markers.size());
-            trajMarker.pose = pose;
-            trajMarkerArray.markers.push_back(trajMarker);
+            geometry_msgs::Point p;
+            p.x = pose.position.x;
+            p.y = pose.position.y;
+            p.z = pose.position.z;
+            trajMarker.points.push_back(p);
         }
+        trajMarker.id = 0;
+        trajMarkerArray.markers.push_back(trajMarker);
     
         currentTrajectoryPublisher_.publish(trajMarkerArray);
     }
+    
 
     void TrajectoryVisualizer::drawPlanningLoopIdx(const int & planningLoopIdx) 
     {
