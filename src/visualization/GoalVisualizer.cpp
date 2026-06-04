@@ -9,6 +9,7 @@ namespace dynamic_gap
         globalPathLocalWaypointPublisher = nh.advertise<visualization_msgs::Marker>("global_path_local_waypoint", 10);
         gapGoalPositionsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goal_positions", 10);
         gapGoalVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goal_velocities", 10);
+        
 
         gapGoalsColor.r = 1.0;
         gapGoalsColor.g = 0.5;

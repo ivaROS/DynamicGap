@@ -186,7 +186,7 @@ namespace dynamic_gap
                                   const std::vector<Trajectory>& gapTrajs,
                                   const std::vector<Trajectory>& ungapTrajs,
                                   const std::vector<Trajectory>& idlingTrajs);
-                                  
+
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                         std::vector<Ungap *> & ungaps);
 

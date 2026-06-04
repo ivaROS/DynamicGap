@@ -51,5 +51,6 @@ namespace dynamic_gap
             ros::Publisher gapGoalPositionsPublisher; /**< Publisher for gap goal positions */
             ros::Publisher gapGoalVelocitiesPublisher; /**< Publisher for gap goal velocities */
             ros::Publisher globalGoalPublisher; /**< Publisher for global goal */
+            
     };
 }
