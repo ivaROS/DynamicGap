@@ -568,9 +568,10 @@ namespace dynamic_gap
             void checkGapModels(const std::vector<Gap *> & gaps);
 
             void publishCandidateTrajsWithCosts(
-            const std::vector<Trajectory>& candTrajs,
-            const std::vector<float>& trajCosts,
-            const std::string& ns);
+                const std::vector<Trajectory>& candTrajs,
+                const std::vector<float>& trajCosts,
+                const std::vector<float>& trajCostsNoDensity,
+                const std::string& ns);
 
 
             boost::mutex gapMutex_; /**< Current set of gaps mutex */

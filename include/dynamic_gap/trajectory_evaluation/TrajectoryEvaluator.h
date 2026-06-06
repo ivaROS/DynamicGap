@@ -74,7 +74,8 @@ namespace dynamic_gap
                 float & terminalPoseCost,
                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                 const int & scanIdx,
-                const int & densityModelID);
+                const int & densityModelID,
+                    float* terminalPoseCostNoDensity = nullptr);
 
             /**
              * \brief Stores latest GRU density prediction for a gap model

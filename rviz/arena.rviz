@@ -33,6 +33,8 @@ Panels:
         - /MarkerArray2
         - /MarkerArray3
         - /MarkerArray4
+        - /MarkerArray5
+        - /MarkerArray6
       Splitter Ratio: 0.32637855410575867
     Tree Height: 484
   - Class: rviz/Selection
@@ -863,6 +865,63 @@ Visualization Manager:
       Marker Topic: /rto/gru_gap_feature_prediction_markers
       Name: MarkerArray
       Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/candidate_trajs_with_costs
+      Name: MarkerArray
+      Namespaces:
+        singleTraj_gap_0_arrow: true
+        singleTraj_gap_0_base_cost_no_density: true
+        singleTraj_gap_0_cost: true
+        singleTraj_gap_10_arrow: true
+        singleTraj_gap_10_base_cost_no_density: true
+        singleTraj_gap_10_cost: true
+        singleTraj_gap_11_arrow: true
+        singleTraj_gap_11_base_cost_no_density: true
+        singleTraj_gap_11_cost: true
+        singleTraj_gap_12_arrow: true
+        singleTraj_gap_12_base_cost_no_density: true
+        singleTraj_gap_12_cost: true
+        singleTraj_gap_13_arrow: true
+        singleTraj_gap_13_base_cost_no_density: true
+        singleTraj_gap_13_cost: true
+        singleTraj_gap_1_arrow: true
+        singleTraj_gap_1_base_cost_no_density: true
+        singleTraj_gap_1_cost: true
+        singleTraj_gap_2_arrow: true
+        singleTraj_gap_2_base_cost_no_density: true
+        singleTraj_gap_2_cost: true
+        singleTraj_gap_3_arrow: true
+        singleTraj_gap_3_base_cost_no_density: true
+        singleTraj_gap_3_cost: true
+        singleTraj_gap_4_arrow: true
+        singleTraj_gap_4_base_cost_no_density: true
+        singleTraj_gap_4_cost: true
+        singleTraj_gap_5_arrow: true
+        singleTraj_gap_5_base_cost_no_density: true
+        singleTraj_gap_5_cost: true
+        singleTraj_gap_6_arrow: true
+        singleTraj_gap_6_base_cost_no_density: true
+        singleTraj_gap_6_cost: true
+        singleTraj_gap_7_arrow: true
+        singleTraj_gap_7_base_cost_no_density: true
+        singleTraj_gap_7_cost: true
+        singleTraj_gap_8_arrow: true
+        singleTraj_gap_8_base_cost_no_density: true
+        singleTraj_gap_8_cost: true
+        singleTraj_gap_9_arrow: true
+        singleTraj_gap_9_base_cost_no_density: true
+        singleTraj_gap_9_cost: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gru_gap_feature_prediction_markers
+      Name: MarkerArray
+      Namespaces:
         gru_sector_density_text: true
       Queue Size: 100
       Value: true
@@ -903,7 +962,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 87.87240600585938
+      Scale: 78.03359985351562
       Target Frame: rto/base_link
       X: -1.0687755346298218
       Y: -0.41274452209472656

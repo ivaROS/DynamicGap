@@ -207,7 +207,9 @@ namespace dynamic_gap
     float & terminalPoseCost,
     const std::vector<sensor_msgs::LaserScan> & futureScans,
     const int & scanIdx,
-    const int & densityModelID)
+    const int & densityModelID,
+        float* terminalPoseCostNoDensity
+)
     {
         try
         {
@@ -321,6 +323,11 @@ namespace dynamic_gap
             const float baseTerminalGoalCost =
                 cfg_->traj.Q_f *
                 terminalGoalCost(path.poses.back());
+
+            if (terminalPoseCostNoDensity)
+            {
+                *terminalPoseCostNoDensity = baseTerminalGoalCost;
+            }
 
             //////////////////////////////////////////////////////
             // 3. Fresh GRU gap-density cost

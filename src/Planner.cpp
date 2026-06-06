@@ -2657,8 +2657,8 @@ int global_id = 0;
                 Trajectory runningTraj;
                 std::vector<float> runningPoseCosts;
                 float runningTerminalPoseCost;
-                std::vector<float> candidateCosts; // for visualization
-
+std::vector<float> candidateCosts;          // includes GRU/density
+std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 
                 for (int j = 0; j < gapTube->size(); j++) 
                 {
@@ -2732,15 +2732,31 @@ int global_id = 0;
                                 Trajectory cand0 = candTrajs.at(0);
                                 cand0 = gapTrajGenerator_->processTrajectory(cand0);
 
-                                std::vector<float> poseCosts0;
-                                float terminalCost0;
-                                int densityModelID = getGapLeftModelIDForDensityCost(gap);
-                                trajEvaluator_->evaluateTrajectory(cand0, poseCosts0, terminalCost0, futureScans, scanIdx, densityModelID);
+                               std::vector<float> poseCosts0;
+                            float terminalCost0;
+                            float terminalCost0NoDensity;
 
-                                float avgCost0 = poseCosts0.empty() ? 0.0f :
-                                    std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) / poseCosts0.size();
-                                float totalCost0 = terminalCost0 + avgCost0;
-                                candidateCosts.push_back(totalCost0); // for visualization
+                            int densityModelID = getGapLeftModelIDForDensityCost(gap);
+
+                            trajEvaluator_->evaluateTrajectory(
+                                cand0,
+                                poseCosts0,
+                                terminalCost0,
+                                futureScans,
+                                scanIdx,
+                                densityModelID,
+                                &terminalCost0NoDensity
+                            );
+
+                            float avgCost0 = poseCosts0.empty() ? 0.0f :
+                                std::accumulate(poseCosts0.begin(), poseCosts0.end(), 0.0f) /
+                                poseCosts0.size();
+
+                            float totalCost0 = terminalCost0 + avgCost0;
+                            float totalCost0NoDensity = terminalCost0NoDensity + avgCost0;
+
+                            candidateCosts.push_back(totalCost0);
+                            candidateCostsNoDensity.push_back(totalCost0NoDensity);
 
                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                 //                     "   [TEST] first candidate traj cost = " << totalCost0);
@@ -2893,8 +2909,14 @@ int global_id = 0;
                                   
                             // for visualization
 
-                            publishCandidateTrajsWithCosts(candTrajs, candidateCosts, "candTraj_" + std::to_string(i));
-                            
+                            // publishCandidateTrajsWithCosts(candTrajs, candidateCosts, "candTraj_" + std::to_string(i));
+                            publishCandidateTrajsWithCosts(
+                            candTrajs,
+                            candidateCosts,
+                            candidateCostsNoDensity,
+                            "candTraj_" + std::to_string(i)
+                        );
+
                             /* //before adding function for it: 
                             // === Add all candidate trajectories for this gap to MarkerArray ===
                             for (auto &cand : candTrajs)
@@ -2930,39 +2952,114 @@ int global_id = 0;
 
                         }
                         else
-                        {
-                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, currPose, globalGoalRobotFrame_);
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+{
+    pursuitGuidanceTraj =
+        gapTrajGenerator_->generateTrajectoryV2(
+            gap,
+            currPose,
+            globalGoalRobotFrame_
+        );
 
-                            if (j == (gapTube->size() - 1))
-                            {
-                                pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
-                            }
+    pursuitGuidanceTraj =
+        gapTrajGenerator_->processTrajectory(
+            pursuitGuidanceTraj
+        );
 
-                            int densityModelID =
-                        getGapLeftModelIDForDensityCost(gap);
+    if (j == (gapTube->size() - 1))
+    {
+        pursuitGuidanceTraj =
+            gapTrajGenerator_->pruneTrajectory(
+                pursuitGuidanceTraj
+            );
+    }
 
-                        trajEvaluator_->evaluateTrajectory(
-                            pursuitGuidanceTraj,
-                            pursuitGuidancePoseCosts,
-                           
-                                                            pursuitGuidanceTerminalPoseCost,
-                            futureScans,
-                            scanIdx,
-                            densityModelID
-                        );
+    int densityModelID =
+        getGapLeftModelIDForDensityCost(gap);
 
-                            pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost +
-                                                    std::accumulate(pursuitGuidancePoseCosts.begin(),
-                                                                    pursuitGuidancePoseCosts.end(), 0.0f) /
-                                                        pursuitGuidancePoseCosts.size();
+    float pursuitGuidanceTerminalPoseCostNoDensity = 0.0f;
 
-                            //visualization for debugging
-                            geometry_msgs::PoseArray vizMsg = pursuitGuidanceTraj.getPathRbtFrame();
-                            vizMsg.header.stamp = ros::Time::now();
-                            vizMsg.header.frame_id = cfg_.robot_frame_id;
-                            pnTrajPub_.publish(vizMsg);
-                        }
+    trajEvaluator_->evaluateTrajectory(
+        pursuitGuidanceTraj,
+        pursuitGuidancePoseCosts,
+        pursuitGuidanceTerminalPoseCost,
+        futureScans,
+        scanIdx,
+        densityModelID,
+        &pursuitGuidanceTerminalPoseCostNoDensity
+    );
+
+    float pursuitGuidanceAveragePoseCost = 0.0f;
+
+    if (!pursuitGuidancePoseCosts.empty())
+    {
+        pursuitGuidanceAveragePoseCost =
+            std::accumulate(
+                pursuitGuidancePoseCosts.begin(),
+                pursuitGuidancePoseCosts.end(),
+                0.0f
+            ) / pursuitGuidancePoseCosts.size();
+    }
+
+    //////////////////////////////////////////////////////
+    // Normal cost:
+    // terminal + obstacle + GRU/density
+    //////////////////////////////////////////////////////
+
+    pursuitGuidancePoseCost =
+        pursuitGuidanceTerminalPoseCost +
+        pursuitGuidanceAveragePoseCost;
+
+    //////////////////////////////////////////////////////
+    // Base cost:
+    // terminal + obstacle only
+    // no GRU/density
+    //////////////////////////////////////////////////////
+
+    float pursuitGuidancePoseCostNoDensity =
+        pursuitGuidanceTerminalPoseCostNoDensity +
+        pursuitGuidanceAveragePoseCost;
+
+    //////////////////////////////////////////////////////
+    // Existing single PN trajectory visualization
+    //////////////////////////////////////////////////////
+
+    geometry_msgs::PoseArray vizMsg =
+        pursuitGuidanceTraj.getPathRbtFrame();
+
+    vizMsg.header.stamp = ros::Time::now();
+    vizMsg.header.frame_id = cfg_.robot_frame_id;
+
+    pnTrajPub_.publish(vizMsg);
+
+    //////////////////////////////////////////////////////
+    // Reuse existing candidate_trajs_with_costs RViz topic
+    // even though generate_multi_traj is false.
+    //
+    // This wraps the one trajectory into a vector so the
+    // existing RViz text function can print:
+    //
+    // cost = terminal + obstacle + density
+    // base = terminal + obstacle
+    //////////////////////////////////////////////////////
+
+    std::vector<Trajectory> singleTrajForViz;
+    singleTrajForViz.push_back(pursuitGuidanceTraj);
+
+    std::vector<float> singleTrajCostsForViz;
+    singleTrajCostsForViz.push_back(pursuitGuidancePoseCost);
+
+    std::vector<float> singleTrajBaseCostsForViz;
+    singleTrajBaseCostsForViz.push_back(
+        pursuitGuidancePoseCostNoDensity
+    );
+
+    publishCandidateTrajsWithCosts(
+        singleTrajForViz,
+        singleTrajCostsForViz,
+        singleTrajBaseCostsForViz,
+        "singleTraj_gap_" + std::to_string(i)
+    );
+}
                     }
 
                     
@@ -4334,22 +4431,21 @@ int global_id = 0;
 void Planner::publishCandidateTrajsWithCosts(
     const std::vector<Trajectory>& candTrajs,
     const std::vector<float>& trajCosts,
+    const std::vector<float>& trajCostsNoDensity,
     const std::string& ns)
 {
     visualization_msgs::MarkerArray markers;
     int id = 0;
 
-    // Define color palette — one color per gap
     std::vector<std::array<float, 3>> gapColors = {
-        {1.0, 0.0, 0.0},   // red
-        {0.0, 0.6, 1.0},   // blue
-        {0.0, 0.8, 0.3},   // green
-        {1.0, 0.6, 0.0},   // orange
-        {0.6, 0.2, 1.0},   // purple
-        {0.9, 0.9, 0.0}    // yellow
+        {1.0, 0.0, 0.0},
+        {0.0, 0.6, 1.0},
+        {0.0, 0.8, 0.3},
+        {1.0, 0.6, 0.0},
+        {0.6, 0.2, 1.0},
+        {0.9, 0.9, 0.0}
     };
 
-    // Derive a consistent color index based on namespace (gap)
     size_t colorIdx = std::hash<std::string>{}(ns) % gapColors.size();
     const auto& color = gapColors[colorIdx];
 
@@ -4357,7 +4453,6 @@ void Planner::publishCandidateTrajsWithCosts(
     {
         geometry_msgs::PoseArray path = candTrajs[i].getPathRbtFrame();
 
-        // === Draw arrows for each pose ===
         for (size_t j = 0; j < path.poses.size(); j++)
         {
             visualization_msgs::Marker arrow;
@@ -4368,11 +4463,11 @@ void Planner::publishCandidateTrajsWithCosts(
             arrow.type = visualization_msgs::Marker::ARROW;
             arrow.action = visualization_msgs::Marker::ADD;
             arrow.pose = path.poses[j];
+
             arrow.scale.x = 0.1;
             arrow.scale.y = 0.02;
             arrow.scale.z = 0.02;
 
-            // ✅ Same color for all cands of this gap
             arrow.color.r = color[0];
             arrow.color.g = color[1];
             arrow.color.b = color[2];
@@ -4382,30 +4477,77 @@ void Planner::publishCandidateTrajsWithCosts(
             markers.markers.push_back(arrow);
         }
 
-        // === Add text marker for cost ===
         if (!path.poses.empty())
         {
-            visualization_msgs::Marker text;
-            text.header.frame_id = cfg_.robot_frame_id;
-            text.header.stamp = ros::Time::now();
-            text.ns = ns + "_cost";
-            text.id = id++;
-            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-            text.action = visualization_msgs::Marker::ADD;
-            text.pose = path.poses.back();
-            text.pose.position.z += 0.25;  // lifted a bit higher
+            //////////////////////////////////////////////////////
+            // Full cost: includes GRU / density
+            //////////////////////////////////////////////////////
 
-            std::ostringstream ss;
-            ss << std::fixed << std::setprecision(2) << trajCosts[i];
-            text.text = "cost=" + ss.str();
+            if (i < trajCosts.size())
+            {
+                visualization_msgs::Marker text;
+                text.header.frame_id = cfg_.robot_frame_id;
+                text.header.stamp = ros::Time::now();
+                text.ns = ns + "_cost";
+                text.id = id++;
+                text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                text.action = visualization_msgs::Marker::ADD;
 
-            text.scale.z = 0.2;
-            text.color.r = 0.0;  // black text
-            text.color.g = 0.0;
-            text.color.b = 0.0;
-            text.color.a = 1.0;
-            text.lifetime = ros::Duration(0.25);
-            markers.markers.push_back(text);
+                text.pose = path.poses.back();
+                text.pose.position.z += 0.25;
+                text.pose.position.y += 0.2;
+
+                std::ostringstream ss;
+                ss << std::fixed << std::setprecision(2) << trajCosts[i];
+                text.text = "cost=" + ss.str();
+
+                text.scale.z = 0.2;
+
+                // Black text
+                text.color.r = 0.0;
+                text.color.g = 0.0;
+                text.color.b = 0.0;
+                text.color.a = 1.0;
+
+                text.lifetime = ros::Duration(0.25);
+                markers.markers.push_back(text);
+            }
+
+            //////////////////////////////////////////////////////
+            // Base cost: terminal + obstacle only, no GRU/density
+            //////////////////////////////////////////////////////
+
+            if (i < trajCostsNoDensity.size())
+            {
+                visualization_msgs::Marker baseText;
+                baseText.header.frame_id = cfg_.robot_frame_id;
+                baseText.header.stamp = ros::Time::now();
+                baseText.ns = ns + "_base_cost_no_density";
+                baseText.id = id++;
+                baseText.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                baseText.action = visualization_msgs::Marker::ADD;
+
+                baseText.pose = path.poses.back();
+                baseText.pose.position.z += 0.50;  // stacked above normal cost
+                baseText.pose.position.y += 0.45;
+
+                std::ostringstream ssBase;
+                ssBase << std::fixed << std::setprecision(2)
+                       << trajCostsNoDensity[i];
+
+                baseText.text = "base=" + ssBase.str();
+
+                baseText.scale.z = 0.2;
+
+                // Orange, not green
+                baseText.color.r = 1.0;
+                baseText.color.g = 0.45;
+                baseText.color.b = 0.0;
+                baseText.color.a = 1.0;
+
+                baseText.lifetime = ros::Duration(0.25);
+                markers.markers.push_back(baseText);
+            }
         }
     }
 
