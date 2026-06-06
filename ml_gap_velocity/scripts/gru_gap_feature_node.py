@@ -378,7 +378,7 @@ class GRUGapFeatureNode:
     # ----------------------------------------------------------------
 
     def publish_prediction_marker(self, obs_msg, output_values):
-        pred_density = self.get_named_output_value(output_values, "gt_sector_density")
+        pred_density = self.get_named_output_value(output_values, self.output_features[0])
         gt_density   = self.get_named_target_value(obs_msg, "gt_sector_density")
 
         if pred_density is None:
