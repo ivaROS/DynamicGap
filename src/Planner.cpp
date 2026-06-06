@@ -2715,7 +2715,7 @@ int global_id = 0;
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", " running pursuit guidance (available)");
 
-                        bool generate_multi_traj = true; // TODO: config flag
+                        bool generate_multi_traj = false; // TODO: config flag
                         if (generate_multi_traj)
                         {
                             std::vector<Trajectory> candTrajs =
