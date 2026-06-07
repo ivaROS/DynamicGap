@@ -1363,7 +1363,7 @@ auto dumpSizes = [&](const std::string& tag,
                                 else 
                                 {
                                     curve.clear(); 
-                                    int num_samples = 50; 
+                                    int num_samples = 11; 
                                     Eigen::Vector2f p1 = p0 + (min_scan_dist / 2.0f) * v_dir;
 
                                     for (int i = 0; i <= num_samples / 2; i++) {
