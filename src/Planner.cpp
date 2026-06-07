@@ -1334,7 +1334,7 @@ auto dumpSizes = [&](const std::string& tag,
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
                             // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
                             float robot_radius = cfg_.rbt.r_inscr; 
-                            float insurance_factor = 3.0; 
+                            float insurance_factor = 7.0; 
                             float gap_insurance = 0.6f * robot_radius * insurance_factor;  // offset scaling
                             float r = p2.norm();
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
@@ -1363,7 +1363,7 @@ auto dumpSizes = [&](const std::string& tag,
                                 else 
                                 {
                                     curve.clear(); 
-                                    int num_samples = 11; 
+                                    int num_samples = 50; 
                                     Eigen::Vector2f p1 = p0 + (min_scan_dist / 2.0f) * v_dir;
 
                                     for (int i = 0; i <= num_samples / 2; i++) {
@@ -1385,7 +1385,7 @@ float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
 float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
-const int   num_points   = 11;           // total points along the trajectory
+const int   num_points   = 21;           // total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
 // const float total_time   = dt * num_segments;   
