@@ -1822,7 +1822,12 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             text.color.r = 0.0;
             text.color.g = 0.0;
             text.color.b = 0.0;
-            text.color.a = 0.0;
+            bool disable_cost_value_visual = true; 
+
+            if (disable_cost_value_visual) text.color.a = 0.0;
+            else
+            { text.color.a = 1.0;}
+
             text.lifetime = ros::Duration(lifetime);
 
             std::ostringstream ss;
