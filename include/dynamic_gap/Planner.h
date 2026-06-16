@@ -159,7 +159,9 @@ namespace dynamic_gap
             ros::Subscriber rvizPublishPointSubsciber_; //for manuel_gap_selection click to point
 
             int selectedManualCandidateId_ = -1;
-            bool manualSelectionMode_ = true;
+            bool manualSelectionMode_ = false;
+            geometry_msgs::PointStamped cursorPosOdomFrame_;
+            bool hasCursorPos_ = false;
 
             std::vector<ManualCandidate> currentManualCandidates_;
             boost::mutex manualSelectionMutex_;
@@ -178,6 +180,12 @@ namespace dynamic_gap
                                             const std::vector<Trajectory>& gapTrajs,
                                             const std::vector<Trajectory>& ungapTrajs,
                                             const std::vector<Trajectory>& idlingTrajs);
+            
+            bool getCursorSelectedTrajectory(int& trajFlag,
+                                  int& lowestCostTrajIdx,
+                                  const std::vector<Trajectory>& gapTrajs,
+                                  const std::vector<Trajectory>& ungapTrajs,
+                                  const std::vector<Trajectory>& idlingTrajs);
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                         std::vector<Ungap *> & ungaps);

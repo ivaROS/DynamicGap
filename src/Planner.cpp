@@ -57,6 +57,9 @@ namespace dynamic_gap
 
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
+        ros::param::get("/man_gap", manualSelectionMode_);
+        // ROS_INFO_STREAM("man_gap from param server: " << nh_.param<bool>("man_gap", false));
+        // ROS_INFO_STREAM("manualSelectionMode_ set to: " << manualSelectionMode_);
 
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
@@ -227,7 +230,7 @@ namespace dynamic_gap
         if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
             ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
-            ROS_WARN_STREAM_NAMED("Planner", "       in collision!");
+            ROS_ERROR_STREAM_NAMED("Planner", "       in collision!");
             colliding_ = true;
             return;
         } else
@@ -317,6 +320,7 @@ namespace dynamic_gap
             goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
             goalVisualizer_->drawGlobalGoal(globalGoalOdomFrame_);
             trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
+            
         }
 
         // delete previous gaps
@@ -650,49 +654,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     //callback function, updates 
     void Planner::rvizPublishPointSubsciberCB(const geometry_msgs::PointStamped::ConstPtr& msg) {
         boost::mutex::scoped_lock lock(manualSelectionMutex_);
-        
-        ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] received point: (" << msg->point.x << ", " << msg->point.y << ")");
-        
+
         if (!haveTFs_)
             return;
 
-        // transform clicked point from map frame to odom frame
-        geometry_msgs::PointStamped clickedPointOdomFrame;
-        tf2::doTransform(*msg, clickedPointOdomFrame, map2odom_);
-
-        // find nearest candidate path pose to clicked point
-        float minDist = std::numeric_limits<float>::infinity();
-        int nearestCandidateId = -1;
-
-        geometry_msgs::Pose pose;
-
-        for (const ManualCandidate& c : currentManualCandidates_)
-        {
-            if (c.path_odom_frame.poses.empty())
-            {
-                continue;
-            }
-                
-            pose = c.path_odom_frame.poses.back();
-            float dx = pose.position.x - clickedPointOdomFrame.point.x;
-            float dy = pose.position.y - clickedPointOdomFrame.point.y;
-            float dist = sqrt(pow(dx, 2) + pow(dy, 2));
-            if (dist < minDist)
-            {
-                minDist = dist;
-                nearestCandidateId = c.display_id;
-            }
-        }
-
-        ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] finished, selected candidate: " << selectedManualCandidateId_ << " in " << minDist << "m");
-
-        if (nearestCandidateId >= 0)
-        {
-            selectedManualCandidateId_ = nearestCandidateId;
-            ROS_INFO_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] selected candidate: " << selectedManualCandidateId_ << " (dist: " << minDist << ")");
-        } else {
-            ROS_WARN_STREAM_NAMED("Planner", "[rvizPublishPointSubsciberCB] no candidate found");
-        }
+        tf2::doTransform(*msg, cursorPosOdomFrame_, map2odom_);
+        hasCursorPos_ = true;
     }
 
     void Planner::publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
@@ -810,6 +777,52 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         ROS_WARN_STREAM_NAMED("Planner",
             "No valid human-selected candidate currently available. selectedManualCandidateId_="
             << selectedManualCandidateId_);
+
+        return false;
+    }
+
+    bool Planner::getCursorSelectedTrajectory(int& trajFlag,
+                                         int& lowestCostTrajIdx,
+                                         const std::vector<Trajectory>& gapTrajs,
+                                         const std::vector<Trajectory>& ungapTrajs,
+                                         const std::vector<Trajectory>& idlingTrajs)
+    {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+
+        // if no cursor position available, keep current trajectory
+        if (!hasCursorPos_)
+            return false;
+
+        float minDist = std::numeric_limits<float>::infinity();
+        Trajectory nearestTraj;
+        bool found = false;
+
+        for (int i = 0; i < gapTrajs.size(); i++)
+        {
+            if (gapTrajs.at(i).getPathOdomFrame().poses.empty())
+                continue;
+
+            geometry_msgs::Pose terminalPose = gapTrajs.at(i).getPathOdomFrame().poses.back();
+
+            float dx = terminalPose.position.x - cursorPosOdomFrame_.point.x;
+            float dy = terminalPose.position.y - cursorPosOdomFrame_.point.y;
+            float dist = sqrt(pow(dx, 2) + pow(dy, 2));
+
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestTraj = gapTrajs.at(i);
+                found = true;
+            }
+        }
+
+        if (found)
+        {
+            setCurrentTraj(nearestTraj);
+            trajVisualizer_->drawCurrentTrajectory(nearestTraj);
+            trajFlag = GAP;
+            return true;
+        }
 
         return false;
     }
@@ -1888,7 +1901,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         if (colliding_)
         {
-            ROS_WARN_STREAM_NAMED("Planner", "In collision");
+            ROS_ERROR_STREAM_NAMED("Planner", "In collision");
             chosenTraj = Trajectory();
             return;
         }
@@ -2059,7 +2072,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         if (manualSelectionMode_)
         {
-            haveManualSelection = getHumanSelectedTrajectory(trajFlag,
+            haveManualSelection = getCursorSelectedTrajectory(trajFlag,
                                                             lowestCostTrajIdx,
                                                             gapTrajs,
                                                             ungapTrajs,
@@ -2075,124 +2088,130 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         timeKeeper_->stopTimer(TRAJ_PICK);
 
-        if (manualSelectionMode_ && !haveManualSelection)
+        if (manualSelectionMode_)
         {
-            ROS_INFO_STREAM_NAMED("Planner",
-                "Manual mode enabled but no valid human selection available. Keeping current trajectory.");
             chosenTraj = getCurrentTraj();
+            // cleanup
+            for (Gap * planningGap : planningGaps) delete planningGap;
+            for (Gap * copiedRawGap : copiedRawGaps) delete copiedRawGap;
+            for (Ungap * ungap : ungaps) delete ungap;
+            for (GapTube * tube : gapTubes) delete tube;
+            timeKeeper_->stopTimer(PLAN);
+            timeKeeper_->computeAverageNumberGaps(gapCount);
             return;
-        }
+        } else {
 
-        // timeKeeper_->startTimer(TRAJ_PICK);
-        // int lowestCostTrajIdx = -1;
-        // trajFlag = NONE;
-        
-        // pickTraj(trajFlag, lowestCostTrajIdx, 
-        //             gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
-        //             ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
-        //             idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
-        // timeKeeper_->stopTimer(TRAJ_PICK);
+            // timeKeeper_->startTimer(TRAJ_PICK);
+            // int lowestCostTrajIdx = -1;
+            // trajFlag = NONE;
+            
+            // pickTraj(trajFlag, lowestCostTrajIdx, 
+            //             gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+            //             ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+            //             idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+            // timeKeeper_->stopTimer(TRAJ_PICK);
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        //                              GAP TRAJECTORY COMPARISON                           //
-        //////////////////////////////////////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                              GAP TRAJECTORY COMPARISON                           //
+            //////////////////////////////////////////////////////////////////////////////////////
 
-        timeKeeper_->startTimer(TRAJ_COMP);
+            timeKeeper_->startTimer(TRAJ_COMP);
 
-        Gap * incomingGap = nullptr;
-        Ungap * incomingUngap = nullptr;
-        Trajectory incomingTraj;
+            Gap * incomingGap = nullptr;
+            Ungap * incomingUngap = nullptr;
+            Trajectory incomingTraj;
 
-        if (lowestCostTrajIdx < 0)
-        {
-            ROS_WARN_STREAM_NAMED("Planner", "       no trajectory selected, lowestCostTrajIdx: " << lowestCostTrajIdx);
-            chosenTraj = Trajectory();
-            trajFlag = NONE;
-            return;
-        } else if (trajFlag == NONE)
-        {
-            ROS_INFO_STREAM_NAMED("Planner", "       comparing to none trajectory");
-            chosenTraj = Trajectory();
-            trajFlag = NONE;
-            return;
-        } else if (trajFlag == GAP) // comparing to traj within one of the gaps
-        {
-            ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
-
-            if (lowestCostTrajIdx >= gapTrajs.size())
+            if (lowestCostTrajIdx < 0)
             {
-                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for gapTrajs");
+                ROS_WARN_STREAM_NAMED("Planner", "       no trajectory selected, lowestCostTrajIdx: " << lowestCostTrajIdx);
                 chosenTraj = Trajectory();
                 trajFlag = NONE;
                 return;
-            }
-
-            incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
-            incomingTraj = gapTrajs.at(lowestCostTrajIdx);
-        } else if (trajFlag == UNGAP) // comparing to un-gap traj
-        {
-            ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
-
-            if (lowestCostTrajIdx >= ungapTrajs.size())
+            } else if (trajFlag == NONE)
             {
-                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost ungap trajectory index out of bounds");
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to none trajectory");
                 chosenTraj = Trajectory();
                 trajFlag = NONE;
                 return;
-            }
-            incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
-            ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
-            incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
-        } else if (trajFlag == IDLING)
-        {
-            ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
-            if (lowestCostTrajIdx >= idlingTrajs.size())
+            } else if (trajFlag == GAP) // comparing to traj within one of the gaps
             {
-                ROS_WARN_STREAM_NAMED("Planner", "       lowest cost idling trajectory index out of bounds");
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
+
+                if (lowestCostTrajIdx >= gapTrajs.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost gap trajectory index out of bounds for gapTrajs");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
+
+                incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
+                incomingTraj = gapTrajs.at(lowestCostTrajIdx);
+            } else if (trajFlag == UNGAP) // comparing to un-gap traj
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
+
+                if (lowestCostTrajIdx >= ungapTrajs.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost ungap trajectory index out of bounds");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
+                incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
+                ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
+                incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
+            } else if (trajFlag == IDLING)
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
+                if (lowestCostTrajIdx >= idlingTrajs.size())
+                {
+                    ROS_WARN_STREAM_NAMED("Planner", "       lowest cost idling trajectory index out of bounds");
+                    chosenTraj = Trajectory();
+                    trajFlag = NONE;
+                    return;
+                }
+
+                incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
+            } else
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
+
                 chosenTraj = Trajectory();
                 trajFlag = NONE;
-                return;
+                return;            
             }
 
-            incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
-        } else
-        {
-            ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
+            chosenTraj = compareToCurrentTraj(incomingTraj,           
+                                                futureScans,
+                                                trajFlag,
+                                                incomingGap,
+                                                isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
 
-            chosenTraj = Trajectory();
-            trajFlag = NONE;
-            return;            
+            timeKeeper_->stopTimer(TRAJ_COMP);
+
+            // delete set of planning gaps
+            for (Gap * planningGap : planningGaps)
+                delete planningGap;
+
+            // delete set of planning gaps
+            for (Gap * copiedRawGap : copiedRawGaps)
+                delete copiedRawGap;
+
+            for (Ungap * ungap : ungaps)
+                delete ungap;
+
+            // delete gap tubes
+            for (GapTube * tube : gapTubes)
+            {
+                delete tube;
+            }
+
+            timeKeeper_->stopTimer(PLAN);
+            timeKeeper_->computeAverageNumberGaps(gapCount);
+
+            return;
         }
-
-        chosenTraj = compareToCurrentTraj(incomingTraj,           
-                                            futureScans,
-                                            trajFlag,
-                                            incomingGap,
-                                            isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
-
-        timeKeeper_->stopTimer(TRAJ_COMP);
-
-        // delete set of planning gaps
-        for (Gap * planningGap : planningGaps)
-            delete planningGap;
-
-        // delete set of planning gaps
-        for (Gap * copiedRawGap : copiedRawGaps)
-            delete copiedRawGap;
-
-        for (Ungap * ungap : ungaps)
-            delete ungap;
-
-        // delete gap tubes
-        for (GapTube * tube : gapTubes)
-        {
-            delete tube;
-        }
-
-        timeKeeper_->stopTimer(PLAN);
-        timeKeeper_->computeAverageNumberGaps(gapCount);
-
-        return;
     }
 
     void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps,
