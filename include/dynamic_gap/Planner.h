@@ -159,7 +159,7 @@ namespace dynamic_gap
             ros::Subscriber rvizPublishPointSubsciber_; //for manuel_gap_selection click to point
 
             int selectedManualCandidateId_ = -1;
-            bool manualSelectionMode_ = true;
+            bool manualSelectionMode_ = false;
             geometry_msgs::PointStamped cursorPosOdomFrame_;
             bool hasCursorPos_ = false;
 

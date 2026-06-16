@@ -57,6 +57,9 @@ namespace dynamic_gap
 
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
+        ros::param::get("/man_gap", manualSelectionMode_);
+        // ROS_INFO_STREAM("man_gap from param server: " << nh_.param<bool>("man_gap", false));
+        // ROS_INFO_STREAM("manualSelectionMode_ set to: " << manualSelectionMode_);
 
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
         // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
