@@ -1334,7 +1334,7 @@ auto dumpSizes = [&](const std::string& tag,
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
                             // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
                             float robot_radius = cfg_.rbt.r_inscr; 
-                            float insurance_factor = 7.0; 
+                            float insurance_factor = 3.0; 
                             float gap_insurance = 0.6f * robot_radius * insurance_factor;  // offset scaling
                             float r = p2.norm();
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
@@ -1385,7 +1385,7 @@ float v_max    = cfg_.rbt.vx_absmax;
 float w_max    = cfg_.rbt.vang_absmax;
 float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
 
-const int   num_points   = 21;           // total points along the trajectory
+const int   num_points   = 11;           // total points along the trajectory
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
 // const float total_time   = dt * num_segments;   
@@ -1822,12 +1822,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
             text.color.r = 0.0;
             text.color.g = 0.0;
             text.color.b = 0.0;
-            bool disable_cost_value_visual = true; 
-
-            if (disable_cost_value_visual) text.color.a = 0.0;
-            else
-            { text.color.a = 1.0;}
-
+            text.color.a = 1.0;
             text.lifetime = ros::Duration(lifetime);
 
             std::ostringstream ss;
