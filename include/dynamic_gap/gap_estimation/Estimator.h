@@ -639,5 +639,16 @@ namespace dynamic_gap
                                  newRange * std::sin(newTheta); 
             }
 
+            /**
+            * \brief Replace the estimator's relative velocity while preserving its position and covariance
+            * \param relativeVelocity replacement x/y relative velocity in robot frame
+            */
+            void setRelativeVelocityEstimate(const Eigen::Vector2f & relativeVelocity)
+            {
+                x_hat_k_plus_.tail<2>() = relativeVelocity;
+                x_hat_k_minus_.tail<2>() = relativeVelocity;
+                x_hat_kmin1_plus_.tail<2>() = relativeVelocity;
+            }
+
     };
 }

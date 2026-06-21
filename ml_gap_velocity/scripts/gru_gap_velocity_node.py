@@ -8,10 +8,6 @@ import rospy
 import torch
 import torch.nn as nn
 
-from geometry_msgs.msg import Point
-from std_msgs.msg import ColorRGBA
-from visualization_msgs.msg import Marker, MarkerArray
-
 from dynamic_gap.msg import GapPointObservation, GapVelocityPrediction
 
 
@@ -106,17 +102,6 @@ class GRUGapVelocityNode:
         self.prediction_topic = rospy.get_param(
             "~prediction_topic", "gru_gap_velocity_prediction"
         )
-        self.marker_topic = rospy.get_param(
-            "~marker_topic", "gru_gap_velocity_markers"
-        )
-
-        self.arrow_scale = float(rospy.get_param("~arrow_scale", 0.8))
-        self.perfect_arrow_scale = float(
-            rospy.get_param("~perfect_arrow_scale", 0.8)
-        )
-        self.publish_perfect_marker = bool(
-            rospy.get_param("~publish_perfect_marker", True)
-        )
         self.max_buffer_time_gap = float(
             rospy.get_param("~max_buffer_time_gap", 0.5)
         )
@@ -135,9 +120,6 @@ class GRUGapVelocityNode:
 
         self.prediction_publisher = rospy.Publisher(
             self.prediction_topic, GapVelocityPrediction, queue_size=10
-        )
-        self.marker_publisher = rospy.Publisher(
-            self.marker_topic, MarkerArray, queue_size=10
         )
         self.observation_subscriber = rospy.Subscriber(
             self.observation_topic,
@@ -211,7 +193,6 @@ class GRUGapVelocityNode:
         pred_vx = float(prediction[0])
         pred_vy = float(prediction[1])
         self._publish_prediction(message, pred_vx, pred_vy, True, self.seq_len)
-        self._publish_markers(message, pred_vx, pred_vy)
 
     def _publish_prediction(
         self, observation, pred_vx, pred_vy, valid, seq_len_used
@@ -228,68 +209,6 @@ class GRUGapVelocityNode:
         prediction.valid = valid
         prediction.seq_len_used = seq_len_used
         self.prediction_publisher.publish(prediction)
-
-    @staticmethod
-    def _marker_id(message, offset):
-        side_offset = 0 if message.side == "left" else 1
-        return message.model_id * 4 + side_offset + offset
-
-    def _arrow_marker(self, observation, vx, vy, namespace, marker_id, color, scale):
-        marker = Marker()
-        marker.header = observation.header
-        marker.ns = namespace
-        marker.id = marker_id
-        marker.type = Marker.ARROW
-        marker.action = Marker.ADD
-
-        start = Point(observation.gap_x, observation.gap_y, 0.05)
-        end = Point(
-            observation.gap_x + scale * vx,
-            observation.gap_y + scale * vy,
-            0.05,
-        )
-        marker.points = [start, end]
-        marker.scale.x = 0.035
-        marker.scale.y = 0.10
-        marker.scale.z = 0.10
-        marker.color = color
-        marker.lifetime = rospy.Duration(0.25)
-        return marker
-
-    def _publish_markers(self, observation, pred_vx, pred_vy):
-        markers = MarkerArray()
-        robot_vx = (
-            observation.perfect_world_robot_vx - observation.perfect_rel_vx
-        )
-        robot_vy = (
-            observation.perfect_world_robot_vy - observation.perfect_rel_vy
-        )
-        markers.markers.append(
-            self._arrow_marker(
-                observation,
-                pred_vx + robot_vx,
-                pred_vy + robot_vy,
-                "gru_gap_velocity_after_adding_robot_vel",
-                self._marker_id(observation, 0),
-                ColorRGBA(0.0, 0.7, 0.0, 0.8),
-                self.arrow_scale,
-            )
-        )
-
-        if self.publish_perfect_marker:
-            markers.markers.append(
-                self._arrow_marker(
-                    observation,
-                    observation.perfect_world_robot_vx,
-                    observation.perfect_world_robot_vy,
-                    "perfect_gap_velocity_after_adding_robot_vel",
-                    self._marker_id(observation, 2),
-                    ColorRGBA(1.0, 0.0, 0.0, 0.8),
-                    self.perfect_arrow_scale,
-                )
-            )
-
-        self.marker_publisher.publish(markers)
 
     @staticmethod
     def spin():

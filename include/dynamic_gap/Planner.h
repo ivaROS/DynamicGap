@@ -10,7 +10,7 @@
 #include <numeric>
 #include <iostream>
 #include <chrono>
-// #include <map>
+#include <unordered_map>
 
 #include <math.h>
 
@@ -65,6 +65,9 @@
 
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/Float32MultiArray.h>
+
+#include <dynamic_gap/GapPointObservation.h>
+#include <dynamic_gap/GapVelocityPrediction.h>
 
 namespace dynamic_gap
 {
@@ -184,11 +187,13 @@ namespace dynamic_gap
             * \param intermediateRbtVels intermediate robot velocity values between last model update and current model update
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
+            * \param useGruVelocity whether this gap set publishes observations and accepts GRU velocity estimates
             */
             void updateModels(std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+                                const ros::Time & tCurrentFilterUpdate,
+                                const bool & useGruVelocity);
 
             /**
             * \brief Function for updating a single gap's models
@@ -197,12 +202,60 @@ namespace dynamic_gap
             * \param intermediateRbtVels intermediate robot velocity values between last model update and current model update
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
+            * \param useGruVelocity whether this model publishes an observation and accepts a GRU velocity estimate
             */
             void updateModel(const int & idx, 
                                 std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate);
+                                const ros::Time & tCurrentFilterUpdate,
+                                const bool & useGruVelocity);
+
+            /**
+            * \brief Cached GRU relative-velocity prediction for one persistent gap-point model
+            */
+            struct GruGapVelocityEstimate
+            {
+                Eigen::Vector2f relativeVelocity = Eigen::Vector2f::Zero(); /**< Predicted relative velocity in robot frame */
+                ros::Time stamp; /**< Timestamp inherited from the source gap-point observation */
+                std::string side; /**< Gap-point side associated with the prediction */
+                bool valid = false; /**< Whether the prediction is safe to consider for use */
+            };
+
+            /**
+            * \brief Cache an incoming GRU velocity prediction, including invalid predictions for Kalman fallback
+            * \param msg incoming GRU gap velocity prediction
+            */
+            void gruGapVelocityCB(const dynamic_gap::GapVelocityPrediction::ConstPtr & msg);
+
+            /**
+            * \brief Retrieve a valid, matching, and sufficiently fresh GRU velocity prediction
+            * \param modelID persistent estimator model ID
+            * \param side expected gap-point side
+            * \param currentStamp timestamp of the current estimator update
+            * \param relativeVelocity output GRU relative velocity
+            * \return true when a usable prediction was found
+            */
+            bool getLatestGruVelocityForModel(const int & modelID,
+                                              const std::string & side,
+                                              const ros::Time & currentStamp,
+                                              Eigen::Vector2f & relativeVelocity) const;
+
+            /**
+            * \brief Publish a simplified gap-point observation for GRU inference
+            * \param stamp timestamp of the current estimator update
+            * \param gapIndex index of the simplified gap
+            * \param side observed gap-point side
+            * \param model estimator associated with the observed gap point
+            * \param measurement observed gap-point position in robot frame
+            * \param kalmanState estimator state before any GRU velocity override
+            */
+            void publishGapPointObservation(const ros::Time & stamp,
+                                            const int & gapIndex,
+                                            const std::string & side,
+                                            Estimator * model,
+                                            const Eigen::Vector2f & measurement,
+                                            const Eigen::Vector4f & kalmanState);
 
             /**
             * \brief Call back function for other agent odometry messages
@@ -492,6 +545,13 @@ namespace dynamic_gap
             boost::shared_ptr<CustomSynchronizer> sync_; /**< Shared pointer to custom synchronizer */
 
             ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
+
+            ros::Publisher gapPointObservationPublisher_; /**< Publisher for simplified gap-point GRU inputs */
+            ros::Subscriber gruGapVelocitySub_; /**< Subscriber for GRU relative-velocity predictions */
+            std::unordered_map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_; /**< Latest prediction for each model ID */
+            mutable boost::mutex gruGapVelocityMutex_; /**< Protects the GRU prediction cache */
+            bool useGruGapVelocity_ = true; /**< Enables GRU velocity overrides when usable predictions exist */
+            double maxGruPredictionAgeSec_ = 0.5; /**< Maximum prediction age before falling back to Kalman */
 
             ros::Subscriber gapVelSub_; // used in relvel cacluation
             void gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg);

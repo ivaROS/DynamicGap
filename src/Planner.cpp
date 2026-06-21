@@ -124,6 +124,23 @@ namespace dynamic_gap
 
         pedOdomSub_ = nh_.subscribe(cfg_.ped_topic, 10, &Planner::pedOdomCB, this);
 
+        // GRU observation/prediction topics and fallback controls
+        std::string gapPointObservationTopic;
+        std::string gruGapVelocityTopic;
+        nh_.param<std::string>("gap_point_observation_topic",
+                               gapPointObservationTopic,
+                               "gap_point_observation");
+        nh_.param<std::string>("gru_gap_velocity_topic",
+                               gruGapVelocityTopic,
+                               "gru_gap_velocity_prediction");
+        nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
+        nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 0.5);
+
+        gapPointObservationPublisher_ =
+            nh_.advertise<dynamic_gap::GapPointObservation>(gapPointObservationTopic, 100);
+        gruGapVelocitySub_ =
+            nh_.subscribe(gruGapVelocityTopic, 100, &Planner::gruGapVelocityCB, this);
+
         // Visualization Setup
 
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
@@ -324,7 +341,7 @@ namespace dynamic_gap
         ////////////////////////////////////
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currRawGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate);
+                        intermediateRbtAccs, tCurrentFilterUpdate, false);
         timeKeeper_->stopTimer(GAP_EST);
 
         ////////////////////////////////////
@@ -351,7 +368,7 @@ namespace dynamic_gap
         ///////////////////////////////////////////     
         timeKeeper_->startTimer(GAP_EST);
         updateModels(currSimplifiedGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate);
+                        intermediateRbtAccs, tCurrentFilterUpdate, true);
         timeKeeper_->stopTimer(GAP_EST);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
@@ -399,14 +416,16 @@ namespace dynamic_gap
     void Planner::updateModels(std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate) 
+                                const ros::Time & tCurrentFilterUpdate,
+                                const bool & useGruVelocity)
     {
         // ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
 
         for (int i = 0; i < 2*gaps.size(); i++) 
         {
             // ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
-            updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs, tCurrentFilterUpdate);
+            updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs,
+                        tCurrentFilterUpdate, useGruVelocity);
             // ROS_INFO_STREAM_NAMED("GapEstimation", "");
         }
 
@@ -417,7 +436,8 @@ namespace dynamic_gap
                                 std::vector<Gap *> & gaps, 
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate) 
+                                const ros::Time & tCurrentFilterUpdate,
+                                const bool & useGruVelocity)
     {
         Gap * gap = gaps[int(0.5 * idx)];
 
@@ -431,6 +451,9 @@ namespace dynamic_gap
 
         Eigen::Vector2f measurement(rX, rY);
 
+        Estimator * model = nullptr;
+        std::string side;
+
         if (idx % 2 == 0) 
         {
             if (gap->getLeftGapPt()->getModel())
@@ -439,7 +462,9 @@ namespace dynamic_gap
                                                         intermediateRbtVels, intermediateRbtAccs, 
                                                         currentTrueAgentPoses_, 
                                                         currentTrueAgentVels_,
-                                                        tCurrentFilterUpdate);                    
+                                                        tCurrentFilterUpdate);
+                model = gap->getLeftGapPt()->getModel();
+                side = "left";
             } else
             {
                 ROS_WARN_STREAM_NAMED("GapEstimation", "left model is null");
@@ -452,12 +477,107 @@ namespace dynamic_gap
                                                         intermediateRbtVels, intermediateRbtAccs, 
                                                         currentTrueAgentPoses_, 
                                                         currentTrueAgentVels_,
-                                                        tCurrentFilterUpdate);                    
+                                                        tCurrentFilterUpdate);
+                model = gap->getRightGapPt()->getModel();
+                side = "right";
             } else
             {                
                 ROS_WARN_STREAM_NAMED("GapEstimation", "right model is null");
             }
-        }    
+        }
+
+        // Raw gaps remain Kalman-only; only simplified gaps enter the GRU path.
+        if (!model || !useGruVelocity)
+            return;
+
+        // Publish the pure Kalman result before applying a cached GRU velocity.
+        const Eigen::Vector4f kalmanState = model->getState();
+        publishGapPointObservation(tCurrentFilterUpdate,
+                                   int(0.5 * idx),
+                                   side,
+                                   model,
+                                   measurement,
+                                   kalmanState);
+
+        if (!useGruGapVelocity_)
+            return;
+
+        // Missing, invalid, mismatched, or stale predictions leave Kalman unchanged.
+        Eigen::Vector2f gruRelativeVelocity;
+        if (getLatestGruVelocityForModel(model->getID(), side,
+                                         tCurrentFilterUpdate,
+                                         gruRelativeVelocity))
+        {
+            model->setRelativeVelocityEstimate(gruRelativeVelocity);
+        }
+    }
+
+    void Planner::gruGapVelocityCB(
+        const dynamic_gap::GapVelocityPrediction::ConstPtr & msg)
+    {
+        GruGapVelocityEstimate estimate;
+        estimate.stamp = msg->header.stamp;
+        estimate.side = msg->side;
+        estimate.valid = msg->valid &&
+                         std::isfinite(msg->pred_rel_vx) &&
+                         std::isfinite(msg->pred_rel_vy);
+
+        if (estimate.valid)
+        {
+            estimate.relativeVelocity << msg->pred_rel_vx, msg->pred_rel_vy;
+        }
+
+        // Invalid entries intentionally replace older valid entries to force fallback.
+        boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
+        latestGruGapVelocityByModelID_[msg->model_id] = estimate;
+    }
+
+    bool Planner::getLatestGruVelocityForModel(
+        const int & modelID,
+        const std::string & side,
+        const ros::Time & currentStamp,
+        Eigen::Vector2f & relativeVelocity) const
+    {
+        boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
+        const auto prediction = latestGruGapVelocityByModelID_.find(modelID);
+
+        if (prediction == latestGruGapVelocityByModelID_.end())
+            return false;
+
+        const GruGapVelocityEstimate & estimate = prediction->second;
+        if (!estimate.valid || estimate.side != side || estimate.stamp.isZero())
+            return false;
+
+        const double age = (currentStamp - estimate.stamp).toSec();
+        if (age < 0.0 || age > maxGruPredictionAgeSec_)
+            return false;
+
+        relativeVelocity = estimate.relativeVelocity;
+        return true;
+    }
+
+    void Planner::publishGapPointObservation(
+        const ros::Time & stamp,
+        const int & gapIndex,
+        const std::string & side,
+        Estimator * model,
+        const Eigen::Vector2f & measurement,
+        const Eigen::Vector4f & kalmanState)
+    {
+        dynamic_gap::GapPointObservation observation;
+        observation.header.stamp = stamp;
+        observation.header.frame_id = cfg_.robot_frame_id;
+        observation.gap_index = gapIndex;
+        observation.model_id = model->getID();
+        observation.side = side;
+        observation.gap_x = measurement[0];
+        observation.gap_y = measurement[1];
+        observation.kalman_rel_vx = kalmanState[2];
+        observation.kalman_rel_vy = kalmanState[3];
+        // Ground-truth label fields are unused by the runtime-only integration.
+        observation.match_dist = -1.0f;
+        observation.matched_dynamic_agent = false;
+        gapPointObservationPublisher_.publish(observation);
     }
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
