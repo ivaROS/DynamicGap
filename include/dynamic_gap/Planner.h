@@ -10,6 +10,8 @@
 #include <numeric>
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include <limits>
 #include <unordered_map>
 
 #include <math.h>
@@ -256,6 +258,49 @@ namespace dynamic_gap
                                             Estimator * model,
                                             const Eigen::Vector2f & measurement,
                                             const Eigen::Vector4f & kalmanState);
+
+            /**
+            * \brief Ground-truth velocity label associated with one observed gap point
+            */
+            struct PerfectGapVelocityLabel
+            {
+                Eigen::Vector2f relativeVelocity = Eigen::Vector2f::Zero(); /**< True relative velocity in robot frame */
+                Eigen::Vector2f worldVelocityRobot = Eigen::Vector2f::Zero(); /**< True world velocity expressed in robot frame */
+                std::string matchedAgentID; /**< ID of the nearest matched dynamic agent */
+                float matchDistance = std::numeric_limits<float>::infinity(); /**< Distance to the nearest agent */
+                bool matchedDynamicAgent = false; /**< Whether the gap point matched a dynamic agent */
+            };
+
+            /**
+            * \brief Initialize the optional GRU training CSV output stream
+            */
+            void initializeGruCsvLogger();
+
+            /**
+            * \brief Compute the perfect relative-velocity label for a gap point
+            * \param measurement observed gap-point position in robot frame
+            * \param robotVelocity current robot velocity in robot frame
+            * \return perfect velocity label and agent-match metadata
+            */
+            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
+                const Eigen::Vector2f & measurement,
+                const geometry_msgs::TwistStamped & robotVelocity) const;
+
+            /**
+            * \brief Write one simplified gap-point sample to the GRU training CSV
+            * \param gapIndex index of the simplified gap
+            * \param modelID persistent estimator model ID
+            * \param side observed gap-point side
+            * \param measurement observed gap-point position in robot frame
+            * \param kalmanState estimator state before any GRU velocity override
+            * \param perfectLabel ground-truth relative velocity and agent-match metadata
+            */
+            void logGruTrainingRow(const int & gapIndex,
+                                   const int & modelID,
+                                   const std::string & side,
+                                   const Eigen::Vector2f & measurement,
+                                   const Eigen::Vector4f & kalmanState,
+                                   const PerfectGapVelocityLabel & perfectLabel);
 
             /**
             * \brief Call back function for other agent odometry messages
@@ -552,6 +597,12 @@ namespace dynamic_gap
             mutable boost::mutex gruGapVelocityMutex_; /**< Protects the GRU prediction cache */
             bool useGruGapVelocity_ = true; /**< Enables GRU velocity overrides when usable predictions exist */
             double maxGruPredictionAgeSec_ = 0.5; /**< Maximum prediction age before falling back to Kalman */
+            bool gruCsvLoggingEnabled_ = true; /**< Enables simplified gap-point GRU training data logging */
+            std::string gruCsvOutputDir_; /**< Configured directory for GRU training CSV files */
+            std::string gruCsvPath_; /**< Full path of the active GRU training CSV file */
+            std::ofstream gruCsvFile_; /**< Active GRU training CSV output stream */
+            unsigned long long gruCsvSampleIndex_ = 0; /**< Monotonic CSV row index */
+            float perfectGapVelocityMatchThreshold_ = 0.6f; /**< Maximum gap-to-agent label matching distance */
 
             ros::Subscriber gapVelSub_; // used in relvel cacluation
             void gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg);

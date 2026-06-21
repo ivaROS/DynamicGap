@@ -4,12 +4,20 @@
 #include <dynamic_gap/utils/CbfLinConstraint.h>
 #include <sstream>
 #include <string>
+#include <filesystem>
+#include <iomanip>
 #include <tf/transform_datatypes.h>
 
 namespace dynamic_gap
 {   
     Planner::~Planner()
     {
+        if (gruCsvFile_.is_open())
+        {
+            gruCsvFile_.flush();
+            gruCsvFile_.close();
+        }
+
         // delete current raw, simplified, and selected gaps
         for (Gap * rawGap : currRawGaps_)
             delete rawGap;
@@ -135,6 +143,12 @@ namespace dynamic_gap
                                "gru_gap_velocity_prediction");
         nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
         nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 0.5);
+        nh_.param("enable_gru_csv_logging", gruCsvLoggingEnabled_, true);
+        nh_.param<std::string>("gru_csv_output_dir",
+                               gruCsvOutputDir_,
+                               "/tmp/dynamic_gap_gru");
+
+        initializeGruCsvLogger();
 
         gapPointObservationPublisher_ =
             nh_.advertise<dynamic_gap::GapPointObservation>(gapPointObservationTopic, 100);
@@ -206,6 +220,45 @@ namespace dynamic_gap
         currentTrajLifespan_ = ros::Duration(0.0);
 
         return true;
+    }
+
+    void Planner::initializeGruCsvLogger()
+    {
+        if (!gruCsvLoggingEnabled_)
+            return;
+
+        std::error_code directoryError;
+        std::filesystem::create_directories(gruCsvOutputDir_, directoryError);
+        if (directoryError)
+        {
+            ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
+                                   "Failed to create GRU CSV output directory "
+                                   << gruCsvOutputDir_ << ": "
+                                   << directoryError.message());
+            gruCsvLoggingEnabled_ = false;
+            return;
+        }
+
+        const ros::WallTime wallTime = ros::WallTime::now();
+        std::ostringstream fileName;
+        fileName << "dgap_" << wallTime.sec << "_" << wallTime.nsec << ".csv";
+        gruCsvPath_ = (std::filesystem::path(gruCsvOutputDir_) / fileName.str()).string();
+        gruCsvFile_.open(gruCsvPath_, std::ios::out);
+
+        if (!gruCsvFile_.is_open())
+        {
+            ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
+                                   "Failed to open GRU training CSV: " << gruCsvPath_);
+            gruCsvLoggingEnabled_ = false;
+            return;
+        }
+
+        gruCsvFile_
+            << "sample_idx,gap_index,model_id,side,x,y,kalman_vx,kalman_vy,"
+            << "perfect_rel_vx,perfect_rel_vy,perfect_world_robot_vx,"
+            << "perfect_world_robot_vy,matched_agent_id,match_dist,"
+            << "matched_dynamic_agent\n";
+        gruCsvFile_.flush();
     }
 
     void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
@@ -492,6 +545,17 @@ namespace dynamic_gap
 
         // Publish the pure Kalman result before applying a cached GRU velocity.
         const Eigen::Vector4f kalmanState = model->getState();
+
+        if (gruCsvLoggingEnabled_)
+        {
+            const geometry_msgs::TwistStamped & robotVelocity =
+                intermediateRbtVels.empty() ? currentRbtVel_ : intermediateRbtVels.back();
+            const PerfectGapVelocityLabel perfectLabel =
+                computePerfectGapVelocityLabel(measurement, robotVelocity);
+            logGruTrainingRow(int(0.5 * idx), model->getID(), side,
+                              measurement, kalmanState, perfectLabel);
+        }
+
         publishGapPointObservation(tCurrentFilterUpdate,
                                    int(0.5 * idx),
                                    side,
@@ -578,6 +642,81 @@ namespace dynamic_gap
         observation.match_dist = -1.0f;
         observation.matched_dynamic_agent = false;
         gapPointObservationPublisher_.publish(observation);
+    }
+
+    Planner::PerfectGapVelocityLabel Planner::computePerfectGapVelocityLabel(
+        const Eigen::Vector2f & measurement,
+        const geometry_msgs::TwistStamped & robotVelocity) const
+    {
+        PerfectGapVelocityLabel label;
+
+        // Unmatched gap points are assumed to belong to the static environment.
+        label.relativeVelocity << -robotVelocity.twist.linear.x,
+                                  -robotVelocity.twist.linear.y;
+
+        for (const auto & agent : currentTrueAgentPoses_)
+        {
+            const float dx = agent.second.position.x - measurement[0];
+            const float dy = agent.second.position.y - measurement[1];
+            const float distance = std::sqrt(dx * dx + dy * dy);
+
+            if (distance < label.matchDistance)
+            {
+                label.matchDistance = distance;
+                label.matchedAgentID = agent.first;
+            }
+        }
+
+        const auto agentVelocity = currentTrueAgentVels_.find(label.matchedAgentID);
+        if (!label.matchedAgentID.empty() &&
+            label.matchDistance < perfectGapVelocityMatchThreshold_ &&
+            agentVelocity != currentTrueAgentVels_.end())
+        {
+            label.worldVelocityRobot << agentVelocity->second.vector.x,
+                                        agentVelocity->second.vector.y;
+            label.relativeVelocity <<
+                agentVelocity->second.vector.x - robotVelocity.twist.linear.x,
+                agentVelocity->second.vector.y - robotVelocity.twist.linear.y;
+            label.matchedDynamicAgent = true;
+        }
+
+        return label;
+    }
+
+    void Planner::logGruTrainingRow(
+        const int & gapIndex,
+        const int & modelID,
+        const std::string & side,
+        const Eigen::Vector2f & measurement,
+        const Eigen::Vector4f & kalmanState,
+        const PerfectGapVelocityLabel & perfectLabel)
+    {
+        if (!gruCsvLoggingEnabled_ || !gruCsvFile_.is_open())
+            return;
+
+        const float matchDistance = std::isfinite(perfectLabel.matchDistance)
+                                        ? perfectLabel.matchDistance
+                                        : -1.0f;
+
+        gruCsvFile_
+            << std::fixed << std::setprecision(6)
+            << gruCsvSampleIndex_++ << ","
+            << gapIndex << ","
+            << modelID << ","
+            << side << ","
+            << measurement[0] << ","
+            << measurement[1] << ","
+            << kalmanState[2] << ","
+            << kalmanState[3] << ","
+            << perfectLabel.relativeVelocity[0] << ","
+            << perfectLabel.relativeVelocity[1] << ","
+            << perfectLabel.worldVelocityRobot[0] << ","
+            << perfectLabel.worldVelocityRobot[1] << ","
+            << perfectLabel.matchedAgentID << ","
+            << matchDistance << ","
+            << static_cast<int>(perfectLabel.matchedDynamicAgent)
+            << "\n";
+        gruCsvFile_.flush();
     }
     
 void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
