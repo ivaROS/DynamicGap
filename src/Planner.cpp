@@ -6,6 +6,8 @@
 #include <string>
 #include <filesystem>
 #include <iomanip>
+#include <ctime>
+#include <ros/package.h>
 #include <tf/transform_datatypes.h>
 
 namespace dynamic_gap
@@ -144,9 +146,11 @@ namespace dynamic_gap
         nh_.param("use_gru_gap_velocity", useGruGapVelocity_, true);
         nh_.param("max_gru_prediction_age_sec", maxGruPredictionAgeSec_, 0.5);
         nh_.param("enable_gru_csv_logging", gruCsvLoggingEnabled_, true);
+        const std::string defaultGruCsvOutputDir =
+            ros::package::getPath("dynamic_gap") + "/ml_gap_velocity/data";
         nh_.param<std::string>("gru_csv_output_dir",
                                gruCsvOutputDir_,
-                               "/tmp/dynamic_gap_gru");
+                               defaultGruCsvOutputDir);
 
         initializeGruCsvLogger();
 
@@ -239,9 +243,13 @@ namespace dynamic_gap
             return;
         }
 
-        const ros::WallTime wallTime = ros::WallTime::now();
+        const std::time_t currentTime = std::time(nullptr);
+        std::tm localTime;
+        localtime_r(&currentTime, &localTime);
         std::ostringstream fileName;
-        fileName << "dgap_" << wallTime.sec << "_" << wallTime.nsec << ".csv";
+        fileName << "dgap_"
+                 << std::put_time(&localTime, "%y-%m-%d_%H-%M-%S")
+                 << ".csv";
         gruCsvPath_ = (std::filesystem::path(gruCsvOutputDir_) / fileName.str()).string();
         gruCsvFile_.open(gruCsvPath_, std::ios::out);
 
@@ -545,13 +553,13 @@ namespace dynamic_gap
 
         // Publish the pure Kalman result before applying a cached GRU velocity.
         const Eigen::Vector4f kalmanState = model->getState();
+        const geometry_msgs::TwistStamped & robotVelocity =
+            intermediateRbtVels.empty() ? currentRbtVel_ : intermediateRbtVels.back();
+        const PerfectGapVelocityLabel perfectLabel =
+            computePerfectGapVelocityLabel(measurement, robotVelocity);
 
         if (gruCsvLoggingEnabled_)
         {
-            const geometry_msgs::TwistStamped & robotVelocity =
-                intermediateRbtVels.empty() ? currentRbtVel_ : intermediateRbtVels.back();
-            const PerfectGapVelocityLabel perfectLabel =
-                computePerfectGapVelocityLabel(measurement, robotVelocity);
             logGruTrainingRow(int(0.5 * idx), model->getID(), side,
                               measurement, kalmanState, perfectLabel);
         }
@@ -561,7 +569,8 @@ namespace dynamic_gap
                                    side,
                                    model,
                                    measurement,
-                                   kalmanState);
+                                   kalmanState,
+                                   perfectLabel);
 
         if (!useGruGapVelocity_)
             return;
@@ -626,7 +635,8 @@ namespace dynamic_gap
         const std::string & side,
         Estimator * model,
         const Eigen::Vector2f & measurement,
-        const Eigen::Vector4f & kalmanState)
+        const Eigen::Vector4f & kalmanState,
+        const PerfectGapVelocityLabel & perfectLabel)
     {
         dynamic_gap::GapPointObservation observation;
         observation.header.stamp = stamp;
@@ -638,9 +648,15 @@ namespace dynamic_gap
         observation.gap_y = measurement[1];
         observation.kalman_rel_vx = kalmanState[2];
         observation.kalman_rel_vy = kalmanState[3];
-        // Ground-truth label fields are unused by the runtime-only integration.
-        observation.match_dist = -1.0f;
-        observation.matched_dynamic_agent = false;
+        observation.perfect_rel_vx = perfectLabel.relativeVelocity[0];
+        observation.perfect_rel_vy = perfectLabel.relativeVelocity[1];
+        observation.perfect_world_robot_vx = perfectLabel.worldVelocityRobot[0];
+        observation.perfect_world_robot_vy = perfectLabel.worldVelocityRobot[1];
+        observation.matched_agent_id = perfectLabel.matchedAgentID;
+        observation.match_dist = std::isfinite(perfectLabel.matchDistance)
+                                     ? perfectLabel.matchDistance
+                                     : -1.0f;
+        observation.matched_dynamic_agent = perfectLabel.matchedDynamicAgent;
         gapPointObservationPublisher_.publish(observation);
     }
 

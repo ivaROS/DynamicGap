@@ -13,6 +13,7 @@
   <depend>base_local_planner</depend>
   <depend>mbf_costmap_core</depend>
   <depend>roscpp</depend>
+  <depend>roslib</depend>
   <depend>rospy</depend>
   <depend>pluginlib</depend>
   <depend>nav_core</depend>

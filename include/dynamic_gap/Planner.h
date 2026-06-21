@@ -243,6 +243,8 @@ namespace dynamic_gap
                                               const ros::Time & currentStamp,
                                               Eigen::Vector2f & relativeVelocity) const;
 
+            struct PerfectGapVelocityLabel;
+
             /**
             * \brief Publish a simplified gap-point observation for GRU inference
             * \param stamp timestamp of the current estimator update
@@ -251,13 +253,15 @@ namespace dynamic_gap
             * \param model estimator associated with the observed gap point
             * \param measurement observed gap-point position in robot frame
             * \param kalmanState estimator state before any GRU velocity override
+            * \param perfectLabel ground-truth relative velocity and agent-match metadata
             */
             void publishGapPointObservation(const ros::Time & stamp,
                                             const int & gapIndex,
                                             const std::string & side,
                                             Estimator * model,
                                             const Eigen::Vector2f & measurement,
-                                            const Eigen::Vector4f & kalmanState);
+                                            const Eigen::Vector4f & kalmanState,
+                                            const PerfectGapVelocityLabel & perfectLabel);
 
             /**
             * \brief Ground-truth velocity label associated with one observed gap point

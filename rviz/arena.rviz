@@ -62,6 +62,9 @@ Panels:
       Expanded:
         - /Dynamic Gap1
         - /Dynamic Gap1/Trajectories1
+        - /Marker2
+        - /Marker3
+        - /Marker4
         - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 822
@@ -271,6 +274,7 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
+        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -798,21 +802,21 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/v_rel_arrow
       Name: Marker
       Namespaces:
-        v_rel_nom: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/v_rel_arrow_safe
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /rto/dpcbf_debug_markers
@@ -832,14 +836,13 @@ Visualization Manager:
       Use Timestamp: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /rto/dwa_traj_cost_viz
       Name: MarkerArray
       Namespaces:
-        dwa_pose_costs: true
-        dwa_traj_lines: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

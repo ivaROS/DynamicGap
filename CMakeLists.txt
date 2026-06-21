@@ -9,6 +9,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
   roscpp
+  roslib
   rospy
   pedsim_msgs
   dynamic_reconfigure
