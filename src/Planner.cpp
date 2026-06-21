@@ -171,14 +171,16 @@ namespace dynamic_gap
             this
         );
 
-        mapSub_ = nh_.subscribe("/map", 1, &Planner::mapCB, this);
-
-        fmmDistanceSub_ = nh_.subscribe("/dgap/fmm_distance_map",
-                                        1,
-                                        &Planner::fmmDistanceCB,
-                                        this);
-
-        fmmGoalPub_ = nh_.advertise<geometry_msgs::PoseStamped>("/dgap/fmm_goal", 1, true);
+        if (cfg_.planning.FMM_global_cost)
+        {
+            mapSub_ = nh_.subscribe("/map", 1, &Planner::mapCB, this);
+            fmmDistanceSub_ = nh_.subscribe("/dgap/fmm_distance_map",
+                                            1,
+                                            &Planner::fmmDistanceCB,
+                                            this);
+            fmmGoalPub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+                "/dgap/fmm_goal", 1, true);
+        }
 
 
         trajEvaluator_->latestGapLeftVelPtr_ = &latestGapLeftVel_; // for relvel calcuation
@@ -925,7 +927,8 @@ else
             return false;
 
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
-        fmmGoalPub_.publish(globalGoalMapFrame);
+        if (cfg_.planning.FMM_global_cost)
+            fmmGoalPub_.publish(globalGoalMapFrame);
         tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_); // to update odom frame parameter
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_); // to update robot frame parameter
         
@@ -974,11 +977,13 @@ else
         rbt2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.robot_frame_id, ros::Time(0));
         map2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.map_frame_id, ros::Time(0));
 
-        rbt2map_ = tfBuffer_.lookupTransform(cfg_.map_frame_id,
-                                     cfg_.robot_frame_id,
-                                     ros::Time(0));
-
-        trajEvaluator_->updateRbtToMapTransform(rbt2map_);
+        if (cfg_.planning.FMM_global_cost)
+        {
+            rbt2map_ = tfBuffer_.lookupTransform(cfg_.map_frame_id,
+                                                 cfg_.robot_frame_id,
+                                                 ros::Time(0));
+            trajEvaluator_->updateRbtToMapTransform(rbt2map_);
+        }
         // cam2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.sensor_frame_id, ros::Time(0));
         // rbt2cam_ = tfBuffer_.lookupTransform(cfg_.sensor_frame_id, cfg_.robot_frame_id, ros::Time(0));
 
@@ -997,8 +1002,11 @@ else
         return Eigen::Vector2f(c*point.x() - s*point.y(), s*point.x() + c*point.y());
     }
 
-    void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
+    if (!cfg_.planning.FMM_global_cost)
+        return;
+
     boost::mutex::scoped_lock lock(mapMutex_);
     staticMap_ = *msg;
     hasStaticMap_ = true;
@@ -1006,6 +1014,9 @@ else
 
 void Planner::fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg)
 {
+    if (!cfg_.planning.FMM_global_cost)
+        return;
+
     boost::mutex::scoped_lock lock(mapMutex_);
 
     if (!hasStaticMap_)

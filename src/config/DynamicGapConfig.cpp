@@ -79,7 +79,7 @@ namespace dynamic_gap
             ros_throw_param_load(nh, "gap_feasibility_check", planning.gap_feasibility_check);
             nh.param("perfect_gap_models", planning.perfect_gap_models, planning.perfect_gap_models);
             ros_throw_param_load(nh, "perfect_gap_models", planning.perfect_gap_models);
-
+            
 
             // nh.param("heading", planning.heading, planning.heading);
             // ROS_INFO_STREAM_NAMED("Planner", "       setting heading to " << planning.heading);
