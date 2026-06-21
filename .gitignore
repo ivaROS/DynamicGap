@@ -1,3 +1,15 @@
+# GRU/ML generated artifacts
+ml_gap_velocity/data/
+ml_gap_velocity/models/
+ml_gap_velocity/plots/
+
+# Optional: common generated ML artifacts
+*.pt
+*.pth
+*.onnx
+*.csv
+*.npy
+*.npz
 
 .aux
 .fdb_latexmk
