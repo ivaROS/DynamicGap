@@ -12,10 +12,19 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   rospy
   pedsim_msgs
   dynamic_reconfigure
+  std_msgs
+  geometry_msgs
+  visualization_msgs
+  message_runtime
+)
+
+set(CATKIN_BUILD_DEPENDENCIES
+  ${CATKIN_PACKAGE_DEPENDENCIES}
+  message_generation
 )
 
 find_package(catkin REQUIRED COMPONENTS
-          ${CATKIN_PACKAGE_DEPENDENCIES}
+          ${CATKIN_BUILD_DEPENDENCIES}
         )
 
 find_package(Boost REQUIRED COMPONENTS system)
@@ -29,6 +38,17 @@ find_package(OsqpEigen REQUIRED)
 generate_dynamic_reconfigure_options(
   cfg/ControlParameters.cfg
   cfg/EstimationParameters.cfg
+)
+
+add_message_files(
+  FILES
+  GapPointObservation.msg
+  GapVelocityPrediction.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 ###################################
@@ -86,8 +106,14 @@ add_library(${PROJECT_NAME}
   src/TimeKeeper.cpp
   ) 
 
+add_dependencies(${PROJECT_NAME}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
 catkin_install_python(PROGRAMS
   scripts/fmm_distance_node.py
+  ml_gap_velocity/scripts/gru_gap_velocity_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
