@@ -10,7 +10,10 @@
 #include <iomanip>
 
 namespace dynamic_gap
-{   
+{      
+
+
+
     Planner::~Planner()
     {
         if (gapVelocityCsvFile_.is_open())
@@ -358,7 +361,7 @@ nh_.param<std::string>(
     gapVelocityCsvLoggingEnabled_ = true;
 
     std::string baseDir =
-        "/home/az/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
+        "/home/azaro/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
 
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
@@ -3702,12 +3705,12 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 
             // if planner has been idling for longer than maxt and incoming score is better
 
-            // if (incomingPathCost < reducedCurrentPathSubCost) 
-            // {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
-            //                                                 ": incoming trajectory is lower score");
-            //     changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            // }
+            if (incomingPathCost < reducedCurrentPathSubCost) 
+            {
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
+                                                            ": incoming trajectory is lower score");
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            }
             
             
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory maintain");

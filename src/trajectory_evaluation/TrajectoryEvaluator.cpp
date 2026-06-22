@@ -14,8 +14,8 @@ namespace dynamic_gap
         //////////////////////////////////////////////////////
 
         useGruGapFeatureDensityCost_ = true;
-        maxGruGapFeaturePredictionAgeSec_ = 3.0;
-        gruGapDensityCostWeight_ = 2.0f;
+        maxGruGapFeaturePredictionAgeSec_ = 1.5;
+        gruGapDensityCostWeight_ = 2.5f;
 
         const std::string gruGapFeatureDensityTopic =
             "/rto/gru_gap_feature_prediction";
@@ -138,11 +138,10 @@ namespace dynamic_gap
 
         for (size_t i = 0; i < msg->output_names.size(); ++i)
         {
-            if (msg->output_names.at(i) == "gt_sector_density")
+            if (msg->output_names.at(i) == "gt_sector_density" ||
+                msg->output_names.at(i).find("future_sector_density") != std::string::npos)
             {
-                predDensity =
-                    msg->output_values.at(i);
-
+                predDensity = msg->output_values.at(i);
                 foundDensity = true;
                 break;
             }
