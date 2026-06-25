@@ -61,11 +61,13 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Dynamic Gap1
+        - /Dynamic Gap1/Gaps1
         - /Dynamic Gap1/Trajectories1
         - /Marker2
         - /Marker3
         - /Marker4
         - /MarkerArray1
+        - /MarkerArray2
       Splitter Ratio: 0.5
     Tree Height: 822
 Preferences:
@@ -274,7 +276,6 @@ Visualization Manager:
       Marker Topic: /pedsim_visualizer/walls
       Name: PedsimWalls
       Namespaces:
-        obstacle: true
         world: true
       Queue Size: 100
       Value: true
@@ -407,13 +408,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/MarkerArray
-              Enabled: true
+              Enabled: false
               Marker Topic: /rto/simp_gap_model_velocities
               Name: MarkerArray
               Namespaces:
-                simp: true
+                {}
               Queue Size: 100
-              Value: true
+              Value: false
             - Class: rviz/MarkerArray
               Enabled: false
               Marker Topic: /rto/manip_gap_model_positions
@@ -843,6 +844,15 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /gru_gap_velocity_markers
+      Name: MarkerArray
+      Namespaces:
+        gru_gap_velocity_after_adding_robot_vel: true
+        perfect_gap_velocity_after_adding_robot_vel: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -880,10 +890,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 132.31381225585938
+      Scale: 133.88380432128906
       Target Frame: rto/base_link
-      X: 1.2716037034988403
-      Y: 0.11432459950447083
+      X: 0.29213058948516846
+      Y: 0.16968128085136414
     Saved: ~
 Window Geometry:
   Displays:

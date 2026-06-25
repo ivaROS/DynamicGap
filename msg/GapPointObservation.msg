@@ -6,6 +6,7 @@ string side
 
 float32 gap_x
 float32 gap_y
+float32 robot_omega
 
 float32 kalman_rel_vx
 float32 kalman_rel_vy

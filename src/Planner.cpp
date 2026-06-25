@@ -267,7 +267,7 @@ namespace dynamic_gap
             << "sample_idx,gap_index,model_id,side,x,y,kalman_vx,kalman_vy,"
             << "perfect_rel_vx,perfect_rel_vy,perfect_world_robot_vx,"
             << "perfect_world_robot_vy,matched_agent_id,match_dist,"
-            << "matched_dynamic_agent\n";
+            << "matched_dynamic_agent,robot_omega\n";
         gruCsvFile_.flush();
     }
 
@@ -563,7 +563,8 @@ namespace dynamic_gap
         if (gruCsvLoggingEnabled_)
         {
             logGruTrainingRow(int(0.5 * idx), model->getID(), side,
-                              measurement, kalmanState, perfectLabel);
+                              measurement, kalmanState, perfectLabel,
+                              robotVelocity);
         }
 
         publishGapPointObservation(tCurrentFilterUpdate,
@@ -572,7 +573,8 @@ namespace dynamic_gap
                                    model,
                                    measurement,
                                    kalmanState,
-                                   perfectLabel);
+                                   perfectLabel,
+                                   robotVelocity);
 
         if (!useGruGapVelocity_)
             return;
@@ -638,7 +640,8 @@ namespace dynamic_gap
         Estimator * model,
         const Eigen::Vector2f & measurement,
         const Eigen::Vector4f & kalmanState,
-        const PerfectGapVelocityLabel & perfectLabel)
+        const PerfectGapVelocityLabel & perfectLabel,
+        const geometry_msgs::TwistStamped & robotVelocity)
     {
         dynamic_gap::GapPointObservation observation;
         observation.header.stamp = stamp;
@@ -648,6 +651,7 @@ namespace dynamic_gap
         observation.side = side;
         observation.gap_x = measurement[0];
         observation.gap_y = measurement[1];
+        observation.robot_omega = robotVelocity.twist.angular.z;
         observation.kalman_rel_vx = kalmanState[2];
         observation.kalman_rel_vy = kalmanState[3];
         observation.perfect_rel_vx = perfectLabel.relativeVelocity[0];
@@ -707,7 +711,8 @@ namespace dynamic_gap
         const std::string & side,
         const Eigen::Vector2f & measurement,
         const Eigen::Vector4f & kalmanState,
-        const PerfectGapVelocityLabel & perfectLabel)
+        const PerfectGapVelocityLabel & perfectLabel,
+        const geometry_msgs::TwistStamped & robotVelocity)
     {
         if (!gruCsvLoggingEnabled_ || !gruCsvFile_.is_open())
             return;
@@ -732,7 +737,8 @@ namespace dynamic_gap
             << perfectLabel.worldVelocityRobot[1] << ","
             << perfectLabel.matchedAgentID << ","
             << matchDistance << ","
-            << static_cast<int>(perfectLabel.matchedDynamicAgent)
+            << static_cast<int>(perfectLabel.matchedDynamicAgent) << ","
+            << robotVelocity.twist.angular.z
             << "\n";
         gruCsvFile_.flush();
     }

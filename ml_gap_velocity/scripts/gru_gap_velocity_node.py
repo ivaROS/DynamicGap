@@ -16,7 +16,7 @@ from dynamic_gap.msg import GapPointObservation, GapVelocityPrediction
 
 
 class GapGRU(nn.Module):
-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
+    def __init__(self, input_size=5, hidden_size=64, num_layers=2, output_size=2):
         super().__init__()
         self.gru = nn.GRU(
             input_size=input_size,
@@ -24,11 +24,15 @@ class GapGRU(nn.Module):
             num_layers=num_layers,
             batch_first=True,
         )
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.head = nn.Sequential(
+            nn.Linear(hidden_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, output_size),
+        )
 
     def forward(self, x):
         output, _ = self.gru(x)
-        return self.fc(output[:, -1, :])
+        return self.head(output[:, -1, :])
 
 
 class Normalizer:
@@ -93,7 +97,7 @@ class GRUGapVelocityNode:
         self.stats_path = rospy.get_param("~stats_path", "")
 
         self.seq_len = int(rospy.get_param("~seq_len", 10))
-        self.input_size = int(rospy.get_param("~input_size", 2))
+        self.input_size = int(rospy.get_param("~input_size", 5))
         self.hidden_size = int(rospy.get_param("~hidden_size", 64))
         self.num_layers = int(rospy.get_param("~num_layers", 2))
         self.output_size = int(rospy.get_param("~output_size", 2))
@@ -149,6 +153,7 @@ class GRUGapVelocityNode:
         rospy.loginfo("Subscribing to: %s", self.observation_topic)
         rospy.loginfo("Publishing predictions to: %s", self.prediction_topic)
         rospy.loginfo("Publishing markers to: %s", self.marker_topic)
+        rospy.loginfo("Using GRU input size: %d", self.input_size)
 
     def _load_model(self):
         try:
@@ -189,12 +194,30 @@ class GRUGapVelocityNode:
                 self.buffers[key].clear()
         self.last_stamp_by_key[key] = stamp
 
+    def _make_feature(self, key, message):
+        if len(self.buffers[key]) > 0:
+            previous = self.buffers[key][-1]
+            dx = message.gap_x - previous[0]
+            dy = message.gap_y - previous[1]
+        else:
+            dx = 0.0
+            dy = 0.0
+
+        return np.asarray(
+            [
+                message.gap_x,
+                message.gap_y,
+                dx,
+                dy,
+                getattr(message, "robot_omega", 0.0),
+            ],
+            dtype=np.float32,
+        )
+
     def observation_callback(self, message):
         key = self._key(message)
         self._clear_stale_buffer(key, message.header.stamp)
-        self.buffers[key].append(
-            np.asarray([message.gap_x, message.gap_y], dtype=np.float32)
-        )
+        self.buffers[key].append(self._make_feature(key, message))
 
         if len(self.buffers[key]) < self.seq_len:
             self._publish_prediction(message, 0.0, 0.0, False, len(self.buffers[key]))

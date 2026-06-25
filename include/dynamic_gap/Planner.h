@@ -254,6 +254,7 @@ namespace dynamic_gap
             * \param measurement observed gap-point position in robot frame
             * \param kalmanState estimator state before any GRU velocity override
             * \param perfectLabel ground-truth relative velocity and agent-match metadata
+            * \param robotVelocity current robot velocity in robot frame
             */
             void publishGapPointObservation(const ros::Time & stamp,
                                             const int & gapIndex,
@@ -261,7 +262,8 @@ namespace dynamic_gap
                                             Estimator * model,
                                             const Eigen::Vector2f & measurement,
                                             const Eigen::Vector4f & kalmanState,
-                                            const PerfectGapVelocityLabel & perfectLabel);
+                                            const PerfectGapVelocityLabel & perfectLabel,
+                                            const geometry_msgs::TwistStamped & robotVelocity);
 
             /**
             * \brief Ground-truth velocity label associated with one observed gap point
@@ -298,13 +300,15 @@ namespace dynamic_gap
             * \param measurement observed gap-point position in robot frame
             * \param kalmanState estimator state before any GRU velocity override
             * \param perfectLabel ground-truth relative velocity and agent-match metadata
+            * \param robotVelocity current robot velocity in robot frame
             */
             void logGruTrainingRow(const int & gapIndex,
                                    const int & modelID,
                                    const std::string & side,
                                    const Eigen::Vector2f & measurement,
                                    const Eigen::Vector4f & kalmanState,
-                                   const PerfectGapVelocityLabel & perfectLabel);
+                                   const PerfectGapVelocityLabel & perfectLabel,
+                                   const geometry_msgs::TwistStamped & robotVelocity);
 
             /**
             * \brief Call back function for other agent odometry messages
