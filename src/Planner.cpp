@@ -576,17 +576,57 @@ namespace dynamic_gap
                                    perfectLabel,
                                    robotVelocity);
 
-        if (!useGruGapVelocity_)
-            return;
+        bool usedGruVelocity = false;
+        Eigen::Vector2f gruRelativeVelocity(0.0f, 0.0f);
 
-        // Missing, invalid, mismatched, or stale predictions leave Kalman unchanged.
-        Eigen::Vector2f gruRelativeVelocity;
-        if (getLatestGruVelocityForModel(model->getID(), side,
-                                         tCurrentFilterUpdate,
-                                         gruRelativeVelocity))
+        if (useGruGapVelocity_)
         {
-            model->setRelativeVelocityEstimate(gruRelativeVelocity);
+            // Missing, invalid, mismatched, or stale predictions leave Kalman unchanged.
+            bool haveGruVelocity = getLatestGruVelocityForModel(model->getID(), side,
+                                                                tCurrentFilterUpdate,
+                                                                gruRelativeVelocity);
+
+            if (haveGruVelocity)
+            {
+                model->setRelativeVelocityEstimate(gruRelativeVelocity);
+                usedGruVelocity = true;
+
+                ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
+                    "overriding " << side
+                    << " GRU relvel=("
+                    << gruRelativeVelocity[0] << ", " << gruRelativeVelocity[1] << ")"
+                    << " old kalman=("
+                    << kalmanState[2] << ", "
+                    << kalmanState[3] << ")"
+                );
+            }
+            else
+            {
+                ROS_INFO_STREAM_NAMED("GRUGapVelocity",
+                    "no fresh GRU velocity for model " << model->getID()
+                    << " " << side
+                    << ", keeping Kalman velocity=("
+                    << kalmanState[2] << ", "
+                    << kalmanState[3] << ")"
+                );
+            }
         }
+
+        const Eigen::Vector4f activeState = model->getState();
+        ROS_INFO_STREAM_NAMED("GapVelocityLabel",
+            "gap " << int(0.5 * idx)
+            << " " << side
+            << " model " << model->getID()
+            << " pos=(" << measurement[0] << ", " << measurement[1] << ")"
+            << " kalman_vel=(" << kalmanState[2] << ", " << kalmanState[3] << ")"
+            << " active_model_vel=(" << activeState[2] << ", " << activeState[3] << ")"
+            << " used_gru=" << usedGruVelocity
+            << " perfect_rel_vel=(" << perfectLabel.relativeVelocity[0]
+            << ", " << perfectLabel.relativeVelocity[1] << ")"
+            << " matched_agent=" << perfectLabel.matchedAgentID
+            << " match_dist=" << perfectLabel.matchDistance
+            << " dynamic=" << perfectLabel.matchedDynamicAgent
+        );
     }
 
     void Planner::gruGapVelocityCB(
