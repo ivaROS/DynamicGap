@@ -15,7 +15,7 @@ namespace dynamic_gap
 
         useGruGapFeatureDensityCost_ = true;
         maxGruGapFeaturePredictionAgeSec_ = 1.5;
-        gruGapDensityCostWeight_ = 2.5f;
+        gruGapDensityCostWeight_ = 0.5f;
 
         const std::string gruGapFeatureDensityTopic =
             "/rto/gru_gap_feature_prediction";

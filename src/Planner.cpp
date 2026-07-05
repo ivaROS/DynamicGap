@@ -1165,7 +1165,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
 
         //////////////////////////////////////////////////////
-        // 4. Store closest-agent info
+        // 4. Store closest-agent info /
         //////////////////////////////////////////////////////
 
         label.match_dist = minDist;
