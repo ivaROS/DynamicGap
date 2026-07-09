@@ -277,8 +277,6 @@ namespace dynamic_gap
         Eigen::Vector2f rightVel(0,0);
 
         
-        if(cfg_->planning.social_cost_function == 1)
-        {
         if(gap)
         {
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
@@ -446,7 +444,6 @@ namespace dynamic_gap
     //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
         
     // }
-        }
     }
 
         // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
@@ -677,8 +674,6 @@ namespace dynamic_gap
         Eigen::Vector2f rightVel(0,0);
 
         
-        if(cfg_->planning.social_cost_function == 1)
-        {
         if(gap)
         {
         // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "gap->getLeftGapPt()->getUngapID()");
@@ -847,7 +842,6 @@ namespace dynamic_gap
     //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
         
     // }
-        }
     }
 
         // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
@@ -1061,8 +1055,6 @@ namespace dynamic_gap
         Eigen::Vector2f rightVel(0,0);
 
         
-        if(cfg_->planning.social_cost_function == 1)
-        {
         // if(gap)
         if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
@@ -1253,7 +1245,6 @@ namespace dynamic_gap
     //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
         
     // }
-        }
     }
 
         // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
@@ -1407,8 +1398,6 @@ namespace dynamic_gap
         Eigen::Vector2f rightVel(0,0);
 
         
-        if(cfg_->planning.social_cost_function == 1)
-        {
         // if(gap)
         if(rightGapPtID != -1 && leftGapPtID != -1) // they're initialized to -1
         {
@@ -1601,7 +1590,6 @@ namespace dynamic_gap
     //     INFO("TrajectoryEvaluator", gap->getLeftGapPt()->getUngapID());
         
     // }
-        }
     }
 
         // geometry_msgs::PoseArray path = traj.getPathRbtFrame();
