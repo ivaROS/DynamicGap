@@ -72,7 +72,7 @@ namespace dynamic_gap
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool dwa_method = true; /**< Flag for using dwa to generate trajectories instead of pursuit guidance */
-                bool social_cost_function = true;
+                bool social_cost_function = false;
                 bool FMM_global_cost = false; /** Flag for using FMM global cost/progress score instead of using global planner related score (which uses the Qf constant) */
                 // float social_cost_weight = 1.0; 
             } planning;            
@@ -134,7 +134,7 @@ namespace dynamic_gap
                 float w_speed = 0.0; // NOTE: speed cost is not added anywhere. If you want to use it you have 
                 // to add it to eiether terminal cost once, or you can somehow add it to every pose.  
                 float w_relvel = 1.0;  /** weight for relative velocity cost (aka social cost) */
-                bool use_h_cost = true; /** Flag for using the CBF h-based trajectory scoring cost */
+                bool use_h_cost = false; /** Flag for using the CBF h-based trajectory scoring cost */
                 float w_h = 1.0; /** weight for using the cbf's h to compute a cost for scoring */
             } traj;            
             
