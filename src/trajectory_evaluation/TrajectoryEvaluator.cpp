@@ -457,8 +457,11 @@ namespace dynamic_gap
         float leftGapPtCost = 0; 
         float rightGapPtCost = 0; 
         float weight = cfg_->traj.w_relvel; 
+        float avg_relvel_cost = 0.0f;
 
 
+        if (cfg_->planning.social_cost_function)
+        {
         for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
@@ -496,6 +499,8 @@ namespace dynamic_gap
             dwa_RelVelPoseCosts.at(i) = leftGapPtCost + rightGapPtCost;
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_RelVelPoseCosts.at(i): " << dwa_RelVelPoseCosts.at(i)); 
         }
+        avg_relvel_cost = std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size();
+        }
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -530,7 +535,7 @@ namespace dynamic_gap
             totalTrajCost =
                 (std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size()) +
                 cfg_->traj.w_path * avg_path_cost + terminalPoseCost + 
-                cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
+                cfg_->traj.w_relvel * avg_relvel_cost;
         
 ////////////////////////// just debugingg!!!!! ADD THE REST OF THE COSTS BACK!! 
             // totalTrajCost = cfg_->traj.w_relvel * (std::accumulate(dwa_RelVelPoseCosts.begin(), dwa_RelVelPoseCosts.end(), float(0)) / dwa_RelVelPoseCosts.size());
@@ -855,6 +860,8 @@ namespace dynamic_gap
         float weight = cfg_->traj.w_relvel; 
 
 
+        if (cfg_->planning.social_cost_function)
+        {
         for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
@@ -891,6 +898,7 @@ namespace dynamic_gap
             }
             dwa_RelVelPoseCosts.at(i) = leftGapPtCost + rightGapPtCost;
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_RelVelPoseCosts.at(i): " << dwa_RelVelPoseCosts.at(i)); 
+        }
         }
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -936,11 +944,14 @@ namespace dynamic_gap
         
         
         // this is very ugly but I need to repackage posewiseCosts so it contains all the costs that occur at every pose. this is what compareToCurrentTraj() expects
+            if (cfg_->planning.social_cost_function)
+            {
             for (int i = 0; i < posewiseCosts.size(); i++) 
             {
                 posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it 
                 // in future if you want to add path costs, you have to add it here as well 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
+            }
             }
             // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
@@ -1255,6 +1266,8 @@ namespace dynamic_gap
         float weight = cfg_->traj.w_relvel; 
 
 
+        if (cfg_->planning.social_cost_function)
+        {
         for (int i = 0; i < posewiseCosts.size(); i++) //todo combine with the path and pose cost loops above
         {
             if (leftGapPtIsDynamic){ // if(leftGapPtIsDynamic){
@@ -1291,6 +1304,7 @@ namespace dynamic_gap
             }
             dwa_RelVelPoseCosts.at(i) = leftGapPtCost + rightGapPtCost;
             // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_RelVelPoseCosts.at(i): " << dwa_RelVelPoseCosts.at(i)); 
+        }
         }
 
         ///////////////////////////////////////////////////// social code //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1336,6 +1350,8 @@ namespace dynamic_gap
         
         
         // this is very ugly but I need to repackage posewiseCosts so it contains all the costs that occur at every pose. this is what compareToCurrentTraj() expects
+            if (cfg_->planning.social_cost_function)
+            {
             for (int i = 0; i < posewiseCosts.size(); i++) 
             {
                 posewiseCosts.at(i) += dwa_RelVelPoseCosts.at(i); // tach on the relvel costs to it
@@ -1343,6 +1359,7 @@ namespace dynamic_gap
                 
                 // in future if you want to add path costs, you have to add it here as well 
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_reducedCurrentTraj cost: " << posewiseCosts.at(i) << "): ");
+            }
             }
             // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
