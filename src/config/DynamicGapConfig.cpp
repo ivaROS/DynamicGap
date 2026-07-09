@@ -129,6 +129,9 @@ namespace dynamic_gap
             // nh.param("Q_f", traj.Q_f, traj.Q_f);
             ros_throw_param_load(nh, "Q_f", traj.Q_f);
 
+            nh.param("use_h_cost", traj.use_h_cost, traj.use_h_cost);
+            nh.param("w_h", traj.w_h, traj.w_h);
+
             // Projection Params
             // nh.param("k_po_x", projection.k_po_x, projection.k_po_x);
             ros_throw_param_load(nh, "k_po_x", projection.k_po_x);

@@ -501,27 +501,30 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
-        float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel); 
-        float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel); 
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
+        if (cfg_->traj.use_h_cost)
+        {
+            float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel);
+            float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel);
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
 
-        // Violation magnitudes (only when H < 0)
-        float vL = std::max(0.0f, -left_h);
-        float vR = std::max(0.0f, -right_h);
+            // Violation magnitudes (only when H < 0)
+            float vL = std::max(0.0f, -left_h);
+            float vR = std::max(0.0f, -right_h);
 
-        // Combine endpoints (two bad sides worse than one)
-        float V = vL + vR;
+            // Combine endpoints (two bad sides worse than one)
+            float V = vL + vR;
 
-        // Deadband to ignore tiny negatives (tune this)
-        const float epsilon = 0.05f;
-        float V_eff = std::max(0.0f, V - epsilon);
+            // Deadband to ignore tiny negatives (tune this)
+            const float epsilon = 0.05f;
+            float V_eff = std::max(0.0f, V - epsilon);
 
-        // Amplify (helps because H kinda saturates around 0.4–0.5)
-        // float h_cost = V_eff * V_eff;
-        float h_cost = V_eff; 
+            // Amplify (helps because H kinda saturates around 0.4–0.5)
+            // float h_cost = V_eff * V_eff;
+            float h_cost = V_eff;
 
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-        terminalPoseCost += h_cost; // just taching h_cost onto this
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
+        }
 
             // Combine into a final cost
             totalTrajCost =
@@ -894,27 +897,30 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
-        float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel); 
-        float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel); 
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
+        if (cfg_->traj.use_h_cost)
+        {
+            float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel);
+            float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel);
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
 
-        // Violation magnitudes (only when H < 0)
-        float vL = std::max(0.0f, -left_h);
-        float vR = std::max(0.0f, -right_h);
+            // Violation magnitudes (only when H < 0)
+            float vL = std::max(0.0f, -left_h);
+            float vR = std::max(0.0f, -right_h);
 
-        // Combine endpoints (two bad sides worse than one)
-        float V = vL + vR;
+            // Combine endpoints (two bad sides worse than one)
+            float V = vL + vR;
 
-        // Deadband to ignore tiny negatives (tune this)
-        const float epsilon = 0.05f;
-        float V_eff = std::max(0.0f, V - epsilon);
+            // Deadband to ignore tiny negatives (tune this)
+            const float epsilon = 0.05f;
+            float V_eff = std::max(0.0f, V - epsilon);
 
-        // Amplify (helps because H kinda saturates around 0.4–0.5)
-        // float h_cost = V_eff * V_eff;
-        float h_cost = V_eff; 
-        
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-        terminalPoseCost += h_cost; // just taching h_cost onto this
+            // Amplify (helps because H kinda saturates around 0.4–0.5)
+            // float h_cost = V_eff * V_eff;
+            float h_cost = V_eff;
+
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
+        }
         // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
 
 
@@ -1291,27 +1297,30 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
-        float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel); 
-        float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel); 
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
+        if (cfg_->traj.use_h_cost)
+        {
+            float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel);
+            float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel);
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
 
-        // Violation magnitudes (only when H < 0)
-        float vL = std::max(0.0f, -left_h);
-        float vR = std::max(0.0f, -right_h);
+            // Violation magnitudes (only when H < 0)
+            float vL = std::max(0.0f, -left_h);
+            float vR = std::max(0.0f, -right_h);
 
-        // Combine endpoints (two bad sides worse than one)
-        float V = vL + vR;
+            // Combine endpoints (two bad sides worse than one)
+            float V = vL + vR;
 
-        // Deadband to ignore tiny negatives (tune this)
-        const float epsilon = 0.05f;
-        float V_eff = std::max(0.0f, V - epsilon);
+            // Deadband to ignore tiny negatives (tune this)
+            const float epsilon = 0.05f;
+            float V_eff = std::max(0.0f, V - epsilon);
 
-        // Amplify (helps because H kinda saturates around 0.4–0.5)
-        // float h_cost = V_eff * V_eff;
-        float h_cost = V_eff; 
-        
-        // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-        terminalPoseCost += h_cost; // just taching h_cost onto this
+            // Amplify (helps because H kinda saturates around 0.4–0.5)
+            // float h_cost = V_eff * V_eff;
+            float h_cost = V_eff;
+
+            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
+            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
+        }
         // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
 
 
