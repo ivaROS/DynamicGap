@@ -3,7 +3,6 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include <algorithm>
 #include <visualization_msgs/Marker.h>
 
 #include <visualization_msgs/MarkerArray.h>
@@ -269,9 +268,7 @@ nh_.param<std::string>(
             {
                 const int rawRightScanIdx = rawGap->RIdx();
 
-                if (scanIdxInsideGapRange(rawRightScanIdx, simpRightIdx, simpLeftIdx) &&
-                    rawRightScanIdx != simpRightIdx &&
-                    rawRightScanIdx != simpLeftIdx)
+                if (scanIdxInsideGapRange(rawRightScanIdx, simpRightIdx, simpLeftIdx))
                 {
                     float rawX = 0.0f;
                     float rawY = 0.0f;
@@ -318,9 +315,7 @@ nh_.param<std::string>(
             {
                 const int rawLeftScanIdx = rawGap->LIdx();
 
-                if (scanIdxInsideGapRange(rawLeftScanIdx, simpRightIdx, simpLeftIdx) &&
-                    rawLeftScanIdx != simpRightIdx &&
-                    rawLeftScanIdx != simpLeftIdx)
+                if (scanIdxInsideGapRange(rawLeftScanIdx, simpRightIdx, simpLeftIdx))
                 {
                     float rawX = 0.0f;
                     float rawY = 0.0f;
@@ -716,28 +711,13 @@ void Planner::logSimplifiedGapVelocityCsvRow(
         const int simpRightIdx = simplifiedGap->RIdx();
         const int simpLeftIdx  = simplifiedGap->LIdx();
 
-        float simpRightX = 0.0f;
-        float simpRightY = 0.0f;
-        float simpLeftX = 0.0f;
-        float simpLeftY = 0.0f;
-
-        simplifiedGap->getRCartesian(simpRightX, simpRightY);
-        simplifiedGap->getLCartesian(simpLeftX, simpLeftY);
-
-        sectorRadius = std::max(
-            std::sqrt(simpRightX * simpRightX + simpRightY * simpRightY),
-            std::sqrt(simpLeftX * simpLeftX + simpLeftY * simpLeftY)
-        );
-
         //////////////////////////////////////////////////////
-        // 1. Loop over raw gap endpoints contained within this
-        //    simplified gap's angular interval, excluding the
-        //    simplified gap's own left/right boundary points.
+        // 1. Loop over every raw gap endpoint contained
+        //    within this simplified gap's angular interval.
         //
-        //    - Sector geometry is still defined by the simplified
-        //      gap itself.
-        //    - Dynamic count uses only non-boundary raw endpoints
-        //      whose isolated motion speed exceeds threshold.
+        //    - Radius uses ALL contained raw gap points.
+        //    - Dynamic count uses ONLY raw endpoints whose
+        //      isolated motion speed exceeds threshold.
         //////////////////////////////////////////////////////
 
         for (size_t rawGapIndex = 0;
@@ -758,9 +738,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
             if (scanIdxInsideGapRange(
                     rawRightIdx,
                     simpRightIdx,
-                    simpLeftIdx) &&
-                rawRightIdx != simpRightIdx &&
-                rawRightIdx != simpLeftIdx)
+                    simpLeftIdx))
             {
                 float rawRightX = 0.0f;
                 float rawRightY = 0.0f;
@@ -799,9 +777,7 @@ void Planner::logSimplifiedGapVelocityCsvRow(
             if (scanIdxInsideGapRange(
                     rawLeftIdx,
                     simpRightIdx,
-                    simpLeftIdx) &&
-                rawLeftIdx != simpRightIdx &&
-                rawLeftIdx != simpLeftIdx)
+                    simpLeftIdx))
             {
                 float rawLeftX = 0.0f;
                 float rawLeftY = 0.0f;
@@ -1753,9 +1729,7 @@ void Planner::publishContainedRawGapPointsMarkerArray(
             if (scanIdxInsideGapRange(
                     rawRightIdx,
                     simpRightIdx,
-                    simpLeftIdx) &&
-                rawRightIdx != simpRightIdx &&
-                rawRightIdx != simpLeftIdx)
+                    simpLeftIdx))
             {
                 float rawRightX = 0.0f;
                 float rawRightY = 0.0f;
@@ -1779,9 +1753,7 @@ void Planner::publishContainedRawGapPointsMarkerArray(
             if (scanIdxInsideGapRange(
                     rawLeftIdx,
                     simpRightIdx,
-                    simpLeftIdx) &&
-                rawLeftIdx != simpRightIdx &&
-                rawLeftIdx != simpLeftIdx)
+                    simpLeftIdx))
             {
                 float rawLeftX = 0.0f;
                 float rawLeftY = 0.0f;
@@ -1913,25 +1885,10 @@ void Planner::computeSimplifiedGapGroundTruthSectorDensity(
     const int simpLeftIdx  = simplifiedGap->LIdx();
 
     //////////////////////////////////////////////////////
-    // 1. Recompute same sector radius used by estimator density.
-    //    The simplified gap defines the sector geometry, but the
-    //    raw endpoints counted below exclude its own boundaries.
+    // 1. Recompute same sector radius used by estimator density
     //////////////////////////////////////////////////////
 
     float sectorRadius = 0.0f;
-
-    float simpRightX = 0.0f;
-    float simpRightY = 0.0f;
-    float simpLeftX = 0.0f;
-    float simpLeftY = 0.0f;
-
-    simplifiedGap->getRCartesian(simpRightX, simpRightY);
-    simplifiedGap->getLCartesian(simpLeftX, simpLeftY);
-
-    sectorRadius = std::max(
-        std::sqrt(simpRightX * simpRightX + simpRightY * simpRightY),
-        std::sqrt(simpLeftX * simpLeftX + simpLeftY * simpLeftY)
-    );
 
     for (size_t rawGapIndex = 0;
          rawGapIndex < currRawGaps_.size();
@@ -1951,9 +1908,7 @@ void Planner::computeSimplifiedGapGroundTruthSectorDensity(
         if (scanIdxInsideGapRange(
                 rawRightIdx,
                 simpRightIdx,
-                simpLeftIdx) &&
-            rawRightIdx != simpRightIdx &&
-            rawRightIdx != simpLeftIdx)
+                simpLeftIdx))
         {
             float rawRightX = 0.0f;
             float rawRightY = 0.0f;
@@ -1979,9 +1934,7 @@ void Planner::computeSimplifiedGapGroundTruthSectorDensity(
         if (scanIdxInsideGapRange(
                 rawLeftIdx,
                 simpRightIdx,
-                simpLeftIdx) &&
-            rawLeftIdx != simpRightIdx &&
-            rawLeftIdx != simpLeftIdx)
+                simpLeftIdx))
         {
             float rawLeftX = 0.0f;
             float rawLeftY = 0.0f;
@@ -2047,9 +2000,7 @@ void Planner::computeSimplifiedGapGroundTruthSectorDensity(
         if (scanIdxInsideGapRange(
                 rawRightIdx,
                 simpRightIdx,
-                simpLeftIdx) &&
-            rawRightIdx != simpRightIdx &&
-            rawRightIdx != simpLeftIdx)
+                simpLeftIdx))
         {
             float rawRightX = 0.0f;
             float rawRightY = 0.0f;
@@ -2088,9 +2039,7 @@ void Planner::computeSimplifiedGapGroundTruthSectorDensity(
         if (scanIdxInsideGapRange(
                 rawLeftIdx,
                 simpRightIdx,
-                simpLeftIdx) &&
-            rawLeftIdx != simpRightIdx &&
-            rawLeftIdx != simpLeftIdx)
+                simpLeftIdx))
         {
             float rawLeftX = 0.0f;
             float rawLeftY = 0.0f;
