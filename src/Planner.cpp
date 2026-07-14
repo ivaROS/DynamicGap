@@ -2418,7 +2418,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 ROS_INFO_STREAM_NAMED("Planner", "    tube " << i);
 
                 GapTube * gapTube = gapTubes.at(i);
-                for (int j = 0; j < gapTube->size(); j++)
+                int gapLoopSize = cfg_.planning.use_gap_tubes ? gapTube->size() : std::min(1, gapTube->size());
+                for (int j = 0; j < gapLoopSize; j++)
                 {
                     ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
 
@@ -2442,7 +2443,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                     } else // curr gap is available
                     {
-                        if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
+                        if (cfg_.planning.use_gap_tubes && j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
                         {
                             ROS_INFO_STREAM_NAMED("Planner", "          next gap unavailable, placing goal inside");
 
@@ -2548,7 +2549,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
                 Eigen::Vector2f startPt(0.0, 0.0);
 
-                for (int j = 0; j < gapTube->size(); j++) 
+                int gapLoopSize = cfg_.planning.use_gap_tubes ? gapTube->size() : std::min(1, gapTube->size());
+                for (int j = 0; j < gapLoopSize; j++) 
                 {
                     bool isGapFeasible = false;
 
@@ -2663,7 +2665,8 @@ int global_id = 0;
 std::vector<float> candidateCosts;          // includes GRU/density
 std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 
-                for (int j = 0; j < gapTube->size(); j++) 
+                int gapLoopSize = cfg_.planning.use_gap_tubes ? gapTube->size() : std::min(1, gapTube->size());
+                for (int j = 0; j < gapLoopSize; j++) 
                 {
                     Trajectory traj; 
                     Trajectory goToGoalTraj, pursuitGuidanceTraj;
@@ -2968,7 +2971,7 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
             pursuitGuidanceTraj
         );
 
-    if (j == (gapTube->size() - 1))
+    if (j == (gapLoopSize - 1))
     {
         pursuitGuidanceTraj =
             gapTrajGenerator_->pruneTrajectory(
