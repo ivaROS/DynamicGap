@@ -67,6 +67,9 @@ namespace dynamic_gap
             /**
             * \brief Function for evaluating pose-wise scores along candidate trajectory
             * \param traj candidate trajectory to score
+            * \param gapWidth candidate gap mouth width [m] (<=0 disables aspect-ratio cost)
+            * \param gapDepth candidate gap radial depth [m] (<0 disables aspect-ratio cost)
+            * \param aspectRatioOut optional out: computed depth/width ratio (-1 if unused)
             */
             void evaluateTrajectory(
                 const Trajectory & traj,
@@ -75,7 +78,10 @@ namespace dynamic_gap
                 const std::vector<sensor_msgs::LaserScan> & futureScans,
                 const int & scanIdx,
                 const int & densityModelID,
-                    float* terminalPoseCostNoDensity = nullptr);
+                    float* terminalPoseCostNoDensity = nullptr,
+                float gapWidth = -1.0f,
+                float gapDepth = -1.0f,
+                float* aspectRatioOut = nullptr);
 
             /**
              * \brief Stores latest GRU density prediction for a gap model
@@ -112,6 +118,22 @@ namespace dynamic_gap
 
             std::map<int, GruGapFeatureDensityEstimate>
                 latestGruGapFeatureDensityByModelID_;
+
+            //////////////////////////////////////////////////////
+            // Gap aspect-ratio trajectory cost (geometric)
+            //////////////////////////////////////////////////////
+
+            bool useGapAspectRatioCost_ = true;
+            float gapAspectRatioCostWeight_ = 0.5f;
+
+            /**
+            * \brief aspect ratio (depth / width) of a candidate gap
+            * \param gapWidth gap mouth width [m]
+            * \param gapDepth gap radial depth [m]
+            * \return depth/width, or -1.0f if geometry is invalid/degenerate
+            */
+            float gapAspectRatio(const float& gapWidth,
+                                 const float& gapDepth) const;
 
             /**
             * \brief function for evaluating terminal waypoint cost for candidate trajectory

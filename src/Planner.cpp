@@ -423,6 +423,47 @@ nh_.param<std::string>(
         << gapVelocityCsvPath_);
 }
 
+//////////////////////////////////////////////////////
+// Gap aspect-ratio geometry
+//
+// width : gap mouth width  = || L - R ||         (Cartesian, rbt frame)
+// depth : gap radial reach = mean(|| L ||, || R ||)
+//
+// The aspect ratio (depth / width) is formed downstream in
+// TrajectoryEvaluator. gapWidth is left < 0 when the geometry is
+// unavailable, which disables the aspect-ratio cost for that gap.
+//////////////////////////////////////////////////////
+
+static void computeGapAspectRatioGeometry(
+    Gap* gap,
+    float& gapWidth,
+    float& gapDepth)
+{
+    gapWidth = -1.0f;
+    gapDepth = -1.0f;
+
+    if (!gap)
+        return;
+
+    float lx = 0.0f, ly = 0.0f;
+    float rx = 0.0f, ry = 0.0f;
+
+    gap->getLCartesian(lx, ly);
+    gap->getRCartesian(rx, ry);
+
+    const float dx = lx - rx;
+    const float dy = ly - ry;
+
+    gapWidth = std::sqrt(dx * dx + dy * dy);
+
+    const float lRange = std::sqrt(lx * lx + ly * ly);
+    const float rRange = std::sqrt(rx * rx + ry * ry);
+
+    // depth = how far the gap mouth sits from the robot.
+    // far + narrow -> large aspect ratio -> penalized.
+    gapDepth = 0.5f * (lRange + rRange);
+}
+
 int Planner::getGapLeftModelIDForDensityCost(
     Gap* gap) const
     {
@@ -3015,6 +3056,20 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 
     float pursuitGuidanceTerminalPoseCostNoDensity = 0.0f;
 
+    //////////////////////////////////////////////////////
+    // Gap aspect-ratio geometry for this candidate gap
+    //////////////////////////////////////////////////////
+
+    float pursuitGuidanceGapWidth = -1.0f;
+    float pursuitGuidanceGapDepth = -1.0f;
+    computeGapAspectRatioGeometry(
+        gap,
+        pursuitGuidanceGapWidth,
+        pursuitGuidanceGapDepth
+    );
+
+    float pursuitGuidanceAspectRatio = -1.0f;
+
     trajEvaluator_->evaluateTrajectory(
         pursuitGuidanceTraj,
         pursuitGuidancePoseCosts,
@@ -3022,7 +3077,10 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
         futureScans,
         scanIdx,
         densityModelID,
-        &pursuitGuidanceTerminalPoseCostNoDensity
+        &pursuitGuidanceTerminalPoseCostNoDensity,
+        pursuitGuidanceGapWidth,
+        pursuitGuidanceGapDepth,
+        &pursuitGuidanceAspectRatio
     );
 
     float pursuitGuidanceAveragePoseCost = 0.0f;
@@ -3085,15 +3143,15 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
     std::vector<float> singleTrajCostsForViz;
     singleTrajCostsForViz.push_back(pursuitGuidancePoseCost);
 
-    std::vector<float> singleTrajBaseCostsForViz;
-    singleTrajBaseCostsForViz.push_back(
-        pursuitGuidancePoseCostNoDensity
+    std::vector<float> singleTrajAspectRatiosForViz;
+    singleTrajAspectRatiosForViz.push_back(
+        pursuitGuidanceAspectRatio
     );
 
     publishCandidateTrajsWithCosts(
         singleTrajForViz,
         singleTrajCostsForViz,
-        singleTrajBaseCostsForViz,
+        singleTrajAspectRatiosForViz,
         "singleTraj_gap_" + std::to_string(i)
     );
 }
@@ -4468,7 +4526,7 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 void Planner::publishCandidateTrajsWithCosts(
     const std::vector<Trajectory>& candTrajs,
     const std::vector<float>& trajCosts,
-    const std::vector<float>& trajCostsNoDensity,
+    const std::vector<float>& trajAspectRatios,
     const std::string& ns)
 {
     visualization_msgs::MarkerArray markers;
@@ -4551,39 +4609,39 @@ void Planner::publishCandidateTrajsWithCosts(
             }
 
             //////////////////////////////////////////////////////
-            // Base cost: terminal + obstacle only, no GRU/density
+            // Aspect ratio: gap depth / width (geometric)
             //////////////////////////////////////////////////////
 
-            if (i < trajCostsNoDensity.size())
+            if (i < trajAspectRatios.size() && trajAspectRatios[i] >= 0.0f)
             {
-                visualization_msgs::Marker baseText;
-                baseText.header.frame_id = cfg_.robot_frame_id;
-                baseText.header.stamp = ros::Time::now();
-                baseText.ns = ns + "_base_cost_no_density";
-                baseText.id = id++;
-                baseText.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-                baseText.action = visualization_msgs::Marker::ADD;
+                visualization_msgs::Marker arText;
+                arText.header.frame_id = cfg_.robot_frame_id;
+                arText.header.stamp = ros::Time::now();
+                arText.ns = ns + "_aspect_ratio";
+                arText.id = id++;
+                arText.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                arText.action = visualization_msgs::Marker::ADD;
 
-                baseText.pose = path.poses.back();
-                baseText.pose.position.z += 0.50;  // stacked above normal cost
-                baseText.pose.position.y += 0.45;
+                arText.pose = path.poses.back();
+                arText.pose.position.z += 0.50;  // stacked above normal cost
+                arText.pose.position.y += 0.45;
 
-                std::ostringstream ssBase;
-                ssBase << std::fixed << std::setprecision(2)
-                       << trajCostsNoDensity[i];
+                std::ostringstream ssAr;
+                ssAr << std::fixed << std::setprecision(2)
+                     << trajAspectRatios[i];
 
-                baseText.text = "base=" + ssBase.str();
+                arText.text = "AR=" + ssAr.str();
 
-                baseText.scale.z = 0.2;
+                arText.scale.z = 0.2;
 
-                // Orange, not green
-                baseText.color.r = 1.0;
-                baseText.color.g = 0.45;
-                baseText.color.b = 0.0;
-                baseText.color.a = 1.0;
+                // Orange
+                arText.color.r = 1.0;
+                arText.color.g = 0.45;
+                arText.color.b = 0.0;
+                arText.color.a = 1.0;
 
-                baseText.lifetime = ros::Duration(0.25);
-                markers.markers.push_back(baseText);
+                arText.lifetime = ros::Duration(0.25);
+                markers.markers.push_back(arText);
             }
         }
     }

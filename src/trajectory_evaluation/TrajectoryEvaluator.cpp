@@ -13,7 +13,7 @@ namespace dynamic_gap
         // GRU gap-feature density subscriber
         //////////////////////////////////////////////////////
 
-        useGruGapFeatureDensityCost_ = true;
+        useGruGapFeatureDensityCost_ = false;
         maxGruGapFeaturePredictionAgeSec_ = 1.5;
         gruGapDensityCostWeight_ = 0.5f;
 
@@ -38,6 +38,26 @@ namespace dynamic_gap
             << maxGruGapFeaturePredictionAgeSec_
             << ", cost weight: "
             << gruGapDensityCostWeight_
+        );
+
+        //////////////////////////////////////////////////////
+        // Gap aspect-ratio terminal cost (geometric)
+        //
+        // Independent of the GRU density cost. Penalizes
+        // narrow, long gaps (large depth / small width) and
+        // rewards wide, shallow gaps (small depth / large
+        // width). Applied on top of the Q_f terminal goal cost.
+        //////////////////////////////////////////////////////
+
+        useGapAspectRatioCost_ = true;
+        gapAspectRatioCostWeight_ = 0.6f;
+
+        ROS_WARN_STREAM_NAMED(
+            "GapAspectRatioCost",
+            "TrajectoryEvaluator gap aspect-ratio cost enabled: "
+            << useGapAspectRatioCost_
+            << ", cost weight: "
+            << gapAspectRatioCostWeight_
         );
     }
 
@@ -102,6 +122,35 @@ namespace dynamic_gap
             );
 
         return true;
+    }
+
+    //////////////////////////////////////////////////////
+    // Gap aspect ratio = depth / width
+    //
+    //   narrow (small width) + long  (large depth) -> large ratio -> penalized
+    //   wide   (large width) + shallow(small depth) -> small ratio -> encouraged
+    //
+    // Returns -1.0f when the geometry is unavailable or
+    // degenerate, which the caller treats as "no aspect-ratio
+    // cost applied" (so a bad/missing width never produces a
+    // spuriously large or negative terminal cost).
+    //////////////////////////////////////////////////////
+
+    float TrajectoryEvaluator::gapAspectRatio(
+    const float& gapWidth,
+    const float& gapDepth) const
+    {
+        const float minValidWidth = 1e-3f;
+
+        if (!std::isfinite(gapWidth) ||
+            !std::isfinite(gapDepth) ||
+            gapWidth <= minValidWidth ||
+            gapDepth < 0.0f)
+        {
+            return -1.0f;
+        }
+
+        return gapDepth / gapWidth;
     }
 
     void TrajectoryEvaluator::gruGapFeatureDensityCB(
@@ -207,7 +256,10 @@ namespace dynamic_gap
     const std::vector<sensor_msgs::LaserScan> & futureScans,
     const int & scanIdx,
     const int & densityModelID,
-        float* terminalPoseCostNoDensity
+        float* terminalPoseCostNoDensity,
+    float gapWidth,
+    float gapDepth,
+    float* aspectRatioOut
 )
     {
         try
@@ -364,12 +416,60 @@ namespace dynamic_gap
             }
 
             //////////////////////////////////////////////////////
+            // 3b. Gap aspect-ratio cost (geometric)
+            //
+            // Computed from the candidate gap's width/depth,
+            // passed in by the planner at evaluation time.
+            // Independent of the density cost above; either,
+            // both, or neither may be active.
+            //////////////////////////////////////////////////////
+
+            float aspectRatio = -1.0f;
+            float weightedAspectRatioCost = 0.0f;
+            bool usedAspectRatio = false;
+
+            if (useGapAspectRatioCost_)
+            {
+                aspectRatio = gapAspectRatio(gapWidth, gapDepth);
+
+                if (aspectRatio >= 0.0f)
+                {
+                    weightedAspectRatioCost =
+                        gapAspectRatioCostWeight_ *
+                        aspectRatio;
+
+                    usedAspectRatio = true;
+                }
+            }
+
+            if (aspectRatioOut)
+            {
+                *aspectRatioOut = aspectRatio;
+            }
+
+            //////////////////////////////////////////////////////
             // 4. Final terminalPoseCost returned to caller
+            //
+            //    base (Q_f goal) + density cost + aspect-ratio cost
             //////////////////////////////////////////////////////
 
             terminalPoseCost =
                 baseTerminalGoalCost +
-                weightedGruDensityCost;
+                weightedGruDensityCost +
+                weightedAspectRatioCost;
+
+            ROS_INFO_STREAM_NAMED(
+                "GapAspectRatioCost",
+                "aspect-ratio terminal cost | "
+                << "gap_width=" << gapWidth
+                << " gap_depth=" << gapDepth
+                << " aspect_ratio=" << aspectRatio
+                << " used_aspect_ratio=" << usedAspectRatio
+                << " weighted_aspect_ratio_cost=" << weightedAspectRatioCost
+                << " base_terminal_goal_cost=" << baseTerminalGoalCost
+                << " weighted_density_cost=" << weightedGruDensityCost
+                << " final_terminal_pose_cost=" << terminalPoseCost
+            );
 
             // ROS_WARN_STREAM_NAMED(
             //     "GRUGapFeatureDensityCost",
