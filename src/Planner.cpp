@@ -361,7 +361,7 @@ nh_.param<std::string>(
     gapVelocityCsvLoggingEnabled_ = true;
 
     std::string baseDir =
-        "/home/azaro/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
+        "/home/abdel/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
 
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
@@ -521,7 +521,8 @@ void Planner::logSimplifiedGapVelocityCsvRow(
     const float& sectorAngleRad,
     const float& sectorRadius,
     const float& gtSectorDensity,
-    const int& gtSectorDynamicRawGapPointCount)
+    const int& gtSectorDynamicRawGapPointCount,
+    const float& radialClosingVelocity)
     {
         //////////////////////////////////////////////////////
         // Publish once per simplified gap only.
@@ -572,6 +573,17 @@ void Planner::logSimplifiedGapVelocityCsvRow(
 
         msg.feature_names.push_back("sector_radius");
         msg.feature_values.push_back(sectorRadius);
+
+        //////////////////////////////////////////////////////
+        // Radial closing velocity: positive = gap point is
+        // approaching the robot (radius shrinking), negative =
+        // receding. Computed from pure Kalman state upstream in
+        // updateModel() so this stays consistent with kalman_vx/
+        // kalman_vy already logged to CSV, not any GRU override.
+        //////////////////////////////////////////////////////
+
+        msg.feature_names.push_back("radial_closing_velocity");
+        msg.feature_values.push_back(radialClosingVelocity);
 
         //////////////////////////////////////////////////////
         // Targets are included for debugging/logging only.
@@ -1385,6 +1397,7 @@ void Planner::updateModel(
     float sectorDensity = 0.0f;
     int gtSectorDynamicRawGapPointCount = 0;
     float gtSectorDensity = 0.0f;
+    float radialClosingVelocity = 0.0f;
 
     if (logSimplifiedGapVelocityLabels)
     {
@@ -1418,6 +1431,23 @@ void Planner::updateModel(
             gtSectorDynamicRawGapPointCount,
             gtSectorDensity
         );
+
+        //////////////////////////////////////////////////////
+        // Radial closing velocity of this gap point, computed
+        // from the PURE KALMAN state (gapX, gapY, kalmanVx,
+        // kalmanVy above) so it matches what's already logged
+        // to CSV rather than any GRU-overridden velocity.
+        //
+        // Positive = point approaching the robot (radius shrinking)
+        // Negative = point receding from the robot (radius growing)
+        //////////////////////////////////////////////////////
+
+        const float kMinRadialDist = 1e-3f;
+        float gapRadialDist = std::sqrt(gapX * gapX + gapY * gapY);
+        gapRadialDist = std::max(gapRadialDist, kMinRadialDist);
+
+        radialClosingVelocity =
+            -(gapX * kalmanVx + gapY * kalmanVy) / gapRadialDist;
 
             // if (side == "left") // you can print just the left one if its easier to read
             // {
@@ -1531,7 +1561,8 @@ void Planner::updateModel(
             sectorAngleRad,
             sectorRadius,
             gtSectorDensity,
-            gtSectorDynamicRawGapPointCount
+            gtSectorDynamicRawGapPointCount,
+            radialClosingVelocity
         );
     }
     //////////////////////////////////////////////////////
@@ -3932,9 +3963,9 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
         } 
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());

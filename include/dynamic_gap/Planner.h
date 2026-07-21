@@ -265,7 +265,8 @@ namespace dynamic_gap
             const float& sectorAngleRad,
             const float& sectorRadius,
             const float& gtSectorDensity,
-            const int& gtSectorDynamicRawGapPointCount);
+            const int& gtSectorDynamicRawGapPointCount,
+            const float& radialClosingVelocity);
             float gapDensityDynamicSpeedThresh_ = 0.05f;
 
 

@@ -141,6 +141,7 @@ class GRUGapFeatureNode:
         # ============================================================
         self.use_density_rate = "density_rate_of_change" in self.input_features
         self.use_aspect_ratio = "aspect_ratio"           in self.input_features
+        self.use_track_age    = "track_age"              in self.input_features
 
         # Index of sector_density in the raw (unnormalized) buffer
         # entries, needed to compute density_rate_of_change at runtime.
@@ -153,6 +154,7 @@ class GRUGapFeatureNode:
 
         rospy.loginfo("use_density_rate: %s", self.use_density_rate)
         rospy.loginfo("use_aspect_ratio: %s", self.use_aspect_ratio)
+        rospy.loginfo("use_track_age: %s", self.use_track_age)
 
         # Buffer stores raw (unnormalized) full feature vectors per
         # model_id+side key. Normalization happens on the full sequence
@@ -245,7 +247,7 @@ class GRUGapFeatureNode:
     # having to be queried again.
     # ----------------------------------------------------------------
 
-    def build_model_input_sample(self, msg, prev_sample=None):
+    def build_model_input_sample(self, msg, prev_sample=None, track_age=0):
         """
         Returns a 1-D float32 numpy array of length len(input_features),
         in the exact order the model was trained on.
@@ -311,6 +313,16 @@ class GRUGapFeatureNode:
                 MIN_SECTOR_ANGLE_RAD,
             )
             feature_dict["aspect_ratio"] = 1.0 / angle
+        
+        # --------------------------------------------------------
+        # track_age: zero-indexed position of this observation within
+        # its gap track. Must be computed and passed in by the caller
+        # BEFORE appending the current sample to the buffer, so that
+        # the first observation gets 0 — matching the training-time
+        # definition (np.arange(len(group)) per model_id group).
+        # --------------------------------------------------------
+        if self.use_track_age:
+            feature_dict["track_age"] = float(track_age)
 
         # Build the array in the exact feature order the model expects.
         return np.array(
@@ -345,7 +357,13 @@ class GRUGapFeatureNode:
                 else None
             )
 
-            sample = self.build_model_input_sample(msg, prev_sample=prev_sample)
+            # Number of observations already buffered for this gap track
+            # BEFORE appending the current one — this is exactly the
+            # zero-indexed track age (first observation -> 0, matching
+            # training).
+            track_age = len(self.buffers[key])
+
+            sample = self.build_model_input_sample(msg, prev_sample=prev_sample, track_age=track_age)
             self.buffers[key].append(sample)
 
             if len(self.buffers[key]) < self.seq_len:
