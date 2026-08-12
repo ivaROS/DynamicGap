@@ -361,7 +361,7 @@ nh_.param<std::string>(
     gapVelocityCsvLoggingEnabled_ = true;
 
     std::string baseDir =
-        "/home/abdel/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
+        "/home/fmartins/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data";
 
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
@@ -424,23 +424,73 @@ nh_.param<std::string>(
 }
 
 //////////////////////////////////////////////////////
-// Gap aspect-ratio geometry
+// RViz diagnostic-marker switches (benchmark runs)
+//
+// These gate PUBLISHING only. No cost term, no gate and no
+// selection logic reads them, so flipping either one cannot
+// change which trajectory the planner picks. They exist so a
+// 50-episode benchmark can run without the marker traffic
+// perturbing timing or growing RViz's memory.
+//
+// kPublishCandidateTrajMarkers
+//     Master switch for the whole candidate_trajs_with_costs
+//     topic. This is the expensive one: publishCandidateTrajsWithCosts
+//     emits ONE ARROW MARKER PER POSE of every candidate
+//     trajectory, per gap, per planning cycle. Set false for
+//     benchmark runs.
+//
+// kPublishAspectRatioMarkers
+//     The orange "AR=" TEXT_VIEW_FACING labels only. Independent
+//     of the master switch so the cost labels can be kept while
+//     the aspect-ratio diagnostic is dropped.
+//
+// When kPublishAspectRatioMarkers is false the planner also stops
+// ASKING TrajectoryEvaluator for the value: evaluateTrajectory is
+// passed nullptr for aspectRatioOut, so gapAspectRatio() is never
+// called and nothing is computed for a label that is not drawn.
+//
+// gapWidth and gapDepth are still passed in regardless. gapWidth
+// drives the width-clearance cost AND the hard min-width gate, so
+// suppressing it would change planner behaviour.
+//////////////////////////////////////////////////////
+
+static constexpr bool kPublishCandidateTrajMarkers = false;
+static constexpr bool kPublishAspectRatioMarkers   = false;
+
+//////////////////////////////////////////////////////
+// Gap aspect-ratio + endpoint geometry
 //
 // width : gap mouth width  = || L - R ||         (Cartesian, rbt frame)
 // depth : gap radial reach = mean(|| L ||, || R ||)
 //
+// Also exports the raw left/right gap endpoints (rbt frame) and
+// a validity flag, used downstream by the endpoint-proximity
+// terminal cost in TrajectoryEvaluator.
+//
 // The aspect ratio (depth / width) is formed downstream in
 // TrajectoryEvaluator. gapWidth is left < 0 when the geometry is
-// unavailable, which disables the aspect-ratio cost for that gap.
+// unavailable, which disables the aspect-ratio cost for that gap;
+// haveEndpoints is left false in the same situation, which
+// disables the endpoint-proximity cost for that gap.
 //////////////////////////////////////////////////////
 
 static void computeGapAspectRatioGeometry(
     Gap* gap,
     float& gapWidth,
-    float& gapDepth)
+    float& gapDepth,
+    float& gapLeftX,
+    float& gapLeftY,
+    float& gapRightX,
+    float& gapRightY,
+    bool& haveEndpoints)
 {
     gapWidth = -1.0f;
     gapDepth = -1.0f;
+    gapLeftX = 0.0f;
+    gapLeftY = 0.0f;
+    gapRightX = 0.0f;
+    gapRightY = 0.0f;
+    haveEndpoints = false;
 
     if (!gap)
         return;
@@ -462,6 +512,15 @@ static void computeGapAspectRatioGeometry(
     // depth = how far the gap mouth sits from the robot.
     // far + narrow -> large aspect ratio -> penalized.
     gapDepth = 0.5f * (lRange + rRange);
+
+    // Raw endpoints for the endpoint-proximity terminal cost.
+    gapLeftX = lx;
+    gapLeftY = ly;
+    gapRightX = rx;
+    gapRightY = ry;
+    haveEndpoints =
+        std::isfinite(lx) && std::isfinite(ly) &&
+        std::isfinite(rx) && std::isfinite(ry);
 }
 
 int Planner::getGapLeftModelIDForDensityCost(
@@ -3062,13 +3121,31 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
 
     float pursuitGuidanceGapWidth = -1.0f;
     float pursuitGuidanceGapDepth = -1.0f;
+    float pursuitGuidanceGapLeftX = 0.0f;
+    float pursuitGuidanceGapLeftY = 0.0f;
+    float pursuitGuidanceGapRightX = 0.0f;
+    float pursuitGuidanceGapRightY = 0.0f;
+    bool pursuitGuidanceHaveEndpoints = false;
     computeGapAspectRatioGeometry(
         gap,
         pursuitGuidanceGapWidth,
-        pursuitGuidanceGapDepth
+        pursuitGuidanceGapDepth,
+        pursuitGuidanceGapLeftX,
+        pursuitGuidanceGapLeftY,
+        pursuitGuidanceGapRightX,
+        pursuitGuidanceGapRightY,
+        pursuitGuidanceHaveEndpoints
     );
 
+    //////////////////////////////////////////////////////
+    // Aspect ratio is a pure diagnostic: it feeds the RViz
+    // "AR=" label and nothing else. When the label is off we
+    // pass nullptr so TrajectoryEvaluator skips gapAspectRatio()
+    // entirely (see publishGapAspectRatioDiagnostic_ there).
+    //////////////////////////////////////////////////////
+
     float pursuitGuidanceAspectRatio = -1.0f;
+    float pursuitGuidanceEndpointCost = 0.0f;
 
     trajEvaluator_->evaluateTrajectory(
         pursuitGuidanceTraj,
@@ -3080,7 +3157,13 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
         &pursuitGuidanceTerminalPoseCostNoDensity,
         pursuitGuidanceGapWidth,
         pursuitGuidanceGapDepth,
-        &pursuitGuidanceAspectRatio
+        kPublishAspectRatioMarkers ? &pursuitGuidanceAspectRatio : nullptr,
+        pursuitGuidanceGapLeftX,
+        pursuitGuidanceGapLeftY,
+        pursuitGuidanceGapRightX,
+        pursuitGuidanceGapRightY,
+        pursuitGuidanceHaveEndpoints,
+        &pursuitGuidanceEndpointCost
     );
 
     float pursuitGuidanceAveragePoseCost = 0.0f;
@@ -3143,10 +3226,21 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
     std::vector<float> singleTrajCostsForViz;
     singleTrajCostsForViz.push_back(pursuitGuidancePoseCost);
 
+    //////////////////////////////////////////////////////
+    // Left empty when the AR labels are off. publishCandidateTrajsWithCosts
+    // indexes this vector with a bounds check, so an empty
+    // vector simply suppresses the label -- no sentinel value
+    // and no marker is emitted.
+    //////////////////////////////////////////////////////
+
     std::vector<float> singleTrajAspectRatiosForViz;
-    singleTrajAspectRatiosForViz.push_back(
-        pursuitGuidanceAspectRatio
-    );
+
+    if (kPublishAspectRatioMarkers)
+    {
+        singleTrajAspectRatiosForViz.push_back(
+            pursuitGuidanceAspectRatio
+        );
+    }
 
     publishCandidateTrajsWithCosts(
         singleTrajForViz,
@@ -4529,6 +4623,16 @@ void Planner::publishCandidateTrajsWithCosts(
     const std::vector<float>& trajAspectRatios,
     const std::string& ns)
 {
+    //////////////////////////////////////////////////////
+    // Early-out before any marker is constructed. This
+    // function builds one ARROW per pose per candidate
+    // trajectory, so returning here removes the bulk of the
+    // planner's visualisation cost on benchmark runs.
+    //////////////////////////////////////////////////////
+
+    if (!kPublishCandidateTrajMarkers)
+        return;
+
     visualization_msgs::MarkerArray markers;
     int id = 0;
 
@@ -4610,9 +4714,22 @@ void Planner::publishCandidateTrajsWithCosts(
 
             //////////////////////////////////////////////////////
             // Aspect ratio: gap depth / width (geometric)
+            //
+            // DIAGNOSTIC ONLY -- contributes to no cost term.
+            // Gated off for benchmark runs; see the flag block at
+            // the top of this file.
+            //
+            // NOTE: the multi-trajectory call site passes
+            // candidateCostsNoDensity (base costs) into this
+            // parameter, so on that path these labels read
+            // "AR=<base cost>", not an aspect ratio. That path is
+            // currently dead (generate_multi_traj = false) but the
+            // mislabelling is worth fixing before it is re-enabled.
             //////////////////////////////////////////////////////
 
-            if (i < trajAspectRatios.size() && trajAspectRatios[i] >= 0.0f)
+            if (kPublishAspectRatioMarkers &&
+                i < trajAspectRatios.size() &&
+                trajAspectRatios[i] >= 0.0f)
             {
                 visualization_msgs::Marker arText;
                 arText.header.frame_id = cfg_.robot_frame_id;

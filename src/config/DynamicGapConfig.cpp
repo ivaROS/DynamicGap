@@ -128,6 +128,9 @@ namespace dynamic_gap
             // nh.param("inf_ratio", traj.inf_ratio, traj.inf_ratio);
             ros_throw_param_load(nh, "inf_ratio", traj.inf_ratio);
 
+            // nh.param("gap_goal_center_reg", traj.gap_goal_center_reg, 0.0f);
+            ros_throw_param_load(nh, "gap_goal_center_reg", traj.gap_goal_center_reg);
+
             // nh.param("Q_f", traj.Q_f, traj.Q_f);
             ros_throw_param_load(nh, "Q_f", traj.Q_f);
 

@@ -337,9 +337,52 @@ namespace dynamic_gap
 
             // float biasedGapGoalIdx = theta2idx(biasedGapGoalTheta); // std::floor(biasedGapGoalTheta*half_num_scan/M_PI + half_num_scan);
 
-            float biasedGapGoalDist = leftRange + (rightRange - leftRange) * leftToGapGoalAngle / leftToRightAngle;
+            //////////////////////////////////////////////////////
+            // Gap-center kappa regularization
+            //
+            // The interpolation fraction f = leftToGapGoalAngle /
+            // leftToRightAngle runs 0 (goal at left endpoint) to
+            // 1 (goal at right endpoint) along the gap span; it is
+            // equivalent to (1 - kappa) for the goal convex
+            // combination p_g = kappa*p_l + (1 - kappa)*p_r. The
+            // waypoint bias can drive f toward 0 or 1, placing the
+            // goal hard against an endpoint.
+            //
+            // Pull the fraction toward the gap center f = 0.5 by a
+            // factor gap_goal_center_reg in [0, 1]:
+            //   0 -> no change (pure waypoint bias, original behavior)
+            //   1 -> force gap center (ignores waypoint bias)
+            //
+            // This RE-AIMS the goal (unlike the terminal endpoint
+            // cost in TrajectoryEvaluator, which only re-ranks).
+            // Angle, range, and velocity are all rebuilt from the
+            // same regularized fraction so the goal stays a valid
+            // convex combination on the gap span. Regularizing the
+            // ANGLE (not just the range) is what actually moves the
+            // aim toward center.
+            //////////////////////////////////////////////////////
+
+            const float gapGoalCenterReg = cfg_->traj.gap_goal_center_reg;
+
+            float biasedGapGoalFraction = leftToGapGoalAngle / leftToRightAngle;
+            float regularizedFraction =
+                biasedGapGoalFraction +
+                gapGoalCenterReg * (0.5f - biasedGapGoalFraction);
+
+            // Rebuild the aim angle from the regularized fraction so
+            // theta, range, and velocity remain mutually consistent.
+            float regularizedLeftToGapGoalAngle =
+                regularizedFraction * leftToRightAngle;
+            biasedGapGoalTheta = leftTheta - regularizedLeftToGapGoalAngle;
+
+            ROS_INFO_STREAM_NAMED("GapGoalPlacerV2",
+                "              gap-center reg: " << gapGoalCenterReg
+                << ", raw fraction: " << biasedGapGoalFraction
+                << ", regularized fraction: " << regularizedFraction);
+
+            float biasedGapGoalDist = leftRange + (rightRange - leftRange) * regularizedFraction;
             Eigen::Vector2f biasedGapGoal(biasedGapGoalDist * cos(biasedGapGoalTheta), biasedGapGoalDist * sin(biasedGapGoalTheta));
-            Eigen::Vector2f biasedGapVel = leftVel + (rightVel - leftVel) * leftToGapGoalAngle / leftToRightAngle;
+            Eigen::Vector2f biasedGapVel = leftVel + (rightVel - leftVel) * regularizedFraction;
 
             ROS_INFO_STREAM_NAMED("GapGoalPlacerV2", "              original goal: " << biasedGapGoal[0] << ", " << biasedGapGoal[1]);                 
 

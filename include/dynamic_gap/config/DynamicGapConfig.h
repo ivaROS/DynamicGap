@@ -120,6 +120,7 @@ namespace dynamic_gap
                 float pen_exp_weight = 5.0; /**< Standard deviation hyperparameter in exponential term of trajectory pose-wise cost */
                 float inf_ratio = 1.5; /**< Inflation ratio for planner */
                 float Q_f = 1.0; /**< Scaling hyperparamter for terminal pose cost based on distance from global plan local waypoint */
+                float gap_goal_center_reg = 0.0f;
             } traj;            
             
             /**
