@@ -1697,10 +1697,12 @@ auto dumpSizes = [&](const std::string& tag,
                                     curve.clear(); 
                                     int num_samples = 11; 
                                     Eigen::Vector2f p1 = p0 + (min_scan_dist / 2.0f) * v_dir;
+                                    float theta = k * theta_off;
+                                    Eigen::Vector2f p4_rot = rotatePoint2D(goal_pos, theta);
 
                                     for (int i = 0; i <= num_samples / 2; i++) {
                                         float t = static_cast<float>(i) / (num_samples / 2);
-                                        curve.push_back(bezier(p0, p1, goal_pos, t)); // notice i'm using p4
+                                        curve.push_back(bezier(p0, p1, p4_rot, t));
                                         }
                                 }
 
