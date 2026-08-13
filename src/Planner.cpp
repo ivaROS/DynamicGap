@@ -96,7 +96,7 @@ namespace dynamic_gap
 
         gapManipulator_ = new GapManipulator(cfg_);
 
-        gapGoalPlacer_ = new GapGoalPlacer(cfg_);
+        gapGoalPlacer_ = new GapGoalPlacer(nh_, cfg_);
 
         gapTrajGenerator_ = new GapTrajectoryGenerator(cfg_);
 
@@ -1274,6 +1274,9 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         try
         {
             ROS_INFO_STREAM_NAMED("Planner", "[gapGoalPlacementV2()]");
+
+            // clear the goal-skew markers from the previous cycle
+            gapGoalPlacer_->resetGoalSkewMarkers();
 
             for (int i = 0; i < gapTubes.size(); i++)
             {

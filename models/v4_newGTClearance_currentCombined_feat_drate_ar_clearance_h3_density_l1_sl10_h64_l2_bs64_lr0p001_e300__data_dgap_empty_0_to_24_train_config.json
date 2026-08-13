@@ -1,0 +1,49 @@
+{
+    "task": "gap_sector_density_prediction",
+    "run_name": "v4_newGTClearance_currentCombined",
+    "auto_run_name": "v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300",
+    "output_base_name": "v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24",
+    "csv": "/home/fmartins/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data/dgap_empty_0_to_24.csv",
+    "model_path": "models/v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24_gap_sector_density_gru.pt",
+    "stats_path": "models/v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24_norm_stats.json",
+    "config_path": "models/v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24_train_config.json",
+    "history_path": "models/v4_newGTClearance_currentCombined_feat_drate_ar_clearance_h3_density_l1_sl10_h64_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24_train_history.csv",
+    "seq_len": 10,
+    "hidden_size": 64,
+    "num_layers": 2,
+    "batch_size": 64,
+    "epochs": 300,
+    "lr": 0.001,
+    "loss": "l1",
+    "seed": 42,
+    "input_features": [
+        "sector_density",
+        "sector_dynamic_raw_gap_point_count",
+        "contained_raw_gap_point_count",
+        "sector_area",
+        "sector_angle_rad",
+        "sector_radius",
+        "density_rate_of_change",
+        "aspect_ratio"
+    ],
+    "output_features": [
+        "min_clearance_dist_h3"
+    ],
+    "use_density_rate": true,
+    "use_aspect_ratio": true,
+    "use_radial_closing_velocity": false,
+    "use_track_age": false,
+    "dropout": 0.0,
+    "future_steps": 0,
+    "use_clearance_target": true,
+    "clearance_horizon_sec": 3.0,
+    "row_filter": "side == left",
+    "group_cols": [
+        "model_id"
+    ],
+    "num_samples": 570623,
+    "num_groups": 13873,
+    "num_left_rows": 655834,
+    "train_size": 456498,
+    "val_size": 114125
+}

@@ -1,0 +1,64 @@
+{
+    "task": "gap_sector_density_prediction",
+    "run_name": "v4_newGTClearance_rcv_only",
+    "auto_run_name": "v4_newGTClearance_rcv_only_feat_rcv_clearance_h3_do0p1_density_l1_sl10_h128_l2_bs64_lr0p001_e300",
+    "output_base_name": "v4_newGTClearance_rcv_only_feat_rcv_clearance_h3_do0p1_density_l1_sl10_h128_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24",
+    "csv": "/home/fmartins/arena_ws/src/planners/dynamic_gap/ml_gap_velocity/data/dgap_empty_0_to_24.csv",
+    "model_path": "models/v4_newGTClearance_rcv_only_feat_rcv_clearance_h3_do0p1_density_l1_sl10_h128_l2_bs64_lr0p001_e300__data_dgap_empty_0_to_24_gap_sector_density_gru.pt",
+    "best_val_loss": 0.297277226426008,
+    "seq_len": 10,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "batch_size": 64,
+    "epochs": 300,
+    "lr": 0.001,
+    "loss": "l1",
+    "x_mean": [
+        1.8314684629440308,
+        2.9266886711120605,
+        3.1041316986083984,
+        19.483007431030273,
+        0.878368616104126,
+        6.357321739196777,
+        -0.03733859583735466
+    ],
+    "x_std": [
+        6.888439655303955,
+        2.727712631225586,
+        3.0951061248779297,
+        21.909164428710938,
+        0.8495773077011108,
+        1.3601266145706177,
+        0.6804071068763733
+    ],
+    "y_mean": [
+        4.086554050445557
+    ],
+    "y_std": [
+        2.12733793258667
+    ],
+    "input_features": [
+        "sector_density",
+        "sector_dynamic_raw_gap_point_count",
+        "contained_raw_gap_point_count",
+        "sector_area",
+        "sector_angle_rad",
+        "sector_radius",
+        "radial_closing_velocity"
+    ],
+    "output_features": [
+        "min_clearance_dist_h3"
+    ],
+    "use_density_rate": false,
+    "use_aspect_ratio": false,
+    "use_radial_closing_velocity": true,
+    "use_track_age": false,
+    "dropout": 0.1,
+    "future_steps": 0,
+    "use_clearance_target": true,
+    "clearance_horizon_sec": 3.0,
+    "row_filter": "side == left",
+    "group_cols": [
+        "model_id"
+    ]
+}
