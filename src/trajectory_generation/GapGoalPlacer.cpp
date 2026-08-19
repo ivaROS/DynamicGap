@@ -560,7 +560,7 @@ namespace dynamic_gap
 
     float GapGoalPlacer::computeGoalSkewDelta(Gap * gap,
                                                 float & closingRateDiffOut,
-                                                float & gapWidthOut) const
+                                                float & gapWidthOut)
     {
         closingRateDiffOut = 0.0f;
         gapWidthOut = -1.0f;
@@ -611,24 +611,90 @@ namespace dynamic_gap
         const float leftClosingRate  = -leftGapVel.dot(cHat);
         const float rightClosingRate =  rightGapVel.dot(cHat);
 
-        const float closingRateDiff = leftClosingRate - rightClosingRate;
+                float closingRateDiff = leftClosingRate - rightClosingRate;
+
+        //////////////////////////////////////////////////////////////////////
+        // 1. DEADBAND.
+        //
+        // The estimator reports 0.1 to 0.3 m/s of closing rate on a static
+        // wall. Without this test the goal is pushed 10 to 20 percent of the
+        // aperture on pure noise, with random sign, on every cycle. That is
+        // what makes the robot wobble when it should drive straight.
+        //////////////////////////////////////////////////////////////////////
+
+        if (std::fabs(closingRateDiff) < goalSkewMinClosingRate_)
+            closingRateDiff = 0.0f;
 
         closingRateDiffOut = closingRateDiff;
 
-        float dK = 0.5f * closingRateDiff * goalSkewLookaheadTime_ / gapWidth;
+        //////////////////////////////////////////////////////////////////////
+        // 2. FLOOR ON THE WIDTH.
+        //
+        // dK divides by W. A narrow gap therefore turns a small closing rate
+        // into a full-scale shift. The floor stops that.
+        //////////////////////////////////////////////////////////////////////
 
-        // Authority limit. Stops one fast pedestrian from pinning the goal to
-        // an endpoint in a single cycle.
+        const float widthForNormalisation =
+            std::max(gapWidth, goalSkewMinWidth_);
+
+        float dK = 0.5f * closingRateDiff *
+                    goalSkewLookaheadTime_ / widthForNormalisation;
+
         dK = std::min(goalSkewMaxDelta_, std::max(-goalSkewMaxDelta_, dK));
+
+        //////////////////////////////////////////////////////////////////////
+        // 3. TEMPORAL SMOOTHING AND RATE LIMIT.
+        //
+        // Keyed on the two estimator IDs, so the history follows the same
+        // physical gap across cycles through the association step. A gap seen
+        // for the first time starts from zero, so a new gap can never produce
+        // an instant jump.
+        //////////////////////////////////////////////////////////////////////
+
+        int leftModelID  = -1;
+        int rightModelID = -1;
+
+        if (gap->getLeftGapPt() && gap->getLeftGapPt()->getModel())
+            leftModelID = gap->getLeftGapPt()->getModel()->getID();
+
+        if (gap->getRightGapPt() && gap->getRightGapPt()->getModel())
+            rightModelID = gap->getRightGapPt()->getModel()->getID();
+
+        const std::pair<int, int> gapKey(leftModelID, rightModelID);
+
+        float previousDK = 0.0f;
+
+        std::map<std::pair<int,int>, float>::const_iterator it =
+            prevGoalSkewDelta_.find(gapKey);
+
+        if (it != prevGoalSkewDelta_.end())
+            previousDK = it->second;
+
+        float smoothedDK = goalSkewSmoothing_ * previousDK +
+                            (1.0f - goalSkewSmoothing_) * dK;
+
+        // rate limit
+        const float step = smoothedDK - previousDK;
+        const float limitedStep =
+            std::min(goalSkewMaxRate_, std::max(-goalSkewMaxRate_, step));
+
+        smoothedDK = previousDK + limitedStep;
+
+        // keep the history bounded -- model IDs churn as gaps appear and vanish
+        if (prevGoalSkewDelta_.size() > 512)
+            prevGoalSkewDelta_.clear();
+
+        prevGoalSkewDelta_[gapKey] = smoothedDK;
 
         ROS_INFO_STREAM_NAMED("GoalPlacementSkew",
             "              s_L: " << leftClosingRate
             << ", s_R: " << rightClosingRate
             << ", closingRateDiff: " << closingRateDiff
             << ", gapWidth: " << gapWidth
-            << ", dK: " << dK);
+            << ", rawDK: " << dK
+            << ", dK: " << smoothedDK);
 
-        return dK;
+        return smoothedDK;
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -714,7 +780,7 @@ namespace dynamic_gap
         }
 
         //////////////////////////////////////////////////////
-        // 2. LEFT endpoint velocity, RED
+        // 2. LEFT endpoint velocity, ORANGE
         //////////////////////////////////////////////////////
         if (leftGapVel.allFinite() && leftGapVel.norm() > minDrawableSpeed)
         {
@@ -730,7 +796,7 @@ namespace dynamic_gap
             m.scale.x = 0.030;   // shaft diameter
             m.scale.y = 0.070;   // head diameter
             m.scale.z = 0.100;   // head length
-            m.color.r = 0.90; m.color.g = 0.25; m.color.b = 0.15; m.color.a = 1.0;
+            m.color.r = 1.00; m.color.g = 0.45; m.color.b = 0.00; m.color.a = 1.0;
 
             const Eigen::Vector2f tip =
                 leftPt + leftGapVel * goalSkewVelocityMarkerScale_;
@@ -762,7 +828,7 @@ namespace dynamic_gap
             m.scale.x = 0.030;
             m.scale.y = 0.070;
             m.scale.z = 0.100;
-            m.color.r = 0.20; m.color.g = 0.40; m.color.b = 0.90; m.color.a = 1.0;
+            m.color.r = 0.35; m.color.g = 0.45; m.color.b = 1.00; m.color.a = 1.0;
 
             const Eigen::Vector2f tip =
                 rightPt + rightGapVel * goalSkewVelocityMarkerScale_;

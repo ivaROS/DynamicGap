@@ -2,6 +2,8 @@
 
 #include <ros/ros.h>
 #include <math.h>
+#include <map>
+#include <utility>
 
 #include <Eigen/Core>
 #include <visualization_msgs/Marker.h>
@@ -150,7 +152,7 @@ namespace dynamic_gap
             */
             float computeGoalSkewDelta(Gap * gap,
                                         float & closingRateDiffOut,
-                                        float & gapWidthOut) const;
+                                        float & gapWidthOut);
 
             /**
             * \brief limit the goal fraction so the goal cannot sit on an endpoint
@@ -185,17 +187,32 @@ namespace dynamic_gap
             // Those parameters are overwritten by Arena and must not be used.
             //////////////////////////////////////////////////////////////////////
 
-            bool useGoalPlacementSkew_ = true;      /**< master toggle. false reproduces the original behaviour exactly */
-            float goalSkewLookaheadTime_ = 1.5f;    /**< T, seconds. The only physically meaningful knob */
-            float goalSkewMaxDelta_ = 0.35f;        /**< largest single shift, in fraction units */
+            bool useGoalPlacementSkew_ = true;
+            bool useGoalPlacementSkewInWideGaps_ = false;
+
+            // RETUNED. The previous values (T = 1.5, maxDelta = 0.35) saturated the
+            // term on a single pedestrian and turned it into a bang-bang switch.
+            float goalSkewLookaheadTime_ = 0.4f;    /**< T, seconds */
+            float goalSkewMaxDelta_ = 0.12f;        /**< largest shift, fraction units */
             float goalSkewMinFraction_ = 0.15f;     /**< k_min */
             float goalSkewMaxFraction_ = 0.85f;     /**< k_max */
 
-            bool publishGoalSkewMarkers_ = false;    /**< set false for timed runs */
-            float goalSkewVelocityMarkerScale_ = 1.0f; /**< metres drawn per m/s of endpoint velocity */
+            // NEW -- anti-wobble
+            float goalSkewMinClosingRate_ = 0.20f;  /**< deadband, m/s. Below this the
+                                                         closing rate is estimator noise
+                                                         and the skew is exactly zero. */
+            float goalSkewMinWidth_ = 1.0f;         /**< floor on W in the 1/W term, m */
+            float goalSkewSmoothing_ = 0.70f;       /**< 0 = none, 0.9 = heavy */
+            float goalSkewMaxRate_ = 0.03f;         /**< max change in dK per cycle */
 
-            ros::Publisher goalSkewMarkerPublisher_; /**< RViz topic "goal_placement_skew" */
-            int goalSkewMarkerIdx_ = 0;              /**< per-cycle marker index, reset by resetGoalSkewMarkers() */
+            std::map<std::pair<int,int>, float> prevGoalSkewDelta_; /**< per-gap history,
+                                                         keyed on the two estimator IDs */
+
+            bool publishGoalSkewMarkers_ = false;
+            float goalSkewVelocityMarkerScale_ = 1.0f;
+
+            ros::Publisher goalSkewMarkerPublisher_;
+            int goalSkewMarkerIdx_ = 0;
 
     };
 }
