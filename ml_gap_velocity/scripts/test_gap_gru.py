@@ -26,16 +26,23 @@ def safe_name(name):
 def build_features_for_group(group, input_dim):
     group = group.sort_values("sample_idx").reset_index(drop=True)
 
-    if input_dim != 2:
+    positions = group[["x", "y"]].values.astype(np.float32)
+
+    if input_dim == 2:
+        features = positions
+    elif input_dim == 5:
+        deltas = np.zeros_like(positions, dtype=np.float32)
+        if len(positions) > 1:
+            deltas[1:] = positions[1:] - positions[:-1]
+
+        robot_omega = group[["robot_omega"]].values.astype(np.float32)
+        features = np.concatenate([positions, deltas, robot_omega], axis=1)
+    else:
         raise RuntimeError(
-            f"This test script expects input_dim=2 for [x,y]. "
+            "This test script supports input_dim=2 for [x,y] or "
+            "input_dim=5 for [x,y,dx,dy,robot_omega]. "
             f"Got input_dim={input_dim} from norm_stats.json."
         )
-
-    x = group["x"].values.astype(np.float32)
-    y = group["y"].values.astype(np.float32)
-
-    features = np.stack([x, y], axis=1).astype(np.float32)
 
     true_vels = group[
         ["perfect_rel_vx", "perfect_rel_vy"]
@@ -310,6 +317,9 @@ def main():
         "perfect_rel_vx",
         "perfect_rel_vy",
     ]
+
+    if len(x_mean) == 5:
+        required_cols.append("robot_omega")
 
     missing_cols = [col for col in required_cols if col not in df.columns]
     if len(missing_cols) > 0:

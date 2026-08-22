@@ -11,6 +11,11 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
 
+INPUT_FEATURES = ["x", "y", "dx", "dy", "robot_omega"]
+OUTPUT_FEATURES = ["perfect_rel_vx", "perfect_rel_vy"]
+FEATURE_TAG = "xy_dxdy_omega"
+
+
 def safe_name(name):
     return (
         str(name)
@@ -66,6 +71,7 @@ def make_auto_run_name(args):
 
     pieces = [
         safe_name(user_name),
+        FEATURE_TAG,
         safe_name(args.loss),
         f"sl{args.seq_len}",
         f"h{args.hidden_size}",
@@ -114,6 +120,7 @@ class GapSequenceDataset(Dataset):
             "side",
             "x",
             "y",
+            "robot_omega",
             "perfect_rel_vx",
             "perfect_rel_vy",
         ]
@@ -138,6 +145,12 @@ class GapSequenceDataset(Dataset):
             group = group.sort_values("sample_idx").reset_index(drop=True)
 
             positions = group[["x", "y"]].values.astype(np.float32)
+            deltas = np.zeros_like(positions, dtype=np.float32)
+            if len(positions) > 1:
+                deltas[1:] = positions[1:] - positions[:-1]
+
+            robot_omega = group[["robot_omega"]].values.astype(np.float32)
+            features = np.concatenate([positions, deltas, robot_omega], axis=1)
 
             perfect_rel_vels = group[
                 ["perfect_rel_vx", "perfect_rel_vy"]
@@ -147,7 +160,7 @@ class GapSequenceDataset(Dataset):
                 continue
 
             for i in range(seq_len - 1, len(group)):
-                x_seq = positions[i - seq_len + 1 : i + 1]
+                x_seq = features[i - seq_len + 1 : i + 1]
                 y_label = perfect_rel_vels[i]
 
                 self.samples_x.append(x_seq)
@@ -162,8 +175,12 @@ class GapSequenceDataset(Dataset):
                 "Try lowering seq_len or collecting longer gap tracks."
             )
 
-        self.x_mean = self.samples_x.reshape(-1, 2).mean(axis=0)
-        self.x_std = self.samples_x.reshape(-1, 2).std(axis=0) + 1e-8
+        self.input_features = INPUT_FEATURES
+        self.output_features = OUTPUT_FEATURES
+        self.input_size = len(self.input_features)
+
+        self.x_mean = self.samples_x.reshape(-1, self.input_size).mean(axis=0)
+        self.x_std = self.samples_x.reshape(-1, self.input_size).std(axis=0) + 1e-8
 
         self.y_mean = self.samples_y.mean(axis=0)
         self.y_std = self.samples_y.std(axis=0) + 1e-8
@@ -184,7 +201,7 @@ class GapSequenceDataset(Dataset):
 
 
 class GapVelocityGRU(nn.Module):
-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
+    def __init__(self, input_size=5, hidden_size=64, num_layers=2, output_size=2):
         super().__init__()
 
         self.gru = nn.GRU(
@@ -201,7 +218,7 @@ class GapVelocityGRU(nn.Module):
         )
 
     def forward(self, x):
-        # x shape: [batch, seq_len, 2]
+        # x shape: [batch, seq_len, input_size]
         out, _ = self.gru(x)
 
         # Use final GRU output.
@@ -256,7 +273,7 @@ def train(args):
     )
 
     model = GapVelocityGRU(
-        input_size=2,
+        input_size=dataset.input_size,
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         output_size=2,
@@ -314,8 +331,9 @@ def train(args):
         "lr": args.lr,
         "loss": args.loss,
         "seed": args.seed,
-        "input_features": ["x", "y"],
-        "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+        "input_size": dataset.input_size,
+        "input_features": dataset.input_features,
+        "output_features": dataset.output_features,
         "group_cols": ["model_id", "side"],
         "num_samples": len(dataset),
         "num_groups": dataset.num_groups,
@@ -338,6 +356,7 @@ def train(args):
     print(f"batch_size: {args.batch_size}")
     print(f"epochs: {args.epochs}")
     print(f"lr: {args.lr}")
+    print(f"input features: {dataset.input_features}")
     print(f"num sequences: {len(dataset)}")
     print(f"num groups: {dataset.num_groups}")
     print(f"model will save to: {best_model_path}")
@@ -400,7 +419,7 @@ def train(args):
             model_cpu = model.to("cpu")
             model_cpu.eval()
 
-            example_input = torch.zeros(1, args.seq_len, 2)
+            example_input = torch.zeros(1, args.seq_len, dataset.input_size)
             traced = torch.jit.trace(model_cpu, example_input)
             traced.save(best_model_path)
 
@@ -420,12 +439,13 @@ def train(args):
                 "epochs": args.epochs,
                 "lr": args.lr,
                 "loss": args.loss,
+                "input_size": dataset.input_size,
                 "x_mean": dataset.x_mean.tolist(),
                 "x_std": dataset.x_std.tolist(),
                 "y_mean": dataset.y_mean.tolist(),
                 "y_std": dataset.y_std.tolist(),
-                "input_features": ["x", "y"],
-                "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+                "input_features": dataset.input_features,
+                "output_features": dataset.output_features,
                 "group_cols": ["model_id", "side"],
             }
 

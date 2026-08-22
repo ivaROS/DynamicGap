@@ -1,7 +1,9 @@
 #pragma once
 #include <limits>
 #include <fstream>
+#include <map>
 #include <string>
+#include <unordered_map>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -65,10 +67,8 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include <limits>
 #include <dynamic_gap/GapPointObservation.h>
 #include <dynamic_gap/GapVelocityPrediction.h>
-#include <map>
 #include <Eigen/Dense>
 
 namespace dynamic_gap
@@ -105,40 +105,6 @@ namespace dynamic_gap
             * \return boolean for if global goal has been reached or not
             */
             bool isGoalReached();
-
-            struct PerfectGapVelocityLabel
-            {
-                Eigen::Vector2f rel_vel;          // label matching Kalman filter convention
-                Eigen::Vector2f world_vel_robot;  // true agent velocity expressed in robot frame
-
-                std::string matched_agent_id;
-                float match_dist = std::numeric_limits<float>::infinity();
-                bool matched_dynamic_agent = false;
-            };
-
-            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
-            const Eigen::Vector2f& gapPtRobotFrame,
-            const std::map<std::string, geometry_msgs::Pose>& trueAgentPoses,
-            const std::map<std::string, geometry_msgs::Vector3Stamped>& trueAgentVels,
-            const geometry_msgs::TwistStamped& robotVelRobotFrame,
-            const float& matchThresh) const;
-
-            geometry_msgs::TwistStamped getRobotVelocityForGapLabel(
-            const std::vector<geometry_msgs::TwistStamped>& intermediateRbtVels) const;
-            float perfectGapVelMatchThresh_ = 0.6; // TODO:  add to config. 0.6 should be more than enough
-            // i eyeballed rviz measured the DIAMETER of the agent to 0.3 
-            
-            ros::Publisher gapPointObservationPublisher_;
-            bool publishGapPointObservations_ = true;
-
-            void publishGapPointObservation(
-            const ros::Time& stamp,
-            const int& gapIndex,
-            const std::string& side,
-            Estimator* model,
-            const Eigen::Vector2f& measurement,
-            const Eigen::Vector4f& kalmanState,
-            const PerfectGapVelocityLabel& perfectLabel);
 
             /**
             * \brief Function for core planning loop of dynamic gap
@@ -185,30 +151,6 @@ namespace dynamic_gap
             */
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
-
-            struct GruGapVelocityEstimate
-            {
-                Eigen::Vector2f rel_vel;
-                ros::Time stamp;
-                bool valid = false;
-                int seq_len_used = 0;
-            };
-
-            ros::Subscriber gruGapVelocitySub_;
-
-            std::map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_;
-            mutable boost::mutex gruGapVelocityMutex_;
-
-            bool useGruGapVelocity_ = true;
-            double maxGruPredictionAgeSec_ = 0.50;
-
-            void gruGapVelocityCB(const dynamic_gap::GapVelocityPrediction::ConstPtr& msg);
-
-            bool getLatestGruVelocityForModel(
-                const int& modelID,
-                const ros::Time& currentStamp,
-                Eigen::Vector2f& relVelOut) const;
-
         private:
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
@@ -224,14 +166,14 @@ namespace dynamic_gap
             * \param intermediateRbtVels intermediate robot velocity values between last model update and current model update
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
+            * \param useGruVelocity whether this gap set publishes observations and accepts GRU estimates
             */
             void updateModels(
-            std::vector<Gap *> & gaps,
+                std::vector<Gap *> & gaps,
                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                 const ros::Time & tCurrentFilterUpdate,
-                const bool& logSimplifiedGapVelocityLabels
-            );
+                const bool & useGruVelocity);
 
 
             /**
@@ -241,15 +183,65 @@ namespace dynamic_gap
             * \param intermediateRbtVels intermediate robot velocity values between last model update and current model update
             * \param intermediateRbtAccs intermediate robot acceleration values between last model update and current model update
             * \param tCurrentFilterUpdate time step for current estimator update
+            * \param useGruVelocity whether this model publishes an observation and accepts a GRU estimate
             */
-                void updateModel(
+            void updateModel(
                 const int & idx,
                 std::vector<Gap *> & gaps,
                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
                 const ros::Time & tCurrentFilterUpdate,
-                const bool& logSimplifiedGapVelocityLabels
-            );
+                const bool & useGruVelocity);
+
+            struct GruGapVelocityEstimate
+            {
+                Eigen::Vector2f relativeVelocity = Eigen::Vector2f::Zero();
+                ros::Time stamp;
+                std::string side;
+                bool valid = false;
+            };
+
+            void gruGapVelocityCB(const dynamic_gap::GapVelocityPrediction::ConstPtr & msg);
+
+            bool getLatestGruVelocityForModel(
+                const int & modelID,
+                const std::string & side,
+                const ros::Time & currentStamp,
+                Eigen::Vector2f & relativeVelocity) const;
+
+            struct PerfectGapVelocityLabel
+            {
+                Eigen::Vector2f relativeVelocity = Eigen::Vector2f::Zero();
+                Eigen::Vector2f worldVelocityRobot = Eigen::Vector2f::Zero();
+                std::string matchedAgentID;
+                float matchDistance = std::numeric_limits<float>::infinity();
+                bool matchedDynamicAgent = false;
+            };
+
+            void publishGapPointObservation(
+                const ros::Time & stamp,
+                const int & gapIndex,
+                const std::string & side,
+                Estimator * model,
+                const Eigen::Vector2f & measurement,
+                const Eigen::Vector4f & kalmanState,
+                const PerfectGapVelocityLabel & perfectLabel,
+                const geometry_msgs::TwistStamped & robotVelocity);
+
+            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
+                const Eigen::Vector2f & measurement,
+                const geometry_msgs::TwistStamped & robotVelocity) const;
+
+            void initializeGruCsvLogger();
+
+            void logGruTrainingRow(
+                const int & gapIndex,
+                const int & modelID,
+                const std::string & side,
+                const Eigen::Vector2f & measurement,
+                const Eigen::Vector4f & kalmanState,
+                const PerfectGapVelocityLabel & perfectLabel,
+                const geometry_msgs::TwistStamped & robotVelocity);
 
             /**
             * \brief Call back function for other agent odometry messages
@@ -526,6 +518,19 @@ namespace dynamic_gap
 
             ros::Subscriber pedOdomSub_; /**< Subscriber to incoming robot acceleration */
 
+            ros::Publisher gapPointObservationPublisher_; /**< Publisher for simplified gap-point GRU inputs */
+            ros::Subscriber gruGapVelocitySub_; /**< Subscriber for GRU relative-velocity predictions */
+            std::unordered_map<int, GruGapVelocityEstimate> latestGruGapVelocityByModelID_; /**< Latest prediction for each model ID */
+            mutable boost::mutex gruGapVelocityMutex_; /**< Protects the GRU prediction cache */
+            bool useGruGapVelocity_ = true; /**< Enables GRU velocity overrides when usable predictions exist */
+            double maxGruPredictionAgeSec_ = 3.0; /**< Maximum prediction age before falling back to Kalman */
+            bool gruCsvLoggingEnabled_ = true; /**< Enables simplified gap-point GRU training data logging */
+            std::string gruCsvOutputDir_; /**< Configured directory for GRU training CSV files */
+            std::string gruCsvPath_; /**< Full path of the active GRU training CSV file */
+            std::ofstream gruCsvFile_; /**< Active GRU training CSV output stream */
+            unsigned long long gruCsvSampleIndex_ = 0; /**< Monotonic CSV row index */
+            float perfectGapVelocityMatchThreshold_ = 0.6f; /**< Maximum gap-to-agent label matching distance */
+
             geometry_msgs::TransformStamped map2rbt_; /**< Transformation from map frame to robot frame */
             geometry_msgs::TransformStamped odom2rbt_; /**< Transformation from odometry frame to robot frame */
             geometry_msgs::TransformStamped rbt2odom_; /**< Transformation from robot frame to odometry frame */
@@ -632,69 +637,5 @@ namespace dynamic_gap
             std::vector<geometry_msgs::TwistStamped> intermediateRbtAccs_; /**< Intermediate robot accelerations between last model update and upcoming model update */
 
             float ungapRbtSpeed_ = 0.0; /**< Speed of robot when traversing through ungap */
-                    
-                        /**
-             * \brief CSV file stream for logging simplified gap velocity training labels.
-             */
-            std::ofstream gapVelocityCsvFile_;
-
-            /**
-             * \brief Enables/disables simplified gap velocity CSV logging.
-             */
-            bool gapVelocityCsvLoggingEnabled_ = true;
-
-            /**
-             * \brief Full path to the active gap velocity CSV file.
-             */
-            std::string gapVelocityCsvPath_;
-
-            /**
-             * \brief Unique file/session name generated from wall-clock time.
-             */
-            std::string gapVelocityCsvSessionId_;
-
-            /**
-             * \brief Monotonic row counter used to preserve sequence order without storing ROS time.
-             */
-            unsigned long long gapVelocityCsvSampleIdx_ = 0;
-
-            /**
-             * \brief Initializes the CSV logger for simplified gap velocity labels.
-             */
-            void initializeGapVelocityCsvLogger();
-
-            /**
-             * \brief Writes one simplified gap velocity training row to CSV.
-             * \param gap_index Index of the gap in the current simplified gap vector.
-             * \param model_id Persistent model ID for the gap point.
-             * \param side Gap side, usually "left" or "right".
-             * \param gap_x Gap point x-position in robot frame.
-             * \param gap_y Gap point y-position in robot frame.
-             * \param kalman_vx Velocity x from the estimator/Kalman state.
-             * \param kalman_vy Velocity y from the estimator/Kalman state.
-             * \param perfect_rel_vx Perfect relative velocity x label.
-             * \param perfect_rel_vy Perfect relative velocity y label.
-             * \param perfect_world_robot_vx Matched agent/world velocity x expressed in robot frame.
-             * \param perfect_world_robot_vy Matched agent/world velocity y expressed in robot frame.
-             * \param matched_agent_id ID of the closest matched agent, empty if none.
-             * \param match_dist Distance from gap point to matched agent.
-             * \param matched_dynamic_agent True if the gap point matched a dynamic agent.
-             */
-            void logSimplifiedGapVelocityCsvRow(
-                const int& gap_index,
-                const int& model_id,
-                const std::string& side,
-                const float& gap_x,
-                const float& gap_y,
-                const float& kalman_vx,
-                const float& kalman_vy,
-                const float& perfect_rel_vx,
-                const float& perfect_rel_vy,
-                const float& perfect_world_robot_vx,
-                const float& perfect_world_robot_vy,
-                const std::string& matched_agent_id,
-                const float& match_dist,
-                const bool& matched_dynamic_agent
-            );
     };
 }

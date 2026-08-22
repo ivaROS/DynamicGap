@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import math
 from collections import defaultdict, deque
 
 import numpy as np
@@ -18,7 +17,7 @@ from dynamic_gap.msg import GapVelocityPrediction
 
 
 class GapGRU(nn.Module):
-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
+    def __init__(self, input_size=5, hidden_size=64, num_layers=2, output_size=2):
         super().__init__()
 
         self.gru = nn.GRU(
@@ -28,12 +27,16 @@ class GapGRU(nn.Module):
             batch_first=True
         )
 
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.head = nn.Sequential(
+            nn.Linear(hidden_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, output_size),
+        )
 
     def forward(self, x):
         out, _ = self.gru(x)
         last = out[:, -1, :]
-        y = self.fc(last)
+        y = self.head(last)
         return y
 
 
@@ -104,7 +107,7 @@ class GRUGapVelocityNode:
         self.stats_path = rospy.get_param("~stats_path", "")
 
         self.seq_len = int(rospy.get_param("~seq_len", 10))
-        self.input_size = int(rospy.get_param("~input_size", 2))
+        self.input_size = int(rospy.get_param("~input_size", 5))
         self.hidden_size = int(rospy.get_param("~hidden_size", 64))
         self.num_layers = int(rospy.get_param("~num_layers", 2))
         self.output_size = int(rospy.get_param("~output_size", 2))
@@ -212,7 +215,18 @@ class GRUGapVelocityNode:
         key = self.make_key(msg)
         self.maybe_clear_stale_buffer(key, msg.header.stamp)
 
-        sample = np.array([msg.gap_x, msg.gap_y], dtype=np.float32)
+        if len(self.buffers[key]) > 0:
+            previous = self.buffers[key][-1]
+            dx = msg.gap_x - previous[0]
+            dy = msg.gap_y - previous[1]
+        else:
+            dx = 0.0
+            dy = 0.0
+
+        sample = np.array(
+            [msg.gap_x, msg.gap_y, dx, dy, msg.robot_omega],
+            dtype=np.float32,
+        )
         self.buffers[key].append(sample)
 
         if len(self.buffers[key]) < self.seq_len:

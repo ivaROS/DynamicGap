@@ -9,6 +9,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   base_local_planner
   pluginlib
   roscpp
+  roslib
   rospy
   pedsim_msgs
   dynamic_reconfigure
@@ -76,6 +77,11 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+)
+
+catkin_install_python(PROGRAMS
+  ml_gap_velocity/scripts/gru_gap_velocity_node.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 add_library(${PROJECT_NAME}
