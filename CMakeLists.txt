@@ -92,6 +92,9 @@ add_library(${PROJECT_NAME}
   src/global_plan_management/GlobalPlanManager.cpp
   src/scan_processing/DynamicScanPropagator.cpp
   src/trajectory_generation/GapTrajectoryGenerator.cpp
+  src/trajectory_generation/MppiControl.cpp
+  src/trajectory_generation/MppiOptimizer.cpp
+  src/trajectory_generation/MppiGapIntegration.cpp
   src/trajectory_generation/UngapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
   src/trajectory_generation/GapGoalPlacer.cpp
@@ -124,3 +127,17 @@ target_link_libraries(${PROJECT_NAME}
   OsqpEigen::OsqpEigen
   Eigen3::Eigen
 )
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_mppi_control test/mppi_control.test test/test_mppi_control.cpp)
+  catkin_add_gtest(test_mppi_optimizer test/test_mppi_optimizer.cpp)
+  catkin_add_gtest(test_mppi_visualization test/test_mppi_visualization.cpp)
+  foreach(test_target test_mppi_control test_mppi_optimizer test_mppi_visualization)
+    if(TARGET ${test_target})
+      target_link_libraries(${test_target} ${PROJECT_NAME} ${catkin_LIBRARIES} gtest_main)
+    endif()
+  endforeach()
+  add_executable(mppi_multigap_demo test/mppi_multigap_demo.cpp)
+  target_link_libraries(mppi_multigap_demo ${PROJECT_NAME} ${catkin_LIBRARIES})
+endif()

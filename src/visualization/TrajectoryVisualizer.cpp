@@ -1,8 +1,168 @@
 
 #include <dynamic_gap/visualization/TrajectoryVisualizer.h>
 
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <sstream>
+
 namespace dynamic_gap
 {
+    visualization_msgs::MarkerArray buildMppiMarkers(
+        const std::vector<MppiGapVisualization>& gaps,
+        const std::vector<std_msgs::ColorRGBA>& gap_colors,
+        const ros::Time& stamp,
+        MppiMarkerKeys& previous_keys,
+        std::size_t max_samples_per_gap,
+        std::size_t point_stride)
+    {
+        visualization_msgs::MarkerArray result;
+        MppiMarkerKeys current_keys;
+        point_stride = std::max<std::size_t>(1, point_stride);
+
+        // Rollouts are supplied in the planner's common sensor frame. Never mix
+        // frames in one planning snapshot without a transform.
+        std::string frame;
+        for (const auto& gap : gaps)
+        {
+            if (!gap.nominal.poses.empty() && !gap.nominal.header.frame_id.empty())
+                frame = gap.nominal.header.frame_id;
+            if (frame.empty())
+                for (const auto& sample : gap.samples)
+                    if (!sample.poses.empty() && !sample.header.frame_id.empty())
+                    {
+                        frame = sample.header.frame_id;
+                        break;
+                    }
+            if (!frame.empty()) break;
+        }
+
+        auto append_line = [&](const geometry_msgs::PoseArray& path,
+                               const std::string& ns, int id,
+                               const std_msgs::ColorRGBA& color,
+                               double width, double height) {
+            if (path.poses.empty() || frame.empty() || path.header.frame_id != frame)
+                return false;
+
+            visualization_msgs::Marker marker;
+            marker.header.frame_id = frame;
+            marker.header.stamp = stamp;
+            marker.ns = ns;
+            marker.id = id;
+            marker.type = visualization_msgs::Marker::LINE_STRIP;
+            marker.action = visualization_msgs::Marker::ADD;
+            marker.pose.orientation.w = 1.0;
+            marker.scale.x = width;
+            marker.color = color;
+            marker.lifetime = ros::Duration(2.0);
+
+            for (std::size_t i = 0; i < path.poses.size(); ++i)
+            {
+                const auto& p = path.poses[i].position;
+                if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z))
+                    return false;
+                if (i % point_stride == 0 || i + 1 == path.poses.size())
+                {
+                    geometry_msgs::Point point = p;
+                    point.z += height;
+                    marker.points.push_back(point);
+                }
+            }
+            current_keys.emplace(marker.ns, marker.id);
+            result.markers.push_back(std::move(marker));
+            return true;
+        };
+
+        for (const auto& gap : gaps)
+        {
+            const std::string ns = "mppi_gap_" + std::to_string(gap.gap_index) +
+                "_" + std::to_string(gap.left_id) + "_" + std::to_string(gap.right_id);
+            std_msgs::ColorRGBA color;
+            if (!gap_colors.empty())
+                color = gap_colors[static_cast<std::size_t>(std::max(0, gap.gap_index)) % gap_colors.size()];
+            else
+            {
+                color.r = 0.2;
+                color.g = 0.8;
+                color.b = 1.0;
+            }
+            color.a = 1.0;
+
+            const std::size_t draw_count = max_samples_per_gap == 0 ? gap.samples.size() :
+                std::min(max_samples_per_gap, gap.samples.size());
+            std::size_t drawn = 0;
+            for (std::size_t i = 0; i < draw_count; ++i)
+            {
+                // Deterministically spread a requested visual subset across the
+                // population; sampling and feasibility statistics are untouched.
+                const std::size_t sample_index = i * gap.samples.size() / draw_count;
+                const bool feasible = sample_index >= gap.sample_feasible.size() ||
+                    gap.sample_feasible[sample_index];
+                std_msgs::ColorRGBA sample_color = color;
+                sample_color.a = feasible ? 0.4 : 0.12;
+                if (append_line(gap.samples[sample_index], ns + "/samples",
+                                static_cast<int>(sample_index), sample_color,
+                                feasible ? 0.012 : 0.006, 0.035))
+                    ++drawn;
+            }
+
+            const bool have_nominal = append_line(gap.nominal, ns + "/nominal", 0,
+                                                  color, 0.065, 0.07);
+            const geometry_msgs::PoseArray* label_path = have_nominal ? &gap.nominal : nullptr;
+            if (!label_path)
+                for (const auto& sample : gap.samples)
+                    if (!sample.poses.empty() && sample.header.frame_id == frame &&
+                        std::isfinite(sample.poses.back().position.x) &&
+                        std::isfinite(sample.poses.back().position.y))
+                    {
+                        label_path = &sample;
+                        break;
+                    }
+            if (!label_path) continue;
+
+            visualization_msgs::Marker label;
+            label.header.frame_id = frame;
+            label.header.stamp = stamp;
+            label.ns = ns + "/cost";
+            label.id = 0;
+            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            label.action = visualization_msgs::Marker::ADD;
+            label.pose.position = label_path->poses.back().position;
+            // Optimizers can converge to nearby endpoints; keep their labels
+            // readable even when the nominal paths overlap.
+            label.pose.position.y += 0.5 * std::max(0, gap.gap_index);
+            label.pose.position.z = 0.25;
+            label.pose.orientation.w = 1.0;
+            label.scale.z = 0.12;
+            label.color = color;
+            label.lifetime = ros::Duration(2.0);
+            std::ostringstream text;
+            text << "gap " << gap.gap_index << " [" << gap.left_id << "," << gap.right_id
+                 << "] J=" << std::fixed << std::setprecision(2) << gap.cost
+                 << "\nsamples=" << gap.total_samples << " drawn=" << drawn
+                 << " feasible=" << gap.feasible_samples << " progress=" << gap.progress_samples;
+            label.text = text.str();
+            current_keys.emplace(label.ns, label.id);
+            result.markers.push_back(std::move(label));
+        }
+
+        // A dropped gap or reduced sample budget must disappear in this same
+        // message. No DELETEALL can erase another Dynamic Gap visualization.
+        for (const auto& key : previous_keys)
+            if (current_keys.count(key) == 0)
+            {
+                visualization_msgs::Marker remove;
+                remove.header.frame_id = frame;
+                remove.header.stamp = stamp;
+                remove.ns = key.first;
+                remove.id = key.second;
+                remove.action = visualization_msgs::Marker::DELETE;
+                result.markers.push_back(std::move(remove));
+            }
+        previous_keys = std::move(current_keys);
+        return result;
+    }
+
     TrajectoryVisualizer::TrajectoryVisualizer(ros::NodeHandle& nh, const DynamicGapConfig& cfg)
     {
         cfg_ = &cfg;
@@ -17,10 +177,21 @@ namespace dynamic_gap
         trajPoseScoresPublisher = nh.advertise<visualization_msgs::MarkerArray>("traj_score", 10);
         gapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_trajectories", 10);
         gapTubeTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_tube_trajectories", 10);
+        mppiTrajectoriesPublisher_ = nh.advertise<visualization_msgs::MarkerArray>("mppi_trajectories", 1);
         ungapTrajectoriesPublisher = nh.advertise<visualization_msgs::MarkerArray>("candidate_ungap_trajectories", 10);
 
         // globalPlanSnippetPublisher = nh.advertise<geometry_msgs::PoseArray>("relevant_global_plan_snippet", 10);
         globalPlanSnippetPublisher = nh.advertise<visualization_msgs::MarkerArray>("relevant_global_plan_snippet", 10);
+    }
+
+    void TrajectoryVisualizer::drawMppiTrajectories(
+        const std::vector<MppiGapVisualization>& gaps,
+        std::size_t max_samples_per_gap,
+        std::size_t point_stride)
+    {
+        mppiTrajectoriesPublisher_.publish(buildMppiMarkers(
+            gaps, visionColors_, ros::Time::now(), mppiMarkerKeys_,
+            max_samples_per_gap, point_stride));
     }
 
     void TrajectoryVisualizer::drawCurrentTrajectory(const Trajectory & traj)
@@ -57,6 +228,8 @@ namespace dynamic_gap
         {
             trajMarker.id = int (trajMarkerArray.markers.size());
             trajMarker.pose = pose;
+            if (cfg_->mppi.enabled)
+                trajMarker.pose.position.z += 0.15; // selected arrows above the sample cloud
             trajMarkerArray.markers.push_back(trajMarker);
         }
     

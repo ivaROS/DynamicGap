@@ -6,6 +6,24 @@ namespace dynamic_gap
     {
         ros::NodeHandle nh("~/" + name);
 
+        nh.param("mppi/enabled", mppi.enabled, mppi.enabled);
+        nh.param("mppi/mode", mppi.mode, mppi.mode);
+        nh.param("mppi/total_samples", mppi.total_samples, mppi.total_samples);
+        nh.param("mppi/horizon", mppi.horizon, mppi.horizon);
+        nh.param("mppi/iterations", mppi.iterations, mppi.iterations);
+        nh.param("mppi/temperature", mppi.temperature, mppi.temperature);
+        nh.param("mppi/sigma_v", mppi.sigma_v, mppi.sigma_v);
+        nh.param("mppi/sigma_w", mppi.sigma_w, mppi.sigma_w);
+        nh.param("mppi/update_fraction", mppi.update_fraction, mppi.update_fraction);
+        nh.param("mppi/seed", mppi.seed, mppi.seed);
+        nh.param("mppi/visualize", mppi.visualize, mppi.visualize);
+        nh.param("mppi/max_visualized_samples_per_gap", mppi.max_visualized_samples_per_gap,
+                 mppi.max_visualized_samples_per_gap);
+        nh.param("mppi/visualization_point_stride", mppi.visualization_point_stride,
+                 mppi.visualization_point_stride);
+        if (mppi.enabled && (mppi.mode != "gap_guided" && mppi.mode != "standard"))
+            throw std::invalid_argument("mppi/mode must be gap_guided or standard");
+
         ROS_INFO_STREAM_NAMED("Parameters", "Setting nh to: " << "~/" << name);
 
         std::string model;

@@ -1520,6 +1520,21 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajsV2()]");
+
+        if (cfg_.mppi.enabled && cfg_.planning.dwa_method)
+        {
+            try
+            {
+                if (generateMppiGapTrajs(gapTubes, gapTubeTrajs, gapTubeTrajPoseCosts,
+                                        gapTubeTrajTerminalPoseCosts, futureScans))
+                    return;
+            }
+            catch (const std::exception& error)
+            {
+                ROS_WARN_STREAM_THROTTLE(1.0, "MPPI failed: " << error.what());
+            }
+            ROS_WARN_THROTTLE(1.0, "MPPI has no admissible candidate; using original Dynamic Gap generator");
+        }
         
         try
         {
@@ -3126,6 +3141,8 @@ if (traj.getPathTiming().empty()) {
 
         if (gapCount == 0)
         {
+            if (cfg_.mppi.enabled)
+                trajVisualizer_->drawMppiTrajectories({});
             ROS_WARN_STREAM_NAMED("Planner", "No gaps to plan for");
             chosenTraj = Trajectory();
             trajFlag = NONE;

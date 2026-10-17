@@ -78,6 +78,13 @@ namespace dynamic_gap
     */
     class Planner
     {
+        // Optional generator leaves the legacy selection/tracking pipeline intact.
+        bool generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
+                                 std::vector<Trajectory>& trajectories,
+                                 std::vector<std::vector<float>>& poseCosts,
+                                 std::vector<float>& terminalCosts,
+                                 const std::vector<sensor_msgs::LaserScan>& futureScans);
+        unsigned int mppiCycle_ = 0;
 
         public:
             Planner() {}

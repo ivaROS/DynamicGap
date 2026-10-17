@@ -1,0 +1,59 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 28; 31; 39
+    Fixed Frame: mppi_demo
+    Frame Rate: 30
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 20
+      Color: 62; 66; 78
+      Alpha: 0.5
+    - Class: rviz/MarkerArray
+      Name: MPPI — all 3 gaps, samples and optimized nominals
+      Enabled: true
+      Marker Topic: /mppi_multigap_demo/mppi_trajectories
+      Queue Size: 10
+    - Class: rviz/MarkerArray
+      Name: Selected solution (red arrows)
+      Enabled: true
+      Marker Topic: /mppi_multigap_demo/curr_exec_dg_traj
+      Queue Size: 10
+    - Class: rviz/MarkerArray
+      Name: Moving obstacles
+      Enabled: true
+      Marker Topic: /mppi_multigap_demo/scene
+      Queue Size: 10
+    - Class: rviz/LaserScan
+      Name: Native laser scene
+      Enabled: true
+      Topic: /mppi_multigap_demo/scan
+      Size (m): 0.03
+      Style: Points
+      Color Transformer: FlatColor
+      Color: 200; 200; 200
+      Decay Time: 0
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Angle: 0
+      Scale: 135
+      X: 2
+      Y: 0
+      Near Clip Distance: 0.01
+      Target Frame: <Fixed Frame>
+Window Geometry:
+  Width: 1500
+  Height: 950
+  X: 100
+  Y: 60

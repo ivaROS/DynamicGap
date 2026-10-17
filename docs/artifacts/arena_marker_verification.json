@@ -1,0 +1,25 @@
+{
+  "sample_count": 96,
+  "nominal_count": 6,
+  "groups": {
+    "mppi_gap_0_693_694/samples": 16,
+    "mppi_gap_1_695_696/samples": 16,
+    "mppi_gap_2_676_674/samples": 16,
+    "mppi_gap_3_697_698/samples": 16,
+    "mppi_gap_4_699_679/samples": 16,
+    "mppi_gap_5_700_701/samples": 16
+  },
+  "unique_keys": true,
+  "frames": [
+    "rto/hokuyo_link"
+  ],
+  "stamps": 1,
+  "labels": [
+    "gap 0 [693,694] J=2.35\nsamples=16 drawn=16 feasible=15 progress=0",
+    "gap 1 [695,696] J=3.17\nsamples=16 drawn=16 feasible=5 progress=0",
+    "gap 2 [676,674] J=2.24\nsamples=16 drawn=16 feasible=5 progress=0",
+    "gap 3 [697,698] J=3.80\nsamples=16 drawn=16 feasible=8 progress=0",
+    "gap 4 [699,679] J=5.05\nsamples=16 drawn=16 feasible=16 progress=0",
+    "gap 5 [700,701] J=3.73\nsamples=16 drawn=16 feasible=14 progress=0"
+  ]
+}

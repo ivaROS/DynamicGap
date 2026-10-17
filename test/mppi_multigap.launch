@@ -1,0 +1,8 @@
+<launch>
+  <arg name="rviz" default="true" />
+  <node pkg="dynamic_gap" type="mppi_multigap_demo" name="mppi_multigap_demo" output="screen">
+    <param name="once" value="false" />
+  </node>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="mppi_demo_rviz"
+        args="-d $(find dynamic_gap)/rviz/mppi_demo.rviz" />
+</launch>

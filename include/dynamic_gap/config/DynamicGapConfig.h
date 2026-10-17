@@ -75,7 +75,26 @@ namespace dynamic_gap
                 bool social_cost_function = false;
                 bool FMM_global_cost = false; /** Flag for using FMM global cost/progress score instead of using global planner related score (which uses the Qf constant) */
                 // float social_cost_weight = 1.0; 
-            } planning;            
+            } planning;
+
+            // Optional control-space replacement for the three Bezier candidates.
+            // dt is deliberately shared with the existing future-scan predictions.
+            struct Mppi
+            {
+                bool enabled = false;
+                std::string mode = "gap_guided"; // or "standard" (one forward nominal)
+                int total_samples = 96;         // shared across gaps, per iteration
+                int horizon = 10;               // controls; rollout has horizon + 1 poses
+                int iterations = 1;
+                double temperature = 1.0;
+                double sigma_v = 0.20;
+                double sigma_w = 0.40;
+                double update_fraction = 1.0;
+                int seed = 7;
+                bool visualize = true;
+                int max_visualized_samples_per_gap = 0; // 0 draws every sample
+                int visualization_point_stride = 1;
+            } mppi;
 
             /**
             * \brief Hyperparameters for manual teleoperation control

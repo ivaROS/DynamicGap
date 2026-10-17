@@ -532,6 +532,14 @@ Visualization Manager:
                 allTraj: true
               Queue Size: 100
               Value: true
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /rto/mppi_trajectories
+              Name: MPPI samples and optimized paths
+              Namespaces:
+                {}
+              Queue Size: 1
+              Value: true
           Enabled: true
           Name: Trajectories
         - Class: rviz/Group
