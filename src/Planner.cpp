@@ -11,7 +11,7 @@
 #include <tf/transform_datatypes.h>
 
 namespace dynamic_gap
-{   
+{
     Planner::~Planner()
     {
         if (gruCsvFile_.is_open())
@@ -21,17 +21,17 @@ namespace dynamic_gap
         }
 
         // delete current raw, simplified, and selected gaps
-        for (Gap * rawGap : currRawGaps_)
+        for (Gap *rawGap : currRawGaps_)
             delete rawGap;
         currRawGaps_.clear();
 
-        for (Gap * simplifiedGap : currSimplifiedGaps_)
+        for (Gap *simplifiedGap : currSimplifiedGaps_)
             delete simplifiedGap;
         currSimplifiedGaps_.clear();
 
         // delete objects
         delete tfListener_;
-        
+
         delete gapDetector_;
         delete gapPointAssociator_;
         delete gapVisualizer_;
@@ -62,7 +62,7 @@ namespace dynamic_gap
         delete timeKeeper_;
     }
 
-    bool Planner::initialize(const std::string & name)
+    bool Planner::initialize(const std::string &name)
     {
         // ROS_INFO_STREAM("starting initialize");
         if (initialized_)
@@ -102,10 +102,10 @@ namespace dynamic_gap
 
         ungapTrajGenerator_ = new UngapTrajectoryGenerator(cfg_);
 
-        dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
+        dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_);
 
         trajEvaluator_ = new TrajectoryEvaluator(cfg_);
-        
+
         trajController_ = new TrajectoryController(nh_, cfg_);
 
         gapVisualizer_ = new GapVisualizer(nh_, cfg_);
@@ -114,14 +114,13 @@ namespace dynamic_gap
         trajVisualizer_ = new TrajectoryVisualizer(nh_, cfg_);
         bezierVisualizer_ = new BezierVisualizer(nh_, cfg_);
 
-
         ungapFeasibilityChecker_ = new UngapFeasibilityChecker(cfg_);
 
         timeKeeper_ = new TimeKeeper();
 
         // TF Lookup setup
-        tfListener_ = new tf2_ros::TransformListener(tfBuffer_);        
-        
+        tfListener_ = new tf2_ros::TransformListener(tfBuffer_);
+
         tfSub_ = nh_.subscribe("/tf", 10, &Planner::tfCB, this);
 
         rbtPoseSub_.subscribe(nh_, cfg_.odom_topic, 10);
@@ -165,11 +164,10 @@ namespace dynamic_gap
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
 
         gapVelSub_ = nh_.subscribe(
-            "simp_gap_model_velocities", 
+            "simp_gap_model_velocities",
             10,
             &Planner::gapVelCB,
-            this
-        );
+            this);
 
         if (cfg_.planning.FMM_global_cost)
         {
@@ -182,21 +180,19 @@ namespace dynamic_gap
                 "/dgap/fmm_goal", 1, true);
         }
 
-
         trajEvaluator_->latestGapLeftVelPtr_ = &latestGapLeftVel_; // for relvel calcuation
         trajEvaluator_->latestGapRightVelPtr_ = &latestGapRightVel_;
-        trajEvaluator_->leftVelDictPtr_  = &leftVelByModelID_;
+        trajEvaluator_->leftVelDictPtr_ = &leftVelByModelID_;
         trajEvaluator_->rightVelDictPtr_ = &rightVelByModelID_;
 
-        trajEvaluator_->leftPosDictPtr_  = &leftPosByModelID_;
+        trajEvaluator_->leftPosDictPtr_ = &leftPosByModelID_;
         trajEvaluator_->rightPosDictPtr_ = &rightPosByModelID_;
 
         minDistCirclePub_ = nh_.advertise<visualization_msgs::Marker>("min_scan_circle", 1);
-        ros::NodeHandle nh;  // or pass an existing NodeHandle
+        ros::NodeHandle nh; // or pass an existing NodeHandle
         traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("bezier_traj", 1);
         transformed_path_pub_ = nh_.advertise<visualization_msgs::Marker>("current_traj_transformed_viz", 1);
         vrel_safe_pub_ = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow_safe", 1);
-
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -209,7 +205,7 @@ namespace dynamic_gap
 
         currentRbtVel_ = geometry_msgs::TwistStamped();
         currentRbtAcc_ = geometry_msgs::TwistStamped();
-        
+
         rbtPoseInOdomFrame_ = geometry_msgs::PoseStamped();
         globalGoalRobotFrame_ = geometry_msgs::PoseStamped();
 
@@ -239,8 +235,8 @@ namespace dynamic_gap
         {
             ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
                                    "Failed to create GRU CSV output directory "
-                                   << gruCsvOutputDir_ << ": "
-                                   << directoryError.message());
+                                       << gruCsvOutputDir_ << ": "
+                                       << directoryError.message());
             gruCsvLoggingEnabled_ = false;
             return;
         }
@@ -271,12 +267,11 @@ namespace dynamic_gap
         gruCsvFile_.flush();
     }
 
-    void Planner::setParams(const EstimationParameters & estParams, const ControlParameters & ctrlParams)
+    void Planner::setParams(const EstimationParameters &estParams, const ControlParameters &ctrlParams)
     {
         gapPointAssociator_->updateParams(estParams);
         trajController_->updateParams(ctrlParams);
     }
-
 
     bool Planner::isGoalReached()
     {
@@ -289,7 +284,7 @@ namespace dynamic_gap
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
         reachedGlobalGoal_ = globalGoalDist < cfg_.goal.xy_global_goal_tolerance &&
                              globalGoalAngDist < cfg_.goal.yaw_global_goal_tolerance;
-        
+
         if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
 
@@ -338,14 +333,14 @@ namespace dynamic_gap
         float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
         min_scan_dist_ = minScanDist;
 
-
         if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
             ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
             ROS_WARN_STREAM_NAMED("Planner", "       in collision!");
             colliding_ = true;
             return;
-        } else
+        }
+        else
         {
             colliding_ = false;
         }
@@ -393,23 +388,23 @@ namespace dynamic_gap
         timeKeeper_->startTimer(GAP_ASSOC);
         rawDistMatrix_ = gapPointAssociator_->populateDistMatrix(currRawGaps_, prevRawGaps_);
         rawAssocation_ = gapPointAssociator_->associate(rawDistMatrix_);
-        gapPointAssociator_->assignModels(rawAssocation_, rawDistMatrix_, 
-                                    currRawGaps_, prevRawGaps_, 
-                                    currentModelIdx_, tCurrentFilterUpdate,
-                                    intermediateRbtVels, intermediateRbtAccs);
+        gapPointAssociator_->assignModels(rawAssocation_, rawDistMatrix_,
+                                          currRawGaps_, prevRawGaps_,
+                                          currentModelIdx_, tCurrentFilterUpdate,
+                                          intermediateRbtVels, intermediateRbtAccs);
         timeKeeper_->stopTimer(GAP_ASSOC);
 
         ////////////////////////////////////
         //////// RAW GAP ESTIMATION ////////
         ////////////////////////////////////
         timeKeeper_->startTimer(GAP_EST);
-        updateModels(currRawGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate, false);
+        updateModels(currRawGaps_, intermediateRbtVels,
+                     intermediateRbtAccs, tCurrentFilterUpdate, false);
         timeKeeper_->stopTimer(GAP_EST);
 
         ////////////////////////////////////
         //////// GAP SIMPLIFICATION ////////
-        ////////////////////////////////////       
+        ////////////////////////////////////
         timeKeeper_->startTimer(GAP_SIMP);
         currSimplifiedGaps_ = gapDetector_->gapSimplification(currRawGaps_);
         timeKeeper_->stopTimer(GAP_SIMP);
@@ -420,18 +415,18 @@ namespace dynamic_gap
         timeKeeper_->startTimer(GAP_ASSOC);
         simpDistMatrix_ = gapPointAssociator_->populateDistMatrix(currSimplifiedGaps_, prevSimplifiedGaps_);
         simpAssociation_ = gapPointAssociator_->associate(simpDistMatrix_); // must finish this and therefore change the association
-        gapPointAssociator_->assignModels(simpAssociation_, simpDistMatrix_, 
-                                    currSimplifiedGaps_, prevSimplifiedGaps_, 
-                                    currentModelIdx_, tCurrentFilterUpdate,
-                                    intermediateRbtVels, intermediateRbtAccs);
+        gapPointAssociator_->assignModels(simpAssociation_, simpDistMatrix_,
+                                          currSimplifiedGaps_, prevSimplifiedGaps_,
+                                          currentModelIdx_, tCurrentFilterUpdate,
+                                          intermediateRbtVels, intermediateRbtAccs);
         timeKeeper_->stopTimer(GAP_ASSOC);
 
         ///////////////////////////////////////////
         //////// SIMPLIFIED GAP ESTIMATION ////////
-        ///////////////////////////////////////////     
+        ///////////////////////////////////////////
         timeKeeper_->startTimer(GAP_EST);
-        updateModels(currSimplifiedGaps_, intermediateRbtVels, 
-                        intermediateRbtAccs, tCurrentFilterUpdate, true);
+        updateModels(currSimplifiedGaps_, intermediateRbtVels,
+                     intermediateRbtAccs, tCurrentFilterUpdate, true);
         timeKeeper_->stopTimer(GAP_EST);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
@@ -442,7 +437,7 @@ namespace dynamic_gap
         gapVisualizer_->drawGapModels(currSimplifiedGaps_, std::string("simp"));
 
         hasLaserScan_ = true;
-        
+
         // update current scan for proper classes
         updateEgoCircle();
 
@@ -457,11 +452,11 @@ namespace dynamic_gap
         }
 
         // delete previous gaps
-        for (Gap * prevRawGap : prevRawGaps_)
+        for (Gap *prevRawGap : prevRawGaps_)
             delete prevRawGap;
         prevRawGaps_.clear();
-        
-        for (Gap * prevSimplifiedGap : prevSimplifiedGaps_)
+
+        for (Gap *prevSimplifiedGap : prevSimplifiedGaps_)
             delete prevSimplifiedGap;
         prevSimplifiedGaps_.clear();
 
@@ -476,15 +471,15 @@ namespace dynamic_gap
     }
 
     // TO CHECK: DOES ASSOCIATIONS KEEP OBSERVED GAP POINTS IN ORDER (0,1,2,3...)
-    void Planner::updateModels(std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate,
-                                const bool & useGruVelocity)
+    void Planner::updateModels(std::vector<Gap *> &gaps,
+                               const std::vector<geometry_msgs::TwistStamped> &intermediateRbtVels,
+                               const std::vector<geometry_msgs::TwistStamped> &intermediateRbtAccs,
+                               const ros::Time &tCurrentFilterUpdate,
+                               const bool &useGruVelocity)
     {
         // ROS_INFO_STREAM_NAMED("GapEstimation", "[updateModels()]");
 
-        for (int i = 0; i < 2*gaps.size(); i++) 
+        for (int i = 0; i < 2 * gaps.size(); i++)
         {
             // ROS_INFO_STREAM_NAMED("GapEstimation", "    update gap model " << i << " of " << 2*gaps.size());
             updateModel(i, gaps, intermediateRbtVels, intermediateRbtAccs,
@@ -495,56 +490,59 @@ namespace dynamic_gap
         return;
     }
 
-    void Planner::updateModel(const int & idx, 
-                                std::vector<Gap *> & gaps, 
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels,
-                                const std::vector<geometry_msgs::TwistStamped> & intermediateRbtAccs,
-                                const ros::Time & tCurrentFilterUpdate,
-                                const bool & useGruVelocity)
+    void Planner::updateModel(const int &idx,
+                              std::vector<Gap *> &gaps,
+                              const std::vector<geometry_msgs::TwistStamped> &intermediateRbtVels,
+                              const std::vector<geometry_msgs::TwistStamped> &intermediateRbtAccs,
+                              const ros::Time &tCurrentFilterUpdate,
+                              const bool &useGruVelocity)
     {
-        Gap * gap = gaps[int(0.5 * idx)];
+        Gap *gap = gaps[int(0.5 * idx)];
 
         float rX = 0.0, rY = 0.0;
-        if (idx % 2 == 0) 
-            gap->getLCartesian(rX, rY);            
-        else 
-            gap->getRCartesian(rX, rY);            
+        if (idx % 2 == 0)
+            gap->getLCartesian(rX, rY);
+        else
+            gap->getRCartesian(rX, rY);
 
         // ROS_INFO_STREAM("rX: " << rX << ", rY: " << rY);
 
         Eigen::Vector2f measurement(rX, rY);
 
-        Estimator * model = nullptr;
+        Estimator *model = nullptr;
         std::string side;
 
-        if (idx % 2 == 0) 
+        if (idx % 2 == 0)
         {
             if (gap->getLeftGapPt()->getModel())
             {
-                gap->getLeftGapPt()->getModel()->update(measurement, 
-                                                        intermediateRbtVels, intermediateRbtAccs, 
-                                                        currentTrueAgentPoses_, 
+                gap->getLeftGapPt()->getModel()->update(measurement,
+                                                        intermediateRbtVels, intermediateRbtAccs,
+                                                        currentTrueAgentPoses_,
                                                         currentTrueAgentVels_,
                                                         tCurrentFilterUpdate);
                 model = gap->getLeftGapPt()->getModel();
                 side = "left";
-            } else
+            }
+            else
             {
                 ROS_WARN_STREAM_NAMED("GapEstimation", "left model is null");
             }
-        } else 
+        }
+        else
         {
             if (gap->getRightGapPt()->getModel())
             {
-                gap->getRightGapPt()->getModel()->update(measurement, 
-                                                        intermediateRbtVels, intermediateRbtAccs, 
-                                                        currentTrueAgentPoses_, 
-                                                        currentTrueAgentVels_,
-                                                        tCurrentFilterUpdate);
+                gap->getRightGapPt()->getModel()->update(measurement,
+                                                         intermediateRbtVels, intermediateRbtAccs,
+                                                         currentTrueAgentPoses_,
+                                                         currentTrueAgentVels_,
+                                                         tCurrentFilterUpdate);
                 model = gap->getRightGapPt()->getModel();
                 side = "right";
-            } else
-            {                
+            }
+            else
+            {
                 ROS_WARN_STREAM_NAMED("GapEstimation", "right model is null");
             }
         }
@@ -555,7 +553,7 @@ namespace dynamic_gap
 
         // Publish the pure Kalman result before applying a cached GRU velocity.
         const Eigen::Vector4f kalmanState = model->getState();
-        const geometry_msgs::TwistStamped & robotVelocity =
+        const geometry_msgs::TwistStamped &robotVelocity =
             intermediateRbtVels.empty() ? currentRbtVel_ : intermediateRbtVels.back();
         const PerfectGapVelocityLabel perfectLabel =
             computePerfectGapVelocityLabel(measurement, robotVelocity);
@@ -592,45 +590,42 @@ namespace dynamic_gap
                 usedGruVelocity = true;
 
                 ROS_ERROR_STREAM_NAMED("GRUGapVelocity",
-                    "overriding " << side
-                    << " GRU relvel=("
-                    << gruRelativeVelocity[0] << ", " << gruRelativeVelocity[1] << ")"
-                    << " old kalman=("
-                    << kalmanState[2] << ", "
-                    << kalmanState[3] << ")"
-                );
+                                       "overriding " << side
+                                                     << " GRU relvel=("
+                                                     << gruRelativeVelocity[0] << ", " << gruRelativeVelocity[1] << ")"
+                                                     << " old kalman=("
+                                                     << kalmanState[2] << ", "
+                                                     << kalmanState[3] << ")");
             }
             else
             {
                 ROS_INFO_STREAM_NAMED("GRUGapVelocity",
-                    "no fresh GRU velocity for model " << model->getID()
-                    << " " << side
-                    << ", keeping Kalman velocity=("
-                    << kalmanState[2] << ", "
-                    << kalmanState[3] << ")"
-                );
+                                      "no fresh GRU velocity for model " << model->getID()
+                                                                         << " " << side
+                                                                         << ", keeping Kalman velocity=("
+                                                                         << kalmanState[2] << ", "
+                                                                         << kalmanState[3] << ")");
             }
         }
 
         const Eigen::Vector4f activeState = model->getState();
         ROS_INFO_STREAM_NAMED("GapVelocityLabel",
-            "gap " << int(0.5 * idx)
-            << " " << side
-            << " model " << model->getID()
-            << " pos=(" << measurement[0] << ", " << measurement[1] << ")"
-            << " kalman_vel=(" << kalmanState[2] << ", " << kalmanState[3] << ")"
-            << " active_model_vel=(" << activeState[2] << ", " << activeState[3] << ")"
-            << " used_gru=" << usedGruVelocity
-            << " perfect_rel_vel=(" << perfectLabel.relativeVelocity[0]
-            << ", " << perfectLabel.relativeVelocity[1] << ")"
-            << " matched_agent=" << perfectLabel.matchedAgentID
-            << " match_dist=" << perfectLabel.matchDistance
-            << " dynamic=" << perfectLabel.matchedDynamicAgent
-        );
+                              "gap " << int(0.5 * idx)
+                                     << " " << side
+                                     << " model " << model->getID()
+                                     << " pos=(" << measurement[0] << ", " << measurement[1] << ")"
+                                     << " kalman_vel=(" << kalmanState[2] << ", " << kalmanState[3] << ")"
+                                     << " active_model_vel=(" << activeState[2] << ", " << activeState[3] << ")"
+                                     << " used_gru=" << usedGruVelocity
+                                     << " perfect_rel_vel=(" << perfectLabel.relativeVelocity[0]
+                                     << ", " << perfectLabel.relativeVelocity[1] << ")"
+                                     << " matched_agent=" << perfectLabel.matchedAgentID
+                                     << " match_dist=" << perfectLabel.matchDistance
+                                     << " dynamic=" << perfectLabel.matchedDynamicAgent);
     }
 
     void Planner::gruGapVelocityCB(
-        const dynamic_gap::GapVelocityPrediction::ConstPtr & msg)
+        const dynamic_gap::GapVelocityPrediction::ConstPtr &msg)
     {
         GruGapVelocityEstimate estimate;
         estimate.stamp = msg->header.stamp;
@@ -650,10 +645,10 @@ namespace dynamic_gap
     }
 
     bool Planner::getLatestGruVelocityForModel(
-        const int & modelID,
-        const std::string & side,
-        const ros::Time & currentStamp,
-        Eigen::Vector2f & relativeVelocity) const
+        const int &modelID,
+        const std::string &side,
+        const ros::Time &currentStamp,
+        Eigen::Vector2f &relativeVelocity) const
     {
         boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
         const auto prediction = latestGruGapVelocityByModelID_.find(modelID);
@@ -661,7 +656,7 @@ namespace dynamic_gap
         if (prediction == latestGruGapVelocityByModelID_.end())
             return false;
 
-        const GruGapVelocityEstimate & estimate = prediction->second;
+        const GruGapVelocityEstimate &estimate = prediction->second;
         if (!estimate.valid || estimate.side != side || estimate.stamp.isZero())
             return false;
 
@@ -674,14 +669,14 @@ namespace dynamic_gap
     }
 
     void Planner::publishGapPointObservation(
-        const ros::Time & stamp,
-        const int & gapIndex,
-        const std::string & side,
-        Estimator * model,
-        const Eigen::Vector2f & measurement,
-        const Eigen::Vector4f & kalmanState,
-        const PerfectGapVelocityLabel & perfectLabel,
-        const geometry_msgs::TwistStamped & robotVelocity)
+        const ros::Time &stamp,
+        const int &gapIndex,
+        const std::string &side,
+        Estimator *model,
+        const Eigen::Vector2f &measurement,
+        const Eigen::Vector4f &kalmanState,
+        const PerfectGapVelocityLabel &perfectLabel,
+        const geometry_msgs::TwistStamped &robotVelocity)
     {
         dynamic_gap::GapPointObservation observation;
         observation.header.stamp = stamp;
@@ -707,16 +702,16 @@ namespace dynamic_gap
     }
 
     Planner::PerfectGapVelocityLabel Planner::computePerfectGapVelocityLabel(
-        const Eigen::Vector2f & measurement,
-        const geometry_msgs::TwistStamped & robotVelocity) const
+        const Eigen::Vector2f &measurement,
+        const geometry_msgs::TwistStamped &robotVelocity) const
     {
         PerfectGapVelocityLabel label;
 
         // Unmatched gap points are assumed to belong to the static environment.
         label.relativeVelocity << -robotVelocity.twist.linear.x,
-                                  -robotVelocity.twist.linear.y;
+            -robotVelocity.twist.linear.y;
 
-        for (const auto & agent : currentTrueAgentPoses_)
+        for (const auto &agent : currentTrueAgentPoses_)
         {
             const float dx = agent.second.position.x - measurement[0];
             const float dy = agent.second.position.y - measurement[1];
@@ -735,9 +730,8 @@ namespace dynamic_gap
             agentVelocity != currentTrueAgentVels_.end())
         {
             label.worldVelocityRobot << agentVelocity->second.vector.x,
-                                        agentVelocity->second.vector.y;
-            label.relativeVelocity <<
-                agentVelocity->second.vector.x - robotVelocity.twist.linear.x,
+                agentVelocity->second.vector.y;
+            label.relativeVelocity << agentVelocity->second.vector.x - robotVelocity.twist.linear.x,
                 agentVelocity->second.vector.y - robotVelocity.twist.linear.y;
             label.matchedDynamicAgent = true;
         }
@@ -746,13 +740,13 @@ namespace dynamic_gap
     }
 
     void Planner::logGruTrainingRow(
-        const int & gapIndex,
-        const int & modelID,
-        const std::string & side,
-        const Eigen::Vector2f & measurement,
-        const Eigen::Vector4f & kalmanState,
-        const PerfectGapVelocityLabel & perfectLabel,
-        const geometry_msgs::TwistStamped & robotVelocity)
+        const int &gapIndex,
+        const int &modelID,
+        const std::string &side,
+        const Eigen::Vector2f &measurement,
+        const Eigen::Vector4f &kalmanState,
+        const PerfectGapVelocityLabel &perfectLabel,
+        const geometry_msgs::TwistStamped &robotVelocity)
     {
         if (!gruCsvLoggingEnabled_ || !gruCsvFile_.is_open())
             return;
@@ -782,9 +776,9 @@ namespace dynamic_gap
             << "\n";
         gruCsvFile_.flush();
     }
-    
-void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg, 
-                                const geometry_msgs::TwistStamped::ConstPtr & rbtAccelMsg)
+
+    void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &rbtOdomMsg,
+                                 const geometry_msgs::TwistStamped::ConstPtr &rbtAccelMsg)
     {
         // ROS_INFO_STREAM("jointPoseAccCB");
 
@@ -796,7 +790,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         if (rbtOdomMsg->child_frame_id != cfg_.robot_frame_id)
             ROS_WARN_STREAM("Odom msg child frame (for ego-robot velocity) " << rbtOdomMsg->child_frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
-        
+
         if (rbtAccelMsg->header.frame_id != cfg_.robot_frame_id)
             ROS_WARN_STREAM("Accel msg header frame (for ego-robot acceleration) " << rbtAccelMsg->header.frame_id << " not same as cfg rbt frame:" << cfg_.robot_frame_id);
 
@@ -805,7 +799,6 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         // ROS_INFO_STREAM("   rbtOdomMsg: " << *rbtOdomMsg);
 
         // ROS_INFO_STREAM("   rbtAccelMsg: " << *rbtAccelMsg);
-
 
         if (!haveTFs_)
             return;
@@ -816,7 +809,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         for (int i = 0; i < intermediateRbtAccs_.size(); i++)
         {
             // ROS_INFO_STREAM("   intermediateRbtAccs_.at(" << i << "):");
-            // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);                     
+            // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtAccs_.at(i).header.stamp);
             if (intermediateRbtAccs_.at(i).header.stamp <= tPreviousModelUpdate_)
             {
                 // ROS_INFO_STREAM("           erasing!");
@@ -826,21 +819,21 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
 
         currentRbtAcc_ = *rbtAccelMsg;
-        
-        //just for finding v_dir which is for the dwa_method 
-        float vx = currentRbtVel_.twist.linear.x;
-float vy = currentRbtVel_.twist.linear.y;
-float norm = std::sqrt(vx*vx + vy*vy);
-if (norm > 1e-5)  // avoid division by zero
-    v_dir_ = Eigen::Vector2f(vx / norm, vy / norm);
-else
-    v_dir_ = Eigen::Vector2f(1.0, 0.0);  // default forward
 
+        // just for finding v_dir which is for the dwa_method
+        float vx = currentRbtVel_.twist.linear.x;
+        float vy = currentRbtVel_.twist.linear.y;
+        float norm = std::sqrt(vx * vx + vy * vy);
+        if (norm > 1e-5) // avoid division by zero
+            v_dir_ = Eigen::Vector2f(vx / norm, vy / norm);
+        else
+            v_dir_ = Eigen::Vector2f(1.0, 0.0); // default forward
 
         if (intermediateRbtAccs_.size() > 0 && (intermediateRbtAccs_.back().header.stamp == currentRbtAcc_.header.stamp))
         {
             // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtAcc_");
-        } else
+        }
+        else
         {
             // assuming acceleration message comes in wrt robot frame, no transforms
             intermediateRbtAccs_.push_back(currentRbtAcc_);
@@ -874,9 +867,9 @@ else
 
         // transform into robot frame
 
-        geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id, 
-                                                                                        rbtOdomMsg->header.frame_id, 
-                                                                                        ros::Time(0));
+        geometry_msgs::TransformStamped odomFrame2RbtFrame = tfBuffer_.lookupTransform(rbtOdomMsg->child_frame_id,
+                                                                                       rbtOdomMsg->header.frame_id,
+                                                                                       ros::Time(0));
 
         // ROS_INFO_STREAM("   rbtVelOdomFrame: " << rbtVelOdomFrame);
 
@@ -892,7 +885,7 @@ else
         for (int i = 0; i < intermediateRbtVels_.size(); i++)
         {
             // ROS_INFO_STREAM("   intermediateRbtVels_.at(" << i << "):");
-            // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);                
+            // ROS_INFO_STREAM("       header.stamp: " << intermediateRbtVels_.at(i).header.stamp);
             if (intermediateRbtVels_.at(i).header.stamp <= tPreviousModelUpdate_)
             {
                 // ROS_INFO_STREAM("           erasing!");
@@ -904,7 +897,8 @@ else
         if (intermediateRbtVels_.size() > 0 && (intermediateRbtVels_.back().header.stamp == currentRbtVel_.header.stamp))
         {
             // ROS_INFO_STREAM("   redundant timestamp, skipping currentRbtVel_");
-        } else
+        }
+        else
         {
             intermediateRbtVels_.push_back(currentRbtVel_);
 
@@ -917,21 +911,21 @@ else
         }
     }
 
-    void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr& pedOdomMsg) 
+    void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr &pedOdomMsg)
     {
-        // ROS_INFO_STREAM_NAMED("Planner", "[pedOdomCB()]");   
-        
+        // ROS_INFO_STREAM_NAMED("Planner", "[pedOdomCB()]");
+
         if (!haveTFs_)
             return;
 
         for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
         {
             pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
-            std::string source_frame = agentIState.header.frame_id; 
+            std::string source_frame = agentIState.header.frame_id;
 
             // transforming Odometry message from map_static to robotN
-            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id, 
-                                                                                            source_frame, 
+            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id,
+                                                                                            source_frame,
                                                                                             ros::Time(0));
             geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
             geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
@@ -940,9 +934,9 @@ else
             agentPoseMsgFrame.pose = agentIState.pose;
             // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
 
-            //std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
+            // std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
             tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
-            
+
             // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
 
             // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
@@ -958,29 +952,28 @@ else
             // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
             currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
-        
         }
 
         agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
     }
 
-    bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
+    bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &globalPlanMapFrame)
     {
-        if (globalPlanMapFrame.size() == 0) 
+        if (globalPlanMapFrame.size() == 0)
             return true;
-        
+
         if (!haveTFs_)
             return false;
 
         geometry_msgs::PoseStamped globalGoalMapFrame = *std::prev(globalPlanMapFrame.end());
         if (cfg_.planning.FMM_global_cost)
             fmmGoalPub_.publish(globalGoalMapFrame);
-        tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_); // to update odom frame parameter
+        tf2::doTransform(globalGoalMapFrame, globalGoalOdomFrame_, map2odom_);    // to update odom frame parameter
         tf2::doTransform(globalGoalOdomFrame_, globalGoalRobotFrame_, odom2rbt_); // to update robot frame parameter
-        
+
         // Store New Global Plan to Goal Selector
         globalPlanManager_->updateGlobalPathMapFrame(globalPlanMapFrame);
-        
+
         // Generate global path local waypoint (furthest part along global path that we can still see)
         globalPlanManager_->generateGlobalPathLocalWaypoint(map2rbt_);
 
@@ -990,7 +983,7 @@ else
         // Plan New
         float diffX = globalPathLocalWaypointOdomFrame_.pose.position.x - newglobalPathLocalWaypointOdomFrame.pose.position.x;
         float diffY = globalPathLocalWaypointOdomFrame_.pose.position.y - newglobalPathLocalWaypointOdomFrame.pose.position.y;
-        
+
         if (sqrt(pow(diffX, 2) + pow(diffY, 2)) > cfg_.goal.xy_waypoint_tolerance)
             globalPathLocalWaypointOdomFrame_ = newglobalPathLocalWaypointOdomFrame;
 
@@ -1007,18 +1000,18 @@ else
         return true;
     }
 
-    void Planner::tfCB(const tf2_msgs::TFMessage& msg)
+    void Planner::tfCB(const tf2_msgs::TFMessage &msg)
     {
         // ignoring message entirely, just making separate thread for tfs to not
         // tether to other callbacks
 
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);        
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);        
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);        
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);        
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
+        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
 
         // for lookupTransform, parameters are (destination frame, source frame)
-        map2rbt_  = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.map_frame_id, ros::Time(0));
+        map2rbt_ = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.map_frame_id, ros::Time(0));
         odom2rbt_ = tfBuffer_.lookupTransform(cfg_.robot_frame_id, cfg_.odom_frame_id, ros::Time(0));
         rbt2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.robot_frame_id, ros::Time(0));
         map2odom_ = tfBuffer_.lookupTransform(cfg_.odom_frame_id, cfg_.map_frame_id, ros::Time(0));
@@ -1041,141 +1034,137 @@ else
     }
 
     // Apply 2D rotation and translation (equivalent to egodwa's BezierTrajectoryGenerator::transform2d)
-    Eigen::Vector2f rotatePoint2D(const Eigen::Vector2f& point, float theta)
+    Eigen::Vector2f rotatePoint2D(const Eigen::Vector2f &point, float theta)
     {
         float c = std::cos(theta);
         float s = std::sin(theta);
-        return Eigen::Vector2f(c*point.x() - s*point.y(), s*point.x() + c*point.y());
+        return Eigen::Vector2f(c * point.x() - s * point.y(), s * point.x() + c * point.y());
     }
 
-void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg)
-{
-    if (!cfg_.planning.FMM_global_cost)
-        return;
-
-    boost::mutex::scoped_lock lock(mapMutex_);
-    staticMap_ = *msg;
-    hasStaticMap_ = true;
-}
-
-void Planner::fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr& msg)
-{
-    if (!cfg_.planning.FMM_global_cost)
-        return;
-
-    boost::mutex::scoped_lock lock(mapMutex_);
-
-    if (!hasStaticMap_)
+    void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
     {
-        ROS_WARN_STREAM_NAMED("Planner",
-            "Received FMM distances but no static map yet");
-        return;
+        if (!cfg_.planning.FMM_global_cost)
+            return;
+
+        boost::mutex::scoped_lock lock(mapMutex_);
+        staticMap_ = *msg;
+        hasStaticMap_ = true;
     }
 
-    std::vector<float> fmmDistances = msg->data;
-
-    if (fmmDistances.size() != staticMap_.info.width * staticMap_.info.height)
+    void Planner::fmmDistanceCB(const std_msgs::Float32MultiArray::ConstPtr &msg)
     {
-        ROS_WARN_STREAM_NAMED("Planner",
-            "FMM distance size mismatch: distances=" << fmmDistances.size()
-            << ", map=" << staticMap_.info.width * staticMap_.info.height);
-        return;
-    }
+        if (!cfg_.planning.FMM_global_cost)
+            return;
 
-    trajEvaluator_->updateFmmMap(staticMap_, fmmDistances);
+        boost::mutex::scoped_lock lock(mapMutex_);
 
-    ROS_INFO_STREAM_NAMED("Planner",
-        "Updated TrajectoryEvaluator with received FMM distance map");
-}
-
-void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
-{
-    // Clear old data
-    latestGapLeftVel_.clear();
-    latestGapRightVel_.clear();
-    leftVelByModelID_.clear();
-    rightVelByModelID_.clear();
-    leftPosByModelID_.clear();
-    rightPosByModelID_.clear();
-
-    for (size_t i = 0; i < msg->markers.size(); ++i)
-    {
-        const auto& m = msg->markers[i];
-        const int model_id = m.id;          // should match Estimator::getID()
-        float speed = m.scale.x;
-        Eigen::Vector2f pos(m.pose.position.x, m.pose.position.y);
-
-        Eigen::Vector2f vel(0.0f, 0.0f);
-
-        // Handle zero-speed markers
-        if (speed >= 1e-6)
+        if (!hasStaticMap_)
         {
-            const geometry_msgs::Quaternion& q = m.pose.orientation;
-            bool quat_invalid =
-                !std::isfinite(q.w) || !std::isfinite(q.x) ||
-                !std::isfinite(q.y) || !std::isfinite(q.z) ||
-                (q.w == 0.0 && q.x == 0.0 && q.y == 0.0 && q.z == 0.0);
+            ROS_WARN_STREAM_NAMED("Planner",
+                                  "Received FMM distances but no static map yet");
+            return;
+        }
 
-            geometry_msgs::Quaternion qnorm = q;
-            if (!quat_invalid)
+        std::vector<float> fmmDistances = msg->data;
+
+        if (fmmDistances.size() != staticMap_.info.width * staticMap_.info.height)
+        {
+            ROS_WARN_STREAM_NAMED("Planner",
+                                  "FMM distance size mismatch: distances=" << fmmDistances.size()
+                                                                           << ", map=" << staticMap_.info.width * staticMap_.info.height);
+            return;
+        }
+
+        trajEvaluator_->updateFmmMap(staticMap_, fmmDistances);
+
+        ROS_INFO_STREAM_NAMED("Planner",
+                              "Updated TrajectoryEvaluator with received FMM distance map");
+    }
+
+    void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr &msg)
+    {
+        // Clear old data
+        latestGapLeftVel_.clear();
+        latestGapRightVel_.clear();
+        leftVelByModelID_.clear();
+        rightVelByModelID_.clear();
+        leftPosByModelID_.clear();
+        rightPosByModelID_.clear();
+
+        for (size_t i = 0; i < msg->markers.size(); ++i)
+        {
+            const auto &m = msg->markers[i];
+            const int model_id = m.id; // should match Estimator::getID()
+            float speed = m.scale.x;
+            Eigen::Vector2f pos(m.pose.position.x, m.pose.position.y);
+
+            Eigen::Vector2f vel(0.0f, 0.0f);
+
+            // Handle zero-speed markers
+            if (speed >= 1e-6)
             {
-                double n = std::sqrt(qnorm.x*qnorm.x + qnorm.y*qnorm.y +
-                                     qnorm.z*qnorm.z + qnorm.w*qnorm.w);
-                if (n > 1e-6)
+                const geometry_msgs::Quaternion &q = m.pose.orientation;
+                bool quat_invalid =
+                    !std::isfinite(q.w) || !std::isfinite(q.x) ||
+                    !std::isfinite(q.y) || !std::isfinite(q.z) ||
+                    (q.w == 0.0 && q.x == 0.0 && q.y == 0.0 && q.z == 0.0);
+
+                geometry_msgs::Quaternion qnorm = q;
+                if (!quat_invalid)
                 {
-                    qnorm.x /= n;
-                    qnorm.y /= n;
-                    qnorm.z /= n;
-                    qnorm.w /= n;
+                    double n = std::sqrt(qnorm.x * qnorm.x + qnorm.y * qnorm.y +
+                                         qnorm.z * qnorm.z + qnorm.w * qnorm.w);
+                    if (n > 1e-6)
+                    {
+                        qnorm.x /= n;
+                        qnorm.y /= n;
+                        qnorm.z /= n;
+                        qnorm.w /= n;
+                    }
                 }
+
+                float yaw = 0.0f;
+                if (!quat_invalid)
+                {
+                    yaw = tf::getYaw(qnorm);
+                    if (std::isnan(yaw) || std::isinf(yaw))
+                        yaw = 0.0f;
+                }
+
+                float vx = speed * std::cos(yaw);
+                float vy = speed * std::sin(yaw);
+                vel = Eigen::Vector2f(vx, vy);
             }
 
-            float yaw = 0.0f;
-            if (!quat_invalid)
+            // Left/right by index parity; also fill dicts
+            if (i % 2 == 0)
             {
-                yaw = tf::getYaw(qnorm);
-                if (std::isnan(yaw) || std::isinf(yaw))
-                    yaw = 0.0f;
+                latestGapLeftVel_.push_back(vel);
+                leftVelByModelID_[model_id] = vel;
+                leftPosByModelID_[model_id] = pos;
+
+                // ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
+                //                  << " vel = " << vel.transpose());
             }
+            else
+            {
+                latestGapRightVel_.push_back(vel);
+                rightVelByModelID_[model_id] = vel;
+                rightPosByModelID_[model_id] = pos;
 
-            float vx = speed * std::cos(yaw);
-            float vy = speed * std::sin(yaw);
-            vel = Eigen::Vector2f(vx, vy);
+                // ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
+                //                  << " vel = " << vel.transpose());
+            }
         }
 
-        // Left/right by index parity; also fill dicts
-        if (i % 2 == 0)
-        {
-            latestGapLeftVel_.push_back(vel);
-            leftVelByModelID_[model_id] = vel;
-            leftPosByModelID_[model_id] = pos;
-
-            
-
-            // ROS_ERROR_STREAM("[gapVelCB] LEFT marker ID = " << model_id
-            //                  << " vel = " << vel.transpose());
-        }
-        else
-        {
-            latestGapRightVel_.push_back(vel);
-            rightVelByModelID_[model_id] = vel;
-            rightPosByModelID_[model_id] = pos;
-
-            // ROS_ERROR_STREAM("[gapVelCB] RIGHT marker ID = " << model_id
-            //                  << " vel = " << vel.transpose());
-        }
+        // ROS_ERROR_STREAM("[gapVelCB] stored "
+        //     << latestGapLeftVel_.size() << " left gap vels, "
+        //     << latestGapRightVel_.size() << " right gap vels.");
+        // ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
+        //                  << leftVelByModelID_.size()
+        //                  << ", rightVelByModelID_ size = "
+        //                  << rightVelByModelID_.size());
     }
-
-    // ROS_ERROR_STREAM("[gapVelCB] stored "
-    //     << latestGapLeftVel_.size() << " left gap vels, "
-    //     << latestGapRightVel_.size() << " right gap vels.");
-    // ROS_ERROR_STREAM("[gapVelCB] leftVelByModelID_ size = "
-    //                  << leftVelByModelID_.size()
-    //                  << ", rightVelByModelID_ size = "
-    //                  << rightVelByModelID_.size());
-}
-
-
 
     void Planner::updateEgoCircle()
     {
@@ -1189,10 +1178,10 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         trajController_->updateEgoCircle(scan_);
     }
 
-    void Planner::propagateGapPointsV2(const std::vector<Gap *> & planningGaps,
-                                        std::vector<GapTube *> & gapTubes)
+    void Planner::propagateGapPointsV2(const std::vector<Gap *> &planningGaps,
+                                       std::vector<GapTube *> &gapTubes)
     {
-        boost::mutex::scoped_lock gapset(gapMutex_);        
+        boost::mutex::scoped_lock gapset(gapMutex_);
         ROS_INFO_STREAM_NAMED("Planner", "[propagateGapPointsV2()]");
 
         try
@@ -1212,10 +1201,12 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             checkGapModels(planningGaps);
 
             gapPropagator_->propagateGapPointsV2(planningGaps, gapTubes);
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    propagateGapPointsV2 out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    propagateGapPointsV2 exception: " << e.what());
         }
@@ -1223,7 +1214,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         return;
     }
 
-    std::vector<Gap *> Planner::manipulateGaps(const std::vector<Gap *> & planningGaps) 
+    std::vector<Gap *> Planner::manipulateGaps(const std::vector<Gap *> &planningGaps)
     {
         ROS_INFO_STREAM_NAMED("GapManipulator", "[manipulateGaps()]");
 
@@ -1237,11 +1228,11 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             {
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    manipulating initial gap " << i);
 
-                // MANIPULATE POINTS AT T=0            
+                // MANIPULATE POINTS AT T=0
                 gapManipulator_->convertRadialGap(planningGaps, i);
 
-                gapManipulator_->inflateGapSides(planningGaps.at(i)); // bool success = 
-                
+                gapManipulator_->inflateGapSides(planningGaps.at(i)); // bool success =
+
                 bool valid = planningGaps.at(i)->checkPoints();
 
                 if (!valid)
@@ -1253,15 +1244,16 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                 // if (success)
                 // {
                 ROS_INFO_STREAM_NAMED("GapManipulator", "    pushing back manipulated gap " << i);
-                    
-                    // gapGoalPlacer_->setGapGoal(planningGaps.at(i), 
-                    //                             globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                    //                             globalGoalRobotFrame_);                    
+
+                // gapGoalPlacer_->setGapGoal(planningGaps.at(i),
+                //                             globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                //                             globalGoalRobotFrame_);
 
                 manipulatedGaps.push_back(planningGaps.at(i)); // shallow copy
                 // }
             }
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("GapManipulator", "    exception: " << e.what());
         }
@@ -1269,7 +1261,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         return manipulatedGaps;
     }
 
-    void Planner::gapGoalPlacementV2(std::vector<GapTube *> & gapTubes) 
+    void Planner::gapGoalPlacementV2(std::vector<GapTube *> &gapTubes)
     {
         try
         {
@@ -1279,65 +1271,66 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             {
                 ROS_INFO_STREAM_NAMED("Planner", "    tube " << i);
 
-                GapTube * gapTube = gapTubes.at(i);
+                GapTube *gapTube = gapTubes.at(i);
                 for (int j = 0; j < gapTube->size(); j++)
                 {
                     ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
 
-                    Gap * gap = gapTube->at(j);
+                    Gap *gap = gapTube->at(j);
 
                     if (!gap->isAvailable()) // if curr gap is not available (should mean that previous gap existed)
                     {
                         ROS_INFO_STREAM_NAMED("Planner", "          current gap unavailable, placing goal inside");
 
-                        if ( (j-1) < 0)
+                        if ((j - 1) < 0)
                         {
                             ROS_INFO_STREAM_NAMED("Planner", "       gap " << j << " is not available and no previous gap exists");
                             ROS_WARN_STREAM_NAMED("Planner", "       gap " << j << " is not available and no previous gap exists");
                             continue;
                         }
 
-                        Gap * priorGap = gapTube->at(j-1);
+                        Gap *priorGap = gapTube->at(j - 1);
                         // place goal inside gap
 
                         gapGoalPlacer_->setGapGoalFromPriorV2(gap, priorGap);
-
-                    } else // curr gap is available
+                    }
+                    else // curr gap is available
                     {
-                        if (j < (gapTube->size() - 1) && !gapTube->at(j+1)->isAvailable()) // if next gap is not available
+                        if (j < (gapTube->size() - 1) && !gapTube->at(j + 1)->isAvailable()) // if next gap is not available
                         {
                             ROS_INFO_STREAM_NAMED("Planner", "          next gap unavailable, placing goal inside");
 
-                            Gap * nextGap = gapTube->at(j+1);
+                            Gap *nextGap = gapTube->at(j + 1);
 
                             // place goal inside gap
-                            gapGoalPlacer_->setGapGoalFromNextV2(gap, nextGap);   
-
-                        } else
+                            gapGoalPlacer_->setGapGoalFromNextV2(gap, nextGap);
+                        }
+                        else
                         {
                             ROS_INFO_STREAM_NAMED("Planner", "          current gap available, placing goal beyond");
 
                             // place goal beyond gap
                             // should use manipulate points to set gaps
-                            gapGoalPlacer_->setGapGoalV2(gap, 
-                                                            globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
-                                                            globalGoalRobotFrame_);          
-                        }          
+                            gapGoalPlacer_->setGapGoalV2(gap,
+                                                         globalPlanManager_->getGlobalPathLocalWaypointRobotFrame(),
+                                                         globalGoalRobotFrame_);
+                        }
                     }
                 }
             }
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    gapGoalPlacementV2 out of range exception: " << e.what());
         }
         return;
     }
 
-    void Planner::ungapGoalPlacement(const std::vector<Ungap *> & recedingUngaps)
+    void Planner::ungapGoalPlacement(const std::vector<Ungap *> &recedingUngaps)
     {
         try
         {
-            for (Ungap * ungap : recedingUngaps)
+            for (Ungap *ungap : recedingUngaps)
             {
                 // Use original points, not manipulated
                 ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
@@ -1367,12 +1360,14 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
 
                 // set
                 ungap->getGoal()->setOrigGoalPos(inflatedCenterPt);
-                ungap->getGoal()->setOrigGoalVel(avgVel);   
+                ungap->getGoal()->setOrigGoalVel(avgVel);
             }
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    ungapGoalPlacement out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    ungapGoalPlacement exception: " << e.what());
         }
@@ -1380,8 +1375,8 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         return;
     }
 
-    std::vector<GapTube *> Planner::gapSetFeasibilityCheckV2(const std::vector<GapTube *> & gapTubes, 
-                                                                bool & isCurrentGapFeasible)                                             
+    std::vector<GapTube *> Planner::gapSetFeasibilityCheckV2(const std::vector<GapTube *> &gapTubes,
+                                                             bool &isCurrentGapFeasible)
     {
         ROS_INFO_STREAM_NAMED("Planner", "[gapSetFeasibilityCheckV2()]");
 
@@ -1389,7 +1384,7 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
 
         try
         {
-            // boost::mutex::scoped_lock gapset(gapMutex_);        
+            // boost::mutex::scoped_lock gapset(gapMutex_);
             // std::vector<GapTube *> feasibleGaps;
 
             // grabbing the current set of gaps
@@ -1398,40 +1393,41 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
             int currentRightGapPtModelID = getCurrentRightGapPtModelID();
             ROS_INFO_STREAM_NAMED("Planner", "    current left/right model IDs: " << currentLeftGapPtModelID << ", " << currentRightGapPtModelID);
 
-             bool isGapFeasible = false;
-             
-            if (cfg_.planning.dwa_method) {
-                    isCurrentGapFeasible = true; // i'm not using this feasibility code so just keep it as true
-                    bool isGapFeasible = true;
+            bool isGapFeasible = false;
 
+            if (cfg_.planning.dwa_method)
+            {
+                isCurrentGapFeasible = true; // i'm not using this feasibility code so just keep it as true
+                bool isGapFeasible = true;
             }
-            else {
-                    isCurrentGapFeasible = false;
-                    bool isGapFeasible = false;
-                    }
-            
+            else
+            {
+                isCurrentGapFeasible = false;
+                bool isGapFeasible = false;
+            }
 
             for (int i = 0; i < gapTubes.size(); i++)
             {
-                GapTube * gapTube = gapTubes.at(i);
+                GapTube *gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
                 ROS_INFO_STREAM_NAMED("Planner", "    feasibility check for tube " << i);
 
                 Eigen::Vector2f startPt(0.0, 0.0);
 
-                for (int j = 0; j < gapTube->size(); j++) 
+                for (int j = 0; j < gapTube->size(); j++)
                 {
-                    if (cfg_.planning.dwa_method) {
+                    if (cfg_.planning.dwa_method)
+                    {
                         bool isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
                     }
-                    else {
+                    else
+                    {
                         bool isGapFeasible = false;
                     }
-                    
 
-                    Gap * gap = gapTube->at(j);
+                    Gap *gap = gapTube->at(j);
                     ROS_INFO_STREAM_NAMED("Planner", "       gap " << j);
-        
+
                     if (j == 0 && !gap->isAvailable()) // if first gap is not available
                     {
                         ROS_INFO_STREAM_NAMED("Planner", "          first gap unavailable, skipping");
@@ -1439,47 +1435,49 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
                         break;
                     }
 
-                    if (cfg_.planning.dwa_method) {
+                    if (cfg_.planning.dwa_method)
+                    {
                         ; // don't do anything
                     }
-                    else 
+                    else
                     {
-                        
 
-                    // run pursuit guidance analysis on gap to determine feasibility
-                    isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap, startPt);
+                        // run pursuit guidance analysis on gap to determine feasibility
+                        isGapFeasible = gapFeasibilityChecker_->pursuitGuidanceAnalysisV2(gap, startPt);
 
-                    if (j == 0 &&
-                        gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID && 
-                        gap->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID) 
-                    {
-                        isCurrentGapFeasible = true;
-                    }
+                        if (j == 0 &&
+                            gap->getLeftGapPt()->getModel()->getID() == currentLeftGapPtModelID &&
+                            gap->getRightGapPt()->getModel()->getID() == currentRightGapPtModelID)
+                        {
+                            isCurrentGapFeasible = true;
+                        }
 
-                    if (!isGapFeasible)
-                    {
-                        isTubeFeasible = false;
-                        break;
-                    } else
-                    {
-                        float gammaIntercept = gap->getGammaInterceptGoal();
-                        Eigen::Vector2f trajDir(cos(gammaIntercept), sin(gammaIntercept));
-                        startPt = gap->getGapLifespan() * trajDir; 
-                        // startPt = gap->getGoal()->getTermGoalPos();
-                    }
+                        if (!isGapFeasible)
+                        {
+                            isTubeFeasible = false;
+                            break;
+                        }
+                        else
+                        {
+                            float gammaIntercept = gap->getGammaInterceptGoal();
+                            Eigen::Vector2f trajDir(cos(gammaIntercept), sin(gammaIntercept));
+                            startPt = gap->getGapLifespan() * trajDir;
+                            // startPt = gap->getGoal()->getTermGoalPos();
+                        }
                     }
                 }
-        
-                if (isTubeFeasible) 
-                {                    
-                    feasibleGapTubes.push_back(gapTube); // shallow copy
-                }        
 
+                if (isTubeFeasible)
+                {
+                    feasibleGapTubes.push_back(gapTube); // shallow copy
+                }
             }
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    gapSetFeasibilityCheckV2 out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    gapSetFeasibilityCheckV2 exception: " << e.what());
         }
@@ -1487,71 +1485,73 @@ void Planner::gapVelCB(const visualization_msgs::MarkerArray::ConstPtr& msg)
         return feasibleGapTubes;
     }
 
-
-    void Planner::ungapSetFeasibilityCheck(const std::vector<Ungap *> & recedingUngaps)
+    void Planner::ungapSetFeasibilityCheck(const std::vector<Ungap *> &recedingUngaps)
     {
         try
         {
-            for (size_t i = 0; i < recedingUngaps.size(); i++) 
+            for (size_t i = 0; i < recedingUngaps.size(); i++)
             {
                 ROS_INFO_STREAM_NAMED("Planner", "    feasibility check for ungap " << i);
 
                 // run pursuit guidance analysis on ungap to calculate gamma (feasibility not really a thing here)
                 ungapFeasibilityChecker_->pursuitGuidanceAnalysis(recedingUngaps.at(i));
-
             }
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    ungapSetFeasibilityCheck out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "    ungapSetFeasibilityCheck exception: " << e.what());
         }
 
         return;
-    }       
+    }
 
-    void Planner::generateGapTrajsV2(std::vector<GapTube *> & gapTubes, 
-                                        std::vector<Trajectory> & gapTubeTrajs,
-                                        std::vector<std::vector<float>> & gapTubeTrajPoseCosts,
-                                        std::vector<float> & gapTubeTrajTerminalPoseCosts,
-                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    void Planner::generateGapTrajsV2(std::vector<GapTube *> &gapTubes,
+                                     std::vector<Trajectory> &gapTubeTrajs,
+                                     std::vector<std::vector<float>> &gapTubeTrajPoseCosts,
+                                     std::vector<float> &gapTubeTrajTerminalPoseCosts,
+                                     const std::vector<sensor_msgs::LaserScan> &futureScans)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateGapTrajsV2()]");
-        
+
         try
         {
-            auto SZ = [](const Trajectory& t) {
-    std::ostringstream ss;
-    ss << "poses="  << t.getPathRbtFrame().poses.size()
-       << " timing=" << t.getPathTiming().size();
-    return ss.str();
-};
+            auto SZ = [](const Trajectory &t)
+            {
+                std::ostringstream ss;
+                ss << "poses=" << t.getPathRbtFrame().poses.size()
+                   << " timing=" << t.getPathTiming().size();
+                return ss.str();
+            };
 
-auto VZ = [](const std::vector<float>& v) {
-    std::ostringstream ss;
-    ss << "size=" << v.size();
-    return ss.str();
-};
+            auto VZ = [](const std::vector<float> &v)
+            {
+                std::ostringstream ss;
+                ss << "size=" << v.size();
+                return ss.str();
+            };
 
-auto dumpSizes = [&](const std::string& tag,
-                     int i, int j, int scanIdx,
-                     const Trajectory& traj,
-                     const Trajectory& runningTraj,
-                     const std::vector<float>& poseCosts,
-                     const std::vector<float>& runningPoseCosts,
-                     const std::vector<sensor_msgs::LaserScan>& futureScans) {
-    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-        tag << " | tube i=" << i << " gap j=" << j << " scanIdx=" << scanIdx
-            << " | traj(" << SZ(traj) << ")"
-            << " | runningTraj(" << SZ(runningTraj) << ")"
-            << " | poseCosts(" << VZ(poseCosts) << ")"
-            << " | runningPoseCosts(" << VZ(runningPoseCosts) << ")"
-            << " | futureScans.size=" << futureScans.size());
-};
-
+            auto dumpSizes = [&](const std::string &tag,
+                                 int i, int j, int scanIdx,
+                                 const Trajectory &traj,
+                                 const Trajectory &runningTraj,
+                                 const std::vector<float> &poseCosts,
+                                 const std::vector<float> &runningPoseCosts,
+                                 const std::vector<sensor_msgs::LaserScan> &futureScans)
+            {
+                ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                       tag << " | tube i=" << i << " gap j=" << j << " scanIdx=" << scanIdx
+                                           << " | traj(" << SZ(traj) << ")"
+                                           << " | runningTraj(" << SZ(runningTraj) << ")"
+                                           << " | poseCosts(" << VZ(poseCosts) << ")"
+                                           << " | runningPoseCosts(" << VZ(runningPoseCosts) << ")"
+                                           << " | futureScans.size=" << futureScans.size());
+            };
 
             gapTubeTrajs = std::vector<Trajectory>(gapTubes.size());
             gapTubeTrajPoseCosts = std::vector<std::vector<float>>(gapTubes.size());
@@ -1559,17 +1559,15 @@ auto dumpSizes = [&](const std::string& tag,
 
             // geometry_msgs::TwistStamped currentRbtVel_; //shadow variable error, delete this
             float current_linear_velocity = std::sqrt(
-            std::pow(currentRbtVel_.twist.linear.x, 2) +
-            std::pow(currentRbtVel_.twist.linear.y, 2)
-            );
-
+                std::pow(currentRbtVel_.twist.linear.x, 2) +
+                std::pow(currentRbtVel_.twist.linear.y, 2));
 
             for (int i = 0; i < gapTubes.size(); i++)
             {
                 static int planCycle = 0;
                 // ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
 
-                GapTube * gapTube = gapTubes.at(i);
+                GapTube *gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generating traj for tube " << i);
 
@@ -1582,22 +1580,22 @@ auto dumpSizes = [&](const std::string& tag,
                 std::vector<float> runningPoseCosts;
                 float runningTerminalPoseCost;
 
-                bool disable_gap_tubes = true; 
+                bool disable_gap_tubes = true;
                 int iterate;
-                if(disable_gap_tubes)
-                { 
-                    iterate = 1; 
+                if (disable_gap_tubes)
+                {
+                    iterate = 1;
                 }
                 else
-                { 
-                    iterate = gapTube->size(); 
+                {
+                    iterate = gapTube->size();
                 }
 
-                for (int j = 0;j < iterate; j++) 
+                for (int j = 0; j < iterate; j++)
                 {
-                    Trajectory traj; 
+                    Trajectory traj;
                     Trajectory goToGoalTraj, pursuitGuidanceTraj;
-                    
+
                     std::vector<float> poseCosts;
                     float terminalPoseCost;
 
@@ -1605,625 +1603,596 @@ auto dumpSizes = [&](const std::string& tag,
                     float goToGoalTerminalPoseCost, pursuitGuidanceTerminalPoseCost;
                     float goToGoalCost, pursuitGuidancePoseCost;
 
-                    //variables for dwa
+                    // variables for dwa
                     std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts; // IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost
-                    std::vector<float> dwa_PathCosts; 
+                    std::vector<float> dwa_PathCosts;
                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
                     float dwa_goToGoalCost, dwa_PoseCost;
-                    std::vector<float> dwa_RelVelPoseCosts; 
+                    std::vector<float> dwa_RelVelPoseCosts;
 
-
-                    Gap * gap = gapTube->at(j);
+                    Gap *gap = gapTube->at(j);
                     // dumpSizes("ITER START", i, j, scanIdx, traj, runningTraj, poseCosts, runningPoseCosts, futureScans);
-
 
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "         gap: " << j);
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "             scanIdx: " << scanIdx);
 
                     // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
-                    
+
                     // Run go to goal behavior
                     bool runGoToGoal = gap->getGlobalGoalWithin();
 
-                    if (runGoToGoal) 
+                    if (runGoToGoal)
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running goToGoal");
-        
-                        goToGoalTraj = gapTrajGenerator_->generateGoToGoalTrajectoryV2(gap, 
-                                                                                        currPose, 
-                                                                                        // currVel, 
-                                                                                        globalGoalRobotFrame_);
-                        goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj); 
-                                                                            // currPose,
-                                                                            // currVel,
-                                                                            // false);
-                        trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
+                        goToGoalTraj = gapTrajGenerator_->generateGoToGoalTrajectoryV2(gap,
+                                                                                       currPose,
+                                                                                       // currVel,
+                                                                                       globalGoalRobotFrame_);
+                        goToGoalTraj = gapTrajGenerator_->processTrajectory(goToGoalTraj);
+                        // currPose,
+                        // currVel,
+                        // false);
+                        trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
                         goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0)) / goToGoalPoseCosts.size();
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        goToGoalCost: " << goToGoalCost);
                     }
-        
+
                     // Run pursuit guidance behavior
                     float totalTrajCost = 0;
                     // geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
-                    // dwa_Trajectory dwa_traj;        
-                    dwa_Trajectory cheapest_dwa;        
+                    // dwa_Trajectory dwa_traj;
+                    dwa_Trajectory cheapest_dwa;
                     std::vector<dwa_Trajectory> dwa_trajs;
 
                     if (gap->isAvailable())
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (available)");
-                        
+
                         if (cfg_.planning.dwa_method)
                         {
                             // get the latest min distance and velocity direction
                             float min_scan_dist = min_scan_dist_;
                             Eigen::Vector2f v_dir = v_dir_;
-                            // Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos(); 
+                            // Eigen::Vector2f goal_pos = gap->getGoal()->getTermGoalPos();
                             Eigen::Vector2f goal_pos = gap->getGoal()->getOrigGoalPos();
                             Eigen::Vector2f p0(0.0f, 0.0f);
                             Eigen::Vector2f p2 = projectOntoCircle(goal_pos, min_scan_dist);
                             // --- Rotation-based goal seed generation (multi-trajectory per gap) ---
-                            float robot_radius = cfg_.rbt.r_inscr; 
-                            float insurance_factor = 3.0; 
-                            float gap_insurance = 0.6f * robot_radius * insurance_factor;  // offset scaling
+                            float robot_radius = cfg_.rbt.r_inscr;
+                            float insurance_factor = 3.0;
+                            float gap_insurance = 0.6f * robot_radius * insurance_factor; // offset scaling
                             float r = p2.norm();
                             float theta_off = gap_insurance / std::max(r, 1e-3f);
 
                             // Number of samples on each side
                             int theta_samples = 1; // e.g. left/right + center                            // dwa_trajs.resize(theta_samples * 2 + 1);  // create real elements
-                            std::vector<Eigen::Vector2f> curve; 
-                            bool traj_behind = false; // just for testing 
+                            std::vector<Eigen::Vector2f> curve;
+                            bool traj_behind = false; // just for testing
 
                             for (int k = -theta_samples; k <= theta_samples; ++k)
                             {
                                 if (traj_behind)
                                 {
-                                curve.clear(); 
-                                float theta = k * theta_off;
-                                Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta); // IMPORTANT TODO:  i don't like this 
-                                Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
+                                    curve.clear();
+                                    float theta = k * theta_off;
+                                    Eigen::Vector2f p2_rot = rotatePoint2D(p2, theta); // IMPORTANT TODO:  i don't like this
+                                    Eigen::Vector2f goal_rot = rotatePoint2D(goal_pos, theta);
 
-                                // --- Generate Bézier for this rotated goal ---
-                                curve = compositeBezier(
-                                    p0, p2_rot, goal_rot, min_scan_dist, v_dir, 11);
+                                    // --- Generate Bézier for this rotated goal ---
+                                    curve = compositeBezier(
+                                        p0, p2_rot, goal_rot, min_scan_dist, v_dir, 11);
 
-                                // bezierVisualizer_->drawCurve(curve);
-                                //  bezierVisualizer_->drawP2(p2);
-                                } 
-                                else 
+                                    // bezierVisualizer_->drawCurve(curve);
+                                    //  bezierVisualizer_->drawP2(p2);
+                                }
+                                else
                                 {
-                                    curve.clear(); 
-                                    int num_samples = 11; 
+                                    curve.clear();
+                                    int num_samples = 11;
                                     Eigen::Vector2f p1 = p0 + (min_scan_dist / 2.0f) * v_dir;
                                     float theta = k * theta_off;
                                     Eigen::Vector2f p4_rot = rotatePoint2D(goal_pos, theta);
 
-                                    for (int i = 0; i <= num_samples / 2; i++) {
+                                    for (int i = 0; i <= num_samples / 2; i++)
+                                    {
                                         float t = static_cast<float>(i) / (num_samples / 2);
                                         curve.push_back(bezier(p0, p1, p4_rot, t));
-                                        }
+                                    }
                                 }
 
                                 dwa_Trajectory dwa_traj;
 
-
-                            // std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
-                            //  bezierVisualizer_->drawP2(p2);
-                            // bezierVisualizer_->drawCurve(curve);    
-
-                            
-float v0       = current_linear_velocity;
-float v_max    = cfg_.rbt.vx_absmax;
-float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
-
-const int   num_points   = 11;           // total points along the trajectory
-const int   num_segments = num_points - 1;
-const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
-// const float total_time   = dt * num_segments;   
-
-// --- Step 1: desired forward speed after one step of acceleration ---
-float v_des = std::min(v0 + a_max * dt, v_max);
-
-
-// --- Step 2: estimate curvature at the start of the Bézier (using sampled points) ---
-Eigen::Vector2f curve_point0 = curve[0];
-Eigen::Vector2f curve_point1 = curve[1];
-Eigen::Vector2f curve_point2 = curve[2];
-
-Eigen::Vector2f v1 = curve_point1 - curve_point0;
-Eigen::Vector2f v2 = curve_point2 - curve_point1;
-
-// z-component of the cross product between consecutive direction vectors
-float cross = v1.x() * v2.y() - v1.y() * v2.x();
-float curvature = cross / powf(v1.norm(), 3.0f);   // discrete curvature estimate
-
-
-// --- Step 3: desired yaw rate from curvature ---
-float w_des = v_des * curvature;
-
-
-// --- Step 4: compute λ scaling factor (re-parameterization of curve timing) ---
-float lambda = std::min(1.0f, v_des / v1.norm());
-
-
-// --- Step 5: apply angular-velocity clipping (σ term) ---
-float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
-
-
-// --- Step 6: final commanded velocities ---
-float v_cmd = sigma * lambda * v_des;
-float w_cmd = sigma * lambda * w_des;
-
-dwa_traj.v_cmd = v_cmd;
-dwa_traj.w_cmd = w_cmd;
-
-
-// --- Assume constant speed along Bézier arc ---
-float total_time = dt * (num_points - 1);
-float total_length = 0.0f;
-
-//compute arc length of the Bézier (approx. sum of straight-line segments)
-for (int i = 1; i < curve.size(); ++i)
-    total_length += (curve[i] - curve[i - 1]).norm();
-
-//compute how far the robot travels per timestep at v_cmd
-float step_distance = (v_cmd * total_time) / (num_points - 1);
-
-//extract equally spaced points along the curve by accumulated distance
-
-float dist_accum = 0.0f;
-float next_target = 0.0f;
-int current_seg = 0;
-
-dwa_traj.positions.reserve(num_points);
-dwa_traj.yaws.reserve(num_points);
-dwa_traj.times.reserve(num_points);
-
-// always include starting point
-dwa_traj.positions.push_back(curve.front());
-dwa_traj.yaws.push_back(atan2((curve[1] - curve[0]).y(), (curve[1] - curve[0]).x()));
-dwa_traj.times.push_back(0.0f);
-
-// iterate through segments and pick positions spaced by step_distance
-for (int i = 1; i < num_points; ++i)
-{
-    next_target += step_distance;
-
-    // walk along the Bézier until accumulated distance exceeds next_target
-    while (current_seg + 1 < curve.size() &&
-           (dist_accum + (curve[current_seg + 1] - curve[current_seg]).norm()) < next_target)
-    {
-        dist_accum += (curve[current_seg + 1] - curve[current_seg]).norm();
-        current_seg++;
-    }
-
-    // if (current_seg + 1 >= curve.size())
-    //     break;
-
-    float seg_len = (curve[current_seg + 1] - curve[current_seg]).norm();
-    float remaining = next_target - dist_accum;
-    float t_seg = remaining / std::max(seg_len, 1e-6f);
-
-    // linear interpolation between curve points
-    Eigen::Vector2f pt = curve[current_seg] + t_seg * (curve[current_seg + 1] - curve[current_seg]);
-    Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
-
-    dwa_traj.positions.push_back(pt); //I suspect this may be causing the issue - 1028
-    // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
-    dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
-    dwa_traj.times.push_back(i * dt);
-} 
-//publish as PoseArray
-
-
-// --- Convert positioin evaluator path.size()ns to PoseArray ---
-dwa_traj.pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id);//I suspect this may be causing the issue - 1028
-    
-// --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead 
-// int counter = 0; 
-// for (const auto& pose : pose_array.poses)
-// {
-//     float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
-//     ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "pose: " << counter << "dwa_evaluatePose (not evalTraj) output: " << cost);
-//     counter++; 
-// }
-
-//  std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
-//                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
-//                     float dwa_goToGoalCost, dwa_PoseCost;
-
-std::vector<geometry_msgs::PoseStamped> visiblePlan =
-    globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
-// float totalTrajCost = 0;
-float speedCost = 0; 
-trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
-speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max); 
-totalTrajCost += speedCost * cfg_.traj.w_speed;
-// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
-float pose_cost_sum = 0.0f;
-float path_cost_sum = 0.0f;
-
-// if (!dwa_PoseCosts.empty())
-// {
-//     pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
-//     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
-//     for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
-//     {
-//         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
-//     }
-// }
-
-// if (!dwa_PathCosts.empty())
-// {
-//     path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f) / dwa_PathCosts.size();
-//     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts (size = " << dwa_PathCosts.size() << "):");
-//     for (size_t i = 0; i < dwa_PathCosts.size(); ++i)
-//     {
-//         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PathCosts[i]);
-//     }
-// }
-
-// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
-// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
-
-// traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
-traj_pub_.publish(dwa_traj.pose_array);
-dwa_traj.PoseCosts = dwa_PoseCosts; 
-dwa_traj.PathCosts = dwa_PathCosts; 
-dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts; 
-dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost; 
-dwa_traj.totalTrajCost = totalTrajCost; 
-dwa_traj.gap = gap; // not used in this function, but it's in void TrajectoryEvaluator::update_human_info() when comparing functions
-dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
-dwa_traj.rightGapPtID = gap->getRightGapPt()->getModel()->getID();
-
-dwa_trajs.push_back(dwa_traj);  // append new trajectory
-
-bool visualize_curves_and_costs = false; 
-if (visualize_curves_and_costs)
-{
-// Evaluate trajectory
-float dwa_visual_duration = .5; 
-// trajEvaluator_->dwa_evaluateTrajectory(
-//     pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
-
-static ros::Publisher traj_cost_viz_pub =
-    nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
-
-//Clear previous markers if you want a clean refresh each cycle
-visualization_msgs::MarkerArray clear;
-clear.markers.clear();
-traj_cost_viz_pub.publish(clear);
-
-
-static int global_marker_id = 0;
-
-
-// --- for visualization combine pose, path, and terminal costs into total per-step costs ---
-std::vector<float> dwa_TotalCostsVector;
-dwa_TotalCostsVector.reserve(dwa_PoseCosts.size());
-
-for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
-{
-    float total_cost = dwa_PoseCosts[i] + dwa_PathCosts[i];
-
-    // add terminal cost only at the last time step
-    if (i == dwa_PoseCosts.size() - 1)
-        total_cost += dwa_TerminalPoseCost;
-
-    dwa_TotalCostsVector.push_back(total_cost);
-}
-
-visualization_msgs::MarkerArray traj_markers;
-std::vector<float> costPrintout; 
-costPrintout = dwa_TotalCostsVector; // adjust this line for the rviz cost print out. options: dwa_PoseCosts, dwa_PathCosts, dwa_TotalCostsVector
-
-// ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PoseCosts" << dwa_PoseCosts);
-
-// --- line strip for this trajectory ---
-visualization_msgs::Marker line;
-line.header.frame_id = cfg_.sensor_frame_id;
-line.header.stamp = ros::Time::now();
-line.ns = "dwa_traj_lines";
-line.id = global_marker_id++;
-line.type = visualization_msgs::Marker::LINE_STRIP;
-line.action = visualization_msgs::Marker::ADD;
-line.scale.x = 0.03;
-line.color.r = 0.0;
-line.color.g = 1.0;
-line.color.b = 0.0;
-line.color.a = 1.0;
-line.lifetime = ros::Duration(dwa_visual_duration);  // keep indefinitely
-
-for (const auto& pose : dwa_traj.pose_array.poses)
-{
-    geometry_msgs::Point p;
-    p.x = pose.position.x;
-    p.y = pose.position.y;
-    p.z = 0.02;
-    line.points.push_back(p);
-}
-traj_markers.markers.push_back(line);
-
-// --- per-pose cost text ---
-for (size_t i = 0; i < dwa_traj.pose_array.poses.size(); ++i)
-{
-    visualization_msgs::Marker text;
-    text.header = line.header;
-    text.ns = "dwa_pose_costs";
-    text.id = global_marker_id++;
-    text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-    text.action = visualization_msgs::Marker::ADD;
-    text.pose = dwa_traj.pose_array.poses[i];
-    text.pose.position.z += 0.15;
-    text.scale.z = 0.15;
-    text.color.r = 0.0;
-    text.color.g = 0.0;
-    text.color.b = 0.0;
-    text.color.a = 1.0;
-    text.lifetime = ros::Duration(dwa_visual_duration);
-
-    std::ostringstream ss;
-    ss << std::fixed << std::setprecision(2) << costPrintout[i];
-    text.text = ss.str();
-
-    traj_markers.markers.push_back(text);
-}
-
-// Publish all markers for this trajectory
-traj_cost_viz_pub.publish(traj_markers);
-}
-
-
-
-
-
-// ------------------------------------------------------------
-// Visualization-only rollout for RViz
-// ------------------------------------------------------------
-bool visualize_dwa_rollout = false; 
-if (visualize_dwa_rollout)
-{
-    // initial state (robot frame)
-    float vis_x = 0.0f;
-    float vis_y = 0.0f;
-    float vis_yaw = 0.0f;
-    float vis_t = 0.0f;
-
-    // storage
-    std::vector<Eigen::Vector2f> vis_positions;
-    std::vector<float> vis_yaws;
-    std::vector<float> vis_times;
-
-    vis_positions.reserve(num_points);
-    vis_yaws.reserve(num_points);
-    vis_times.reserve(num_points);
-
-    // store initial pose
-    vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
-    vis_yaws.push_back(vis_yaw);
-    vis_times.push_back(vis_t);
-
-    // rollout integration (unicycle model)
-    for (int vi = 1; vi < num_points; ++vi)
-    {
-        vis_yaw += w_cmd * dt;
-        vis_x   += v_cmd * std::cos(vis_yaw) * dt;
-        vis_y   += v_cmd * std::sin(vis_yaw) * dt;
-        vis_t   += dt;
-
-        vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
-        vis_yaws.push_back(vis_yaw);
-        vis_times.push_back(vis_t);
-    }
-
-    // ------------------------------------------------------------
-    // Convert to ROS PoseArray
-    // ------------------------------------------------------------
-    geometry_msgs::PoseArray vis_traj_path;
-    vis_traj_path.header.frame_id = cfg_.sensor_frame_id;
-    vis_traj_path.header.stamp = ros::Time::now();
-
-    for (int vi = 0; vi < num_points; ++vi)
-    {
-        geometry_msgs::Pose vis_pose;
-        vis_pose.position.x = vis_positions[vi].x();
-        vis_pose.position.y = vis_positions[vi].y();
-        vis_pose.position.z = 0.0;
-        vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
-        vis_traj_path.poses.push_back(vis_pose);
-    }
-}
-
-}
-
-}
-// pick the cheapest dwa traj
-if (!dwa_trajs.empty())
-{
-    cheapest_dwa = dwa_trajs[0];
-    for (size_t i = 1; i < dwa_trajs.size(); ++i)
-    {
-        if (dwa_trajs[i].totalTrajCost < cheapest_dwa.totalTrajCost)
-            cheapest_dwa = dwa_trajs[i];
-    }
-    // ROS_ERROR_STREAM("[CHEAPEST_DWA] cost=" << cheapest_dwa.totalTrajCost);
-}
-else
-{
-    ROS_WARN_STREAM("[CHEAPEST_DWA] no valid DWA trajectories found");
-}
-
-
-bool visualize_all_dwa_trajs = true;
-if (visualize_all_dwa_trajs && !dwa_trajs.empty())
-{
-    static ros::Publisher traj_cost_viz_pub =
-        nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
-
-    // clear previous markers
-    visualization_msgs::MarkerArray clear;
-    traj_cost_viz_pub.publish(clear);
-
-    visualization_msgs::MarkerArray all_markers;
-    static int global_marker_id = 0;
-    float text_scale = 0.12f;
-    float line_width = 0.03f;
-    float lifetime = 0.25f;
-
-    for (size_t t = 0; t < dwa_trajs.size(); ++t)
-    {
-        const auto &traj = dwa_trajs[t];
-        // geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
-        const geometry_msgs::PoseArray& poses = traj.pose_array;
-
-        // --- compute total cost per pose (pose + path + speed + terminal) ---
-        std::vector<float> total_costs;
-        total_costs.reserve(poses.poses.size());
-        for (size_t i = 0; i < poses.poses.size(); ++i)
-        {
-            float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
-            float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
-            float relvel_cost = (i < traj.RelVelPoseCosts.size()) ? traj.RelVelPoseCosts[i] : 0.0f;
-            float speed_cost = 0.0f;
-            float term_cost = 0.0f;
-
-            // normalize per length (same as evaluator)
-            float len_norm = std::max(1.0f, float(poses.poses.size()));
-            pose_cost /= len_norm;
-            path_cost /= len_norm;
-            relvel_cost /= len_norm; 
-            if (i == poses.poses.size() - 1)
-            {
-                // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
-                // term_cost  = traj.TerminalPoseCost;
-                // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
-                int filler = 0; 
-
-            }
-
-            float total = pose_cost +
-                          cfg_.traj.w_path * path_cost +
-                          cfg_.traj.w_speed * speed_cost +
-                          term_cost + 
-                          cfg_.traj.w_relvel * relvel_cost; //20260303 pose_cost and term_cost used to be multipled by constant but I removed them, see today's commit 
-
-            // float total = cfg_.traj.w_relvel * relvel_cost; 
-            // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
-            total_costs.push_back(total);
-        }
-
-        // --- draw trajectory line ---
-        visualization_msgs::Marker line;
-        line.header.frame_id = cfg_.sensor_frame_id;
-        line.header.stamp = ros::Time::now();
-        line.ns = "dwa_traj_lines";
-        line.id = global_marker_id++;
-        line.type = visualization_msgs::Marker::LINE_STRIP;
-        line.action = visualization_msgs::Marker::ADD;
-        line.scale.x = line_width;
-        line.color.r = 0.0;
-        line.color.g = 0.8;
-        line.color.b = 1.0;
-        line.color.a = 1.0;
-        line.lifetime = ros::Duration(lifetime);
-
-        for (size_t i = 0; i < poses.poses.size(); ++i)
-        {
-            geometry_msgs::Point p;
-            p.x = poses.poses[i].position.x;
-            p.y = poses.poses[i].position.y;
-            p.z = 0.05;
-            line.points.push_back(p);
-        }
-        all_markers.markers.push_back(line);
-
-        // --- per-pose cost text ---
-        for (size_t i = 0; i < poses.poses.size(); ++i)
-        {
-            visualization_msgs::Marker text;
-            text.header = line.header;
-            text.ns = "dwa_pose_costs";
-            text.id = global_marker_id++;
-            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-            text.action = visualization_msgs::Marker::ADD;
-            text.pose = poses.poses[i];
-            text.pose.position.z += 0.15;
-            text.scale.z = text_scale;
-            text.color.r = 0.0;
-            text.color.g = 0.0;
-            text.color.b = 0.0;
-            text.color.a = 1.0;
-            text.lifetime = ros::Duration(lifetime);
-
-            std::ostringstream ss;
-            ss << std::fixed << std::setprecision(2) << total_costs[i];
-            text.text = ss.str();
-
-            all_markers.markers.push_back(text);
-        }
-
-    traj_cost_viz_pub.publish(all_markers);
-    
-}
-
-
-
-
-
-// traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
-
-//delete this: 
-                            // pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                            //                                                                 currPose, 
-                            //                                                                 // currVel, 
-                            //                                                                 globalGoalRobotFrame_);
-                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-
-                            
-                            // pursuitGuidanceTraj = bezierTraj;
-                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-
-
-                            //delete this: 
-                            //  pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                            //                                                                 currPose, 
-                            //                                                                 // currVel, 
-                            //                                                                 globalGoalRobotFrame_);
-                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                            //                                                             // currPose,
-                            //                                                             // currVel,
-                            //                                                         // false);
+                                // std::vector<Eigen::Vector2f> curve = compositeBezier(p0, p2, goal_pos, min_scan_dist, v_dir, 11); //todo I might be able to add more points than just 11 since now i travel at a constant vel and just pick out poses along curve
+                                //  bezierVisualizer_->drawP2(p2);
+                                // bezierVisualizer_->drawCurve(curve);
+
+                                float v0 = current_linear_velocity;
+                                float v_max = cfg_.rbt.vx_absmax;
+                                float w_max = cfg_.rbt.vang_absmax;
+                                float a_max = cfg_.rbt.vang_absmax; // todo: update this value. I just set it to 1 for now
+
+                                const int num_points = 11; // total points along the trajectory
+                                const int num_segments = num_points - 1;
+                                const float dt = cfg_.traj.integrate_stept; // 0.5 sec
+                                // const float total_time   = dt * num_segments;
+
+                                // --- Step 1: desired forward speed after one step of acceleration ---
+                                float v_des = std::min(v0 + a_max * dt, v_max);
+
+                                // --- Step 2: estimate curvature at the start of the Bézier (using sampled points) ---
+                                Eigen::Vector2f curve_point0 = curve[0];
+                                Eigen::Vector2f curve_point1 = curve[1];
+                                Eigen::Vector2f curve_point2 = curve[2];
+
+                                Eigen::Vector2f v1 = curve_point1 - curve_point0;
+                                Eigen::Vector2f v2 = curve_point2 - curve_point1;
+
+                                // z-component of the cross product between consecutive direction vectors
+                                float cross = v1.x() * v2.y() - v1.y() * v2.x();
+                                float curvature = cross / powf(v1.norm(), 3.0f); // discrete curvature estimate
+
+                                // --- Step 3: desired yaw rate from curvature ---
+                                float w_des = v_des * curvature;
+
+                                // --- Step 4: compute λ scaling factor (re-parameterization of curve timing) ---
+                                float lambda = std::min(1.0f, v_des / v1.norm());
+
+                                // --- Step 5: apply angular-velocity clipping (σ term) ---
+                                float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
+
+                                // --- Step 6: final commanded velocities ---
+                                float v_cmd = sigma * lambda * v_des;
+                                float w_cmd = sigma * lambda * w_des;
+
+                                dwa_traj.v_cmd = v_cmd;
+                                dwa_traj.w_cmd = w_cmd;
+
+                                // --- Assume constant speed along Bézier arc ---
+                                float total_time = dt * (num_points - 1);
+                                float total_length = 0.0f;
+
+                                // compute arc length of the Bézier (approx. sum of straight-line segments)
+                                for (int i = 1; i < curve.size(); ++i)
+                                    total_length += (curve[i] - curve[i - 1]).norm();
+
+                                // compute how far the robot travels per timestep at v_cmd
+                                float step_distance = (v_cmd * total_time) / (num_points - 1);
+
+                                // extract equally spaced points along the curve by accumulated distance
+
+                                float dist_accum = 0.0f;
+                                float next_target = 0.0f;
+                                int current_seg = 0;
+
+                                dwa_traj.positions.reserve(num_points);
+                                dwa_traj.yaws.reserve(num_points);
+                                dwa_traj.times.reserve(num_points);
+
+                                // always include starting point
+                                dwa_traj.positions.push_back(curve.front());
+                                dwa_traj.yaws.push_back(atan2((curve[1] - curve[0]).y(), (curve[1] - curve[0]).x()));
+                                dwa_traj.times.push_back(0.0f);
+
+                                // iterate through segments and pick positions spaced by step_distance
+                                for (int i = 1; i < num_points; ++i)
+                                {
+                                    next_target += step_distance;
+
+                                    // walk along the Bézier until accumulated distance exceeds next_target
+                                    while (current_seg + 1 < curve.size() &&
+                                           (dist_accum + (curve[current_seg + 1] - curve[current_seg]).norm()) < next_target)
+                                    {
+                                        dist_accum += (curve[current_seg + 1] - curve[current_seg]).norm();
+                                        current_seg++;
+                                    }
+
+                                    // if (current_seg + 1 >= curve.size())
+                                    //     break;
+
+                                    float seg_len = (curve[current_seg + 1] - curve[current_seg]).norm();
+                                    float remaining = next_target - dist_accum;
+                                    float t_seg = remaining / std::max(seg_len, 1e-6f);
+
+                                    // linear interpolation between curve points
+                                    Eigen::Vector2f pt = curve[current_seg] + t_seg * (curve[current_seg + 1] - curve[current_seg]);
+                                    Eigen::Vector2f dir = (curve[current_seg + 1] - curve[current_seg]).normalized();
+
+                                    dwa_traj.positions.push_back(pt); // I suspect this may be causing the issue - 1028
+                                    // ROS_ERROR_STREAM_NAMED("planner debug", "[before toPoseArray] dwa_traj.positions.size(): )" <<  dwa_traj.positions.size());
+                                    dwa_traj.yaws.push_back(atan2(dir.y(), dir.x()));
+                                    dwa_traj.times.push_back(i * dt);
+                                }
+                                // publish as PoseArray
+
+                                // --- Convert positioin evaluator path.size()ns to PoseArray ---
+                                dwa_traj.pose_array = dwa_traj.toPoseArray(cfg_.sensor_frame_id); // I suspect this may be causing the issue - 1028
+
+                                // --- Evaluate each pose using your evaluator --- // going to use evaluateTraj instead
+                                // int counter = 0;
+                                // for (const auto& pose : pose_array.poses)
+                                // {
+                                //     float cost = trajEvaluator_->dwa_evaluatePose(pose, futureScans.at(scanIdx+counter));
+                                //     ROS_ERROR_STREAM_NAMED("dwa_evaluatePose output", "pose: " << counter << "dwa_evaluatePose (not evalTraj) output: " << cost);
+                                //     counter++;
+                                // }
+
+                                //  std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
+                                //                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
+                                //                     float dwa_goToGoalCost, dwa_PoseCost;
+
+                                std::vector<geometry_msgs::PoseStamped> visiblePlan =
+                                    globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
+                                // float totalTrajCost = 0;
+                                float speedCost = 0;
+                                trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
+                                speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max);
+                                totalTrajCost += speedCost * cfg_.traj.w_speed;
+                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
+                                float pose_cost_sum = 0.0f;
+                                float path_cost_sum = 0.0f;
+
+                                // if (!dwa_PoseCosts.empty())
+                                // {
+                                //     pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
+                                //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
+                                //     for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+                                //     {
+                                //         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
+                                //     }
+                                // }
+
+                                // if (!dwa_PathCosts.empty())
+                                // {
+                                //     path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f) / dwa_PathCosts.size();
+                                //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts (size = " << dwa_PathCosts.size() << "):");
+                                //     for (size_t i = 0; i < dwa_PathCosts.size(); ++i)
+                                //     {
+                                //         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PathCosts[i]);
+                                //     }
+                                // }
+
+                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
+                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
+
+                                // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
+                                traj_pub_.publish(dwa_traj.pose_array);
+                                dwa_traj.PoseCosts = dwa_PoseCosts;
+                                dwa_traj.PathCosts = dwa_PathCosts;
+                                dwa_traj.RelVelPoseCosts = dwa_RelVelPoseCosts;
+                                dwa_traj.TerminalPoseCost = dwa_TerminalPoseCost;
+                                dwa_traj.totalTrajCost = totalTrajCost;
+                                dwa_traj.gap = gap; // not used in this function, but it's in void TrajectoryEvaluator::update_human_info() when comparing functions
+                                dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
+                                dwa_traj.rightGapPtID = gap->getRightGapPt()->getModel()->getID();
+
+                                dwa_trajs.push_back(dwa_traj); // append new trajectory
+
+                                bool visualize_curves_and_costs = false;
+                                if (visualize_curves_and_costs)
+                                {
+                                    // Evaluate trajectory
+                                    float dwa_visual_duration = .5;
+                                    // trajEvaluator_->dwa_evaluateTrajectory(
+                                    //     pose_array, dwa_PoseCosts, dwa_TerminalPoseCost, futureScans, scanIdx);
+
+                                    static ros::Publisher traj_cost_viz_pub =
+                                        nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
+
+                                    // Clear previous markers if you want a clean refresh each cycle
+                                    visualization_msgs::MarkerArray clear;
+                                    clear.markers.clear();
+                                    traj_cost_viz_pub.publish(clear);
+
+                                    static int global_marker_id = 0;
+
+                                    // --- for visualization combine pose, path, and terminal costs into total per-step costs ---
+                                    std::vector<float> dwa_TotalCostsVector;
+                                    dwa_TotalCostsVector.reserve(dwa_PoseCosts.size());
+
+                                    for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
+                                    {
+                                        float total_cost = dwa_PoseCosts[i] + dwa_PathCosts[i];
+
+                                        // add terminal cost only at the last time step
+                                        if (i == dwa_PoseCosts.size() - 1)
+                                            total_cost += dwa_TerminalPoseCost;
+
+                                        dwa_TotalCostsVector.push_back(total_cost);
+                                    }
+
+                                    visualization_msgs::MarkerArray traj_markers;
+                                    std::vector<float> costPrintout;
+                                    costPrintout = dwa_TotalCostsVector; // adjust this line for the rviz cost print out. options: dwa_PoseCosts, dwa_PathCosts, dwa_TotalCostsVector
+
+                                    // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "dwa_PoseCosts" << dwa_PoseCosts);
+
+                                    // --- line strip for this trajectory ---
+                                    visualization_msgs::Marker line;
+                                    line.header.frame_id = cfg_.sensor_frame_id;
+                                    line.header.stamp = ros::Time::now();
+                                    line.ns = "dwa_traj_lines";
+                                    line.id = global_marker_id++;
+                                    line.type = visualization_msgs::Marker::LINE_STRIP;
+                                    line.action = visualization_msgs::Marker::ADD;
+                                    line.scale.x = 0.03;
+                                    line.color.r = 0.0;
+                                    line.color.g = 1.0;
+                                    line.color.b = 0.0;
+                                    line.color.a = 1.0;
+                                    line.lifetime = ros::Duration(dwa_visual_duration); // keep indefinitely
+
+                                    for (const auto &pose : dwa_traj.pose_array.poses)
+                                    {
+                                        geometry_msgs::Point p;
+                                        p.x = pose.position.x;
+                                        p.y = pose.position.y;
+                                        p.z = 0.02;
+                                        line.points.push_back(p);
+                                    }
+                                    traj_markers.markers.push_back(line);
+
+                                    // --- per-pose cost text ---
+                                    for (size_t i = 0; i < dwa_traj.pose_array.poses.size(); ++i)
+                                    {
+                                        visualization_msgs::Marker text;
+                                        text.header = line.header;
+                                        text.ns = "dwa_pose_costs";
+                                        text.id = global_marker_id++;
+                                        text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                                        text.action = visualization_msgs::Marker::ADD;
+                                        text.pose = dwa_traj.pose_array.poses[i];
+                                        text.pose.position.z += 0.15;
+                                        text.scale.z = 0.15;
+                                        text.color.r = 0.0;
+                                        text.color.g = 0.0;
+                                        text.color.b = 0.0;
+                                        text.color.a = 1.0;
+                                        text.lifetime = ros::Duration(dwa_visual_duration);
+
+                                        std::ostringstream ss;
+                                        ss << std::fixed << std::setprecision(2) << costPrintout[i];
+                                        text.text = ss.str();
+
+                                        traj_markers.markers.push_back(text);
+                                    }
+
+                                    // Publish all markers for this trajectory
+                                    traj_cost_viz_pub.publish(traj_markers);
+                                }
+
+                                // ------------------------------------------------------------
+                                // Visualization-only rollout for RViz
+                                // ------------------------------------------------------------
+                                bool visualize_dwa_rollout = false;
+                                if (visualize_dwa_rollout)
+                                {
+                                    // initial state (robot frame)
+                                    float vis_x = 0.0f;
+                                    float vis_y = 0.0f;
+                                    float vis_yaw = 0.0f;
+                                    float vis_t = 0.0f;
+
+                                    // storage
+                                    std::vector<Eigen::Vector2f> vis_positions;
+                                    std::vector<float> vis_yaws;
+                                    std::vector<float> vis_times;
+
+                                    vis_positions.reserve(num_points);
+                                    vis_yaws.reserve(num_points);
+                                    vis_times.reserve(num_points);
+
+                                    // store initial pose
+                                    vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
+                                    vis_yaws.push_back(vis_yaw);
+                                    vis_times.push_back(vis_t);
+
+                                    // rollout integration (unicycle model)
+                                    for (int vi = 1; vi < num_points; ++vi)
+                                    {
+                                        vis_yaw += w_cmd * dt;
+                                        vis_x += v_cmd * std::cos(vis_yaw) * dt;
+                                        vis_y += v_cmd * std::sin(vis_yaw) * dt;
+                                        vis_t += dt;
+
+                                        vis_positions.push_back(Eigen::Vector2f(vis_x, vis_y));
+                                        vis_yaws.push_back(vis_yaw);
+                                        vis_times.push_back(vis_t);
+                                    }
+
+                                    // ------------------------------------------------------------
+                                    // Convert to ROS PoseArray
+                                    // ------------------------------------------------------------
+                                    geometry_msgs::PoseArray vis_traj_path;
+                                    vis_traj_path.header.frame_id = cfg_.sensor_frame_id;
+                                    vis_traj_path.header.stamp = ros::Time::now();
+
+                                    for (int vi = 0; vi < num_points; ++vi)
+                                    {
+                                        geometry_msgs::Pose vis_pose;
+                                        vis_pose.position.x = vis_positions[vi].x();
+                                        vis_pose.position.y = vis_positions[vi].y();
+                                        vis_pose.position.z = 0.0;
+                                        vis_pose.orientation = tf::createQuaternionMsgFromYaw(vis_yaws[vi]);
+                                        vis_traj_path.poses.push_back(vis_pose);
+                                    }
+                                }
+                            }
+                        }
+                        // pick the cheapest dwa traj
+                        if (!dwa_trajs.empty())
+                        {
+                            cheapest_dwa = dwa_trajs[0];
+                            for (size_t i = 1; i < dwa_trajs.size(); ++i)
+                            {
+                                if (dwa_trajs[i].totalTrajCost < cheapest_dwa.totalTrajCost)
+                                    cheapest_dwa = dwa_trajs[i];
+                            }
+                            // ROS_ERROR_STREAM("[CHEAPEST_DWA] cost=" << cheapest_dwa.totalTrajCost);
                         }
                         else
                         {
-                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap, 
-                                                                                            currPose, 
-                                                                                            // currVel, 
-                                                                                            globalGoalRobotFrame_);
-                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                        // currPose,
-                                                                                        // currVel,
-                                                                                    // false);
+                            ROS_WARN_STREAM("[CHEAPEST_DWA] no valid DWA trajectories found");
                         }
-                        
-                        // if (j == (gapTube->size() - 1)) //commented out while debugging dwa mismatch 
+
+                        bool visualize_all_dwa_trajs = true;
+                        if (visualize_all_dwa_trajs && !dwa_trajs.empty())
+                        {
+                            static ros::Publisher traj_cost_viz_pub =
+                                nh_.advertise<visualization_msgs::MarkerArray>("dwa_traj_cost_viz", 1, true);
+
+                            // clear previous markers
+                            visualization_msgs::MarkerArray clear;
+                            traj_cost_viz_pub.publish(clear);
+
+                            visualization_msgs::MarkerArray all_markers;
+                            static int global_marker_id = 0;
+                            float text_scale = 0.12f;
+                            float line_width = 0.03f;
+                            float lifetime = 0.25f;
+
+                            for (size_t t = 0; t < dwa_trajs.size(); ++t)
+                            {
+                                const auto &traj = dwa_trajs[t];
+                                // geometry_msgs::PoseArray poses = traj.toPoseArray(cfg_.sensor_frame_id);
+                                const geometry_msgs::PoseArray &poses = traj.pose_array;
+
+                                // --- compute total cost per pose (pose + path + speed + terminal) ---
+                                std::vector<float> total_costs;
+                                total_costs.reserve(poses.poses.size());
+                                for (size_t i = 0; i < poses.poses.size(); ++i)
+                                {
+                                    float pose_cost = (i < traj.PoseCosts.size()) ? traj.PoseCosts[i] : 0.0f;
+                                    float path_cost = (i < traj.PathCosts.size()) ? traj.PathCosts[i] : 0.0f;
+                                    float relvel_cost = (i < traj.RelVelPoseCosts.size()) ? traj.RelVelPoseCosts[i] : 0.0f;
+                                    float speed_cost = 0.0f;
+                                    float term_cost = 0.0f;
+
+                                    // normalize per length (same as evaluator)
+                                    float len_norm = std::max(1.0f, float(poses.poses.size()));
+                                    pose_cost /= len_norm;
+                                    path_cost /= len_norm;
+                                    relvel_cost /= len_norm;
+                                    if (i == poses.poses.size() - 1)
+                                    {
+                                        // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
+                                        // term_cost  = traj.TerminalPoseCost;
+                                        // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
+                                        int filler = 0;
+                                    }
+
+                                    float total = pose_cost +
+                                                  cfg_.traj.w_path * path_cost +
+                                                  cfg_.traj.w_speed * speed_cost +
+                                                  term_cost +
+                                                  cfg_.traj.w_relvel * relvel_cost; // 20260303 pose_cost and term_cost used to be multipled by constant but I removed them, see today's commit
+
+                                    // float total = cfg_.traj.w_relvel * relvel_cost;
+                                    // ROS_ERROR_STREAM("rviz pose costs will show only relvel cost but relvel cost is not actually used in traj evaluation yet");
+                                    total_costs.push_back(total);
+                                }
+
+                                // --- draw trajectory line ---
+                                visualization_msgs::Marker line;
+                                line.header.frame_id = cfg_.sensor_frame_id;
+                                line.header.stamp = ros::Time::now();
+                                line.ns = "dwa_traj_lines";
+                                line.id = global_marker_id++;
+                                line.type = visualization_msgs::Marker::LINE_STRIP;
+                                line.action = visualization_msgs::Marker::ADD;
+                                line.scale.x = line_width;
+                                line.color.r = 0.0;
+                                line.color.g = 0.8;
+                                line.color.b = 1.0;
+                                line.color.a = 1.0;
+                                line.lifetime = ros::Duration(lifetime);
+
+                                for (size_t i = 0; i < poses.poses.size(); ++i)
+                                {
+                                    geometry_msgs::Point p;
+                                    p.x = poses.poses[i].position.x;
+                                    p.y = poses.poses[i].position.y;
+                                    p.z = 0.05;
+                                    line.points.push_back(p);
+                                }
+                                all_markers.markers.push_back(line);
+
+                                // --- per-pose cost text ---
+                                for (size_t i = 0; i < poses.poses.size(); ++i)
+                                {
+                                    visualization_msgs::Marker text;
+                                    text.header = line.header;
+                                    text.ns = "dwa_pose_costs";
+                                    text.id = global_marker_id++;
+                                    text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                                    text.action = visualization_msgs::Marker::ADD;
+                                    text.pose = poses.poses[i];
+                                    text.pose.position.z += 0.15;
+                                    text.scale.z = text_scale;
+                                    text.color.r = 0.0;
+                                    text.color.g = 0.0;
+                                    text.color.b = 0.0;
+                                    text.color.a = 1.0;
+                                    text.lifetime = ros::Duration(lifetime);
+
+                                    std::ostringstream ss;
+                                    ss << std::fixed << std::setprecision(2) << total_costs[i];
+                                    text.text = ss.str();
+
+                                    all_markers.markers.push_back(text);
+                                }
+
+                                traj_cost_viz_pub.publish(all_markers);
+                            }
+
+                            // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
+
+                            // delete this:
+                            //  pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap,
+                            //                                                                  currPose,
+                            //                                                                  // currVel,
+                            //                                                                  globalGoalRobotFrame_);
+                            //  pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+
+                            // pursuitGuidanceTraj = bezierTraj;
+                            // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+
+                            // delete this:
+                            //   pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap,
+                            //                                                                  currPose,
+                            //                                                                  // currVel,
+                            //                                                                  globalGoalRobotFrame_);
+                            //  pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+                            //                                                              // currPose,
+                            //                                                              // currVel,
+                            //                                                          // false);
+                        }
+                        else
+                        {
+                            pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap,
+                                                                                          currPose,
+                                                                                          // currVel,
+                                                                                          globalGoalRobotFrame_);
+                            pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+                            // currPose,
+                            // currVel,
+                            // false);
+                        }
+
+                        // if (j == (gapTube->size() - 1)) //commented out while debugging dwa mismatch
                         // {
                         //     // prune trajectory
                         //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pruning pursuit guidance (available) traj");
                         //     pursuitGuidanceTraj = gapTrajGenerator_->pruneTrajectory(pursuitGuidanceTraj);
                         // }futureScans, scanIdx);futureScans, scanIdx);
-                        
-    // ROS_ERROR_STREAM("before evaluator: tube=" << i 
-    //              << " gap=" << j 
-    //              << " traj path.size()=" 
-    //              << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
+                        // ROS_ERROR_STREAM("before evaluator: tube=" << i
+                        //              << " gap=" << j
+                        //              << " traj path.size()="
+                        //              << pursuitGuidanceTraj.getPathRbtFrame().poses.size());
 
-                        // ROS_ERROR_STREAM("before evaluator: tube=" << i 
+                        // ROS_ERROR_STREAM("before evaluator: tube=" << i
                         // << " gap=" << j);
                         // IMPORTANT todo: put an if statement here for when dwa is jused since I already evaluateTraj() above
 
@@ -2234,18 +2203,18 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                         }
                         else
-                        { 
-                            //package dwa traj into the Trajectory class since that's what the later code expects 
-                            // --- Package DWA-generated path (pose_array) into a Trajectory object ---
+                        {
+                            // package dwa traj into the Trajectory class since that's what the later code expects
+                            //  --- Package DWA-generated path (pose_array) into a Trajectory object ---
                             Trajectory dwaTrajectory;
 
                             // The Trajectory class typically stores PoseArray and timing
-                            dwaTrajectory.setPathRbtFrame(cheapest_dwa.pose_array);         // robot-frame path
+                            dwaTrajectory.setPathRbtFrame(cheapest_dwa.pose_array); // robot-frame path
 
-                                geometry_msgs::PoseArray pose_array_cheapest_dwa; 
+                            geometry_msgs::PoseArray pose_array_cheapest_dwa;
                             if (!cheapest_dwa.times.empty())
                             {
-                                dwaTrajectory.setPathTiming(cheapest_dwa.times); 
+                                dwaTrajectory.setPathTiming(cheapest_dwa.times);
                                 // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "times size: " << dwaTrajectory.getPathTiming().size());
                                 // pose_array_cheapest_dwa = cheapest_dwa.toPoseArray(cfg_.sensor_frame_id);
                                 // dwaTrajectory.setPathRbtFrame(pose_array_cheapest_dwa);         // robot-frame path
@@ -2254,9 +2223,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             else
                             {
                                 ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "cheapest_dwa.times is empty, cannot use the dwaTrajectory.setPathTiming() function");
-                            } 
+                            }
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "poses size: " << dwaTrajectory.getPathRbtFrame().poses.size());
-
 
                             dwaTrajectory.v_cmd = (cheapest_dwa.v_cmd);
                             dwaTrajectory.w_cmd = (cheapest_dwa.w_cmd);
@@ -2268,15 +2236,15 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             dwaTrajectory.humanVelRight = (cheapest_dwa.humanVelRight);
                             dwaTrajectory.gapPosRight = (cheapest_dwa.gapPosRight);
                             dwaTrajectory.gap = (cheapest_dwa.gap);
-                            dwaTrajectory.rightGapPtID = cheapest_dwa.rightGapPtID; 
-                            dwaTrajectory.leftGapPtID = cheapest_dwa.leftGapPtID; 
+                            dwaTrajectory.rightGapPtID = cheapest_dwa.rightGapPtID;
+                            dwaTrajectory.leftGapPtID = cheapest_dwa.leftGapPtID;
 
                             // dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
 
                             // dwaTrajectory.trajPosRight = (cheapest_dwa.trajPosRight);
 
                             // dwaTrajectory.setH(cheapest_dwa.H_left);
-                            
+
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.w_cmd;
 
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
@@ -2287,9 +2255,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose),
                             // path costs (penalizes deviation from global path per pose), and rel-vel costs (social term).
-                            const auto& poseCosts   = cheapest_dwa.PoseCosts;
-                            const auto& pathCosts   = cheapest_dwa.PathCosts;
-                            const auto& relVelCosts = cheapest_dwa.RelVelPoseCosts;
+                            const auto &poseCosts = cheapest_dwa.PoseCosts;
+                            const auto &pathCosts = cheapest_dwa.PathCosts;
+                            const auto &relVelCosts = cheapest_dwa.RelVelPoseCosts;
 
                             pursuitGuidancePoseCosts.clear();
 
@@ -2298,9 +2266,9 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             for (size_t i = 0; i < N; ++i)
                             {
-                                float c_obs   = poseCosts[i]; // the weight/constant is already baked into it 
-                                float c_path  = cfg_.traj.w_path   * pathCosts[i];
-                                float c_rel   = cfg_.traj.w_relvel * relVelCosts[i];
+                                float c_obs = poseCosts[i]; // the weight/constant is already baked into it
+                                float c_path = cfg_.traj.w_path * pathCosts[i];
+                                float c_rel = cfg_.traj.w_relvel * relVelCosts[i];
 
                                 pursuitGuidancePoseCosts.push_back(c_obs + c_path + c_rel);
                             }
@@ -2312,30 +2280,26 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
 
-                
-
-                        // for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
-                        // {
-                        //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                        //         " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
-                        // }
-
-
+                            // for (size_t i = 0; i < pursuitGuidancePoseCosts.size(); ++i)
+                            // {
+                            //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                            //         " inside generateGap pursuitGuidancePoseCosts[" << i << "] = " << pursuitGuidancePoseCosts[i]);
+                            // }
                         }
-
-                    } else
+                    }
+                    else
                     {
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance (not available)");
-                        pursuitGuidanceTraj = gapTrajGenerator_->generateIdlingTrajectoryV2(gap, 
+                        pursuitGuidanceTraj = gapTrajGenerator_->generateIdlingTrajectoryV2(gap,
                                                                                             currPose,
                                                                                             runningTraj);
-                                                                                            // rbtPoseInOdomFrame_);
+                        // rbtPoseInOdomFrame_);
                         // pursuitGuidanceTraj = gapTrajGenerator_->processIdlingTrajectory(pursuitGuidanceTraj,
                         //                                                                     runningTraj);
-                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj); 
-                                                                                    // currPose,
-                                                                                    // currVel,
-                                                                                    // false);
+                        pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
+                        // currPose,
+                        // currVel,
+                        // false);
                         // if (j == (gapTube->size() - 1))
                         // {
                         //     // prune trajectory
@@ -2345,8 +2309,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                         pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
-                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);                
-                    
+                        ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                     }
 
                     if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost) // add this back! i removed it while debugging cbf see "so it does happen on the cbf branch, but i don’t think that’s the only thing causing weirdness"
@@ -2358,7 +2321,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                         // gapTubeTrajPoseCosts.at(i) = goToGoalPoseCosts;
                         // gapTubeTrajTerminalPoseCosts.at(i) = goToGoalTerminalPoseCost;
-                    } else
+                    }
+                    else
                     {
                         traj = pursuitGuidanceTraj;
                         poseCosts = pursuitGuidancePoseCosts;
@@ -2374,25 +2338,26 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
                     // << " poseCosts=" << poseCosts.size()
                     // << " terminal=" << terminalPoseCost);
 
-        
                     // TRAJECTORY TRANSFORMED BACK TO ODOM FRAME
                     traj.setPathOdomFrame(gapTrajGenerator_->transformPath(traj.getPathRbtFrame(), rbt2odom_));
 
-//                     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-//     "PRE-BACK CHECK | selected traj sizes: poses="
-//     << traj.getPathRbtFrame().poses.size()
-//     << " timing=" << traj.getPathTiming().size()
-//     << " poseCosts=" << poseCosts.size());
+                    //                     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                    //     "PRE-BACK CHECK | selected traj sizes: poses="
+                    //     << traj.getPathRbtFrame().poses.size()
+                    //     << " timing=" << traj.getPathTiming().size()
+                    //     << " poseCosts=" << poseCosts.size());
 
-if (traj.getPathRbtFrame().poses.empty()) {
-    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-        "ERROR: selected traj has empty poses (cannot use back()).");
-}
+                    if (traj.getPathRbtFrame().poses.empty())
+                    {
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                               "ERROR: selected traj has empty poses (cannot use back()).");
+                    }
 
-if (traj.getPathTiming().empty()) {
-    ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-        "ERROR: selected traj has empty timing (cannot use back/front).");
-}
+                    if (traj.getPathTiming().empty())
+                    {
+                        ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
+                                               "ERROR: selected traj has empty timing (cannot use back/front).");
+                    }
 
                     // update current pose and time
                     currPose.pose = traj.getPathRbtFrame().poses.back();
@@ -2413,7 +2378,8 @@ if (traj.getPathTiming().empty()) {
 
                         runningPoseCosts = poseCosts;
                         runningTerminalPoseCost = terminalPoseCost;
-                    } else
+                    }
+                    else
                     {
                         runningTraj.appendTraj(traj);
                         // append costs
@@ -2426,8 +2392,8 @@ if (traj.getPathTiming().empty()) {
 
                 gapTubeTrajs.at(i) = runningTraj;
                 gapTubeTrajPoseCosts.at(i) = runningPoseCosts;
-                gapTubeTrajTerminalPoseCosts.at(i) = runningTerminalPoseCost;     
-                
+                gapTubeTrajTerminalPoseCosts.at(i) = runningTerminalPoseCost;
+
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    trajectory: ");
                 geometry_msgs::Pose pose;
                 float time;
@@ -2440,14 +2406,16 @@ if (traj.getPathTiming().empty()) {
                     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        t: " << time << ", p: (" << pose.position.x << ", " << pose.position.y << "), cost: " << cost);
                 }
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    terminal cost: " << runningTerminalPoseCost);
-            }        
+            }
 
             // trajVisualizer_->drawGapTrajectoryPoseScores(gapTubeTrajs, gapTubeTrajPoseCosts);
             trajVisualizer_->drawGapTubeTrajectories(gapTubeTrajs);
-        } catch (const std::out_of_range & e)
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateGapTrajsV2 out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateGapTrajsV2 exception: " << e.what());
         }
@@ -2455,27 +2423,27 @@ if (traj.getPathTiming().empty()) {
         return;
     }
 
-    void Planner::generateUngapTrajs(std::vector<Ungap *> & ungaps, 
-                                        std::vector<Trajectory> & ungapTrajs,
-                                        std::vector<std::vector<float>> & ungapTrajPoseCosts,
-                                        std::vector<float> & ungapTrajTerminalPoseCosts,
-                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    void Planner::generateUngapTrajs(std::vector<Ungap *> &ungaps,
+                                     std::vector<Trajectory> &ungapTrajs,
+                                     std::vector<std::vector<float>> &ungapTrajPoseCosts,
+                                     std::vector<float> &ungapTrajTerminalPoseCosts,
+                                     const std::vector<sensor_msgs::LaserScan> &futureScans)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateUngapTrajs()]");
-     
+
         try
         {
 
             ungapTrajPoseCosts = std::vector<std::vector<float>>(ungaps.size());
             ungapTrajTerminalPoseCosts = std::vector<float>(ungaps.size());
 
-            for (size_t i = 0; i < ungaps.size(); i++) 
+            for (size_t i = 0; i < ungaps.size(); i++)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generating traj for un-gap: " << i);
                 // std::cout << "goal of: " << vec.at(i).goal.x << ", " << vec.at(i).goal.y << std::endl;
-                
+
                 // Run go to goal behavior
 
                 Trajectory traj, pursuitGuidanceTraj;
@@ -2485,17 +2453,17 @@ if (traj.getPathTiming().empty()) {
 
                 // Run pursuit guidance behavior
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        running pursuit guidance");
-                pursuitGuidanceTraj = ungapTrajGenerator_->generateTrajectory(ungaps.at(i), 
-                                                                                rbtPoseInSensorFrame_);
+                pursuitGuidanceTraj = ungapTrajGenerator_->generateTrajectory(ungaps.at(i),
+                                                                              rbtPoseInSensorFrame_);
 
-                pursuitGuidanceTraj = ungapTrajGenerator_->processTrajectory(pursuitGuidanceTraj, 
-                                                                                rbtPoseInSensorFrame_,
-                                                                                true);
-                trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, 
-                                                    pursuitGuidancePoseCosts, 
-                                                    pursuitGuidanceTerminalPoseCost, 
-                                                    futureScans,
-                                                    0);
+                pursuitGuidanceTraj = ungapTrajGenerator_->processTrajectory(pursuitGuidanceTraj,
+                                                                             rbtPoseInSensorFrame_,
+                                                                             true);
+                trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj,
+                                                   pursuitGuidancePoseCosts,
+                                                   pursuitGuidanceTerminalPoseCost,
+                                                   futureScans,
+                                                   0);
                 pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
@@ -2509,11 +2477,13 @@ if (traj.getPathTiming().empty()) {
             }
 
             // trajVisualizer_->drawGapTrajectoryPoseScores(ungapTrajs, ungapTrajPoseCosts);
-            trajVisualizer_->drawUngapTrajectories(ungapTrajs);        
-        } catch (const std::out_of_range & e)
+            trajVisualizer_->drawUngapTrajectories(ungapTrajs);
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateUngapTrajs out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateUngapTrajs exception: " << e.what());
         }
@@ -2524,7 +2494,7 @@ if (traj.getPathTiming().empty()) {
     // void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
     //                                     std::vector<std::vector<float>> & idlingTrajPoseCosts,
     //                                     std::vector<float> & idlingTrajTerminalPoseCosts,
-    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
+    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans)
     // {
     //     try
     //     {
@@ -2534,7 +2504,7 @@ if (traj.getPathTiming().empty()) {
 
     //         Gap * nullGap = nullptr;
     //         Trajectory idlingTrajectory;
-    //         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap, 
+    //         idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectoryV2(nullGap,
     //                                                                             rbtPoseInSensorFrame_);
 
     //         std::vector<float> idlingPoseCosts;
@@ -2548,13 +2518,13 @@ if (traj.getPathTiming().empty()) {
     //         idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
 
     //         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
-    //         idlingTrajs.push_back(idlingTrajectory);    
+    //         idlingTrajs.push_back(idlingTrajectory);
 
     //         // // push back idling trajectory as another option
 
     //         // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
-            
-    //         // 
+
+    //         //
     //         // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
     //         // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
     //     } catch (const std::out_of_range & e)
@@ -2564,23 +2534,22 @@ if (traj.getPathTiming().empty()) {
     //     {
     //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
     //     }
-    
 
     //     return;
     // }
 
-    void Planner::pickTraj(int & trajFlag,
-                            int & lowestCostTrajIdx,
-                            const std::vector<Trajectory> & gapTrajs, 
-                            const std::vector<std::vector<float>> & gapTrajPoseCosts, 
-                            const std::vector<float> & gapTrajTerminalPoseCosts,
-                            const std::vector<Trajectory> & ungapTrajs, 
-                            const std::vector<std::vector<float>> & ungapTrajPoseCosts, 
-                            const std::vector<float> & ungapTrajTerminalPoseCosts,                          
-                            const std::vector<Trajectory> & idlingTrajs, 
-                            const std::vector<std::vector<float>> & idlingTrajPoseCosts, 
-                            const std::vector<float> & idlingTrajTerminalPoseCosts)
-                           
+    void Planner::pickTraj(int &trajFlag,
+                           int &lowestCostTrajIdx,
+                           const std::vector<Trajectory> &gapTrajs,
+                           const std::vector<std::vector<float>> &gapTrajPoseCosts,
+                           const std::vector<float> &gapTrajTerminalPoseCosts,
+                           const std::vector<Trajectory> &ungapTrajs,
+                           const std::vector<std::vector<float>> &ungapTrajPoseCosts,
+                           const std::vector<float> &ungapTrajTerminalPoseCosts,
+                           const std::vector<Trajectory> &idlingTrajs,
+                           const std::vector<std::vector<float>> &idlingTrajPoseCosts,
+                           const std::vector<float> &idlingTrajTerminalPoseCosts)
+
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
@@ -2588,9 +2557,9 @@ if (traj.getPathTiming().empty()) {
         {
 
             ROS_INFO_STREAM_NAMED("Planner", "[pickTraj()]");
-            
-            // int lowestCostTrajIdx = -1;        
-            
+
+            // int lowestCostTrajIdx = -1;
+
             int numUngapTrajs = ungapTrajs.size();
             int numIdlingTrajs = idlingTrajs.size();
             int numGapTrajs = gapTrajs.size();
@@ -2605,13 +2574,12 @@ if (traj.getPathTiming().empty()) {
             if (gapTrajs.size() != gapTrajPoseCosts.size() ||
                 gapTrajs.size() != gapTrajTerminalPoseCosts.size())
             {
-                ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << gapTrajs.size() << 
-                                                    " != gapTrajPoseCosts =" << gapTrajPoseCosts.size());
+                ROS_WARN_STREAM_NAMED("Planner", "pickTraj size mismatch: paths = " << gapTrajs.size() << " != gapTrajPoseCosts =" << gapTrajPoseCosts.size());
                 trajFlag = NONE;
                 return;
             }
 
-            // poses here are in odom frame 
+            // poses here are in odom frame
             std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs);
 
             // evaluate gap trajectories
@@ -2619,7 +2587,7 @@ if (traj.getPathTiming().empty()) {
             Trajectory currentTraj;
             std::vector<float> currentTrajPoseCosts;
             float currentTrajTerminalPoseCost;
-            for (size_t i = 0; i < gapTrajs.size(); i++) 
+            for (size_t i = 0; i < gapTrajs.size(); i++)
             {
                 currentTraj = gapTrajs.at(i);
                 // ROS_ERROR_STREAM("inside picktraj gapTrajs.at(i).getPathRbtFrame().poses.size(): " << gapTrajs.at(i).getPathRbtFrame().poses.size());
@@ -2634,17 +2602,16 @@ if (traj.getPathTiming().empty()) {
                 // }
 
                 pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(currentTrajPoseCosts.begin(), currentTrajPoseCosts.end(), float(0)) / currentTrajPoseCosts.size();
-                
-                pathCosts.at(runningTrajIdx) = currentTraj.getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
-                                                                                                    pathCosts.at(runningTrajIdx);
-                
+
+                pathCosts.at(runningTrajIdx) = currentTraj.getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
+
                 ROS_INFO_STREAM_NAMED("Planner", "    for gap tube " << i << " (length: " << gapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
-            
+
                 runningTrajIdx++;
             }
 
             // evaluate ungap trajectories
-            for (size_t i = 0; i < ungapTrajs.size(); i++) 
+            for (size_t i = 0; i < ungapTrajs.size(); i++)
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
@@ -2654,17 +2621,16 @@ if (traj.getPathTiming().empty()) {
                 }
 
                 pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), ungapTrajPoseCosts.at(i).end(), float(0)) / ungapTrajPoseCosts.at(i).size();
-                
-                pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
-                                                                                                        pathCosts.at(runningTrajIdx);
-                
+
+                pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
+
                 ROS_INFO_STREAM_NAMED("Planner", "    for ungap " << i << " (length: " << ungapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
-            
+
                 runningTrajIdx++;
             }
 
             // evaluate idling trajectory
-            for (size_t i = 0; i < idlingTrajs.size(); i++) 
+            for (size_t i = 0; i < idlingTrajs.size(); i++)
             {
                 // ROS_WARN_STREAM("paths(" << i << "): size " << paths.at(i).poses.size());
 
@@ -2674,12 +2640,11 @@ if (traj.getPathTiming().empty()) {
                 }
 
                 pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), idlingTrajPoseCosts.at(i).end(), float(0)) / idlingTrajPoseCosts.at(i).size();
-                
-                pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
-                                                                                                        pathCosts.at(runningTrajIdx);
-                
+
+                pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
+
                 ROS_INFO_STREAM_NAMED("Planner", "    for idling " << i << " (length: " << idlingTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
-            
+
                 runningTrajIdx++;
             }
 
@@ -2687,11 +2652,11 @@ if (traj.getPathTiming().empty()) {
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
             int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
 
-            // if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity()) 
-            // {    
+            // if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity())
+            // {
             //     ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
             //     ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
-            //     for (float pathCost : pathCosts) 
+            //     for (float pathCost : pathCosts)
             //     {
             //         ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
             //     }
@@ -2708,9 +2673,9 @@ if (traj.getPathTiming().empty()) {
                 trajFlag = GAP;
                 ROS_INFO_STREAM_NAMED("Planner", "    picking gap traj: " << lowestCostTrajIdx);
                 // ROS_ERROR_STREAM_NAMED("Planner", "--------- picked GAP traj");
-                /////////////// just for debugging printouts: 
+                /////////////// just for debugging printouts:
                 // --- Extract cost data for this gap ---
-                const std::vector<float>& currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
+                const std::vector<float> &currentTrajPoseCosts = gapTrajPoseCosts.at(lowestCostTrajIdx);
                 float currentTrajTerminalPoseCost = gapTrajTerminalPoseCosts.at(lowestCostTrajIdx);
 
                 // --- Print pose-wise costs ---
@@ -2723,27 +2688,31 @@ if (traj.getPathTiming().empty()) {
 
                     // ROS_ERROR_STREAM_NAMED("Planner", "   pose[" << k << "] cost=" << cost);
                 }
-
-            } else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
+            }
+            else if (candidateLowestCostTrajIdx >= numGapTrajs && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs))
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - numGapTrajs;
                 trajFlag = UNGAP;
                 ROS_ERROR_STREAM_NAMED("Planner", "          picked UPGAP traj");
                 ROS_INFO_STREAM_NAMED("Planner", "    picking ungap traj: " << lowestCostTrajIdx);
-            } else if (candidateLowestCostTrajIdx >= (numGapTrajs + numUngapTrajs) && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs + numIdlingTrajs))
+            }
+            else if (candidateLowestCostTrajIdx >= (numGapTrajs + numUngapTrajs) && candidateLowestCostTrajIdx < (numGapTrajs + numUngapTrajs + numIdlingTrajs))
             {
                 lowestCostTrajIdx = candidateLowestCostTrajIdx - (numGapTrajs + numUngapTrajs);
                 trajFlag = IDLING;
                 ROS_ERROR_STREAM_NAMED("Planner", "          picked IDLING traj");
                 ROS_INFO_STREAM_NAMED("Planner", "    picking idling traj: " << lowestCostTrajIdx);
-            } else
+            }
+            else
             {
                 ROS_WARN_STREAM_NAMED("Planner", "    trajFlag not set");
             }
-        } catch (const std::out_of_range& e) 
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    pickTraj out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    pickTraj exception: " << e.what());
         }
@@ -2751,16 +2720,16 @@ if (traj.getPathTiming().empty()) {
         return;
     }
 
-    Trajectory Planner::changeTrajectoryHelper(const Trajectory & incomingTraj, 
-                                                const bool & switchToIncoming,
-                                                const int & trajFlag,
-                                                Gap * incomingGap) 
+    Trajectory Planner::changeTrajectoryHelper(const Trajectory &incomingTraj,
+                                               const bool &switchToIncoming,
+                                               const int &trajFlag,
+                                               Gap *incomingGap)
     {
         // publishToMpc_ = true;
-        // bool override_switchToIncoming = true; 
-        // if (override_switchToIncoming) 
+        // bool override_switchToIncoming = true;
+        // if (override_switchToIncoming)
 
-        if (switchToIncoming) 
+        if (switchToIncoming)
         {
             setCurrentTraj(incomingTraj);
             setCurrentTrajTrackingStartTime(ros::Time::now());
@@ -2770,7 +2739,8 @@ if (traj.getPathTiming().empty()) {
             {
                 setCurrentLeftGapPtModelID(incomingGap->getLeftGapPt()->getModel());
                 setCurrentRightGapPtModelID(incomingGap->getRightGapPt()->getModel());
-            } else // ungap or idling trajectory
+            }
+            else // ungap or idling trajectory
             {
                 setCurrentLeftGapPtModelID(nullptr);
                 setCurrentRightGapPtModelID(nullptr);
@@ -2780,8 +2750,9 @@ if (traj.getPathTiming().empty()) {
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, incomingTraj);
             trajectoryChangeCount_++;
 
-            return incomingTraj;  
-        } else 
+            return incomingTraj;
+        }
+        else
         {
             geometry_msgs::PoseArray emptyPath = geometry_msgs::PoseArray();
             emptyPath.header = incomingTraj.getPathRbtFrame().header;
@@ -2797,21 +2768,21 @@ if (traj.getPathTiming().empty()) {
 
             trajVisualizer_->drawCurrentTrajectory(emptyTraj);
             trajVisualizer_->drawTrajectorySwitchCount(trajectoryChangeCount_, emptyTraj);
-            trajectoryChangeCount_++;            
+            trajectoryChangeCount_++;
 
             return emptyTraj;
-        }        
+        }
     }
 
-    Trajectory Planner::compareToCurrentTraj(Trajectory & incomingTraj, // removed const because I'm going to mod traj to store human vel info inside of TrajectoryEvaluator::dwa_evaluateTrajectory_outside
-                                                const std::vector<sensor_msgs::LaserScan> & futureScans,
-                                                const int & trajFlag,
-                                                Gap * incomingGap,
-                                                const bool & isCurrentGapFeasible) // bool isIncomingGapAssociated,
+    Trajectory Planner::compareToCurrentTraj(Trajectory &incomingTraj, // removed const because I'm going to mod traj to store human vel info inside of TrajectoryEvaluator::dwa_evaluateTrajectory_outside
+                                             const std::vector<sensor_msgs::LaserScan> &futureScans,
+                                             const int &trajFlag,
+                                             Gap *incomingGap,
+                                             const bool &isCurrentGapFeasible) // bool isIncomingGapAssociated,
     {
         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[compareToCurrentTraj()]");
         boost::mutex::scoped_lock gapset(gapMutex_);
-        
+
         // Gap * incomingGap = (trajFlag == 0 ? feasibleGaps.at(lowestCostTrajIdx) : nullptr);
         // Trajectory incomingTraj = trajs.at(lowestCostTrajIdx);
         Trajectory currentTraj = getCurrentTraj();
@@ -2827,7 +2798,7 @@ if (traj.getPathTiming().empty()) {
             // ROS_INFO_STREAM("current left gap index: " << getCurrentLeftGapPtModelID() << ", current right gap index: " << getCurrentRightGapPtModelID());
 
             // ROS_INFO_STREAM("current gap indices: " << getCurrentLeftGapPtModelID() << ", " << getCurrentRightGapPtModelID());
-            
+
             //////////////////////////////////////////////////////////////////////////////
             // Transform into the current robot frame to score against the current scan //
             //////////////////////////////////////////////////////////////////////////////
@@ -2838,20 +2809,19 @@ if (traj.getPathTiming().empty()) {
             float incomingPathTerminalPoseCost;
             // trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
             trajEvaluator_->dwa_evaluateTrajectory_outside(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0, incomingGap);
-            
+
             //  void TrajectoryEvaluator::dwa_evaluateTrajectory_outside(float & totalTrajCost, dwa_Trajectory & dwa_traj,
             //                     std::vector<float> & posewiseCosts,
-            //                     // std::vector<float> &dwa_PathCosts, 
+            //                     // std::vector<float> &dwa_PathCosts,
             //                     float & terminalPoseCost,
             //                     const std::vector<sensor_msgs::LaserScan> & futureScans,
             //                     const int & scanIdx,
-            //                     // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
+            //                     // const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet,
             //                     dynamic_gap::Gap* gap,
             //                     std::vector<float> &dwa_RelVelPoseCosts)
 
             float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
-            
 
             ///////////////////////////////////////////////////////////////////////
             //  Evaluate the incoming path to determine if we can switch onto it //
@@ -2863,32 +2833,32 @@ if (traj.getPathTiming().empty()) {
             {
                 incomingPathStatus = "incoming path is of length zero.";
                 ableToSwitchToIncomingPath = false;
-            } else if (incomingPathCost == std::numeric_limits<float>::infinity())
+            }
+            else if (incomingPathCost == std::numeric_limits<float>::infinity())
             {
                 incomingPathStatus = "incoming path is of cost infinity.";
                 ableToSwitchToIncomingPath = false;
             }
-                
+
             ///////////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing path is empty (size: 0) //
             ///////////////////////////////////////////////////////////////////////////////////
             bool isCurrentPathEmpty = currentTraj.getPathRbtFrame().poses.size() == 0;
-            if (isCurrentPathEmpty) 
+            if (isCurrentPathEmpty)
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-                                                                ": current path is of length zero, " << incomingPathStatus);                
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << ": current path is of length zero, " << incomingPathStatus);
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            } 
+            }
 
             ///////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing gap is not feasible //
             ///////////////////////////////////////////////////////////////////////////////
-            // if (!isCurrentGapFeasible) 
+            // if (!isCurrentGapFeasible)
             // {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-            //                                                     ": current gap is not feasible, " << incomingPathStatus);                
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<
+            //                                                     ": current gap is not feasible, " << incomingPathStatus);
             //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            // } 
+            // }
 
             // Transform current traj into most recent robot frame to score against the current scan
             geometry_msgs::PoseArray updatedCurrentPathRobotFrame = gapTrajGenerator_->transformPath(currentTraj.getPathOdomFrame(), odom2rbt_);
@@ -2898,28 +2868,26 @@ if (traj.getPathTiming().empty()) {
 
             geometry_msgs::TwistStamped RbtVelMsg;
             Eigen::Vector2f RbtVel(0, 0);
-            RbtVelMsg = incomingGap->getLeftGapPt()->getModel()->getRobotVel(); // used in scoring the reducedCurrentTraj since I don't have access to current robot info in that 
+            RbtVelMsg = incomingGap->getLeftGapPt()->getModel()->getRobotVel(); // used in scoring the reducedCurrentTraj since I don't have access to current robot info in that
             RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
             // updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
             // updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
             // updatedCurrentTraj.robotVel = currentTraj.robotVel;
 
-             // updatedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
+            // updatedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
             // updatedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
             // updatedCurrentTraj.gap = currentTraj.gap; // being pedantic
-            // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code 
- 
-            //  trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID, RbtVel); // the commented out code 
+            // trajEvaluator_->update_human_info(updatedCurrentTraj, updatedCurrentTraj.gap); // the commented out code
 
-            //is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
-            // the newest info about human (which is really just the gap endpoint)
+            //  trajEvaluator_->update_human_info(updatedCurrentTraj, currentTraj.rightGapPtID, RbtVel); // the commented out code
 
-            // updatedCurrentTraj.v_cmd = currentTraj.v_cmd; //20260304 you shouldn't be using this because you're just copying 
+            // is not good because it just copies the old human info from the past timestep, it doesn't actuually retrieve
+            //  the newest info about human (which is really just the gap endpoint)
+
+            // updatedCurrentTraj.v_cmd = currentTraj.v_cmd; //20260304 you shouldn't be using this because you're just copying
             // the old v and w from past timestep. If you want to use this v_cmd you'll have to do something similiar to update_human_info()
             // updatedCurrentTraj.w_cmd = currentTraj.w_cmd;
-
-           
 
             // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft; // unused
 
@@ -2927,59 +2895,56 @@ if (traj.getPathTiming().empty()) {
 
             visualizePoseArray(updatedCurrentPathRobotFrame, "updated_current_traj");
 
-
             ////////////////////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the currently executing path has been completely tracked //
-            ////////////////////////////////////////////////////////////////////////////////////////////   
+            ////////////////////////////////////////////////////////////////////////////////////////////
 
             int updatedCurrentPathPoseIdx = getClosestTrajectoryPoseIdx(updatedCurrentPathRobotFrame);
             geometry_msgs::PoseArray reducedCurrentPathRobotFrame = updatedCurrentPathRobotFrame;
-            reducedCurrentPathRobotFrame.poses = std::vector<geometry_msgs::Pose>(updatedCurrentPathRobotFrame.poses.begin() + updatedCurrentPathPoseIdx, 
-                                                                                    updatedCurrentPathRobotFrame.poses.end());
+            reducedCurrentPathRobotFrame.poses = std::vector<geometry_msgs::Pose>(updatedCurrentPathRobotFrame.poses.begin() + updatedCurrentPathPoseIdx,
+                                                                                  updatedCurrentPathRobotFrame.poses.end());
 
             std::vector<float> reducedCurrentPathTiming = updatedCurrentPathTiming;
             reducedCurrentPathTiming = std::vector<float>(updatedCurrentPathTiming.begin() + updatedCurrentPathPoseIdx, updatedCurrentPathTiming.end());
-            
-            if (reducedCurrentPathRobotFrame.poses.size() < 2) 
+
+            if (reducedCurrentPathRobotFrame.poses.size() < 2)
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-                                                                ": old path length less than 2, " << incomingPathStatus);
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << ": old path length less than 2, " << incomingPathStatus);
 
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Enact a trajectory switch if the we have been tracking the currently executing path for its entire lifespan  //
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             ros::Duration currentTrajTrackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
-            
+
             ////////////////// unused max tracking time //////////////////
-             double lifespan_sec = currentTrajLifespan_.toSec();
+            double lifespan_sec = currentTrajLifespan_.toSec();
             // lifespan_sec = std::max(0.0, lifespan_sec - 4.0);
             double tracking_sec = currentTrajTrackingTime.toSec();
-            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec); 
+            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec);
             // // if (currentTrajTrackingTime > currentTrajLifespan_)
             // if (tracking_sec + 4 > lifespan_sec)
-            double max_track_time = 0.1; 
+            double max_track_time = 0.1;
             // if (tracking_sec >= max_track_time)
             ////////////////// unused max tracking time //////////////////
 
-            // if (tracking_sec >= max_track_time) // unused 
+            // if (tracking_sec >= max_track_time) // unused
 
             if (currentTrajTrackingTime > currentTrajLifespan_)
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<  
-                                                                ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << ": current path has been tracked for its entire lifespan, " << incomingPathStatus);
                 return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //  Compare the costs of the incoming trajectory with the cost of the current trajectory to see if we need to switch //
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating current trajectory");            
-            
+            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating current trajectory");
+
             Trajectory reducedCurrentTraj(reducedCurrentPathRobotFrame, reducedCurrentPathTiming);
-              //FIX: preserve velocity commands
+            // FIX: preserve velocity commands
             // reducedCurrentTraj.v_cmd = currentTraj.v_cmd;
             // reducedCurrentTraj.w_cmd = currentTraj.w_cmd;
 
@@ -2990,14 +2955,13 @@ if (traj.getPathTiming().empty()) {
             // // reducedCurrentTraj.setH(currentTraj.getH());
             // reducedCurrentTraj.humanVelRight = currentTraj.humanVelRight;
             // reducedCurrentTraj.gapPosRight = currentTraj.gapPosRight;
-            //    reducedCurrentTraj.gap = currentTraj.gap; // just being pedantic 
-            //    trajEvaluator_->update_human_info(reducedCurrentTraj, reducedCurrentTraj.gap); // the commented out code 
-
+            //    reducedCurrentTraj.gap = currentTraj.gap; // just being pedantic
+            //    trajEvaluator_->update_human_info(reducedCurrentTraj, reducedCurrentTraj.gap); // the commented out code
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
             trajEvaluator_->dwa_evaluateTrajectory_reducedCurrentTraj(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
-            // I intentionally use currentTraj.leftGapPtID because that's the only place the ID is stored, i don't copy it over to reducedCurrentTraj because I don't want to 
+            // I intentionally use currentTraj.leftGapPtID because that's the only place the ID is stored, i don't copy it over to reducedCurrentTraj because I don't want to
 
             // trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
@@ -3005,61 +2969,59 @@ if (traj.getPathTiming().empty()) {
 
             trajEvaluator_->update_cbf_info(updatedCurrentTraj, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
 
-            // if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
+            // if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity())
             // {
-            //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
+            //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<
             //                                                 ": current trajectory is of cost infinity," << incomingPathStatus);
             //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             // }
-            
+
             // std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 
             // float timeTakenInMilliseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevTrajSwitchTime_).count();
             // float timeTakenInSeconds = timeTakenInMilliseconds * 1.0e-6;
 
-            // if (timeTakenInSeconds > currentTraj.getPathTiming().back()) 
+            // if (timeTakenInSeconds > currentTraj.getPathTiming().back())
             // {
-            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
+            //     ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<
             //                                                 ": current trajectory has been tracked for " << timeTakenInSeconds << " seconds, " << incomingPathStatus);
             //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             // }
 
             // if planner has been idling for longer than maxt and incoming score is better
 
-            if (incomingPathCost < reducedCurrentPathSubCost) 
+            if (incomingPathCost < reducedCurrentPathSubCost)
             {
-                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << 
-                                                            ": incoming trajectory is lower score");
+                ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << ": incoming trajectory is lower score");
                 changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
-            
-            
+
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory maintain");
             // currentTrajectoryPublisher_.publish(currentTraj.getPathRbtFrame());
             trajVisualizer_->drawCurrentTrajectory(reducedCurrentTraj);
 
             return updatedCurrentTraj;
-
-        } catch (const std::out_of_range& e) 
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "        compareToCurrentTraj() out of range exception: " << e.what());
             return currentTraj;
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_WARN_STREAM_NAMED("GapTrajectoryGeneratorV2", "        compareToCurrentTraj() exception: " << e.what());
             return currentTraj;
         }
     }
 
-
-    int Planner::getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray & currTrajRbtFrame) 
+    int Planner::getClosestTrajectoryPoseIdx(const geometry_msgs::PoseArray &currTrajRbtFrame)
     {
         std::vector<float> pathPoseNorms(currTrajRbtFrame.poses.size());
         // ROS_INFO_STREAM("Ref_pose length: " << ref_pose.poses.size());
         for (size_t i = 0; i < pathPoseNorms.size(); i++) // i will always be positive, so this is fine
         {
-            pathPoseNorms.at(i) = sqrt(pow(currTrajRbtFrame.poses.at(i).position.x, 2) + 
-                                    pow(currTrajRbtFrame.poses.at(i).position.y, 2));
+            pathPoseNorms.at(i) = sqrt(pow(currTrajRbtFrame.poses.at(i).position.x, 2) +
+                                       pow(currTrajRbtFrame.poses.at(i).position.y, 2));
         }
 
         auto minPoseNormIter = std::min_element(pathPoseNorms.begin(), pathPoseNorms.end());
@@ -3073,7 +3035,7 @@ if (traj.getPathTiming().empty()) {
 
         std::vector<Gap *> copiedRawGaps;
 
-        for (Gap * currRawGap : currRawGaps_)
+        for (Gap *currRawGap : currRawGaps_)
             copiedRawGaps.push_back(new Gap(*currRawGap));
 
         return copiedRawGaps;
@@ -3085,13 +3047,13 @@ if (traj.getPathTiming().empty()) {
 
         std::vector<Gap *> planningGaps;
 
-        for (Gap * currSimplifiedGap : currSimplifiedGaps_)
+        for (Gap *currSimplifiedGap : currSimplifiedGaps_)
             planningGaps.push_back(new Gap(*currSimplifiedGap));
 
         return planningGaps;
     }
 
-    void Planner::runPlanningLoop(Trajectory & chosenTraj, int & trajFlag) 
+    void Planner::runPlanningLoop(Trajectory &chosenTraj, int &trajFlag)
     {
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << timeKeeper_->getPlanningLoopCalls());
 
@@ -3099,7 +3061,7 @@ if (traj.getPathTiming().empty()) {
         {
             ROS_WARN_STREAM_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
             chosenTraj = Trajectory();
-            return;            
+            return;
         }
 
         if (colliding_)
@@ -3139,7 +3101,7 @@ if (traj.getPathTiming().empty()) {
             //////////////////////////////////////////////////////////////////////////////////////
 
             attachUngapIDs(planningGaps, ungaps);
-            
+
             //////////////////////////////////////////////////////////////////////////////////////
             //                              PRUNE APPROACHING UNGAPS                            //
             //////////////////////////////////////////////////////////////////////////////////////
@@ -3180,18 +3142,18 @@ if (traj.getPathTiming().empty()) {
             //////////////////////////////////////////////////////////////////////////////////////
             if (!cfg_.planning.dwa_method)
             {
-            timeKeeper_->startTimer(GAP_FEAS);
-            gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasible);
-            timeKeeper_->stopTimer(GAP_FEAS);
-            } 
+                timeKeeper_->startTimer(GAP_FEAS);
+                gapSetFeasibilityCheckV2(gapTubes, isCurrentGapFeasible);
+                timeKeeper_->stopTimer(GAP_FEAS);
+            }
 
             //////////////////////////////////////////////////////////////////////////////////////
             //                         UNGAP FEASIBILITY CHECK                                  //
             //////////////////////////////////////////////////////////////////////////////////////
             if (!cfg_.planning.dwa_method)
             {
-            ungapSetFeasibilityCheck(recedingUngaps);
-            } 
+                ungapSetFeasibilityCheck(recedingUngaps);
+            }
         }
 
         // Have to run here because terminal gap goals are set during feasibility check
@@ -3213,31 +3175,30 @@ if (traj.getPathTiming().empty()) {
             {
                 throw std::runtime_error("cheat not implemented"); // futureScans = dynamicScanPropagator_->propagateCurrentLaserScanCheat(currentTrueAgentPoses_, currentTrueAgentVels_);
             }
-                else
+            else
             {
-                futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);        
+                futureScans = dynamicScanPropagator_->propagateCurrentLaserScan(copiedRawGaps);
                 publishFutureScans(futureScans);
-       
             }
         }
-            else 
+        else
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();
-            futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt/cfg_.traj.integrate_stept) + 1, currentScan);
+            futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt / cfg_.traj.integrate_stept) + 1, currentScan);
         }
         timeKeeper_->stopTimer(SCAN_PROP);
 
         std::vector<Trajectory> gapTrajs;
-        std::vector<std::vector<float>> gapTrajPoseCosts; 
+        std::vector<std::vector<float>> gapTrajPoseCosts;
         std::vector<float> gapTrajTerminalPoseCosts;
 
         std::vector<Trajectory> ungapTrajs;
-        std::vector<std::vector<float>> ungapTrajPoseCosts; 
-        std::vector<float> ungapTrajTerminalPoseCosts; 
+        std::vector<std::vector<float>> ungapTrajPoseCosts;
+        std::vector<float> ungapTrajTerminalPoseCosts;
 
         std::vector<Trajectory> idlingTrajs;
-        std::vector<std::vector<float>> idlingPathPoseCosts; 
-        std::vector<float> idlingPathTerminalPoseCosts; 
+        std::vector<std::vector<float>> idlingPathPoseCosts;
+        std::vector<float> idlingPathTerminalPoseCosts;
 
         if (cfg_.planning.gap_prop == 1)
         {
@@ -3262,9 +3223,9 @@ if (traj.getPathTiming().empty()) {
             //////////////////////////////////////////////////////////////////////////////////////
 
             // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);
             // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
-        } 
+        }
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
         ROS_INFO_STREAM_NAMED("Planner", "       gap trajs size: " << gapTrajs.size());
@@ -3277,11 +3238,11 @@ if (traj.getPathTiming().empty()) {
         timeKeeper_->startTimer(TRAJ_PICK);
         int lowestCostTrajIdx = -1;
         trajFlag = NONE;
-        
-        pickTraj(trajFlag, lowestCostTrajIdx, 
-                    gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
-                    ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
-                    idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+
+        pickTraj(trajFlag, lowestCostTrajIdx,
+                 gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                 ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+                 idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
         timeKeeper_->stopTimer(TRAJ_PICK);
 
         //////////////////////////////////////////////////////////////////////////////////////
@@ -3290,8 +3251,8 @@ if (traj.getPathTiming().empty()) {
 
         timeKeeper_->startTimer(TRAJ_COMP);
 
-        Gap * incomingGap = nullptr;
-        Ungap * incomingUngap = nullptr;
+        Gap *incomingGap = nullptr;
+        Ungap *incomingUngap = nullptr;
         Trajectory incomingTraj;
 
         if (lowestCostTrajIdx < 0)
@@ -3300,13 +3261,15 @@ if (traj.getPathTiming().empty()) {
             chosenTraj = Trajectory();
             trajFlag = NONE;
             return;
-        } else if (trajFlag == NONE)
+        }
+        else if (trajFlag == NONE)
         {
             ROS_INFO_STREAM_NAMED("Planner", "       comparing to none trajectory");
             chosenTraj = Trajectory();
             trajFlag = NONE;
             return;
-        } else if (trajFlag == GAP) // comparing to traj within one of the gaps
+        }
+        else if (trajFlag == GAP) // comparing to traj within one of the gaps
         {
             ROS_INFO_STREAM_NAMED("Planner", "       comparing to actual trajectory");
 
@@ -3320,7 +3283,8 @@ if (traj.getPathTiming().empty()) {
 
             incomingGap = gapTubes.at(lowestCostTrajIdx)->at(0);
             incomingTraj = gapTrajs.at(lowestCostTrajIdx);
-        } else if (trajFlag == UNGAP) // comparing to un-gap traj
+        }
+        else if (trajFlag == UNGAP) // comparing to un-gap traj
         {
             ROS_INFO_STREAM_NAMED("Planner", "       comparing to un-gap trajectory");
 
@@ -3334,7 +3298,8 @@ if (traj.getPathTiming().empty()) {
             incomingUngap = recedingUngaps.at(lowestCostTrajIdx);
             ungapRbtSpeed_ = incomingUngap->getRbtSpeed();
             incomingTraj = ungapTrajs.at(lowestCostTrajIdx);
-        } else if (trajFlag == IDLING)
+        }
+        else if (trajFlag == IDLING)
         {
             ROS_INFO_STREAM_NAMED("Planner", "       comparing to idling trajectory");
             if (lowestCostTrajIdx >= idlingTrajs.size())
@@ -3346,36 +3311,37 @@ if (traj.getPathTiming().empty()) {
             }
 
             incomingTraj = idlingTrajs.at(lowestCostTrajIdx);
-        } else
+        }
+        else
         {
             ROS_WARN_STREAM_NAMED("Planner", "       unknown trajectory flag");
 
             chosenTraj = Trajectory();
             trajFlag = NONE;
-            return;            
+            return;
         }
 
-        chosenTraj = compareToCurrentTraj(incomingTraj,           
-                                            futureScans,
-                                            trajFlag,
-                                            incomingGap,
-                                            isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
+        chosenTraj = compareToCurrentTraj(incomingTraj,
+                                          futureScans,
+                                          trajFlag,
+                                          incomingGap,
+                                          isCurrentGapFeasible); // incomingGap, isCurrentGapFeasible,
 
         timeKeeper_->stopTimer(TRAJ_COMP);
 
         // delete set of planning gaps
-        for (Gap * planningGap : planningGaps)
+        for (Gap *planningGap : planningGaps)
             delete planningGap;
 
         // delete set of planning gaps
-        for (Gap * copiedRawGap : copiedRawGaps)
+        for (Gap *copiedRawGap : copiedRawGaps)
             delete copiedRawGap;
 
-        for (Ungap * ungap : ungaps)
+        for (Ungap *ungap : ungaps)
             delete ungap;
 
         // delete gap tubes
-        for (GapTube * tube : gapTubes)
+        for (GapTube *tube : gapTubes)
         {
             delete tube;
         }
@@ -3386,8 +3352,8 @@ if (traj.getPathTiming().empty()) {
         return;
     }
 
-    void Planner::attachUngapIDs(const std::vector<Gap *> & planningGaps,
-                                    std::vector<Ungap *> & ungaps)
+    void Planner::attachUngapIDs(const std::vector<Gap *> &planningGaps,
+                                 std::vector<Ungap *> &ungaps)
     {
         ROS_INFO_STREAM_NAMED("Planner", "[attachUngapIDs()]");
 
@@ -3396,7 +3362,7 @@ if (traj.getPathTiming().empty()) {
             std::vector<Eigen::Vector4f> gapPtStates;
 
             // get list of points
-            for (const Gap * planningGap : planningGaps)
+            for (const Gap *planningGap : planningGaps)
             {
                 // right
                 planningGap->getRightGapPt()->getModel()->isolateGapDynamics();
@@ -3433,10 +3399,11 @@ if (traj.getPathTiming().empty()) {
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(ungapID);
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->getModel()->setUngap();
 
-                        ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(), 
-                                                    planningGaps.at(nextIdx / 2)->getLeftGapPt(),
-                                                    ungapID));
-                    } else
+                        ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(),
+                                                   planningGaps.at(nextIdx / 2)->getLeftGapPt(),
+                                                   ungapID));
+                    }
+                    else
                     {
                         ROS_INFO_STREAM_NAMED("Planner", "  attaching ungap id: " << ungapID << " to");
                         ROS_INFO_STREAM_NAMED("Planner", "    gap" << (i / 2) << " left point: " << planningGaps.at(i / 2)->getLeftGapPt()->getModel()->getGapState().transpose());
@@ -3447,20 +3414,21 @@ if (traj.getPathTiming().empty()) {
 
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(ungapID);
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->setUngap();
-                        
-                        ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(), 
-                                                    planningGaps.at(i / 2)->getLeftGapPt(),
-                                                    ungapID));
+
+                        ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(),
+                                                   planningGaps.at(i / 2)->getLeftGapPt(),
+                                                   ungapID));
                     }
                 }
             }
-        } catch (const std::out_of_range& e) 
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    attachUngapIDs() out of range exception: " << e.what());
         }
     }
 
-    bool Planner::isUngap(const Eigen::Vector4f & ptIState, const Eigen::Vector4f & ptJState)
+    bool Planner::isUngap(const Eigen::Vector4f &ptIState, const Eigen::Vector4f &ptJState)
     {
         Eigen::Vector2f ptIPos = ptIState.head(2);
         Eigen::Vector2f ptJPos = ptJState.head(2);
@@ -3478,10 +3446,10 @@ if (traj.getPathTiming().empty()) {
         float vectorProj = ptIVel.dot(ptJVel) / (ptIVel.norm() * ptJVel.norm() + eps);
         bool angleCheck = (vectorProj > 0.0);
 
-        return (distCheck && speedCheck && angleCheck); // distCheck; // 
+        return (distCheck && speedCheck && angleCheck); // distCheck; //
     }
 
-    std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> & ungaps)
+    std::vector<Ungap *> Planner::pruneApproachingUngaps(const std::vector<Ungap *> &ungaps)
     {
         ROS_INFO_STREAM_NAMED("Planner", "[pruneApproachingUngaps()]");
 
@@ -3494,7 +3462,7 @@ if (traj.getPathTiming().empty()) {
             for (int i = 0; i < ungaps.size(); i++)
             {
                 ROS_INFO_STREAM_NAMED("Planner", "          ungap " << i);
-                Ungap * ungap = ungaps.at(i);
+                Ungap *ungap = ungaps.at(i);
 
                 ungap->getLeftUngapPt()->getModel()->isolateGapDynamics();
                 ungap->getRightUngapPt()->getModel()->isolateGapDynamics();
@@ -3520,9 +3488,10 @@ if (traj.getPathTiming().empty()) {
                 {
                     ROS_INFO_STREAM_NAMED("Planner", "          ungap is receding, adding");
                     recedingUngaps.push_back(ungap);
-                }        
+                }
             }
-        } catch (const std::out_of_range& e) 
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    pruneApproachingUngaps() out of range exception: " << e.what());
         }
@@ -3530,57 +3499,59 @@ if (traj.getPathTiming().empty()) {
         return recedingUngaps;
     }
 
-bool sat(const Eigen::Vector2f& a, float b,
-                  const Eigen::Vector2f& u)
-{
-  return a.dot(u) >= b;
-}
+    bool sat(const Eigen::Vector2f &a, float b,
+             const Eigen::Vector2f &u)
+    {
+        return a.dot(u) >= b;
+    }
 
-void consider(const Eigen::Vector2f& u,
-                       const Eigen::Vector2f& u_nom,
-                       float& best,
-                       Eigen::Vector2f& u_best) 
-{
-  float d = (u - u_nom).squaredNorm();
-  if (d < best) {
-    best = d;
-    u_best = u;
-  }
-}
+    void consider(const Eigen::Vector2f &u,
+                  const Eigen::Vector2f &u_nom,
+                  float &best,
+                  Eigen::Vector2f &u_best)
+    {
+        float d = (u - u_nom).squaredNorm();
+        if (d < best)
+        {
+            best = d;
+            u_best = u;
+        }
+    }
 
-bool solve2x2(float a, float b, float c, float d,
-                            float e, float f,
-                            Eigen::Vector2f &output_vector)
-{
-    const float det = a*d - b*c;
-    if (!std::isfinite(det) || std::fabs(det) < 1e-8f) return false;
+    bool solve2x2(float a, float b, float c, float d,
+                  float e, float f,
+                  Eigen::Vector2f &output_vector)
+    {
+        const float det = a * d - b * c;
+        if (!std::isfinite(det) || std::fabs(det) < 1e-8f)
+            return false;
 
-    // inverse * rhs
-    // x = ( d*e - b*f)/det
-    // y = (-c*e + a*f)/det
-    const float x = ( d*e - b*f) / det;
-    const float y = (-c*e + a*f) / det;
+        // inverse * rhs
+        // x = ( d*e - b*f)/det
+        // y = (-c*e + a*f)/det
+        const float x = (d * e - b * f) / det;
+        const float y = (-c * e + a * f) / det;
 
-    if (!std::isfinite(x) || !std::isfinite(y)) return false;
+        if (!std::isfinite(x) || !std::isfinite(y))
+            return false;
 
-    output_vector.x() = x;
-    output_vector.y() = y;
-    return true;
-}
+        output_vector.x() = x;
+        output_vector.y() = y;
+        return true;
+    }
 
-geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int & trajFlag)
+    geometry_msgs::Twist Planner::ctrlGeneration(Trajectory &localTrajectory, int &trajFlag)
     {
         ROS_INFO_STREAM_NAMED("Controller", "[ctrlGeneration()]");
         timeKeeper_->startTimer(CONTROL);
-        
+
         geometry_msgs::Twist rawCmdVel = geometry_msgs::Twist();
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
-        geometry_msgs::PoseArray path = localTrajectory.getPathOdomFrame(); 
+        geometry_msgs::PoseArray path = localTrajectory.getPathOdomFrame();
         float v_cmd = localTrajectory.v_cmd;
-        float w_cmd = localTrajectory.w_cmd; 
+        float w_cmd = localTrajectory.w_cmd;
         // float H_left = localTrajectory.getH(); // todo change trajectory file so there's a getH_left and getH_right
-
 
         try
         {
@@ -3601,42 +3572,48 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
             {
                 ROS_INFO_STREAM_NAMED("Planner", "planner opting to idle, no trajectory chosen.");
                 rawCmdVel = geometry_msgs::Twist();
-                return rawCmdVel;                
-            } else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL  
-            { 
+                return rawCmdVel;
+            }
+            else if (trajFlag == NONE) // OBSTACLE AVOIDANCE CONTROL
+            {
                 ROS_INFO_STREAM_NAMED("Planner", "trajFlag is NONE, obstacle avoidance control chosen.");
                 if (cfg_.planning.holonomic)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
-                } else
+                }
+                else
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLawNonHolonomic();
                 }
 
                 return rawCmdVel;
-            } else if (path.poses.size() == 0) 
+            }
+            else if (path.poses.size() == 0)
             {
                 ROS_WARN_STREAM_NAMED("Controller", "Available Execution Traj length: " << path.poses.size() << " == 0, obstacle avoidance control chosen.");
-                
+
                 if (cfg_.planning.holonomic)
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLaw();
-                } else
+                }
+                else
                 {
                     rawCmdVel = trajController_->obstacleAvoidanceControlLawNonHolonomic();
                 }
-                
+
                 return rawCmdVel;
-            } else if (cfg_.ctrl.man_ctrl)  // MANUAL CONTROL 
+            }
+            else if (cfg_.ctrl.man_ctrl) // MANUAL CONTROL
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Manual control chosen.");
                 // rawCmdVel = trajController_->manualControlLawKeyboard();
                 // rawCmdVel = trajController_->manualControlLawReconfig();
                 // rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
-            // } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
-            // { 
-            //     rawCmdVel = mpcTwist_;
-            } else if (cfg_.ctrl.feedback_ctrl && (trajFlag == UNGAP || trajFlag == GAP)) // FEEDBACK CONTROL 
+                // } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
+                // {
+                //     rawCmdVel = mpcTwist_;
+            }
+            else if (cfg_.ctrl.feedback_ctrl && (trajFlag == UNGAP || trajFlag == GAP)) // FEEDBACK CONTROL
             {
                 ROS_INFO_STREAM_NAMED("Controller", "Trajectory tracking control chosen.");
 
@@ -3654,123 +3631,124 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                 timeKeeper_->startTimer(FEEBDACK);
                 // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
-                if (cfg_.planning.dwa_method) 
+                if (cfg_.planning.dwa_method)
                 {
                     // ROS_ERROR_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
 
-                    // rawCmdVel.linear.x  = v_cmd; // no longer using this approach 
+                    // rawCmdVel.linear.x  = v_cmd; // no longer using this approach
                     // rawCmdVel.linear.y  = 0.0;
                     // rawCmdVel.angular.z = w_cmd;
 
                     rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
 
-
-
-
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
-                    CbfLinConstraint leftCBFOutput; 
-                     leftCBFOutput =  trajController_->cbf_processCmdVelNonHolonomic(
-                                currPoseOdomFrame,
-                                targetTrajectoryPose,
-                                rawCmdVel,
-                                rbtPoseInSensorFrame_, 
-                                localTrajectory.humanVelLeft, 
-                                localTrajectory.gapPosLeft, 
-                                localTrajectory.trajPosLeft, 
-                                localTrajectory.robotVel
-                            );
+                    CbfLinConstraint leftCBFOutput;
+                    leftCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
+                        currPoseOdomFrame,
+                        targetTrajectoryPose,
+                        rawCmdVel,
+                        rbtPoseInSensorFrame_,
+                        localTrajectory.humanVelLeft,
+                        localTrajectory.gapPosLeft,
+                        localTrajectory.trajPosLeft,
+                        localTrajectory.robotVel);
 
-                    CbfLinConstraint rightCBFOutput; 
-                     rightCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
-                                currPoseOdomFrame,
-                                targetTrajectoryPose,
-                                rawCmdVel,
-                                rbtPoseInSensorFrame_, 
-                                localTrajectory.humanVelRight, 
-                                localTrajectory.gapPosRight, 
-                                localTrajectory.trajPosLeft,  //delete trajPos it's usunsed
-                                localTrajectory.robotVel
-                            );
-                            
-                   std::vector<CbfLinConstraint> cons;
+                    CbfLinConstraint rightCBFOutput;
+                    rightCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
+                        currPoseOdomFrame,
+                        targetTrajectoryPose,
+                        rawCmdVel,
+                        rbtPoseInSensorFrame_,
+                        localTrajectory.humanVelRight,
+                        localTrajectory.gapPosRight,
+                        localTrajectory.trajPosLeft, // delete trajPos it's usunsed
+                        localTrajectory.robotVel);
 
-// Use whichever u_nom stored; they should be the same
-Eigen::Vector2d u_nom; // btw u_nom is rawCmdVel but converted to holo
-u_nom << static_cast<double>(leftCBFOutput.u_nom.x()),
-         static_cast<double>(leftCBFOutput.u_nom.y());
+                    std::vector<CbfLinConstraint> cons;
 
-if (leftCBFOutput.valid) {
-    cons.push_back(leftCBFOutput);
-}
+                    // Use whichever u_nom stored; they should be the same
+                    Eigen::Vector2d u_nom; // btw u_nom is rawCmdVel but converted to holo
+                    u_nom << static_cast<double>(leftCBFOutput.u_nom.x()),
+                        static_cast<double>(leftCBFOutput.u_nom.y());
 
-if (rightCBFOutput.valid) {
-    cons.push_back(rightCBFOutput);
-}
+                    if (leftCBFOutput.valid)
+                    {
+                        cons.push_back(leftCBFOutput);
+                    }
 
-// No active CBF constraints -> use nominal command
-if (cons.empty()) {
-    cmdVel = rawCmdVel;
-}
-else {
-    Eigen::Vector2d u_safe;
+                    if (rightCBFOutput.valid)
+                    {
+                        cons.push_back(rightCBFOutput);
+                    }
 
-    const double ux_min = -cfg_.rbt.vx_absmax;
-    const double ux_max =  cfg_.rbt.vx_absmax;
+                    // No active CBF constraints -> use nominal command
+                    if (cons.empty())
+                    {
+                        cmdVel = rawCmdVel;
+                    }
+                    else
+                    {
+                        Eigen::Vector2d u_safe;
 
-    // u_y = l_ * w
-    const double l_ = (cfg_.rbt.r_inscr * cfg_.traj.inf_ratio);
-    const double uy_min = -l_ * cfg_.rbt.vang_absmax;
-    const double uy_max =  l_ * cfg_.rbt.vang_absmax;
+                        const double ux_min = -cfg_.rbt.vx_absmax;
+                        const double ux_max = cfg_.rbt.vx_absmax;
 
-    bool ok = trajController_->solveQpOsqp2D(u_nom, cons, ux_min, ux_max, uy_min, uy_max, u_safe);
+                        // u_y = l_ * w
+                        const double l_ = (cfg_.rbt.r_inscr * cfg_.traj.inf_ratio);
+                        const double uy_min = -l_ * cfg_.rbt.vang_absmax;
+                        const double uy_max = l_ * cfg_.rbt.vang_absmax;
 
-    if (!ok) {
-        cmdVel = rawCmdVel;  // fallback
-    } else {
-        cmdVel.linear.x = u_safe.x();
-        cmdVel.linear.y = 0.0;
-        cmdVel.angular.z = u_safe.y() / l_;
+                        bool ok = trajController_->solveQpOsqp2D(u_nom, cons, ux_min, ux_max, uy_min, uy_max, u_safe);
 
-        cmdVel.linear.x = std::max(-static_cast<double>(cfg_.rbt.cbf_vx_absmax),
-                           std::min(static_cast<double>(cfg_.rbt.cbf_vx_absmax), cmdVel.linear.x));
+                        if (!ok)
+                        {
+                            cmdVel = rawCmdVel; // fallback
+                        }
+                        else
+                        {
+                            cmdVel.linear.x = u_safe.x();
+                            cmdVel.linear.y = 0.0;
+                            cmdVel.angular.z = u_safe.y() / l_;
 
-        cmdVel.angular.z = std::max(-static_cast<double>(cfg_.rbt.vang_absmax),
-                            std::min(static_cast<double>(cfg_.rbt.vang_absmax), cmdVel.angular.z));
-    }
-}
+                            cmdVel.linear.x = std::max(-static_cast<double>(cfg_.rbt.cbf_vx_absmax),
+                                                       std::min(static_cast<double>(cfg_.rbt.cbf_vx_absmax), cmdVel.linear.x));
 
-                //////////////// Projectection operator ///////////////////////////////////////////////
+                            cmdVel.angular.z = std::max(-static_cast<double>(cfg_.rbt.vang_absmax),
+                                                        std::min(static_cast<double>(cfg_.rbt.vang_absmax), cmdVel.angular.z));
+                        }
+                    }
 
-                if (rightCBFOutput.valid == true || leftCBFOutput.valid == true)
-                {   
-                    // it would be more efficient to do this in the same function as cbf since some of the same steps are done like converting to 
-                    // non holo, but I didn't want to overcomplicate the code 
-                    cmdVel = trajController_->projectionOperatorOnTopCBF(currPoseOdomFrame,
-                                                                            targetTrajectoryPose,
-                                                                            cmdVel,
-                                                                            rbtPoseInSensorFrame_); // not a mistake that I use cmdVel instead of rawCmdVel. It was 
-                                                                            // because this is taking the cmdVel which comes out of CBF and adds on PO
-                }
-                else
-                {
-                    // if CBF is not used, use the original function which does both PO and clips the vel
-                  cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
+                    //////////////// Projectection operator ///////////////////////////////////////////////
+
+                    if (rightCBFOutput.valid == true || leftCBFOutput.valid == true)
+                    {
+                        // it would be more efficient to do this in the same function as cbf since some of the same steps are done like converting to
+                        // non holo, but I didn't want to overcomplicate the code
+                        cmdVel = trajController_->projectionOperatorOnTopCBF(currPoseOdomFrame,
+                                                                             targetTrajectoryPose,
+                                                                             cmdVel,
+                                                                             rbtPoseInSensorFrame_); // not a mistake that I use cmdVel instead of rawCmdVel. It was
+                                                                                                     // because this is taking the cmdVel which comes out of CBF and adds on PO
+                    }
+                    else
+                    {
+                        // if CBF is not used, use the original function which does both PO and clips the vel
+                        cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
                                                                             targetTrajectoryPose,
                                                                             rawCmdVel,
-                                                                            rbtPoseInSensorFrame_);   
-                }
+                                                                            rbtPoseInSensorFrame_);
+                    }
 
                     // todo 0128 process nonHolonomicCmd() is not run
-                    // for goToGoal trajs, meaning that no cbf, no PO and 
-                    // no velocity clippping happens for those trajs 
+                    // for goToGoal trajs, meaning that no cbf, no PO and
+                    // no velocity clippping happens for those trajs
 
                     // cmdVel = trajController_->processCmdVelNonHolonomic(
                     //             currPoseOdomFrame,
                     //             targetTrajectoryPose,
                     //             rawCmdVel,
-                    //             rbtPoseInSensorFrame_); 
-
+                    //             rbtPoseInSensorFrame_);
                 }
                 else
                 {
@@ -3778,19 +3756,21 @@ else {
                     if (cfg_.planning.holonomic)
                     {
                         rawCmdVel = trajController_->constantVelocityControlLaw(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
-                    } else
+                    }
+                    else
                     {
                         rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
-                    
+
                         cmdVel = trajController_->processCmdVelNonHolonomic(currPoseOdomFrame,
                                                                             targetTrajectoryPose,
                                                                             rawCmdVel,
-                                                                            rbtPoseInSensorFrame_); 
+                                                                            rbtPoseInSensorFrame_);
                     }
                 }
 
                 timeKeeper_->stopTimer(FEEBDACK);
-            } else
+            }
+            else
             {
                 ROS_ERROR_STREAM_NAMED("Controller", "No control method selected");
             }
@@ -3800,8 +3780,9 @@ else {
             if (cfg_.planning.holonomic)
             {
                 cmdVel = trajController_->processCmdVel(rawCmdVel,
-                                                        rbtPoseInSensorFrame_); 
-            } else
+                                                        rbtPoseInSensorFrame_);
+            }
+            else
             {
                 // running inside if statement
             }
@@ -3809,10 +3790,12 @@ else {
             timeKeeper_->stopTimer(PO);
 
             timeKeeper_->stopTimer(CONTROL);
-        } catch (const std::out_of_range& e) 
+        }
+        catch (const std::out_of_range &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    ctrlGeneration() out of range exception: " << e.what());
-        } catch (const std::exception & e)
+        }
+        catch (const std::exception &e)
         {
             ROS_WARN_STREAM_NAMED("Planner", "    ctrlGeneration() exception: " << e.what());
         }
@@ -3820,38 +3803,40 @@ else {
         return cmdVel;
     }
 
-    void Planner::setCurrentLeftGapPtModelID(Estimator * leftModel) 
-    { 
-        if (leftModel) 
+    void Planner::setCurrentLeftGapPtModelID(Estimator *leftModel)
+    {
+        if (leftModel)
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: setting current left ID to " << leftModel->getID());
-            currentLeftGapPtModelID = leftModel->getID(); 
-        } else
+            currentLeftGapPtModelID = leftModel->getID();
+        }
+        else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentLeftGapPtModelID]: null, setting current left ID to " << -1);
             currentLeftGapPtModelID = -1;
         }
     }
 
-    void Planner::setCurrentRightGapPtModelID(Estimator * rightModel) 
-    { 
-        if (rightModel) 
-        {        
+    void Planner::setCurrentRightGapPtModelID(Estimator *rightModel)
+    {
+        if (rightModel)
+        {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: setting current right ID to " << rightModel->getID());
-            currentRightGapPtModelID = rightModel->getID();          
-        } else
+            currentRightGapPtModelID = rightModel->getID();
+        }
+        else
         {
             ROS_INFO_STREAM_NAMED("Planner", "[setCurrentRightGapPtModelID]: null, setting current right ID to " << -1);
             currentRightGapPtModelID = -1;
-        } 
+        }
     }
 
-    int Planner::getCurrentLeftGapPtModelID() 
+    int Planner::getCurrentLeftGapPtModelID()
     {
-        return currentLeftGapPtModelID;  
+        return currentLeftGapPtModelID;
     }
 
-    int Planner::getCurrentRightGapPtModelID() 
+    int Planner::getCurrentRightGapPtModelID()
     {
         return currentRightGapPtModelID;
     }
@@ -3860,12 +3845,12 @@ else {
     {
         setCurrentTraj(Trajectory());
 
-        // changeTrajectoryHelper(Trajectory(), 
+        // changeTrajectoryHelper(Trajectory(),
         //                         false,
         //                         NONE,
         //                         nullptr);
 
-        // hasGlobalGoal_ = false; 
+        // hasGlobalGoal_ = false;
         // hasLaserScan_ = false;
 
         currentRbtVel_ = geometry_msgs::TwistStamped();
@@ -3878,11 +3863,11 @@ else {
         return;
     }
 
-    void Planner::checkGapModels(const std::vector<Gap *> & gaps) 
+    void Planner::checkGapModels(const std::vector<Gap *> &gaps)
     {
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            Gap * gap = gaps.at(i);        
+            Gap *gap = gaps.at(i);
             Eigen::Vector4f left_state = gap->getLeftGapPt()->getModel()->getState();
             Eigen::Vector4f right_state = gap->getRightGapPt()->getModel()->getState();
 
@@ -3894,18 +3879,16 @@ else {
         }
     }
 
-    void Planner::printGapModels(const std::vector<Gap *> & gaps) 
+    void Planner::printGapModels(const std::vector<Gap *> &gaps)
     {
         // THIS IS NOT FOR MANIPULATED GAPS
         float x = 0.0, y = 0.0;
         for (size_t i = 0; i < gaps.size(); i++)
         {
-            Gap * gap = gaps.at(i);
-            ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap->RIdx() << " to "  << gap->LIdx() << 
-                                                ", left model ID: " << gap->getLeftGapPt()->getModel()->getID() << 
-                                                ", right model ID: " << gap->getRightGapPt()->getModel()->getID());
+            Gap *gap = gaps.at(i);
+            ROS_INFO_STREAM_NAMED("Planner", "    gap " << i << ", indices: " << gap->RIdx() << " to " << gap->LIdx() << ", left model ID: " << gap->getLeftGapPt()->getModel()->getID() << ", right model ID: " << gap->getRightGapPt()->getModel()->getID());
             Eigen::Vector4f left_state = gap->getLeftGapPt()->getModel()->getState();
-            gap->getLCartesian(x, y);            
+            gap->getLCartesian(x, y);
             ROS_INFO_STREAM_NAMED("Planner", "        left point: (" << x << ", " << y << "), left model: (" << left_state.transpose() << ")");
             Eigen::Vector4f right_state = gap->getRightGapPt()->getModel()->getState();
             gap->getRCartesian(x, y);
@@ -3913,16 +3896,16 @@ else {
         }
     }
 
-    bool Planner::recordAndCheckVel(const geometry_msgs::Twist & cmdVel, const int & trajFlag) 
+    bool Planner::recordAndCheckVel(const geometry_msgs::Twist &cmdVel, const int &trajFlag)
     {
         float cmdVelNorm = std::abs(cmdVel.linear.x) + std::abs(cmdVel.linear.y) + std::abs(cmdVel.angular.z);
 
         cmdVelBuffer_.push_back(cmdVelNorm);
         float cmdVelBufferSum = std::accumulate(cmdVelBuffer_.begin(), cmdVelBuffer_.end(), float(0));
-        
+
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
-        
-        if ((trajFlag == GAP || trajFlag == UNGAP) && !keepPlanning && !cfg_.ctrl.man_ctrl) 
+
+        if ((trajFlag == GAP || trajFlag == UNGAP) && !keepPlanning && !cfg_.ctrl.man_ctrl)
         {
             ROS_WARN_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
             ROS_INFO_STREAM_NAMED("Planner", "--------------------------Planning Failed--------------------------");
@@ -3931,106 +3914,106 @@ else {
         return keepPlanning || cfg_.ctrl.man_ctrl;
     }
 
-    void Planner::publishFutureScans(const std::vector<sensor_msgs::LaserScan>& futureScans)
+    void Planner::publishFutureScans(const std::vector<sensor_msgs::LaserScan> &futureScans)
     {
-    static std::vector<ros::Publisher> futureScanPubs;
+        static std::vector<ros::Publisher> futureScanPubs;
 
-    // Create publishers only once (latched)
-    if (futureScanPubs.empty())
-    {
-        futureScanPubs.reserve(futureScans.size());
+        // Create publishers only once (latched)
+        if (futureScanPubs.empty())
+        {
+            futureScanPubs.reserve(futureScans.size());
+            for (size_t k = 0; k < futureScans.size(); ++k)
+            {
+                std::string topic = "/future_scan_" + std::to_string(k);
+                futureScanPubs.push_back(nh_.advertise<sensor_msgs::LaserScan>(topic, 1, true));
+                ROS_INFO_STREAM_NAMED("Planner", "Advertising future scan topic: " << topic);
+            }
+        }
+
+        // Publish each future scan
         for (size_t k = 0; k < futureScans.size(); ++k)
         {
-            std::string topic = "/future_scan_" + std::to_string(k);
-            futureScanPubs.push_back(nh_.advertise<sensor_msgs::LaserScan>(topic, 1, true));
-            ROS_INFO_STREAM_NAMED("Planner", "Advertising future scan topic: " << topic);
+            futureScanPubs[k].publish(futureScans[k]);
         }
     }
 
-    // Publish each future scan
-    for (size_t k = 0; k < futureScans.size(); ++k)
+    void Planner::visualizePoseArray(const geometry_msgs::PoseArray &path,
+                                     const std::string &ns)
     {
-        futureScanPubs[k].publish(futureScans[k]);
+        if (path.poses.empty())
+            return;
+
+        visualization_msgs::Marker line;
+        line.header = path.header;
+        line.ns = ns;
+        line.id = 0;
+        line.type = visualization_msgs::Marker::LINE_STRIP;
+        line.action = visualization_msgs::Marker::ADD;
+
+        // --- THICK LINE ---
+        line.scale.x = 0.06; // cm line width
+
+        // --- YELLOW COLOR ---
+        line.color.r = 1.0;
+        line.color.g = 1.0;
+        line.color.b = 0.0;
+        line.color.a = 1.0;
+
+        for (const auto &pose : path.poses)
+        {
+            geometry_msgs::Point p;
+            p.x = pose.position.x;
+            p.y = pose.position.y;
+            p.z = 0.05;
+            line.points.push_back(p);
+        }
+
+        transformed_path_pub_.publish(line);
     }
-    }
 
-    void Planner::visualizePoseArray(const geometry_msgs::PoseArray & path,
-                                 const std::string & ns)
-{
-    if (path.poses.empty())
-        return;
-
-    visualization_msgs::Marker line;
-    line.header = path.header;
-    line.ns = ns;
-    line.id = 0;
-    line.type = visualization_msgs::Marker::LINE_STRIP;
-    line.action = visualization_msgs::Marker::ADD;
-
-    // --- THICK LINE ---
-    line.scale.x = 0.06;   // cm line width
-
-    // --- YELLOW COLOR ---
-    line.color.r = 1.0;
-    line.color.g = 1.0;
-    line.color.b = 0.0;
-    line.color.a = 1.0;
-
-    for (const auto &pose : path.poses)
+    void Planner::publishVrelArrow(const Eigen::Vector2f &origin_xy,
+                                   const Eigen::Vector2f &vrel_xy,
+                                   const std::string &frame_id,
+                                   const std::string &ns,
+                                   ros::Publisher &pub,
+                                   float r,
+                                   float g,
+                                   float b,
+                                   float a)
     {
-        geometry_msgs::Point p;
-        p.x = pose.position.x;
-        p.y = pose.position.y;
-        p.z = 0.05;
-        line.points.push_back(p);
+        visualization_msgs::Marker m;
+        m.header.frame_id = frame_id;
+        m.header.stamp = ros::Time::now();
+        m.ns = ns;
+        m.id = 0; // overwrite same marker
+        m.type = visualization_msgs::Marker::ARROW;
+        m.action = visualization_msgs::Marker::ADD;
+
+        geometry_msgs::Point p0, p1;
+        p0.x = origin_xy.x();
+        p0.y = origin_xy.y();
+        p0.z = 0.10;
+
+        const float scale = 0.75f;
+        p1.x = origin_xy.x() + scale * vrel_xy.x();
+        p1.y = origin_xy.y() + scale * vrel_xy.y();
+        p1.z = 0.10;
+
+        m.points = {p0, p1};
+
+        // Arrow geometry
+        m.scale.x = 0.03; // shaft diameter
+        m.scale.y = 0.06; // head diameter
+        m.scale.z = 0.10; // head length
+
+        // Color (now configurable)
+        m.color.r = r;
+        m.color.g = g;
+        m.color.b = b;
+        m.color.a = a;
+
+        m.lifetime = ros::Duration(0.15);
+        pub.publish(m);
     }
-
-    transformed_path_pub_.publish(line);
-}
-
-  void Planner::publishVrelArrow(const Eigen::Vector2f& origin_xy,
-                                            const Eigen::Vector2f& vrel_xy,
-                                            const std::string& frame_id,
-                                            const std::string& ns,
-                                            ros::Publisher& pub,
-                                            float r,
-                                            float g,
-                                            float b,
-                                            float a)
-{
-  visualization_msgs::Marker m;
-  m.header.frame_id = frame_id;
-  m.header.stamp    = ros::Time::now();
-  m.ns              = ns;
-  m.id              = 0;   // overwrite same marker
-  m.type            = visualization_msgs::Marker::ARROW;
-  m.action          = visualization_msgs::Marker::ADD;
-
-  geometry_msgs::Point p0, p1;
-  p0.x = origin_xy.x();
-  p0.y = origin_xy.y();
-  p0.z = 0.10;
-
-  const float scale = 0.75f;
-  p1.x = origin_xy.x() + scale * vrel_xy.x();
-  p1.y = origin_xy.y() + scale * vrel_xy.y();
-  p1.z = 0.10;
-
-  m.points = {p0, p1};
-
-  // Arrow geometry
-  m.scale.x = 0.03;  // shaft diameter
-  m.scale.y = 0.06;  // head diameter
-  m.scale.z = 0.10;  // head length
-
-  // Color (now configurable)
-  m.color.r = r;
-  m.color.g = g;
-  m.color.b = b;
-  m.color.a = a;
-
-  m.lifetime = ros::Duration(0.15);
-  pub.publish(m);
-}
 
 }
