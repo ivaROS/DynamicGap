@@ -37,10 +37,14 @@ MppiResult MppiOptimizer::optimize(const geometry_msgs::Pose& initial,
                                   const MppiControls& nominal,
                                   std::size_t sample_count,
                                   const std::string& frame,
-                                  const Score& score)
+                                  const Score& score,
+                                  std::optional<double> fixed_forward_speed)
 {
     MppiResult result;
     if (nominal.empty() || sample_count == 0 || !score)
+        return result;
+    if (fixed_forward_speed && (!std::isfinite(*fixed_forward_speed) ||
+        *fixed_forward_speed < 0 || *fixed_forward_speed > cfg_.rbt.vx_absmax))
         return result;
     MppiControls controls = nominal;
     for (auto& u : controls)
@@ -48,6 +52,8 @@ MppiResult MppiOptimizer::optimize(const geometry_msgs::Pose& initial,
         if (!std::isfinite(u.linear.x) || !std::isfinite(u.angular.z))
             return result;
         u = boundedControl(u, cfg_);
+        if (fixed_forward_speed)
+            u.linear.x = *fixed_forward_speed;
     }
     auto evaluate = [&](const MppiControls& sequence) {
         auto trajectory = rolloutMppiControls(initial, sequence, cfg_.traj.integrate_stept, frame);
@@ -77,7 +83,8 @@ MppiResult MppiOptimizer::optimize(const geometry_msgs::Pose& initial,
         {
             for (auto& u : proposals[k])
             {
-                u.linear.x += cfg_.mppi.sigma_v * gaussian(random_);
+                if (!fixed_forward_speed)
+                    u.linear.x += cfg_.mppi.sigma_v * gaussian(random_);
                 u.angular.z += cfg_.mppi.sigma_w * gaussian(random_);
                 u = boundedControl(u, cfg_);
             }
@@ -116,6 +123,8 @@ MppiResult MppiOptimizer::optimize(const geometry_msgs::Pose& initial,
             updated[t].linear.x += cfg_.mppi.update_fraction * delta_v;
             updated[t].angular.z += cfg_.mppi.update_fraction * delta_w;
             updated[t] = boundedControl(updated[t], cfg_);
+            if (fixed_forward_speed)
+                updated[t].linear.x = *fixed_forward_speed;
         }
         auto updated_trajectory = evaluate(updated);
         keepBest(updated_trajectory, updated);
@@ -133,6 +142,57 @@ MppiResult MppiOptimizer::optimize(const geometry_msgs::Pose& initial,
             controls = result.controls;
     }
     return result;
+}
+
+bool evaluateMppiOutputTrajectory(dwa_Trajectory& trajectory,
+                                  TrajectoryEvaluator& evaluator,
+                                  const DynamicGapConfig& cfg,
+                                  const std::vector<sensor_msgs::LaserScan>& future_scans,
+                                  const std::vector<geometry_msgs::PoseStamped>& visible_plan,
+                                  Gap* gap,
+                                  std::optional<double> expected_spacing)
+{
+    trajectory.totalTrajCost = infinity;
+    trajectory.TerminalPoseCost = infinity;
+    trajectory.PoseCosts.clear();
+    trajectory.PathCosts.clear();
+    trajectory.RelVelPoseCosts.clear();
+    if (expected_spacing && (!std::isfinite(*expected_spacing) || *expected_spacing < 0))
+        return false;
+    if (trajectory.pose_array.poses.size() != kGapTrajectoryPoseCount ||
+        trajectory.positions.size() != kGapTrajectoryPoseCount ||
+        trajectory.yaws.size() != kGapTrajectoryPoseCount ||
+        trajectory.times.size() != kGapTrajectoryPoseCount ||
+        future_scans.size() < kGapTrajectoryPoseCount ||
+        trajectory.pose_array.header.frame_id != cfg.sensor_frame_id ||
+        !std::isfinite(cfg.traj.integrate_stept) || cfg.traj.integrate_stept <= 0)
+        return false;
+    for (std::size_t i = 0; i < kGapTrajectoryPoseCount; ++i)
+    {
+        const auto& pose = trajectory.pose_array.poses[i];
+        if (!std::isfinite(trajectory.times[i]) ||
+            std::abs(trajectory.times[i] - i * cfg.traj.integrate_stept) > 1e-4 ||
+            !std::isfinite(pose.position.x) || !std::isfinite(pose.position.y) ||
+            future_scans[i].ranges.empty())
+            return false;
+        if (expected_spacing && i > 0)
+        {
+            const auto& previous = trajectory.pose_array.poses[i - 1].position;
+            const double distance = std::hypot(pose.position.x - previous.x, pose.position.y - previous.y);
+            if (std::abs(distance - *expected_spacing) > std::max(1e-5, 1e-4 * *expected_spacing))
+                return false;
+        }
+    }
+    // This is the original evaluator and packaging objective, including its
+    // existing gap-specific social/CBF terms. Do not export the internal common
+    // endpoint objective or append an MPPI-only speed penalty to these fields.
+    evaluator.dwa_evaluateTrajectory(trajectory.totalTrajCost, trajectory,
+        trajectory.PoseCosts, trajectory.PathCosts, trajectory.TerminalPoseCost,
+        future_scans, 0, visible_plan, gap, trajectory.RelVelPoseCosts);
+    return std::isfinite(trajectory.totalTrajCost) &&
+        trajectory.PoseCosts.size() == kGapTrajectoryPoseCount &&
+        trajectory.PathCosts.size() == kGapTrajectoryPoseCount &&
+        trajectory.RelVelPoseCosts.size() == kGapTrajectoryPoseCount;
 }
 
 float evaluateMppiTrajectory(dwa_Trajectory& trajectory,

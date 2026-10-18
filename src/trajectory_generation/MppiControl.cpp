@@ -94,9 +94,13 @@ MppiControls generateNominalControlsFromBezier(const geometry_msgs::PoseArray& r
                                              TrajectoryController& controller,
                                              const DynamicGapConfig& cfg,
                                              std::size_t horizon,
-                                             double dt)
+                                             double dt,
+                                             std::optional<double> fixed_forward_speed)
 {
     MppiControls controls;
+    if (fixed_forward_speed && (!std::isfinite(*fixed_forward_speed) ||
+        *fixed_forward_speed < 0 || *fixed_forward_speed > cfg.rbt.vx_absmax))
+        return controls;
     if (reference.poses.empty() || horizon == 0 || !validPose(initial) ||
         !std::isfinite(dt) || dt <= 0.0 || !std::isfinite(cfg.rbt.vx_absmax) ||
         cfg.rbt.vx_absmax < 0.0f || !std::isfinite(cfg.rbt.vang_absmax) ||
@@ -123,6 +127,8 @@ MppiControls generateNominalControlsFromBezier(const geometry_msgs::PoseArray& r
                                            endpoint.y - simulated.position.y);
         if (distance <= tolerance)
         {
+            if (fixed_forward_speed && *fixed_forward_speed > 0)
+                return {}; // cannot meet the original distance contract by stopping early
             controls.resize(horizon);  // stop and pad the remaining horizon
             break;
         }
@@ -131,8 +137,8 @@ MppiControls generateNominalControlsFromBezier(const geometry_msgs::PoseArray& r
         if (target < 0 || target >= static_cast<int>(normalizedReference.poses.size()))
             return {};
 
-        float speed = cfg.rbt.vx_absmax;
-        if (target == static_cast<int>(normalizedReference.poses.size()) - 1)
+        float speed = fixed_forward_speed ? *fixed_forward_speed : cfg.rbt.vx_absmax;
+        if (!fixed_forward_speed && target == static_cast<int>(normalizedReference.poses.size()) - 1)
             speed = static_cast<float>(std::min(static_cast<double>(speed), distance / dt));
         geometry_msgs::Twist command = controller.constantVelocityControlLawNonHolonomicLookahead(
             simulated, normalizedReference.poses[target], speed);
@@ -140,6 +146,8 @@ MppiControls generateNominalControlsFromBezier(const geometry_msgs::PoseArray& r
             return {};
         command.linear.x = std::clamp(command.linear.x, -static_cast<double>(cfg.rbt.vx_absmax),
                                      static_cast<double>(cfg.rbt.vx_absmax));
+        if (fixed_forward_speed)
+            command.linear.x = *fixed_forward_speed;
         command.angular.z = std::clamp(command.angular.z, -static_cast<double>(cfg.rbt.vang_absmax),
                                       static_cast<double>(cfg.rbt.vang_absmax));
         controls.push_back(command);

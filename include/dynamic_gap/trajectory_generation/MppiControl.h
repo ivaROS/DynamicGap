@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include <Eigen/Core>
 #include <geometry_msgs/Pose.h>
@@ -32,13 +33,16 @@ geometry_msgs::PoseArray bezierReferencePoses(const std::vector<Eigen::Vector2f>
 // Repeatedly use the production target selector and lookahead law at a LOCAL
 // simulated pose. Bounds are signed +/- the configured linear/angular limits.
 // The endpoint uses the existing waypoint tolerance; its last approach speed is
-// limited to the remaining distance per step. Invalid inputs return no controls.
+// limited to the remaining distance per step. With fixed_forward_speed, keep the
+// original gap candidate's constant spacing; reject an early endpoint instead of
+// silently shortening its distance. Invalid inputs return no controls.
 MppiControls generateNominalControlsFromBezier(const geometry_msgs::PoseArray& reference,
                                              const geometry_msgs::Pose& initial,
                                              TrajectoryController& controller,
                                              const DynamicGapConfig& cfg,
                                              std::size_t horizon,
-                                             double dt);
+                                             double dt,
+                                             std::optional<double> fixed_forward_speed = std::nullopt);
 
 // H controls produce H+1 states at times 0, dt, ..., H*dt. Invalid inputs produce
 // an empty trajectory. No controller, scan, TF, or real robot state is modified.

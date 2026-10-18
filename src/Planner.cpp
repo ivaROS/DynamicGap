@@ -1,4 +1,5 @@
 #include <dynamic_gap/Planner.h>
+#include <dynamic_gap/trajectory_generation/GapTrajectoryContract.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 #include <dynamic_gap/utils/dwa_traj.h>
 #include <dynamic_gap/utils/CbfLinConstraint.h>
@@ -1729,48 +1730,16 @@ auto dumpSizes = [&](const std::string& tag,
                             // bezierVisualizer_->drawCurve(curve);    
 
                             
-float v0       = current_linear_velocity;
 float v_max    = cfg_.rbt.vx_absmax;
-float w_max    = cfg_.rbt.vang_absmax;
-float a_max    =  cfg_.rbt.vang_absmax; //todo: update this value. I just set it to 1 for now
-
-const int   num_points   = 11;           // total points along the trajectory
+const int   num_points   = kGapTrajectoryPoseCount; // shared downstream output contract
 const int   num_segments = num_points - 1;
 const float dt           = cfg_.traj.integrate_stept; // 0.5 sec
-// const float total_time   = dt * num_segments;   
-
-// --- Step 1: desired forward speed after one step of acceleration ---
-float v_des = std::min(v0 + a_max * dt, v_max);
-
-
-// --- Step 2: estimate curvature at the start of the Bézier (using sampled points) ---
-Eigen::Vector2f curve_point0 = curve[0];
-Eigen::Vector2f curve_point1 = curve[1];
-Eigen::Vector2f curve_point2 = curve[2];
-
-Eigen::Vector2f v1 = curve_point1 - curve_point0;
-Eigen::Vector2f v2 = curve_point2 - curve_point1;
-
-// z-component of the cross product between consecutive direction vectors
-float cross = v1.x() * v2.y() - v1.y() * v2.x();
-float curvature = cross / powf(v1.norm(), 3.0f);   // discrete curvature estimate
-
-
-// --- Step 3: desired yaw rate from curvature ---
-float w_des = v_des * curvature;
-
-
-// --- Step 4: compute λ scaling factor (re-parameterization of curve timing) ---
-float lambda = std::min(1.0f, v_des / v1.norm());
-
-
-// --- Step 5: apply angular-velocity clipping (σ term) ---
-float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
-
-
-// --- Step 6: final commanded velocities ---
-float v_cmd = sigma * lambda * v_des;
-float w_cmd = sigma * lambda * w_des;
+const auto bezier_command = computeGapBezierCommand(curve, current_linear_velocity,
+                                                    v_max, cfg_.rbt.vang_absmax, dt);
+if (!bezier_command.valid)
+    throw std::runtime_error("Invalid Bezier timing inputs");
+float v_cmd = bezier_command.linear;
+float w_cmd = bezier_command.angular;
 
 dwa_traj.v_cmd = v_cmd;
 dwa_traj.w_cmd = w_cmd;

@@ -20,11 +20,14 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             std::max(0, cfg_.mppi.max_visualized_samples_per_gap),
             std::max(1, cfg_.mppi.visualization_point_stride));
     };
-    if (futureScans.size() < 2 || cfg_.mppi.horizon < 1)
+    if (futureScans.size() < kGapTrajectoryPoseCount)
     {
+        ROS_WARN_THROTTLE(1.0, "MPPI needs all 11 native prediction timestamps; refusing a shortened output");
         publish();
         return false;
     }
+    if (cfg_.mppi.horizon != int(kGapTrajectoryControlCount))
+        ROS_WARN_THROTTLE(5.0, "mppi/horizon does not change the planner output: using the original 10 intervals");
     if (!cfg_.planning.future_scan_propagation)
         ROS_WARN_THROTTLE(5.0, "MPPI: future_scan_propagation is off; collision scoring uses static scans");
 
@@ -32,6 +35,8 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     // The original generator currently uses only the first gap in each tube too.
     std::vector<std::size_t> valid;
     std::vector<geometry_msgs::PoseArray> references(gapTubes.size());
+    std::vector<GapBezierCommand> referenceCommands(gapTubes.size());
+    const float currentSpeed = std::hypot(currentRbtVel_.twist.linear.x, currentRbtVel_.twist.linear.y);
     for (std::size_t i = 0; i < gapTubes.size(); ++i)
     {
         if (!gapTubes[i] || gapTubes[i]->size() == 0 || !gapTubes[i]->at(0)->isAvailable())
@@ -47,7 +52,9 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
         for (int j = 0; j <= 5; ++j)
             curve.push_back(bezier(p0, p1, goal, float(j) / 5));
         references[i] = bezierReferencePoses(curve, cfg_.sensor_frame_id);
-        if (!references[i].poses.empty())
+        referenceCommands[i] = computeGapBezierCommand(curve, currentSpeed,
+            cfg_.rbt.vx_absmax, cfg_.rbt.vang_absmax, cfg_.traj.integrate_stept);
+        if (!references[i].poses.empty() && referenceCommands[i].valid)
             valid.push_back(i);
     }
     if (valid.empty())
@@ -63,7 +70,7 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
         publish();
         return false;
     }
-    const std::size_t horizon = std::min(std::size_t(cfg_.mppi.horizon), futureScans.size() - 1);
+    constexpr std::size_t horizon = kGapTrajectoryControlCount;
     // Legacy Beziers and scan scoring assume base/laser planar origins coincide.
     // rbtPoseInSensorFrame_ is not populated in this checkout's tfCB; use the
     // valid, initialized origin pose already used by the robot-frame pipeline.
@@ -113,33 +120,47 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     const unsigned int cycle = mppiCycle_++;
     bool anyValid = false;
     std::size_t totalSamples = 0;
+    DynamicGapConfig optimizerConfig = cfg_;
+    optimizerConfig.mppi.horizon = horizon;
     for (std::size_t optimizerIndex = 0; optimizerIndex < optimizerIndices.size(); ++optimizerIndex)
     {
-        std::size_t i = optimizerIndices[optimizerIndex];
+        const std::size_t i = optimizerIndices[optimizerIndex];
+        const double forwardSpeed = referenceCommands[i].linear;
         MppiControls nominal;
         if (cfg_.mppi.mode == "standard")
         {
             geometry_msgs::Twist forward;
-            forward.linear.x = cfg_.rbt.vx_absmax;
+            forward.linear.x = forwardSpeed;
             nominal.assign(horizon, forward);
         }
         else
             nominal = generateNominalControlsFromBezier(references[i], initial, *trajController_,
-                cfg_, horizon, cfg_.traj.integrate_stept);
+                cfg_, horizon, cfg_.traj.integrate_stept, forwardSpeed);
+        if (nominal.empty())
+        {
+            // A short reference can reach its endpoint before the native distance
+            // horizon. Seed with the existing Bezier command rather than pad with
+            // stops (which would shorten the output). Every rollout is still checked.
+            geometry_msgs::Twist seed;
+            seed.linear.x = forwardSpeed;
+            seed.angular.z = referenceCommands[i].angular;
+            nominal.assign(horizon, seed);
+        }
 
         const std::size_t count = cfg_.mppi.total_samples / optimizerIndices.size() +
             (optimizerIndex < cfg_.mppi.total_samples % optimizerIndices.size() ? 1 : 0);
-        MppiOptimizer optimizer(cfg_, unsigned(cfg_.mppi.seed) + 1664525u * cycle + 1013904223u * unsigned(i));
-        auto result = optimizer.optimize(initial, nominal, count, cfg_.sensor_frame_id, score);
-        if (cfg_.mppi.mode == "standard" && result.valid)
-        {
-            const Eigen::Vector2f end = result.trajectory.positions.back();
-            i = *std::min_element(valid.begin(), valid.end(), [&](std::size_t a, std::size_t b) {
-                return (gapTubes[a]->at(0)->getGoal()->getOrigGoalPos() - end).squaredNorm() <
-                       (gapTubes[b]->at(0)->getGoal()->getOrigGoalPos() - end).squaredNorm();
-            });
-        }
+        MppiOptimizer optimizer(optimizerConfig, unsigned(cfg_.mppi.seed) + 1664525u * cycle + 1013904223u * unsigned(i));
+        auto result = optimizer.optimize(initial, nominal, count, cfg_.sensor_frame_id, score, forwardSpeed);
         Gap* gap = gapTubes[i]->at(0);
+        // Re-evaluate exactly the candidate exported to the existing pipeline.
+        // Never export internal common costs computed against other gaps.
+        if (result.valid)
+        {
+            result.trajectory = rolloutMppiControls(initial, result.controls,
+                cfg_.traj.integrate_stept, cfg_.sensor_frame_id);
+            result.valid = evaluateMppiOutputTrajectory(result.trajectory, *trajEvaluator_,
+                cfg_, futureScans, visiblePlan, gap, forwardSpeed * cfg_.traj.integrate_stept);
+        }
         MppiGapVisualization view;
         view.gap_index = i;
         view.left_id = gap->getLeftGapPt()->getModel()->getID();
@@ -163,11 +184,6 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
         {
             auto& optimized = result.trajectory;
             view.nominal = optimized.pose_array;
-            // Populate execution metadata from THIS candidate's endpoints. Keep
-            // the common objective's cost arrays for pickTraj unchanged.
-            auto metadata = rolloutMppiControls(initial, result.controls,
-                cfg_.traj.integrate_stept, cfg_.sensor_frame_id);
-            evaluateMppiTrajectory(metadata, *trajEvaluator_, cfg_, futureScans, visiblePlan, gap);
             Trajectory trajectory(optimized.pose_array, optimized.times);
             trajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(optimized.pose_array, rbt2odom_));
             trajectory.v_cmd = optimized.v_cmd;
@@ -175,12 +191,12 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             trajectory.gap = gap;
             trajectory.leftGapPtID = view.left_id;
             trajectory.rightGapPtID = view.right_id;
-            trajectory.humanVelLeft = metadata.humanVelLeft;
-            trajectory.humanVelRight = metadata.humanVelRight;
-            trajectory.gapPosLeft = metadata.gapPosLeft;
-            trajectory.gapPosRight = metadata.gapPosRight;
-            trajectory.trajPosLeft = metadata.trajPosLeft;
-            trajectory.robotVel = metadata.robotVel;
+            trajectory.humanVelLeft = optimized.humanVelLeft;
+            trajectory.humanVelRight = optimized.humanVelRight;
+            trajectory.gapPosLeft = optimized.gapPosLeft;
+            trajectory.gapPosRight = optimized.gapPosRight;
+            trajectory.trajPosLeft = optimized.trajPosLeft;
+            trajectory.robotVel = optimized.robotVel;
             trajectories[i] = std::move(trajectory);
             poseCosts[i].clear();
             for (std::size_t t = 0; t < optimized.PoseCosts.size(); ++t)

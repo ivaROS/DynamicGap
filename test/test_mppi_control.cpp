@@ -209,5 +209,27 @@ TEST_F(MppiControlTest, StopsAtEndpointAndRejectsEmptyOrInvalidInputs)
     invalid.position.x = std::numeric_limits<double>::infinity();
     EXPECT_TRUE(generateNominalControlsFromBezier(reference, invalid, *controller_, cfg_, 12, 0.1).empty());
 }
+
+TEST_F(MppiControlTest, FixedSpeedNominalKeepsDistanceSpacingWhileReusingLookaheadSteering)
+{
+    const auto reference = curvedReference();
+    const auto initial = poseAt(0, 0, 0);
+    const float speed = 0.3f;
+    const int target = controller_->extractTargetPoseIdx(initial, reference);
+    const auto expected = controller_->constantVelocityControlLawNonHolonomicLookahead(
+        initial, reference.poses[target], speed);
+    const auto controls = generateNominalControlsFromBezier(reference, initial, *controller_,
+        cfg_, 10, 0.2, speed);
+    ASSERT_EQ(controls.size(), 10u);
+    EXPECT_NEAR(controls.front().angular.z, expected.angular.z, 1e-6);
+    const auto rollout = rolloutMppiControls(initial, controls, 0.2, "base_link");
+    for (std::size_t i = 0; i < controls.size(); ++i)
+    {
+        EXPECT_DOUBLE_EQ(controls[i].linear.x, speed);
+        EXPECT_NEAR((rollout.positions[i + 1] - rollout.positions[i]).norm(), speed * 0.2, 1e-6);
+    }
+    EXPECT_TRUE(generateNominalControlsFromBezier(reference, reference.poses.back(),
+        *controller_, cfg_, 10, 0.2, speed).empty()); // no early stop padding
+}
 }  // namespace
 }  // namespace dynamic_gap

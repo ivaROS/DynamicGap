@@ -4,13 +4,18 @@ mppi:
   enabled: false
   mode: gap_guided                 # gap_guided or standard
   total_samples: 96                # shared across ALL gaps, per iteration
-  horizon: 10                     # controls; dt = existing integrate_stept
+  # Planner output is fixed to the original 11 poses / 10 intervals.
+  # horizon is retained for standalone experiments; the ROS integration uses 10.
+  horizon: 10
   iterations: 1
   temperature: 1.0
-  sigma_v: 0.20
+  sigma_v: 0.20                   # standalone variable-speed experiments only
   sigma_w: 0.40
   update_fraction: 1.0
   seed: 7
   visualize: true
   max_visualized_samples_per_gap: 0 # 0 = every sample, including all iterations
   visualization_point_stride: 1
+
+# ROS gap candidates use the original Bezier-derived constant forward speed.
+# MPPI optimizes steering, preserving speed*dt spacing and the distance horizon.

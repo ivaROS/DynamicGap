@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dynamic_gap/trajectory_generation/MppiControl.h>
+#include <dynamic_gap/trajectory_generation/GapTrajectoryContract.h>
 #include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <cstdint>
 #include <functional>
@@ -27,7 +28,8 @@ public:
                         const MppiControls& nominal,
                         std::size_t sample_count,
                         const std::string& frame,
-                        const Score& score);
+                        const Score& score,
+                        std::optional<double> fixed_forward_speed = std::nullopt);
 
 private:
     const DynamicGapConfig& cfg_;
@@ -42,4 +44,14 @@ float evaluateMppiTrajectory(dwa_Trajectory& trajectory,
                              const std::vector<sensor_msgs::LaserScan>& future_scans,
                              const std::vector<geometry_msgs::PoseStamped>& visible_plan,
                              Gap* gap);
+
+// Final output boundary: enforce the original 11-pose/time layout and recompute
+// the original per-gap cost components, independent of MPPI's internal objective.
+bool evaluateMppiOutputTrajectory(dwa_Trajectory& trajectory,
+                                  TrajectoryEvaluator& evaluator,
+                                  const DynamicGapConfig& cfg,
+                                  const std::vector<sensor_msgs::LaserScan>& future_scans,
+                                  const std::vector<geometry_msgs::PoseStamped>& visible_plan,
+                                  Gap* gap,
+                                  std::optional<double> expected_spacing = std::nullopt);
 }

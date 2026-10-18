@@ -124,6 +124,65 @@ TEST(MppiOptimizer, SeededRunsAreReproducibleAndWeightsHandleLargeCosts)
     }
 }
 
+TEST(MppiGapContract, SharedBezierTimingPreservesOriginalSpeedAndCurvatureScaling)
+{
+    // Known outputs of the original inline timing calculation, including its
+    // max-omega acceleration proxy, lambda scaling and angular saturation.
+    const auto straight = computeGapBezierCommand({{0, 0}, {0.25f, 0}, {0.5f, 0}}, 0, 1, 1, 0.5f);
+    ASSERT_TRUE(straight.valid);
+    EXPECT_FLOAT_EQ(straight.linear, 0.5f);
+    EXPECT_FLOAT_EQ(straight.angular, 0);
+    const auto turning = computeGapBezierCommand({{0, 0}, {0.2f, 0}, {0.4f, 0.1f}}, 0, 1, 1, 0.5f);
+    ASSERT_TRUE(turning.valid);
+    EXPECT_NEAR(turning.linear, 0.4f, 1e-6);
+    EXPECT_NEAR(turning.angular, 1.0f, 1e-6);
+    const auto large_segment = computeGapBezierCommand({{0, 0}, {2, 0}, {4, 0}}, 0, 1, 1, 0.5f);
+    ASSERT_TRUE(large_segment.valid);
+    EXPECT_FLOAT_EQ(large_segment.linear, 0.125f);
+    const auto moving = computeGapBezierCommand({{0, 0}, {0.25f, 0}, {0.5f, 0}}, 0.8f, 1, 1, 0.5f);
+    ASSERT_TRUE(moving.valid);
+    EXPECT_FLOAT_EQ(moving.linear, 1);
+    EXPECT_FALSE(computeGapBezierCommand({{0, 0}, {0, 0}, {0, 0}}, 0, 1, 1, 0.5f).valid);
+}
+
+TEST(MppiGapContract, SteeringOptimizationKeepsNativeSpacingAndTotalDistance)
+{
+    ros::Time::init();
+    DynamicGapConfig cfg;
+    cfg.traj.integrate_stept = 0.5;
+    cfg.mppi.sigma_v = 100; // a production fixed-speed candidate must ignore this
+    cfg.mppi.sigma_w = 0.4;
+    cfg.mppi.iterations = 2;
+    MppiControls seed(kGapTrajectoryControlCount);
+    for (std::size_t i = 0; i < seed.size(); ++i) seed[i].linear.x = i % 2 ? 0 : 1;
+    const double speed = 0.4;
+    MppiOptimizer optimizer(cfg, 42);
+    const auto result = optimizer.optimize(initialPose(), seed, 64, "laser",
+        [](dwa_Trajectory& path) {
+            const auto end = path.positions.back();
+            return (end - Eigen::Vector2f(1.5f, 1.0f)).squaredNorm();
+        }, speed);
+    ASSERT_TRUE(result.valid);
+    ASSERT_EQ(result.samples.size(), 128u);
+    const auto check = [&](const dwa_Trajectory& path) {
+        ASSERT_EQ(path.positions.size(), 11u);
+        ASSERT_EQ(path.times.size(), 11u);
+        double length = 0;
+        for (std::size_t i = 1; i < path.positions.size(); ++i)
+        {
+            const double spacing = (path.positions[i] - path.positions[i - 1]).norm();
+            EXPECT_NEAR(spacing, speed * cfg.traj.integrate_stept, 1e-6);
+            EXPECT_FLOAT_EQ(path.times[i], i * cfg.traj.integrate_stept);
+            length += spacing;
+        }
+        EXPECT_NEAR(length, 10 * speed * cfg.traj.integrate_stept, 1e-5);
+    };
+    check(result.trajectory);
+    for (const auto& sample : result.samples) check(sample);
+    for (const auto& u : result.controls) EXPECT_DOUBLE_EQ(u.linear.x, speed);
+    EXPECT_LT(result.trajectory.totalTrajCost, 1.25f); // steering still optimizes
+}
+
 TEST(MppiNativeCost, RejectsBetweenStepCollisionAndMisalignedTiming)
 {
     ros::Time::init();
@@ -158,6 +217,63 @@ TEST(MppiNativeCost, RejectsBetweenStepCollisionAndMisalignedTiming)
     auto misaligned = free;
     misaligned.times.back() = 0.3;
     EXPECT_TRUE(std::isinf(evaluateMppiTrajectory(misaligned, evaluator, cfg, scans, {}, nullptr)));
+}
+
+TEST(MppiNativeOutput, KeepsOriginalLayoutAndRecomputesOriginalCostComponents)
+{
+    ros::Time::init();
+    DynamicGapConfig cfg;
+    cfg.sensor_frame_id = "laser";
+    cfg.traj.integrate_stept = 0.5;
+    cfg.traj.w_speed = 2.0; // must not leak the internal speed penalty downstream
+    TrajectoryEvaluator evaluator(cfg);
+    geometry_msgs::TransformStamped identity;
+    identity.transform.rotation.w = 1;
+    geometry_msgs::PoseStamped goal;
+    goal.pose.position.x = 4;
+    goal.pose.orientation.w = 1;
+    evaluator.transformGlobalPathLocalWaypointToRbtFrame(goal, identity);
+    sensor_msgs::LaserScan scan;
+    scan.ranges.assign(512, 10.0);
+    std::vector<sensor_msgs::LaserScan> scans(kGapTrajectoryPoseCount, scan);
+    MppiControls controls(kGapTrajectoryControlCount);
+    for (auto& u : controls) u.linear.x = 0.2;
+    auto output = rolloutMppiControls(initialPose(), controls, cfg.traj.integrate_stept, cfg.sensor_frame_id);
+    auto original = output;
+    evaluator.dwa_evaluateTrajectory(original.totalTrajCost, original, original.PoseCosts,
+        original.PathCosts, original.TerminalPoseCost, scans, 0, {}, nullptr, original.RelVelPoseCosts);
+
+    // Simulate optimizer-internal cost fields; the output boundary must replace them.
+    output.PoseCosts.assign(11, 1234);
+    output.TerminalPoseCost = 5678;
+    ASSERT_TRUE(evaluateMppiOutputTrajectory(output, evaluator, cfg, scans, {}, nullptr, 0.1));
+    ASSERT_EQ(output.pose_array.poses.size(), 11u);
+    ASSERT_EQ(output.times.size(), 11u);
+    EXPECT_FLOAT_EQ(output.times.back(), 5.0f);
+    for (std::size_t i = 0; i < 11; ++i)
+        EXPECT_FLOAT_EQ(output.times[i], i * 0.5f);
+    EXPECT_EQ(output.PoseCosts, original.PoseCosts);
+    EXPECT_EQ(output.PathCosts, original.PathCosts);
+    EXPECT_EQ(output.RelVelPoseCosts, original.RelVelPoseCosts);
+    EXPECT_FLOAT_EQ(output.TerminalPoseCost, original.TerminalPoseCost);
+    EXPECT_FLOAT_EQ(output.totalTrajCost, original.totalTrajCost);
+    auto wrong_spacing = output;
+    wrong_spacing.pose_array.poses[5].position.y += 0.1;
+    EXPECT_FALSE(evaluateMppiOutputTrajectory(wrong_spacing, evaluator, cfg, scans, {}, nullptr, 0.1));
+
+    for (std::size_t count : {5u, 20u})
+    {
+        auto wrong_size = rolloutMppiControls(initialPose(), MppiControls(count), 0.5, "laser");
+        EXPECT_FALSE(evaluateMppiOutputTrajectory(wrong_size, evaluator, cfg, scans, {}, nullptr));
+    }
+    auto wrong_time = output;
+    wrong_time.times.back() = 4.9;
+    EXPECT_FALSE(evaluateMppiOutputTrajectory(wrong_time, evaluator, cfg, scans, {}, nullptr));
+    auto wrong_frame = output;
+    wrong_frame.pose_array.header.frame_id = "odom";
+    EXPECT_FALSE(evaluateMppiOutputTrajectory(wrong_frame, evaluator, cfg, scans, {}, nullptr));
+    scans.pop_back();
+    EXPECT_FALSE(evaluateMppiOutputTrajectory(output, evaluator, cfg, scans, {}, nullptr));
 }
 }  // namespace
 }  // namespace dynamic_gap
