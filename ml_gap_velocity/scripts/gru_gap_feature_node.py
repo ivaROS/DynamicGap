@@ -121,6 +121,26 @@ class GRUGapFeatureNode:
         self.text_marker_z      = float(rospy.get_param("~text_marker_z",      0.35))
         self.max_buffer_time_gap = float(rospy.get_param("~max_buffer_time_gap", 0.5))
 
+        # TEMPORARY: ground truth density override experiment.
+        # Tests whether sector density is a useful cost term independent of
+        # GRU prediction quality. The GRU still runs on every observation so
+        # timing matches a normal trial, but the published density is the
+        # ground truth from the observation message. Off by default.
+        self.use_gt_density_override = bool(
+            rospy.get_param("~use_gt_density_override", False)
+        )
+        # Observation target published in place of the model's density output.
+        self.gt_override_target = str(
+            rospy.get_param("~gt_override_target", "gt_sector_density")
+        )
+        if self.use_gt_density_override:
+            rospy.logwarn(
+                "GT-DENSITY OVERRIDE ACTIVE: GRU model runs but published "
+                "density is ground truth target '%s'. "
+                "TEMPORARY EXPERIMENT - not a real GRU trial.",
+                self.gt_override_target
+            )
+
         self.normalizer = Normalizer(self.stats_path)
 
         self.input_features  = self.normalizer.input_features
@@ -363,6 +383,32 @@ class GRUGapFeatureNode:
             pred = self.normalizer.denormalize_target(pred)
 
             output_values = [float(v) for v in np.atleast_1d(pred)]
+
+            # TEMPORARY: ground truth density override (see __init__).
+            # Only the density value is replaced; validity, stamps and
+            # seq_len gating are unchanged.
+            if self.use_gt_density_override:
+                gt_density = self.get_named_target_value(msg, self.gt_override_target)
+                # TrajectoryEvaluator reads the output named "gt_sector_density"
+                density_idx = (
+                    self.output_features.index("gt_sector_density")
+                    if "gt_sector_density" in self.output_features else 0
+                )
+                if gt_density is not None and np.isfinite(gt_density):
+                    model_density = output_values[density_idx]
+                    output_values[density_idx] = float(gt_density)
+                    rospy.loginfo_throttle(
+                        0.5,
+                        "GT-OVERRIDE(%s) | model_id=%d model_pred=%.6f published_gt=%.6f",
+                        self.gt_override_target, msg.model_id, model_density, output_values[density_idx],
+                    )
+                else:
+                    rospy.logwarn_throttle(
+                        1.0,
+                        "GT-OVERRIDE(%s) | model_id=%d: observation has no finite "
+                        "target value, publishing model output instead",
+                        self.gt_override_target, msg.model_id,
+                    )
 
             self.publish_prediction(msg, output_values, True, self.seq_len)
 
