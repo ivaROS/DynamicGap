@@ -3932,9 +3932,9 @@ std::vector<float> candidateCostsNoDensity; // terminal + obstacle only
             //                        IDLING TRAJECTORY GENERATION AND SCORING                  //
             //////////////////////////////////////////////////////////////////////////////////////
 
-            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
-            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
-            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
         } 
 
         ROS_INFO_STREAM_NAMED("Planner", "       ungap trajs size: " << ungapTrajs.size());
