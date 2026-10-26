@@ -83,10 +83,10 @@ roslaunch arena_bringup start_arena.launch tm_modules:=benchmark
 ## <a name="Citation"></a>Citation
 If would like to cite this work, please use the following format:
 ```
-@article{asselmeier_dynamic_2025,
-  title     ={Dynamic Gap: Safe Gap-based Navigation in Dynamic Environments},
-  author    ={Max Asselmeier, Dhruv Ahuja, Abdel Zaro, Ahmad Abuaish, Ye Zhao, Patricio A. Vela},
-  journal = {2025 IEEE International Conference on Robotics and Automation (ICRA)},
+@inproceedings{asselmeier_dynamic_2025,
+  title     = {Dynamic Gap: Safe Gap-based Navigation in Dynamic Environments},
+  author    = {Asselmeier, Max and Ahuja, Dhruv and Zaro, Abdel and Abuaish, Ahmad and Zhao, Ye and Vela, Patricio A.},
+  booktitle = {2025 IEEE International Conference on Robotics and Automation (ICRA)},
   year      = {2025},
   month     = {May},
 }
