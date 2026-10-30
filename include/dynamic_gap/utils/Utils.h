@@ -93,7 +93,8 @@ namespace dynamic_gap
     enum trajFlags {    NONE = -1,
                         GAP = 0,
                         UNGAP = 1,
-                        IDLING = 2
+                        IDLING = 2,
+                        GOAL_APPROACH = 3
                         };
 
     enum gapEndConditions { UNSET = -1, 

@@ -19,3 +19,12 @@ mppi:
 
 # ROS gap candidates use the original Bezier-derived constant forward speed.
 # MPPI optimizes steering, preserving speed*dt spacing and the distance horizon.
+
+# Independent, prediction-checked final approach for both MPPI modes.
+goal_approach:
+  enabled: true
+  activation_distance: 4.0
+  max_speed: 0.5
+  clearance: 0.10
+  prediction_horizon: 2.0
+  max_scan_age: 0.25

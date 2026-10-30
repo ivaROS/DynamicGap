@@ -1,0 +1,972 @@
+{
+  "client_date": "2026-10-29",
+  "build_type": "RelWithDebInfo (-O2 -g -DNDEBUG)",
+  "focused_goal_tests": 9,
+  "focused_test_failures": 0,
+  "catkin_test_results": "59 tests, 0 errors, 0 failures, 0 skipped",
+  "final_matrix": [
+    {
+      "label": "final_empty_long",
+      "status": "reached",
+      "start": [
+        1.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 43.11684542900184,
+      "near_goal_seconds": 7.512355729995761,
+      "final_distance_m": 0.24464845102747138,
+      "min_scan_m": 0.9889510273933411,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 76
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              1.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.05291301058605,
+        "p95": 103.37565299123526,
+        "max": 104.36191299231723
+      }
+    },
+    {
+      "label": "final_diagonal",
+      "status": "reached",
+      "start": [
+        1.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        20,
+        0
+      ],
+      "elapsed_wall_s": 47.47059838101268,
+      "near_goal_seconds": 7.561766857979819,
+      "final_distance_m": 0.2498743664938096,
+      "min_scan_m": 1.1502019166946411,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 76
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              1.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              20,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.07749800570309,
+        "p95": 103.25282227713615,
+        "max": 104.51508202822879
+      }
+    },
+    {
+      "label": "final_reverse",
+      "status": "reached",
+      "start": [
+        30,
+        20,
+        3.14159265
+      ],
+      "goal": [
+        1.5,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 47.52092245896347,
+      "near_goal_seconds": 7.461166033986956,
+      "final_distance_m": 0.247136030414611,
+      "min_scan_m": 1.0403563976287842,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 75
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              30,
+              20,
+              3.14159265
+            ],
+            "goal": [
+              1.5,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 99.76159152574837,
+        "p95": 103.60349851835053,
+        "max": 104.58607401233166
+      }
+    },
+    {
+      "label": "final_short",
+      "status": "reached",
+      "start": [
+        28.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 2.5537287080078386,
+      "near_goal_seconds": 2.5537256820243783,
+      "final_distance_m": 0.24599837573277766,
+      "min_scan_m": 1.1519702672958374,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 25
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.0247074989602,
+        "p95": 103.76883819408249,
+        "max": 104.17262802366167
+      }
+    },
+    {
+      "label": "final_wall_adjacent",
+      "status": "reached",
+      "start": [
+        28.8,
+        2,
+        0
+      ],
+      "goal": [
+        30.5,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 2.6042128989938647,
+      "near_goal_seconds": 2.6042093919822946,
+      "final_distance_m": 0.24869169435789534,
+      "min_scan_m": 0.6549943089485168,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 26
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.8,
+              2,
+              0
+            ],
+            "goal": [
+              30.5,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 99.8267070390284,
+        "p95": 102.37802177434787,
+        "max": 102.44631499517709
+      }
+    },
+    {
+      "label": "final_very_close_wall",
+      "status": "reached",
+      "start": [
+        28.8,
+        2,
+        0
+      ],
+      "goal": [
+        30.65,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 3.054878944007214,
+      "near_goal_seconds": 3.0548741450184025,
+      "final_distance_m": 0.2421308693300261,
+      "min_scan_m": 0.4977726340293884,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 30
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.8,
+              2,
+              0
+            ],
+            "goal": [
+              30.65,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.04799504531547,
+        "p95": 102.32139738509431,
+        "max": 102.7951089781709
+      }
+    },
+    {
+      "label": "final_facing_away",
+      "status": "reached",
+      "start": [
+        28.5,
+        2,
+        3.14159265
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 5.2078647399903275,
+      "near_goal_seconds": 5.207860211958177,
+      "final_distance_m": 0.24110017001284406,
+      "min_scan_m": 1.1468204259872437,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "align": 23,
+        "approach": 29
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.5,
+              2,
+              3.14159265
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.35501298261806,
+        "p95": 103.3841900061816,
+        "max": 104.34194904519245
+      }
+    },
+    {
+      "label": "final_crossing_person",
+      "status": "reached",
+      "start": [
+        28.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 4.657111173029989,
+      "near_goal_seconds": 4.657107956998516,
+      "final_distance_m": 0.24348029796588166,
+      "min_scan_m": 0.5092419981956482,
+      "min_pedestrian_center_distance_m": 0.8140102088130956,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "align": 13,
+        "approach": 33
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [
+            {
+              "name": "goal_crossing_pedestrian",
+              "pos": [
+                29.2,
+                1.5,
+                0
+              ],
+              "type": "adult",
+              "model": "person_single_circle",
+              "waypoints": [
+                [
+                  29.2,
+                  4,
+                  0
+                ]
+              ],
+              "waypoint_mode": 0
+            }
+          ],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 100.30786896822974,
+        "p95": 102.72683720104396,
+        "max": 105.55276396917179
+      }
+    }
+  ],
+  "normal_process_confirmation": [
+    {
+      "label": "normal_crossing_person",
+      "status": "reached",
+      "start": [
+        28.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 4.957535399997141,
+      "near_goal_seconds": 4.957532624946907,
+      "final_distance_m": 0.24883546038616955,
+      "min_scan_m": 0.33405929803848267,
+      "min_pedestrian_center_distance_m": 0.6340815889361947,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 28,
+        "align": 19,
+        "yield": 2
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              28.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [
+            {
+              "name": "goal_crossing_pedestrian",
+              "pos": [
+                29.2,
+                1.5,
+                0
+              ],
+              "type": "adult",
+              "model": "person_single_circle",
+              "waypoints": [
+                [
+                  29.2,
+                  4,
+                  0
+                ]
+              ],
+              "waypoint_mode": 0
+            }
+          ],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 99.9674185004551,
+        "p95": 101.94409395917319,
+        "max": 105.41527305031195
+      }
+    },
+    {
+      "label": "normal_empty_long",
+      "status": "reached",
+      "start": [
+        1.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ],
+      "elapsed_wall_s": 42.76107909803977,
+      "near_goal_seconds": 7.459808646002784,
+      "final_distance_m": 0.24650225242144452,
+      "min_scan_m": 1.1082903146743774,
+      "min_pedestrian_center_distance_m": null,
+      "max_near_goal_regression_m": 0.0,
+      "results": [
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ],
+        [
+          3,
+          0,
+          "Action \"move_base\" succeeded!"
+        ]
+      ],
+      "goal_approach_phases": {
+        "approach": 75
+      },
+      "scenario": {
+        "robots": [
+          {
+            "start": [
+              1.5,
+              2,
+              0
+            ],
+            "goal": [
+              30,
+              2,
+              0
+            ]
+          }
+        ],
+        "obstacles": {
+          "static": [],
+          "dynamic": [],
+          "interactive": []
+        }
+      },
+      "mppi": {
+        "enabled": true,
+        "mode": "gap_guided",
+        "total_samples": 144,
+        "horizon": 10,
+        "iterations": 1,
+        "temperature": 1.0,
+        "sigma_v": 0.2,
+        "sigma_w": 0.4,
+        "update_fraction": 1.0,
+        "seed": 7,
+        "visualize": true,
+        "max_visualized_samples_per_gap": 0,
+        "visualization_point_stride": 1
+      },
+      "success": true,
+      "failures": [],
+      "near_command_intervals_wall_ms": {
+        "median": 99.99914700165391,
+        "p95": 102.84515686798841,
+        "max": 105.0432400079444
+      }
+    }
+  ],
+  "all_final_navigation_trials_passed": true,
+  "capture_starts_after_reset_s": 0.5,
+  "max_near_goal_regression_m": 0.0,
+  "runtime_notes": [
+    "All completed final cases measured the goal tolerance and received Move Base status 3/outcome 0.",
+    "Raw traces are under /tmp/dynamic_gap_goal_tests; task reset jumps after first arrival are excluded.",
+    "An earlier Move Base exit was observed with the pre-change binary. The last actionlib error alone did not establish its cause.",
+    "No Move Base exit occurred during the final matrix; normal-process confirmation is recorded separately.",
+    "Existing actionlib duplicate-success and pedsim/genpy UTF-8 warnings remained visible. Arena source files were not modified for these tests.",
+    "A 2 m intermediate trigger timed out because the native gap planner circled outside its activation radius; this was not counted as a passing trial."
+  ],
+  "intermediate_two_metre_trigger": {
+    "label": "goal_long_checked",
+    "status": "timeout",
+    "start": [
+      1.5,
+      2,
+      0
+    ],
+    "goal": [
+      30,
+      2,
+      0
+    ],
+    "elapsed_wall_s": 181.00610642501852,
+    "near_goal_seconds": null,
+    "final_distance_m": 4.843377988956857,
+    "min_scan_m": 1.0391837358474731,
+    "max_near_goal_regression_m": 0.0,
+    "pose_count": 9050,
+    "results": [],
+    "goal_approach_phases": {},
+    "scenario": {
+      "robots": [
+        {
+          "start": [
+            1.5,
+            2,
+            0
+          ],
+          "goal": [
+            30,
+            2,
+            0
+          ]
+        }
+      ],
+      "obstacles": {
+        "static": [],
+        "dynamic": [],
+        "interactive": []
+      }
+    }
+  }
+}

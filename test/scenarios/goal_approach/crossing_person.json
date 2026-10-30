@@ -1,0 +1,40 @@
+{
+  "robots": [
+    {
+      "start": [
+        28.5,
+        2,
+        0
+      ],
+      "goal": [
+        30,
+        2,
+        0
+      ]
+    }
+  ],
+  "obstacles": {
+    "static": [],
+    "dynamic": [
+      {
+        "name": "goal_crossing_pedestrian",
+        "pos": [
+          29.2,
+          1.5,
+          0
+        ],
+        "type": "adult",
+        "model": "person_single_circle",
+        "waypoints": [
+          [
+            29.2,
+            4,
+            0
+          ]
+        ],
+        "waypoint_mode": 0
+      }
+    ],
+    "interactive": []
+  }
+}

@@ -96,6 +96,17 @@ namespace dynamic_gap
                 int visualization_point_stride = 1;
             } mppi;
 
+            // Terminal controller for MPPI: independent of gap availability.
+            struct GoalApproach
+            {
+                bool enabled = true;
+                double activation_distance = 4.0;
+                double max_speed = 0.5;
+                double clearance = 0.10;
+                double prediction_horizon = 2.0;
+                double max_scan_age = 0.25;
+            } goal_approach;
+
             /**
             * \brief Hyperparameters for manual teleoperation control
             */

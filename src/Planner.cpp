@@ -10,6 +10,7 @@
 #include <ctime>
 #include <ros/package.h>
 #include <tf/transform_datatypes.h>
+#include <std_msgs/String.h>
 
 namespace dynamic_gap
 {   
@@ -172,9 +173,12 @@ namespace dynamic_gap
             this
         );
 
-        if (cfg_.planning.FMM_global_cost)
+        if (cfg_.planning.FMM_global_cost || (cfg_.mppi.enabled && cfg_.goal_approach.enabled))
         {
             mapSub_ = nh_.subscribe("/map", 1, &Planner::mapCB, this);
+        }
+        if (cfg_.planning.FMM_global_cost)
+        {
             fmmDistanceSub_ = nh_.subscribe("/dgap/fmm_distance_map",
                                             1,
                                             &Planner::fmmDistanceCB,
@@ -196,6 +200,7 @@ namespace dynamic_gap
         ros::NodeHandle nh;  // or pass an existing NodeHandle
         traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("bezier_traj", 1);
         transformed_path_pub_ = nh_.advertise<visualization_msgs::Marker>("current_traj_transformed_viz", 1);
+        goalApproachStatusPublisher_ = nh_.advertise<std_msgs::String>("goal_approach_status", 1);
         vrel_safe_pub_ = nh_.advertise<visualization_msgs::Marker>("v_rel_arrow_safe", 1);
 
 
@@ -289,7 +294,7 @@ namespace dynamic_gap
         float rbtPoseOrientation = quaternionToYaw(rbtPoseInOdomFrame_.pose.orientation);
         float globalGoalAngDist = normalize_theta(globalGoalOrientation - rbtPoseOrientation);
         reachedGlobalGoal_ = globalGoalDist < cfg_.goal.xy_global_goal_tolerance &&
-                             globalGoalAngDist < cfg_.goal.yaw_global_goal_tolerance;
+                             std::abs(globalGoalAngDist) < cfg_.goal.yaw_global_goal_tolerance;
         
         if (reachedGlobalGoal_)
             ROS_INFO_STREAM_NAMED("Planner", "[Reset] Goal Reached");
@@ -1051,7 +1056,7 @@ else
 
 void Planner::mapCB(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
-    if (!cfg_.planning.FMM_global_cost)
+    if (!cfg_.planning.FMM_global_cost && !(cfg_.mppi.enabled && cfg_.goal_approach.enabled))
         return;
 
     boost::mutex::scoped_lock lock(mapMutex_);
@@ -3077,6 +3082,7 @@ if (traj.getPathTiming().empty()) {
 
     void Planner::runPlanningLoop(Trajectory & chosenTraj, int & trajFlag) 
     {
+        trajFlag = NONE;
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << timeKeeper_->getPlanningLoopCalls());
 
         if (!initialized_ || !hasLaserScan_ || !hasGlobalGoal_)
@@ -3090,6 +3096,7 @@ if (traj.getPathTiming().empty()) {
         {
             ROS_WARN_STREAM_NAMED("Planner", "In collision");
             chosenTraj = Trajectory();
+            trajFlag = IDLING;
             return;
         }
 
@@ -3098,6 +3105,14 @@ if (traj.getPathTiming().empty()) {
         trajVisualizer_->drawPlanningLoopIdx(timeKeeper_->getPlanningLoopCalls());
 
         isGoalReached();
+
+        // A final approach does not need an available gap pointing at the goal.
+        // Replan it each cycle, before gap selection/retention can choose an arc away.
+        if (tryGoalApproach(chosenTraj, trajFlag))
+        {
+            timeKeeper_->stopTimer(PLAN);
+            return;
+        }
 
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
@@ -3573,6 +3588,16 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
             if (!haveTFs_)
                 return cmdVel;
+
+            if (trajFlag == GOAL_APPROACH)
+            {
+                // These controls, including slowing/stopping, were checked against
+                // predicted scans. A full-speed lookahead would execute a different motion.
+                cmdVel.linear.x = localTrajectory.v_cmd;
+                cmdVel.angular.z = localTrajectory.w_cmd;
+                timeKeeper_->stopTimer(CONTROL);
+                return cmdVel;
+            }
 
             // Know Current Pose
             geometry_msgs::PoseStamped currPoseStRobotFrame;

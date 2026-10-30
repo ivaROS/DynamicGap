@@ -85,6 +85,8 @@ namespace dynamic_gap
                                  std::vector<float>& terminalCosts,
                                  const std::vector<sensor_msgs::LaserScan>& futureScans);
         unsigned int mppiCycle_ = 0;
+        bool tryGoalApproach(Trajectory& trajectory, int& flag);
+        ros::Publisher goalApproachStatusPublisher_;
 
         public:
             Planner() {}

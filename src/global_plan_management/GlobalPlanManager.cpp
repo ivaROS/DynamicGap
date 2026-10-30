@@ -132,6 +132,16 @@ namespace dynamic_gap
 
     std::vector<geometry_msgs::PoseStamped> GlobalPlanManager::getGlobalPathOdomFrame() 
     {
+        boost::mutex::scoped_lock lock(globalPlanMutex_);
         return globalPlanMapFrame_;
+    }
+
+    std::vector<geometry_msgs::PoseStamped> GlobalPlanManager::getGlobalPathRobotFrame(
+        const geometry_msgs::TransformStamped& map2rbt)
+    {
+        boost::mutex::scoped_lock lock(globalPlanMutex_);
+        auto plan = globalPlanMapFrame_;
+        for (auto& pose : plan) tf2::doTransform(pose, pose, map2rbt);
+        return plan;
     }
 }

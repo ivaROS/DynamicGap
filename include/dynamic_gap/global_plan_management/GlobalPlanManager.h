@@ -56,6 +56,8 @@ namespace dynamic_gap
             * \return global path in odometry frame
             */  
             std::vector<geometry_msgs::PoseStamped> getGlobalPathOdomFrame();
+            std::vector<geometry_msgs::PoseStamped> getGlobalPathRobotFrame(
+                const geometry_msgs::TransformStamped& map2rbt);
 
             /**
             * \brief extract portion of global plan (in robot frame) that lies within the current laser scan

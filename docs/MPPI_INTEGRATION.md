@@ -6,6 +6,12 @@ Each current available gap gets an independent optimizer seeded from its existin
 center quadratic Bezier. The resulting candidate enters the original trajectory
 selection, switching, and feedback-control pipeline.
 
+Near the final goal, an independent prediction-checked terminal controller can
+take priority before gap selection. It does not require a gap toward the goal.
+It slows down with remaining distance and executes the checked command directly,
+instead of passing a short path to the full-speed lookahead tracker. See
+[GOAL_APPROACH.md](GOAL_APPROACH.md) for conditions, limits, and Arena results.
+
 ## What downstream code actually executes
 
 `Planner::ctrlGeneration()` reads the chosen odometry-frame path, calls
@@ -22,7 +28,7 @@ its controls are not an independently executed velocity schedule.
 
 ## Preserved output
 
-Both generators share `GapTrajectoryContract.h`:
+Both gap generators share `GapTrajectoryContract.h`:
 
 - 11 poses and 11 timestamps at `0, dt, ..., 10*dt`;
 - `dt = cfg_.traj.integrate_stept`, matching native obstacle predictions;

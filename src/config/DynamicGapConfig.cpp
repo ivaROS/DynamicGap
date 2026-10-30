@@ -7,6 +7,19 @@ namespace dynamic_gap
         ros::NodeHandle nh("~/" + name);
 
         nh.param("mppi/enabled", mppi.enabled, mppi.enabled);
+        nh.param("goal_approach/enabled", goal_approach.enabled, goal_approach.enabled);
+        nh.param("goal_approach/activation_distance", goal_approach.activation_distance, goal_approach.activation_distance);
+        nh.param("goal_approach/max_speed", goal_approach.max_speed, goal_approach.max_speed);
+        nh.param("goal_approach/clearance", goal_approach.clearance, goal_approach.clearance);
+        nh.param("goal_approach/prediction_horizon", goal_approach.prediction_horizon, goal_approach.prediction_horizon);
+        nh.param("goal_approach/max_scan_age", goal_approach.max_scan_age, goal_approach.max_scan_age);
+        if (goal_approach.enabled &&
+            (!std::isfinite(goal_approach.activation_distance) || goal_approach.activation_distance <= 0 ||
+             !std::isfinite(goal_approach.max_speed) || goal_approach.max_speed <= 0 ||
+             !std::isfinite(goal_approach.clearance) || goal_approach.clearance < 0 ||
+             !std::isfinite(goal_approach.prediction_horizon) || goal_approach.prediction_horizon < 0.5 ||
+             !std::isfinite(goal_approach.max_scan_age) || goal_approach.max_scan_age <= 0))
+            throw std::invalid_argument("goal_approach requires finite positive distances/speed/age, nonnegative clearance, and horizon >= 0.5 s");
         nh.param("mppi/mode", mppi.mode, mppi.mode);
         nh.param("mppi/total_samples", mppi.total_samples, mppi.total_samples);
         nh.param("mppi/horizon", mppi.horizon, mppi.horizon);

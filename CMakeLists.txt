@@ -95,6 +95,8 @@ add_library(${PROJECT_NAME}
   src/trajectory_generation/MppiControl.cpp
   src/trajectory_generation/MppiOptimizer.cpp
   src/trajectory_generation/MppiGapIntegration.cpp
+  src/trajectory_generation/GoalApproach.cpp
+  src/trajectory_generation/GoalApproachIntegration.cpp
   src/trajectory_generation/UngapTrajectoryGenerator.cpp
   src/trajectory_generation/GapManipulator.cpp
   src/trajectory_generation/GapGoalPlacer.cpp
@@ -133,7 +135,8 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest_gtest(test_mppi_control test/mppi_control.test test/test_mppi_control.cpp)
   catkin_add_gtest(test_mppi_optimizer test/test_mppi_optimizer.cpp)
   catkin_add_gtest(test_mppi_visualization test/test_mppi_visualization.cpp)
-  foreach(test_target test_mppi_control test_mppi_optimizer test_mppi_visualization)
+  catkin_add_gtest(test_goal_approach test/test_goal_approach.cpp)
+  foreach(test_target test_mppi_control test_mppi_optimizer test_mppi_visualization test_goal_approach)
     if(TARGET ${test_target})
       target_link_libraries(${test_target} ${PROJECT_NAME} ${catkin_LIBRARIES} gtest_main)
     endif()

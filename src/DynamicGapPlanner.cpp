@@ -146,6 +146,7 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::isGoalReached()
     {
+        boost::mutex::scoped_lock cfg_lock(config_mutex_);
         // ROS_INFO_STREAM("[DynamicGapPlanner::isGoalReached()]");
 
         return planner_.isGoalReached();
@@ -153,6 +154,7 @@ namespace dynamic_gap
 
     bool DynamicGapPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
     {
+        boost::mutex::scoped_lock cfg_lock(config_mutex_);
         // ROS_INFO_STREAM("[DynamicGapPlanner::setPlan()]");
 
         if (!planner_.initialized())
