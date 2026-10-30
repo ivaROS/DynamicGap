@@ -538,7 +538,7 @@ Visualization Manager:
               Name: MPPI samples and optimized paths
               Namespaces:
                 {}
-              Queue Size: 1
+              Queue Size: 1000
               Value: true
           Enabled: true
           Name: Trajectories

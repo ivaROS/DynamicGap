@@ -19,7 +19,7 @@ Visualization Manager:
       Name: MPPI — all 3 gaps, samples and optimized nominals
       Enabled: true
       Marker Topic: /mppi_multigap_demo/mppi_trajectories
-      Queue Size: 10
+      Queue Size: 1000
     - Class: rviz/MarkerArray
       Name: Selected solution (red arrows)
       Enabled: true
