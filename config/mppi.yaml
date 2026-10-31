@@ -1,7 +1,7 @@
 # Load under the planner's private namespace, before its initialization, e.g.
-# /rto/move_base_flex/DynamicGapPlannerROS. Original behavior remains the default.
+# /rto/move_base_flex/DynamicGapPlannerROS. Set before planner initialization.
 mppi:
-  enabled: false
+  enabled: true
   mode: gap_guided                 # gap_guided or standard
   total_samples: 96                # shared across ALL gaps, per iteration
   # Planner output is fixed to the original 11 poses / 10 intervals.

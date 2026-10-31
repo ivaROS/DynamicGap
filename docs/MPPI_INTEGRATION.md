@@ -1,7 +1,7 @@
 # MPPI integration and the downstream trajectory contract
 
 `Planner::generateGapTrajsV2()` selects the optional MPPI generator when
-`mppi/enabled` and the existing `dwa_method` are enabled. MPPI defaults to off.
+`mppi/enabled` and the existing `dwa_method` are enabled. MPPI defaults to on.
 Each current available gap gets an independent optimizer seeded from its existing
 center quadratic Bezier. The resulting candidate enters the original trajectory
 selection, switching, and feedback-control pipeline.
@@ -96,8 +96,11 @@ demo's 0.35. There is no warm start or new gap-tracking mechanism.
 ## Configuration, visualization and testing
 
 Load `config/mppi.yaml` under the planner's private parameter namespace before
-initialization, normally `/rto/move_base_flex/DynamicGapPlannerROS`, then set
-`mppi/enabled: true`. Parameters are read during initialization. Default mode is
+initialization, normally `/rto/move_base_flex/DynamicGapPlannerROS`. MPPI is
+enabled by default. To opt out, set
+`/rto/move_base_flex/DynamicGapPlannerROS/mppi/enabled` to `false` before
+planner initialization. The setting is read during initialization, so changing
+it after initialization requires restarting the planner. Default mode is
 `gap_guided`; `standard` uses one forward nominal and the same aggregate sample
 budget. Defaults are 96 samples per iteration and one iteration.
 

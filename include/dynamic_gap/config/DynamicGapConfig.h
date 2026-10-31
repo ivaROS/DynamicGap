@@ -81,7 +81,7 @@ namespace dynamic_gap
             // dt is deliberately shared with the existing future-scan predictions.
             struct Mppi
             {
-                bool enabled = false;
+                bool enabled = true;
                 std::string mode = "gap_guided"; // or "standard" (one forward nominal)
                 int total_samples = 96;         // shared across gaps, per iteration
                 int horizon = 10;               // controls; rollout has horizon + 1 poses

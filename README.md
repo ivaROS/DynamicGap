@@ -49,6 +49,17 @@ Then, you can run
 ```
 roslaunch arena_bringup start_arena.launch
 ```
+
+MPPI is enabled by default in Dynamic Gap. To disable it, set the ROS parameter
+before the planner initializes:
+
+```bash
+rosparam set /rto/move_base_flex/DynamicGapPlannerROS/mppi/enabled false
+```
+
+Dynamic Gap reads this setting during initialization, so restart the planner
+after changing it.
+
 ## <a name="Benchmarking"></a>Benchmarking
 If you would like to run more systematic tests, then you can set the `config.yaml` file to include your desired scenarios in the suite section and your desired set of planners in the contest section:
 
