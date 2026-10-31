@@ -869,6 +869,18 @@ Visualization Manager:
         egorobot: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/contained_raw_gap_points
+      Name: Density sector raw endpoints
+      Queue Size: 10
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rto/gru_gap_feature_prediction_markers
+      Name: GRU density and ground truth
+      Queue Size: 10
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

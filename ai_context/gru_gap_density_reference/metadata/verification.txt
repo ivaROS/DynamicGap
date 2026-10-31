@@ -1,0 +1,21 @@
+Verification performed 2026-10-31 (America/Toronto)
+PASS: zero-context patch applies to EXACT unmodified base Git files with
+      git apply --check --unidiff-zero, in an isolated temporary repository.
+PASS: reverse check and actual reverse restore exact base contents; newly added
+      feature files are removed; forward application passes again.
+PASS: patch changed-path list exactly matches changed_files.txt (10 files).
+PASS: non-RViz patched implementation agrees with historical endpoint code,
+      allowing omitted comments/layout and one unrelated logging severity change.
+PASS: RViz patch retains only contained-point and GRU density text displays.
+PASS: all 33 complete snapshots agree with endpoint Git blobs after the single
+      explicitly declared personal-path redaction; see source_blobs.tsv.
+PASS: bundled Python source parses (no inference, build or navigation run claimed).
+PASS: archive member paths are relative, do not traverse directories, and match
+      archive_contents.txt; CRC and SHA256 checks pass after reopening ZIP.
+PASS: all changed_files entries have complete final_files counterparts.
+PASS: no weights, datasets, build outputs, .git files, editor locks or large files.
+PASS: text scan found no personal home paths or common credential/private-key patterns.
+      This is a heuristic content scan, not a formal secrets audit.
+PASS: original tracked working tree/index unchanged; branch/HEAD unchanged.
+No stash content used. Source was inspected read-only through Git objects.
+Not tested: ROS/catkin compilation, model inference, simulation or robot runtime.

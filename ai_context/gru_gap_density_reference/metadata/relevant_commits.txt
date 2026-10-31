@@ -1,0 +1,62 @@
+DENSITY FEATURE COMMITS (chronological ancestry order)
+
+d5f2ac9d569fbc0168e8b5094d31a02bdaf4a997
+density data collection working. note this branch is based on main_gru_v2
+
+ebda1abf6742eb53f83252ec791bb90e6481a6e1
+finds and records all the gap points within the interval of the angluar simp gap. sometimes it seems like the same point is recorded twice, see documentation
+
+56adcdde2a6730b5d9fa950b7ea1b57804cd0d21
+idk why, but once I added this visual i don't see the issue where the same point is in the gap. visually it looks good, no duplicates, no missing points. tested in empty_more_ped which has 50 agents
+
+b8d59ab9643057fc6085c169ceca4b130dcc939a
+Added density calculation and made sure it works in intersection environment. Density has not been added to logging yet. I'm probably going to make some structural changes to the calculation because currently, all static, all gap points, raw gap points contribute to the density calculation, when in reality, I only care about dynamic agents, so I may need to classify them or do a quick check before computing density.
+
+030577a766eb875a43c11340e0e67bc1324cadd4
+only use dynamic obstacles in density calculation, based on gapDensityDynamicSpeedThresh_. added data collection csv code.  Right now, for raw gap points, that velocity is still Kalman-based. Later, if you eventually apply GRU velocity overrides to raw gap models, this density code will automatically use the active overridden velocity cleanly.
+
+05baf2e42dcc46f012fb1e3831e2225446c7b839
+forgot to say, before testing in env other than empty know that Kalman filter will probably give endpoints a vel sometimes. Replacing kalman filter with gru based estimation may help
+
+dbcec8275983d0624db5d12de7bad8e770345c2c
+added ground truth density calculation. What it does is takes the number of raw gap points detected by the robot within the sector, but uses the ground truth velocity of the agent to count the number of dynamic obstacles within the sector. This is different, obviously, than the data that's coming into the model, which estimates that velocity using a Kalman filter, or maybe I can use learning in the future, but yeah. The way the ground truth velocity for each agent is found is just like I did in the past for the velocity training stuff. I just find the nearest agent to the gap point, and if they're close enough, then I just take that agent's velocity and assign it to the gap point as the ground truth velocity. As a summary, that ground truth velocity is then attached to a raw gap point, and all of, and you know, this ground truth information and the gap point information is then used to calculate the ground truth density.
+
+28e1755a0b9c18d775c5780f9154ba06fe7fdef5
+added training code. it works I tested it and got .03 eval and .1 valuation. details: starting with this compact feature vector:
+[
+  sector_density,                         # Kalman-estimated dynamic gap-point density
+  sector_dynamic_raw_gap_point_count,     # estimated dynamic raw gap points
+  contained_raw_gap_point_count,          # total raw points in the sector
+  sector_area,
+  sector_angle_rad,
+  sector_radius
+]
+Target
+gt_sector_density
+
+944479cb520bb098bce523b81b36e4ec29ab2735
+added node to use gru density score. i haven't incorporated this density score into the planner yet. note / For this density model, only publish once per         // simplified gap. Left/right rows contain the same         // sector-level information.
+
+87da5955be30ff54e0f9f23e8fd294b1a550a1f9
+added rviz marker to visualize GRU and ground truth in rviz per gap, it works well
+
+7e5f2917fddbeb0726a392df3dc9f799d0c231b4
+added density into scoreing, only did a quick test and it worked. need to test more. keep in mind the switch to other traj if lower cost one exists code is commented out, it was already commented out in main i think bc it causes finickyness. // if (incomingPathCost < reducedCurrentPathSubCost)
+
+fda9d417b2144abb52f4b2199ff7f9c94109f5e3
+added idling traj back. passed -1 for evaluatetrajectory() obviously so the idling traj doesn't get scored based on the gru density score
+
+
+PREREQUISITE COMPARISON
+
+65707342d44e35bdf00da2e27ee863fdc6a698ac
+WiP added mssgs and cmake mods
+
+f2e5153f2d0600a2551eb4656e6329bc9b088d6e
+working node uses trained model for prediciting ped vel and publishes to rviz. currently testing it. you have to launch it with this, but make sure you update the model path python3 src/planners/dynamic_gap/ml_gap_velocity/scripts/gru_gap_velocity_node.py   _model_path:=ml_gap_velocity/models/10seq_len_1000e__data_dgap_26-05-06_04-22-28_gap_gru.pt   _stats_path:=ml_gap_velocity/models/10seq_len_1000e__data_dgap_26-05-06_04-22-28_norm_stats.json   _seq_len:=10   _input_size:=2   _hidden_size:=64   _num_layers:=2   _output_size:=2   _device:=cpu   _observation_topic:=/rto/gap_point_observation   _prediction_topic:=/gru_gap_velocity_prediction   _marker_topic:=/gru_gap_velocity_markers
+
+4d1aaff50862ee45fb52ad6267038d31c603f216
+using GRU instead of kalman, but still use kalman as a fall back. be careful with topic names whether they have rto/ or not. make sure you use this command: python3 src/planners/dynamic_gap/ml_gap_velocity/scripts/gru_gap_velocity_node.py   _model_path:=ml_gap_velocity/models/10seq_len_1000e__data_dgap_26-05-06_04-22-28_gap_gru.pt   _stats_path:=ml_gap_velocity/models/10seq_len_1000e__data_dgap_26-05-06_04-22-28_norm_stats.json   _seq_len:=10   _input_size:=2   _hidden_size:=64   _num_layers:=2   _output_size:=2   _device:=cpu   _observation_topic:=/rto/gap_point_observation   _prediction_topic:=/rto/gru_gap_velocity_prediction   _marker_topic:=/rto/gru_gap_velocity_markers
+
+
+The prerequisite section is context, not additional density feature commits.

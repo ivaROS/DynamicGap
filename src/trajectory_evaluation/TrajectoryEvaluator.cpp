@@ -155,6 +155,7 @@ namespace dynamic_gap
                 computeFMMTerminalPoseCost(path, terminalPoseCost);
             }
             else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
+            terminalPoseCost += gapDensityCost(traj.leftGapPtID);
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
@@ -194,7 +195,8 @@ namespace dynamic_gap
                                 const int & scanIdx,
                                 const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                                 dynamic_gap::Gap* gap,
-                                std::vector<float> &dwa_RelVelPoseCosts)
+                                std::vector<float> &dwa_RelVelPoseCosts,
+                                bool includeGapDensity)
     {    
         try
         {
@@ -241,6 +243,8 @@ namespace dynamic_gap
 
             // obtain terminalGoalCost, scale by Q
             terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(pose_array.poses.back());
+            if (includeGapDensity && gap && gap->getLeftGapPt()->getModel())
+                terminalPoseCost += gapDensityCost(gap->getLeftGapPt()->getModel()->getID());
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
 
             //////////////////// path costs //////////////////
@@ -637,6 +641,7 @@ namespace dynamic_gap
                 computeFMMTerminalPoseCost(path, terminalPoseCost);
             }
             else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
+            terminalPoseCost += gapDensityCost(traj.leftGapPtID);
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             
@@ -1019,6 +1024,7 @@ namespace dynamic_gap
                 computeFMMTerminalPoseCost(path, terminalPoseCost);
             }
             else{terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());}
+            terminalPoseCost += gapDensityCost(leftGapPtID);
 
             ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
             

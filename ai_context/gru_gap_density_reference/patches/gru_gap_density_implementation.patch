@@ -1,0 +1,2680 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9e19bd9..f9c065e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -45,0 +46,2 @@ add_message_files(
++  GapFeatureObservation.msg
++  GapFeaturePrediction.msg
+diff --git a/include/dynamic_gap/Planner.h b/include/dynamic_gap/Planner.h
+index cf75e5d..05ee50f 100644
+--- a/include/dynamic_gap/Planner.h
++++ b/include/dynamic_gap/Planner.h
+@@ -73,0 +74,4 @@
++#include <visualization_msgs/Marker.h>
++#include <visualization_msgs/MarkerArray.h>
++#include <dynamic_gap/GapFeatureObservation.h>
++
+@@ -108,0 +113,2 @@ namespace dynamic_gap
++            float gapPointDensityRadius_ = 3.0f;
++
+@@ -111,2 +117,2 @@ namespace dynamic_gap
+-                Eigen::Vector2f rel_vel;          // label matching Kalman filter convention
+-                Eigen::Vector2f world_vel_robot;  // true agent velocity expressed in robot frame
++                Eigen::Vector2f rel_vel;
++                Eigen::Vector2f world_vel_robot;
+@@ -119 +125,12 @@ namespace dynamic_gap
+-            PerfectGapVelocityLabel computePerfectGapVelocityLabel(
++            bool rawGapPointMatchesDynamicGroundTruthAgent( // for density calculation
++            const Eigen::Vector2f& rawGapPointRobotFrame,
++            std::string& matchedAgentID,
++            float& matchDist,
++            float& matchedAgentGroundTruthSpeed) const;
++
++            void computeSimplifiedGapGroundTruthSectorDensity(
++            const int& simplifiedGapIndex,
++            int& gtSectorDynamicRawGapPointCount,
++            float& gtSectorDensity) const;
++
++            PerfectGapVelocityLabel computePerfectGapVelocityLabel( // for GRU learn gap point velocity
+@@ -196 +213 @@ namespace dynamic_gap
+-
++            //
+@@ -211,0 +229,41 @@ namespace dynamic_gap
++            int scanIdxCircularWidth(
++                const int& rightIdx,
++                const int& leftIdx,
++                const int& scanSize) const;
++
++            float gapAngularWidthRad(
++                const int& rightIdx,
++                const int& leftIdx) const;
++
++            float getGapPointDynamicSpeedForDensity(
++                Estimator* model) const;
++
++            void computeSimplifiedGapSectorDensity(
++                const int& simplifiedGapIndex,
++                int& sectorDynamicRawGapPointCount,
++                float& sectorRadius,
++                float& sectorAngleRad,
++                float& sectorArea,
++                float& sectorDensity) const;
++
++           void publishGapFeatureObservation(
++            const ros::Time& stamp,
++            const int& gapIndex,
++            const int& modelID,
++            const std::string& side,
++            const float& visX,
++            const float& visY,
++            const float& sectorDensity,
++            const int& sectorDynamicRawGapPointCount,
++            const int& containedRawGapPointCount,
++            const float& sectorArea,
++            const float& sectorAngleRad,
++            const float& sectorRadius,
++            const float& gtSectorDensity,
++            const int& gtSectorDynamicRawGapPointCount);
++            float gapDensityDynamicSpeedThresh_ = 0.05f;
++
++
++            int getGapLeftModelIDForDensityCost(
++            Gap* gap) const;
++
+@@ -342,4 +400,4 @@ namespace dynamic_gap
+-            // void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
+-            //                         std::vector<std::vector<float>> & pathPoseCosts,
+-            //                         std::vector<float> & pathTerminalPoseCosts,
+-            //                         const std::vector<sensor_msgs::LaserScan> & futureScans);
++            void generateIdlingTraj(std::vector<Trajectory> & generatedTrajs,
++                                    std::vector<std::vector<float>> & pathPoseCosts,
++                                    std::vector<float> & pathTerminalPoseCosts,
++                                    const std::vector<sensor_msgs::LaserScan> & futureScans);
+@@ -514,0 +573,3 @@ namespace dynamic_gap
++            ros::Publisher containedRawGapPointsMarkerPublisher_;
++            ros::Publisher gapFeatureObservationPublisher_;
++
+@@ -697,2 +758,24 @@ namespace dynamic_gap
+-                const bool& matched_dynamic_agent
+-            );
++                    const bool& matched_dynamic_agent,
++                    const int& contained_raw_gap_point_count,
++                    const std::string& contained_raw_gap_points,
++                    const float& sector_radius,
++                    const float& sector_angle_rad,
++                    const float& sector_area,
++                    const int& sector_dynamic_raw_gap_point_count,
++                    const float& sector_density,
++                    const int& gt_sector_dynamic_raw_gap_point_count,
++                    const float& gt_sector_density);
++
++                bool scanIdxInsideGapRange(
++                const int& idx,
++                const int& rightIdx,
++                const int& leftIdx) const;
++
++                void publishContainedRawGapPointsMarkerArray(
++                const std::vector<Gap*>& simplifiedGaps,
++                const std::vector<Gap*>& rawGaps,
++                const ros::Time& stamp) const;
++
++                std::string serializeRawGapPointsInsideSimplifiedGap(
++                const int& simplifiedGapIndex,
++                int& containedRawGapPointCount) const;
+diff --git a/include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h b/include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h
+index ac89071..d16e1db 100644
+--- a/include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h
++++ b/include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h
+@@ -23,0 +24,6 @@
++
++#include <dynamic_gap/GapFeaturePrediction.h>
++#include <ros/ros.h>
++#include <map>
++#include <string>
++#include <cmath>
+@@ -25,0 +32,8 @@ namespace dynamic_gap
++    struct GruGapFeatureDensityEstimate
++    {
++        float pred_sector_density = 0.0f;
++        ros::Time stamp;
++        bool valid = false;
++        int seq_len_used = 0;
++    };
++
+@@ -33 +47,3 @@ namespace dynamic_gap
+-            TrajectoryEvaluator(const DynamicGapConfig& cfg);
++            TrajectoryEvaluator(
++            ros::NodeHandle& nh,
++            const DynamicGapConfig& cfg);
+@@ -59 +75,21 @@ namespace dynamic_gap
+-                                    const int & scanIdx);
++                const int & scanIdx,
++                const int & densityModelID);
++
++            /**
++             * \brief Stores latest GRU density prediction for a gap model
++             * \param msg incoming GRU density prediction message
++             */
++            void gruGapFeatureDensityCB(
++                const dynamic_gap::GapFeaturePrediction::ConstPtr& msg);
++
++            /**
++             * \brief Gets latest valid GRU density prediction for a model
++             * \param modelID gap model ID to query
++             * \param currentStamp current time for freshness check
++             * \param predDensityOut returned predicted density
++             * \return true if a fresh valid prediction was found
++             */
++            bool getLatestGruGapFeatureDensityForModel(
++                const int& modelID,
++                const ros::Time& currentStamp,
++                float& predDensityOut) const;
+@@ -61,0 +98,16 @@ namespace dynamic_gap
++
++            //////////////////////////////////////////////////////
++            // GRU gap-density trajectory cost
++            //////////////////////////////////////////////////////
++
++            ros::Subscriber gruGapFeatureDensitySub_;
++
++            bool useGruGapFeatureDensityCost_ = true;
++            double maxGruGapFeaturePredictionAgeSec_ = 3.0;
++            float gruGapDensityCostWeight_ = 1.0f;
++
++            mutable boost::mutex gruGapFeatureDensityMutex_;
++
++            std::map<int, GruGapFeatureDensityEstimate>
++                latestGruGapFeatureDensityByModelID_;
++
+diff --git a/ml_gap_velocity/scripts/gru_gap_feature_node.py b/ml_gap_velocity/scripts/gru_gap_feature_node.py
+new file mode 100644
+index 0000000..819d8c3
+--- /dev/null
++++ b/ml_gap_velocity/scripts/gru_gap_feature_node.py
+@@ -0,0 +1,455 @@
++#!/usr/bin/env python3
++
++import json
++from collections import defaultdict, deque
++
++import numpy as np
++import rospy
++import torch
++
++from dynamic_gap.msg import GapFeatureObservation
++from dynamic_gap.msg import GapFeaturePrediction
++from visualization_msgs.msg import Marker, MarkerArray
++
++
++class Normalizer:
++    def __init__(self, stats_path):
++        self.input_mean = None
++        self.input_std = None
++        self.target_mean = None
++        self.target_std = None
++
++        self.input_features = None
++        self.output_features = None
++
++        if not stats_path:
++            raise RuntimeError(
++                "stats_path is required for this generic feature node "
++                "because it defines the expected input/output feature names."
++            )
++
++        with open(stats_path, "r") as f:
++            stats = json.load(f)
++
++        rospy.loginfo("Loaded normalization stats keys: %s", list(stats.keys()))
++
++        self.input_mean = self._get_array(
++            stats,
++            ["input_mean", "x_mean", "X_mean", "feature_mean", "features_mean"]
++        )
++        self.input_std = self._get_array(
++            stats,
++            ["input_std", "x_std", "X_std", "feature_std", "features_std"]
++        )
++        self.target_mean = self._get_array(
++            stats,
++            ["target_mean", "y_mean", "Y_mean", "label_mean", "output_mean"]
++        )
++        self.target_std = self._get_array(
++            stats,
++            ["target_std", "y_std", "Y_std", "label_std", "output_std"]
++        )
++
++        self.input_features = stats.get("input_features", None)
++        self.output_features = stats.get("output_features", None)
++
++        if self.input_features is None:
++            raise RuntimeError(
++                "Stats JSON is missing 'input_features'. "
++                "Cannot know which incoming features the model expects."
++            )
++
++        if self.output_features is None:
++            raise RuntimeError(
++                "Stats JSON is missing 'output_features'. "
++                "Cannot name model outputs."
++            )
++
++        if self.input_mean is None or self.input_std is None:
++            raise RuntimeError(
++                "Input normalization stats were not found in stats JSON."
++            )
++
++        if self.target_mean is None or self.target_std is None:
++            raise RuntimeError(
++                "Target normalization stats were not found in stats JSON."
++            )
++
++        rospy.loginfo("Expected model input features: %s", self.input_features)
++        rospy.loginfo("Expected model output features: %s", self.output_features)
++
++    def _get_array(self, stats, keys):
++        for key in keys:
++            if key in stats:
++                return np.array(stats[key], dtype=np.float32)
++        return None
++
++    def normalize_input(self, x):
++        return (x - self.input_mean) / (self.input_std + 1.0e-8)
++
++    def denormalize_target(self, y):
++        return y * (self.target_std + 1.0e-8) + self.target_mean
++
++
++class GRUGapFeatureNode:
++    def __init__(self):
++        rospy.init_node("gru_gap_feature_node")
++
++        self.model_path = rospy.get_param("~model_path")
++        self.stats_path = rospy.get_param("~stats_path")
++
++        self.seq_len = int(rospy.get_param("~seq_len", 10))
++        self.device_name = rospy.get_param("~device", "cpu")
++        self.device = torch.device(self.device_name)
++
++        self.observation_topic = rospy.get_param(
++            "~observation_topic",
++            "gap_feature_observation",
++        )
++
++        self.prediction_topic = rospy.get_param(
++            "~prediction_topic",
++            "gru_gap_feature_prediction",
++        )
++
++        self.marker_topic = rospy.get_param(
++            "~marker_topic",
++            "gru_gap_feature_prediction_markers",
++        )
++
++        self.text_marker_height = float(
++            rospy.get_param("~text_marker_height", 0.28)
++        )
++
++        self.text_marker_z = float(
++            rospy.get_param("~text_marker_z", 0.35)
++        )
++
++        self.max_buffer_time_gap = float(
++            rospy.get_param("~max_buffer_time_gap", 0.5)
++        )
++
++        self.normalizer = Normalizer(self.stats_path)
++
++        self.input_features = self.normalizer.input_features
++        self.output_features = self.normalizer.output_features
++
++        self.buffers = defaultdict(lambda: deque(maxlen=self.seq_len))
++        self.last_stamp_by_key = {}
++
++        self.model = self.load_model(self.model_path)
++
++        self.pred_pub = rospy.Publisher(
++            self.prediction_topic,
++            GapFeaturePrediction,
++            queue_size=10,
++        )
++        self.marker_pub = rospy.Publisher(
++            self.marker_topic,
++            MarkerArray,
++            queue_size=10,
++        )
++
++        self.obs_sub = rospy.Subscriber(
++            self.observation_topic,
++            GapFeatureObservation,
++            self.observation_cb,
++            queue_size=100,
++        )
++
++        rospy.loginfo("GRU generic gap feature node ready.")
++        rospy.loginfo("Subscribing to: %s", self.observation_topic)
++        rospy.loginfo("Publishing predictions to: %s", self.prediction_topic)
++        rospy.loginfo("seq_len: %d", self.seq_len)
++
++    def stable_marker_id(self, msg):
++        return abs(hash("{}_{}".format(msg.model_id, msg.side))) % 1000000
++
++    def get_named_output_value(self, output_values, desired_name):
++        if desired_name not in self.output_features:
++            return None
++
++        idx = self.output_features.index(desired_name)
++
++        if idx >= len(output_values):
++            return None
++
++        return float(output_values[idx])
++
++    def get_named_target_value(self, obs_msg, desired_name):
++        if len(obs_msg.target_names) != len(obs_msg.target_values):
++            return None
++
++        target_dict = {
++            name: float(value)
++            for name, value in zip(obs_msg.target_names, obs_msg.target_values)
++        }
++
++        return target_dict.get(desired_name, None)
++
++    def publish_prediction_marker(self, obs_msg, output_values):
++        pred_density = self.get_named_output_value(
++            output_values,
++            "gt_sector_density"
++        )
++
++        gt_density = self.get_named_target_value(
++            obs_msg,
++            "gt_sector_density"
++        )
++
++        if pred_density is None:
++            return
++
++        marker_array = MarkerArray()
++
++        marker = Marker()
++        marker.header = obs_msg.header
++        marker.ns = "gru_sector_density_text"
++        marker.id = self.stable_marker_id(obs_msg)
++        marker.type = Marker.TEXT_VIEW_FACING
++        marker.action = Marker.ADD
++
++        marker.pose.position.x = obs_msg.vis_x
++        marker.pose.position.y = obs_msg.vis_y
++        marker.pose.position.z = self.text_marker_z
++
++        marker.pose.orientation.x = 0.0
++        marker.pose.orientation.y = 0.0
++        marker.pose.orientation.z = 0.0
++        marker.pose.orientation.w = 1.0
++
++        marker.scale.z = self.text_marker_height
++
++        marker.color.r = 0.0
++        marker.color.g = 1.0
++        marker.color.b = 0.0
++        marker.color.a = 1.0
++
++        if gt_density is None:
++            marker.text = "gap {} | GRU: {:.3f} | GT: N/A".format(
++                obs_msg.gap_index,
++                pred_density,
++            )
++        else:
++            marker.text = "gap {} | GRU: {:.3f} | GT: {:.3f}".format(
++                obs_msg.gap_index,
++                pred_density,
++                gt_density,
++            )
++
++        marker.lifetime = rospy.Duration(0.35)
++
++        marker_array.markers.append(marker)
++        self.marker_pub.publish(marker_array)
++
++    def load_model(self, model_path):
++        # ////////////////////////////////////////////////////////////
++        # Saved models from your training script are TorchScript.
++        # ////////////////////////////////////////////////////////////
++
++        try:
++            model = torch.jit.load(
++                model_path,
++                map_location=self.device,
++            )
++            model.to(self.device)
++            model.eval()
++
++            rospy.loginfo("Loaded TorchScript GRU model from: %s", model_path)
++            return model
++
++        except Exception as e:
++            raise RuntimeError(
++                "Failed to load TorchScript model from '{}': {}".format(
++                    model_path,
++                    str(e),
++                )
++            )
++
++    def make_key(self, msg):
++        return "{}_{}".format(msg.model_id, msg.side)
++
++    def maybe_clear_stale_buffer(self, key, stamp):
++        if key not in self.last_stamp_by_key:
++            self.last_stamp_by_key[key] = stamp
++            return
++
++        dt = (stamp - self.last_stamp_by_key[key]).to_sec()
++
++        if dt < 0.0 or dt > self.max_buffer_time_gap:
++            self.buffers[key].clear()
++
++        self.last_stamp_by_key[key] = stamp
++
++    def incoming_feature_dict(self, msg):
++        if len(msg.feature_names) != len(msg.feature_values):
++            raise RuntimeError(
++                "Incoming feature_names and feature_values have different lengths."
++            )
++
++        return {
++            name: float(value)
++            for name, value in zip(msg.feature_names, msg.feature_values)
++        }
++
++    def build_model_input_sample(self, msg):
++        feature_dict = self.incoming_feature_dict(msg)
++
++        missing = [
++            name
++            for name in self.input_features
++            if name not in feature_dict
++        ]
++
++        if len(missing) > 0:
++            raise RuntimeError(
++                "Incoming GapFeatureObservation is missing model-required "
++                "features: {}".format(missing)
++            )
++
++        return np.array(
++            [
++                feature_dict[name]
++                for name in self.input_features
++            ],
++            dtype=np.float32,
++        )
++
++    def observation_cb(self, msg):
++        try:
++            # //////////////////////////////////////////////////////
++            # // The planner should already publish left only,
++            # // but this avoids accidental duplicate use.
++            # //////////////////////////////////////////////////////
++
++            if msg.side != "left":
++                return
++
++            key = self.make_key(msg)
++            self.maybe_clear_stale_buffer(key, msg.header.stamp)
++
++            sample = self.build_model_input_sample(msg)
++            self.buffers[key].append(sample)
++
++            if len(self.buffers[key]) < self.seq_len:
++                self.publish_invalid_prediction(
++                    msg,
++                    len(self.buffers[key]),
++                )
++                return
++
++            seq = np.stack(
++                list(self.buffers[key]),
++                axis=0,
++            ).astype(np.float32)
++
++            seq = self.normalizer.normalize_input(seq)
++
++            x = torch.from_numpy(seq).unsqueeze(0).to(self.device)
++
++            with torch.no_grad():
++                pred = self.model(x).cpu().numpy()[0]
++
++            pred = self.normalizer.denormalize_target(pred)
++
++            output_values = [
++                float(value)
++                for value in np.atleast_1d(pred)
++            ]
++
++            self.publish_prediction(
++                msg,
++                output_values,
++                True,
++                self.seq_len,
++            )
++
++        except Exception as e:
++            rospy.logerr_throttle(
++                1.0,
++                "GRU feature node observation_cb error: %s",
++                str(e),
++            )
++
++    def publish_invalid_prediction(self, obs_msg, seq_len_used):
++        pred_msg = GapFeaturePrediction()
++        pred_msg.header = obs_msg.header
++
++        pred_msg.gap_index = obs_msg.gap_index
++        pred_msg.model_id = obs_msg.model_id
++        pred_msg.side = obs_msg.side
++
++        pred_msg.output_names = list(self.output_features)
++        pred_msg.output_values = [
++            0.0 for _ in self.output_features
++        ]
++
++        pred_msg.valid = False
++        pred_msg.seq_len_used = seq_len_used
++
++        self.pred_pub.publish(pred_msg)
++
++    def publish_prediction(
++        self,
++        obs_msg,
++        output_values,
++        valid,
++        seq_len_used,
++    ):
++        pred_msg = GapFeaturePrediction()
++        pred_msg.header = obs_msg.header
++
++        pred_msg.gap_index = obs_msg.gap_index
++        pred_msg.model_id = obs_msg.model_id
++        pred_msg.side = obs_msg.side
++
++        pred_msg.output_names = list(self.output_features)
++        pred_msg.output_values = output_values
++
++        pred_msg.valid = valid
++        pred_msg.seq_len_used = seq_len_used
++
++        self.pred_pub.publish(pred_msg)
++
++        self.publish_prediction_marker(
++            obs_msg,
++            output_values,
++        )
++
++        printable_outputs = ", ".join(
++            [
++                "{}={:.6f}".format(name, value)
++                for name, value in zip(
++                    self.output_features,
++                    output_values,
++                )
++            ]
++        )
++
++        gt_density = self.get_named_target_value(
++            obs_msg,
++            "gt_sector_density"
++        )
++
++        if gt_density is None:
++            gt_density_text = "gt_sector_density=N/A"
++        else:
++            gt_density_text = "gt_sector_density={:.6f}".format(gt_density)
++
++        rospy.loginfo_throttle(
++            0.5,
++            "GRU feature prediction | gap_index=%d model_id=%d %s %s",
++            obs_msg.gap_index,
++            obs_msg.model_id,
++            printable_outputs,
++            gt_density_text,
++        )
++
++    def spin(self):
++        rospy.spin()
++
++
++if __name__ == "__main__":
++    node = GRUGapFeatureNode()
++    node.spin()
+\ No newline at end of file
+diff --git a/ml_gap_velocity/scripts/train_gap_gru.py b/ml_gap_velocity/scripts/train_gap_gru.py
+index 84e8d50..851887d 100644
+--- a/ml_gap_velocity/scripts/train_gap_gru.py
++++ b/ml_gap_velocity/scripts/train_gap_gru.py
+@@ -13,0 +14,14 @@ from torch.utils.data import Dataset, DataLoader, random_split
++INPUT_FEATURES = [
++    "sector_density",
++    "sector_dynamic_raw_gap_point_count",
++    "contained_raw_gap_point_count",
++    "sector_area",
++    "sector_angle_rad",
++    "sector_radius",
++]
++
++OUTPUT_FEATURES = [
++    "gt_sector_density",
++]
++
++
+@@ -68,0 +83 @@ def make_auto_run_name(args):
++        "density",
+@@ -105 +120 @@ def make_loss_fn(loss_name):
+-class GapSequenceDataset(Dataset):
++class GapSectorDensitySequenceDataset(Dataset):
+@@ -115,4 +130,2 @@ class GapSequenceDataset(Dataset):
+-            "x",
+-            "y",
+-            "perfect_rel_vx",
+-            "perfect_rel_vy",
++            *INPUT_FEATURES,
++            *OUTPUT_FEATURES,
+@@ -127,0 +141,15 @@ class GapSequenceDataset(Dataset):
++        # ////////////////////////////////////////////////////////////
++        # Only use one row per simplified gap.
++        #
++        # Left and right simplified gap endpoint rows contain the
++        # same sector-level density information, so using both would
++        # duplicate the same training target.
++        # ////////////////////////////////////////////////////////////
++
++        df = df[df["side"] == "left"].copy()
++
++        if len(df) == 0:
++            raise RuntimeError(
++                "No rows with side == 'left' were found in the CSV."
++            )
++
+@@ -130 +158,3 @@ class GapSequenceDataset(Dataset):
+-        df = df.sort_values(["model_id", "side", "sample_idx"]).reset_index(drop=True)
++        df = df.sort_values(
++            ["model_id", "sample_idx"]
++        ).reset_index(drop=True)
+@@ -135 +165,8 @@ class GapSequenceDataset(Dataset):
+-        group_cols = ["model_id", "side"]
++        # ////////////////////////////////////////////////////////////
++        # Group by left simplified gap point model ID.
++        #
++        # This preserves temporal sequences for the same tracked
++        # simplified gap side over time.
++        # ////////////////////////////////////////////////////////////
++
++        group_cols = ["model_id"]
+@@ -140 +177,3 @@ class GapSequenceDataset(Dataset):
+-            positions = group[["x", "y"]].values.astype(np.float32)
++            features = group[
++                INPUT_FEATURES
++            ].values.astype(np.float32)
+@@ -142,2 +181,2 @@ class GapSequenceDataset(Dataset):
+-            perfect_rel_vels = group[
+-                ["perfect_rel_vx", "perfect_rel_vy"]
++            targets = group[
++                OUTPUT_FEATURES
+@@ -150,2 +189,2 @@ class GapSequenceDataset(Dataset):
+-                x_seq = positions[i - seq_len + 1 : i + 1]
+-                y_label = perfect_rel_vels[i]
++                x_seq = features[i - seq_len + 1 : i + 1]
++                y_label = targets[i]
+@@ -162 +201 @@ class GapSequenceDataset(Dataset):
+-                "Try lowering seq_len or collecting longer gap tracks."
++                "Try lowering seq_len or collecting longer left-side gap tracks."
+@@ -165,2 +204,12 @@ class GapSequenceDataset(Dataset):
+-        self.x_mean = self.samples_x.reshape(-1, 2).mean(axis=0)
+-        self.x_std = self.samples_x.reshape(-1, 2).std(axis=0) + 1e-8
++        num_input_features = len(INPUT_FEATURES)
++        num_output_features = len(OUTPUT_FEATURES)
++
++        self.x_mean = self.samples_x.reshape(
++            -1,
++            num_input_features
++        ).mean(axis=0)
++
++        self.x_std = self.samples_x.reshape(
++            -1,
++            num_input_features
++        ).std(axis=0) + 1e-8
+@@ -168,2 +217,9 @@ class GapSequenceDataset(Dataset):
+-        self.y_mean = self.samples_y.mean(axis=0)
+-        self.y_std = self.samples_y.std(axis=0) + 1e-8
++        self.y_mean = self.samples_y.reshape(
++            -1,
++            num_output_features
++        ).mean(axis=0)
++
++        self.y_std = self.samples_y.reshape(
++            -1,
++            num_output_features
++        ).std(axis=0) + 1e-8
+@@ -175,0 +232 @@ class GapSequenceDataset(Dataset):
++        self.num_left_rows = len(df)
+@@ -186,2 +243,8 @@ class GapSequenceDataset(Dataset):
+-class GapVelocityGRU(nn.Module):
+-    def __init__(self, input_size=2, hidden_size=64, num_layers=2, output_size=2):
++class GapSectorDensityGRU(nn.Module):
++    def __init__(
++        self,
++        input_size=6,
++        hidden_size=64,
++        num_layers=2,
++        output_size=1,
++    ):
+@@ -204 +267,2 @@ class GapVelocityGRU(nn.Module):
+-        # x shape: [batch, seq_len, 2]
++        # x shape:
++        # [batch, seq_len, 6]
+@@ -210 +274,2 @@ class GapVelocityGRU(nn.Module):
+-        # Predict [perfect_rel_vx, perfect_rel_vy].
++        # Predict:
++        # [gt_sector_density]
+@@ -235 +300,4 @@ def train(args):
+-    dataset = GapSequenceDataset(args.csv, seq_len=args.seq_len)
++    dataset = GapSectorDensitySequenceDataset(
++        args.csv,
++        seq_len=args.seq_len,
++    )
+@@ -258,2 +326,2 @@ def train(args):
+-    model = GapVelocityGRU(
+-        input_size=2,
++    model = GapSectorDensityGRU(
++        input_size=len(INPUT_FEATURES),
+@@ -262 +330 @@ def train(args):
+-        output_size=2,
++        output_size=len(OUTPUT_FEATURES),
+@@ -277 +345 @@ def train(args):
+-        f"{output_base_name}_gap_gru.pt",
++        f"{output_base_name}_gap_sector_density_gru.pt",
+@@ -300,0 +369 @@ def train(args):
++        "task": "gap_sector_density_prediction",
+@@ -317,3 +386,4 @@ def train(args):
+-        "input_features": ["x", "y"],
+-        "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+-        "group_cols": ["model_id", "side"],
++        "input_features": INPUT_FEATURES,
++        "output_features": OUTPUT_FEATURES,
++        "row_filter": "side == left",
++        "group_cols": ["model_id"],
+@@ -321,0 +392 @@ def train(args):
++        "num_left_rows": dataset.num_left_rows,
+@@ -340,0 +412,4 @@ def train(args):
++    print(f"input features: {INPUT_FEATURES}")
++    print(f"output features: {OUTPUT_FEATURES}")
++    print("using only rows where side == 'left'")
++    print(f"num left-side rows: {dataset.num_left_rows}")
+@@ -403 +478,6 @@ def train(args):
+-            example_input = torch.zeros(1, args.seq_len, 2)
++            example_input = torch.zeros(
++                1,
++                args.seq_len,
++                len(INPUT_FEATURES),
++            )
++
+@@ -409,0 +490 @@ def train(args):
++                "task": "gap_sector_density_prediction",
+@@ -427,3 +508,4 @@ def train(args):
+-                "input_features": ["x", "y"],
+-                "output_features": ["perfect_rel_vx", "perfect_rel_vy"],
+-                "group_cols": ["model_id", "side"],
++                "input_features": INPUT_FEATURES,
++                "output_features": OUTPUT_FEATURES,
++                "row_filter": "side == left",
++                "group_cols": ["model_id"],
+@@ -444,10 +526,4 @@ def train(args):
+-    print("Use this for testing:")
+-    print(
+-        "python3 scripts/test_gap_gru.py "
+-        f"--csv {args.csv} "
+-        f"--model {best_model_path} "
+-        f"--stats {stats_path} "
+-        f"--plot-name {auto_run_name} "
+-        "--plot-dir plots "
+-        "--save-results-csv"
+-    )
++    print("This model predicts gt_sector_density from sector-level history.")
++    print("Your old velocity testing script will not match this model yet.")
++    print("You will need a separate density test/eval script.")
++    print("")
+@@ -462,5 +538,3 @@ def main():
+-    # Now this should just be the environment / short experiment name.
+-    # Example: --run-name factory_10to20json
+-    #
+-    # The script automatically adds:
+-    # loss, seq_len, hidden_size, num_layers, batch_size, lr, epochs, and csv name.
++    # This should just be the environment / short experiment name.
++    # Example:
++    # --run-name empty_density_test
+diff --git a/msg/GapFeatureObservation.msg b/msg/GapFeatureObservation.msg
+new file mode 100644
+index 0000000..8f05d7a
+--- /dev/null
++++ b/msg/GapFeatureObservation.msg
+@@ -0,0 +1,16 @@
++std_msgs/Header header
++
++int32 gap_index
++int32 model_id
++string side
++
++# Visualization anchor position in robot frame.
++# For this density model, use the midpoint of the simplified gap.
++float32 vis_x
++float32 vis_y
++
++string[] feature_names
++float32[] feature_values
++
++string[] target_names
++float32[] target_values
+\ No newline at end of file
+diff --git a/msg/GapFeaturePrediction.msg b/msg/GapFeaturePrediction.msg
+new file mode 100644
+index 0000000..bf11dcf
+--- /dev/null
++++ b/msg/GapFeaturePrediction.msg
+@@ -0,0 +1,11 @@
++std_msgs/Header header
++
++int32 gap_index
++int32 model_id
++string side
++
++string[] output_names
++float32[] output_values
++
++bool valid
++int32 seq_len_used
+\ No newline at end of file
+diff --git a/rviz/arena.rviz b/rviz/arena.rviz
+index 243e048..e8dabc9 100644
+--- a/rviz/arena.rviz
++++ b/rviz/arena.rviz
+@@ -804,0 +805,16 @@ Visualization Manager:
++    - Class: rviz/MarkerArray
++      Enabled: true
++      Marker Topic: /rto/contained_raw_gap_points
++      Name: MarkerArray
++      Namespaces:
++        {}
++      Queue Size: 100
++      Value: true
++    - Class: rviz/MarkerArray
++      Enabled: true
++      Marker Topic: /rto/gru_gap_feature_prediction_markers
++      Name: MarkerArray
++      Namespaces:
++        {}
++      Queue Size: 100
++      Value: true
+diff --git a/src/Planner.cpp b/src/Planner.cpp
+index e4f15b8..72d7c85 100644
+--- a/src/Planner.cpp
++++ b/src/Planner.cpp
+@@ -100,2 +100 @@ namespace dynamic_gap
+-
+-        trajEvaluator_ = new TrajectoryEvaluator(cfg_);
++        trajEvaluator_ = new TrajectoryEvaluator(nh_, cfg_);
+@@ -186,0 +186,17 @@ nh_.param<std::string>(
++        gapPointObservationPublisher_ =
++        nh_.advertise<dynamic_gap::GapPointObservation>(
++            "gap_point_observation",
++            10
++        );
++
++        containedRawGapPointsMarkerPublisher_ =
++        nh_.advertise<visualization_msgs::MarkerArray>(
++            "contained_raw_gap_points",
++            1
++        );
++
++        gapFeatureObservationPublisher_ =
++    nh_.advertise<dynamic_gap::GapFeatureObservation>(
++        "gap_feature_observation",
++        10
++    );
+@@ -189,0 +206,135 @@ nh_.param<std::string>(
++    bool Planner::scanIdxInsideGapRange(
++    const int& idx,
++    const int& rightIdx,
++    const int& leftIdx) const
++    {
++        // Normal case: right -> left does not cross index 0
++        if (rightIdx <= leftIdx)
++        {
++            return idx >= rightIdx && idx <= leftIdx;
++        }
++
++        // Wraparound case:
++        // Example: right=490, left=20 on a 512 beam scan
++        return idx >= rightIdx || idx <= leftIdx;
++    }
++
++    std::string Planner::serializeRawGapPointsInsideSimplifiedGap(
++    const int& simplifiedGapIndex,
++    int& containedRawGapPointCount) const
++    {
++        containedRawGapPointCount = 0;
++
++        if (simplifiedGapIndex < 0 ||
++            simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
++        {
++            return "";
++        }
++
++        Gap* simplifiedGap = currSimplifiedGaps_.at(simplifiedGapIndex);
++
++        const int simpRightIdx = simplifiedGap->RIdx();
++        const int simpLeftIdx  = simplifiedGap->LIdx();
++
++        std::ostringstream serializedPoints;
++        bool firstPoint = true;
++
++        for (size_t rawGapIndex = 0; rawGapIndex < currRawGaps_.size(); ++rawGapIndex)
++        {
++            Gap* rawGap = currRawGaps_.at(rawGapIndex);
++
++            //////////////////////////////////////////////////////
++            // Check raw RIGHT gap point
++            //////////////////////////////////////////////////////
++
++            {
++                const int rawRightScanIdx = rawGap->RIdx();
++
++                if (scanIdxInsideGapRange(rawRightScanIdx, simpRightIdx, simpLeftIdx))
++                {
++                    float rawX = 0.0f;
++                    float rawY = 0.0f;
++                    rawGap->getRCartesian(rawX, rawY);
++
++                    Estimator* rawModel =
++                        rawGap->getRightGapPt()->getModel();
++
++                    int rawModelID = rawModel ? rawModel->getID() : -1;
++
++                    if (!firstPoint)
++                        serializedPoints << ";";
++
++                    // Format:
++                    // raw_gap_index|side|model_id|scan_idx|x|y
++                    serializedPoints
++                        << rawGapIndex << "|"
++                        << "right" << "|"
++                        << rawModelID << "|"
++                        << rawRightScanIdx << "|"
++                        << rawX << "|"
++                        << rawY;
++
++                    firstPoint = false;
++                    containedRawGapPointCount++;
++
++                    float rawAngleDeg =
++                    std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
++
++                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
++                    //     "    angle_deg=" << rawAngleDeg
++                    //     << " side=right"
++                    //     << " rawModelID: " << rawModelID
++                    // );
++
++
++                }
++            }
++
++            //////////////////////////////////////////////////////
++            // Check raw LEFT gap point
++            //////////////////////////////////////////////////////
++
++            {
++                const int rawLeftScanIdx = rawGap->LIdx();
++
++                if (scanIdxInsideGapRange(rawLeftScanIdx, simpRightIdx, simpLeftIdx))
++                {
++                    float rawX = 0.0f;
++                    float rawY = 0.0f;
++                    rawGap->getLCartesian(rawX, rawY);
++
++                    Estimator* rawModel =
++                        rawGap->getLeftGapPt()->getModel();
++
++                    int rawModelID = rawModel ? rawModel->getID() : -1;
++
++                    if (!firstPoint)
++                        serializedPoints << ";";
++
++                    // Format:
++                    // raw_gap_index|side|model_id|scan_idx|x|y
++                    serializedPoints
++                        << rawGapIndex << "|"
++                        << "left" << "|"
++                        << rawModelID << "|"
++                        << rawLeftScanIdx << "|"
++                        << rawX << "|"
++                        << rawY;
++
++                    firstPoint = false;
++                    containedRawGapPointCount++;
++
++                    float rawAngleDeg =
++                        std::atan2(rawY, rawX) * 180.0f / static_cast<float>(M_PI);
++
++                    // ROS_ERROR_STREAM_NAMED("RawGapPointsInsideSimplifiedGap",
++                    //     "    angle_deg=" << rawAngleDeg
++                    //     << " side=left" << " rawModelID: " << rawModelID
++                    // );
++                }
++            }
++        }
++
++        return serializedPoints.str();
++    }
++
+@@ -238 +389,10 @@ nh_.param<std::string>(
+-        << "matched_dynamic_agent"
++        << "matched_dynamic_agent,"
++        << "contained_raw_gap_point_count,"
++        << "contained_raw_gap_points,"
++        << "sector_radius,"
++        << "sector_angle_rad,"
++        << "sector_area,"
++        << "sector_dynamic_raw_gap_point_count,"
++        << "sector_density,"
++        << "gt_sector_dynamic_raw_gap_point_count,"
++        << "gt_sector_density"
+@@ -247,0 +408,18 @@ nh_.param<std::string>(
++int Planner::getGapLeftModelIDForDensityCost(
++    Gap* gap) const
++    {
++        if (!gap)
++            return -1;
++
++        if (!gap->getLeftGapPt())
++            return -1;
++
++        if (!gap->getLeftGapPt()->getModel())
++            return -1;
++
++        return gap
++            ->getLeftGapPt()
++            ->getModel()
++            ->getID();
++}
++
+@@ -263 +441,10 @@ void Planner::logSimplifiedGapVelocityCsvRow(
+-    const bool& matched_dynamic_agent)
++    const bool& matched_dynamic_agent,
++    const int& contained_raw_gap_point_count,
++    const std::string& contained_raw_gap_points,
++    const float& sector_radius,
++    const float& sector_angle_rad,
++    const float& sector_area,
++    const int& sector_dynamic_raw_gap_point_count,
++    const float& sector_density,
++    const int& gt_sector_dynamic_raw_gap_point_count,
++    const float& gt_sector_density)
+@@ -271 +458,2 @@ void Planner::logSimplifiedGapVelocityCsvRow(
+-    float safeMatchDist = std::isfinite(match_dist) ? match_dist : -1.0f;
++    const float safeMatchDist =
++        std::isfinite(match_dist) ? match_dist : -1.0f;
+@@ -289 +477,10 @@ void Planner::logSimplifiedGapVelocityCsvRow(
+-        << static_cast<int>(matched_dynamic_agent)
++        << static_cast<int>(matched_dynamic_agent) << ","
++        << contained_raw_gap_point_count << ","
++        << "\"" << contained_raw_gap_points << "\"" << ","
++        << sector_radius << ","
++        << sector_angle_rad << ","
++        << sector_area << ","
++        << sector_dynamic_raw_gap_point_count << ","
++        << sector_density << ","
++        << gt_sector_dynamic_raw_gap_point_count << ","
++        << gt_sector_density
+@@ -292,0 +490,81 @@ void Planner::logSimplifiedGapVelocityCsvRow(
++    }
++
++    void Planner::publishGapFeatureObservation(
++    const ros::Time& stamp,
++    const int& gapIndex,
++    const int& modelID,
++    const std::string& side,
++    const float& visX,
++    const float& visY,
++    const float& sectorDensity,
++    const int& sectorDynamicRawGapPointCount,
++    const int& containedRawGapPointCount,
++    const float& sectorArea,
++    const float& sectorAngleRad,
++    const float& sectorRadius,
++    const float& gtSectorDensity,
++    const int& gtSectorDynamicRawGapPointCount)
++    {
++        //////////////////////////////////////////////////////
++        // Publish once per simplified gap only.
++        // Left/right rows contain the same sector-level info.
++        //////////////////////////////////////////////////////
++
++        if (side != "left")
++            return;
++
++        dynamic_gap::GapFeatureObservation msg;
++
++        msg.header.stamp = stamp;
++        msg.header.frame_id = cfg_.robot_frame_id;
++
++        msg.gap_index = gapIndex;
++        msg.model_id = modelID;
++        msg.side = side;
++
++        //////////////////////////////////////////////////////
++        // RViz anchor: midpoint of simplified gap.
++        //////////////////////////////////////////////////////
++
++        msg.vis_x = visX;
++        msg.vis_y = visY;
++
++        //////////////////////////////////////////////////////
++        // Generic feature vector.
++        //////////////////////////////////////////////////////
++
++        msg.feature_names.push_back("sector_density");
++        msg.feature_values.push_back(sectorDensity);
++
++        msg.feature_names.push_back("sector_dynamic_raw_gap_point_count");
++        msg.feature_values.push_back(
++            static_cast<float>(sectorDynamicRawGapPointCount)
++        );
++
++        msg.feature_names.push_back("contained_raw_gap_point_count");
++        msg.feature_values.push_back(
++            static_cast<float>(containedRawGapPointCount)
++        );
++
++        msg.feature_names.push_back("sector_area");
++        msg.feature_values.push_back(sectorArea);
++
++        msg.feature_names.push_back("sector_angle_rad");
++        msg.feature_values.push_back(sectorAngleRad);
++
++        msg.feature_names.push_back("sector_radius");
++        msg.feature_values.push_back(sectorRadius);
++
++        //////////////////////////////////////////////////////
++        // Targets are included for debugging/logging only.
++        //////////////////////////////////////////////////////
++
++        msg.target_names.push_back("gt_sector_density");
++        msg.target_values.push_back(gtSectorDensity);
++
++        msg.target_names.push_back("gt_sector_dynamic_raw_gap_point_count");
++        msg.target_values.push_back(
++            static_cast<float>(gtSectorDynamicRawGapPointCount)
++        );
++
++        gapFeatureObservationPublisher_.publish(msg);
+@@ -327,0 +606,226 @@ void Planner::logSimplifiedGapVelocityCsvRow(
++    // helper for density calculation 
++    int Planner::scanIdxCircularWidth(
++    const int& rightIdx,
++    const int& leftIdx,
++    const int& scanSize) const
++    {
++        if (scanSize <= 0)
++            return 0;
++
++        if (rightIdx <= leftIdx)
++            return leftIdx - rightIdx;
++
++        return (scanSize - rightIdx) + leftIdx;
++    }
++
++    float Planner::gapAngularWidthRad(
++    const int& rightIdx,
++    const int& leftIdx) const
++    {
++        if (!scan_)
++            return 0.0f;
++
++        const int scanSize = static_cast<int>(scan_->ranges.size());
++
++        int idxWidth = scanIdxCircularWidth(
++            rightIdx,
++            leftIdx,
++            scanSize
++        );
++
++        return static_cast<float>(idxWidth) * scan_->angle_increment;
++    }
++
++    float Planner::getGapPointDynamicSpeedForDensity(
++    Estimator* model) const
++    {
++        if (!model)
++            return 0.0f;
++
++        //////////////////////////////////////////////////////
++        // Convert stored relative velocity into isolated
++        // gap/obstacle dynamics before thresholding.
++        //
++        // This matches how your code already reasons about
++        // gap-point motion elsewhere.
++        //////////////////////////////////////////////////////
++
++        model->isolateGapDynamics();
++
++        Eigen::Vector2f gapDynamicVelocity =
++            model->getGapVelocity();
++
++        // ROS_ERROR_STREAM("getGapPointDynamicSpeedForDensity velocity: " << gapDynamicVelocity.norm()); 
++        // debugging to make sure the kalman filter vel makes sense because i had issues with it for the social cost function in the past 
++        return gapDynamicVelocity.norm();
++
++    }
++    
++    void Planner::computeSimplifiedGapSectorDensity(
++    const int& simplifiedGapIndex,
++    int& sectorDynamicRawGapPointCount,
++    float& sectorRadius,
++    float& sectorAngleRad,
++    float& sectorArea,
++    float& sectorDensity) const
++    {
++        sectorDynamicRawGapPointCount = 0;
++        sectorRadius = 0.0f;
++        sectorAngleRad = 0.0f;
++        sectorArea = 0.0f;
++        sectorDensity = 0.0f;
++
++        if (!scan_)
++            return;
++
++        if (simplifiedGapIndex < 0 ||
++            simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
++        {
++            return;
++        }
++
++        Gap* simplifiedGap =
++            currSimplifiedGaps_.at(simplifiedGapIndex);
++
++        if (!simplifiedGap)
++            return;
++
++        const int simpRightIdx = simplifiedGap->RIdx();
++        const int simpLeftIdx  = simplifiedGap->LIdx();
++
++        //////////////////////////////////////////////////////
++        // 1. Loop over every raw gap endpoint contained
++        //    within this simplified gap's angular interval.
++        //
++        //    - Radius uses ALL contained raw gap points.
++        //    - Dynamic count uses ONLY raw endpoints whose
++        //      isolated motion speed exceeds threshold.
++        //////////////////////////////////////////////////////
++
++        for (size_t rawGapIndex = 0;
++            rawGapIndex < currRawGaps_.size();
++            ++rawGapIndex)
++        {
++            Gap* rawGap = currRawGaps_.at(rawGapIndex);
++
++            if (!rawGap)
++                continue;
++
++            //////////////////////////////////////////////////////
++            // Raw RIGHT endpoint
++            //////////////////////////////////////////////////////
++
++            const int rawRightIdx = rawGap->RIdx();
++
++            if (scanIdxInsideGapRange(
++                    rawRightIdx,
++                    simpRightIdx,
++                    simpLeftIdx))
++            {
++                float rawRightX = 0.0f;
++                float rawRightY = 0.0f;
++
++                rawGap->getRCartesian(rawRightX, rawRightY);
++
++                const float rawRightRadius =
++                    std::sqrt(
++                        rawRightX * rawRightX +
++                        rawRightY * rawRightY
++                    );
++
++                if (rawRightRadius > sectorRadius)
++                    sectorRadius = rawRightRadius;
++
++                Estimator* rawRightModel =
++                    rawGap->getRightGapPt()->getModel();
++
++                const float rawRightDynamicSpeed =
++                    getGapPointDynamicSpeedForDensity(
++                        rawRightModel
++                    );
++
++                if (rawRightDynamicSpeed >= gapDensityDynamicSpeedThresh_)
++                {
++                    sectorDynamicRawGapPointCount++;
++                }
++            }
++
++            //////////////////////////////////////////////////////
++            // Raw LEFT endpoint
++            //////////////////////////////////////////////////////
++
++            const int rawLeftIdx = rawGap->LIdx();
++
++            if (scanIdxInsideGapRange(
++                    rawLeftIdx,
++                    simpRightIdx,
++                    simpLeftIdx))
++            {
++                float rawLeftX = 0.0f;
++                float rawLeftY = 0.0f;
++
++                rawGap->getLCartesian(rawLeftX, rawLeftY);
++
++                const float rawLeftRadius =
++                    std::sqrt(
++                        rawLeftX * rawLeftX +
++                        rawLeftY * rawLeftY
++                    );
++
++                if (rawLeftRadius > sectorRadius)
++                    sectorRadius = rawLeftRadius;
++
++                Estimator* rawLeftModel =
++                    rawGap->getLeftGapPt()->getModel();
++
++                const float rawLeftDynamicSpeed =
++                    getGapPointDynamicSpeedForDensity(
++                        rawLeftModel
++                    );
++
++                if (rawLeftDynamicSpeed >= gapDensityDynamicSpeedThresh_)
++                {
++                    sectorDynamicRawGapPointCount++;
++                }
++            }
++        }
++
++        //////////////////////////////////////////////////////
++        // 2. Simplified-gap angular interval
++        //////////////////////////////////////////////////////
++
++        sectorAngleRad =
++            gapAngularWidthRad(
++                simpRightIdx,
++                simpLeftIdx
++            );
++
++        //////////////////////////////////////////////////////
++        // 3. Sector area
++        //
++        //    A = 0.5 * r^2 * theta
++        //////////////////////////////////////////////////////
++
++        if (sectorRadius <= 0.0f ||
++            sectorAngleRad <= 0.0f)
++        {
++            return;
++        }
++
++        sectorArea =
++            0.5f *
++            sectorRadius *
++            sectorRadius *
++            sectorAngleRad;
++
++        if (sectorArea <= 0.0f)
++            return;
++
++        //////////////////////////////////////////////////////
++        // 4. Dynamic endpoint density
++        //////////////////////////////////////////////////////
++
++        sectorDensity =
++            static_cast<float>(sectorDynamicRawGapPointCount) /
++            sectorArea;
++    }
+@@ -500,0 +1005,6 @@ void Planner::logSimplifiedGapVelocityCsvRow(
++        publishContainedRawGapPointsMarkerArray(
++        currSimplifiedGaps_,
++        currRawGaps_,
++        scan_->header.stamp
++           );
++
+@@ -841,0 +1352,64 @@ void Planner::updateModel(
++
++    
++    int containedRawGapPointCount = 0;
++    std::string containedRawGapPoints = "";
++
++    int sectorDynamicRawGapPointCount = 0;
++    float sectorRadius = 0.0f;
++    float sectorAngleRad = 0.0f;
++    float sectorArea = 0.0f;
++    float sectorDensity = 0.0f;
++    int gtSectorDynamicRawGapPointCount = 0;
++    float gtSectorDensity = 0.0f;
++
++    if (logSimplifiedGapVelocityLabels)
++    {
++        containedRawGapPoints =
++            serializeRawGapPointsInsideSimplifiedGap(
++                gapIndex,
++                containedRawGapPointCount
++            );
++
++        //////////////////////////////////////////////////////
++        // Estimator-derived density:
++        // "what the robot thinks is dynamic"
++        //////////////////////////////////////////////////////
++
++        computeSimplifiedGapSectorDensity(
++            gapIndex,
++            sectorDynamicRawGapPointCount,
++            sectorRadius,
++            sectorAngleRad,
++            sectorArea,
++            sectorDensity
++        );
++
++        //////////////////////////////////////////////////////
++        // Ground-truth density:
++        // "what the training label says is truly dynamic"
++        //////////////////////////////////////////////////////
++
++        computeSimplifiedGapGroundTruthSectorDensity(
++            gapIndex,
++            gtSectorDynamicRawGapPointCount,
++            gtSectorDensity
++        );
++
++            // if (side == "left") // you can print just the left one if its easier to read
++            // {
++            //      ROS_ERROR_STREAM_NAMED("GapSectorDensity", "just left bc easier read:");  
++                // ROS_ERROR_STREAM_NAMED("GapSectorDensity",
++                //     "\n"
++                //     << "gap_index=" << gapIndex << "\n"
++                //     << "contained_raw_gap_point_count=" << containedRawGapPointCount << "\n"
++                //     << "sector_radius=" << sectorRadius << "\n"
++                //     << "sector_angle_deg=" << sectorAngleRad * 180.0f / static_cast<float>(M_PI) << "\n" // idk what angle is for, rest of printouts make sense
++                //     << "sector_area=" << sectorArea << "\n"
++                //     << "sectorDynamicRawGapPointCount=" << sectorDynamicRawGapPointCount << "\n"
++                //     << "sector_density=" << sectorDensity << "\n"
++                //     << "gtSectorDynamicRawGapPointCount=" << gtSectorDynamicRawGapPointCount << "\n"
++                //     << "gtSectorDensity=" << gtSectorDensity
++                // );
++            // }
++        }
++
+@@ -865 +1439,10 @@ void Planner::updateModel(
+-            matchedDynamicAgent
++            matchedDynamicAgent,
++            containedRawGapPointCount,
++            containedRawGapPoints,
++            sectorRadius,
++            sectorAngleRad,
++            sectorArea,
++            sectorDynamicRawGapPointCount,
++            sectorDensity,
++            gtSectorDynamicRawGapPointCount,
++            gtSectorDensity
+@@ -876 +1459 @@ void Planner::updateModel(
+-    if (logSimplifiedGapVelocityLabels)
++    if (logSimplifiedGapVelocityLabels) // this is for using gru to estimate gap point velocity 
+@@ -888,0 +1472,41 @@ void Planner::updateModel(
++    //////////////////////////////////////////////////////
++    // 9. Publish generic sector-feature observation
++    //    for the density / future feature GRU node
++    //////////////////////////////////////////////////////
++
++    float featureVisX = 0.0f;
++    float featureVisY = 0.0f;
++
++    if (logSimplifiedGapVelocityLabels)
++    {
++        float gapLeftX = 0.0f;
++        float gapLeftY = 0.0f;
++        float gapRightX = 0.0f;
++        float gapRightY = 0.0f;
++
++        gap->getLCartesian(gapLeftX, gapLeftY);
++        gap->getRCartesian(gapRightX, gapRightY);
++
++        featureVisX = 0.5f * (gapLeftX + gapRightX);
++        featureVisY = 0.5f * (gapLeftY + gapRightY);
++    }
++
++    if (logSimplifiedGapVelocityLabels)
++    {
++        publishGapFeatureObservation(
++            tCurrentFilterUpdate,
++            gapIndex,
++            modelID,
++            side,
++            featureVisX,
++            featureVisY,
++            sectorDensity,
++            sectorDynamicRawGapPointCount,
++            containedRawGapPointCount,
++            sectorArea,
++            sectorAngleRad,
++            sectorRadius,
++            gtSectorDensity,
++            gtSectorDynamicRawGapPointCount
++        );
++    }
+@@ -906,0 +1531,3 @@ void Planner::updateModel(
++    //  ROS_ERROR_STREAM_NAMED("GapVelocityLabel"," nearby_count=" << nearbyAgentCount
++    // << " nearby_density=" << nearbyAgentDensity); 
++
+@@ -909,0 +1537,521 @@ void Planner::updateModel(
++void Planner::publishContainedRawGapPointsMarkerArray(
++    const std::vector<Gap*>& simplifiedGaps,
++    const std::vector<Gap*>& rawGaps,
++    const ros::Time& stamp) const
++{
++    visualization_msgs::MarkerArray markerArray;
++
++    //////////////////////////////////////////////////////
++    // Clear all previous markers first
++    //////////////////////////////////////////////////////
++
++    visualization_msgs::Marker deleteAllMarker;
++    deleteAllMarker.header.frame_id = cfg_.robot_frame_id;
++    deleteAllMarker.header.stamp = stamp;
++    deleteAllMarker.ns = "contained_raw_gap_points";
++    deleteAllMarker.id = 0;
++    deleteAllMarker.action = visualization_msgs::Marker::DELETEALL;
++
++    markerArray.markers.push_back(deleteAllMarker);
++
++    //////////////////////////////////////////////////////
++    // Small deterministic color palette by simplified gap index
++    //////////////////////////////////////////////////////
++
++    auto setGapColor = [](
++        visualization_msgs::Marker& marker,
++        const int gapIndex)
++    {
++        marker.color.a = 1.0;
++
++        switch (gapIndex % 6)
++        {
++            case 0:
++                marker.color.r = 1.0;
++                marker.color.g = 0.0;
++                marker.color.b = 0.0;
++                break;
++
++            case 1:
++                marker.color.r = 0.0;
++                marker.color.g = 1.0;
++                marker.color.b = 0.0;
++                break;
++
++            case 2:
++                marker.color.r = 0.0;
++                marker.color.g = 0.0;
++                marker.color.b = 1.0;
++                break;
++
++            case 3:
++                marker.color.r = 1.0;
++                marker.color.g = 1.0;
++                marker.color.b = 0.0;
++                break;
++
++            case 4:
++                marker.color.r = 1.0;
++                marker.color.g = 0.0;
++                marker.color.b = 1.0;
++                break;
++
++            default:
++                marker.color.r = 0.0;
++                marker.color.g = 1.0;
++                marker.color.b = 1.0;
++                break;
++        }
++    };
++
++    //////////////////////////////////////////////////////
++    // For every simplified gap, collect all raw gap points
++    // contained within its angular interval.
++    //////////////////////////////////////////////////////
++
++    for (size_t simpGapIndex = 0;
++         simpGapIndex < simplifiedGaps.size();
++         ++simpGapIndex)
++    {
++        Gap* simpGap = simplifiedGaps.at(simpGapIndex);
++
++        if (!simpGap)
++            continue;
++
++        const int simpRightIdx = simpGap->RIdx();
++        const int simpLeftIdx  = simpGap->LIdx();
++
++        //////////////////////////////////////////////////////
++        // Marker 1:
++        // Raw LEFT gap points inside this simplified gap
++        // Drawn as SPHERES
++        //////////////////////////////////////////////////////
++
++        visualization_msgs::Marker rawLeftMarker;
++
++        rawLeftMarker.header.frame_id = cfg_.robot_frame_id;
++        rawLeftMarker.header.stamp = stamp;
++
++        rawLeftMarker.ns = "contained_raw_left_gap_points";
++        rawLeftMarker.id = static_cast<int>(simpGapIndex);
++
++        rawLeftMarker.type = visualization_msgs::Marker::SPHERE_LIST;
++        rawLeftMarker.action = visualization_msgs::Marker::ADD;
++
++        rawLeftMarker.pose.position.x = 0.0;
++        rawLeftMarker.pose.position.y = 0.0;
++        rawLeftMarker.pose.position.z = 0.0;
++        rawLeftMarker.pose.orientation.x = 0.0;
++        rawLeftMarker.pose.orientation.y = 0.0;
++        rawLeftMarker.pose.orientation.z = 0.0;
++        rawLeftMarker.pose.orientation.w = 1.0;
++
++        rawLeftMarker.scale.x = 0.18;
++        rawLeftMarker.scale.y = 0.18;
++        rawLeftMarker.scale.z = 0.18;
++
++        setGapColor(rawLeftMarker, static_cast<int>(simpGapIndex));
++
++        //////////////////////////////////////////////////////
++        // Marker 2:
++        // Raw RIGHT gap points inside this simplified gap
++        // Drawn as CUBES
++        //////////////////////////////////////////////////////
++
++        visualization_msgs::Marker rawRightMarker;
++
++        rawRightMarker.header.frame_id = cfg_.robot_frame_id;
++        rawRightMarker.header.stamp = stamp;
++
++        rawRightMarker.ns = "contained_raw_right_gap_points";
++        rawRightMarker.id = static_cast<int>(simpGapIndex);
++
++        rawRightMarker.type = visualization_msgs::Marker::CUBE_LIST;
++        rawRightMarker.action = visualization_msgs::Marker::ADD;
++
++        rawRightMarker.pose.position.x = 0.0;
++        rawRightMarker.pose.position.y = 0.0;
++        rawRightMarker.pose.position.z = 0.0;
++        rawRightMarker.pose.orientation.x = 0.0;
++        rawRightMarker.pose.orientation.y = 0.0;
++        rawRightMarker.pose.orientation.z = 0.0;
++        rawRightMarker.pose.orientation.w = 1.0;
++
++        rawRightMarker.scale.x = 0.18;
++        rawRightMarker.scale.y = 0.18;
++        rawRightMarker.scale.z = 0.18;
++
++        setGapColor(rawRightMarker, static_cast<int>(simpGapIndex));
++
++        //////////////////////////////////////////////////////
++        // Check all raw gaps
++        //////////////////////////////////////////////////////
++
++        for (size_t rawGapIndex = 0;
++             rawGapIndex < rawGaps.size();
++             ++rawGapIndex)
++        {
++            Gap* rawGap = rawGaps.at(rawGapIndex);
++
++            if (!rawGap)
++                continue;
++
++            //////////////////////////////////////////////////////
++            // Raw RIGHT endpoint
++            //////////////////////////////////////////////////////
++
++            const int rawRightIdx = rawGap->RIdx();
++
++            if (scanIdxInsideGapRange(
++                    rawRightIdx,
++                    simpRightIdx,
++                    simpLeftIdx))
++            {
++                float rawRightX = 0.0f;
++                float rawRightY = 0.0f;
++
++                rawGap->getRCartesian(rawRightX, rawRightY);
++
++                geometry_msgs::Point p;
++                p.x = rawRightX;
++                p.y = rawRightY;
++                p.z = 0.15;
++
++                rawRightMarker.points.push_back(p);
++            }
++
++            //////////////////////////////////////////////////////
++            // Raw LEFT endpoint
++            //////////////////////////////////////////////////////
++
++            const int rawLeftIdx = rawGap->LIdx();
++
++            if (scanIdxInsideGapRange(
++                    rawLeftIdx,
++                    simpRightIdx,
++                    simpLeftIdx))
++            {
++                float rawLeftX = 0.0f;
++                float rawLeftY = 0.0f;
++
++                rawGap->getLCartesian(rawLeftX, rawLeftY);
++
++                geometry_msgs::Point p;
++                p.x = rawLeftX;
++                p.y = rawLeftY;
++                p.z = 0.15;
++
++                rawLeftMarker.points.push_back(p);
++            }
++        }
++
++        //////////////////////////////////////////////////////
++        // Push markers even if empty.
++        // This keeps marker IDs stable frame-to-frame.
++        //////////////////////////////////////////////////////
++
++        markerArray.markers.push_back(rawLeftMarker);
++        markerArray.markers.push_back(rawRightMarker);
++    }
++
++    containedRawGapPointsMarkerPublisher_.publish(markerArray);
++}
++
++bool Planner::rawGapPointMatchesDynamicGroundTruthAgent(
++    const Eigen::Vector2f& rawGapPointRobotFrame,
++    std::string& matchedAgentID,
++    float& matchDist,
++    float& matchedAgentGroundTruthSpeed) const
++{
++    matchedAgentID = "";
++    matchDist = std::numeric_limits<float>::infinity();
++    matchedAgentGroundTruthSpeed = 0.0f;
++
++    float minDist = std::numeric_limits<float>::infinity();
++    std::string bestAgentID = "";
++
++    //////////////////////////////////////////////////////
++    // 1. Find nearest ground-truth pedestrian
++    //////////////////////////////////////////////////////
++
++    for (const auto& agentPair : currentTrueAgentPoses_)
++    {
++        const std::string& agentID = agentPair.first;
++        const geometry_msgs::Pose& agentPose = agentPair.second;
++
++        const float dx =
++            agentPose.position.x - rawGapPointRobotFrame[0];
++
++        const float dy =
++            agentPose.position.y - rawGapPointRobotFrame[1];
++
++        const float dist =
++            std::sqrt(dx * dx + dy * dy);
++
++        if (dist < minDist)
++        {
++            minDist = dist;
++            bestAgentID = agentID;
++        }
++    }
++
++    matchedAgentID = bestAgentID;
++    matchDist = minDist;
++
++    //////////////////////////////////////////////////////
++    // 2. Must be close enough to count as matched
++    //////////////////////////////////////////////////////
++
++    if (bestAgentID.empty())
++        return false;
++
++    if (minDist >= perfectGapVelMatchThresh_)
++        return false;
++
++    //////////////////////////////////////////////////////
++    // 3. Must have a ground-truth velocity entry
++    //////////////////////////////////////////////////////
++
++    auto velIt = currentTrueAgentVels_.find(bestAgentID);
++
++    if (velIt == currentTrueAgentVels_.end())
++        return false;
++
++    const geometry_msgs::Vector3Stamped& agentVel =
++        velIt->second;
++
++    matchedAgentGroundTruthSpeed =
++        std::sqrt(
++            agentVel.vector.x * agentVel.vector.x +
++            agentVel.vector.y * agentVel.vector.y
++        );
++
++    //////////////////////////////////////////////////////
++    // 4. Dynamic if GT pedestrian speed is above threshold
++    //////////////////////////////////////////////////////
++
++    return matchedAgentGroundTruthSpeed >=
++           gapDensityDynamicSpeedThresh_;
++}
++
++void Planner::computeSimplifiedGapGroundTruthSectorDensity(
++    const int& simplifiedGapIndex,
++    int& gtSectorDynamicRawGapPointCount,
++    float& gtSectorDensity) const
++{
++    gtSectorDynamicRawGapPointCount = 0;
++    gtSectorDensity = 0.0f;
++
++    if (!scan_)
++        return;
++
++    if (simplifiedGapIndex < 0 ||
++        simplifiedGapIndex >= static_cast<int>(currSimplifiedGaps_.size()))
++    {
++        return;
++    }
++
++    Gap* simplifiedGap =
++        currSimplifiedGaps_.at(simplifiedGapIndex);
++
++    if (!simplifiedGap)
++        return;
++
++    const int simpRightIdx = simplifiedGap->RIdx();
++    const int simpLeftIdx  = simplifiedGap->LIdx();
++
++    //////////////////////////////////////////////////////
++    // 1. Recompute same sector radius used by estimator density
++    //////////////////////////////////////////////////////
++
++    float sectorRadius = 0.0f;
++
++    for (size_t rawGapIndex = 0;
++         rawGapIndex < currRawGaps_.size();
++         ++rawGapIndex)
++    {
++        Gap* rawGap = currRawGaps_.at(rawGapIndex);
++
++        if (!rawGap)
++            continue;
++
++        //////////////////////////////////////////////////////
++        // Raw RIGHT endpoint
++        //////////////////////////////////////////////////////
++
++        const int rawRightIdx = rawGap->RIdx();
++
++        if (scanIdxInsideGapRange(
++                rawRightIdx,
++                simpRightIdx,
++                simpLeftIdx))
++        {
++            float rawRightX = 0.0f;
++            float rawRightY = 0.0f;
++
++            rawGap->getRCartesian(rawRightX, rawRightY);
++
++            const float rawRightRadius =
++                std::sqrt(
++                    rawRightX * rawRightX +
++                    rawRightY * rawRightY
++                );
++
++            if (rawRightRadius > sectorRadius)
++                sectorRadius = rawRightRadius;
++        }
++
++        //////////////////////////////////////////////////////
++        // Raw LEFT endpoint
++        //////////////////////////////////////////////////////
++
++        const int rawLeftIdx = rawGap->LIdx();
++
++        if (scanIdxInsideGapRange(
++                rawLeftIdx,
++                simpRightIdx,
++                simpLeftIdx))
++        {
++            float rawLeftX = 0.0f;
++            float rawLeftY = 0.0f;
++
++            rawGap->getLCartesian(rawLeftX, rawLeftY);
++
++            const float rawLeftRadius =
++                std::sqrt(
++                    rawLeftX * rawLeftX +
++                    rawLeftY * rawLeftY
++                );
++
++            if (rawLeftRadius > sectorRadius)
++                sectorRadius = rawLeftRadius;
++        }
++    }
++
++    //////////////////////////////////////////////////////
++    // 2. Same sector angle and area as estimator density
++    //////////////////////////////////////////////////////
++
++    const float sectorAngleRad =
++        gapAngularWidthRad(
++            simpRightIdx,
++            simpLeftIdx
++        );
++
++    if (sectorRadius <= 0.0f ||
++        sectorAngleRad <= 0.0f)
++    {
++        return;
++    }
++
++    const float sectorArea =
++        0.5f *
++        sectorRadius *
++        sectorRadius *
++        sectorAngleRad;
++
++    if (sectorArea <= 0.0f)
++        return;
++
++    //////////////////////////////////////////////////////
++    // 3. Count contained raw gap endpoints whose nearest
++    //    matched GT pedestrian is actually moving.
++    //////////////////////////////////////////////////////
++
++    for (size_t rawGapIndex = 0;
++         rawGapIndex < currRawGaps_.size();
++         ++rawGapIndex)
++    {
++        Gap* rawGap = currRawGaps_.at(rawGapIndex);
++
++        if (!rawGap)
++            continue;
++
++        //////////////////////////////////////////////////////
++        // Raw RIGHT endpoint
++        //////////////////////////////////////////////////////
++
++        const int rawRightIdx = rawGap->RIdx();
++
++        if (scanIdxInsideGapRange(
++                rawRightIdx,
++                simpRightIdx,
++                simpLeftIdx))
++        {
++            float rawRightX = 0.0f;
++            float rawRightY = 0.0f;
++
++            rawGap->getRCartesian(rawRightX, rawRightY);
++
++            Eigen::Vector2f rawRightPt(
++                rawRightX,
++                rawRightY
++            );
++
++            std::string matchedAgentID;
++            float matchDist = 0.0f;
++            float matchedAgentGroundTruthSpeed = 0.0f;
++
++            const bool isDynamicGroundTruthRawGapPoint =
++                rawGapPointMatchesDynamicGroundTruthAgent(
++                    rawRightPt,
++                    matchedAgentID,
++                    matchDist,
++                    matchedAgentGroundTruthSpeed
++                );
++
++            if (isDynamicGroundTruthRawGapPoint)
++            {
++                gtSectorDynamicRawGapPointCount++;
++            }
++        }
++
++        //////////////////////////////////////////////////////
++        // Raw LEFT endpoint
++        //////////////////////////////////////////////////////
++
++        const int rawLeftIdx = rawGap->LIdx();
++
++        if (scanIdxInsideGapRange(
++                rawLeftIdx,
++                simpRightIdx,
++                simpLeftIdx))
++        {
++            float rawLeftX = 0.0f;
++            float rawLeftY = 0.0f;
++
++            rawGap->getLCartesian(rawLeftX, rawLeftY);
++
++            Eigen::Vector2f rawLeftPt(
++                rawLeftX,
++                rawLeftY
++            );
++
++            std::string matchedAgentID;
++            float matchDist = 0.0f;
++            float matchedAgentGroundTruthSpeed = 0.0f;
++
++            const bool isDynamicGroundTruthRawGapPoint =
++                rawGapPointMatchesDynamicGroundTruthAgent(
++                    rawLeftPt,
++                    matchedAgentID,
++                    matchDist,
++                    matchedAgentGroundTruthSpeed
++                );
++
++            if (isDynamicGroundTruthRawGapPoint)
++            {
++                gtSectorDynamicRawGapPointCount++;
++            }
++        }
++    }
++
++    //////////////////////////////////////////////////////
++    // 4. Ground-truth target density
++    //////////////////////////////////////////////////////
++
++    gtSectorDensity =
++        static_cast<float>(gtSectorDynamicRawGapPointCount) /
++        sectorArea;
++}
++
+@@ -1523,2 +2671,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-                        trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
+-
++                        int densityModelID =
++                            getGapLeftModelIDForDensityCost(gap);
++
++                        trajEvaluator_->evaluateTrajectory(
++                            goToGoalTraj,
++                            goToGoalPoseCosts,
++                            goToGoalTerminalPoseCost,
++                            futureScans,
++                            scanIdx,
++                            densityModelID
++                        );
+@@ -1550 +2707,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
++                        int densityModelID =
++                        getGapLeftModelIDForDensityCost(gap);
++
++                        trajEvaluator_->evaluateTrajectory(
++                            pursuitGuidanceTraj,
++                            pursuitGuidancePoseCosts,
++                            pursuitGuidanceTerminalPoseCost,
++                            futureScans,
++                            scanIdx,
++                            densityModelID
++                        );
++
+@@ -1573 +2741,13 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-                        trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
++                        
++                        int densityModelID =
++                        getGapLeftModelIDForDensityCost(gap);
++
++                        trajEvaluator_->evaluateTrajectory(
++                            pursuitGuidanceTraj,
++                            pursuitGuidancePoseCosts,
++                            pursuitGuidanceTerminalPoseCost,
++                            futureScans,
++                            scanIdx,
++                            densityModelID
++                        );
++
+@@ -1697 +2877,2 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-                                                    0);
++                                                    0, 
++                                                    -1); //-1 means don't store the model id which is needed for the density related score 
+@@ -1723,8 +2904,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    // void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
+-    //                                     std::vector<std::vector<float>> & idlingTrajPoseCosts,
+-    //                                     std::vector<float> & idlingTrajTerminalPoseCosts,
+-    //                                     const std::vector<sensor_msgs::LaserScan> & futureScans) 
+-    // {
+-    //     try
+-    //     {
+-    //         boost::mutex::scoped_lock gapset(gapMutex_);
++    void Planner::generateIdlingTraj(std::vector<Trajectory> & idlingTrajs,
++                                        std::vector<std::vector<float>> & idlingTrajPoseCosts,
++                                        std::vector<float> & idlingTrajTerminalPoseCosts,
++                                        const std::vector<sensor_msgs::LaserScan> & futureScans) 
++    {
++        try
++        {
++            boost::mutex::scoped_lock gapset(gapMutex_);
+@@ -1732 +2913,12 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
++            ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "[generateIdlingTraj()]");
++
++            Gap * nullGap = nullptr;
++            Trajectory idlingTrajectory;
++            Trajectory emptyRunningTraj;
++
++            idlingTrajectory =
++                gapTrajGenerator_->generateIdlingTrajectoryV2(
++                    nullGap,
++                    rbtPoseInSensorFrame_,
++                    emptyRunningTraj
++                );
+@@ -1734,2 +2925,0 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         Gap * nullGap = nullptr;
+-    //         Trajectory idlingTrajectory;
+@@ -1739,2 +2929,2 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         std::vector<float> idlingPoseCosts;
+-    //         float idlingTerminalPoseCost, idlingCost;
++            std::vector<float> idlingPoseCosts;
++            float idlingTerminalPoseCost, idlingCost;
+@@ -1742 +2932 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0);
++            trajEvaluator_->evaluateTrajectory(idlingTrajectory, idlingPoseCosts, idlingTerminalPoseCost, futureScans, 0, -1);
+@@ -1744 +2934 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
++            idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0)) / idlingPoseCosts.size();
+@@ -1746,2 +2936,2 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         idlingTrajPoseCosts.push_back(idlingPoseCosts);
+-    //         idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
++            idlingTrajPoseCosts.push_back(idlingPoseCosts);
++            idlingTrajTerminalPoseCosts.push_back(idlingTerminalPoseCost);
+@@ -1749,2 +2939,2 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
+-    //         idlingTrajs.push_back(idlingTrajectory);    
++            idlingTrajectory.setPathOdomFrame(gapTrajGenerator_->transformPath(idlingTrajectory.getPathRbtFrame(), rbt2odom_));
++            idlingTrajs.push_back(idlingTrajectory);    
+@@ -1752 +2942 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         // // push back idling trajectory as another option
++            // // push back idling trajectory as another option
+@@ -1754 +2944 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
++            // idlingTrajectory = gapTrajGenerator_->generateIdlingTrajectory(rbtPoseInOdomFrame_);
+@@ -1756,10 +2946,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //         // 
+-    //         // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
+-    //         // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
+-    //     } catch (const std::out_of_range & e)
+-    //     {
+-    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
+-    //     } catch (const std::exception & e)
+-    //     {
+-    //         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
+-    //     }
++            // 
++            // idlingCost = idlingTerminalPoseCost + std::accumulate(idlingPoseCosts.begin(), idlingPoseCosts.end(), float(0));
++            // ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        idlingCost: " << idlingCost);
++        } catch (const std::out_of_range & e)
++        {
++            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj out of range exception: " << e.what());
++        } catch (const std::exception & e)
++        {
++            ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generateIdlingTraj exception: " << e.what());
++        }
+@@ -1768,2 +2958,2 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-    //     return;
+-    // }
++        return;
++    }
+@@ -2015 +3205,17 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-            trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
++
++            int incomingDensityModelID = -1;
++
++            if (trajFlag == GAP && incomingGap) // so you use the latest gap info for the gru/density cost
++            {
++                incomingDensityModelID =
++                    getGapLeftModelIDForDensityCost(incomingGap);
++            }
++
++            trajEvaluator_->evaluateTrajectory(
++                incomingTraj,
++                incomingPathPoseCosts,
++                incomingPathTerminalPoseCost,
++                futureScans,
++                0,
++                incomingDensityModelID
++            );
+@@ -2104 +3310,18 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-            trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx);
++
++            int reducedCurrentDensityModelID = -1;
++
++            if (trajFlag == GAP)
++            {
++                reducedCurrentDensityModelID =
++                    getCurrentLeftGapPtModelID();
++            }
++
++            trajEvaluator_->evaluateTrajectory(
++                reducedCurrentTraj,
++                reducedCurrentPathPoseCosts,
++                reducedCurrentPathTerminalPoseCost,
++                futureScans,
++                updatedCurrentPathPoseIdx,
++                reducedCurrentDensityModelID
++            );
++
+@@ -2353,3 +3576,3 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
+-            // timeKeeper_->startTimer(IDLING_TRAJ_GEN);
+-            // generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
+-            // timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
++            timeKeeper_->startTimer(IDLING_TRAJ_GEN);
++            generateIdlingTraj(idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts, futureScans);         
++            timeKeeper_->stopTimer(IDLING_TRAJ_GEN);
+diff --git a/src/trajectory_evaluation/TrajectoryEvaluator.cpp b/src/trajectory_evaluation/TrajectoryEvaluator.cpp
+index 091ac2b..152bad3 100644
+--- a/src/trajectory_evaluation/TrajectoryEvaluator.cpp
++++ b/src/trajectory_evaluation/TrajectoryEvaluator.cpp
+@@ -6 +6,3 @@ namespace dynamic_gap
+-    TrajectoryEvaluator::TrajectoryEvaluator(const DynamicGapConfig& cfg)
++    TrajectoryEvaluator::TrajectoryEvaluator(
++    ros::NodeHandle& nh,
++    const DynamicGapConfig& cfg)
+@@ -8,0 +11,31 @@ namespace dynamic_gap
++
++        //////////////////////////////////////////////////////
++        // GRU gap-feature density subscriber
++        //////////////////////////////////////////////////////
++
++        useGruGapFeatureDensityCost_ = true;
++        maxGruGapFeaturePredictionAgeSec_ = 3.0;
++        gruGapDensityCostWeight_ = 5.0f;
++
++        const std::string gruGapFeatureDensityTopic =
++            "/rto/gru_gap_feature_prediction";
++
++        gruGapFeatureDensitySub_ =
++            nh.subscribe(
++                gruGapFeatureDensityTopic,
++                100,
++                &TrajectoryEvaluator::gruGapFeatureDensityCB,
++                this
++            );
++
++        ROS_WARN_STREAM_NAMED(
++            "GRUGapFeatureDensityCost",
++            "TrajectoryEvaluator GRU density cost enabled: "
++            << useGruGapFeatureDensityCost_
++            << ", topic: "
++            << gruGapFeatureDensityTopic
++            << ", max age: "
++            << maxGruGapFeaturePredictionAgeSec_
++            << ", cost weight: "
++            << gruGapDensityCostWeight_
++        );
+@@ -24 +57,149 @@ namespace dynamic_gap
+-    void TrajectoryEvaluator::evaluateTrajectory(const Trajectory & traj,
++    
++    bool TrajectoryEvaluator::getLatestGruGapFeatureDensityForModel(
++    const int& modelID,
++    const ros::Time& currentStamp,
++    float& predDensityOut) const
++    {
++        boost::mutex::scoped_lock lock(
++            gruGapFeatureDensityMutex_
++        );
++
++        auto it =
++            latestGruGapFeatureDensityByModelID_.find(modelID);
++
++        if (it ==
++            latestGruGapFeatureDensityByModelID_.end())
++        {
++            return false;
++        }
++
++        const GruGapFeatureDensityEstimate& estimate =
++            it->second;
++
++        if (!estimate.valid)
++            return false;
++
++        const double age =
++            std::abs(
++                (currentStamp - estimate.stamp).toSec()
++            );
++
++        if (age > maxGruGapFeaturePredictionAgeSec_)
++            return false;
++
++        if (!std::isfinite(estimate.pred_sector_density))
++            return false;
++
++        //////////////////////////////////////////////////////
++        // Prevent slightly negative network outputs from
++        // reducing trajectory cost.
++        //////////////////////////////////////////////////////
++
++        predDensityOut =
++            std::max(
++                0.0f,
++                estimate.pred_sector_density
++            );
++
++        return true;
++    }
++
++    void TrajectoryEvaluator::gruGapFeatureDensityCB(
++    const dynamic_gap::GapFeaturePrediction::ConstPtr& msg)
++    {
++        if (!msg->valid)
++        {
++            ROS_INFO_STREAM_NAMED(
++                "GRUGapFeatureDensityCost",
++                "received invalid GRU density prediction for model "
++                << msg->model_id
++                << " side="
++                << msg->side
++                << ", ignoring"
++            );
++
++            return;
++        }
++
++        if (msg->output_names.size() != msg->output_values.size())
++        {
++            ROS_WARN_STREAM_NAMED(
++                "GRUGapFeatureDensityCost",
++                "output_names/output_values size mismatch for model "
++                << msg->model_id
++                << ", ignoring"
++            );
++
++            return;
++        }
++
++        bool foundDensity = false;
++        float predDensity = 0.0f;
++
++        for (size_t i = 0; i < msg->output_names.size(); ++i)
++        {
++            if (msg->output_names.at(i) == "gt_sector_density")
++            {
++                predDensity =
++                    msg->output_values.at(i);
++
++                foundDensity = true;
++                break;
++            }
++        }
++
++        if (!foundDensity)
++        {
++            ROS_WARN_STREAM_NAMED(
++                "GRUGapFeatureDensityCost",
++                "GRU prediction for model "
++                << msg->model_id
++                << " did not contain gt_sector_density, ignoring"
++            );
++
++            return;
++        }
++
++        if (!std::isfinite(predDensity))
++        {
++            ROS_WARN_STREAM_NAMED(
++                "GRUGapFeatureDensityCost",
++                "received non-finite predicted density for model "
++                << msg->model_id
++                << ", ignoring"
++            );
++
++            return;
++        }
++
++        GruGapFeatureDensityEstimate estimate;
++        estimate.pred_sector_density = predDensity;
++        estimate.stamp = msg->header.stamp;
++        estimate.valid = msg->valid;
++        estimate.seq_len_used = msg->seq_len_used;
++
++        {
++            boost::mutex::scoped_lock lock(
++                gruGapFeatureDensityMutex_
++            );
++
++            latestGruGapFeatureDensityByModelID_[
++                msg->model_id
++            ] = estimate;
++        }
++
++        ROS_INFO_STREAM_NAMED(
++            "GRUGapFeatureDensityCost",
++            "stored GRU density prediction | model_id="
++            << msg->model_id
++            << " side="
++            << msg->side
++            << " pred_sector_density="
++            << estimate.pred_sector_density
++            << " seq_len="
++            << estimate.seq_len_used
++        );
++    }
++
++    void TrajectoryEvaluator::evaluateTrajectory(
++    const Trajectory & traj,
+@@ -28 +209,2 @@ namespace dynamic_gap
+-                                                const int & scanIdx) 
++    const int & scanIdx,
++    const int & densityModelID)
+@@ -31,0 +214,4 @@ namespace dynamic_gap
++            ROS_INFO_STREAM_NAMED(
++                "TrajectoryEvaluator",
++                "         [evaluateTrajectory()]"
++            );
+@@ -33 +219 @@ namespace dynamic_gap
+-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "         [evaluateTrajectory()]");
++            //////////////////////////////////////////////////////
+@@ -34,0 +221 @@ namespace dynamic_gap
++            //////////////////////////////////////////////////////
+@@ -36,2 +223,2 @@ namespace dynamic_gap
+-            geometry_msgs::PoseArray path = traj.getPathRbtFrame();
+-            std::vector<float> pathTiming = traj.getPathTiming();
++            geometry_msgs::PoseArray path =
++                traj.getPathRbtFrame();
+@@ -39 +226,18 @@ namespace dynamic_gap
+-            posewiseCosts = std::vector<float>(path.poses.size());
++            std::vector<float> pathTiming =
++                traj.getPathTiming();
++
++            posewiseCosts =
++                std::vector<float>(path.poses.size());
++
++            if (path.poses.size() == 0)
++            {
++                ROS_WARN_STREAM_NAMED(
++                    "TrajectoryEvaluator",
++                    "            empty trajectory passed to evaluateTrajectory()"
++                );
++
++                terminalPoseCost =
++                    std::numeric_limits<float>::infinity();
++
++                return;
++            }
+@@ -43 +247,14 @@ namespace dynamic_gap
+-                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-futureScans size mismatch: " << posewiseCosts.size() << " vs " << futureScans.size());
++                ROS_WARN_STREAM_NAMED(
++                    "TrajectoryEvaluator",
++                    "            posewiseCosts-futureScans size mismatch: "
++                    << "path size="
++                    << path.poses.size()
++                    << ", scanIdx="
++                    << scanIdx
++                    << ", futureScans size="
++                    << futureScans.size()
++                );
++
++                terminalPoseCost =
++                    std::numeric_limits<float>::infinity();
++
+@@ -49 +266,11 @@ namespace dynamic_gap
+-                ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            posewiseCosts-pathPoses size mismatch: " << posewiseCosts.size() << " vs " << path.poses.size());
++                ROS_WARN_STREAM_NAMED(
++                    "TrajectoryEvaluator",
++                    "            posewiseCosts-pathPoses size mismatch: "
++                    << posewiseCosts.size()
++                    << " vs "
++                    << path.poses.size()
++                );
++
++                terminalPoseCost =
++                    std::numeric_limits<float>::infinity();
++
+@@ -52,0 +280,3 @@ namespace dynamic_gap
++            //////////////////////////////////////////////////////
++            // 1. Posewise obstacle/chapter cost
++            //////////////////////////////////////////////////////
+@@ -54 +284,3 @@ namespace dynamic_gap
+-            for (int i = 0; i < posewiseCosts.size(); i++) 
++            for (int i = 0;
++                i < static_cast<int>(posewiseCosts.size());
++                i++)
+@@ -56,3 +288,14 @@ namespace dynamic_gap
+-                ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (total scan idx: " << (scanIdx + i) << "): ");
+-                // std::cout << "regular range at " << i << ": ";
+-                posewiseCosts.at(i) = evaluatePose(path.poses.at(i), futureScans.at(scanIdx + i)); //  / posewiseCosts.size()
++                ROS_INFO_STREAM_NAMED(
++                    "TrajectoryEvaluator",
++                    "           pose "
++                    << i
++                    << " (total scan idx: "
++                    << (scanIdx + i)
++                    << "): "
++                );
++
++                posewiseCosts.at(i) =
++                    evaluatePose(
++                        path.poses.at(i),
++                        futureScans.at(scanIdx + i)
++                    );
+@@ -60,2 +302,0 @@ namespace dynamic_gap
+-            float totalTrajCost = std::accumulate(posewiseCosts.begin(), posewiseCosts.end(), float(0)) / posewiseCosts.size();
+-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "             avg pose-wise cost: " << totalTrajCost);
+@@ -63,2 +304,6 @@ namespace dynamic_gap
+-            // obtain terminalGoalCost, scale by Q
+-            terminalPoseCost = cfg_->traj.Q_f * terminalGoalCost(path.poses.back());
++            float averagePosewiseCost =
++                std::accumulate(
++                    posewiseCosts.begin(),
++                    posewiseCosts.end(),
++                    float(0)
++                ) / posewiseCosts.size();
+@@ -66 +311,5 @@ namespace dynamic_gap
+-            ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "            terminal cost: " << terminalPoseCost);
++            ROS_INFO_STREAM_NAMED(
++                "TrajectoryEvaluator",
++                "             avg pose-wise cost: "
++                << averagePosewiseCost
++            );
+@@ -68,2 +317,83 @@ namespace dynamic_gap
+-            // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
+-        } catch (const std::out_of_range& e) 
++            //////////////////////////////////////////////////////
++            // 2. Existing goal-progress terminal cost
++            //////////////////////////////////////////////////////
++
++            const float baseTerminalGoalCost =
++                cfg_->traj.Q_f *
++                terminalGoalCost(path.poses.back());
++
++            //////////////////////////////////////////////////////
++            // 3. Fresh GRU gap-density cost
++            //
++            // This lookup happens RIGHT NOW, at evaluation time.
++            // Therefore reducedCurrentTraj scoring also uses the
++            // latest available GRU prediction.
++            //////////////////////////////////////////////////////
++
++            float predGruDensity = 0.0f;
++            float weightedGruDensityCost = 0.0f;
++            bool usedGruDensity = false;
++
++            ros::Time currentStamp =
++                ros::Time::now();
++
++            if (useGruGapFeatureDensityCost_ &&
++                densityModelID >= 0)
++        {
++                bool haveFreshGruDensity =
++                    getLatestGruGapFeatureDensityForModel(
++                        densityModelID,
++                        currentStamp,
++                        predGruDensity
++                    );
++
++                if (haveFreshGruDensity)
++                {
++                    weightedGruDensityCost =
++                        gruGapDensityCostWeight_ *
++                        predGruDensity;
++
++                    usedGruDensity = true;
++                }
++            }
++
++            //////////////////////////////////////////////////////
++            // 4. Final terminalPoseCost returned to caller
++            //////////////////////////////////////////////////////
++
++            terminalPoseCost =
++                baseTerminalGoalCost +
++                weightedGruDensityCost;
++
++            // ROS_WARN_STREAM_NAMED(
++            //     "GRUGapFeatureDensityCost",
++            //     "evaluateTrajectory density cost | "
++            //     << "density_model_id="
++            //     << densityModelID
++            //     << " used_gru_density="
++            //     << usedGruDensity
++            //     << " pred_density="
++            //     << predGruDensity
++            //     << " weighted_density_cost="
++            //     << weightedGruDensityCost
++            //     << " base_terminal_goal_cost="
++            //     << baseTerminalGoalCost
++            //     << " final_terminal_pose_cost="
++            //     << terminalPoseCost
++            // );
++
++            ROS_INFO_STREAM_NAMED(
++                "TrajectoryEvaluator",
++                "            terminal cost: "
++                << terminalPoseCost
++            );
++        }
++        catch (const std::out_of_range& e)
++        {
++            ROS_WARN_STREAM_NAMED(
++                "TrajectoryEvaluator",
++                "            evaluateTrajectory out of range exception: "
++                << e.what()
++            );
++        }
++        catch (const std::exception& e)
+@@ -71 +401,5 @@ namespace dynamic_gap
+-            ROS_WARN_STREAM_NAMED("TrajectoryEvaluator", "            evaluateTrajectory out of range exception: " << e.what());
++            ROS_WARN_STREAM_NAMED(
++                "TrajectoryEvaluator",
++                "            evaluateTrajectory exception: "
++                << e.what()
++            );

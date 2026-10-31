@@ -68,6 +68,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/Float32MultiArray.h>
 
+#include <dynamic_gap/gap_density/GapDensity.h>
 #include <dynamic_gap/GapPointObservation.h>
 #include <dynamic_gap/GapVelocityPrediction.h>
 
@@ -85,6 +86,8 @@ namespace dynamic_gap
                                  std::vector<float>& terminalCosts,
                                  const std::vector<sensor_msgs::LaserScan>& futureScans);
         unsigned int mppiCycle_ = 0;
+        std::shared_ptr<GapDensity> gapDensity_;
+        ros::Time densityGroundTruthReceived_;
         bool tryGoalApproach(Trajectory& trajectory, int& flag);
         ros::Publisher goalApproachStatusPublisher_;
 

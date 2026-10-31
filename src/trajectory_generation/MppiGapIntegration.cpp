@@ -77,19 +77,21 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     const geometry_msgs::Pose initial = rbtPoseInRbtFrame_.pose;
     const auto visiblePlan = globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 
+    // Sector density is constant across rollouts of one gap. Add it only when
+    // exporting each gap candidate for selection, never to this common objective.
     // Same objective for every optimizer, including the single-nominal baseline.
     // Optional endpoint costs are otherwise gap-dependent. Their maximum across
     // current gap contexts keeps native costs without adding a synthetic gate cost.
     const auto score = [&](dwa_Trajectory& trajectory) {
         if (!cfg_.planning.social_cost_function && !cfg_.traj.use_h_cost)
-            return evaluateMppiTrajectory(trajectory, *trajEvaluator_, cfg_, futureScans, visiblePlan, nullptr);
+            return evaluateMppiTrajectory(trajectory, *trajEvaluator_, cfg_, futureScans, visiblePlan, nullptr, false);
         dwa_Trajectory worst;
         float worstCost = -infinity;
         for (std::size_t index : valid)
         {
             auto contextual = trajectory;
             const float cost = evaluateMppiTrajectory(contextual, *trajEvaluator_, cfg_,
-                futureScans, visiblePlan, gapTubes[index]->at(0));
+                futureScans, visiblePlan, gapTubes[index]->at(0), false);
             if (cost > worstCost)
             {
                 worst = std::move(contextual);

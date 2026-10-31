@@ -43,7 +43,7 @@ float evaluateMppiTrajectory(dwa_Trajectory& trajectory,
                              const DynamicGapConfig& cfg,
                              const std::vector<sensor_msgs::LaserScan>& future_scans,
                              const std::vector<geometry_msgs::PoseStamped>& visible_plan,
-                             Gap* gap);
+                             Gap* gap, bool include_gap_density = true);
 
 // Final output boundary: enforce the original 11-pose/time layout and recompute
 // the original per-gap cost components, independent of MPPI's internal objective.

@@ -1,0 +1,3 @@
+{
+  "src/Planner.cpp": "Removed developer-home workspace prefix; paths now start at repository-relative ml_gap_velocity/."
+}

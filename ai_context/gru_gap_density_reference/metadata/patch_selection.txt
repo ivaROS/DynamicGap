@@ -1,0 +1,14 @@
+Selected paths are exactly changed_files.txt.
+Excluded src/delete_Planner.cpp (backup), ml_gap_velocity/--* (empty command artifacts),
+src/scan_processing/DynamicScanPropagator.cpp (inert debug-only loop).
+RViz patch retains only two density MarkerArray displays.
+Other selected files: whitespace-only hunks and unrelated idling log severity omitted.
+Changed-function layout remains part of source implementation; no reformat pass performed.
+include/dynamic_gap/Planner.h: whitespace-only block
+include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h: whitespace-only block
+ml_gap_velocity/scripts/train_gap_gru.py: whitespace-only block
+src/Planner.cpp: whitespace-only block
+src/Planner.cpp: whitespace-only block
+src/Planner.cpp: whitespace-only block
+src/trajectory_evaluation/TrajectoryEvaluator.cpp: whitespace-only block
+Pre-existing computePerfectGapVelocityLabel() comment/layout-only rewrite omitted.

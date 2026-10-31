@@ -107,6 +107,10 @@ namespace dynamic_gap
         dynamicScanPropagator_ = new DynamicScanPropagator(nh_, cfg_); 
 
         trajEvaluator_ = new TrajectoryEvaluator(cfg_);
+        gapDensity_ = std::make_shared<GapDensity>();
+        ros::NodeHandle densityParameters("~/" + name);
+        gapDensity_->initialize(nh_, densityParameters, cfg_.robot_frame_id);
+        trajEvaluator_->setGapDensity(gapDensity_);
         
         trajController_ = new TrajectoryController(nh_, cfg_);
 
@@ -439,6 +443,11 @@ namespace dynamic_gap
         updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                         intermediateRbtAccs, tCurrentFilterUpdate, true);
         timeKeeper_->stopTimer(GAP_EST);
+
+        gapDensity_->update(currRawGaps_, currSimplifiedGaps_, *scan_,
+                            currentTrueAgentPoses_, currentTrueAgentVels_,
+                            !densityGroundTruthReceived_.isZero() &&
+                            std::abs((ros::Time::now() - densityGroundTruthReceived_).toSec()) <= 0.5);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
         gapVisualizer_->drawGaps(prevRawGaps_, std::string("raw_tmin1"));
@@ -930,6 +939,9 @@ else
         if (!haveTFs_)
             return;
 
+        currentTrueAgentPoses_.clear();
+        currentTrueAgentVels_.clear();
+        densityGroundTruthReceived_ = ros::Time(0);
         for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
         {
             pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
@@ -967,6 +979,8 @@ else
         
         }
 
+        densityGroundTruthReceived_ = pedOdomMsg->header.stamp.isZero()
+            ? ros::Time::now() : pedOdomMsg->header.stamp;
         agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
     }
 
@@ -1658,6 +1672,7 @@ auto dumpSizes = [&](const std::string& tag,
                                                                             // currPose,
                                                                             // currVel,
                                                                             // false);
+                        goToGoalTraj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
                         trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
 
@@ -2218,6 +2233,7 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                         if (!cfg_.planning.dwa_method)
                         {
+                            pursuitGuidanceTraj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
                             trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
                             pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
                             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);

@@ -188,7 +188,7 @@ bool evaluateMppiOutputTrajectory(dwa_Trajectory& trajectory,
     // endpoint objective or append an MPPI-only speed penalty to these fields.
     evaluator.dwa_evaluateTrajectory(trajectory.totalTrajCost, trajectory,
         trajectory.PoseCosts, trajectory.PathCosts, trajectory.TerminalPoseCost,
-        future_scans, 0, visible_plan, gap, trajectory.RelVelPoseCosts);
+        future_scans, 0, visible_plan, gap, trajectory.RelVelPoseCosts, true);
     return std::isfinite(trajectory.totalTrajCost) &&
         trajectory.PoseCosts.size() == kGapTrajectoryPoseCount &&
         trajectory.PathCosts.size() == kGapTrajectoryPoseCount &&
@@ -200,7 +200,7 @@ float evaluateMppiTrajectory(dwa_Trajectory& trajectory,
                              const DynamicGapConfig& cfg,
                              const std::vector<sensor_msgs::LaserScan>& future_scans,
                              const std::vector<geometry_msgs::PoseStamped>& visible_plan,
-                             Gap* gap)
+                             Gap* gap, bool include_gap_density)
 {
     trajectory.totalTrajCost = infinity;
     trajectory.TerminalPoseCost = infinity;
@@ -217,7 +217,7 @@ float evaluateMppiTrajectory(dwa_Trajectory& trajectory,
     }
     evaluator.dwa_evaluateTrajectory(trajectory.totalTrajCost, trajectory,
         trajectory.PoseCosts, trajectory.PathCosts, trajectory.TerminalPoseCost,
-        future_scans, 0, visible_plan, gap, trajectory.RelVelPoseCosts);
+        future_scans, 0, visible_plan, gap, trajectory.RelVelPoseCosts, include_gap_density);
     if (!std::isfinite(trajectory.totalTrajCost) || trajectory.PoseCosts.size() != poses.size() ||
         trajectory.PathCosts.size() != poses.size() || trajectory.RelVelPoseCosts.size() != poses.size())
         return trajectory.totalTrajCost = infinity;

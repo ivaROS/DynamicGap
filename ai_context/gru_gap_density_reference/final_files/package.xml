@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dynamic_gap</name>
+  <version>0.0.0</version>
+  <description>The dynamic_gap package</description>
+
+  <maintainer email="mass@gatech.edu">Max Asselmeier</maintainer>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <depend>base_local_planner</depend>
+  <depend>mbf_costmap_core</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>pluginlib</depend>
+  <depend>nav_core</depend>
+  <depend>pedsim_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+    <nav_core plugin="${prefix}/dg_plugin.xml" />
+    <mbf_costmap_core plugin="${prefix}/dg_plugin.xml"/>
+  </export>
+  <build_depend>message_generation</build_depend>
+  <build_depend>message_runtime</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+</package>

@@ -1,0 +1,119 @@
+cmake_minimum_required(VERSION 3.10)
+project(dynamic_gap)
+
+add_compile_options(-std=c++17)
+
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+
+set(CATKIN_PACKAGE_DEPENDENCIES
+  base_local_planner
+  pluginlib
+  roscpp
+  rospy
+  pedsim_msgs
+  dynamic_reconfigure
+  std_msgs
+  geometry_msgs
+  visualization_msgs
+  message_runtime
+)
+
+set(CATKIN_BUILD_DEPENDENCIES
+  ${CATKIN_PACKAGE_DEPENDENCIES}
+  message_generation
+)
+
+find_package(catkin REQUIRED COMPONENTS
+          ${CATKIN_BUILD_DEPENDENCIES}
+        )
+
+find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
+generate_dynamic_reconfigure_options(
+  cfg/ControlParameters.cfg
+  cfg/EstimationParameters.cfg
+)
+
+add_message_files(
+  FILES
+  GapPointObservation.msg
+  GapVelocityPrediction.msg
+  GapFeatureObservation.msg
+  GapFeaturePrediction.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
+###################################
+## catkin specific configuration ##
+###################################
+
+catkin_package(
+  INCLUDE_DIRS 
+    include
+    ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+  LIBRARIES 
+    ${PROJECT_NAME}
+  CATKIN_DEPENDS
+    ${CATKIN_PACKAGE_DEPENDENCIES}
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_library(${PROJECT_NAME}
+  src/config/DynamicGapConfig.cpp
+  src/gap_detection/GapDetector.cpp
+  src/gap_association/Associator.cpp
+  src/gap_association/GapPointAssociator.cpp
+  src/gap_association/GapAssociator.cpp
+  src/gap_estimation/PerfectEstimator.cpp
+  src/gap_estimation/RotatingFrameCartesianKalmanFilter.cpp
+  src/gap_feasibility/GapFeasibilityChecker.cpp
+  src/gap_propagation/GapPropagator.cpp
+  src/global_plan_management/GlobalPlanManager.cpp
+  src/scan_processing/DynamicScanPropagator.cpp
+  src/trajectory_generation/GapTrajectoryGenerator.cpp
+  src/trajectory_generation/UngapTrajectoryGenerator.cpp
+  src/trajectory_generation/GapManipulator.cpp
+  src/trajectory_generation/GapGoalPlacer.cpp
+  src/trajectory_evaluation/TrajectoryEvaluator.cpp
+  src/trajectory_tracking/TrajectoryController.cpp
+  src/ungap_feasibility/UngapFeasibilityChecker.cpp
+  src/visualization/GapVisualizer.cpp
+  src/visualization/GoalVisualizer.cpp
+  src/visualization/AgentVisualizer.cpp
+  src/visualization/TrajectoryVisualizer.cpp
+  src/Planner.cpp
+  src/DynamicGapPlanner.cpp
+  src/TimeKeeper.cpp
+  ) 
+
+add_dependencies(${PROJECT_NAME}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}
+	${catkin_LIBRARIES}
+	${PYTHON_LIBRARIES}
+)

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <dynamic_gap/gap_density/GapDensity.h>
+#include <memory>
 #include <math.h>
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
@@ -37,6 +39,7 @@ namespace dynamic_gap
     */
     class TrajectoryEvaluator
     {
+        std::shared_ptr<GapDensity> gapDensity_;
         public:
             float compute_h(
                 Eigen::Vector2f humanVel,
@@ -45,6 +48,9 @@ namespace dynamic_gap
                 Eigen::Vector2f robotVel); 
 
             TrajectoryEvaluator(const DynamicGapConfig& cfg);
+            void setGapDensity(std::shared_ptr<GapDensity> density) { gapDensity_ = std::move(density); }
+            float gapDensityCost(int modelID) const
+            { return gapDensity_ ? gapDensity_->cost(modelID, ros::Time::now()) : 0.0f; }
 
             /**
             * \brief receive new laser scan and update member variable accordingly
@@ -84,7 +90,8 @@ namespace dynamic_gap
                             const int & scanIdx,
                             const std::vector<geometry_msgs::PoseStamped> & globalPlanSnippet, 
                             dynamic_gap::Gap* gap,
-                            std::vector<float> &dwa_RelVelPoseCosts);
+                            std::vector<float> &dwa_RelVelPoseCosts,
+                            bool includeGapDensity = true);
 
              /**
             * \brief Only to be used outside of generateGapTrajsV2: Function for evaluating dwa related costs along candidate trajectory. This is a modified ccopy of evaluateTrajectory

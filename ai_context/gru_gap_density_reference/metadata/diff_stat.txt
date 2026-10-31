@@ -1,0 +1,11 @@
+ CMakeLists.txt                                     |    2 +
+ include/dynamic_gap/Planner.h                      |  103 +-
+ .../trajectory_evaluation/TrajectoryEvaluator.h    |   56 +-
+ ml_gap_velocity/scripts/gru_gap_feature_node.py    |  455 +++++++
+ ml_gap_velocity/scripts/train_gap_gru.py           |  170 ++-
+ msg/GapFeatureObservation.msg                      |   16 +
+ msg/GapFeaturePrediction.msg                       |   11 +
+ rviz/arena.rviz                                    |   16 +
+ src/Planner.cpp                                    | 1325 +++++++++++++++++++-
+ src/trajectory_evaluation/TrajectoryEvaluator.cpp  |  376 +++++-
+ 10 files changed, 2398 insertions(+), 132 deletions(-)

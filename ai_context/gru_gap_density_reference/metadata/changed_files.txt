@@ -1,0 +1,10 @@
+CMakeLists.txt
+include/dynamic_gap/Planner.h
+include/dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h
+ml_gap_velocity/scripts/gru_gap_feature_node.py
+ml_gap_velocity/scripts/train_gap_gru.py
+msg/GapFeatureObservation.msg
+msg/GapFeaturePrediction.msg
+rviz/arena.rviz
+src/Planner.cpp
+src/trajectory_evaluation/TrajectoryEvaluator.cpp

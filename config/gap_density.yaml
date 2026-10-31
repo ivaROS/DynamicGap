@@ -1,0 +1,13 @@
+# Load into ~/DynamicGapPlannerROS (the same private namespace as mppi.yaml).
+# Relative topics resolve in the robot namespace, e.g. /rto.
+gap_density:
+  enabled: true
+  weight: 5.0
+  max_prediction_age: 3.0
+  dynamic_speed_threshold: 0.05
+  ground_truth_match_distance: 0.6
+  observation_topic: gap_feature_observation
+  prediction_topic: gru_gap_feature_prediction
+  marker_topic: contained_raw_gap_points
+  # Empty disables training collection. Use a new filename for each run.
+  csv_path: ""

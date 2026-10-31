@@ -1,0 +1,17 @@
+User baseline: 89b23d9e291cc8625931038c083f85c6cf8e9706
+Density-only patch base: 591044288a4a5d95ba6fa31280cabb2089d6eab8
+The user baseline predates both GRU velocity estimation and density scoring.
+The density feature does NOT require porting learned velocity estimation.
+Raw gap endpoint Kalman estimates are used for density; isolateGapDynamics()
+provides obstacle velocity with robot translation compensated.
+Existing simplified-gap GRU velocity override and its observation/label logging
+are included in complete Planner snapshots for context, not density requirements.
+Destination equivalents required if starting at the pre-GRU baseline:
+- catkin message_generation/message_runtime and std/geometry/visualization dependencies;
+- add_message_files / generate_messages / generated target dependencies;
+- robot-frame ground-truth pedestrian pose and velocity maps for labels and GT visuals;
+- stable gap endpoint model IDs and raw-to-simplified angular interval association;
+- sector CSV logging, the two GapFeature messages, density node and cost integration.
+Supporting complete package.xml, CMakeLists.txt, Estimator.h, velocity messages and
+velocity node show pre-existing build/interfaces. Avoid blindly porting velocity overrides.
+No standalone density launch file existed in the chosen snapshot; run command is in notes.

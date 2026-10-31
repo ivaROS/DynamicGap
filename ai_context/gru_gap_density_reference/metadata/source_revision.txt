@@ -1,0 +1,19 @@
+Reference: basic GRU gap density scoring with RViz visuals
+Capture date: 2026-10-31 (America/Toronto)
+Checked-out branch: feat/density-change-and-aspect-ratio
+Checked-out HEAD: 24c1c5b32c486e00d4f5b1c23fc699b7e6eceb5d
+Historical comparison baseline supplied by user: 89b23d9e291cc8625931038c083f85c6cf8e9706
+Density feature base (parent of first density commit d5f2ac9): 591044288a4a5d95ba6fa31280cabb2089d6eab8
+Reference final snapshot: fda9d417b2144abb52f4b2199ff7f9c94109f5e3
+Feature range: 591044288a4a5d95ba6fa31280cabb2089d6eab8..fda9d417b2144abb52f4b2199ff7f9c94109f5e3
+First feature commit: d5f2ac9d569fbc0168e8b5094d31a02bdaf4a997
+Selection: basic density inference, training, cost integration, RViz and idling exemption;
+stop before multi-trajectory merge 16d7ac6 and improvements 5c28ecf.
+Working tree before creation: no tracked modifications; untracked ml_gap_velocity/cat_data/.
+No working-tree file contents used: all final_files read from reference snapshot Git objects.
+Stashes exist; none applied and no stash content used.
+Archive and ai_context output are new untracked reference artifacts only.
+Patch is feature-filtered (not a whole-branch diff), zero-context unified format.
+Exact raw base accepted git apply --check --unidiff-zero in an isolated temporary index.
+final_files are complete historical final versions; developer-home paths redacted only.
+RViz full snapshot includes historical preferences; patch includes only density displays.

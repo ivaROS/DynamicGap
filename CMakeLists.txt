@@ -45,6 +45,8 @@ add_message_files(
   FILES
   GapPointObservation.msg
   GapVelocityPrediction.msg
+  GapFeatureObservation.msg
+  GapFeaturePrediction.msg
 )
 
 generate_messages(
@@ -107,6 +109,7 @@ add_library(${PROJECT_NAME}
   src/visualization/GoalVisualizer.cpp
   src/visualization/AgentVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
+  src/gap_density/GapDensity.cpp
   src/Planner.cpp
   src/DynamicGapPlanner.cpp
   src/TimeKeeper.cpp
@@ -120,6 +123,8 @@ add_dependencies(${PROJECT_NAME}
 catkin_install_python(PROGRAMS
   scripts/fmm_distance_node.py
   ml_gap_velocity/scripts/gru_gap_velocity_node.py
+  ml_gap_velocity/scripts/gru_gap_feature_node.py
+  ml_gap_velocity/scripts/train_gap_density_gru.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -133,10 +138,11 @@ target_link_libraries(${PROJECT_NAME}
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_rostest_gtest(test_mppi_control test/mppi_control.test test/test_mppi_control.cpp)
+  add_rostest_gtest(test_gap_density test/gap_density.test test/test_gap_density.cpp)
   catkin_add_gtest(test_mppi_optimizer test/test_mppi_optimizer.cpp)
   catkin_add_gtest(test_mppi_visualization test/test_mppi_visualization.cpp)
   catkin_add_gtest(test_goal_approach test/test_goal_approach.cpp)
-  foreach(test_target test_mppi_control test_mppi_optimizer test_mppi_visualization test_goal_approach)
+  foreach(test_target test_gap_density test_mppi_control test_mppi_optimizer test_mppi_visualization test_goal_approach)
     if(TARGET ${test_target})
       target_link_libraries(${test_target} ${PROJECT_NAME} ${catkin_LIBRARIES} gtest_main)
     endif()
