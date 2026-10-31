@@ -41,6 +41,7 @@ protected:
         }
         nh = std::make_unique<ros::NodeHandle>("density_test");
         scene = std::make_unique<dynamic_gap_test::Scene>(*nh);
+        nh->setParam("gap_density/source", "gru");
         density = std::make_shared<GapDensity>();
         density->initialize(*nh, *nh, scene->cfg.robot_frame_id);
         density->update(scene->gaps, scene->gaps, *scene->scan, {}, {}, false);
@@ -143,6 +144,62 @@ TEST_F(GapDensityTest, PublishesNamedFeaturesUnknownTargetsAndRobotFrameMarkers)
     ASSERT_EQ(observation->target_names.size(), 2u);
     EXPECT_EQ(observation->target_names.front(), "gt_sector_density");
     EXPECT_GT(observation->target_values.front(), 0);
+}
+
+TEST_F(GapDensityTest, GroundTruthBypassesGruAndAddsOneNativeTerminalPenalty)
+{
+    nh->setParam("gap_density/source", "ground_truth");
+    density = std::make_shared<GapDensity>();
+    density->initialize(*nh, *nh, scene->cfg.robot_frame_id);
+    TrajectoryEvaluator evaluator(scene->cfg);
+    scene->initializeEvaluator(evaluator);
+    evaluator.setGapDensity(density);
+    geometry_msgs::Pose origin; origin.orientation.w = 1;
+    MppiControls controls(10);
+    for (auto& control : controls) control.linear.x = .2;
+    auto trajectory = rolloutMppiControls(origin, controls, scene->cfg.traj.integrate_stept, scene->cfg.sensor_frame_id);
+    auto* gap = scene->gaps.front();
+    ASSERT_TRUE(evaluateMppiOutputTrajectory(trajectory, evaluator, scene->cfg, scene->future_scans, scene->plan, gap));
+    const float baseline = trajectory.totalTrajCost;
+    const float baselineTerminal = trajectory.TerminalPoseCost;
+    float x, y;
+    gap->getLCartesian(x,y);
+    geometry_msgs::Pose pose; pose.position.x = x; pose.position.y = y;
+    geometry_msgs::Vector3Stamped velocity; velocity.vector.x = .2;
+    const std::map<std::string, geometry_msgs::Pose> poses{{"pedestrian", pose}};
+    const std::map<std::string, geometry_msgs::Vector3Stamped> velocities{{"pedestrian", velocity}};
+    density->update(scene->gaps, scene->gaps, *scene->scan, poses, velocities, true);
+    const auto now = scene->scan->header.stamp;
+    const float penalty = density->cost(id, now);
+    ASSERT_GT(penalty, 0);
+    // The same endpoint geometry/GT classifier supplies the training target and test cost.
+    std::vector<DensityEndpoint> endpoints;
+    for (auto* raw : scene->gaps)
+        for (bool left : {false, true})
+        {
+            float px, py;
+            if (left) raw->getLCartesian(px,py); else raw->getRCartesian(px,py);
+            endpoints.push_back({left ? raw->LIdx() : raw->RIdx(), {px,py}, 0,
+                std::hypot(px-x,py-y) < .6, left});
+        }
+    const auto expected = computeDensitySector(endpoints, gap->RIdx(), gap->LIdx(), scene->scan->ranges.size(), scene->scan->angle_increment);
+    EXPECT_NEAR(penalty, 5 * expected.ground_truth_density, 1e-6);
+    message.output_values = {10000};
+    density->prediction(message);  // A running GRU node cannot override GT.
+    EXPECT_FLOAT_EQ(density->cost(id, now), penalty);
+    ASSERT_TRUE(evaluateMppiOutputTrajectory(trajectory, evaluator, scene->cfg, scene->future_scans, scene->plan, gap));
+    EXPECT_NEAR(trajectory.totalTrajCost - baseline, penalty, 1e-4);
+    EXPECT_NEAR(trajectory.TerminalPoseCost - baselineTerminal, penalty, 1e-4);
+    ASSERT_TRUE(evaluateMppiOutputTrajectory(trajectory, evaluator, scene->cfg, scene->future_scans, scene->plan, gap));
+    EXPECT_NEAR(trajectory.totalTrajCost - baseline, penalty, 1e-4);
+    EXPECT_FLOAT_EQ(density->cost(id, now + ros::Duration(.51)), 0);
+    EXPECT_FLOAT_EQ(density->cost(-1, now), 0);
+    // Missing simulator data immediately removes old density, rather than retaining it.
+    density->update(scene->gaps, scene->gaps, *scene->scan, poses, velocities, false);
+    EXPECT_FLOAT_EQ(density->cost(id, now), 0);
+    // A received empty simulator state is known empty, with zero density.
+    density->update(scene->gaps, scene->gaps, *scene->scan, {}, {}, true);
+    EXPECT_FLOAT_EQ(density->cost(id, now), 0);
 }
 
 TEST_F(GapDensityTest, NativeMppiOutputChargesOnceAndRunningPathUsesFreshPrediction)

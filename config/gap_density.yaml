@@ -2,6 +2,8 @@
 # Relative topics resolve in the robot namespace, e.g. /rto.
 gap_density:
   enabled: true
+  source: ground_truth             # ground_truth for testing; gru for learned density
+  max_ground_truth_age: 0.5
   weight: 5.0
   max_prediction_age: 3.0
   dynamic_speed_threshold: 0.05

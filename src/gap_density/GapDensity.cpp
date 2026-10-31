@@ -44,11 +44,16 @@ void GapDensity::initialize(ros::NodeHandle& topics, ros::NodeHandle& parameters
 {
     frame_ = frame;
     parameters.param("gap_density/enabled", enabled_, true);
+    parameters.param<std::string>("gap_density/source", source_, "ground_truth");
+    if (source_ != "ground_truth" && source_ != "gru")
+        throw std::invalid_argument("gap_density/source must be ground_truth or gru");
+    parameters.param("gap_density/max_ground_truth_age", max_ground_truth_age_, 0.5);
     parameters.param("gap_density/weight", weight_, 5.0);
     parameters.param("gap_density/max_prediction_age", max_age_, 3.0);
     parameters.param("gap_density/dynamic_speed_threshold", dynamic_threshold_, 0.05);
     parameters.param("gap_density/ground_truth_match_distance", match_threshold_, 0.6);
     if (!std::isfinite(weight_) || weight_ < 0 || !std::isfinite(max_age_) || max_age_ <= 0 ||
+        !std::isfinite(max_ground_truth_age_) || max_ground_truth_age_ <= 0 ||
         !std::isfinite(dynamic_threshold_) || dynamic_threshold_ < 0 ||
         !std::isfinite(match_threshold_) || match_threshold_ <= 0)
         throw std::invalid_argument("Invalid gap_density parameters");
@@ -59,7 +64,11 @@ void GapDensity::initialize(ros::NodeHandle& topics, ros::NodeHandle& parameters
     parameters.param<std::string>("gap_density/csv_path", csv_path, "");
     observations_ = topics.advertise<GapFeatureObservation>(observation, 100);
     markers_ = topics.advertise<visualization_msgs::MarkerArray>(marker, 1);
-    predictions_ = topics.subscribe(prediction, 100, &GapDensity::predictionCB, this);
+    if (source_ == "gru")
+        predictions_ = topics.subscribe(prediction, 100, &GapDensity::predictionCB, this);
+    else
+        predictions_.shutdown();
+    ROS_INFO_STREAM("Gap density scoring source: " << source_);
     if (!csv_path.empty())
     {
         std::error_code error;
@@ -76,7 +85,7 @@ void GapDensity::initialize(ros::NodeHandle& topics, ros::NodeHandle& parameters
 
 void GapDensity::prediction(const GapFeaturePrediction& message)
 {
-    if (message.model_id < 0 || message.side != "left") return;
+    if (source_ != "gru" || message.model_id < 0 || message.side != "left") return;
     boost::mutex::scoped_lock lock(mutex_);
     const int id = message.model_id;
     if (!active_ids_.count(id)) return;
@@ -100,7 +109,8 @@ float GapDensity::cost(int id, const ros::Time& now) const
     boost::mutex::scoped_lock lock(mutex_);
     const auto it = estimates_.find(id);
     if (it == estimates_.end() || !active_ids_.count(id) ||
-        std::abs((now - it->second.stamp).toSec()) > max_age_) return 0;
+        std::abs((now - it->second.stamp).toSec()) >
+            (source_ == "ground_truth" ? max_ground_truth_age_ : max_age_)) return 0;
     const double penalty = weight_ * it->second.density;
     return std::isfinite(penalty) && penalty <= std::numeric_limits<float>::max() ? float(penalty) : 0;
 }
@@ -114,6 +124,8 @@ void GapDensity::update(const std::vector<Gap*>& raw, const std::vector<Gap*>& s
     {
         boost::mutex::scoped_lock lock(mutex_);
         if (!last_scan_stamp_.isZero() && scan.header.stamp < last_scan_stamp_) estimates_.clear();
+        // GT is recomputed from this scan only; unavailable labels invalidate all old costs.
+        if (source_ == "ground_truth") estimates_.clear();
         last_scan_stamp_ = scan.header.stamp;
         active_ids_.clear();
         for (auto* gap : simplified)
@@ -182,6 +194,12 @@ void GapDensity::update(const std::vector<Gap*>& raw, const std::vector<Gap*>& s
             observation.target_names = {"gt_sector_density", "gt_sector_dynamic_raw_gap_point_count"};
             observation.target_values = {sector.ground_truth_density, float(sector.ground_truth_count)};
         }
+        if (source_ == "ground_truth" && ground_truth_available &&
+            sector.area > 0 && std::isfinite(sector.ground_truth_density))
+        {
+            boost::mutex::scoped_lock lock(mutex_);
+            estimates_[observation.model_id] = {scan.header.stamp, sector.ground_truth_density};
+        }
         observations_.publish(observation);
         if (csv_.is_open())
         {
@@ -191,6 +209,22 @@ void GapDensity::update(const std::vector<Gap*>& raw, const std::vector<Gap*>& s
             if (ground_truth_available) csv_ << ',' << sector.ground_truth_density << ',' << sector.ground_truth_count;
             else csv_ << ",,";
             csv_ << '\n';
+        }
+        if (source_ == "ground_truth")
+        {
+            visualization_msgs::Marker text;
+            text.header = observation.header;
+            text.ns = "ground_truth_density_text";
+            text.id = i;
+            text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            text.action = visualization_msgs::Marker::ADD;
+            text.pose.position.x = observation.vis_x; text.pose.position.y = observation.vis_y;
+            text.pose.position.z = 0.35; text.pose.orientation.w = 1;
+            text.scale.z = 0.28;
+            text.color.g = text.color.a = 1;
+            text.text = "gap " + std::to_string(i) + " | GT: " +
+                (ground_truth_available ? std::to_string(sector.ground_truth_density) : "N/A");
+            markers.markers.push_back(std::move(text));
         }
         for (bool left : {true, false})
         {

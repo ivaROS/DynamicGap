@@ -1,16 +1,18 @@
 <launch>
   <arg name="robot_namespace" default="rto" />
   <arg name="planner_namespace" default="move_base_flex/DynamicGapPlannerROS" />
-  <arg name="model_path" />
-  <arg name="stats_path" />
+  <arg name="source" default="ground_truth" />
+  <arg name="model_path" default="" />
+  <arg name="stats_path" default="" />
   <arg name="seq_len" default="10" />
   <arg name="device" default="cpu" />
   <arg name="csv_path" default="" />
   <!-- Start before navigation so the planner reads these initialization parameters. -->
   <group ns="$(arg robot_namespace)">
     <rosparam command="load" file="$(find dynamic_gap)/config/gap_density.yaml" ns="$(arg planner_namespace)" />
+    <param name="$(arg planner_namespace)/gap_density/source" value="$(arg source)" />
     <param name="$(arg planner_namespace)/gap_density/csv_path" value="$(arg csv_path)" />
-    <node pkg="dynamic_gap" type="gru_gap_feature_node.py" name="gru_gap_density" output="screen" required="true">
+    <node pkg="dynamic_gap" type="gru_gap_feature_node.py" name="gru_gap_density" output="screen" required="true" if="$(eval arg('source') == 'gru')">
       <param name="model_path" value="$(arg model_path)" />
       <param name="stats_path" value="$(arg stats_path)" />
       <param name="seq_len" value="$(arg seq_len)" />

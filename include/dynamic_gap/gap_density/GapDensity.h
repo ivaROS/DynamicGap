@@ -57,7 +57,8 @@ private:
     std::unordered_set<int> active_ids_;
     ros::Time last_scan_stamp_;
     bool enabled_ = true;
-    double weight_ = 5.0, max_age_ = 3.0;
+    double weight_ = 5.0, max_age_ = 3.0, max_ground_truth_age_ = 0.5;
+    std::string source_ = "ground_truth";
     double dynamic_threshold_ = 0.05, match_threshold_ = 0.6;
     std::string frame_;
     ros::Publisher observations_, markers_;

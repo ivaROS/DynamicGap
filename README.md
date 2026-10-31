@@ -91,7 +91,29 @@ If would like to cite this work, please use the following format:
   month     = {September},
 }
 ```
-### GRU gap density with MPPI
+### Gap density with MPPI
+
+Ground-truth density is now the default test source
+(`gap_density/source: ground_truth`). It uses the same observed endpoint sector geometry and simulator
+classification as the GRU training labels, adding `weight * gt_sector_density`
+once per candidate. No GRU model, stats, or inference node is needed. Start before
+navigation and restart the planner if it is already running:
+
+```bash
+roslaunch dynamic_gap gap_density.launch robot_namespace:=rto
+```
+
+The existing pedestrian-state topic and TF must be available. Missing GT clears
+previous costs immediately at the next scan; cached GT sector values expire after
+`gap_density/max_ground_truth_age` (default 0.5 s). The existing 0.5 s pedestrian
+freshness check also applies. Ground-truth text appears on the raw endpoint marker
+topic in RViz. This is the reference's density of observed dynamic endpoints per
+sector area, rather than a count of every simulator pedestrian in the sector.
+
+To return to learned scoring, set `gap_density/source: gru`, or launch with
+`source:=gru` and the model/statistics arguments below.
+
+### Learned density option
 
 The density port uses the archive's six-feature model contract independently of
 GRU velocity replacement. Raw endpoint Kalman estimates supply isolated obstacle
@@ -124,8 +146,8 @@ backward/duplicate timestamps or gaps above 0.5 s. GRU warmup publishes invalid
 predictions. Density settings in [config/gap_density.yaml](config/gap_density.yaml)
 load under the same **private planner namespace** as `mppi.yaml`; topics resolve
 under the **robot namespace**, normally `/rto`. Defaults enable density scoring
-with weight 5 and maximum age 3 s, matching the reference. Without an inference
-node or usable predictions, baseline scoring continues. Density does not require
+with weight 5. GRU predictions have maximum age 3 s; GT sector values use 0.5 s.
+In GRU mode, missing or unusable predictions leave baseline scoring active. Density does not require
 enabling `use_gru_gap_velocity`; set that existing parameter to false for a
 Kalman-velocity/density-only experiment.
 
@@ -135,7 +157,7 @@ before navigation (adjust the planner namespace to your navigation node/plugin):
 
 ```bash
 source /home/azaro/arena_ws/devel/setup.bash
-roslaunch dynamic_gap gap_density.launch robot_namespace:=rto \
+roslaunch dynamic_gap gap_density.launch robot_namespace:=rto source:=gru \
   planner_namespace:=move_base_flex/DynamicGapPlannerROS \
   model_path:=/absolute/path/basic_density.pt \
   stats_path:=/absolute/path/basic_density_norm_stats.json
