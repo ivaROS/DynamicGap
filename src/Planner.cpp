@@ -2652,6 +2652,7 @@ namespace dynamic_gap
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
             int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
 
+            // Uncommented this
             if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity())
             {
                 ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
