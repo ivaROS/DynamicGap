@@ -15,6 +15,16 @@
 
 Dynamic gap is a local motion planner designed to run in dynamic, structured environments. That means that this planner can excel in both empty regions full of moving agents as well as crowded, dense regions with corridors, obstacles, and rooms. In this proposed work, we extend the family of perception-informed gap-based planners to dynamic settings by modeling how gaps evolve over time. This gap evolution informs feasibility analysis, trajectory generation, and trajectory selection.
 
+### MPPI default
+
+MPPI is enabled by default inside Dynamic Gap and uses `gap_guided` mode. To disable it, set the planner's private parameter before launching or restarting the planner:
+
+```bash
+rosparam set /rto/move_base_flex/DynamicGapPlannerROS/mppi/enabled false
+```
+
+The setting is read when the planner initializes. If you load `config/mppi.yaml`, set the parameter after loading that file so the explicit opt-out takes effect. To re-enable MPPI, set the same parameter to `true` before restarting.
+
 ## <a name="Installation"></a>Installation
 
 This planner has been tested on ROS Noetic on Ubuntu 20.04.
