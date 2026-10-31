@@ -1788,8 +1788,8 @@ namespace dynamic_gap
                                         current_seg++;
                                     }
 
-                                    // if (current_seg + 1 >= curve.size())
-                                    //     break;
+                                    if (current_seg + 1 >= curve.size())
+                                        break;
 
                                     float seg_len = (curve[current_seg + 1] - curve[current_seg]).norm();
                                     float remaining = next_target - dist_accum;
@@ -2652,20 +2652,20 @@ namespace dynamic_gap
             auto lowestCostTrajIterIter = std::min_element(pathCosts.begin(), pathCosts.end());
             int candidateLowestCostTrajIdx = std::distance(pathCosts.begin(), lowestCostTrajIterIter);
 
-            // if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity())
-            // {
-            //     ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
-            //     ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
-            //     for (float pathCost : pathCosts)
-            //     {
-            //         ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
-            //     }
-            //     ROS_INFO_STREAM_NAMED("Planner", "------------------");
+            if (pathCosts.at(candidateLowestCostTrajIdx) == std::numeric_limits<float>::infinity())
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "    all infinity");
+                ROS_INFO_STREAM_NAMED("Planner", "No executable trajectory, values: ");
+                for (float pathCost : pathCosts)
+                {
+                    ROS_INFO_STREAM_NAMED("Planner", "Cost: " << pathCost);
+                }
+                ROS_INFO_STREAM_NAMED("Planner", "------------------");
 
-            //     trajFlag = NONE;
-            //     // do not update candidateLowestCostTrajIdx
-            //     return;
-            // }
+                trajFlag = NONE;
+                // do not update candidateLowestCostTrajIdx
+                return;
+            }
 
             if (candidateLowestCostTrajIdx >= 0 && candidateLowestCostTrajIdx < numGapTrajs)
             {
