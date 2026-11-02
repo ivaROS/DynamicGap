@@ -1731,16 +1731,24 @@ namespace dynamic_gap
 
                                 // z-component of the cross product between consecutive direction vectors
                                 float cross = v1.x() * v2.y() - v1.y() * v2.x();
-                                float curvature = cross / powf(v1.norm(), 3.0f); // discrete curvature estimate
+                                const float v1_norm = v1.norm();
+                                if(!std::isfinite(v1_norm) || v1_norm < 1e-6f)
+                                    continue;
+                                float curvature = cross / powf(v1_norm, 3.0f); // discrete curvature estimate
 
                                 // --- Step 3: desired yaw rate from curvature ---
                                 float w_des = v_des * curvature;
 
                                 // --- Step 4: compute λ scaling factor (re-parameterization of curve timing) ---
-                                float lambda = std::min(1.0f, v_des / v1.norm());
+                                float lambda = std::min(1.0f, v_des / v1_norm);
 
                                 // --- Step 5: apply angular-velocity clipping (σ term) ---
-                                float sigma = std::min(w_max / std::fabs(lambda * w_des), 1.0f);
+                                const float yaw_rate = std::fabs(lambda * w_des);
+                                if(!std::isfinite(yaw_rate))
+                                    continue;
+                                float sigma = 1.0f;
+                                if(yaw_rate >= 1e-6f)
+                                    sigma = std::min(w_max / yaw_rate, 1.0f);
 
                                 // --- Step 6: final commanded velocities ---
                                 float v_cmd = sigma * lambda * v_des;
@@ -2601,6 +2609,12 @@ namespace dynamic_gap
                 //     ROS_WARN_STREAM_NAMED("Planner", "gap traj " << i << " has < 2 poses");
                 // }
 
+                if(currentTrajPoseCosts.empty()) {
+                    pathCosts.at(runningTrajIdx) = std::numeric_limits<float>::infinity();
+                    runningTrajIdx++;
+                    continue;
+                }
+
                 pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(currentTrajPoseCosts.begin(), currentTrajPoseCosts.end(), float(0)) / currentTrajPoseCosts.size();
 
                 pathCosts.at(runningTrajIdx) = currentTraj.getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
@@ -3185,7 +3199,20 @@ namespace dynamic_gap
         else
         {
             sensor_msgs::LaserScan currentScan = *scan_.get();
-            futureScans = std::vector<sensor_msgs::LaserScan>(int(cfg_.traj.integrate_maxt / cfg_.traj.integrate_stept) + 1, currentScan);
+
+            const float dt = cfg_.traj.integrate_stept;
+            const float horizon = cfg_.traj.integrate_maxt;
+
+            if(!std::isfinite(dt) || dt <= 0.0f ||
+            !std::isfinite(horizon) || horizon < 0.0f)
+            {
+                ROS_FATAL_STREAM("Invalid integration settings: timestep="
+                                << dt << ", horizon=" << horizon);
+                throw std::invalid_argument(
+                    "Integration timestep must be positive and horizon nonnegative");
+            }
+
+            futureScans = std::vector<sensor_msgs::LaserScan>(int(horizon / dt) + 1, currentScan);
         }
         timeKeeper_->stopTimer(SCAN_PROP);
 
@@ -3696,7 +3723,12 @@ namespace dynamic_gap
                         const double ux_max = cfg_.rbt.vx_absmax;
 
                         // u_y = l_ * w
-                        const double l_ = (cfg_.rbt.r_inscr * cfg_.traj.inf_ratio);
+                        const double l_ = cfg_.rbt.r_inscr * cfg_.traj.inf_ratio;
+                        if(!std::isfinite(l_) || l_ <= 1e-6)
+                        {
+                            ROS_ERROR_THROTTLE(1.0, "Invalid CBF lookahead distance");
+                            return geometry_msgs::Twist(); // Zero velocity command
+                        }
                         const double uy_min = -l_ * cfg_.rbt.vang_absmax;
                         const double uy_max = l_ * cfg_.rbt.vang_absmax;
 
