@@ -96,6 +96,29 @@ class FeaturesTest(unittest.TestCase):
         ex = example(random.Random(0), n=3, label=2)  # candidate 2 is infeasible
         self.assertTrue(il_model.featurize(ex)["mask"][2])
 
+    def test_options_only(self):
+        ex = example(random.Random(0), n=4, label=2)  # candidate 3 is infeasible
+        ex["candidates"][0]["shown"] = False
+        ex["dg_pick"] = 1
+        out = il_model.options_only(ex)
+        self.assertEqual(out["candidates"], [ex["candidates"][1], ex["candidates"][2]])
+        self.assertEqual((out["label"], out["dg_pick"]), (1, 0))
+        ex["dg_pick"] = 0  # DynamicGap's pick is not an option
+        self.assertEqual(il_model.options_only(ex)["dg_pick"], -1)
+        # the operator's gap stays
+        ex["label"] = 3
+        self.assertEqual(il_model.options_only(ex)["candidates"][-1], ex["candidates"][3])
+
+    def test_options_only_same_scores(self):
+        ex = example(random.Random(0), n=4, label=0)  # candidate 3 is infeasible
+        items = [il_model.featurize(ex)]
+        model = il_model.GapScorer(il_model.normalizer(items)).eval()
+        kept = il_model.featurize(il_model.options_only(ex))
+        with torch.no_grad():
+            before = il_model.scores(model, il_model.collate(items))[0]
+            after = il_model.scores(model, il_model.collate([kept]))[0]
+        self.assertTrue(torch.allclose(before[:3], after, atol=1e-5))
+
     def test_decision_weights(self):
         rng = random.Random(0)
         exs = [example(rng, label=0, dg_pick=0), example(rng, label=0, dg_pick=1),

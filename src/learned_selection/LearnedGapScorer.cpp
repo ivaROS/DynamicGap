@@ -295,7 +295,7 @@ namespace dynamic_gap
         return in;
     }
 
-    Eigen::MatrixXf LearnedGapScorer::attention(const Eigen::MatrixXf & h, const std::vector<bool> & mask) const
+    Eigen::MatrixXf LearnedGapScorer::attention(const Eigen::MatrixXf & h) const
     {
         // il_model.CandidateAttention: pre-norm self-attention, then feed-forward
         const int n = h.rows(), d = h.cols(), hd = d / heads_;
@@ -307,9 +307,6 @@ namespace dynamic_gap
             const Eigen::MatrixXf key = qkv.block(0, d + k * hd, n, hd);
             const Eigen::MatrixXf v = qkv.block(0, 2 * d + k * hd, n, hd);
             Eigen::MatrixXf att = (q * key.transpose()) / std::sqrt(float(hd));
-            for (int j = 0; j < n; j++)
-                if (!mask[j])
-                    att.col(j).setConstant(maskedScore_);
             for (int i = 0; i < n; i++)
             {
                 const float m = att.row(i).maxCoeff();
@@ -325,20 +322,32 @@ namespace dynamic_gap
     Eigen::VectorXf LearnedGapScorer::score(const GapScorerInput & input) const
     {
         const int n = input.cand.rows();
-        Eigen::VectorXf scores = Eigen::VectorXf::Zero(n);
         if (!loaded_ || n == 0)
+            return Eigen::VectorXf::Zero(n);
+
+        // only the options reach the model; the other candidates get no score of their own
+        std::vector<int> options;
+        for (int i = 0; i < n; i++)
+            if (input.mask[i])
+                options.push_back(i);
+        const int m = options.size();
+        Eigen::VectorXf scores = Eigen::VectorXf::Constant(n, maskedScore_);
+        if (m == 0)
             return scores;
 
+        Eigen::VectorXf optionScores = Eigen::VectorXf::Zero(m);
         if (residual_)
-            scores -= (input.dg * dgWeight_).cwiseProduct(input.dgAvail);
+            for (int j = 0; j < m; j++)
+                optionScores(j) -= input.dg.row(options[j]).dot(dgWeight_) * input.dgAvail(options[j]);
 
         if (network_)
         {
-            Eigen::MatrixXf cand(n, candIdx_.size());
+            Eigen::MatrixXf cand(m, candIdx_.size());
             for (size_t k = 0; k < candIdx_.size(); k++)
             {
                 const int f = candIdx_[k];
-                cand.col(k) = (input.cand.col(f).array() - candMean_(f)) / candStd_(f);
+                for (int j = 0; j < m; j++)
+                    cand(j, k) = (input.cand(options[j], f) - candMean_(f)) / candStd_(f);
             }
             Eigen::MatrixXf ctx(1, ctxIdx_.size());
             for (size_t k = 0; k < ctxIdx_.size(); k++)
@@ -350,15 +359,14 @@ namespace dynamic_gap
             Eigen::MatrixXf e = runMlp(candEnc_, cand);
             const Eigen::RowVectorXf c = runMlp(ctxEnc_, ctx).row(0);
             if (attention_)
-                e = attention(e.rowwise() + c, input.mask);
-            Eigen::MatrixXf h(n, 2 * e.cols());
-            h << e, c.replicate(n, 1);
-            scores += runMlp(head_, h).col(0);
+                e = attention(e.rowwise() + c);
+            Eigen::MatrixXf h(m, 2 * e.cols());
+            h << e, c.replicate(m, 1);
+            optionScores += runMlp(head_, h).col(0);
         }
 
-        for (int i = 0; i < n; i++)
-            if (!input.mask[i])
-                scores(i) = maskedScore_;
+        for (int j = 0; j < m; j++)
+            scores(options[j]) = optionScores(j);
         return scores;
     }
 

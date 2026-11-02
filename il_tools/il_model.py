@@ -105,6 +105,18 @@ def selectable(c):
     return bool(c["feasible"]) and c.get("shown", True)
 
 
+def options_only(ex):
+    """The example with only the operator's options as candidates; label and dg_pick
+    follow. The operator's gap stays (shown is missing before schema 2)."""
+    keep = [i for i, c in enumerate(ex["candidates"]) if selectable(c) or i == ex["label"]]
+    if len(keep) == len(ex["candidates"]):
+        return ex
+    dg_pick = ex.get("dg_pick")
+    return dict(ex, candidates=[ex["candidates"][i] for i in keep], label=keep.index(ex["label"]),
+                dg_pick=dg_pick if dg_pick is None or dg_pick < 0
+                else keep.index(dg_pick) if dg_pick in keep else -1)
+
+
 def featurize(ex):
     """One example of il_dataset.py as arrays; None if no candidate is selectable."""
     cands = ex["candidates"]

@@ -29,7 +29,7 @@ namespace dynamic_gap
     *
     * Data in, choice out: the scorer reads the tick's ManualGapSample (the same
     * message the recorder publishes and the training set is built from), scores
-    * every candidate and returns the highest-scoring selectable one.
+    * the selectable candidates and returns the highest-scoring one.
     */
     class LearnedGapScorer
     {
@@ -59,7 +59,7 @@ namespace dynamic_gap
             GapScorerInput featurize(const manual_gap_msgs::ManualGapSample & sample) const;
 
             /**
-            * \brief Score of every candidate; candidates outside the mask get the masked score
+            * \brief Runs the model on the candidates in the mask only; the others get the masked score
             */
             Eigen::VectorXf score(const GapScorerInput & input) const;
 
@@ -91,7 +91,8 @@ namespace dynamic_gap
             typedef std::vector<Linear> Mlp;
             static Eigen::MatrixXf runMlp(const Mlp & mlp, const Eigen::MatrixXf & x);
 
-            Eigen::MatrixXf attention(const Eigen::MatrixXf & h, const std::vector<bool> & mask) const;
+            /** h: the options of the tick only */
+            Eigen::MatrixXf attention(const Eigen::MatrixXf & h) const;
 
             bool loaded_ = false;
             bool network_ = false, residual_ = false, attention_ = false;

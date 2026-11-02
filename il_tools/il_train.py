@@ -40,7 +40,7 @@ def load_split(data_dir, split):
     if not os.path.exists(path):
         return []
     with gzip.open(path, "rt") as f:
-        return [json.loads(line) for line in f]
+        return [il_model.options_only(json.loads(line)) for line in f]
 
 
 def featurize_splits(tr, va, te):
