@@ -43,6 +43,33 @@ def json_float(x):
     return x
 
 
+def random_edges(rng, gaps):
+    """Scene edges of `gaps` raw gaps in scan order, linked as Planner::fillSampleEdges does."""
+    idx = sorted(rng.sample(range(512), 2 * gaps))
+    edges = []
+    for k, i in enumerate(idx):
+        theta = (i - 256) * 2 * math.pi / 511
+        vel = [f32(rng.uniform(-1, 1)), f32(rng.uniform(-1, 1))]
+        if rng.random() < 0.1:  # a gap point without a model
+            vel = [math.nan, math.nan]
+        edges.append({"scan_idx": i, "model_id": -1 if math.isnan(vel[0]) else 100 + k,
+                      "range": f32(rng.uniform(0.3, 6)), "theta": f32(theta),
+                      "model_pos": [f32(rng.uniform(-4, 4)), f32(rng.uniform(-4, 4))], "model_vel": vel})
+    n = len(edges)
+    for i, e in enumerate(edges):  # ManualSelection.h linkEdges
+        e["gap_neighbor"] = i + 1 if i % 2 == 0 else i - 1
+        e["obstacle_neighbor"] = (i - 1 + n) % n if i % 2 == 0 else (i + 1) % n
+    return edges
+
+
+def random_scan_idx(rng, edges):
+    """A candidate point's scan ray: on an edge, a ray or two off, far from any, or unknown."""
+    r = rng.random()
+    if edges and r < 0.6:
+        return rng.choice(edges)["scan_idx"] + rng.choice([0, 0, 1, -2])
+    return -1 if r < 0.8 else rng.randrange(512)
+
+
 def random_sample(rng, n):
     """A ManualGapSample's fields, with the corner cases the recorder produces."""
     yaw = rng.uniform(-math.pi, math.pi)
@@ -52,6 +79,7 @@ def random_sample(rng, n):
         "goal": [rng.uniform(-10, 10), rng.uniform(-10, 10)],
         "waypoint": [rng.uniform(0, 3), rng.uniform(-2, 2)],
         "candidates": [],
+        "edges": random_edges(rng, rng.randint(0, 4) if n else 0),
     }
     for i in range(n):
         feasible = rng.random() > 0.2
@@ -66,6 +94,8 @@ def random_sample(rng, n):
             "left_range": f32(rng.uniform(0.3, 6)), "left_theta": f32(lt),
             "right_range": f32(rng.uniform(0.3, 6)), "right_theta": f32(rt),
             "bearing": f32((lt + rt) / 2),
+            "left_scan_idx": random_scan_idx(rng, sample["edges"]),
+            "right_scan_idx": random_scan_idx(rng, sample["edges"]),
             "left_model": [f32(rng.uniform(-4, 4)) for _ in range(4)],
             "right_model": [f32(rng.uniform(-4, 4)) for _ in range(4)],
             "terminal": [rng.uniform(-8, 8), rng.uniform(-8, 8)] if feasible else [0.0, 0.0],
@@ -88,6 +118,7 @@ def as_example(sample):
             "feasible": c["feasible"], "shown": c["shown"],
             "left_range": c["left_range"], "left_theta": c["left_theta"],
             "right_range": c["right_range"], "right_theta": c["right_theta"], "bearing": c["bearing"],
+            "left_scan_idx": c["left_scan_idx"], "right_scan_idx": c["right_scan_idx"],
             "left_model": c["left_model"], "right_model": c["right_model"],
             "terminal_rbt": il_dataset.to_robot_frame(c["terminal"][0], c["terminal"][1], pose)
             if c["feasible"] else [math.nan, math.nan],
@@ -95,7 +126,7 @@ def as_example(sample):
             "dg_cost": c["dg_cost"],
         })
     return {"candidates": cands, "label": 0, "robot_vel": sample["robot_vel"], "goal": sample["goal"],
-            "local_waypoint": sample["waypoint"]}
+            "local_waypoint": sample["waypoint"], "edges": sample["edges"]}
 
 
 def expected(model, sample):
@@ -125,6 +156,8 @@ def write_fixture(out_dir, name, model, samples):
             for k in ("dg_terminal_cost", "dg_clearance_cost", "dg_cost"):
                 c[k] = json_float(c[k])
             c["left_model"] = [json_float(v) for v in c["left_model"]]
+        for e in case["sample"]["edges"]:
+            e["model_vel"] = [json_float(v) for v in e["model_vel"]]
         cases.append(case)
     with open(os.path.join(out_dir, name + "_cases.json"), "w") as f:
         json.dump({"model": name + "_model.json", "cases": cases}, f)
@@ -135,9 +168,10 @@ def random_model(seed, **kwargs):
     """A small model with every weight random (the score head starts at zero otherwise)."""
     torch.manual_seed(seed)
     rng = np.random.RandomState(seed)
-    nc, nx = len(il_model.CANDIDATE_FEATURES), len(il_model.CONTEXT_FEATURES)
+    nc, nx, ns = len(il_model.CANDIDATE_FEATURES), len(il_model.CONTEXT_FEATURES), len(il_model.SCENE_FEATURES)
     norm = {"cand_mean": rng.uniform(-1, 1, nc), "cand_std": rng.uniform(0.5, 2, nc),
-            "ctx_mean": rng.uniform(-1, 1, nx), "ctx_std": rng.uniform(0.5, 2, nx)}
+            "ctx_mean": rng.uniform(-1, 1, nx), "ctx_std": rng.uniform(0.5, 2, nx),
+            "scene_mean": rng.uniform(-1, 1, ns), "scene_std": rng.uniform(0.5, 2, ns)}
     model = il_model.GapScorer(norm, **kwargs)
     with torch.no_grad():
         for p in model.parameters():
@@ -159,11 +193,11 @@ def main():
         model = il_train.load_exported(args.model)
         write_fixture(args.out, args.name, model, samples)
         return
-    every = il_model.inputs_of(il_model.DEFAULT_GROUPS + ["terminal"])
-    write_fixture(args.out, "attention", random_model(1, hidden=8, heads=2, inputs=every), samples)
+    every = il_model.inputs_of(list(il_model.INPUT_GROUPS))
+    write_fixture(args.out, "attention", random_model(1, hidden=8, heads=2, inputs=every, scene=True), samples)
     write_fixture(args.out, "no_attention_subset",
-                  random_model(2, hidden=6, attention=False, residual=False,
-                               inputs=il_model.inputs_of(["ped_vel", "goal", "terminal", "edges"])), samples)
+                  random_model(2, hidden=6, heads=3, attention=False, residual=False, scene=True,
+                               inputs=il_model.inputs_of(["gvel", "goal", "terminal", "edges"])), samples)
     write_fixture(args.out, "linear", random_model(3, network=False), samples)
 
 

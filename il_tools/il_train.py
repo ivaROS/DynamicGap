@@ -23,7 +23,8 @@ import il_model
 
 
 DEFAULTS = {
-    "network": True, "residual": True, "attention": True,
+    # no term on DynamicGap's costs; the network reads the scene's edges instead
+    "network": True, "residual": False, "attention": True, "scene": True,
     "groups": il_model.DEFAULT_GROUPS,
     "hidden": 64, "dropout": 0.1,
     "epochs": 300, "batch": 128, "lr": 1e-3, "weight_decay": 1e-4, "patience": 50,
@@ -54,6 +55,11 @@ def has_dg_costs(items):
 
 def has_clearance_costs(items):
     return any(it["dg_clearance"] for it in items)
+
+
+def has_scene(items):
+    """Whether the dataset records the scene's edges (schema 4)."""
+    return any(len(it["scene"]) for it in items)
 
 
 def seed_all(seed):
@@ -117,7 +123,7 @@ def evaluate(model, examples, items):
 def build_model(cfg, norm):
     return il_model.GapScorer(norm, hidden=cfg["hidden"], network=cfg["network"], residual=cfg["residual"],
                               attention=cfg["attention"], dropout=cfg["dropout"],
-                              inputs=il_model.inputs_of(cfg["groups"]))
+                              inputs=il_model.inputs_of(cfg["groups"]), scene=cfg["scene"])
 
 
 def fmt(m, keys=("nll", "top1", "top1_at_switches", "model_switch_rate")):
@@ -142,6 +148,10 @@ def train(data_dir, cfg=None, out_dir=None, log=sys.stdout, log_every=1, data=No
             raise ValueError("the linear model needs DynamicGap's costs")
         print("note: no DynamicGap costs in this dataset, training without the linear term", file=log)
         cfg["residual"] = False
+    if cfg["scene"] and cfg["network"] and not has_scene(items["train"]):
+        print("note: no scene edges in this dataset (recorded before schema 4), training without the scene",
+              file=log)
+        cfg["scene"] = False
     weights = il_model.decision_weights(tr, cfg["switch_weight"], cfg["disagree_weight"])
     model = build_model(cfg, il_model.normalizer(items["train"]))
     if cfg["residual"]:
@@ -224,14 +234,16 @@ def load(path):
     """Model saved by save() (model.pt), in eval mode."""
     ckpt = torch.load(path, map_location="cpu")
     sd = ckpt["state_dict"]
-    norm = {k: sd[k] for k in ("cand_mean", "cand_std", "ctx_mean", "ctx_std")}
-    model = build_model(dict(DEFAULTS, **ckpt["config"]), norm)
+    # models from before the scene have no "scene" in their config
+    cfg = dict(DEFAULTS, scene=False)
+    cfg.update(ckpt["config"])
+    model = build_model(cfg, il_model.norm_of(sd))
     model.load_state_dict(sd)
     return model.eval()
 
 
 SCORER_FORMAT = "dynamic_gap_gap_scorer"
-SCORER_FORMAT_VERSION = 1
+SCORER_FORMAT_VERSION = 2  # 2: the scene (scene, scene_features, scene_* tensors)
 
 
 def export_scorer(model, path):
@@ -244,9 +256,14 @@ def export_scorer(model, path):
         # the features the model was trained on (older models: a leading part of the list)
         "candidate_features": il_model.CANDIDATE_FEATURES[:len(model.cand_mean)],
         "context_features": il_model.CONTEXT_FEATURES,
+        "scene_features": il_model.SCENE_FEATURES,
+        "edge_match_rays": il_model.EDGE_MATCH_RAYS,
         "inputs": model.inputs,
         "network": model.network, "residual": model.residual, "attention": model.attention,
-        "heads": model.mix.heads if getattr(model, "mix", None) is not None else 0,
+        "scene": model.scene,
+        # one head count for both attention blocks
+        "heads": model.mix.heads if getattr(model, "mix", None) is not None
+        else model.read_scene.heads if model.scene else 0,
         "terminal_cost_cap": il_model.TERMINAL_COST_CAP,
         "clearance_cost_cap": il_model.CLEARANCE_COST_CAP,
         "masked_score": il_model.MASKED_SCORE,
@@ -264,10 +281,10 @@ def without_dg_costs(model):
     if not model.network:
         raise ValueError("a linear model is only the term on DynamicGap's costs: nothing is left without it")
     sd = {k: v for k, v in model.state_dict().items() if k != "dg_weight"}
-    norm = {k: sd[k] for k in ("cand_mean", "cand_std", "ctx_mean", "ctx_std")}
-    out = il_model.GapScorer(norm, hidden=sd["cand_enc.0.weight"].shape[0], network=True, residual=False,
-                             attention=model.attention, heads=model.mix.heads if model.mix is not None else 4,
-                             inputs=model.inputs)
+    out = il_model.GapScorer(il_model.norm_of(sd), hidden=sd["cand_enc.0.weight"].shape[0], network=True,
+                             residual=False, attention=model.attention,
+                             heads=model.mix.heads if model.mix is not None else 4,
+                             inputs=model.inputs, scene=model.scene)
     out.load_state_dict(sd)
     return out.eval()
 
@@ -279,10 +296,10 @@ def load_exported(path):
     if cfg.get("format") != SCORER_FORMAT:
         raise ValueError("{} is not a gap scorer export".format(path))
     state = {k: torch.tensor(v["data"], dtype=torch.float32).reshape(v["shape"]) for k, v in cfg["tensors"].items()}
-    norm = {k: state[k] for k in ("cand_mean", "cand_std", "ctx_mean", "ctx_std")}
     hidden = state["cand_enc.0.weight"].shape[0] if cfg["network"] else DEFAULTS["hidden"]
-    model = il_model.GapScorer(norm, hidden=hidden, network=cfg["network"], residual=cfg["residual"],
-                               attention=cfg["attention"], heads=cfg["heads"] or 4, inputs=cfg["inputs"])
+    model = il_model.GapScorer(il_model.norm_of(state), hidden=hidden, network=cfg["network"],
+                               residual=cfg["residual"], attention=cfg["attention"], heads=cfg["heads"] or 4,
+                               inputs=cfg["inputs"], scene=cfg.get("scene", False))
     missing, unexpected = model.load_state_dict(state, strict=False)
     if unexpected or set(missing) - {"cand_idx", "ctx_idx"}:
         raise ValueError("export does not match the model: missing {}, unexpected {}".format(missing, unexpected))

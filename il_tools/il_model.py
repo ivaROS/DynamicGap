@@ -15,12 +15,19 @@ terminal cost is rebuilt from the trajectory end and the local waypoint
 (dg_terms) and the clearance cost is left out.
 
 Inputs are the raw quantities of an example (il_dataset.py), robot frame:
-the network learns its own features. By default (DEFAULT_INPUTS) per gap only
-its edges and the pedestrian estimates at them; the gap goal, the trajectory
-and the gap tube are DynamicGap's own constructions and reach the model only
-through its costs. Input groups (INPUT_GROUPS) can be left out or added back
-for ablations; the inputs computed stay the same, the model picks its columns. Normalisation is stored in the model so
-an exported model takes raw inputs.
+the network learns its own features. Input groups (INPUT_GROUPS) can be left out
+or added back for ablations; the inputs computed stay the same, the model picks
+its columns. Normalisation is stored in the model so an exported model takes raw
+inputs.
+
+The default model (il_train.DEFAULTS) has no term on DynamicGap's costs and reads
+the scene: every edge of the scan (both points of every raw gap, schema 4) with
+its velocity over the ground, linked to its neighbours. The links are the scene's
+tokens: a gap link between the two points of a raw gap, an obstacle link between
+the two ends of the obstacle in between. Each candidate reads them through
+attention (SceneAttention), then the candidates see each other (CandidateAttention).
+Per candidate: its two points and their ground velocities; per tick: the robot's
+own velocity, the goal and the local waypoint.
 """
 
 import math
@@ -44,10 +51,16 @@ CANDIDATE_FEATURES = (
     + ["right_model_" + k for k in ("x", "y", "vx", "vy")]
     + ["terminal_x", "terminal_y"]
     # new features go last: a model trained on a shorter list still runs
-    + ["cost_infinite"])
+    + ["cost_infinite"]
+    # velocity over the ground of the scene edges the gap points are (schema 4)
+    + ["left_gvx", "left_gvy", "right_gvx", "right_gvy", "edge_vel_known"])
 CONTEXT_FEATURES = ["vel_x", "vel_y", "vel_yaw", "goal_x", "goal_y", "waypoint_x", "waypoint_y"]
+# one scene link: obstacle (1) or gap (0), its two edges' positions and ground velocities
+SCENE_FEATURES = ["is_obstacle", "a_x", "a_y", "a_gvx", "a_gvy", "b_x", "b_y", "b_gvx", "b_gvy"]
+EDGE_MATCH_RAYS = 3  # a candidate's point and a scene edge at most this many scan rays apart are the same
 
 INPUT_GROUPS = {
+    # the candidate gap's own two points (not the scene edges)
     "edges": ["left_x", "left_y", "right_x", "right_y", "width", "bearing_cos", "bearing_sin"],
     "ped_pos": ["left_model_x", "left_model_y", "right_model_x", "right_model_y"],
     "ped_vel": ["left_model_vx", "left_model_vy", "right_model_vx", "right_model_vy"],
@@ -58,8 +71,10 @@ INPUT_GROUPS = {
     # 1 where DynamicGap's cost is infinite (a pose inside the inflated robot, or a
     # path under 2 poses): the capped cost alone does not tell it from a large one
     "cost_infinite": ["cost_infinite"],
+    # ground velocities of the candidate's points; ped_vel are DynamicGap's planning velocities
+    "gvel": ["left_gvx", "left_gvy", "right_gvx", "right_gvy", "edge_vel_known"],
 }
-DEFAULT_GROUPS = ["edges", "ped_pos", "ped_vel", "robot_vel", "goal", "waypoint", "cost_infinite"]
+DEFAULT_GROUPS = ["edges", "gvel", "robot_vel", "goal", "waypoint"]
 
 
 def inputs_of(groups):
@@ -70,14 +85,61 @@ def finite(x, default=0.0):
     return x if x is not None and math.isfinite(x) else default
 
 
-def candidate_vector(c):
+def ground_velocity(edge, robot_vel):
+    """Velocity over the ground of a scene edge, robot frame axes: the estimator's
+    velocity relative to the robot plus the robot's own (Estimator::isolateGapDynamics).
+    A still wall is 0 whether the robot moves or not. None without an estimate."""
+    vx, vy = edge["model_vel"]
+    if not (math.isfinite(vx) and math.isfinite(vy)):
+        return None
+    return [vx + robot_vel[0], vy + robot_vel[1]]
+
+
+def edge_position(edge):
+    return [edge["range"] * math.cos(edge["theta"]), edge["range"] * math.sin(edge["theta"])]
+
+
+def edge_at(edges, scan_idx):
+    """Position in edges of the scene edge at scan ray scan_idx (nearest, at most
+    EDGE_MATCH_RAYS away); None if none or scan_idx is unknown."""
+    if scan_idx is None or scan_idx < 0 or not edges:
+        return None
+    best = min(range(len(edges)), key=lambda i: abs(edges[i]["scan_idx"] - scan_idx))
+    return best if abs(edges[best]["scan_idx"] - scan_idx) <= EDGE_MATCH_RAYS else None
+
+
+def scene_links(edges, robot_vel):
+    """The scene's tokens (SCENE_FEATURES): one per link. The edges are in scan order,
+    two per raw gap (right point, then left point): a gap link from each right point
+    to its left point, an obstacle link from each left point to the next edge."""
+    def state(i):
+        gv = ground_velocity(edges[i], robot_vel)
+        return edge_position(edges[i]) + (gv if gv is not None else [0.0, 0.0])
+
+    links = []
+    for i, e in enumerate(edges):
+        if i % 2 == 0 and 0 <= e["gap_neighbor"] < len(edges):
+            links.append([0.0] + state(i) + state(e["gap_neighbor"]))
+        elif i % 2 == 1 and 0 <= e["obstacle_neighbor"] < len(edges):
+            links.append([1.0] + state(i) + state(e["obstacle_neighbor"]))
+    return [[finite(x) for x in link] for link in links]
+
+
+def candidate_vector(c, edges=(), robot_vel=(0.0, 0.0, 0.0)):
     left = [c["left_range"] * math.cos(c["left_theta"]), c["left_range"] * math.sin(c["left_theta"])]
     right = [c["right_range"] * math.cos(c["right_theta"]), c["right_range"] * math.sin(c["right_theta"])]
+    gv = [None, None]
+    for k, side in enumerate(("left", "right")):
+        i = edge_at(edges, c.get(side + "_scan_idx"))
+        if i is not None:
+            gv[k] = ground_velocity(edges[i], robot_vel)
+    known = gv[0] is not None and gv[1] is not None
     v = (left + right + [math.hypot(left[0] - right[0], left[1] - right[1]),
                          math.cos(c["bearing"]), math.sin(c["bearing"])]
          + c["left_model"] + c["right_model"]
          + c.get("terminal_rbt", [0.0, 0.0])
-         + [1.0 if c.get("dg_cost") is not None and math.isinf(c["dg_cost"]) else 0.0])
+         + [1.0 if c.get("dg_cost") is not None and math.isinf(c["dg_cost"]) else 0.0]
+         + (gv[0] or [0.0, 0.0]) + (gv[1] or [0.0, 0.0]) + [1.0 if known else 0.0])
     return [finite(x) for x in v]
 
 
@@ -130,8 +192,10 @@ def featurize(ex):
     # the operator chose it, so it was selectable (shown is missing before schema 2)
     mask[ex["label"]] = True
     dg = [dg_terms(c, ex.get("local_waypoint")) for c in cands]
+    edges = ex.get("edges", [])
     return {
-        "cand": np.array([candidate_vector(c) for c in cands], dtype=np.float32),
+        "cand": np.array([candidate_vector(c, edges, ex["robot_vel"]) for c in cands], dtype=np.float32),
+        "scene": np.array(scene_links(edges, ex["robot_vel"]), dtype=np.float32).reshape(-1, len(SCENE_FEATURES)),
         "dg": np.array([d[0] for d in dg], dtype=np.float32),
         "dg_avail": np.array([d[1] for d in dg], dtype=np.float32),
         # the clearance cost was recorded (not only a rebuilt terminal cost)
@@ -174,18 +238,26 @@ def decision_weights(examples, switch_weight=1.0, disagree_weight=1.0):
 def collate(items, weights=None):
     """Pad a list of featurize() outputs to the largest candidate count."""
     b, n = len(items), max(len(it["mask"]) for it in items)
+    # at least one (padded) scene token, so the attention has keys
+    s = max([1] + [len(it.get("scene", ())) for it in items])
     cand = torch.zeros(b, n, len(CANDIDATE_FEATURES))
     dg = torch.zeros(b, n, 2)
     dg_avail = torch.zeros(b, n)
     mask = torch.zeros(b, n, dtype=torch.bool)
+    scene = torch.zeros(b, s, len(SCENE_FEATURES))
+    scene_mask = torch.zeros(b, s, dtype=torch.bool)
     for i, it in enumerate(items):
         m = len(it["mask"])
         cand[i, :m] = torch.from_numpy(it["cand"])
         dg[i, :m] = torch.from_numpy(it["dg"])
         dg_avail[i, :m] = torch.from_numpy(it["dg_avail"])
         mask[i, :m] = torch.from_numpy(it["mask"])
+        k = len(it.get("scene", ()))
+        if k:
+            scene[i, :k] = torch.from_numpy(it["scene"])
+            scene_mask[i, :k] = True
     return {
-        "cand": cand, "dg": dg, "dg_avail": dg_avail, "mask": mask,
+        "cand": cand, "dg": dg, "dg_avail": dg_avail, "mask": mask, "scene": scene, "scene_mask": scene_mask,
         "ctx": torch.from_numpy(np.stack([it["ctx"] for it in items])),
         "label": torch.tensor([it["label"] for it in items]),
         "weight": torch.ones(b) if weights is None else torch.tensor(weights, dtype=torch.float32),
@@ -193,12 +265,23 @@ def collate(items, weights=None):
 
 
 def normalizer(items):
-    """Mean and std of the candidate (selectable ones) and context inputs."""
+    """Mean and std of the candidate (selectable ones), context and scene inputs."""
     cand = np.concatenate([it["cand"][it["mask"]] for it in items])
     ctx = np.stack([it["ctx"] for it in items])
+    scene = np.concatenate([it["scene"] for it in items if len(it.get("scene", ()))]
+                           or [np.zeros((1, len(SCENE_FEATURES)), dtype=np.float32)])
     # constant inputs (std 0) are left unscaled
     std = lambda x: np.where(x.std(0) > 1e-6, x.std(0), 1.0)  # noqa: E731
-    return {"cand_mean": cand.mean(0), "cand_std": std(cand), "ctx_mean": ctx.mean(0), "ctx_std": std(ctx)}
+    return {"cand_mean": cand.mean(0), "cand_std": std(cand), "ctx_mean": ctx.mean(0), "ctx_std": std(ctx),
+            "scene_mean": scene.mean(0), "scene_std": std(scene)}
+
+
+NORM_KEYS = ("cand_mean", "cand_std", "ctx_mean", "ctx_std", "scene_mean", "scene_std")
+
+
+def norm_of(state):
+    """The normalisation buffers of a state dict (models from before the scene have no scene ones)."""
+    return {k: state[k] for k in NORM_KEYS if k in state}
 
 
 def mlp(sizes, dropout=0.0):
@@ -232,16 +315,45 @@ class CandidateAttention(nn.Module):
         return h + self.drop(self.ff(self.norm2(h)))
 
 
+class SceneAttention(nn.Module):
+    """One pre-norm cross-attention block: each candidate reads the scene's links,
+    then a feed-forward. A tick without scene links leaves the candidates unchanged."""
+
+    def __init__(self, dim, heads=4, dropout=0.0):
+        super().__init__()
+        assert dim % heads == 0
+        self.heads, self.head_dim = heads, dim // heads
+        self.norm_q, self.norm_kv, self.norm2 = nn.LayerNorm(dim), nn.LayerNorm(dim), nn.LayerNorm(dim)
+        self.q = nn.Linear(dim, dim)
+        self.kv = nn.Linear(dim, 2 * dim)
+        self.out = nn.Linear(dim, dim)
+        self.ff = mlp([dim, 2 * dim, dim], dropout)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, h, s, scene_mask):
+        b, n, m = h.shape[0], h.shape[1], s.shape[1]
+        q = self.q(self.norm_q(h)).view(b, n, self.heads, self.head_dim).transpose(1, 2)
+        k, v = self.kv(self.norm_kv(s)).view(b, m, 2, self.heads, self.head_dim).permute(2, 0, 3, 1, 4).unbind(0)
+        att = (q @ k.transpose(-1, -2)) / math.sqrt(self.head_dim)
+        att = att.masked_fill(~scene_mask[:, None, None, :], MASKED_SCORE).softmax(-1)
+        read = self.out((att @ v).transpose(1, 2).reshape(b, n, self.heads * self.head_dim))
+        read = read * scene_mask.any(-1).float()[:, None, None]
+        h = h + self.drop(read)
+        return h + self.drop(self.ff(self.norm2(h)))
+
+
 class GapScorer(nn.Module):
     """network=False: the linear model (DynamicGap's terms, learned weights).
     residual=False: the network alone. attention=False: each gap scored on its own.
+    scene=True: the candidates read the scene's links (needs scene_mean/std in norm).
     inputs: the feature names the network uses (default inputs_of(DEFAULT_GROUPS))."""
 
     def __init__(self, norm, hidden=64, network=True, residual=True, attention=True, heads=4, dropout=0.1,
-                 inputs=None):
+                 inputs=None, scene=False):
         super().__init__()
         assert network or residual
         self.network, self.residual, self.attention = network, residual, attention
+        self.scene = scene and network
         self.inputs = list(inputs_of(DEFAULT_GROUPS) if inputs is None else inputs)
         for k, v in norm.items():
             self.register_buffer(k, torch.as_tensor(v, dtype=torch.float32))
@@ -255,14 +367,18 @@ class GapScorer(nn.Module):
         if network:
             self.cand_enc = mlp([len(cand_idx), hidden, hidden], dropout)
             self.ctx_enc = mlp([len(ctx_idx), hidden, hidden], dropout)
+            if self.scene:
+                self.scene_enc = mlp([len(SCENE_FEATURES), hidden, hidden], dropout)
+                self.read_scene = SceneAttention(hidden, heads, dropout)
             self.mix = CandidateAttention(hidden, heads, dropout) if attention else None
             self.head = mlp([2 * hidden, hidden, 1], dropout)
             # start with no correction: the model starts as the linear model
             nn.init.zeros_(self.head[-1].weight)
             nn.init.zeros_(self.head[-1].bias)
 
-    def forward(self, cand, ctx, dg, dg_avail, mask):
-        """cand [B,N,F], ctx [B,C], dg [B,N,2], dg_avail [B,N], mask [B,N] (bool).
+    def forward(self, cand, ctx, dg, dg_avail, mask, scene=None, scene_mask=None):
+        """cand [B,N,F], ctx [B,C], dg [B,N,2], dg_avail [B,N], mask [B,N] (bool),
+        scene [B,M,S] and scene_mask [B,M] (bool; used with scene=True).
         Returns scores [B,N]; candidates outside the mask get MASKED_SCORE."""
         score = torch.zeros(mask.shape, device=mask.device)
         if self.residual:
@@ -273,16 +389,24 @@ class GapScorer(nn.Module):
                               / self.cand_std[self.cand_idx])
             c = self.ctx_enc((ctx.index_select(-1, self.ctx_idx) - self.ctx_mean[self.ctx_idx])
                              / self.ctx_std[self.ctx_idx])
+            if self.scene or self.mix is not None:
+                # context goes in with every candidate
+                e = e + c[:, None, :]
+            if self.scene:
+                # each candidate reads the scene
+                s = self.scene_enc((scene - self.scene_mean) / self.scene_std)
+                e = self.read_scene(e, s, scene_mask)
             if self.mix is not None:
-                # context goes in with every candidate, then the candidates see each other
-                e = self.mix(e + c[:, None, :], mask)
+                # then the candidates see each other
+                e = self.mix(e, mask)
             h = torch.cat([e, c[:, None, :].expand_as(e)], -1)
             score = score + self.head(h).squeeze(-1)
         return score.masked_fill(~mask, MASKED_SCORE)
 
 
 def scores(model, batch):
-    return model(batch["cand"], batch["ctx"], batch["dg"], batch["dg_avail"], batch["mask"])
+    return model(batch["cand"], batch["ctx"], batch["dg"], batch["dg_avail"], batch["mask"],
+                 batch.get("scene"), batch.get("scene_mask"))
 
 
 def loss(model, batch):

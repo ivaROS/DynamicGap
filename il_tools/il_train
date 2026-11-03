@@ -21,7 +21,9 @@ def main():
     parser.add_argument("--data", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--linear", action="store_true", help="the linear model: DynamicGap's costs, learned weights")
-    parser.add_argument("--no-residual", action="store_true", help="the network alone, without DynamicGap's costs")
+    parser.add_argument("--residual", action="store_true",
+                        help="add the term on DynamicGap's costs (learned weights) to the network's score")
+    parser.add_argument("--no-scene", action="store_true", help="without the scene's edges")
     parser.add_argument("--no-attention", action="store_true", help="score each gap on its own")
     parser.add_argument("--groups", default=",".join(d["groups"]),
                         help="input groups, of: " + ", ".join(il_model.INPUT_GROUPS))
@@ -41,10 +43,8 @@ def main():
     unknown = set(groups) - set(il_model.INPUT_GROUPS)
     if unknown:
         parser.error("unknown input groups: {}".format(", ".join(sorted(unknown))))
-    if args.linear and args.no_residual:
-        parser.error("--linear is only the term on DynamicGap's costs: it cannot go with --no-residual")
-    cfg = {"network": not args.linear, "residual": not args.no_residual, "attention": not args.no_attention,
-           "groups": groups}
+    cfg = {"network": not args.linear, "residual": args.linear or args.residual,
+           "attention": not args.no_attention, "scene": not args.no_scene, "groups": groups}
     cfg.update({k: getattr(args, k) for k in ("hidden", "epochs", "batch", "patience", "seed", "dropout", "lr",
                                               "weight_decay", "switch_weight", "disagree_weight",
                                               "terminal_weight_init", "terminal_weight_min")})

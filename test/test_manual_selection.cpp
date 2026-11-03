@@ -19,6 +19,46 @@ TEST(ManualSelectionHelpers, DenseDisplayIds)
     EXPECT_TRUE(dynamic_gap::denseDisplayIds({}).empty());
 }
 
+// scene edges: two per raw gap in scan order; each has a gap neighbour and an
+// obstacle neighbour, around the full circle
+TEST(ManualSelectionHelpers, LinkEdges)
+{
+    std::vector<manual_gap_msgs::ManualGapEdge> edges(6);
+    dynamic_gap::linkEdges(edges);
+    std::vector<int> gap, obstacle;
+    for (const auto & e : edges)
+    {
+        gap.push_back(e.gap_neighbor);
+        obstacle.push_back(e.obstacle_neighbor);
+    }
+    EXPECT_EQ((std::vector<int>{1, 0, 3, 2, 5, 4}), gap);
+    EXPECT_EQ((std::vector<int>{5, 2, 1, 4, 3, 0}), obstacle);
+}
+
+TEST(ManualSelectionHelpers, FillSampleEdges)
+{
+    Planner planner;
+    // right point at the lower scan index, left at the higher
+    std::vector<dynamic_gap::Gap *> gaps = {new dynamic_gap::Gap("base_link", 40, 2.0f, 10, 3.0f, false),
+                                            new dynamic_gap::Gap("base_link", 300, 4.0f, 200, 5.0f, false)};
+    manual_gap_msgs::ManualGapSample sample;
+    PlannerTestAccess::fillSampleEdges(planner, gaps, sample);
+    ASSERT_EQ(4u, sample.edges.size());
+    EXPECT_EQ((std::vector<int>{10, 40, 200, 300}),
+              (std::vector<int>{sample.edges[0].scan_idx, sample.edges[1].scan_idx,
+                                sample.edges[2].scan_idx, sample.edges[3].scan_idx}));
+    EXPECT_FLOAT_EQ(3.0f, sample.edges[0].range);
+    EXPECT_FLOAT_EQ(dynamic_gap::idx2theta(10), sample.edges[0].theta);
+    EXPECT_EQ(1, sample.edges[0].gap_neighbor);
+    EXPECT_EQ(2, sample.edges[1].obstacle_neighbor);
+    // the estimator's id and state (velocity relative to the robot)
+    dynamic_gap::Estimator * model = gaps[0]->getRightGapPt()->getModel();
+    EXPECT_EQ(model->getID(), sample.edges[0].model_id);
+    EXPECT_FLOAT_EQ(model->getState()[2], sample.edges[0].model_vel.x);
+    for (auto * gap : gaps)
+        delete gap;
+}
+
 TEST(ManualSelectionHelpers, HasModelIDs)
 {
     EXPECT_TRUE(dynamic_gap::hasModelIDs(3, 4));

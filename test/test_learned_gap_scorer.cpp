@@ -69,6 +69,8 @@ namespace
             m.right_range = c["right_range"].as<float>();
             m.right_theta = c["right_theta"].as<float>();
             m.bearing = c["bearing"].as<float>();
+            m.left_scan_idx = c["left_scan_idx"].as<int>();
+            m.right_scan_idx = c["right_scan_idx"].as<int>();
             m.left_model_pos.x = c["left_model"][0].as<float>();
             m.left_model_pos.y = c["left_model"][1].as<float>();
             m.left_model_vel.x = c["left_model"][2].as<float>();
@@ -83,6 +85,21 @@ namespace
             m.dg_clearance_cost = c["dg_clearance_cost"].as<float>();
             m.dg_cost = c["dg_cost"].as<float>();
             sample.candidates.push_back(m);
+        }
+        for (const YAML::Node & e : s["edges"])
+        {
+            manual_gap_msgs::ManualGapEdge m;
+            m.scan_idx = e["scan_idx"].as<int>();
+            m.model_id = e["model_id"].as<int>();
+            m.range = e["range"].as<float>();
+            m.theta = e["theta"].as<float>();
+            m.model_pos.x = e["model_pos"][0].as<float>();
+            m.model_pos.y = e["model_pos"][1].as<float>();
+            m.model_vel.x = e["model_vel"][0].as<float>();
+            m.model_vel.y = e["model_vel"][1].as<float>();
+            m.gap_neighbor = e["gap_neighbor"].as<int>();
+            m.obstacle_neighbor = e["obstacle_neighbor"].as<int>();
+            sample.edges.push_back(m);
         }
         return sample;
     }
@@ -174,7 +191,7 @@ TEST(LearnedGapScorer, RefusesMissingOrForeignModels)
 
     // a model trained on other features is refused, not run
     const std::string model = FIXTURES + "/attention_model.json";
-    std::string renamed = writeModified(model, "\"cost_infinite\"]", "\"cost_infinitf\"]");
+    std::string renamed = writeModified(model, "\"edge_vel_known\"]", "\"edge_vel_knowm\"]");
     error.clear();
     EXPECT_FALSE(scorer.load(renamed, error));
     EXPECT_NE(std::string::npos, error.find("feature")) << error;

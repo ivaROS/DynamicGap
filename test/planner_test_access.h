@@ -92,5 +92,9 @@ namespace dynamic_gap
                                                const std::vector<float> & terminalCosts,
                                                manual_gap_msgs::ManualGapSample & sample, Trajectory & chosenTraj)
             { return planner.selectLearnedTrajectory(trajFlag, gapTubes, gapTrajs, poseCosts, terminalCosts, sample, chosenTraj); }
+
+            static void fillSampleEdges(Planner & planner, const std::vector<Gap *> & rawGaps,
+                                        manual_gap_msgs::ManualGapSample & sample)
+            { planner.fillSampleEdges(rawGaps, sample); }
     };
 }

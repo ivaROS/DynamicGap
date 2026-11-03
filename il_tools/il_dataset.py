@@ -105,6 +105,8 @@ def candidate_features(c, pose, followed):
         "left_range": c.left_range, "left_theta": c.left_theta,
         "right_range": c.right_range, "right_theta": c.right_theta,
         "bearing": c.bearing,
+        # scan rays of the gap points (schema 4, None before): the scene edges they are
+        "left_scan_idx": getattr(c, "left_scan_idx", None), "right_scan_idx": getattr(c, "right_scan_idx", None),
         "left_model": [c.left_model_pos.x, c.left_model_pos.y, c.left_model_vel.x, c.left_model_vel.y],
         "right_model": [c.right_model_pos.x, c.right_model_pos.y, c.right_model_vel.x, c.right_model_vel.y],
         "goal_odom": [c.goal_pos.x, c.goal_pos.y],
@@ -118,6 +120,15 @@ def candidate_features(c, pose, followed):
         "dg_clearance_cost": getattr(c, "dg_clearance_cost", None),
         # the learned scorer's score (schema 3, NaN unless it ran); None before
         "model_score": getattr(c, "model_score", None),
+    }
+
+
+def edge_features(e):
+    """One scene edge (schema 4); model_vel is relative to the robot, as recorded."""
+    return {
+        "scan_idx": e.scan_idx, "model_id": e.model_id, "range": e.range, "theta": e.theta,
+        "model_pos": [e.model_pos.x, e.model_pos.y], "model_vel": [e.model_vel.x, e.model_vel.y],
+        "gap_neighbor": e.gap_neighbor, "obstacle_neighbor": e.obstacle_neighbor,
     }
 
 
@@ -136,6 +147,8 @@ def example(session, obs, label_tick, label_idx, followed=None):
         "goal": [obs.goal_robot_frame.x, obs.goal_robot_frame.y],
         "local_waypoint": [obs.local_waypoint_robot_frame.x, obs.local_waypoint_robot_frame.y],
         "candidates": [candidate_features(c, obs.robot_pose_odom, followed) for c in obs.candidates],
+        # every edge of the scene (schema 4); empty before
+        "edges": [edge_features(e) for e in getattr(obs, "edges", [])],
         "schema_version": obs.schema_version,
         # DynamicGap's own pick (position in candidates); None before schema 2
         "dg_pick": getattr(obs, "dg_pick_idx", None),

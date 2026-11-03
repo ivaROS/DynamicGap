@@ -13,7 +13,7 @@ namespace dynamic_gap
     namespace
     {
         const std::string FORMAT = "dynamic_gap_gap_scorer";
-        const int FORMAT_VERSION = 1;
+        const int FORMAT_VERSION = 2;  // 2: the scene; version 1 exports still load
         // DynamicGap's Q_f in every recorded session (il_model.Q_F)
         const double Q_F = 0.05;
 
@@ -91,7 +91,8 @@ namespace dynamic_gap
             "left_model_x", "left_model_y", "left_model_vx", "left_model_vy",
             "right_model_x", "right_model_y", "right_model_vx", "right_model_vy",
             "terminal_x", "terminal_y",
-            "cost_infinite"};
+            "cost_infinite",
+            "left_gvx", "left_gvy", "right_gvx", "right_gvy", "edge_vel_known"};
         return names;
     }
 
@@ -100,6 +101,37 @@ namespace dynamic_gap
         static const std::vector<std::string> names = {
             "vel_x", "vel_y", "vel_yaw", "goal_x", "goal_y", "waypoint_x", "waypoint_y"};
         return names;
+    }
+
+    const std::vector<std::string> & LearnedGapScorer::sceneFeatures()
+    {
+        static const std::vector<std::string> names = {
+            "is_obstacle", "a_x", "a_y", "a_gvx", "a_gvy", "b_x", "b_y", "b_gvx", "b_gvy"};
+        return names;
+    }
+
+    bool LearnedGapScorer::groundVelocity(const manual_gap_msgs::ManualGapEdge & edge,
+                                          const geometry_msgs::Twist & rbtVel,
+                                          double & vx, double & vy)
+    {
+        // il_model.ground_velocity: relative to the robot plus the robot's own
+        if (!std::isfinite(edge.model_vel.x) || !std::isfinite(edge.model_vel.y))
+            return false;
+        vx = edge.model_vel.x + rbtVel.linear.x;
+        vy = edge.model_vel.y + rbtVel.linear.y;
+        return true;
+    }
+
+    int LearnedGapScorer::edgeAt(const std::vector<manual_gap_msgs::ManualGapEdge> & edges, const int & scanIdx) const
+    {
+        // il_model.edge_at: the nearest edge (the first of equals), at most edgeMatchRays_ away
+        if (scanIdx < 0 || edges.empty())
+            return -1;
+        int best = 0;
+        for (int i = 1; i < int(edges.size()); i++)
+            if (std::abs(edges[i].scan_idx - scanIdx) < std::abs(edges[best].scan_idx - scanIdx))
+                best = i;
+        return std::abs(edges[best].scan_idx - scanIdx) <= edgeMatchRays_ ? best : -1;
     }
 
     Eigen::MatrixXf LearnedGapScorer::Linear::operator()(const Eigen::MatrixXf & x) const
@@ -142,9 +174,10 @@ namespace dynamic_gap
             const YAML::Node root = YAML::LoadFile(path);
             if (!root["format"] || root["format"].as<std::string>() != FORMAT)
                 throw std::runtime_error("not a gap scorer export (format is not " + FORMAT + ")");
-            if (root["version"].as<int>() != FORMAT_VERSION)
+            const int version = root["version"].as<int>();
+            if (version < 1 || version > FORMAT_VERSION)
                 throw std::runtime_error("export format version " + root["version"].as<std::string>()
-                                         + ", the planner reads version " + std::to_string(FORMAT_VERSION));
+                                         + ", the planner reads versions 1 to " + std::to_string(FORMAT_VERSION));
 
             // the features the model was trained on must be the ones computed here; a
             // model from before a feature was added has a leading part of the list
@@ -177,6 +210,10 @@ namespace dynamic_gap
             maskedScore_ = root["masked_score"].as<float>();
             if (!network_ && !residual_)
                 throw std::runtime_error("model has neither the network nor the linear term");
+            scene_ = network_ && root["scene"] && root["scene"].as<bool>();
+            if (scene_ && root["scene_features"].as<std::vector<std::string>>() != sceneFeatures())
+                throw std::runtime_error("scene feature list differs from the planner's");
+            edgeMatchRays_ = root["edge_match_rays"] ? root["edge_match_rays"].as<int>() : 3;
 
             const YAML::Node tensors = root["tensors"];
             const int nCand = modelCand.size(), nCtx = contextFeatures().size();
@@ -205,7 +242,7 @@ namespace dynamic_gap
                 return mlp;
             };
 
-            candEnc_.clear(); ctxEnc_.clear(); head_.clear(); ff_.clear();
+            candEnc_.clear(); ctxEnc_.clear(); head_.clear(); ff_.clear(); sceneEnc_.clear(); sceneFf_.clear();
             if (network_)
             {
                 candEnc_ = loadMlp("cand_enc", candIdx_.size());
@@ -213,10 +250,35 @@ namespace dynamic_gap
                 const int hidden = candEnc_.back().weight.rows();
                 if (ctxEnc_.back().weight.rows() != hidden)
                     throw std::runtime_error("candidate and context encoders differ in size");
+                if ((attention_ || scene_) && (heads_ <= 0 || hidden % heads_ != 0))
+                    throw std::runtime_error("attention heads do not divide the hidden size");
+                if (scene_)
+                {
+                    const int nScene = sceneFeatures().size();
+                    sceneMean_ = vector(tensors, "scene_mean", nScene);
+                    sceneStd_ = vector(tensors, "scene_std", nScene);
+                    sceneEnc_ = loadMlp("scene_enc", nScene);
+                    if (sceneEnc_.back().weight.rows() != hidden)
+                        throw std::runtime_error("scene encoder differs in size from the candidate encoder");
+                    const std::string p = "read_scene.";
+                    for (auto & norm : {std::make_pair(&sceneNormQ_, "norm_q"), std::make_pair(&sceneNormKv_, "norm_kv"),
+                                        std::make_pair(&sceneNorm2_, "norm2")})
+                    {
+                        norm.first->weight = vector(tensors, p + norm.second + ".weight", hidden);
+                        norm.first->bias = vector(tensors, p + norm.second + ".bias", hidden);
+                    }
+                    sceneQ_.weight = tensor(tensors, p + "q.weight", hidden, hidden);
+                    sceneQ_.bias = vector(tensors, p + "q.bias", hidden);
+                    sceneKv_.weight = tensor(tensors, p + "kv.weight", 2 * hidden, hidden);
+                    sceneKv_.bias = vector(tensors, p + "kv.bias", 2 * hidden);
+                    sceneOut_.weight = tensor(tensors, p + "out.weight", hidden, hidden);
+                    sceneOut_.bias = vector(tensors, p + "out.bias", hidden);
+                    sceneFf_ = loadMlp("read_scene.ff", hidden);
+                    if (sceneFf_.back().weight.rows() != hidden)
+                        throw std::runtime_error("scene feed-forward does not return the hidden size");
+                }
                 if (attention_)
                 {
-                    if (heads_ <= 0 || hidden % heads_ != 0)
-                        throw std::runtime_error("attention heads do not divide the hidden size");
                     norm1_.weight = vector(tensors, "mix.norm1.weight", hidden);
                     norm1_.bias = vector(tensors, "mix.norm1.bias", hidden);
                     norm2_.weight = vector(tensors, "mix.norm2.weight", hidden);
@@ -271,13 +333,28 @@ namespace dynamic_gap
                 terminalX = c * dx + s * dy;
                 terminalY = -s * dx + c * dy;
             }
+            // ground velocities of the scene edges the gap points are
+            double gv[4] = {0.0, 0.0, 0.0, 0.0};
+            bool known = true;
+            const int sides[2] = {edgeAt(sample.edges, cand.left_scan_idx), edgeAt(sample.edges, cand.right_scan_idx)};
+            for (int side = 0; side < 2; side++)
+            {
+                double vx = 0.0, vy = 0.0;
+                if (sides[side] >= 0 && groundVelocity(sample.edges[sides[side]], sample.robot_vel, vx, vy))
+                {
+                    gv[2 * side] = vx;
+                    gv[2 * side + 1] = vy;
+                } else
+                    known = false;
+            }
             const double row[] = {
                 lx, ly, rx, ry, std::hypot(lx - rx, ly - ry),
                 std::cos(double(cand.bearing)), std::sin(double(cand.bearing)),
                 cand.left_model_pos.x, cand.left_model_pos.y, cand.left_model_vel.x, cand.left_model_vel.y,
                 cand.right_model_pos.x, cand.right_model_pos.y, cand.right_model_vel.x, cand.right_model_vel.y,
                 terminalX, terminalY,
-                std::isinf(cand.dg_cost) ? 1.0 : 0.0};
+                std::isinf(cand.dg_cost) ? 1.0 : 0.0,
+                gv[0], gv[1], gv[2], gv[3], known ? 1.0 : 0.0};
             for (int k = 0; k < in.cand.cols(); k++)
                 in.cand(i, k) = float(finiteOr0(row[k]));
 
@@ -306,7 +383,66 @@ namespace dynamic_gap
         in.ctx = Eigen::VectorXf(contextFeatures().size());
         for (int k = 0; k < in.ctx.size(); k++)
             in.ctx(k) = float(finiteOr0(ctx[k]));
+
+        // il_model.scene_links: a gap link from each right point (even position) to its
+        // left point, an obstacle link from each left point to the next edge
+        const std::vector<manual_gap_msgs::ManualGapEdge> & edges = sample.edges;
+        const int nEdges = edges.size();
+        std::vector<std::vector<double>> links;
+        auto state = [&](const int & i, std::vector<double> & link)
+        {
+            double vx = 0.0, vy = 0.0;
+            groundVelocity(edges[i], sample.robot_vel, vx, vy);
+            link.push_back(double(edges[i].range) * std::cos(double(edges[i].theta)));
+            link.push_back(double(edges[i].range) * std::sin(double(edges[i].theta)));
+            link.push_back(vx);
+            link.push_back(vy);
+        };
+        for (int i = 0; i < nEdges; i++)
+        {
+            const bool gapLink = (i % 2 == 0);
+            const int other = gapLink ? edges[i].gap_neighbor : edges[i].obstacle_neighbor;
+            if (other < 0 || other >= nEdges)
+                continue;
+            std::vector<double> link = {gapLink ? 0.0 : 1.0};
+            state(i, link);
+            state(other, link);
+            links.push_back(link);
+        }
+        in.scene = Eigen::MatrixXf::Zero(links.size(), sceneFeatures().size());
+        for (size_t l = 0; l < links.size(); l++)
+            for (int k = 0; k < in.scene.cols(); k++)
+                in.scene(l, k) = float(finiteOr0(links[l][k]));
         return in;
+    }
+
+    Eigen::MatrixXf LearnedGapScorer::readScene(const Eigen::MatrixXf & h, const Eigen::MatrixXf & s) const
+    {
+        // il_model.SceneAttention: each candidate reads the scene's links, then feed-forward;
+        // without links the read is zero and only the feed-forward applies
+        const int n = h.rows(), m = s.rows(), d = h.cols(), hd = d / heads_;
+        Eigen::MatrixXf out = h;
+        if (m > 0)
+        {
+            const Eigen::MatrixXf q = sceneQ_(sceneNormQ_(h));
+            const Eigen::MatrixXf kv = sceneKv_(sceneNormKv_(s));
+            Eigen::MatrixXf read(n, d);
+            for (int k = 0; k < heads_; k++)
+            {
+                const Eigen::MatrixXf key = kv.block(0, k * hd, m, hd);
+                const Eigen::MatrixXf v = kv.block(0, d + k * hd, m, hd);
+                Eigen::MatrixXf att = (q.block(0, k * hd, n, hd) * key.transpose()) / std::sqrt(float(hd));
+                for (int i = 0; i < n; i++)
+                {
+                    const float mx = att.row(i).maxCoeff();
+                    att.row(i) = (att.row(i).array() - mx).exp();
+                    att.row(i) /= att.row(i).sum();
+                }
+                read.block(0, k * hd, n, hd) = att * v;
+            }
+            out = h + sceneOut_(read);
+        }
+        return out + runMlp(sceneFf_, sceneNorm2_(out));
     }
 
     Eigen::MatrixXf LearnedGapScorer::attention(const Eigen::MatrixXf & h) const
@@ -372,8 +508,18 @@ namespace dynamic_gap
 
             Eigen::MatrixXf e = runMlp(candEnc_, cand);
             const Eigen::RowVectorXf c = runMlp(ctxEnc_, ctx).row(0);
+            // context goes in with every candidate, each reads the scene, then they see each other
+            if (scene_ || attention_)
+                e = e.rowwise() + c;
+            if (scene_)
+            {
+                Eigen::MatrixXf s(input.scene.rows(), input.scene.cols());
+                for (int k = 0; k < s.cols(); k++)
+                    s.col(k) = (input.scene.col(k).array() - sceneMean_(k)) / sceneStd_(k);
+                e = readScene(e, s.rows() > 0 ? runMlp(sceneEnc_, s) : Eigen::MatrixXf(0, e.cols()));
+            }
             if (attention_)
-                e = attention(e.rowwise() + c);
+                e = attention(e);
             Eigen::MatrixXf h(m, 2 * e.cols());
             h << e, c.replicate(m, 1);
             optionScores += runMlp(head_, h).col(0);

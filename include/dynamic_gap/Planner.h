@@ -314,9 +314,15 @@ namespace dynamic_gap
                                                                   const int & displayId);
 
             /**
+            * \brief The tick's scene edges in the sample: both points of every raw gap,
+            * in scan order, with their estimator states and neighbours (linkEdges)
+            */
+            void fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample);
+
+            /**
             * \brief Learned mode: build the tick's candidates in the sample, score them
             * with the learned scorer and follow the highest-scoring selectable gap
-            * whose DynamicGap cost is finite. A different gap is taken as soon as it
+            * (infinite DynamicGap cost included). A different gap is taken as soon as it
             * scores higher. No usable choice: trajFlag NONE (the robot holds still)
             * \return position in sample.candidates of the choice, -1 if none
             */
@@ -574,9 +580,11 @@ namespace dynamic_gap
             /**
             * \brief Function for deep copying simplified gaps
             * \param scanCopy if given, receives a copy of the scan the gaps were computed from
+            * \param rawCopy if given, receives deep copies of the raw gaps of that scan
             * \return Deep copied simplified gaps
             */
-            std::vector<Gap *> deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy = nullptr);
+            std::vector<Gap *> deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy = nullptr,
+                                                             std::vector<Gap *> * rawCopy = nullptr);
 
             /**
             * \brief Function for deep copying raw gaps

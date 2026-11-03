@@ -254,6 +254,22 @@ namespace dynamic_gap
     /**
     * \brief Mean of a trajectory's pose-wise costs (the clearance term of pickTraj)
     */
+    /**
+    * \brief Neighbours of the scene edges, which are in scan order, two per raw gap
+    * (right point, then left point): the other point of the gap, and toward the
+    * other side the next edge, the other end of the obstacle between them. The
+    * scan covers the full circle, so the last edge's obstacle reaches the first.
+    */
+    inline void linkEdges(std::vector<manual_gap_msgs::ManualGapEdge> & edges)
+    {
+        const int n = edges.size();
+        for (int i = 0; i < n; i++)
+        {
+            edges[i].gap_neighbor = (i % 2 == 0) ? i + 1 : i - 1;
+            edges[i].obstacle_neighbor = (i % 2 == 0) ? (i - 1 + n) % n : (i + 1) % n;
+        }
+    }
+
     inline float meanPoseCost(const std::vector<float> & poseCosts)
     {
         if (poseCosts.empty())

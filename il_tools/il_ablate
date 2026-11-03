@@ -27,10 +27,10 @@ METRICS = ["top1", "top1_at_switches", "nll", "model_switch_rate", "model_blip_r
 
 def variants(dg_costs):
     base = list(il_model.DEFAULT_GROUPS)
-    v = {"full": {}, "no_attention": {"attention": False}}
+    v = {"full": {}, "no_attention": {"attention": False}, "no_scene": {"scene": False}}
     if dg_costs:
-        v["linear"] = {"network": False}
-        v["no_dg_costs"] = {"residual": False}
+        v["linear"] = {"network": False, "residual": True}
+        v["with_dg_costs"] = {"residual": True}
     for g in il_model.INPUT_GROUPS:
         if g in base:
             v["without_" + g] = {"groups": [x for x in base if x != g]}

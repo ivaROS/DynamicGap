@@ -21,6 +21,7 @@ namespace dynamic_gap
         Eigen::MatrixXf dg; /**< candidates x 2: DynamicGap's terminal and clearance cost, capped */
         Eigen::VectorXf dgAvail; /**< 1 where DynamicGap's costs were recorded */
         std::vector<bool> mask; /**< selectable candidates: feasible and shown */
+        Eigen::MatrixXf scene; /**< scene links x SCENE_FEATURES */
     };
 
     /**
@@ -40,6 +41,15 @@ namespace dynamic_gap
             */
             static const std::vector<std::string> & candidateFeatures();
             static const std::vector<std::string> & contextFeatures();
+            static const std::vector<std::string> & sceneFeatures();
+
+            /**
+            * \brief Velocity over the ground of a scene edge, robot frame axes
+            * (il_model.ground_velocity); false without an estimate
+            */
+            static bool groundVelocity(const manual_gap_msgs::ManualGapEdge & edge,
+                                       const geometry_msgs::Twist & rbtVel,
+                                       double & vx, double & vy);
 
             /**
             * \brief Load a model exported by il_tools
@@ -94,9 +104,16 @@ namespace dynamic_gap
             /** h: the options of the tick only */
             Eigen::MatrixXf attention(const Eigen::MatrixXf & h) const;
 
+            /** h: the options; s: the encoded scene links (may have no rows) */
+            Eigen::MatrixXf readScene(const Eigen::MatrixXf & h, const Eigen::MatrixXf & s) const;
+
+            /** Position in edges of the edge at scanIdx (il_model.edge_at), -1 if none */
+            int edgeAt(const std::vector<manual_gap_msgs::ManualGapEdge> & edges, const int & scanIdx) const;
+
             bool loaded_ = false;
-            bool network_ = false, residual_ = false, attention_ = false;
+            bool network_ = false, residual_ = false, attention_ = false, scene_ = false;
             int heads_ = 0;
+            int edgeMatchRays_ = 3;
             float terminalCostCap_ = 0.0f, clearanceCostCap_ = 0.0f, maskedScore_ = -1e9f;
 
             std::vector<int> candIdx_, ctxIdx_; /**< columns the network uses */
@@ -105,5 +122,9 @@ namespace dynamic_gap
             Mlp candEnc_, ctxEnc_, head_, ff_;
             LayerNorm norm1_, norm2_;
             Linear qkv_, out_;
+            Eigen::VectorXf sceneMean_, sceneStd_;
+            Mlp sceneEnc_, sceneFf_;
+            LayerNorm sceneNormQ_, sceneNormKv_, sceneNorm2_;
+            Linear sceneQ_, sceneKv_, sceneOut_;
     };
 }

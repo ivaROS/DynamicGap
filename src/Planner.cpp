@@ -1209,6 +1209,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         cMsg.feasible = isFeasibleTraj(gapTrajs.at(i));
         cMsg.shown = displayId >= 0;
         cMsg.tube_len = (i < gapTubes.size()) ? gapTubes.at(i)->size() : 0;
+        cMsg.left_scan_idx = gap ? gap->getLeftGapPt()->getOrigIdx() : -1;
+        cMsg.right_scan_idx = gap ? gap->getRightGapPt()->getOrigIdx() : -1;
 
         if (gap)
         {
@@ -1334,6 +1336,36 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         sample.selected_left_model_id = selected.left_model_id;
         sample.selected_right_model_id = selected.right_model_id;
         return selectedIdx;
+    }
+
+    void Planner::fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample)
+    {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        sample.edges.clear();
+        for (Gap * gap : rawGaps)
+        {
+            // right point, then left point: the order attachUngapIDs pairs them in
+            for (GapPoint * pt : {gap->getRightGapPt(), gap->getLeftGapPt()})
+            {
+                manual_gap_msgs::ManualGapEdge e;
+                e.scan_idx = pt->getOrigIdx();
+                e.range = pt->getOrigRange();
+                e.theta = idx2theta(e.scan_idx);
+                Estimator * model = pt->getModel();
+                e.model_id = model ? model->getID() : -1;
+                e.model_pos.x = e.model_pos.y = e.model_vel.x = e.model_vel.y = nan;
+                if (model)
+                {
+                    Eigen::Vector4f state = model->getState();
+                    e.model_pos.x = state[0];
+                    e.model_pos.y = state[1];
+                    e.model_vel.x = state[2];
+                    e.model_vel.y = state[3];
+                }
+                sample.edges.push_back(e);
+            }
+        }
+        linkEdges(sample.edges);
     }
 
     void Planner::fillSampleObservation(manual_gap_msgs::ManualGapSample & sample)
@@ -2446,7 +2478,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return copiedRawGaps;
     }
 
-    std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy)
+    std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy,
+                                                              std::vector<Gap *> * rawCopy)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
@@ -2454,6 +2487,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         for (Gap * currSimplifiedGap : currSimplifiedGaps_)
             planningGaps.push_back(new Gap(*currSimplifiedGap));
+
+        // the raw gaps of the same scan
+        if (rawCopy)
+            for (Gap * currRawGap : currRawGaps_)
+                rawCopy->push_back(new Gap(*currRawGap));
 
         // under the same lock, so the scan is the one the gaps came from
         if (scanCopy && scan_)
@@ -2504,8 +2542,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         isGoalReached();
 
-        std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
-        std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps(externalSelectionMode() ? &sample.scan : nullptr);
+        std::vector<Gap *> copiedRawGaps;
+        std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps(externalSelectionMode() ? &sample.scan : nullptr,
+                                                                        &copiedRawGaps);
+        if (externalSelectionMode())
+            fillSampleEdges(copiedRawGaps, sample);
         std::vector<Ungap *> ungaps, recedingUngaps;
 
         // Gap Tubes

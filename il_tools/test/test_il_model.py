@@ -46,6 +46,26 @@ def example(rng, n=4, label=0, costs=False, episode=0, dg_pick=None):
             "goal": [rng.uniform(0, 10), rng.uniform(-5, 5)], "local_waypoint": [2.0, 0.0]}
 
 
+def edge(scan_idx, rng_, theta, vel):
+    return {"scan_idx": scan_idx, "model_id": scan_idx, "range": rng_, "theta": theta,
+            "model_pos": [0.0, 0.0], "model_vel": vel, "gap_neighbor": -1, "obstacle_neighbor": -1}
+
+
+def with_scene(rng, ex):
+    """Scene edges for ex: one raw gap per candidate (its points), linked as linkEdges does."""
+    edges = []
+    for k, c in enumerate(ex["candidates"]):
+        c["right_scan_idx"], c["left_scan_idx"] = 40 * k + 10, 40 * k + 30
+        edges.append(edge(40 * k + 10, c["right_range"], c["right_theta"], [rng.uniform(-1, 1), 0.0]))
+        edges.append(edge(40 * k + 30, c["left_range"], c["left_theta"], [rng.uniform(-1, 1), 0.0]))
+    n = len(edges)
+    for i, e in enumerate(edges):
+        e["gap_neighbor"] = i + 1 if i % 2 == 0 else i - 1
+        e["obstacle_neighbor"] = (i - 1 + n) % n if i % 2 == 0 else (i + 1) % n
+    ex["edges"] = edges
+    return ex
+
+
 def relabel(ex, key):
     """Label = the feasible candidate with the largest key(candidate)."""
     feasible = [i for i, c in enumerate(ex["candidates"]) if c["feasible"]]
@@ -108,6 +128,41 @@ class FeaturesTest(unittest.TestCase):
         # the operator's gap stays
         ex["label"] = 3
         self.assertEqual(il_model.options_only(ex)["candidates"][-1], ex["candidates"][3])
+
+    def test_ground_velocity(self):
+        # a still wall seen from a robot driving at 1 m/s moves at -1 m/s relative to it
+        wall = edge(5, 2.0, 0.0, [-1.0, 0.0])
+        self.assertEqual(il_model.ground_velocity(wall, [1.0, 0.0, 0.0]), [0.0, 0.0])
+        self.assertIsNone(il_model.ground_velocity(edge(5, 2.0, 0.0, [math.nan, math.nan]), [1.0, 0.0, 0.0]))
+
+    def test_edge_at(self):
+        edges = [edge(10, 1.0, 0.0, [0.0, 0.0]), edge(30, 1.0, 0.0, [0.0, 0.0])]
+        self.assertEqual(il_model.edge_at(edges, 31), 1)
+        self.assertEqual(il_model.edge_at(edges, 10 + il_model.EDGE_MATCH_RAYS), 0)
+        self.assertIsNone(il_model.edge_at(edges, 11 + il_model.EDGE_MATCH_RAYS))
+        self.assertIsNone(il_model.edge_at(edges, -1))
+        self.assertIsNone(il_model.edge_at([], 10))
+
+    def test_scene_links(self):
+        ex = with_scene(random.Random(0), example(random.Random(0), n=3))
+        links = il_model.scene_links(ex["edges"], ex["robot_vel"])
+        # every edge has one gap link and one obstacle link: as many links as edges
+        self.assertEqual(len(links), 6)
+        self.assertEqual([l[0] for l in links], [0, 1, 0, 1, 0, 1])
+        # the last obstacle link closes the circle: last edge to the first
+        a, b = links[-1][1:3], links[-1][5:7]
+        self.assertAlmostEqual(a[0], il_model.edge_position(ex["edges"][5])[0], 5)
+        self.assertAlmostEqual(b[0], il_model.edge_position(ex["edges"][0])[0], 5)
+        f = il_model.featurize(ex)
+        self.assertEqual(f["scene"].shape, (6, len(il_model.SCENE_FEATURES)))
+        # the candidate's points carry their edges' ground velocities
+        col = il_model.CANDIDATE_FEATURES.index("left_gvx")
+        self.assertAlmostEqual(float(f["cand"][0, col]), ex["edges"][1]["model_vel"][0] + ex["robot_vel"][0], 5)
+        self.assertEqual(float(f["cand"][0, il_model.CANDIDATE_FEATURES.index("edge_vel_known")]), 1.0)
+        # before schema 4: no scene, velocities unknown
+        f = il_model.featurize(example(random.Random(0), n=3))
+        self.assertEqual(f["scene"].shape, (0, len(il_model.SCENE_FEATURES)))
+        self.assertEqual(float(f["cand"][0, il_model.CANDIDATE_FEATURES.index("edge_vel_known")]), 0.0)
 
     def test_cost_infinite(self):
         ex = example(random.Random(0), n=3, label=0)
@@ -257,7 +312,7 @@ class TrainTest(unittest.TestCase):
             splits.append(exs)
         out = tempfile.mkdtemp()
         try:
-            model, result = il_train.train(None, {"epochs": 3, "groups": ["edges", "goal"]}, out,
+            model, result = il_train.train(None, {"epochs": 3, "groups": ["edges", "goal"], "residual": True}, out,
                                            log=io.StringIO(), data=splits)
             self.assertEqual(set(result), {"config", "best_epoch", "val", "train", "test", "dg_weight"})
             # rebuilt terminal costs only: the clearance weight stays out
@@ -273,6 +328,38 @@ class TrainTest(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(out, "gap_scorer.json")))
         finally:
             shutil.rmtree(out)
+
+    def test_train_with_scene(self):
+        rng = random.Random(5)
+        splits = []
+        for n in (64, 16, 16):
+            exs = [with_scene(rng, example(rng, n=rng.randint(2, 4), episode=i // 8)) for i in range(n)]
+            for t, ex in enumerate(exs):
+                ex["obs_tick"] = t
+                relabel(ex, lambda c: c["left_range"])
+            splits.append(exs)
+        out = tempfile.mkdtemp()
+        try:
+            model, result = il_train.train(None, {"epochs": 2}, out, log=io.StringIO(), data=splits)
+            self.assertTrue(model.scene)
+            self.assertFalse(model.residual)
+            self.assertNotIn("dg_weight", result)
+            batch = il_model.collate([il_model.featurize(ex) for ex in splits[1]])
+            for loaded in (il_train.load(os.path.join(out, "model.pt")),
+                           il_train.load_exported(os.path.join(out, "gap_scorer.json"))):
+                self.assertTrue(torch.allclose(il_model.scores(model.eval(), batch), il_model.scores(loaded, batch),
+                                               atol=1e-5))
+            # a tick's scores do not depend on the other ticks' scene sizes (padding)
+            alone = il_model.scores(model, il_model.collate([il_model.featurize(splits[1][0])]))[0]
+            self.assertTrue(torch.allclose(alone, il_model.scores(model, batch)[0, :len(alone)], atol=1e-5))
+        finally:
+            shutil.rmtree(out)
+
+    def test_no_scene_in_data(self):
+        log = io.StringIO()
+        model, _ = il_train.train(None, {"epochs": 1}, None, log=log, data=self._splits((32, 8, 8)))
+        self.assertFalse(model.scene)
+        self.assertIn("no scene edges", log.getvalue())
 
     def _splits(self, sizes):
         rng = random.Random(4)

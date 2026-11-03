@@ -722,9 +722,11 @@ Full reasoning: `docs/IL_MODEL_AND_DATA_DESIGN.md`.
 
 ### Two models
 - **Gap-selection scorer (Alternative 1)** — what `il_build_dataset` builds
-  today. Input: scan, robot velocity, goal, candidate set; output: index.
-  Cross-entropy with label smoothing or soft labels from `cursor_dist`;
-  up-weight gap switches. Defaults: up to 12 gaps, hidden 128, dropout 0.1.
+  today. Input: the scene's edges and their links (schema 4, see
+  `il_pipeline_fixes/52-scene-edges.md`), each candidate's points and ground
+  velocities, robot velocity, goal, local waypoint; no scan, no DynamicGap
+  costs by default; output: a score per candidate. Cross-entropy over the
+  tick's candidates; up-weight gap switches. Defaults: hidden 64, dropout 0.1.
   First measure how often the human disagreed with DynamicGap's pick; under
   ~10% means little to learn.
 - **MoG BC over waypoints (recommended long-term)** — Mixture-of-Gaussians
