@@ -2,6 +2,9 @@
 #include <dynamic_gap/utils/bezier_utils.h>
 #include <dynamic_gap/utils/dwa_traj.h>
 #include <dynamic_gap/utils/CbfLinConstraint.h>
+#include <cmath>
+#include <limits>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <filesystem>
@@ -12,6 +15,22 @@
 
 namespace dynamic_gap
 {
+    namespace
+    {
+        // Invalid evaluations must never outrank a finite trajectory cost.
+        float trajectoryCost(const std::vector<float> &poseCosts, float terminalCost)
+        {
+            const float invalidCost = std::numeric_limits<float>::infinity();
+            if (poseCosts.empty() || !std::isfinite(terminalCost))
+                return invalidCost;
+
+            // Calculates trajectoryCost as terminalCost + average.
+            const float cost = terminalCost +
+                std::accumulate(poseCosts.begin(), poseCosts.end(), 0.0f) / poseCosts.size();
+            return std::isfinite(cost) ? cost : invalidCost;
+        }
+    }
+
     Planner::~Planner()
     {
         if (gruCsvFile_.is_open())
@@ -1578,7 +1597,7 @@ namespace dynamic_gap
 
                 Trajectory runningTraj;
                 std::vector<float> runningPoseCosts;
-                float runningTerminalPoseCost;
+                float runningTerminalPoseCost = std::numeric_limits<float>::infinity();
 
                 bool disable_gap_tubes = true;
                 int iterate;
@@ -1600,13 +1619,16 @@ namespace dynamic_gap
                     float terminalPoseCost;
 
                     std::vector<float> goToGoalPoseCosts, pursuitGuidancePoseCosts;
-                    float goToGoalTerminalPoseCost, pursuitGuidanceTerminalPoseCost;
-                    float goToGoalCost, pursuitGuidancePoseCost;
+                    float goToGoalTerminalPoseCost = std::numeric_limits<float>::infinity();
+                    float pursuitGuidanceTerminalPoseCost = std::numeric_limits<float>::infinity();
+                    float goToGoalCost = std::numeric_limits<float>::infinity();
+                    float pursuitGuidancePoseCost = std::numeric_limits<float>::infinity();
 
                     // variables for dwa
                     std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts; // IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost
                     std::vector<float> dwa_PathCosts;
-                    float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
+                    float dwa_goToGoalTerminalPoseCost; 
+                    float dwa_TerminalPoseCost = std::numeric_limits<float>::infinity();
                     float dwa_goToGoalCost, dwa_PoseCost;
                     std::vector<float> dwa_RelVelPoseCosts;
 
@@ -1635,12 +1657,12 @@ namespace dynamic_gap
                         // false);
                         trajEvaluator_->evaluateTrajectory(goToGoalTraj, goToGoalPoseCosts, goToGoalTerminalPoseCost, futureScans, scanIdx);
 
-                        goToGoalCost = goToGoalTerminalPoseCost + std::accumulate(goToGoalPoseCosts.begin(), goToGoalPoseCosts.end(), float(0)) / goToGoalPoseCosts.size();
+                        goToGoalCost = trajectoryCost(goToGoalPoseCosts, goToGoalTerminalPoseCost);
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        goToGoalCost: " << goToGoalCost);
                     }
 
                     // Run pursuit guidance behavior
-                    float totalTrajCost = 0;
+                    float totalTrajCost = std::numeric_limits<float>::infinity();
                     // geometry_msgs::PoseArray pose_array;   // will be filled if DWA runs
                     // dwa_Trajectory dwa_traj;
                     dwa_Trajectory cheapest_dwa;
@@ -1830,11 +1852,20 @@ namespace dynamic_gap
                                 //                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
                                 //                     float dwa_goToGoalCost, dwa_PoseCost;
 
+                                totalTrajCost = std::numeric_limits<float>::infinity();
+                                dwa_TerminalPoseCost = std::numeric_limits<float>::infinity();
+
                                 std::vector<geometry_msgs::PoseStamped> visiblePlan =
                                     globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
                                 // float totalTrajCost = 0;
                                 float speedCost = 0;
                                 trajEvaluator_->dwa_evaluateTrajectory(totalTrajCost, dwa_traj, dwa_PoseCosts, dwa_PathCosts, dwa_TerminalPoseCost, futureScans, scanIdx, visiblePlan, gap, dwa_RelVelPoseCosts);
+
+                                if (dwa_PoseCosts.empty() || !std::isfinite(totalTrajCost) || !std::isfinite(dwa_TerminalPoseCost))
+                                {
+                                    continue; // Skip this candidate
+                                }
+
                                 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max);
                                 totalTrajCost += speedCost * cfg_.traj.w_speed;
                                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
@@ -2207,7 +2238,7 @@ namespace dynamic_gap
                         if (!cfg_.planning.dwa_method)
                         {
                             trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
-                            pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
+                            pursuitGuidancePoseCost = trajectoryCost(pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost);
                             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
                         }
                         else
@@ -2283,7 +2314,9 @@ namespace dynamic_gap
 
                             // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
-                            pursuitGuidancePoseCost = cheapest_dwa.totalTrajCost; // this total traj does the same thing, just look in TrajectoryEvaluator
+                            pursuitGuidancePoseCost = !pursuitGuidancePoseCosts.empty() && std::isfinite(cheapest_dwa.totalTrajCost)
+                                ? cheapest_dwa.totalTrajCost
+                                : std::numeric_limits<float>::infinity();
                             // pursuitGuidancePoseCosts = cheapest_dwa.PoseCosts; //should include path costs
                             pursuitGuidanceTerminalPoseCost = cheapest_dwa.TerminalPoseCost;
                             // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "TerminalPoseCost: " << cheapest_dwa.TerminalPoseCost);
@@ -2316,8 +2349,14 @@ namespace dynamic_gap
                         // }
 
                         trajEvaluator_->evaluateTrajectory(pursuitGuidanceTraj, pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost, futureScans, scanIdx);
-                        pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
+                        pursuitGuidancePoseCost = trajectoryCost(pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost);
                         ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
+                    }
+
+                    if (!std::isfinite(goToGoalCost) && !std::isfinite(pursuitGuidancePoseCost))
+                    {
+                        runningTerminalPoseCost = std::numeric_limits<float>::infinity();
+                        break; // Reject this tube; neither behavior has a valid evaluation.
                     }
 
                     if (runGoToGoal && goToGoalCost < pursuitGuidancePoseCost) // add this back! i removed it while debugging cbf see "so it does happen on the cbf branch, but i don’t think that’s the only thing causing weirdness"
@@ -2359,12 +2398,16 @@ namespace dynamic_gap
                     {
                         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                                "ERROR: selected traj has empty poses (cannot use back()).");
+                        runningTerminalPoseCost = std::numeric_limits<float>::infinity();
+                        break;
                     }
 
                     if (traj.getPathTiming().empty())
                     {
                         ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
                                                "ERROR: selected traj has empty timing (cannot use back/front).");
+                        runningTerminalPoseCost = std::numeric_limits<float>::infinity();
+                        break;
                     }
 
                     // update current pose and time
@@ -2456,7 +2499,7 @@ namespace dynamic_gap
 
                 Trajectory traj, pursuitGuidanceTraj;
                 std::vector<float> pursuitGuidancePoseCosts;
-                float pursuitGuidanceTerminalPoseCost;
+                float pursuitGuidanceTerminalPoseCost = std::numeric_limits<float>::infinity();
                 float pursuitGuidancePoseCost;
 
                 // Run pursuit guidance behavior
@@ -2472,7 +2515,7 @@ namespace dynamic_gap
                                                    pursuitGuidanceTerminalPoseCost,
                                                    futureScans,
                                                    0);
-                pursuitGuidancePoseCost = pursuitGuidanceTerminalPoseCost + std::accumulate(pursuitGuidancePoseCosts.begin(), pursuitGuidancePoseCosts.end(), float(0)) / pursuitGuidancePoseCosts.size();
+                pursuitGuidancePoseCost = trajectoryCost(pursuitGuidancePoseCosts, pursuitGuidanceTerminalPoseCost);
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        pursuitGuidancePoseCost: " << pursuitGuidancePoseCost);
 
                 traj = pursuitGuidanceTraj;
@@ -2588,7 +2631,8 @@ namespace dynamic_gap
             }
 
             // poses here are in odom frame
-            std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs);
+            std::vector<float> pathCosts(numGapTrajs + numUngapTrajs + numIdlingTrajs,
+                                         std::numeric_limits<float>::infinity());
 
             // evaluate gap trajectories
             int runningTrajIdx = 0;
@@ -2615,7 +2659,7 @@ namespace dynamic_gap
                     continue;
                 }
 
-                pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(currentTrajPoseCosts.begin(), currentTrajPoseCosts.end(), float(0)) / currentTrajPoseCosts.size();
+                pathCosts.at(runningTrajIdx) = trajectoryCost(currentTrajPoseCosts, gapTrajTerminalPoseCosts.at(i));
 
                 pathCosts.at(runningTrajIdx) = currentTraj.getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
 
@@ -2634,7 +2678,7 @@ namespace dynamic_gap
                     ROS_WARN_STREAM_NAMED("Planner", "ungap traj " << i << " has < 2 poses");
                 }
 
-                pathCosts.at(runningTrajIdx) = ungapTrajTerminalPoseCosts.at(i) + std::accumulate(ungapTrajPoseCosts.at(i).begin(), ungapTrajPoseCosts.at(i).end(), float(0)) / ungapTrajPoseCosts.at(i).size();
+                pathCosts.at(runningTrajIdx) = trajectoryCost(ungapTrajPoseCosts.at(i), ungapTrajTerminalPoseCosts.at(i));
 
                 pathCosts.at(runningTrajIdx) = ungapTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
 
@@ -2653,7 +2697,7 @@ namespace dynamic_gap
                     ROS_WARN_STREAM_NAMED("Planner", "idling traj " << i << " has < 2 poses");
                 }
 
-                pathCosts.at(runningTrajIdx) = idlingTrajTerminalPoseCosts.at(i) + std::accumulate(idlingTrajPoseCosts.at(i).begin(), idlingTrajPoseCosts.at(i).end(), float(0)) / idlingTrajPoseCosts.at(i).size();
+                pathCosts.at(runningTrajIdx) = trajectoryCost(idlingTrajPoseCosts.at(i), idlingTrajTerminalPoseCosts.at(i));
 
                 pathCosts.at(runningTrajIdx) = idlingTrajs.at(i).getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : pathCosts.at(runningTrajIdx);
 
@@ -2821,7 +2865,7 @@ namespace dynamic_gap
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    evaluating incoming trajectory");
             std::vector<float> incomingPathPoseCosts;
-            float incomingPathTerminalPoseCost;
+            float incomingPathTerminalPoseCost = std::numeric_limits<float>::infinity();
             // trajEvaluator_->evaluateTrajectory(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0);
             trajEvaluator_->dwa_evaluateTrajectory_outside(incomingTraj, incomingPathPoseCosts, incomingPathTerminalPoseCost, futureScans, 0, incomingGap);
 
@@ -2835,7 +2879,7 @@ namespace dynamic_gap
             //                     dynamic_gap::Gap* gap,
             //                     std::vector<float> &dwa_RelVelPoseCosts)
 
-            float incomingPathCost = incomingPathTerminalPoseCost + std::accumulate(incomingPathPoseCosts.begin(), incomingPathPoseCosts.end(), float(0)) / incomingPathPoseCosts.size();
+            float incomingPathCost = trajectoryCost(incomingPathPoseCosts, incomingPathTerminalPoseCost);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    incoming trajectory received a cost of: " << incomingPathCost);
 
             ///////////////////////////////////////////////////////////////////////
@@ -2974,22 +3018,21 @@ namespace dynamic_gap
             //    trajEvaluator_->update_human_info(reducedCurrentTraj, reducedCurrentTraj.gap); // the commented out code
 
             std::vector<float> reducedCurrentPathPoseCosts;
-            float reducedCurrentPathTerminalPoseCost;
+            float reducedCurrentPathTerminalPoseCost = std::numeric_limits<float>::infinity();
             trajEvaluator_->dwa_evaluateTrajectory_reducedCurrentTraj(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
             // I intentionally use currentTraj.leftGapPtID because that's the only place the ID is stored, i don't copy it over to reducedCurrentTraj because I don't want to
 
             // trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
-            float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
+            float reducedCurrentPathSubCost = trajectoryCost(reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost);
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
             trajEvaluator_->update_cbf_info(updatedCurrentTraj, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
 
-            // if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity())
-            // {
-            //     ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ <<
-            //                                                 ": current trajectory is of cost infinity," << incomingPathStatus);
-            //     return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
-            // }
+            if (!std::isfinite(reducedCurrentPathSubCost))
+            {
+                // The helper clears the current trajectory if the incoming one is invalid too.
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+            }
 
             // std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 
@@ -3008,7 +3051,7 @@ namespace dynamic_gap
             if (incomingPathCost < reducedCurrentPathSubCost)
             {
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory change " << trajectoryChangeCount_ << ": incoming trajectory is lower score");
-                changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
+                return changeTrajectoryHelper(incomingTraj, ableToSwitchToIncomingPath, trajFlag, incomingGap);
             }
 
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "        trajectory maintain");
