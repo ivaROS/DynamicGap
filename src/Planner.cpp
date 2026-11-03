@@ -93,15 +93,6 @@ namespace dynamic_gap
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
 
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.scan_topic: " << cfg_.scan_topic);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_topic: " << cfg_.odom_topic);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.acc_topic: " << cfg_.acc_topic);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.ped_topic: " << cfg_.ped_topic);
-
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.robot_frame_id: " << cfg_.robot_frame_id);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.sensor_frame_id: " << cfg_.sensor_frame_id);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.map_frame_id: " << cfg_.map_frame_id);
-        // ROS_INFO_STREAM_NAMED("Planner", "cfg_.odom_frame_id: " << cfg_.odom_frame_id);
 
         // Initialize everything
         gapDetector_ = new GapDetector(cfg_);
@@ -178,9 +169,6 @@ namespace dynamic_gap
             nh_.subscribe(gruGapVelocityTopic, 100, &Planner::gruGapVelocityCB, this);
 
         // Visualization Setup
-
-        // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
-        // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
 
         gapVelSub_ = nh_.subscribe(
             "simp_gap_model_velocities",
@@ -309,29 +297,6 @@ namespace dynamic_gap
 
         return reachedGlobalGoal_;
     }
-
-    // void Planner::mpcOutputCB(boost::shared_ptr<geometry_msgs::PoseArray> mpcOutput)
-    // {
-    //     if (mpcOutput->poses.size() == 0)
-    //     {
-    //         ROS_WARN_STREAM("MPC output length zero");
-    //         return;
-    //     }
-
-    //     if (mpcOutput->poses.size() > 1)
-    //     {
-    //         // first entry is initial condition
-
-    //         // second entry should be what we want
-    //         geometry_msgs::Twist dummyTwist;
-    //         dummyTwist.linear.x = mpcOutput->poses[1].position.x;
-    //         dummyTwist.linear.y = mpcOutput->poses[1].position.y;
-    //         mpcTwist_ = dummyTwist;
-    //     } else
-    //     {
-    //         ROS_WARN_STREAM("MPC output length one");
-    //     }
-    // }
 
     void Planner::laserScanCB(boost::shared_ptr<sensor_msgs::LaserScan> scan)
     {
@@ -1417,12 +1382,12 @@ namespace dynamic_gap
             if (cfg_.planning.dwa_method)
             {
                 isCurrentGapFeasible = true; // i'm not using this feasibility code so just keep it as true
-                bool isGapFeasible = true;
+                isGapFeasible = true;
             }
             else
             {
                 isCurrentGapFeasible = false;
-                bool isGapFeasible = false;
+                isGapFeasible = false;
             }
 
             for (int i = 0; i < gapTubes.size(); i++)
@@ -1437,11 +1402,11 @@ namespace dynamic_gap
                 {
                     if (cfg_.planning.dwa_method)
                     {
-                        bool isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
+                        isGapFeasible = true; // i'm not using this feasibility code so just keep it as true
                     }
                     else
                     {
-                        bool isGapFeasible = false;
+                        isGapFeasible = false;
                     }
 
                     Gap *gap = gapTube->at(j);
@@ -1583,9 +1548,6 @@ namespace dynamic_gap
 
             for (int i = 0; i < gapTubes.size(); i++)
             {
-                static int planCycle = 0;
-                // ROS_ERROR_STREAM("==== Planning cycle " << planCycle++ << " ====");
-
                 GapTube *gapTube = gapTubes.at(i);
                 bool isTubeFeasible = true;
                 ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    generating traj for tube " << i);
@@ -1625,11 +1587,9 @@ namespace dynamic_gap
                     float pursuitGuidancePoseCost = std::numeric_limits<float>::infinity();
 
                     // variables for dwa
-                    std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts; // IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost
+                    std::vector<float> dwa_PoseCosts; // IMPORTANT NOTE: dwa_PoseCosts is only the distance-related cost not other costs like path cost
                     std::vector<float> dwa_PathCosts;
-                    float dwa_goToGoalTerminalPoseCost; 
                     float dwa_TerminalPoseCost = std::numeric_limits<float>::infinity();
-                    float dwa_goToGoalCost, dwa_PoseCost;
                     std::vector<float> dwa_RelVelPoseCosts;
 
                     Gap *gap = gapTube->at(j);
@@ -1736,9 +1696,7 @@ namespace dynamic_gap
                                 float a_max = cfg_.rbt.vang_absmax; // todo: update this value. I just set it to 1 for now
 
                                 const int num_points = 11; // total points along the trajectory
-                                const int num_segments = num_points - 1;
                                 const float dt = cfg_.traj.integrate_stept; // 0.5 sec
-                                // const float total_time   = dt * num_segments;
 
                                 // --- Step 1: desired forward speed after one step of acceleration ---
                                 float v_des = std::min(v0 + a_max * dt, v_max);
@@ -1781,11 +1739,6 @@ namespace dynamic_gap
 
                                 // --- Assume constant speed along Bézier arc ---
                                 float total_time = dt * (num_points - 1);
-                                float total_length = 0.0f;
-
-                                // compute arc length of the Bézier (approx. sum of straight-line segments)
-                                for (int i = 1; i < curve.size(); ++i)
-                                    total_length += (curve[i] - curve[i - 1]).norm();
 
                                 // compute how far the robot travels per timestep at v_cmd
                                 float step_distance = (v_cmd * total_time) / (num_points - 1);
@@ -1848,10 +1801,6 @@ namespace dynamic_gap
                                 //     counter++;
                                 // }
 
-                                //  std::vector<float> dwa_goToGoalPoseCosts, dwa_PoseCosts;
-                                //                     float dwa_goToGoalTerminalPoseCost, dwa_TerminalPoseCost;
-                                //                     float dwa_goToGoalCost, dwa_PoseCost;
-
                                 totalTrajCost = std::numeric_limits<float>::infinity();
                                 dwa_TerminalPoseCost = std::numeric_limits<float>::infinity();
 
@@ -1868,32 +1817,6 @@ namespace dynamic_gap
 
                                 speedCost = trajEvaluator_->calcSpeedCost(v_cmd, v_max);
                                 totalTrajCost += speedCost * cfg_.traj.w_speed;
-                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "totalTrajCost: " << totalTrajCost);
-                                float pose_cost_sum = 0.0f;
-                                float path_cost_sum = 0.0f;
-
-                                // if (!dwa_PoseCosts.empty())
-                                // {
-                                //     pose_cost_sum = std::accumulate(dwa_PoseCosts.begin(), dwa_PoseCosts.end(), 0.0f) / dwa_PoseCosts.size();
-                                //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts (size = " << dwa_PoseCosts.size() << "):");
-                                //     for (size_t i = 0; i < dwa_PoseCosts.size(); ++i)
-                                //     {
-                                //         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PoseCosts[i]);
-                                //     }
-                                // }
-
-                                // if (!dwa_PathCosts.empty())
-                                // {
-                                //     path_cost_sum = std::accumulate(dwa_PathCosts.begin(), dwa_PathCosts.end(), 0.0f) / dwa_PathCosts.size();
-                                //     ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts (size = " << dwa_PathCosts.size() << "):");
-                                //     for (size_t i = 0; i < dwa_PathCosts.size(); ++i)
-                                //     {
-                                //         ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "    [" << i << "] = " << dwa_PathCosts[i]);
-                                //     }
-                                // }
-
-                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PoseCosts avg: " << pose_cost_sum);
-                                // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "PathCosts avg: " << path_cost_sum);
 
                                 // traj_pub_.publish(dwa_traj.toPoseArray(cfg_.sensor_frame_id));
                                 traj_pub_.publish(dwa_traj.pose_array);
@@ -2113,13 +2036,6 @@ namespace dynamic_gap
                                     pose_cost /= len_norm;
                                     path_cost /= len_norm;
                                     relvel_cost /= len_norm;
-                                    if (i == poses.poses.size() - 1)
-                                    {
-                                        // speed_cost = trajEvaluator_->calcSpeedCost(traj.v_cmd, cfg_.rbt.vx_absmax);
-                                        // term_cost  = traj.TerminalPoseCost;
-                                        // ROS_ERROR_STREAM("I COMMENTED SPEED_COST AND TERM_COST OUT OF VISUALIZATION!");
-                                        int filler = 0;
-                                    }
 
                                     float total = pose_cost +
                                                   cfg_.traj.w_path * path_cost +
@@ -2187,25 +2103,8 @@ namespace dynamic_gap
 
                             // traj_pub_.publish(vis_traj_path); // commented out because i'm being lazy and want to use the same publisher to publish what's above
 
-                            // delete this:
-                            //  pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap,
-                            //                                                                  currPose,
-                            //                                                                  // currVel,
-                            //                                                                  globalGoalRobotFrame_);
-                            //  pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-
                             // pursuitGuidanceTraj = bezierTraj;
                             // pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-
-                            // delete this:
-                            //   pursuitGuidanceTraj = gapTrajGenerator_->generateTrajectoryV2(gap,
-                            //                                                                  currPose,
-                            //                                                                  // currVel,
-                            //                                                                  globalGoalRobotFrame_);
-                            //  pursuitGuidanceTraj = gapTrajGenerator_->processTrajectory(pursuitGuidanceTraj);
-                            //                                                              // currPose,
-                            //                                                              // currVel,
-                            //                                                          // false);
                         }
                         else
                         {
@@ -2278,20 +2177,6 @@ namespace dynamic_gap
                             dwaTrajectory.rightGapPtID = cheapest_dwa.rightGapPtID;
                             dwaTrajectory.leftGapPtID = cheapest_dwa.leftGapPtID;
 
-                            // dwa_traj.leftGapPtID = gap->getLeftGapPt()->getModel()->getID();
-
-                            // dwaTrajectory.trajPosRight = (cheapest_dwa.trajPosRight);
-
-                            // dwaTrajectory.setH(cheapest_dwa.H_left);
-
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "inside generateGapTraj v_cmd = " << dwaTrajectory.getVcmd() << " w_cmd = " << dwaTrajectory.w_cmd;
-
-                            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2",
-                            // "PACKAGED DWA traj: rbt=" << dwaTrajectory.getPathRbtFrame().poses.size()
-                            // << " timing=" << dwaTrajectory.getPathTiming().size()
-                            // << " v=" << dwaTrajectory.getVcmd()
-                            // << " w=" << dwaTrajectory.w_cmd;
-
                             // the pose costs is the cost per pose, so it should include pose costs (cost based on distance to obstacles per pose),
                             // path costs (penalizes deviation from global path per pose), and rel-vel costs (social term).
                             const auto &poseCosts = cheapest_dwa.PoseCosts;
@@ -2312,7 +2197,7 @@ namespace dynamic_gap
                                 pursuitGuidancePoseCosts.push_back(c_obs + c_path + c_rel);
                             }
 
-                            // Important! I'm being lazy and brute forceing and redirect pursuitGuidanceTraj to use this new trajectory
+                            // Important! I'm being lazy and brute forcing and redirect pursuitGuidanceTraj to use this new trajectory
                             pursuitGuidanceTraj = dwaTrajectory;
                             pursuitGuidancePoseCost = !pursuitGuidancePoseCosts.empty() && std::isfinite(cheapest_dwa.totalTrajCost)
                                 ? cheapest_dwa.totalTrajCost
@@ -2784,9 +2669,6 @@ namespace dynamic_gap
                                                const int &trajFlag,
                                                Gap *incomingGap)
     {
-        // publishToMpc_ = true;
-        // bool override_switchToIncoming = true;
-        // if (override_switchToIncoming)
 
         if (switchToIncoming)
         {
@@ -2977,19 +2859,6 @@ namespace dynamic_gap
             //  Enact a trajectory switch if the we have been tracking the currently executing path for its entire lifespan  //
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             ros::Duration currentTrajTrackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
-
-            ////////////////// unused max tracking time //////////////////
-            double lifespan_sec = currentTrajLifespan_.toSec();
-            // lifespan_sec = std::max(0.0, lifespan_sec - 4.0);
-            double tracking_sec = currentTrajTrackingTime.toSec();
-            // ROS_ERROR_STREAM_NAMED("GapTrajectoryGeneratorV2", "tracking_sec: " << tracking_sec);
-            // // if (currentTrajTrackingTime > currentTrajLifespan_)
-            // if (tracking_sec + 4 > lifespan_sec)
-            double max_track_time = 0.1;
-            // if (tracking_sec >= max_track_time)
-            ////////////////// unused max tracking time //////////////////
-
-            // if (tracking_sec >= max_track_time) // unused
 
             if (currentTrajTrackingTime > currentTrajLifespan_)
             {
@@ -3620,9 +3489,6 @@ namespace dynamic_gap
         geometry_msgs::Twist cmdVel = rawCmdVel;
 
         geometry_msgs::PoseArray path = localTrajectory.getPathOdomFrame();
-        float v_cmd = localTrajectory.v_cmd;
-        float w_cmd = localTrajectory.w_cmd;
-        // float H_left = localTrajectory.getH(); // todo change trajectory file so there's a getH_left and getH_right
 
         try
         {
@@ -3680,9 +3546,6 @@ namespace dynamic_gap
                 // rawCmdVel = trajController_->manualControlLawKeyboard();
                 // rawCmdVel = trajController_->manualControlLawReconfig();
                 // rawCmdVel = trajController_->manualControlLawPrescribed(currPoseOdomFrame);
-                // } else if (cfg_.ctrl.mpc_ctrl) // MPC CONTROL
-                // {
-                //     rawCmdVel = mpcTwist_;
             }
             else if (cfg_.ctrl.feedback_ctrl && (trajFlag == UNGAP || trajFlag == GAP)) // FEEDBACK CONTROL
             {
@@ -3700,20 +3563,11 @@ namespace dynamic_gap
                 float trackingSpeed = (trajFlag == UNGAP) ? ungapRbtSpeed_ : cfg_.rbt.vx_absmax;
 
                 timeKeeper_->startTimer(FEEBDACK);
-                // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
 
                 if (cfg_.planning.dwa_method)
                 {
-                    // ROS_ERROR_STREAM_NAMED("Controller", "Using external DWA command v=" << v_cmd << ", w=" << w_cmd);
-
-                    // rawCmdVel.linear.x  = v_cmd; // no longer using this approach
-                    // rawCmdVel.linear.y  = 0.0;
-                    // rawCmdVel.angular.z = w_cmd;
-
                     rawCmdVel = trajController_->constantVelocityControlLawNonHolonomicLookahead(currPoseOdomFrame, targetTrajectoryPose, trackingSpeed);
 
-                    // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
-                    // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
                     CbfLinConstraint leftCBFOutput;
                     leftCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
                         currPoseOdomFrame,
