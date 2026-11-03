@@ -42,7 +42,9 @@ CANDIDATE_FEATURES = (
     ["left_x", "left_y", "right_x", "right_y", "width", "bearing_cos", "bearing_sin"]
     + ["left_model_" + k for k in ("x", "y", "vx", "vy")]
     + ["right_model_" + k for k in ("x", "y", "vx", "vy")]
-    + ["terminal_x", "terminal_y"])
+    + ["terminal_x", "terminal_y"]
+    # new features go last: a model trained on a shorter list still runs
+    + ["cost_infinite"])
 CONTEXT_FEATURES = ["vel_x", "vel_y", "vel_yaw", "goal_x", "goal_y", "waypoint_x", "waypoint_y"]
 
 INPUT_GROUPS = {
@@ -53,8 +55,11 @@ INPUT_GROUPS = {
     "robot_vel": ["vel_x", "vel_y", "vel_yaw"],
     "goal": ["goal_x", "goal_y"],
     "waypoint": ["waypoint_x", "waypoint_y"],
+    # 1 where DynamicGap's cost is infinite (a pose inside the inflated robot, or a
+    # path under 2 poses): the capped cost alone does not tell it from a large one
+    "cost_infinite": ["cost_infinite"],
 }
-DEFAULT_GROUPS = ["edges", "ped_pos", "ped_vel", "robot_vel", "goal", "waypoint"]
+DEFAULT_GROUPS = ["edges", "ped_pos", "ped_vel", "robot_vel", "goal", "waypoint", "cost_infinite"]
 
 
 def inputs_of(groups):
@@ -71,7 +76,8 @@ def candidate_vector(c):
     v = (left + right + [math.hypot(left[0] - right[0], left[1] - right[1]),
                          math.cos(c["bearing"]), math.sin(c["bearing"])]
          + c["left_model"] + c["right_model"]
-         + c.get("terminal_rbt", [0.0, 0.0]))
+         + c.get("terminal_rbt", [0.0, 0.0])
+         + [1.0 if c.get("dg_cost") is not None and math.isinf(c["dg_cost"]) else 0.0])
     return [finite(x) for x in v]
 
 
@@ -262,8 +268,11 @@ class GapScorer(nn.Module):
         if self.residual:
             score = score - (dg * self.dg_weight).sum(-1) * dg_avail
         if self.network:
-            e = self.cand_enc(((cand - self.cand_mean) / self.cand_std).index_select(-1, self.cand_idx))
-            c = self.ctx_enc(((ctx - self.ctx_mean) / self.ctx_std).index_select(-1, self.ctx_idx))
+            # select, then normalise: a model trained on fewer features has shorter statistics
+            e = self.cand_enc((cand.index_select(-1, self.cand_idx) - self.cand_mean[self.cand_idx])
+                              / self.cand_std[self.cand_idx])
+            c = self.ctx_enc((ctx.index_select(-1, self.ctx_idx) - self.ctx_mean[self.ctx_idx])
+                             / self.ctx_std[self.ctx_idx])
             if self.mix is not None:
                 # context goes in with every candidate, then the candidates see each other
                 e = self.mix(e + c[:, None, :], mask)

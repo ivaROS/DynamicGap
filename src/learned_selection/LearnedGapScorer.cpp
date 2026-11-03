@@ -14,6 +14,8 @@ namespace dynamic_gap
     {
         const std::string FORMAT = "dynamic_gap_gap_scorer";
         const int FORMAT_VERSION = 1;
+        // DynamicGap's Q_f in every recorded session (il_model.Q_F)
+        const double Q_F = 0.05;
 
         // non-finite inputs become 0 (il_model.finite)
         double finiteOr0(const double & x)
@@ -88,7 +90,8 @@ namespace dynamic_gap
             "left_x", "left_y", "right_x", "right_y", "width", "bearing_cos", "bearing_sin",
             "left_model_x", "left_model_y", "left_model_vx", "left_model_vy",
             "right_model_x", "right_model_y", "right_model_vx", "right_model_vy",
-            "terminal_x", "terminal_y"};
+            "terminal_x", "terminal_y",
+            "cost_infinite"};
         return names;
     }
 
@@ -143,8 +146,11 @@ namespace dynamic_gap
                 throw std::runtime_error("export format version " + root["version"].as<std::string>()
                                          + ", the planner reads version " + std::to_string(FORMAT_VERSION));
 
-            // the features the model was trained on must be the ones computed here
-            if (root["candidate_features"].as<std::vector<std::string>>() != candidateFeatures()
+            // the features the model was trained on must be the ones computed here; a
+            // model from before a feature was added has a leading part of the list
+            const std::vector<std::string> modelCand = root["candidate_features"].as<std::vector<std::string>>();
+            if (modelCand.size() > candidateFeatures().size()
+                || !std::equal(modelCand.begin(), modelCand.end(), candidateFeatures().begin())
                 || root["context_features"].as<std::vector<std::string>>() != contextFeatures())
                 throw std::runtime_error("feature lists differ from the planner's (model exported by another il_model version)");
 
@@ -152,10 +158,10 @@ namespace dynamic_gap
             ctxIdx_.clear();
             for (const std::string & name : root["inputs"].as<std::vector<std::string>>())
             {
-                auto c = std::find(candidateFeatures().begin(), candidateFeatures().end(), name);
+                auto c = std::find(modelCand.begin(), modelCand.end(), name);
                 auto x = std::find(contextFeatures().begin(), contextFeatures().end(), name);
-                if (c != candidateFeatures().end())
-                    candIdx_.push_back(std::distance(candidateFeatures().begin(), c));
+                if (c != modelCand.end())
+                    candIdx_.push_back(std::distance(modelCand.begin(), c));
                 else if (x != contextFeatures().end())
                     ctxIdx_.push_back(std::distance(contextFeatures().begin(), x));
                 else
@@ -173,7 +179,7 @@ namespace dynamic_gap
                 throw std::runtime_error("model has neither the network nor the linear term");
 
             const YAML::Node tensors = root["tensors"];
-            const int nCand = candidateFeatures().size(), nCtx = contextFeatures().size();
+            const int nCand = modelCand.size(), nCtx = contextFeatures().size();
             candMean_ = vector(tensors, "cand_mean", nCand);
             candStd_ = vector(tensors, "cand_std", nCand);
             ctxMean_ = vector(tensors, "ctx_mean", nCtx);
@@ -270,16 +276,24 @@ namespace dynamic_gap
                 std::cos(double(cand.bearing)), std::sin(double(cand.bearing)),
                 cand.left_model_pos.x, cand.left_model_pos.y, cand.left_model_vel.x, cand.left_model_vel.y,
                 cand.right_model_pos.x, cand.right_model_pos.y, cand.right_model_vel.x, cand.right_model_vel.y,
-                terminalX, terminalY};
+                terminalX, terminalY,
+                std::isinf(cand.dg_cost) ? 1.0 : 0.0};
             for (int k = 0; k < in.cand.cols(); k++)
                 in.cand(i, k) = float(finiteOr0(row[k]));
 
             // il_model.dg_terms: NaN means not recorded; infinite costs are capped
             const float t = cand.dg_terminal_cost, k = cand.dg_clearance_cost;
+            const double wx = sample.local_waypoint_robot_frame.x, wy = sample.local_waypoint_robot_frame.y;
             if (!std::isnan(t) && !std::isnan(k))
             {
                 in.dg(i, 0) = std::min(t, terminalCostCap_);
                 in.dg(i, 1) = std::min(k, clearanceCostCap_);
+                in.dgAvail(i) = 1.0f;
+            } else if (cand.feasible && std::isfinite(wx) && std::isfinite(wy))
+            {
+                // il_model.rebuilt_terminal_cost: Q_f * |trajectory end - local waypoint|, no clearance cost
+                const float rebuilt = float(Q_F * std::hypot(terminalX - wx, terminalY - wy));
+                in.dg(i, 0) = std::min(rebuilt, terminalCostCap_);
                 in.dgAvail(i) = 1.0f;
             }
             in.mask[i] = cand.feasible && cand.shown;

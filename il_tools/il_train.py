@@ -241,7 +241,8 @@ def export_scorer(model, path):
     model = model.eval()
     cfg = {
         "format": SCORER_FORMAT, "version": SCORER_FORMAT_VERSION,
-        "candidate_features": il_model.CANDIDATE_FEATURES,
+        # the features the model was trained on (older models: a leading part of the list)
+        "candidate_features": il_model.CANDIDATE_FEATURES[:len(model.cand_mean)],
         "context_features": il_model.CONTEXT_FEATURES,
         "inputs": model.inputs,
         "network": model.network, "residual": model.residual, "attention": model.attention,

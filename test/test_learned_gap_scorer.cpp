@@ -182,7 +182,7 @@ TEST(LearnedGapScorer, RefusesMissingOrForeignModels)
 
     // a model trained on other features is refused, not run
     const std::string model = FIXTURES + "/attention_model.json";
-    std::string renamed = writeModified(model, "\"terminal_y\"]", "\"terminal_z\"]");
+    std::string renamed = writeModified(model, "\"cost_infinite\"]", "\"cost_infinitf\"]");
     error.clear();
     EXPECT_FALSE(scorer.load(renamed, error));
     EXPECT_NE(std::string::npos, error.find("feature")) << error;

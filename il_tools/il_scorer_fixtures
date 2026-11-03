@@ -92,6 +92,7 @@ def as_example(sample):
             "terminal_rbt": il_dataset.to_robot_frame(c["terminal"][0], c["terminal"][1], pose)
             if c["feasible"] else [math.nan, math.nan],
             "dg_terminal_cost": c["dg_terminal_cost"], "dg_clearance_cost": c["dg_clearance_cost"],
+            "dg_cost": c["dg_cost"],
         })
     return {"candidates": cands, "label": 0, "robot_vel": sample["robot_vel"], "goal": sample["goal"],
             "local_waypoint": sample["waypoint"]}

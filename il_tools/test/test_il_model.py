@@ -109,6 +109,23 @@ class FeaturesTest(unittest.TestCase):
         ex["label"] = 3
         self.assertEqual(il_model.options_only(ex)["candidates"][-1], ex["candidates"][3])
 
+    def test_cost_infinite(self):
+        ex = example(random.Random(0), n=3, label=0)
+        ex["candidates"][1]["dg_cost"] = math.inf
+        col = il_model.CANDIDATE_FEATURES.index("cost_infinite")
+        self.assertEqual(il_model.featurize(ex)["cand"][:, col].tolist(), [0, 1, 0])
+
+    def test_model_on_fewer_features_still_runs(self):
+        # a model trained before cost_infinite existed: statistics of the leading features only
+        ex = example(random.Random(0), n=3, label=0)
+        items = [il_model.featurize(ex)]
+        norm = {k: v[:-1] if k.startswith("cand") else v for k, v in il_model.normalizer(items).items()}
+        old = il_model.inputs_of(["edges", "ped_pos", "ped_vel", "robot_vel", "goal", "waypoint"])
+        model = il_model.GapScorer(norm, inputs=old).eval()
+        with torch.no_grad():
+            s = il_model.scores(model, il_model.collate(items))[0]
+        self.assertTrue(torch.isfinite(s).all())
+
     def test_options_only_same_scores(self):
         ex = example(random.Random(0), n=4, label=0)  # candidate 3 is infeasible
         items = [il_model.featurize(ex)]
