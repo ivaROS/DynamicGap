@@ -108,8 +108,8 @@ def expected(model, sample):
     item["mask"] = np.array([il_model.selectable(c) for c in as_example(sample)["candidates"]])
     with torch.no_grad():
         scores = il_model.scores(model, il_model.collate([item]))[0].tolist()
-    allowed = [m and math.isfinite(c["dg_cost"]) for m, c in zip(item["mask"], sample["candidates"])]
-    choice = max((i for i, a in enumerate(allowed) if a), key=lambda i: scores[i], default=-1)
+    # the planner's choice: any option, infinite DynamicGap cost included
+    choice = max((i for i, m in enumerate(item["mask"]) if m), key=lambda i: scores[i], default=-1)
     return {"cand": item["cand"].tolist(), "ctx": item["ctx"].tolist(), "dg": item["dg"].tolist(),
             "dg_avail": item["dg_avail"].tolist(), "mask": item["mask"].tolist(),
             "scores": scores, "choice": choice}

@@ -87,14 +87,6 @@ namespace
         return sample;
     }
 
-    std::vector<bool> finiteCost(const manual_gap_msgs::ManualGapSample & sample)
-    {
-        std::vector<bool> allowed;
-        for (const auto & c : sample.candidates)
-            allowed.push_back(std::isfinite(c.dg_cost));
-        return allowed;
-    }
-
     // relative to the size of the value: inputs reach tens, scores more
     void expectNear(double expected, double actual, const std::string & what)
     {
@@ -139,7 +131,7 @@ namespace
                 expectNear(c["scores"][i].as<double>(), scores(i), where + " score " + std::to_string(i));
 
             Eigen::VectorXf chosenScores;
-            EXPECT_EQ(c["choice"].as<int>(), scorer.choose(sample, finiteCost(sample), chosenScores)) << where;
+            EXPECT_EQ(c["choice"].as<int>(), scorer.choose(sample, {}, chosenScores)) << where;
         }
         EXPECT_GT(caseIdx, 0);
     }
@@ -285,7 +277,7 @@ TEST_F(LearnedPlannerTest, NotLoadedSelectsNothing)
     EXPECT_TRUE(std::isnan(sample.candidates[0].model_score));
 }
 
-TEST_F(LearnedPlannerTest, FollowsHighestScoreWithFiniteCost)
+TEST_F(LearnedPlannerTest, FollowsHighestScoreInfiniteCostIncluded)
 {
     ASSERT_TRUE(PlannerTestAccess::loadLearnedScorer(planner_, FIXTURES + "/attention_model.json"));
 
@@ -304,7 +296,11 @@ TEST_F(LearnedPlannerTest, FollowsHighestScoreWithFiniteCost)
     for (int i : {0, 2, 3})
         EXPECT_FLOAT_EQ(scores(i), sample.candidates[i].model_score) << i;
 
-    int expected = scores(0) >= scores(2) ? 0 : 2;  // 3 has an infinite cost
+    // 3 has an infinite cost and is an option all the same
+    int expected = 0;
+    for (int i : {2, 3})
+        if (scores(i) > scores(expected))
+            expected = i;
     EXPECT_EQ(expected, selected);
     EXPECT_EQ(expected, sample.selected_idx);
     EXPECT_EQ(dynamic_gap::GAP, trajFlag);
@@ -336,8 +332,12 @@ TEST_F(LearnedPlannerTest, NewChoiceStartsOneTrackedTrajectory)
 TEST_F(LearnedPlannerTest, NoUsableChoiceSelectsNothing)
 {
     ASSERT_TRUE(PlannerTestAccess::loadLearnedScorer(planner_, FIXTURES + "/attention_model.json"));
-    for (auto & costs : poseCosts_)
-        costs.assign(costs.size(), std::numeric_limits<float>::infinity());
+    // no option: every candidate infeasible
+    for (size_t i = 0; i < trajs_.size(); i++)
+    {
+        trajs_[i] = Trajectory();
+        poseCosts_[i].clear();
+    }
 
     manual_gap_msgs::ManualGapSample sample = dynamic_gap::newManualSample();
     Trajectory chosen;

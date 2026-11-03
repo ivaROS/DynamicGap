@@ -1310,14 +1310,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         }
         sample.source = sample.SOURCE_MODEL;
 
-        // DynamicGap never executes a trajectory it costs infinite (a pose inside
-        // the inflated robot), so neither does the scorer
-        std::vector<bool> allowed(sample.candidates.size());
-        for (size_t i = 0; i < sample.candidates.size(); i++)
-            allowed[i] = std::isfinite(sample.candidates[i].dg_cost);
-
+        // the operator's options, infinite DynamicGap cost included: the operator
+        // chooses those gaps too, and the model is trained on that
         Eigen::VectorXf scores;
-        int selectedIdx = learnedGapScorer_.choose(sample, allowed, scores);
+        int selectedIdx = learnedGapScorer_.choose(sample, {}, scores);
         for (int i = 0; i < scores.size(); i++)
             sample.candidates[i].model_score = sample.candidates[i].feasible && sample.candidates[i].shown
                                                ? scores(i) : std::numeric_limits<float>::quiet_NaN();
