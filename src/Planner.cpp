@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <filesystem>
@@ -17,7 +18,45 @@ namespace dynamic_gap
 {
     namespace
     {
-        // Invalid evaluations must never outrank a finite trajectory cost.
+        // Hard bounds also cover stalled simulation time and malformed timestamps.
+
+        // Makes deep copy of vector raw pointers (exception safe)
+        template <typename T>
+        std::vector<T *> copyOwnedPointers(const std::vector<T *> &source)
+        {
+            std::vector<std::unique_ptr<T>> owners;
+            std::vector<T *> result;
+            owners.reserve(source.size());
+            result.reserve(source.size());
+            for (const T *value : source)
+                owners.push_back(std::make_unique<T>(*value));
+            for (auto &owner : owners)
+                result.push_back(owner.get()); // Push back the pointer address of the object unique_ptr manages.
+            for (auto &owner : owners)
+                owner.release();
+            return result; // Still have to clean up these ptr values later btw.
+        }
+
+        // Only use for owning vectors, never for borrowed subsets of their pointers.
+        template <typename T>
+        struct DeletePointersOnExit
+        {
+            std::vector<T *> &pointers;
+
+            explicit DeletePointersOnExit(std::vector<T *> &values)
+                : pointers(values) {}
+
+            DeletePointersOnExit(const DeletePointersOnExit &) = delete;
+            DeletePointersOnExit &operator=(const DeletePointersOnExit &) = delete;
+
+            ~DeletePointersOnExit()
+            {
+                for (T *pointer : pointers)
+                    delete pointer;
+            }
+        };
+
+        // Invalid evaluations must never outrank a finite trajectory cost, set cost of invalid evaluations to inf
         float trajectoryCost(const std::vector<float> &poseCosts, float terminalCost)
         {
             const float invalidCost = std::numeric_limits<float>::infinity();
@@ -67,6 +106,7 @@ namespace dynamic_gap
         delete gapManipulator_;
 
         delete gapTrajGenerator_;
+        delete ungapTrajGenerator_;
 
         delete gapGoalPlacer_;
 
@@ -77,6 +117,7 @@ namespace dynamic_gap
         delete trajEvaluator_;
         delete trajController_;
         delete trajVisualizer_;
+        delete bezierVisualizer_;
 
         delete timeKeeper_;
     }
@@ -623,7 +664,6 @@ namespace dynamic_gap
             estimate.relativeVelocity << msg->pred_rel_vx, msg->pred_rel_vy;
         }
 
-        // Invalid entries intentionally replace older valid entries to force fallback.
         boost::mutex::scoped_lock lock(gruGapVelocityMutex_);
         latestGruGapVelocityByModelID_[msg->model_id] = estimate;
     }
@@ -764,6 +804,7 @@ namespace dynamic_gap
     void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr &rbtOdomMsg,
                                  const geometry_msgs::TwistStamped::ConstPtr &rbtAccelMsg)
     {
+        boost::mutex::scoped_lock lock(gapMutex_);
         // ROS_INFO_STREAM("jointPoseAccCB");
 
         // odom coming in wrt rto/odom frame
@@ -897,47 +938,40 @@ namespace dynamic_gap
 
     void Planner::pedOdomCB(const pedsim_msgs::AgentStatesConstPtr &pedOdomMsg)
     {
-        // ROS_INFO_STREAM_NAMED("Planner", "[pedOdomCB()]");
-
         if (!haveTFs_)
             return;
 
-        for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
+        // Pedsim publishes a complete snapshot. Build it before replacing the
+        // caches so removed agents disappear, including on an empty snapshot.
+        decltype(currentTrueAgentPoses_) poses;
+        decltype(currentTrueAgentVels_) velocities;
+        try
         {
-            pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
-            std::string source_frame = agentIState.header.frame_id;
-
-            // transforming Odometry message from map_static to robotN
-            geometry_msgs::TransformStamped msgFrame2RobotFrame = tfBuffer_.lookupTransform(cfg_.robot_frame_id,
-                                                                                            source_frame,
-                                                                                            ros::Time(0));
-            geometry_msgs::PoseStamped agentPoseMsgFrame, agentPoseRobotFrame;
-            geometry_msgs::Vector3Stamped agentVelMsgFrame, agentVelRobotFrame;
-
-            agentPoseMsgFrame.header = agentIState.header;
-            agentPoseMsgFrame.pose = agentIState.pose;
-            // ROS_INFO_STREAM_NAMED("Planner", "      incoming pose: (" << agentPoseMsgFrame.pose.position.x << ", " << agentPoseMsgFrame.pose.position.y << ")");
-
-            // std::cout << "rbt vel: " << msg->twist.twist.linear.x << ", " << msg->twist.twist.linear.y << std::endl;
-            tf2::doTransform(agentPoseMsgFrame, agentPoseRobotFrame, msgFrame2RobotFrame);
-
-            // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
-
-            // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
-
-            // std::cout << "in agentOdomCB" << std::endl;
-            // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
-            agentVelMsgFrame.header = agentIState.header;
-            // agentVelMsgFrame.header.frame_id = source_frame; // TODO: determine if frame for position is same as frame for velocity
-            agentVelMsgFrame.vector = agentIState.twist.linear;
-            // std::cout << "incoming vector: " << agentVelMsgFrame.vector.x << ", " << agentVelMsgFrame.vector.y << std::endl;
-            tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
-            // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
-
-            currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
+            for (const auto &agent : pedOdomMsg->agent_states)
+            {
+                const auto transform = tfBuffer_.lookupTransform(
+                    cfg_.robot_frame_id, agent.header.frame_id, ros::Time(0));
+                geometry_msgs::PoseStamped sourcePose, robotPose;
+                geometry_msgs::Vector3Stamped sourceVelocity, robotVelocity;
+                sourcePose.header = agent.header;
+                sourcePose.pose = agent.pose;
+                sourceVelocity.header = agent.header;
+                sourceVelocity.vector = agent.twist.linear;
+                tf2::doTransform(sourcePose, robotPose, transform);
+                tf2::doTransform(sourceVelocity, robotVelocity, transform);
+                poses[agent.id] = robotPose.pose;
+                velocities[agent.id] = robotVelocity;
+            }
+        }
+        catch (const tf2::TransformException &exception)
+        {
+            ROS_WARN_STREAM_THROTTLE(1.0, "Cannot transform agent snapshot: " << exception.what());
+            return;
         }
 
+        boost::mutex::scoped_lock lock(gapMutex_);
+        currentTrueAgentPoses_.swap(poses);
+        currentTrueAgentVels_.swap(velocities);
         agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
     }
 
@@ -2953,24 +2987,14 @@ namespace dynamic_gap
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        std::vector<Gap *> copiedRawGaps;
-
-        for (Gap *currRawGap : currRawGaps_)
-            copiedRawGaps.push_back(new Gap(*currRawGap));
-
-        return copiedRawGaps;
+        return copyOwnedPointers(currRawGaps_);
     }
 
     std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps()
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
-        std::vector<Gap *> planningGaps;
-
-        for (Gap *currSimplifiedGap : currSimplifiedGaps_)
-            planningGaps.push_back(new Gap(*currSimplifiedGap));
-
-        return planningGaps;
+        return copyOwnedPointers(currSimplifiedGaps_);
     }
 
     void Planner::runPlanningLoop(Trajectory &chosenTraj, int &trajFlag)
@@ -2998,11 +3022,16 @@ namespace dynamic_gap
         isGoalReached();
 
         std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
+        DeletePointersOnExit<Gap> rawCleanup(copiedRawGaps);
         std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
-        std::vector<Ungap *> ungaps, recedingUngaps;
+        DeletePointersOnExit<Gap> planningCleanup(planningGaps);
+        std::vector<Ungap *> ungaps;
+        DeletePointersOnExit<Ungap> ungapCleanup(ungaps);
+        std::vector<Ungap *> recedingUngaps; // Non-owning subset of ungaps.
 
         // Gap Tubes
         std::vector<GapTube *> gapTubes; /**< Set of gap tubes */
+        DeletePointersOnExit<GapTube> tubeCleanup(gapTubes);
 
         int gapCount = planningGaps.size();
 
@@ -3262,23 +3291,6 @@ namespace dynamic_gap
 
         timeKeeper_->stopTimer(TRAJ_COMP);
 
-        // delete set of planning gaps
-        for (Gap *planningGap : planningGaps)
-            delete planningGap;
-
-        // delete set of planning gaps
-        for (Gap *copiedRawGap : copiedRawGaps)
-            delete copiedRawGap;
-
-        for (Ungap *ungap : ungaps)
-            delete ungap;
-
-        // delete gap tubes
-        for (GapTube *tube : gapTubes)
-        {
-            delete tube;
-        }
-
         timeKeeper_->stopTimer(PLAN);
         timeKeeper_->computeAverageNumberGaps(gapCount);
 
@@ -3332,9 +3344,11 @@ namespace dynamic_gap
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->setUngapID(ungapID);
                         planningGaps.at(nextIdx / 2)->getLeftGapPt()->getModel()->setUngap();
 
-                        ungaps.push_back(new Ungap(planningGaps.at(i / 2)->getRightGapPt(),
+                        auto ungap = std::make_unique<Ungap>(planningGaps.at(i / 2)->getRightGapPt(),
                                                    planningGaps.at(nextIdx / 2)->getLeftGapPt(),
-                                                   ungapID));
+                                                   ungapID);
+                        ungaps.push_back(ungap.get());
+                        ungap.release();
                     }
                     else
                     {
@@ -3348,9 +3362,11 @@ namespace dynamic_gap
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->setUngapID(ungapID);
                         planningGaps.at(nextIdx / 2)->getRightGapPt()->getModel()->setUngap();
 
-                        ungaps.push_back(new Ungap(planningGaps.at(nextIdx / 2)->getRightGapPt(),
+                        auto ungap = std::make_unique<Ungap>(planningGaps.at(nextIdx / 2)->getRightGapPt(),
                                                    planningGaps.at(i / 2)->getLeftGapPt(),
-                                                   ungapID));
+                                                   ungapID);
+                        ungaps.push_back(ungap.get());
+                        ungap.release();
                     }
                 }
             }
