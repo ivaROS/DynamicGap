@@ -2272,6 +2272,8 @@ if (visualize_all_dwa_trajs && !dwa_trajs.empty())
 
                             dwaTrajectory.humanVelRight = (cheapest_dwa.humanVelRight);
                             dwaTrajectory.gapPosRight = (cheapest_dwa.gapPosRight);
+                            dwaTrajectory.trajPosRight = cheapest_dwa.trajPosRight;
+                            dwaTrajectory.robotVelRight = cheapest_dwa.robotVelRight;
                             dwaTrajectory.gap = (cheapest_dwa.gap);
                             dwaTrajectory.rightGapPtID = cheapest_dwa.rightGapPtID; 
                             dwaTrajectory.leftGapPtID = cheapest_dwa.leftGapPtID; 
@@ -2905,6 +2907,8 @@ if (traj.getPathTiming().empty()) {
             Eigen::Vector2f RbtVel(0, 0);
             RbtVelMsg = incomingGap->getLeftGapPt()->getModel()->getRobotVel(); // used in scoring the reducedCurrentTraj since I don't have access to current robot info in that 
             RbtVel << RbtVelMsg.twist.linear.x, RbtVelMsg.twist.linear.y;
+            const geometry_msgs::TwistStamped rightRbtVelMsg = incomingGap->getRightGapPt()->getModel()->getRobotVel();
+            const Eigen::Vector2f RbtVelRight(rightRbtVelMsg.twist.linear.x, rightRbtVelMsg.twist.linear.y);
             // updatedCurrentTraj.humanVelLeft = currentTraj.humanVelLeft;
             // updatedCurrentTraj.gapPosLeft = currentTraj.gapPosLeft;
             // updatedCurrentTraj.trajPosLeft = currentTraj.trajPosLeft;
@@ -3001,14 +3005,14 @@ if (traj.getPathTiming().empty()) {
 
             std::vector<float> reducedCurrentPathPoseCosts;
             float reducedCurrentPathTerminalPoseCost;
-            trajEvaluator_->dwa_evaluateTrajectory_reducedCurrentTraj(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
+            trajEvaluator_->dwa_evaluateTrajectory_reducedCurrentTraj(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel, RbtVelRight);
             // I intentionally use currentTraj.leftGapPtID because that's the only place the ID is stored, i don't copy it over to reducedCurrentTraj because I don't want to 
 
             // trajEvaluator_->evaluateTrajectory(reducedCurrentTraj, reducedCurrentPathPoseCosts, reducedCurrentPathTerminalPoseCost, futureScans, updatedCurrentPathPoseIdx); //
             float reducedCurrentPathSubCost = reducedCurrentPathTerminalPoseCost + std::accumulate(reducedCurrentPathPoseCosts.begin(), reducedCurrentPathPoseCosts.end(), float(0)) / reducedCurrentPathPoseCosts.size();
             ROS_INFO_STREAM_NAMED("GapTrajectoryGeneratorV2", "    reduced current trajectory (length: " << reducedCurrentPathRobotFrame.poses.size() << " received a subcost of: " << reducedCurrentPathSubCost);
 
-            trajEvaluator_->update_cbf_info(updatedCurrentTraj, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel);
+            trajEvaluator_->update_cbf_info(updatedCurrentTraj, currentTraj.rightGapPtID, currentTraj.leftGapPtID, RbtVel, RbtVelRight);
 
             // if (reducedCurrentPathSubCost == std::numeric_limits<float>::infinity()) 
             // {
@@ -3680,6 +3684,9 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
                 timeKeeper_->startTimer(FEEBDACK);
                 // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
+                ROS_WARN_STREAM_THROTTLE(5.0,
+                    "[CBF MODE] dwa_method=" << cfg_.planning.dwa_method
+                    << " trajFlag=" << trajFlag);
 
                 if (cfg_.planning.dwa_method) 
                 {
@@ -3716,16 +3723,29 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                                 rbtPoseInSensorFrame_, 
                                 localTrajectory.humanVelRight, 
                                 localTrajectory.gapPosRight, 
-                                localTrajectory.trajPosLeft,  //delete trajPos it's usunsed
-                                localTrajectory.robotVel
+                                localTrajectory.trajPosRight,
+                                localTrajectory.robotVelRight
                             );
+                    if (leftCBFOutput.valid) {
+                        ROS_WARN_STREAM_THROTTLE(1.0, "[CBF LEFT ACTIVE] h0=" << leftCBFOutput.h0);
+                    }
+                    ROS_WARN_STREAM_THROTTLE(2.0,
+                        "[CBF STATUS] left_data=" << localTrajectory.humanVelLeft.allFinite()
+                        << " right_data=" << localTrajectory.humanVelRight.allFinite()
+                        << " right_pos=" << localTrajectory.gapPosRight.allFinite()
+                        << " right_robot=" << localTrajectory.robotVelRight.allFinite()
+                        << " left_h0=" << leftCBFOutput.h0
+                        << " right_h0=" << rightCBFOutput.h0
+                        << " left_constraint=" << leftCBFOutput.valid
+                        << " right_constraint=" << rightCBFOutput.valid);
+                    if (rightCBFOutput.valid) {
+                        ROS_WARN_STREAM_THROTTLE(1.0,
+                            "[CBF RIGHT ACTIVE] h0=" << rightCBFOutput.h0
+                            << " a=" << rightCBFOutput.a.transpose()
+                            << " b=" << rightCBFOutput.b);
+                    }
                             
                    std::vector<CbfLinConstraint> cons;
-
-// Use whichever u_nom stored; they should be the same
-Eigen::Vector2d u_nom; // btw u_nom is rawCmdVel but converted to holo
-u_nom << static_cast<double>(leftCBFOutput.u_nom.x()),
-         static_cast<double>(leftCBFOutput.u_nom.y());
 
 if (leftCBFOutput.valid) {
     cons.push_back(leftCBFOutput);
@@ -3741,6 +3761,7 @@ if (cons.empty()) {
 }
 else {
     Eigen::Vector2d u_safe;
+    const Eigen::Vector2d u_nom = cons.front().u_nom.cast<double>();
 
     const double ux_min = -cfg_.rbt.vx_absmax;
     const double ux_max =  cfg_.rbt.vx_absmax;
@@ -3751,6 +3772,12 @@ else {
     const double uy_max =  l_ * cfg_.rbt.vang_absmax;
 
     bool ok = trajController_->solveQpOsqp2D(u_nom, cons, ux_min, ux_max, uy_min, uy_max, u_safe);
+    if (rightCBFOutput.valid) {
+        ROS_WARN_STREAM_THROTTLE(1.0, "[CBF RIGHT QP] solved=" << ok
+            << " u_nom=" << u_nom.transpose()
+            << (ok ? " u_safe=" : " u_safe=unavailable")
+            << (ok ? std::to_string(u_safe.x()) + "," + std::to_string(u_safe.y()) : ""));
+    }
 
     if (!ok) {
         cmdVel = rawCmdVel;  // fallback

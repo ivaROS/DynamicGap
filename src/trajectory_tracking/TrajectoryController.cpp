@@ -1134,6 +1134,7 @@ if (dbg_dpcbf_) {
 
 
         float h0 = DPCBF(humanVel, relativeGapPos, trajPos, u_nom); // i haven't pasted this function into this file yet btw
+        out.h0 = h0;
         // ROS_ERROR_STREAM_NAMED("CBFDBG", "h0 = " << h0);
 
         // Already safe: no change
@@ -1199,7 +1200,6 @@ if (dbg_dpcbf_) {
         float b = grad_h.dot(u_nom) - h0;
         out.b = b;  
          out.valid = true; 
-         out.h0 = h0; 
          out.a  = grad_h; 
         //  out.u_proj = u_safe; 
         return out;
