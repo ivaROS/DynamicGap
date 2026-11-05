@@ -114,7 +114,8 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f RbtVel
+                                Eigen::Vector2f RbtVel,
+                                Eigen::Vector2f RbtVelRight
                                 );
 
               /**
@@ -148,7 +149,8 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f RbtVel
+                                Eigen::Vector2f RbtVel,
+                                Eigen::Vector2f RbtVelRight
                                 );
 
             float calcSpeedCost(const float v_cmd, const float v_max); 

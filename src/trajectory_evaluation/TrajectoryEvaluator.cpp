@@ -423,6 +423,9 @@ namespace dynamic_gap
 
             dwa_traj.humanVelRight = rightVel;
             dwa_traj.gapPosRight = rightGapRelPos;
+            dwa_traj.trajPosRight = Eigen::Vector2f::Zero();
+            const geometry_msgs::TwistStamped rightRbtVelMsg = gap->getRightGapPt()->getModel()->getRobotVel();
+            dwa_traj.robotVelRight << rightRbtVelMsg.twist.linear.x, rightRbtVelMsg.twist.linear.y;
 
         //     ROS_ERROR_STREAM_NAMED("eval",
         // "right endpoint ------- inside traj evaluator right after populating the object:"
@@ -821,6 +824,9 @@ namespace dynamic_gap
 
             traj.humanVelRight = rightVel;
             traj.gapPosRight = rightGapRelPos;
+            traj.trajPosRight = Eigen::Vector2f::Zero();
+            const geometry_msgs::TwistStamped rightRbtVelMsg = gap->getRightGapPt()->getModel()->getRobotVel();
+            traj.robotVelRight << rightRbtVelMsg.twist.linear.x, rightRbtVelMsg.twist.linear.y;
 
         //     ROS_ERROR_STREAM_NAMED("eval",
         // "right endpoint ------- inside traj evaluator right after populating the object:"
@@ -970,7 +976,8 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f RbtVel
+                                Eigen::Vector2f RbtVel,
+                                Eigen::Vector2f RbtVelRight
                                 )
                                 // std::vector<float> &dwa_RelVelPoseCosts)
     {    
@@ -1224,6 +1231,8 @@ namespace dynamic_gap
 
             traj.humanVelRight = rightVel;
             traj.gapPosRight = rightGapRelPos;
+            traj.trajPosRight = Eigen::Vector2f::Zero();
+            traj.robotVelRight = RbtVelRight;
 
         //     ROS_ERROR_STREAM_NAMED("eval",
         // "right endpoint ------- inside traj evaluator right after populating the object:"
@@ -1375,7 +1384,8 @@ namespace dynamic_gap
                                 // dynamic_gap::Gap* gap,
                                 int rightGapPtID, 
                                 int leftGapPtID,
-                                Eigen::Vector2f RbtVel
+                                Eigen::Vector2f RbtVel,
+                                Eigen::Vector2f RbtVelRight
                                 )
                                 // std::vector<float> &dwa_RelVelPoseCosts)
     {    
@@ -1569,6 +1579,8 @@ namespace dynamic_gap
 
             traj.humanVelRight = rightVel;
             traj.gapPosRight = rightGapRelPos;
+            traj.trajPosRight = Eigen::Vector2f::Zero();
+            traj.robotVelRight = RbtVelRight;
 
         //     ROS_ERROR_STREAM_NAMED("eval",
         // "right endpoint ------- inside traj evaluator right after populating the object:"
