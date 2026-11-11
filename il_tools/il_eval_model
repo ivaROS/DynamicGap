@@ -102,7 +102,28 @@ def run_model(name, scorer, suite_file, stages, out_dir, log):
                          env=launch_env(DISPLAY=":{}".format(display), LIBGL_ALWAYS_SOFTWARE="1",
                                         QT_QPA_PLATFORM="xcb", DISABLE_ROS1_EOL_WARNINGS="1"))
     benchmark_dir = os.path.join(rospkg.RosPack().get_path("arena_bringup"), "configs", "benchmark")
-    planner_lost, missing_since, status = False, None, "timeout"
+    watch = {"planner_lost": False}  # kept when Ctrl+C interrupts the wait
+    try:
+        status = wait_for_run(name, suite_file, benchmark_dir, started, timeout, watch, log)
+    except KeyboardInterrupt:
+        # Ctrl+C: stop the launch like `rosnode kill -a` would, then clean up and report as usual
+        signal.signal(signal.SIGINT, signal.SIG_IGN)  # a second Ctrl+C must not cut the cleanup short
+        print("\n{} {}: Ctrl+C, stopping the run (finished episodes are kept)".format(
+            time.strftime("%H:%M:%S"), name), file=log, flush=True)
+        status = "stopped"
+    time.sleep(5)  # the recorder closes its bag after the master stops
+    stop_launch()
+    stop_screen(xvfb, ffmpeg)
+    if status == "stopped":
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+    return finish_run(name, scorer, suite_file, stages, out_dir, benchmark_dir, started, status,
+                      watch["planner_lost"], rec_start, log)
+
+
+def wait_for_run(name, suite_file, benchmark_dir, started, timeout, watch, log):
+    """Wait until the benchmark run completes, its launch ends or the timeout passes; returns the
+    status. watch["planner_lost"] is set as soon as move_base_flex is gone."""
+    missing_since, status = None, "timeout"
     time.sleep(20)
     while time.time() - started < timeout:
         runs = benchmark_runs(benchmark_dir, suite_file, started)
@@ -117,14 +138,17 @@ def run_model(name, scorer, suite_file, stages, out_dir, log):
         else:
             # move_base_flex gone (crash): the run goes on, its episodes are not valid
             missing_since = missing_since or time.time()
-            if time.time() - missing_since > 60 and not planner_lost:
-                planner_lost = True
+            if time.time() - missing_since > 60 and not watch["planner_lost"]:
+                watch["planner_lost"] = True
                 print("{} {}: move_base_flex is gone, the remaining episodes are not valid".format(
                     time.strftime("%H:%M:%S"), name), file=log, flush=True)
         time.sleep(5)
-    time.sleep(5)  # the recorder closes its bag after the master stops
-    stop_launch()
-    stop_screen(xvfb, ffmpeg)
+    return status
+
+
+def finish_run(name, scorer, suite_file, stages, out_dir, benchmark_dir, started, status, planner_lost,
+               rec_start, log):
+    """Write run.yaml for a run whose launch has stopped; returns its content."""
     runs = benchmark_runs(benchmark_dir, suite_file, started)
     sessions = [os.path.join(out_dir, "sessions", "il_gap_selection", "{}_{}".format(runid, stages[0]["name"]))
                 for runid, _ in runs]
@@ -223,11 +247,18 @@ def main():
     for name, scorer in models:
         if os.path.exists(os.path.join(args.out, name)):
             sys.exit("{} exists; use another --out or model name".format(os.path.join(args.out, name)))
+    done, stopped = [], False
     for name, scorer in models:
-        run_model(name, scorer, args.suite, stages, os.path.join(args.out, name), sys.stdout)
-    report(args.out, [name for name, _ in models], stages)
+        done.append(name)
+        stopped = run_model(name, scorer, args.suite, stages, os.path.join(args.out, name), sys.stdout)["status"] == "stopped"
+        if stopped:
+            break  # Ctrl+C: the models after this one are not run
+    report(args.out, done, stages)
     remote, operator = os.environ.get("IL_DRIVE_REMOTE"), os.environ.get("IL_OPERATOR")
-    if remote:
+    if stopped:
+        print("\nStopped early ({} of {} models run)".format(len(done), len(models)) +
+              (": nothing uploaded; to upload it anyway: il_upload_eval {}".format(args.out) if remote else ""))
+    elif remote:
         # after report(): the episode videos are cut from screen.mp4, so it can go only now
         print()
         if not operator:

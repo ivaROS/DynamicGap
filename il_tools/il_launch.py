@@ -38,11 +38,21 @@ def process_port(pid, env):
     return master_port(env)
 
 
+def zombie(pid):
+    """True for a process that has exited but was not reaped (state Z): it holds no port. A container
+    whose first process does not reap orphans (e.g. `sleep infinity`) keeps these."""
+    try:
+        with open("/proc/{}/stat".format(pid)) as f:
+            return f.read().rsplit(")", 1)[1].split()[0] == "Z"
+    except (OSError, IndexError):
+        return False
+
+
 def pids(pattern, keep=lambda pid, env: env.get(TAG) == str(os.getpid())):
-    """Processes whose command line matches pattern and that keep(pid, environment)
+    """Live processes whose command line matches pattern and that keep(pid, environment)
     accepts (default: the ones this driver started)."""
     found = subprocess.run(["pgrep", "-f", pattern], stdout=subprocess.PIPE, text=True).stdout.split()
-    return [pid for pid in found if (env := environ(pid)) is not None and keep(pid, env)]
+    return [pid for pid in found if not zombie(pid) and (env := environ(pid)) is not None and keep(pid, env)]
 
 
 def running(pattern):
@@ -52,8 +62,27 @@ def running(pattern):
 def port_in_use():
     """A master, launch or pending benchmark relaunch on this driver's port."""
     port = master_port()
-    on_port = lambda pid, env: process_port(pid, env) == port
-    return any(pids(p, on_port) for p in ("rosmaster", "roslaunch", "delay_restart.py"))
+    names = ("rosmaster", "roslaunch", "delay_restart.py")
+    # the programs themselves, not a shell or editor whose command line only mentions them
+    on_port = lambda pid, env: program(pid) in names and process_port(pid, env) == port
+    return any(pids(n, on_port) for n in names)
+
+
+def program(pid):
+    """Name of the program a process runs: its executable, or the script when that is an interpreter
+    (python3 /opt/ros/noetic/bin/roslaunch -> roslaunch)."""
+    try:
+        with open("/proc/{}/cmdline".format(pid), "rb") as f:
+            args = [a for a in f.read().decode(errors="replace").split("\0") if a]
+    except OSError:
+        return None
+    if not args:
+        return None
+    name = os.path.basename(args[0])
+    if name.startswith("python") and len(args) > 1:
+        rest = [a for a in args[1:] if not a.startswith("-")]
+        return os.path.basename(rest[0]) if rest else name
+    return name
 
 
 def stop_launch(timeout=60):
