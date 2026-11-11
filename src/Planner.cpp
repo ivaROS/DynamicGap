@@ -254,7 +254,10 @@ namespace dynamic_gap
             "manual_candidate_markers", 1);
 
         if (externalSelectionMode())
+        {
             manualSamplePub_ = nh_.advertise<manual_gap_msgs::ManualGapSample>("manual_gap_sample", 10);
+            manualScanGapsPub_ = nh_.advertise<manual_gap_msgs::ManualGapScanGaps>("manual_gap_scan_gaps", 50);
+        }
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -356,6 +359,7 @@ namespace dynamic_gap
             ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
             ROS_ERROR_STREAM_NAMED("Planner", "       in collision!");
             colliding_ = true;
+            publishScanGaps(*scan, true, intermediateRbtVels_);
             return;
         } else
         {
@@ -425,6 +429,8 @@ namespace dynamic_gap
         updateModels(currSimplifiedGaps_, intermediateRbtVels, 
                         intermediateRbtAccs, tCurrentFilterUpdate);
         timeKeeper_->stopTimer(GAP_EST);
+
+        publishScanGaps(*scan_, false, intermediateRbtVels);
 
         gapVisualizer_->drawGaps(currRawGaps_, std::string("raw"));
         gapVisualizer_->drawGaps(prevRawGaps_, std::string("raw_tmin1"));
@@ -1189,6 +1195,59 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         chosenTraj = selectedTraj;
     }
 
+    /**
+    * \brief One gap of a candidate's gap tube, robot frame at the tick
+    */
+    static manual_gap_msgs::ManualGapTubeSegment buildTubeSegmentMsg(Gap * gap)
+    {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        auto vec = [](const Eigen::Vector2f & v)
+        {
+            geometry_msgs::Vector3 out;
+            out.x = v[0];
+            out.y = v[1];
+            return out;
+        };
+        geometry_msgs::Vector3 nanVec;
+        nanVec.x = nanVec.y = nan;
+
+        manual_gap_msgs::ManualGapTubeSegment seg;
+        seg.t_start = nan;
+        seg.lifespan = nan;
+        seg.left_model_id = seg.right_model_id = -1;
+        seg.left_pos = seg.right_pos = seg.manip_left_pos = seg.manip_right_pos = nanVec;
+        seg.manip_left_vel = seg.manip_right_vel = nanVec;
+        seg.goal_pos = seg.goal_vel = seg.term_goal_pos = nanVec;
+        if (!gap)
+            return seg;
+
+        seg.t_start = gap->getGapStart();
+        seg.lifespan = gap->getGapLifespan();
+        seg.end_condition = gap->getEndCondition();
+        seg.left_pos = vec(gap->getLPosition());
+        seg.right_pos = vec(gap->getRPosition());
+        seg.manip_left_pos = vec(gap->getManipulatedLPosition());
+        seg.manip_right_pos = vec(gap->getManipulatedRPosition());
+        if (Estimator * leftModel = gap->getLeftGapPt()->getModel())
+        {
+            seg.left_model_id = leftModel->getID();
+            seg.manip_left_vel = vec(gap->getManipulatedLVelocity());
+        }
+        if (Estimator * rightModel = gap->getRightGapPt()->getModel())
+        {
+            seg.right_model_id = rightModel->getID();
+            seg.manip_right_vel = vec(gap->getManipulatedRVelocity());
+        }
+        if (GapGoal * goal = gap->getGoal())
+        {
+            seg.has_goal = true;
+            seg.goal_pos = vec(goal->getOrigGoalPos());
+            seg.goal_vel = vec(goal->getOrigGoalVel());
+            seg.term_goal_pos = vec(goal->getTermGoalPos());
+        }
+        return seg;
+    }
+
     manual_gap_msgs::ManualGapCandidate Planner::buildCandidateMsg(const size_t & i,
                                                                    const std::vector<GapTube *> & gapTubes,
                                                                    const std::vector<Trajectory> & gapTrajs,
@@ -1266,11 +1325,20 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                       gapTrajs.at(i).getPathRbtFrame().poses.size());
         }
 
+        if (i < gapTrajPoseCosts.size())
+            cMsg.dg_pose_costs = gapTrajPoseCosts.at(i);
+
         if (cMsg.feasible)
         {
             cMsg.terminal_pose = path.poses.back();
             cMsg.path = downsamplePath(path, 5);
+            cMsg.path_full = path.poses;
+            cMsg.path_time = gapTrajs.at(i).getPathTiming();
         }
+
+        if (i < gapTubes.size())
+            for (int s = 0; s < gapTubes.at(i)->size(); s++)
+                cMsg.tube.push_back(buildTubeSegmentMsg(gapTubes.at(i)->at(s)));
         return cMsg;
     }
 
@@ -1340,9 +1408,39 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
     void Planner::fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample)
     {
+        fillEdges(rawGaps, sample.edges);
+    }
+
+    void Planner::publishScanGaps(const sensor_msgs::LaserScan & scan, const bool & colliding,
+                                  const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels)
+    {
+        if (!manualScanGapsPub_)
+            return;
+
+        ros::WallTime wallNow = ros::WallTime::now();
+        manual_gap_msgs::ManualGapScanGaps msg;
+        msg.schema_version = msg.SCHEMA_VERSION;
+        msg.header.stamp = scan.header.stamp;
+        msg.header.frame_id = cfg_.robot_frame_id;
+        msg.wall_stamp = ros::Time(wallNow.sec, wallNow.nsec);
+        msg.scan_seq = scan.header.seq;
+        msg.episode_id = episodeId_;
+        msg.colliding = colliding;
+        msg.robot_pose_odom = rbtPoseInOdomFrame_.pose;
+        msg.robot_vel = intermediateRbtVels.empty() ? currentRbtVel_.twist : intermediateRbtVels.back().twist;
+        if (!colliding)
+        {
+            fillEdges(currRawGaps_, msg.raw_edges);
+            fillEdges(currSimplifiedGaps_, msg.simplified_edges);
+        }
+        manualScanGapsPub_.publish(msg);
+    }
+
+    void Planner::fillEdges(const std::vector<Gap *> & gaps, std::vector<manual_gap_msgs::ManualGapEdge> & edges)
+    {
         const float nan = std::numeric_limits<float>::quiet_NaN();
-        sample.edges.clear();
-        for (Gap * gap : rawGaps)
+        edges.clear();
+        for (Gap * gap : gaps)
         {
             // right point, then left point: the order attachUngapIDs pairs them in
             for (GapPoint * pt : {gap->getRightGapPt(), gap->getLeftGapPt()})
@@ -1354,6 +1452,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 Estimator * model = pt->getModel();
                 e.model_id = model ? model->getID() : -1;
                 e.model_pos.x = e.model_pos.y = e.model_vel.x = e.model_vel.y = nan;
+                e.model_cov.fill(nan);
                 if (model)
                 {
                     Eigen::Vector4f state = model->getState();
@@ -1361,11 +1460,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                     e.model_pos.y = state[1];
                     e.model_vel.x = state[2];
                     e.model_vel.y = state[3];
+                    Eigen::Matrix4f cov = model->getCovariance();
+                    for (int r = 0; r < 4; r++)
+                        for (int c = 0; c < 4; c++)
+                            e.model_cov[4 * r + c] = cov(r, c);
                 }
-                sample.edges.push_back(e);
+                edges.push_back(e);
             }
         }
-        linkEdges(sample.edges);
+        linkEdges(edges);
     }
 
     void Planner::fillSampleObservation(manual_gap_msgs::ManualGapSample & sample)

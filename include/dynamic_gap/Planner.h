@@ -70,6 +70,7 @@
 
 #include <manual_gap_msgs/CursorState.h>
 #include <manual_gap_msgs/ManualGapSample.h>
+#include <manual_gap_msgs/ManualGapScanGaps.h>
 
 namespace dynamic_gap
 {
@@ -173,6 +174,7 @@ namespace dynamic_gap
             ros::Subscriber scenarioResetSub_; /**< Subscriber to episode resets of the task generator */
             ros::Subscriber scenarioResetBeginSub_; /**< Subscriber to the start of episode resets */
             ros::Publisher manualSamplePub_; /**< Per-tick imitation learning sample (manual mode) */
+            ros::Publisher manualScanGapsPub_; /**< Per-scan raw and simplified gaps (manual and learned mode) */
 
             manual_gap_msgs::CursorState lastCursorMsg_; /**< Last cursor message, verbatim */
             ros::WallTime cursorRxWall_; /**< Wall-clock receipt time of lastCursorMsg_ */
@@ -318,6 +320,19 @@ namespace dynamic_gap
             * in scan order, with their estimator states and neighbours (linkEdges)
             */
             void fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample);
+
+            /**
+            * \brief Both points of every gap, in scan order (right point, then left point),
+            * with their estimator ids, states and covariances, and their neighbours (linkEdges)
+            */
+            void fillEdges(const std::vector<Gap *> & gaps, std::vector<manual_gap_msgs::ManualGapEdge> & edges);
+
+            /**
+            * \brief Publish this scan's raw and simplified gaps (laserScanCB, gapMutex_ held)
+            * \param colliding gap detection was skipped: no gaps
+            */
+            void publishScanGaps(const sensor_msgs::LaserScan & scan, const bool & colliding,
+                                 const std::vector<geometry_msgs::TwistStamped> & intermediateRbtVels);
 
             /**
             * \brief Learned mode: build the tick's candidates in the sample, score them

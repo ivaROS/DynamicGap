@@ -407,7 +407,8 @@ offline (P5).
 
 ## II.3 Message schema
 
-All in arena-rosnav `utils/ros/msgs/manual_gap_msgs/msg/`. `SCHEMA_VERSION = 2` (fix 48).
+All in arena-rosnav `utils/ros/msgs/manual_gap_msgs/msg/`. `SCHEMA_VERSION = 5`
+(2: fix 48; 4: scene edges, fix 52; 5: per-scan gaps, full candidates, fix 53).
 
 ### `ManualGapSample` — one planning tick
 
@@ -436,7 +437,12 @@ in use, and it was not the moment of a reset.
   `left/right_theta`, `bearing`.
 - Estimator states, robot frame: `left/right_model_pos`, `left/right_model_vel`
   (Kalman filter today, not the GRU).
-- Trajectory, odom frame: `goal_pos`, `terminal_pose`, `path` (downsampled).
+- Trajectory, odom frame: `goal_pos`, `terminal_pose`, `path` (downsampled),
+  and from schema 5 `path_full` (every pose), `path_time` and `dg_pose_costs`
+  (one per pose).
+- Gap tube (schema 5): `tube[]` (`ManualGapTubeSegment`), the gap as propagated
+  over the horizon: start, lifespan, gap points before and after manipulation,
+  velocities, gap goal.
 - Cursor relation: `cursor_dist` (cursor to terminal pose, m),
   `cursor_bearing_diff` (rad); NaN if no cursor or not feasible.
 - DynamicGap's cost (fix 48): `dg_cost` = `dg_terminal_cost` (Q_f × distance
@@ -445,6 +451,14 @@ in use, and it was not the moment of a reset.
 
 `selected_idx` indexes this array, so the label always refers to what was on
 screen that tick.
+
+### `ManualGapScanGaps` — one laser scan (schema 5, fix 53)
+
+Published by `laserScanCB` on `<ns>/manual_gap_scan_gaps` on every scan (25 Hz),
+manual and learned mode: `raw_edges` and `simplified_edges` (`ManualGapEdge`: scan
+ray, range, angle, estimator id, state and covariance `model_cov`), robot pose and
+velocity, `scan_seq`, `colliding`. This is the stream gap-point estimators (Kalman,
+GRU) run on; a tick joins it by `gap_snapshot_stamp` = its `header.stamp`.
 
 ### `CursorState` — from the RViz tool
 
@@ -569,7 +583,11 @@ starts `il_session_recorder` (fix 07). It:
   view.rviz         the RViz config used
   notes.txt         operator, instruction, start and stop time
   episodes.csv      one row per /scenario_reset_begin and /scenario_reset
-                    (wall and sim time, start, goal, timeout)
+                    (wall and sim time, start, goal, timeout, and from fix 53
+                    stage, stage_index, scenario_file, seed; a reset row
+                    describes the episode it starts)
+  scenarios/        copy of every scenario file used (fix 53; static
+                    obstacles are not in /map)
   ```
 - **Records** (for `namespace:=rto`): `/rto/scan`, `/rto/odom`, `/rto/acc`,
   `/rto/cmd_vel`, `/tf`, `/tf_static`, `/map`, `/map_metadata`,
@@ -577,7 +595,8 @@ starts `il_session_recorder` (fix 07). It:
   `/scenario_reset_begin`, `/scenario_reset`, `/scenario_finished`,
   `/pedsim_simulator/pedsim_agents_data`, `/rto/gap_selection_cursor`,
   `/rto/traj_creation_point`, `/rto/manual_traj_selection`,
-  `/rto/manual_gap_sample`, `/rto/curr_exec_dg_traj`. No markers.
+  `/rto/manual_gap_sample`, `/rto/manual_gap_scan_gaps` (fix 53),
+  `/rto/curr_exec_dg_traj`. No markers.
   `~extra_topics` adds more. Latched topics (map) are repeated into every
   split (`--repeat-latched`).
 - Topics are recorded at their native rates (I.10); only

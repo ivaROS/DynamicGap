@@ -501,6 +501,12 @@ namespace dynamic_gap
             int getID() { return modelID_; }
 
             /**
+            * \brief Getter function for the state covariance after the last update
+            * \return covariance of (x, y, vx, vy)
+            */
+            Eigen::Matrix4f getCovariance() const { return P_k_plus_; }
+
+            /**
             * \brief Getter function for sensor measurement
             * \return sensor measurement
             */ 

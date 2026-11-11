@@ -17,6 +17,8 @@ import re
 import yaml
 
 SAMPLE_TOPIC_SUFFIX = "/manual_gap_sample"
+SCAN_GAPS_TOPIC_SUFFIX = "/manual_gap_scan_gaps"  # per-scan raw and simplified gaps (schema 5)
+SCAN_GAPS_MIN_RATE = 20.0  # Hz of sim time; the scan runs at 25 Hz
 
 # planner/task defaults used when params.yaml does not have them
 DEFAULT_GOAL_RADIUS = 1.0
@@ -80,6 +82,41 @@ def load_samples(session_dir, namespace=None):
     if topic is None:
         return []
     return [msg for _, msg, _ in read_messages(session_dir, [topic])]
+
+
+def load_scan_gaps(session_dir, namespace=None):
+    """ManualGapScanGaps messages of a session (schema 5 on), in recording order."""
+    topic = sample_topic(session_dir, namespace)
+    if topic is None:
+        return []
+    topic = topic[:-len(SAMPLE_TOPIC_SUFFIX)] + SCAN_GAPS_TOPIC_SUFFIX
+    return [msg for _, msg, _ in read_messages(session_dir, [topic])]
+
+
+def schema5_checks(samples, scan_gaps, events):
+    """(name, ok, detail) of what schema 5 adds: the per-scan gap stream, candidates'
+    full paths and gap tubes, and each episode's stage, scenario file and seed."""
+    checks = []
+    span = stamp(samples[-1].header.stamp) - stamp(samples[0].header.stamp) if len(samples) > 1 else 0.0
+    rate = len(scan_gaps) / span if span > 0 else 0.0
+    seqs = [m.scan_seq for m in scan_gaps]
+    skipped = sum(b - a - 1 for a, b in zip(seqs, seqs[1:]) if b > a + 1)
+    with_gaps = sum(1 for m in scan_gaps if m.simplified_edges)
+    checks.append(("scan gaps recorded", rate >= SCAN_GAPS_MIN_RATE,
+                   "{} message(s), {:.1f} Hz sim, {} scan(s) skipped, {} with simplified gaps".format(
+                       len(scan_gaps), rate, skipped, with_gaps)))
+
+    feasible = [c for s in samples for c in s.candidates if c.feasible]
+    bad = sum(1 for c in feasible
+              if not c.path_full or len(c.path_time) != len(c.path_full) or not c.tube)
+    checks.append(("candidates carry full path, timing and tube", feasible and not bad,
+                   "{} of {} feasible candidate(s) incomplete".format(bad, len(feasible))))
+
+    resets = [e for e in events if e.get("event") == "reset"]
+    missing = [e["episode"] for e in resets if not e.get("scenario_file") and not e.get("seed")]
+    checks.append(("episodes name their scenario and seed", resets and "seed" in resets[0] and not missing,
+                   "{} reset row(s); without: {}".format(len(resets), missing[:5])))
+    return checks
 
 
 def load_params(session_dir):
@@ -414,6 +451,10 @@ def check_session(session_dir, namespace=None, samples=None):
         missing = missing[:-1]
     check("every episode has an outcome", outcomes and not missing,
           "{} episode(s); without samples: {}".format(len(outcomes), missing))
+
+    # schema 5 on: the per-scan gaps, full candidate paths, episode stages
+    if samples and samples[0].schema_version >= 5:
+        checks.extend(schema5_checks(samples, load_scan_gaps(session_dir, namespace), events))
 
     report = session_report(samples, outcomes)
     return checks, report
