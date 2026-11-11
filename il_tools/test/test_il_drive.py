@@ -108,6 +108,13 @@ class UploadTest(unittest.TestCase):
         self.assertEqual(il_drive.upload_session(s, self.drive + "/", "ewan", log=self.log), 0)
         self.assertEqual(os.listdir(self.drive), [])
 
+    def test_session_without_bag_skipped(self):
+        s = os.path.join(self.root, "il_gap_selection", "s5")
+        touch(os.path.join(s, "params.yaml"), b"operator: kim\n")
+        touch(os.path.join(s, "episodes.csv"))
+        self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
+        self.assertEqual(os.listdir(self.drive), [])
+
     def test_no_operator_skipped(self):
         s = os.path.join(self.root, "il_gap_selection", "s4")
         touch(os.path.join(s, "session_0.bag"))

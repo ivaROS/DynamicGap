@@ -110,6 +110,10 @@ def upload_session(session_dir, remote, operator=None, dry_run=False, log=sys.st
     if recording(session_dir):
         print("{}: still recording, skipped".format(session_dir), file=log)
         return 0
+    if not any(f.endswith(".bag") for _, _, files in os.walk(session_dir) for f in files):
+        # e.g. the short folder a benchmark writes before it relaunches itself: no driving in it
+        print("{}: no bag (nothing recorded), skipped".format(session_dir), file=log)
+        return 0
     operator = operator or session_operator(session_dir)
     if not operator:
         print("{}: no operator (set IL_OPERATOR), skipped".format(session_dir), file=log)
