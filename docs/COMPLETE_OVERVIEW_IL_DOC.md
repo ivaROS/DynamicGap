@@ -468,9 +468,10 @@ roslaunch arena_bringup start_trials.launch man_gap:=true \
     record_il:=true il_data_root:=<data_root> il_operator:=<id> [il_session:=<name>]
 ```
 
-**Designed dataset** (`~/run_il_dataset.sh [session]`): the same with
+**Designed dataset** (`~/run_il_dataset.sh <operator> [session]`): the same with
 `tm_modules:=benchmark benchmark_suite:=il_dataset_small_v1.yaml`, data root
-`/home/abdel/il_data`, operator `ewan`, RViz under gdb.
+`/home/abdel/il_data`, RViz under gdb; follows the relaunch and uploads new sessions to
+the Drive at the end, as the container's script does.
 
 **Pilot run** (`~/run_il_pilot.sh [session]`, optional `PED_VMAX=<m/s>`; its
 sessions are preliminary): the same with the `50ped_daniel.yaml` suite.
